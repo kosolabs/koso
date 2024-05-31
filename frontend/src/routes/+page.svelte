@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Banner } from "flowbite-svelte";
   import Tasker from "$lib/tasker.svelte";
+  import { Button } from "flowbite-svelte";
 
   type Task = {
     id: string;
@@ -20,8 +20,6 @@
   }
 </script>
 
-<!-- <Banner id="default-banner" position="absolute">Welcome to Yotei!</Banner> -->
-
 <ul class="border-2 border-red-100">
   {#each tasks as task}
     <Tasker id={task.id} name={task.name} />
@@ -32,3 +30,5 @@
     </ul>
   {/each}
 </ul>
+
+<Button>Hello</Button>
