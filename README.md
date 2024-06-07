@@ -36,3 +36,30 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+
+# Backend
+
+## Developing
+
+Start a development server:
+
+```bash
+cargo run
+```
+
+You can interact with the server at http://localhost:3000 using a browser, a CLI tool like cURL or an API explorer such as [Postman](https://www.postman.com/downloads/).
+
+List tasks:
+
+```bash
+curl localhost:3000/task/list | jq
+```
+
+Create a task:
+
+```bash
+curl -H 'Content-Type: application/json' \
+      -d "{\"name\": \"$USER task $(date '+%d/%m/%Y_%H:%M:%S')\"}" \
+      -X POST \
+      localhost:3000/task/create | jq
+```
