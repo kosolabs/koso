@@ -39,6 +39,30 @@ You can preview the production build with `npm run preview`.
 
 # Backend
 
+## PostgresSQL
+
+The backend uses a Postgres databse. There are several ways you can setup Postgress. [postgresapp](https://postgresapp.com/) is the simplest, but you may use one of the [alternatives](https://www.postgresql.org/download/macosx/) as you wish. The backend defaults to this connection string: `postgresql://localhost`. You may override this by setting the `DATABASE_URL` environment variable.
+
+The backend uses SQLx to interact with Postgres. Install the [SQLx CLI](https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md) in order to run migrations and perform other administrative operations:
+
+```bash
+cargo install sqlx-cli --no-default-features --features rustls,postgres
+```
+
+### Migrations
+
+Add a migration:
+
+```bash
+sqlx migrate add some-meaningful-name
+```
+
+Run migrations
+
+```bash
+sqlx migrate run
+```
+
 ## Developing
 
 Start a development server:
