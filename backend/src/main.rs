@@ -1,6 +1,7 @@
 use axum::{
     extract::State,
     http::StatusCode,
+    response::IntoResponse,
     response::Json,
     routing::{get, post},
     Router,
@@ -65,6 +66,7 @@ async fn main() {
         .route("/task/list", get(list_tasks))
         .route("/task/create", post(create_task))
         .route_service("/", ServeFile::new("assets/index.html"))
+        .fallback(handler_404)
         .with_state(state)
         // Enable request tracing. Must enable `tower_http=debug`
         .layer(TraceLayer::new_for_http());
@@ -118,4 +120,9 @@ where
     E: std::error::Error,
 {
     (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+}
+
+// Default 404 handler.
+async fn handler_404() -> impl IntoResponse {
+    (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
