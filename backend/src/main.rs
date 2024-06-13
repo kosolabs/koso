@@ -17,7 +17,7 @@ use std::time::Duration;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-#[derive(Clone, serde::Serialize)]
+#[derive(serde::Serialize)]
 struct Task {
     id: String,
     name: String,
