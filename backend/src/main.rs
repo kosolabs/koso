@@ -46,14 +46,17 @@ async fn main() {
     // Connect to the Postgres database.
     let db_connection_str =
         std::env::var("DATABASE_URL").unwrap_or_else(|_| "postgresql://localhost".to_string());
-    let opts: PgConnectOptions = db_connection_str.parse().unwrap();
-    // Enable query trace logging. Must enable `sqlx=trace`
-    let opts = opts.log_statements(tracing::log::LevelFilter::Trace);
     tracing::debug!("Connecting to database: {}", db_connection_str);
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .acquire_timeout(Duration::from_secs(3))
-        .connect_with(opts)
+        .connect_with(
+            db_connection_str
+                .parse::<PgConnectOptions>()
+                .unwrap()
+                // Enable query trace logging. Must enable `sqlx=trace`
+                .log_statements(tracing::log::LevelFilter::Trace),
+        )
         .await
         .expect("can't connect to database");
 
