@@ -6,6 +6,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use listenfd::ListenFd;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use sqlx::ConnectOptions;
 use std::sync::Arc;
@@ -14,6 +15,7 @@ use uuid::Uuid;
 
 use std::time::Duration;
 
+use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -71,8 +73,21 @@ async fn main() {
         // Enable request tracing. Must enable `tower_http=debug`
         .layer(TraceLayer::new_for_http());
 
-    // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    // We can either use a listener provided by the environment by ListenFd or
+    // listen on a local port. The former is convenient when using `cargo watch`
+    // with systemd.
+    // For example: `systemfd --no-pid -s http::3000 -- cargo watch -x run``
+    let mut listenfd = ListenFd::from_env();
+    let listener = match listenfd.take_tcp_listener(0).unwrap() {
+        // if we are given a tcp listener on listen fd 0, we use that one
+        Some(listener) => {
+            listener.set_nonblocking(true).unwrap();
+            TcpListener::from_std(listener).unwrap()
+        }
+        // otherwise fall back to local listening
+        None => TcpListener::bind("0.0.0.0:3000").await.unwrap(),
+    };
+
     tracing::debug!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }

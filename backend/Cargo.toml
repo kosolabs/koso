@@ -16,3 +16,4 @@ tower-http = { version = "0.5.2", features = ["fs", "trace"] }
 sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "any", "postgres", "macros"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+listenfd = "1.0.1"

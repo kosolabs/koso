@@ -87,3 +87,21 @@ curl -H 'Content-Type: application/json' \
       -X POST \
       localhost:3000/task/create | jq
 ```
+
+### Auto-reload
+
+Tired of manually restarting your server after editing the code? Use systemfd and cargo-watch to
+automatically recompile and restart the server whenever the source code changes.
+It uses listenfd to be able to migrate connections from an old version of the app to a newly-compiled version.
+
+One time setup:
+
+```bash
+cargo install cargo-watch systemfd
+```
+
+Running:
+
+```bash
+systemfd --no-pid -s http::3000 -- cargo watch -x run
+```
