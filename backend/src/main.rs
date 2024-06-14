@@ -10,7 +10,9 @@ use listenfd::ListenFd;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use sqlx::ConnectOptions;
 use std::sync::Arc;
+use tokio::signal;
 use tower_http::services::ServeFile;
+use tower_http::timeout::TimeoutLayer;
 use uuid::Uuid;
 
 use std::time::Duration;
@@ -70,8 +72,13 @@ async fn main() {
         .route_service("/", ServeFile::new("assets/index.html"))
         .fallback(handler_404)
         .with_state(state)
-        // Enable request tracing. Must enable `tower_http=debug`
-        .layer(TraceLayer::new_for_http());
+        .layer((
+            // Enable request tracing. Must enable `tower_http=debug`
+            TraceLayer::new_for_http(),
+            // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
+            // requests don't hang forever.
+            TimeoutLayer::new(Duration::from_secs(10)),
+        ));
 
     // We can either use a listener provided by the environment by ListenFd or
     // listen on a local port. The former is convenient when using `cargo watch`
@@ -89,7 +96,10 @@ async fn main() {
     };
 
     tracing::debug!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
 }
 
 async fn create_task(
@@ -140,4 +150,30 @@ where
 // Default 404 handler.
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+        tracing::debug!("Terminating with ctrl-c...");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+        tracing::debug!("Terminating...");
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
 }
