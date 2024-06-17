@@ -65,7 +65,7 @@ async fn main() {
         .await
         .expect("can't connect to database");
 
-    let state = Arc::new(AppState { pool: pool });
+    let state = Arc::new(AppState { pool: pool.clone() });
     let app = Router::new()
         .route("/task/list", get(list_tasks))
         .route("/task/create", post(create_task))
@@ -97,7 +97,7 @@ async fn main() {
 
     tracing::debug!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(shutdown_signal(pool))
         .await
         .unwrap();
 }
@@ -152,7 +152,7 @@ async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
 
-async fn shutdown_signal() {
+async fn shutdown_signal(pool: PgPool) {
     let ctrl_c = async {
         signal::ctrl_c()
             .await
@@ -176,4 +176,7 @@ async fn shutdown_signal() {
         _ = ctrl_c => {},
         _ = terminate => {},
     }
+
+    tracing::debug!("Closing database pool...");
+    pool.close().await;
 }
