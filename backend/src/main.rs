@@ -25,10 +25,10 @@ use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use axum_streams::*;
+use axum_streams::StreamBodyAsOptions;
 use tokio_stream::StreamExt;
 
-#[derive(Clone, serde::Serialize)]
+#[derive(serde::Serialize)]
 struct Task {
     id: String,
     name: String,
@@ -163,7 +163,7 @@ async fn stream_tasks(Extension(pool): Extension<&'static PgPool>) -> impl IntoR
         .map(|t| Task { id: t.0, name: t.1 });
 
     StreamBodyAsOptions::new()
-        .buffering_ready_items(50)
+        .buffering_ready_items(5)
         .json_array(tasks)
 }
 
