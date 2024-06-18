@@ -1,12 +1,11 @@
 use axum::{
-    extract::State,
     extract::{MatchedPath, Request},
     http::StatusCode,
     middleware::{self, Next},
     response::IntoResponse,
     response::Json,
     routing::{get, post},
-    Router,
+    Extension, Router,
 };
 use listenfd::ListenFd;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
@@ -26,7 +25,10 @@ use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-#[derive(serde::Serialize)]
+use axum_streams::*;
+use tokio_stream::StreamExt;
+
+#[derive(Clone, serde::Serialize)]
 struct Task {
     id: String,
     name: String,
@@ -38,9 +40,7 @@ struct NewTask {
     name: String,
 }
 
-struct AppState {
-    pool: PgPool,
-}
+struct AppState {}
 
 #[tokio::main]
 async fn main() {
@@ -61,23 +61,26 @@ async fn start_main_server() {
     let db_connection_str =
         std::env::var("DATABASE_URL").unwrap_or_else(|_| "postgresql://localhost".to_string());
     tracing::debug!("Connecting to database: {}", db_connection_str);
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .acquire_timeout(Duration::from_secs(3))
-        .connect_with(
-            db_connection_str
-                .parse::<PgConnectOptions>()
-                .unwrap()
-                // Enable query trace logging. Must enable `sqlx=trace`
-                .log_statements(tracing::log::LevelFilter::Trace),
-        )
-        .await
-        .expect("can't connect to database");
+    let pool: &'static PgPool = Box::leak(Box::new(
+        PgPoolOptions::new()
+            .max_connections(5)
+            .acquire_timeout(Duration::from_secs(3))
+            .connect_with(
+                db_connection_str
+                    .parse::<PgConnectOptions>()
+                    .unwrap()
+                    // Enable query trace logging. Must enable `sqlx=trace`
+                    .log_statements(tracing::log::LevelFilter::Trace),
+            )
+            .await
+            .expect("can't connect to database"),
+    ));
 
-    let state = Arc::new(AppState { pool: pool.clone() });
+    let state = Arc::new(AppState {});
     let app = Router::new()
         .route("/task/list", get(list_tasks))
         .route("/task/create", post(create_task))
+        .route("/task/stream", get(stream_tasks))
         .route_service("/", ServeFile::new("assets/index.html"))
         .route_layer(middleware::from_fn(track_metrics))
         .fallback(handler_404)
@@ -88,6 +91,7 @@ async fn start_main_server() {
             // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
             // requests don't hang forever.
             TimeoutLayer::new(Duration::from_secs(10)),
+            Extension(pool),
         ));
 
     // We can either use a listener provided by the environment by ListenFd or
@@ -116,7 +120,7 @@ async fn start_main_server() {
 }
 
 async fn create_task(
-    State(state): State<Arc<AppState>>,
+    Extension(pool): Extension<&'static PgPool>,
     Json(new_task): Json<NewTask>,
 ) -> Result<Json<Task>, (StatusCode, String)> {
     let task = Task {
@@ -127,18 +131,17 @@ async fn create_task(
     sqlx::query("INSERT INTO tasks(id, name) VALUES ($1, $2);")
         .bind(&task.id)
         .bind(&task.name)
-        .execute(&state.pool)
+        .execute(pool)
         .await
         .map_err(internal_error)?;
     Ok(Json(task))
 }
 
 async fn list_tasks(
-    State(state): State<Arc<AppState>>,
+    Extension(pool): Extension<&'static PgPool>,
 ) -> Result<Json<Vec<Task>>, (StatusCode, String)> {
     let results: Vec<(String, String)> = sqlx::query_as("SELECT id, name from tasks")
-        .persistent(true)
-        .fetch_all(&state.pool)
+        .fetch_all(pool)
         .await
         .map_err(internal_error)?;
 
@@ -151,6 +154,17 @@ async fn list_tasks(
     }
 
     Ok(Json(tasks))
+}
+
+async fn stream_tasks(Extension(pool): Extension<&'static PgPool>) -> impl IntoResponse {
+    let tasks = sqlx::query_as("SELECT id, name from tasks")
+        .fetch(pool)
+        .filter_map(|t: Result<(String, String), sqlx::Error>| t.ok())
+        .map(|t| Task { id: t.0, name: t.1 });
+
+    StreamBodyAsOptions::new()
+        .buffering_ready_items(50)
+        .json_array(tasks)
 }
 
 /// Utility function for mapping any error into a `500 Internal Server Error` response.
