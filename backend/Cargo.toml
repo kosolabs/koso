@@ -17,3 +17,5 @@ sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "any", "postgres",
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 listenfd = "1.0.1"
+metrics = { version = "0.22", default-features = false }
+metrics-exporter-prometheus = { version = "0.13", default-features = false }

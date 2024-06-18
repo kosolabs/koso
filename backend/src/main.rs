@@ -1,6 +1,8 @@
 use axum::{
     extract::State,
+    extract::{MatchedPath, Request},
     http::StatusCode,
+    middleware::{self, Next},
     response::IntoResponse,
     response::Json,
     routing::{get, post},
@@ -15,8 +17,11 @@ use tower_http::services::ServeFile;
 use tower_http::timeout::TimeoutLayer;
 use uuid::Uuid;
 
-use std::time::Duration;
-
+use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
+use std::{
+    future::ready,
+    time::{Duration, Instant},
+};
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -48,6 +53,10 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let (_main_server, _metrics_server) = tokio::join!(start_main_server(), start_metrics_server());
+}
+
+async fn start_main_server() {
     // Connect to the Postgres database.
     let db_connection_str =
         std::env::var("DATABASE_URL").unwrap_or_else(|_| "postgresql://localhost".to_string());
@@ -70,6 +79,7 @@ async fn main() {
         .route("/task/list", get(list_tasks))
         .route("/task/create", post(create_task))
         .route_service("/", ServeFile::new("assets/index.html"))
+        .route_layer(middleware::from_fn(track_metrics))
         .fallback(handler_404)
         .with_state(state)
         .layer((
@@ -95,11 +105,14 @@ async fn main() {
         None => TcpListener::bind("0.0.0.0:3000").await.unwrap(),
     };
 
-    tracing::debug!("listening on {}", listener.local_addr().unwrap());
+    tracing::debug!("server listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal(pool))
+        .with_graceful_shutdown(shutdown_signal("server"))
         .await
         .unwrap();
+
+    tracing::debug!("Closing database pool...");
+    pool.close().await;
 }
 
 async fn create_task(
@@ -124,6 +137,7 @@ async fn list_tasks(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<Task>>, (StatusCode, String)> {
     let results: Vec<(String, String)> = sqlx::query_as("SELECT id, name from tasks")
+        .persistent(true)
         .fetch_all(&state.pool)
         .await
         .map_err(internal_error)?;
@@ -152,12 +166,12 @@ async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
 
-async fn shutdown_signal(pool: PgPool) {
+async fn shutdown_signal(name: &str) {
     let ctrl_c = async {
         signal::ctrl_c()
             .await
             .expect("failed to install Ctrl+C handler");
-        tracing::debug!("Terminating with ctrl-c...");
+        tracing::debug!("Terminating {name} with ctrl-c...");
     };
 
     #[cfg(unix)]
@@ -166,7 +180,7 @@ async fn shutdown_signal(pool: PgPool) {
             .expect("failed to install signal handler")
             .recv()
             .await;
-        tracing::debug!("Terminating...");
+        tracing::debug!("Terminating {name}...");
     };
 
     #[cfg(not(unix))]
@@ -176,7 +190,58 @@ async fn shutdown_signal(pool: PgPool) {
         _ = ctrl_c => {},
         _ = terminate => {},
     }
+}
 
-    tracing::debug!("Closing database pool...");
-    pool.close().await;
+async fn start_metrics_server() {
+    const EXPONENTIAL_SECONDS: &[f64] = &[
+        0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0,
+    ];
+    let recorder = PrometheusBuilder::new()
+        .set_buckets_for_metric(
+            Matcher::Full("http_requests_duration_seconds".to_string()),
+            EXPONENTIAL_SECONDS,
+        )
+        .unwrap()
+        .install_recorder()
+        .unwrap();
+
+    let app = Router::new().route("/metrics", get(move || ready(recorder.render())));
+    // The `/metrics` endpoint should not be publicly available.
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3001")
+        .await
+        .unwrap();
+
+    tracing::debug!(
+        "metrics server listening on {}",
+        listener.local_addr().unwrap()
+    );
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal("metrics server"))
+        .await
+        .unwrap();
+}
+
+async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
+    let start = Instant::now();
+    let path = if let Some(matched_path) = req.extensions().get::<MatchedPath>() {
+        matched_path.as_str().to_owned()
+    } else {
+        req.uri().path().to_owned()
+    };
+    let method = req.method().to_string();
+
+    // Run the next handler.
+    let response = next.run(req).await;
+
+    // Emit metrics.
+    let labels = [
+        ("method", method),
+        ("path", path),
+        ("status", response.status().as_u16().to_string()),
+    ];
+    metrics::counter!("http_requests_total", &labels).increment(1);
+    metrics::histogram!("http_requests_duration_seconds", &labels)
+        .record(start.elapsed().as_secs_f64());
+
+    response
 }
