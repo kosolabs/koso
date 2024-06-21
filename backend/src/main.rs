@@ -9,13 +9,14 @@ use axum::{
     Extension, Router,
 };
 use axum_extra::{headers, TypedHeader};
+use futures::FutureExt;
 use listenfd::ListenFd;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use sqlx::ConnectOptions;
-use std::borrow::Cow;
 use std::net::SocketAddr;
 use std::ops::ControlFlow;
 use std::sync::Arc;
+use std::{borrow::Cow, future::IntoFuture};
 use tokio::signal;
 use tower_http::services::ServeFile;
 use tower_http::timeout::TimeoutLayer;
@@ -37,6 +38,9 @@ use axum_streams::StreamBodyAsOptions;
 use axum::extract::connect_info::ConnectInfo;
 use axum::extract::ws::CloseFrame;
 
+mod db_listener;
+use db_listener::listen_for_notifications;
+
 #[derive(serde::Serialize)]
 struct Task {
     id: String,
@@ -56,7 +60,7 @@ async fn main() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                "yotei=trace,tower_http=trace,axum::rejection=trace,sqlx=trace".into()
+                "yotei=trace,tower_http=trace,axum::rejection=trace,sqlx=trace,axum=trace".into()
             }),
         )
         .with(tracing_subscriber::fmt::layer())
@@ -122,16 +126,20 @@ async fn start_main_server() {
     };
 
     tracing::debug!("server listening on {}", listener.local_addr().unwrap());
-    axum::serve(
+    let serve_res = axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
     .with_graceful_shutdown(shutdown_signal("server"))
-    .await
-    .unwrap();
+    .into_future()
+    // Close the database pool after the server shuts down, when the future completes.
+    .map(move |r| {
+        tracing::debug!("Closing database pool...");
+        pool.close().map(|_| r)
+    });
 
-    tracing::debug!("Closing database pool...");
-    pool.close().await;
+    let (serve_res, _notify_res) = tokio::join!(serve_res, listen_for_notifications(pool));
+    serve_res.await.unwrap();
 }
 
 async fn create_task(
