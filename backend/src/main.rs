@@ -184,12 +184,24 @@ async fn stream_tasks(Extension(pool): Extension<&'static PgPool>) -> impl IntoR
 
     let tasks = sqlx::query_as("SELECT id, name from tasks")
         .fetch(pool)
-        .filter_map(|t: Result<(String, String), sqlx::Error>| t.ok())
-        .map(|t| Task { id: t.0, name: t.1 });
+        .map(|r: Result<(String, String), sqlx::Error>| match r {
+            Ok(t) => Ok(Task { id: t.0, name: t.1 }),
+            Err(e) => {
+                tracing::warn!("stream_tasks query failed: {}", e);
+                Err(axum::Error::new(e))
+            }
+        });
 
     StreamBodyAsOptions::new()
         .buffering_ready_items(5)
-        .json_array(tasks)
+        // An error mid stream will break the connection and cause
+        // most clients to produce an ERR_INCOMPLETE_CHUNKED_ENCODING error.
+        // Server side, you'll see the log above and a message like:
+        // "axum::serve: failed to serve connection: error from user's Body stream"
+        // An alternative is to return what amouts to a Result of Task rather
+        // than simply Task to clients and require clients handle errors explicitly.
+        // See https://github.com/abdolence/axum-streams-rs/issues/54
+        .json_array_with_errors(tasks)
 }
 
 /// Utility function for mapping any error into a `500 Internal Server Error` response.

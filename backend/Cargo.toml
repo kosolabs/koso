@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.7.5", features = ["http2", "ws"] }
-axum-streams = { version = "0.16.0", features = ["json"] }
+axum-streams = { version = "0.17.0", features = ["json"] }
 axum-extra = { version = "0.9.3", features = ["typed-header"] }
 
 tokio = { version = "1.38.0", features = ["full"] }
