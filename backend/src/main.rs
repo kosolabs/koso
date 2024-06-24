@@ -20,6 +20,7 @@ use std::{borrow::Cow, future::IntoFuture};
 use tokio::signal;
 use tower_http::services::ServeFile;
 use tower_http::timeout::TimeoutLayer;
+use tracing::{debug, Instrument};
 use uuid::Uuid;
 
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
@@ -41,14 +42,13 @@ use axum::extract::ws::CloseFrame;
 mod db_listener;
 use db_listener::listen_for_notifications;
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct Task {
     id: String,
     name: String,
 }
 
-#[derive(serde::Deserialize)]
-
+#[derive(serde::Deserialize, Debug)]
 struct NewTask {
     name: String,
 }
@@ -93,6 +93,7 @@ async fn start_main_server() {
     let app = Router::new()
         .route("/task/list", get(list_tasks))
         .route("/task/create", post(create_task))
+        .route("/task/update", post(update_task))
         .route("/task/stream", get(stream_tasks))
         .route("/ws", get(ws_handler))
         .route_service("/", ServeFile::new("assets/index.html"))
@@ -157,6 +158,35 @@ async fn create_task(
         .execute(pool)
         .await
         .map_err(internal_error)?;
+    Ok(Json(task))
+}
+
+async fn update_task(
+    Extension(pool): Extension<&'static PgPool>,
+    Json(task): Json<Task>,
+) -> Result<Json<Task>, (StatusCode, String)> {
+    let res = sqlx::query("UPDATE tasks SET name = $1 WHERE id=$2;")
+        .bind(&task.name)
+        .bind(&task.id)
+        .execute(pool)
+        .await
+        .map_err(internal_error)?;
+    if res.rows_affected() == 0 {
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("task '{}' does not exist!", &task.id),
+        ));
+    }
+    // Given the updates where clause should match 0 or 1 rows and never more,
+    // this should never happen.
+    if res.rows_affected() > 1 {
+        tracing::error!(
+            "unexpectedly updated more than 1 rows ({}) for id '{}'",
+            res.rows_affected(),
+            &task.id
+        )
+    }
+
     Ok(Json(task))
 }
 
