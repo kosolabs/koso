@@ -2,6 +2,8 @@
   import "../app.css";
 </script>
 
-<slot></slot>
+<div class="m-4">
+  <slot></slot>
+</div>
 
 <style></style>
