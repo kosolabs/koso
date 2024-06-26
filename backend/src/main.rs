@@ -52,7 +52,11 @@ struct AppState {}
 
 #[derive(Clone)]
 struct ChangeRouter {
+    /// Existing routes to notify.
     routes: Arc<Mutex<Vec<ClientRoute>>>,
+    /// Newly added routes that will be moved to `routes`
+    /// when the next notification is processed.
+    new_routes: Arc<Mutex<Vec<ClientRoute>>>,
 }
 
 #[derive(Debug)]
@@ -98,8 +102,9 @@ async fn start_main_server() {
     // Create a stream of task notifications and a router to fan them out to client routes.
     let change_router = ChangeRouter {
         routes: Arc::new(Mutex::new(Vec::new())),
+        new_routes: Arc::new(Mutex::new(Vec::new())),
     };
-    tokio::spawn(handle_notify(
+    let notify_task = tokio::spawn(handle_notify(
         change_router.clone(),
         stream_task_notifications(pool),
     ));
@@ -152,6 +157,7 @@ async fn start_main_server() {
     .unwrap();
 
     // Now that the server is shutdown, it's safe to clean things up.
+    notify_task.abort();
     tracing::debug!("Closing database pool...");
     pool.close().await;
 }
@@ -366,7 +372,7 @@ async fn handle_socket(socket: WebSocket, who: SocketAddr, change_router: Change
     let who = who.to_string();
     // Store the sender side of the socket in the list of client routes.
     tracing::debug!("Adding route for client {who}");
-    change_router.routes.lock().await.push(ClientRoute {
+    change_router.new_routes.lock().await.push(ClientRoute {
         sink: sender,
         who: who.clone(),
     });
@@ -411,6 +417,15 @@ async fn handle_notify(
     loop {
         match change_stream.next().await {
             Some(Ok(payload)) => {
+                // First, move any new routes into the routes list.
+                // Doing this reduces contention while inserting new routes
+                // and fanning out to all routes below.
+                change_router
+                    .routes
+                    .lock()
+                    .await
+                    .append(change_router.new_routes.lock().await.borrow_mut());
+
                 let payload = Message::Text(serde_json::to_string(&payload).unwrap());
                 let mut routes = change_router.routes.lock().await;
                 tracing::debug!(
