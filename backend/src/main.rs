@@ -1,8 +1,5 @@
 use axum::{
-    extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
-        MatchedPath, Request,
-    },
+    extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Request},
     http::StatusCode,
     middleware::{self, Next},
     response::{IntoResponse, Json},
@@ -10,32 +7,29 @@ use axum::{
     Extension, Router,
 };
 use axum_extra::{headers, TypedHeader};
+use axum_streams::StreamBodyAsOptions;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
-use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
-use sqlx::ConnectOptions;
-use std::net::SocketAddr;
-use std::{borrow::BorrowMut, sync::Arc};
+use sqlx::{
+    postgres::{PgConnectOptions, PgPool, PgPoolOptions},
+    ConnectOptions,
+};
 use std::{
     future::ready,
+    net::SocketAddr,
+    sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::net::TcpListener;
-use tokio::signal;
-use tokio::sync::Mutex;
-use tower_http::services::ServeFile;
-use tower_http::timeout::TimeoutLayer;
-use tower_http::trace::{DefaultMakeSpan, TraceLayer};
+use tokio::{net::TcpListener, signal};
+use tower_http::{
+    services::ServeFile,
+    timeout::TimeoutLayer,
+    trace::{DefaultMakeSpan, TraceLayer},
+};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
-use axum_streams::StreamBodyAsOptions;
-
-//allows to extract the IP of connecting user
-use axum::extract::connect_info::ConnectInfo;
-
-mod db_listener;
-use db_listener::{stream_task_notifications, Payload};
+mod notify;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct Task {
@@ -49,21 +43,6 @@ struct NewTask {
 }
 
 struct AppState {}
-
-#[derive(Clone)]
-struct ChangeRouter {
-    /// Existing routes to notify.
-    routes: Arc<Mutex<Vec<ClientRoute>>>,
-    /// Newly added routes that will be moved to `routes`
-    /// when the next notification is processed.
-    new_routes: Arc<Mutex<Vec<ClientRoute>>>,
-}
-
-#[derive(Debug)]
-struct ClientRoute {
-    sink: futures::stream::SplitSink<WebSocket, Message>,
-    who: String,
-}
 
 #[tokio::main]
 async fn main() {
@@ -99,15 +78,7 @@ async fn start_main_server() {
             .expect("can't connect to database"),
     ));
 
-    // Create a stream of task notifications and a router to fan them out to client routes.
-    let change_router = ChangeRouter {
-        routes: Arc::new(Mutex::new(Vec::new())),
-        new_routes: Arc::new(Mutex::new(Vec::new())),
-    };
-    let notify_task = tokio::spawn(handle_notify(
-        change_router.clone(),
-        stream_task_notifications(pool),
-    ));
+    let (notifier, notify_task) = notify::start_notifications(pool.clone());
 
     let state = Arc::new(AppState {});
     let app = Router::new()
@@ -118,7 +89,7 @@ async fn start_main_server() {
         .route("/ws", get(ws_handler))
         .route_service("/", ServeFile::new("assets/index.html"))
         .route_service("/script.js", ServeFile::new("assets/script.js"))
-        .route_layer(middleware::from_fn(track_metrics))
+        .route_layer(middleware::from_fn(emit_request_metrics))
         .fallback(handler_404)
         .with_state(state)
         .layer((
@@ -129,7 +100,7 @@ async fn start_main_server() {
             // requests don't hang forever.
             TimeoutLayer::new(Duration::from_secs(10)),
             Extension(pool),
-            Extension(change_router),
+            Extension(notifier),
         ));
 
     // We can either use a listener provided by the environment by ListenFd or
@@ -253,6 +224,22 @@ async fn stream_tasks(Extension(pool): Extension<&'static PgPool>) -> impl IntoR
         .json_array_with_errors(tasks)
 }
 
+/// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
+/// of websocket negotiation). After this completes, the actual switching from HTTP to
+/// websocket protocol will occur.
+/// This is the last point where we can extract TCP/IP metadata such as IP address of the client
+/// as well as things from HTTP headers such as user-agent of the browser etc.
+async fn ws_handler(
+    ws: WebSocketUpgrade,
+    _user_agent: Option<TypedHeader<headers::UserAgent>>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    Extension(notifier): Extension<notify::Notifier>,
+) -> impl IntoResponse {
+    // finalize the upgrade process by returning upgrade callback.
+    // we can customize the callback by sending additional info such as address.
+    ws.on_upgrade(move |socket| notifier.register_destination(socket, addr))
+}
+
 /// Utility function for mapping any error into a `500 Internal Server Error` response.
 fn internal_error<E>(err: E) -> (StatusCode, String)
 where
@@ -295,6 +282,7 @@ async fn shutdown_signal(name: &str) {
     }
 }
 
+/// Starts a prometheus metrics server and returns a future that completes on termination.
 async fn start_metrics_server() {
     const EXPONENTIAL_SECONDS: &[f64] = &[
         0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0,
@@ -324,7 +312,7 @@ async fn start_metrics_server() {
         .unwrap();
 }
 
-async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
+async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
     let start = Instant::now();
     let path = if let Some(matched_path) = req.extensions().get::<MatchedPath>() {
         matched_path.as_str().to_owned()
@@ -347,134 +335,4 @@ async fn track_metrics(req: Request, next: Next) -> impl IntoResponse {
         .record(start.elapsed().as_secs_f64());
 
     response
-}
-
-/// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
-/// of websocket negotiation). After this completes, the actual switching from HTTP to
-/// websocket protocol will occur.
-/// This is the last point where we can extract TCP/IP metadata such as IP address of the client
-/// as well as things from HTTP headers such as user-agent of the browser etc.
-async fn ws_handler(
-    ws: WebSocketUpgrade,
-    _user_agent: Option<TypedHeader<headers::UserAgent>>,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    Extension(change_router): Extension<ChangeRouter>,
-) -> impl IntoResponse {
-    // finalize the upgrade process by returning upgrade callback.
-    // we can customize the callback by sending additional info such as address.
-    ws.on_upgrade(move |socket| handle_socket(socket, addr, change_router))
-}
-
-async fn handle_socket(socket: WebSocket, who: SocketAddr, change_router: ChangeRouter) {
-    use futures::stream::StreamExt;
-    let (sender, mut receiver) = socket.split();
-
-    let who = who.to_string();
-    // Store the sender side of the socket in the list of client routes.
-    tracing::debug!("Adding route for client {who}");
-    change_router.new_routes.lock().await.push(ClientRoute {
-        sink: sender,
-        who: who.clone(),
-    });
-
-    // Listen for messages on the read side of the socket.
-    // We don't currently expect any messages other than closures.
-    // The idea is to proactively remove clients on closure rather
-    // than only sweeping them out while processing a notification.
-    tokio::spawn(async move {
-        while let Some(Ok(msg)) = receiver.next().await {
-            match msg {
-                Message::Close(c) => {
-                    if let Some(cf) = c {
-                        tracing::debug!(
-                            ">>> {who} sent close with code {} and reason `{}`",
-                            cf.code,
-                            cf.reason
-                        );
-                    } else {
-                        tracing::debug!(">>> {who} somehow sent close message without CloseFrame");
-                    }
-                    // TODO: Close and remove the client route from the change_router.
-                    break;
-                }
-                _ => {
-                    tracing::debug!(">>> {who} sent unsolicited message: {msg:?}");
-                }
-            }
-        }
-    });
-}
-
-use futures::stream::Stream;
-
-async fn handle_notify(
-    change_router: ChangeRouter,
-    change_stream: impl Stream<Item = Result<Payload, sqlx::Error>>,
-) {
-    use futures::StreamExt;
-    futures::pin_mut!(change_stream);
-
-    loop {
-        match change_stream.next().await {
-            Some(Ok(payload)) => {
-                // First, move any new routes into the routes list.
-                // Doing this reduces contention while inserting new routes
-                // and fanning out to all routes below.
-                change_router
-                    .routes
-                    .lock()
-                    .await
-                    .append(change_router.new_routes.lock().await.borrow_mut());
-
-                let payload = Message::Text(serde_json::to_string(&payload).unwrap());
-                let mut routes = change_router.routes.lock().await;
-                tracing::debug!(
-                    "Notifying {} clients ({}) with: {:?}",
-                    routes.len(),
-                    routes
-                        .iter()
-                        .map(|cr| &*cr.who)
-                        .collect::<Vec<&str>>()
-                        .join(", "),
-                    payload
-                );
-
-                // Route the notification to all clients.
-                // Along the way, prune any dead clients.
-                // TODO: Doing this serially won't scale to many clients.
-                let mut i = 0;
-                while i < routes.len() {
-                    let client_route = routes[i].borrow_mut();
-
-                    tracing::debug!("Notifying client {}", client_route.who);
-                    use futures::sink::SinkExt;
-                    match client_route.sink.send(payload.clone()).await {
-                        Ok(_) => {
-                            tracing::debug!("Sent to {}", client_route.who);
-                            i += 1;
-                        }
-                        Err(e) => {
-                            tracing::debug!(
-                                "Failed to send to {}, removing route: {}",
-                                client_route.who,
-                                e
-                            );
-                            // TODO: Only remove the route when the error indicates closure.
-                            routes.remove(i);
-                        }
-                    }
-                }
-            }
-            None => {
-                tracing::debug!("Got None from notify stream; continuing");
-                continue;
-            }
-            Some(Err(e)) => {
-                // TODO: Make sure all errors should be fatal and prevent the notifier from running further.
-                // On termination, the error `attempted to acquire a connection on a closed pool` is seen here.
-                tracing::debug!("Finishing notifier with error: {}", e);
-                break;
-            }
-        }
-    }
 }
