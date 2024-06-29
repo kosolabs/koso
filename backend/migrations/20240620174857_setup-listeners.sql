@@ -26,8 +26,8 @@ BEGIN
       'id', row_record.id,
       -- Include the entire new and old rows.
       -- This doesn't scale though, there's a 3KB size limit on notify
-      'record', row_to_json(row_record)::text,
-      'old', row_to_json(old_record)::text
+      'record', row_to_json(row_record),
+      'old', row_to_json(old_record)
     )::text
   );
 

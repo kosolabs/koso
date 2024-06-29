@@ -1,10 +1,13 @@
+use std::{collections::HashMap, fmt::Debug, net::SocketAddr, sync::Arc};
+
 use async_stream::try_stream;
 use axum::extract::ws::{Message, WebSocket};
 use futures::{stream::Stream, FutureExt, SinkExt};
 use sqlx::{postgres::PgListener, Pool, Postgres};
-use std::{collections::HashMap, fmt::Debug, net::SocketAddr, sync::Arc};
 use tokio::sync::Mutex;
 use uuid::Uuid;
+
+use crate::model::Task;
 
 pub fn start_notifications(
     pool: sqlx::Pool<sqlx::Postgres>,
@@ -164,11 +167,8 @@ pub struct Payload {
     pub table: String,
     pub action: Action,
     pub id: String,
-    // TODO: Both record and old are json marshalled by the database.
-    // It'd be good to massage this into our domain objects here
-    // rather than rely on database entirely.
-    pub record: String,
-    pub old: Option<String>,
+    pub record: Task,
+    pub old: Option<Task>,
 }
 
 /// Creates a stream of insert, update and delete task notifications.

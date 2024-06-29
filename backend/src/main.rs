@@ -1,3 +1,10 @@
+use std::{
+    future::ready,
+    net::SocketAddr,
+    sync::Arc,
+    time::{Duration, Instant},
+};
+
 use axum::{
     extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Request},
     http::StatusCode,
@@ -8,17 +15,12 @@ use axum::{
 };
 use axum_extra::{headers, TypedHeader};
 use axum_streams::StreamBodyAsOptions;
+use futures::{Stream, TryStreamExt};
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use sqlx::{
     postgres::{PgConnectOptions, PgPool, PgPoolOptions},
     ConnectOptions,
-};
-use std::{
-    future::ready,
-    net::SocketAddr,
-    sync::Arc,
-    time::{Duration, Instant},
 };
 use tokio::{net::TcpListener, signal};
 use tower_http::{
@@ -29,18 +31,11 @@ use tower_http::{
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
+use model::NewTask;
+use model::Task;
+
+mod model;
 mod notify;
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-struct Task {
-    id: String,
-    name: String,
-}
-
-#[derive(serde::Deserialize, Debug)]
-struct NewTask {
-    name: String,
-}
 
 struct AppState {}
 
@@ -183,19 +178,10 @@ async fn update_task(
 async fn list_tasks(
     Extension(pool): Extension<&'static PgPool>,
 ) -> Result<Json<Vec<Task>>, (StatusCode, String)> {
-    let results: Vec<(String, String)> = sqlx::query_as("SELECT id, name from tasks")
+    let tasks: Vec<Task> = sqlx::query_as("SELECT id, name from tasks")
         .fetch_all(pool)
         .await
         .map_err(internal_error)?;
-
-    let mut tasks = Vec::new();
-    for row in results {
-        tasks.push(Task {
-            id: row.0,
-            name: row.1,
-        })
-    }
-
     Ok(Json(tasks))
 }
 
@@ -204,8 +190,8 @@ async fn stream_tasks(Extension(pool): Extension<&'static PgPool>) -> impl IntoR
 
     let tasks = sqlx::query_as("SELECT id, name from tasks")
         .fetch(pool)
-        .map(|r: Result<(String, String), sqlx::Error>| match r {
-            Ok(t) => Ok(Task { id: t.0, name: t.1 }),
+        .map(|r: Result<Task, sqlx::Error>| match r {
+            Ok(t) => Ok(t),
             Err(e) => {
                 tracing::warn!("stream_tasks query failed: {}", e);
                 Err(axum::Error::new(e))
