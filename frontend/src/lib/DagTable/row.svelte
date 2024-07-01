@@ -1,7 +1,8 @@
 <script lang="ts">
   import { AngleRightOutline, BarsOutline } from "flowbite-svelte-icons";
+  import { getContext } from "svelte";
   import type { Graph, Path } from ".";
-  import type { Interactions } from "./table.svelte";
+  import { type Interactions, type TableContext } from "./table.svelte";
 
   export let graph: Graph;
   export let path: Path;
@@ -10,14 +11,25 @@
 
   $: node = graph[path.name]!;
 
-  let open = true;
+  const {
+    addChild,
+    removeChild,
+    setDragged,
+    clearDragged,
+    setMaybePeer,
+    setMaybeChild,
+    clearMaybePeerAndChild,
+  } = getContext<TableContext>(graph);
 
+  let open = true;
   function toggleOpen() {
     open = !open;
   }
 
   function dragStart(event: DragEvent) {
-    interactions = { ...interactions, dragged: path };
+    setDragged(path);
+    event.dataTransfer!.setData("text/plain", path.id);
+    event.dataTransfer!.effectAllowed = "linkMove";
 
     const rowEl = document.getElementById(`row-${path.id}`)!;
     const handleEl = document.getElementById(`handle-${path.id}`)!;
@@ -33,25 +45,33 @@
 
   function dragEnd(event: DragEvent) {
     event.preventDefault();
-    interactions = { ...interactions, dragged: null };
+    clearDragged();
   }
 
   function drop(event: DragEvent, relationship: "peer" | "child") {
     event.preventDefault();
+    console.log(
+      "drop",
+      event.dataTransfer!.dropEffect,
+      event.dataTransfer!.effectAllowed,
+    );
+
     if (interactions.dragged === null) {
       return;
     }
     if (relationship === "child") {
-      const parent = graph[path.name]!;
-      parent.children.splice(0, 0, interactions.dragged.name);
-      graph = graph;
+      addChild(path.name, interactions.dragged.name, 0);
     } else if (relationship === "peer") {
       const parentId = path.parent().name;
       const parent = graph[parentId]!;
       const index = parent.children.indexOf(path.name);
-      parent.children.splice(index + 1, 0, interactions.dragged.name);
-      graph = graph;
+      addChild(parentId, interactions.dragged.name, index + 1);
     }
+    if (event.dataTransfer?.effectAllowed !== "link") {
+      removeChild(interactions.dragged);
+    }
+    clearDragged();
+    clearMaybePeerAndChild();
   }
 
   function dragOver(event: DragEvent, relationship: "peer" | "child") {
@@ -60,19 +80,15 @@
       return;
     }
     if (relationship === "child") {
-      interactions = { ...interactions, maybeChild: path };
+      setMaybeChild(path);
     } else if (relationship === "peer") {
-      interactions = { ...interactions, maybePeer: path };
+      setMaybePeer(path);
     }
   }
 
   function dragLeave(event: DragEvent) {
     event.preventDefault();
-    interactions = {
-      ...interactions,
-      maybeChild: null,
-      maybePeer: null,
-    };
+    clearMaybePeerAndChild();
   }
 
   function hasCycle(parent: string, child: string): boolean {
@@ -135,7 +151,7 @@
         {#if canDragDrop}
           <div
             id="peer-dropzone-{path.id}"
-            class="absolute -left-6 z-50 h-7 w-12"
+            class="absolute -left-6 z-50 h-7 w-12 bg-red-400"
             role="table"
             on:dragover={(event) => dragOver(event, "peer")}
             on:dragleave={(event) => dragLeave(event)}
@@ -143,7 +159,7 @@
           />
           <div
             id="child-dropzone-{path.id}"
-            class="absolute left-6 z-50 h-7 w-12"
+            class="absolute left-6 z-50 h-7 w-12 bg-blue-400"
             role="table"
             on:dragover={(event) => dragOver(event, "child")}
             on:dragleave={(event) => dragLeave(event)}
@@ -159,8 +175,8 @@
 
 {#if interactions.dragged && path.equals(interactions.maybeChild)}
   <svelte:self
-    bind:graph
-    bind:interactions
+    {graph}
+    {interactions}
     ghost={true}
     path={path.concat(interactions.dragged.name)}
   />
@@ -168,14 +184,14 @@
 
 {#if open && !ghost}
   {#each node.children as child}
-    <svelte:self bind:graph bind:interactions path={path.concat(child)} />
+    <svelte:self {graph} {interactions} path={path.concat(child)} />
   {/each}
 {/if}
 
 {#if interactions.dragged && path.equals(interactions.maybePeer)}
   <svelte:self
-    bind:graph
-    bind:interactions
+    {graph}
+    {interactions}
     ghost={true}
     path={path.parent().concat(interactions.dragged.name)}
   />
