@@ -39,7 +39,7 @@ sqlx migrate add some-meaningful-name
 Run migrations
 
 ```bash
-sqlx migrate run
+DATABASE_URL=postgresql://localhost sqlx migrate run
 ```
 
 ### Developing

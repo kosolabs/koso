@@ -15,7 +15,6 @@ use axum::{
 };
 use axum_extra::{headers, TypedHeader};
 use axum_streams::StreamBodyAsOptions;
-use futures::{Stream, TryStreamExt};
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use sqlx::{
@@ -135,11 +134,13 @@ async fn create_task(
     let task = Task {
         id: Uuid::new_v4().to_string(),
         name: new_task.name,
+        children: new_task.children,
     };
 
-    sqlx::query("INSERT INTO tasks(id, name) VALUES ($1, $2);")
+    sqlx::query("INSERT INTO tasks(id, name, children) VALUES ($1, $2, $3);")
         .bind(&task.id)
         .bind(&task.name)
+        .bind(&task.children)
         .execute(pool)
         .await
         .map_err(internal_error)?;
@@ -150,9 +151,10 @@ async fn update_task(
     Extension(pool): Extension<&'static PgPool>,
     Json(task): Json<Task>,
 ) -> Result<Json<Task>, (StatusCode, String)> {
-    let res = sqlx::query("UPDATE tasks SET name = $1 WHERE id=$2;")
-        .bind(&task.name)
+    let res = sqlx::query("UPDATE tasks SET name = $2, children = $3 WHERE id=$1;")
         .bind(&task.id)
+        .bind(&task.name)
+        .bind(&task.children)
         .execute(pool)
         .await
         .map_err(internal_error)?;
@@ -178,7 +180,7 @@ async fn update_task(
 async fn list_tasks(
     Extension(pool): Extension<&'static PgPool>,
 ) -> Result<Json<Vec<Task>>, (StatusCode, String)> {
-    let tasks: Vec<Task> = sqlx::query_as("SELECT id, name from tasks")
+    let tasks: Vec<Task> = sqlx::query_as("SELECT id, name, children FROM tasks")
         .fetch_all(pool)
         .await
         .map_err(internal_error)?;
@@ -188,7 +190,7 @@ async fn list_tasks(
 async fn stream_tasks(Extension(pool): Extension<&'static PgPool>) -> impl IntoResponse {
     use tokio_stream::StreamExt;
 
-    let tasks = sqlx::query_as("SELECT id, name from tasks")
+    let tasks = sqlx::query_as("SELECT id, name, children FROM tasks")
         .fetch(pool)
         .map(|r: Result<Task, sqlx::Error>| match r {
             Ok(t) => Ok(t),

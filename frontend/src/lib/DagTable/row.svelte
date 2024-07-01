@@ -167,7 +167,7 @@
           />
         {/if}
       </button>
-      <div>{path.name}</div>
+      <div>{path.name.substring(0, 5)}</div>
     </div>
   </div>
   <div class="w-40 px-2">{node.title}</div>

@@ -1,0 +1,28 @@
+###
+
+POST http://localhost:3000/task/create
+Content-Type: application/json
+
+{
+    "name": "Yotei task 2024/07/01",
+    "children": []
+}
+
+### 
+
+# Fetch tasks
+GET http://localhost:3000/task/list
+
+###
+
+GET http://localhost:3000/task/stream HTTP/2.0
+
+###
+
+POST http://localhost:3000/task/create
+Content-Type: application/json
+
+{
+    "name": "Task with child",
+    "children": ["bfc6e552-c5d4-4617-b8c6-5cae0617f64f"]
+}
