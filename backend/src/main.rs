@@ -10,7 +10,7 @@ use axum::{
     http::StatusCode,
     middleware::{self, Next},
     response::{IntoResponse, Json},
-    routing::{get, post},
+    routing::{get, patch, post},
     Extension, Router,
 };
 use axum_extra::{headers, TypedHeader};
@@ -76,10 +76,10 @@ async fn start_main_server() {
 
     let state = Arc::new(AppState {});
     let app = Router::new()
-        .route("/task/list", get(list_tasks))
-        .route("/task/create", post(create_task))
-        .route("/task/update", post(update_task))
-        .route("/task/stream", get(stream_tasks))
+        .route("/api/tasks", get(list_tasks))
+        .route("/api/tasks", post(create_task))
+        .route("/api/tasks", patch(update_task))
+        .route("/api/tasks/stream", get(stream_tasks))
         .route("/ws", get(ws_handler))
         .route_service("/", ServeFile::new("assets/index.html"))
         .route_service("/script.js", ServeFile::new("assets/script.js"))

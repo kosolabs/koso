@@ -31,7 +31,7 @@ export class Path {
 
 export type Node = {
   id: string;
-  title: string;
+  name: string;
   children: string[];
 };
 

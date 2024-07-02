@@ -167,10 +167,10 @@
           />
         {/if}
       </button>
-      <div>{path.name.substring(0, 5)}</div>
+      <div>{path.name}</div>
     </div>
   </div>
-  <div class="w-40 px-2">{node.title}</div>
+  <div class="w-40 px-2">{node.name}</div>
 </div>
 
 {#if interactions.dragged && path.equals(interactions.maybeChild)}

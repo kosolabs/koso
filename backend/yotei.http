@@ -1,6 +1,6 @@
 ###
 
-POST http://localhost:3000/task/create
+POST http://localhost:3000/api/tasks
 Content-Type: application/json
 
 {
@@ -11,15 +11,15 @@ Content-Type: application/json
 ### 
 
 # Fetch tasks
-GET http://localhost:3000/task/list
+GET http://localhost:3000/api/tasks
 
 ###
 
-GET http://localhost:3000/task/stream HTTP/2.0
+GET http://localhost:3000/api/tasks/stream HTTP/2.0
 
 ###
 
-POST http://localhost:3000/task/create
+POST http://localhost:3000/api/tasks
 Content-Type: application/json
 
 {
