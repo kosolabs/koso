@@ -20,11 +20,24 @@
 <script lang="ts">
   import { setContext } from "svelte";
 
-  import type { Graph, Path } from ".";
+  import { Path, type Graph } from ".";
   import Row from "./row.svelte";
 
   export let graph: Graph;
-  export let root: Path;
+
+  function findRoots(graph: Graph): Path[] {
+    const allChildren = new Set<string>();
+    for (const node of Object.values(graph)) {
+      for (const child of node.children) {
+        allChildren.add(child);
+      }
+    }
+    const allNodeIds = new Set<string>(Object.keys(graph));
+    const rootIds = allNodeIds.difference(allChildren);
+    return Array.from(rootIds).map((rootId) => new Path([rootId]));
+  }
+
+  $: roots = findRoots(graph);
 
   setContext<TableContext>(graph, {
     addChild: (parentId: string, childId: string, offset: number) => {
@@ -88,6 +101,8 @@
     id="body"
     class="[&>*:nth-child(even)]:bg-gray-100 [&>*:nth-child(odd)]:bg-gray-200"
   >
-    <Row {graph} {interactions} path={root} />
+    {#each roots as root}
+      <Row {graph} {interactions} path={root} />
+    {/each}
   </div>
 </div>

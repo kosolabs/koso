@@ -129,7 +129,7 @@
   <div style="width: 12rem">
     <div class="flex items-center">
       <button
-        class="w-5"
+        class="min-w-5"
         style="margin-left: {(path.length - 1) * 1.25}rem;"
         on:click={() => toggleOpen()}
       >
@@ -142,7 +142,7 @@
       </button>
       <button
         id="handle-{path.id}"
-        class="relative w-5"
+        class="relative min-w-5"
         draggable={true}
         on:dragstart={(event) => dragStart(event)}
         on:dragend={(event) => dragEnd(event)}
