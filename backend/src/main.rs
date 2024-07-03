@@ -6,11 +6,11 @@ use std::{
 };
 
 use axum::{
-    extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Request},
+    extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
     http::StatusCode,
     middleware::{self, Next},
     response::{IntoResponse, Json},
-    routing::{get, patch, post},
+    routing::{delete, get, patch, post},
     Extension, Router,
 };
 use axum_extra::{headers, TypedHeader};
@@ -76,9 +76,11 @@ async fn start_main_server() {
 
     let state = Arc::new(AppState {});
     let app = Router::new()
+        .route("/api/tasks/:task_id", get(get_task))
         .route("/api/tasks", get(list_tasks))
         .route("/api/tasks", post(create_task))
         .route("/api/tasks", patch(update_task))
+        .route("/api/tasks/:task_id", delete(delete_task))
         .route("/api/tasks/stream", get(stream_tasks))
         .route("/ws", get(ws_handler))
         .route_service("/", ServeFile::new("assets/index.html"))
@@ -173,7 +175,45 @@ async fn update_task(
             &task.id
         )
     }
+    Ok(Json(task))
+}
 
+async fn delete_task(
+    Extension(pool): Extension<&'static PgPool>,
+    Path(task_id): Path<String>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let res = sqlx::query("DELETE FROM tasks WHERE id = $1")
+        .bind(&task_id)
+        .execute(pool)
+        .await
+        .map_err(internal_error)?;
+    if res.rows_affected() == 0 {
+        return Err((
+            StatusCode::NOT_FOUND,
+            format!("task '{}' does not exist!", &task_id),
+        ));
+    }
+    // Given the delete where clause should match 0 or 1 rows and never more,
+    // this should never happen.
+    if res.rows_affected() > 1 {
+        tracing::error!(
+            "unexpectedly deleted more than 1 rows ({}) for id '{}'",
+            res.rows_affected(),
+            &task_id
+        )
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn get_task(
+    Extension(pool): Extension<&'static PgPool>,
+    Path(task_id): Path<String>,
+) -> Result<Json<Task>, (StatusCode, String)> {
+    let task: Task = sqlx::query_as("SELECT id, name, children FROM tasks WHERE id = $1")
+        .bind(&task_id)
+        .fetch_one(pool)
+        .await
+        .map_err(internal_error)?;
     Ok(Json(task))
 }
 

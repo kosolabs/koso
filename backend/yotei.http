@@ -1,4 +1,12 @@
-###
+### Fetch all tasks
+
+GET http://localhost:3000/api/tasks
+
+### Stream tasks
+
+GET http://localhost:3000/api/tasks/stream HTTP/2.0
+
+### Create a new task
 
 POST http://localhost:3000/api/tasks
 Content-Type: application/json
@@ -8,16 +16,7 @@ Content-Type: application/json
     "children": []
 }
 
-### 
-
-# Fetch tasks
-GET http://localhost:3000/api/tasks
-
-###
-
-GET http://localhost:3000/api/tasks/stream HTTP/2.0
-
-###
+### Create a new task with a child
 
 POST http://localhost:3000/api/tasks
 Content-Type: application/json
@@ -26,3 +25,11 @@ Content-Type: application/json
     "name": "Task with child",
     "children": ["bfc6e552-c5d4-4617-b8c6-5cae0617f64f"]
 }
+
+### Fetch task bfc6e552-c5d4-4617-b8c6-5cae0617f64f
+
+GET http://localhost:3000/api/tasks/bfc6e552-c5d4-4617-b8c6-5cae0617f64f
+
+### Delete task 84d06ee8-b8c0-4f37-8c6a-dbe55cf62e63
+
+DELETE http://localhost:3000/api/tasks/84d06ee8-b8c0-4f37-8c6a-dbe55cf62e63
