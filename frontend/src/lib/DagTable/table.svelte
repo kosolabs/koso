@@ -19,7 +19,6 @@
 
 <script lang="ts">
   import { setContext } from "svelte";
-
   import { Path, type Graph } from ".";
   import Row from "./row.svelte";
 

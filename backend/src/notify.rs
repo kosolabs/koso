@@ -18,7 +18,7 @@ pub fn start_notifications(
         destinations: Arc::new(Mutex::new(HashMap::new())),
         new_destinations: Arc::new(Mutex::new(HashMap::new())),
     };
-    let notify_task = tokio::spawn(notifier.clone().from_stream(stream));
+    let notify_task = tokio::spawn(notifier.clone().handle(stream));
     (notifier, notify_task)
 }
 
@@ -96,7 +96,7 @@ impl Notifier {
         });
     }
 
-    async fn from_stream(self, change_stream: impl Stream<Item = Result<Payload, sqlx::Error>>) {
+    async fn handle(self, change_stream: impl Stream<Item = Result<Payload, sqlx::Error>>) {
         use futures::StreamExt;
         futures::pin_mut!(change_stream);
 
@@ -156,9 +156,9 @@ impl Notifier {
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub enum Action {
-    INSERT,
-    UPDATE,
-    DELETE,
+    Insert,
+    Update,
+    Delete,
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]

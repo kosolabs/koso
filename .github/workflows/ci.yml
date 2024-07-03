@@ -1,0 +1,33 @@
+name: CI
+on: [pull_request]
+jobs:
+  cargo:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - run: cargo test
+      - run: cargo clippy -- -D warnings
+      - run: cargo fmt -- --check
+  npm:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+      - run: npm install
+      - run: npx playwright install --with-deps
+      - run: npm run build
+      - run: npm run check
+      - run: npm run lint
+      - run: npm run test
