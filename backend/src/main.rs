@@ -1,10 +1,3 @@
-use std::{
-    future::ready,
-    net::SocketAddr,
-    sync::Arc,
-    time::{Duration, Instant},
-};
-
 use axum::{
     extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
     http::StatusCode,
@@ -20,6 +13,12 @@ use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use sqlx::{
     postgres::{PgConnectOptions, PgPool, PgPoolOptions},
     ConnectOptions,
+};
+use std::{
+    future::ready,
+    net::SocketAddr,
+    sync::Arc,
+    time::{Duration, Instant},
 };
 use tokio::{net::TcpListener, signal};
 use tower_http::{
@@ -72,7 +71,7 @@ async fn start_main_server() {
             .expect("can't connect to database"),
     ));
 
-    let (notifier, notify_task) = notify::start_notifications(pool.clone());
+    let (notifier, notify_task) = notify::start_notifications();
 
     let state = Arc::new(AppState {});
     let app = Router::new()

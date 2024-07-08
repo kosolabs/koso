@@ -7,8 +7,14 @@
   };
 
   export type TableContext = {
-    addChild: (parentId: string, childId: string, offset: number) => void;
-    removeChild: (child: Path) => void;
+    addNode: (nodeId: string, parentId: string, offset: number) => void;
+    removeNode: (nodeId: string, parentId: string) => void;
+    moveNode: (
+      nodeId: string,
+      srcParentId: string,
+      destParentId: string,
+      offset: number,
+    ) => void;
     setDragged: (node: Path) => void;
     clearDragged: () => void;
     setMaybePeer: (node: Path) => void;
@@ -23,6 +29,18 @@
   import Row from "./row.svelte";
 
   export let graph: Graph;
+  export let addNode: (
+    nodeId: string,
+    parentId: string,
+    offset: number,
+  ) => void;
+  export let removeNode: (nodeId: string, parentId: string) => void;
+  export let moveNode: (
+    nodeId: string,
+    srcParentId: string,
+    destParentId: string,
+    offset: number,
+  ) => void;
 
   function findRoots(graph: Graph): Path[] {
     const allChildren = new Set<string>();
@@ -38,17 +56,10 @@
 
   $: roots = findRoots(graph);
 
-  setContext<TableContext>(graph, {
-    addChild: (parentId: string, childId: string, offset: number) => {
-      const parent = graph[parentId]!;
-      parent.children.splice(offset, 0, childId);
-      graph = graph;
-    },
-    removeChild: (child: Path) => {
-      const parent = graph[child.parent().name]!;
-      parent.children.splice(parent.children.indexOf(child.name), 1);
-      graph = graph;
-    },
+  setContext<TableContext>("graph", {
+    addNode,
+    removeNode,
+    moveNode,
     setDragged: (node: Path) => {
       interactions.dragged = node;
       interactions = interactions;

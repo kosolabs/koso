@@ -12,14 +12,14 @@
   $: node = graph[path.name]!;
 
   const {
-    addChild,
-    removeChild,
+    addNode,
+    moveNode,
     setDragged,
     clearDragged,
     setMaybePeer,
     setMaybeChild,
     clearMaybePeerAndChild,
-  } = getContext<TableContext>(graph);
+  } = getContext<TableContext>("graph");
 
   let open = true;
   function toggleOpen() {
@@ -59,16 +59,20 @@
     if (interactions.dragged === null) {
       return;
     }
-    if (relationship === "child") {
-      addChild(path.name, interactions.dragged.name, 0);
-    } else if (relationship === "peer") {
-      const parentId = path.parent().name;
-      const parent = graph[parentId]!;
-      const index = parent.children.indexOf(path.name);
-      addChild(parentId, interactions.dragged.name, index + 1);
-    }
+
+    let nodeId = interactions.dragged.name;
+    let srcParentId = interactions.dragged.parent().name;
+    let destParentId =
+      relationship === "child" ? path.name : path.parent().name;
+    let offset =
+      relationship === "child"
+        ? 0
+        : graph[destParentId]!.children.indexOf(path.name) + 1;
+
     if (event.dataTransfer?.effectAllowed !== "link") {
-      removeChild(interactions.dragged);
+      moveNode(nodeId, srcParentId, destParentId, offset);
+    } else {
+      addNode(nodeId, destParentId, offset);
     }
     clearDragged();
     clearMaybePeerAndChild();
