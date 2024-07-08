@@ -130,3 +130,21 @@ Running:
 ```bash
 systemfd --no-pid -s http::3000 -- cargo watch -x run
 ```
+
+### Running a Built Frontend with the Backend
+
+This setup is similar to how the app will run in production. A single server serves the API, WebSocket, and static frontend files.
+
+1. In the `frontend` folder, run:
+
+   ```bash
+   npm run build
+   ```
+
+1. In the `backend` folder, run the server:
+
+   ```bash
+   systemfd --no-pid -s http::3000 -- cargo watch -x run
+   ```
+
+This will create a `frontend/build` folder. The `backend/static` folder is symlinked to that folder and will serve the compiled frontend directly from the backend.

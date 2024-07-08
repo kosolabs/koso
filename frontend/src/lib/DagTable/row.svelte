@@ -128,9 +128,9 @@
 <div
   id="row-{path.id}"
   class="my-1 flex items-center rounded p-2"
-  style="opacity: {ghost ? 0.5 : 1};"
+  class:opacity-50={ghost}
 >
-  <div style="width: 12rem">
+  <div class="w-48">
     <div class="flex items-center">
       <button
         class="min-w-5"
@@ -139,8 +139,7 @@
       >
         {#if node.children.length > 0}
           <AngleRightOutline
-            class="h-4 transition-transform"
-            style="transform:rotate({open && !ghost ? '90' : '0'}deg)"
+            class="h-4 transition-transform {open && !ghost ? 'rotate-90' : ''}"
           />
         {/if}
       </button>

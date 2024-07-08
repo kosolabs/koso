@@ -22,7 +22,7 @@ use std::{
 };
 use tokio::{net::TcpListener, signal};
 use tower_http::{
-    services::ServeFile,
+    services::ServeDir,
     timeout::TimeoutLayer,
     trace::{DefaultMakeSpan, TraceLayer},
 };
@@ -82,8 +82,7 @@ async fn start_main_server() {
         .route("/api/tasks/:task_id", delete(delete_task))
         .route("/api/tasks/stream", get(stream_tasks))
         .route("/ws", get(ws_handler))
-        .route_service("/", ServeFile::new("assets/index.html"))
-        .route_service("/script.js", ServeFile::new("assets/script.js"))
+        .nest_service("/", ServeDir::new("static"))
         .route_layer(middleware::from_fn(emit_request_metrics))
         .fallback(handler_404)
         .with_state(state)
