@@ -7,21 +7,26 @@ use tokio::sync::{
     Mutex,
 };
 use uuid::Uuid;
+use yrs::{updates::decoder::Decode, Doc, Transact, Update};
 
 pub fn start_notifications() -> (Notifier, tokio::task::JoinHandle<()>) {
+    let doc = Doc::new();
+
     // Create a stream of task notifications and a notifier to fan them out to destinations (clients).
     let (tx, rx) = mpsc::channel::<Vec<u8>>(1);
     let notifier = Notifier {
         destinations: Arc::new(Mutex::new(HashMap::new())),
+        doc: Arc::new(Mutex::new(doc)),
         tx,
     };
     let notify_task = tokio::spawn(notifier.clone().handle(rx));
     (notifier, notify_task)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Notifier {
     destinations: Arc<Mutex<HashMap<String, Destination>>>,
+    doc: Arc<Mutex<Doc>>,
     tx: Sender<Vec<u8>>,
 }
 
@@ -50,6 +55,36 @@ impl Notifier {
         ) {
             tracing::warn!("Unexpectedly, destination {who} already exists: {existing:?}")
         }
+
+        // High Level Design
+        // If this is the very first destination being registered, load everything from the database, and construct the initial graph.
+        // For every client that joins, send the current graph as the initial state vector.
+        // For every event in the observe_deep, generate a mutation to be applied to the database.
+        // When the last client disconnects, consider destroying the graph.
+
+        use yrs::DeepObservable;
+        let doc = self.doc.lock().await;
+        let graph = doc.get_or_insert_map("graph");
+        let sub = graph.observe_deep(|txn, events| {
+            events.iter().for_each(|event| match event {
+                yrs::types::Event::Text(evt) => {
+                    tracing::debug!("Got Text event: {:?}", evt.delta(txn))
+                }
+                yrs::types::Event::Array(evt) => {
+                    tracing::debug!("Got Array event: {:?}", evt.delta(txn))
+                }
+                yrs::types::Event::Map(evt) => {
+                    tracing::debug!("Got Map event: {:?}", evt.keys(txn))
+                }
+                yrs::types::Event::XmlFragment(evt) => {
+                    tracing::debug!("Got XmlFragment event: {:?}", evt.delta(txn))
+                }
+                yrs::types::Event::XmlText(evt) => {
+                    tracing::debug!("Got XmlText event: {:?}", evt.delta(txn))
+                }
+            })
+            // tracing::debug!("got map event: {:?}", events);
+        });
 
         // Listen for messages on the read side of the socket.
         // We don't currently expect any messages other than closures.
@@ -95,14 +130,21 @@ impl Notifier {
                     }
                 }
             }
+
+            drop(sub);
         });
     }
 
     async fn handle(self, mut rx: Receiver<Vec<u8>>) {
         loop {
             if let Some(update) = rx.recv().await {
-                use futures::sink::SinkExt;
+                self.doc
+                    .lock()
+                    .await
+                    .transact_mut()
+                    .apply_update(Update::decode_v1(&update).unwrap());
 
+                use futures::sink::SinkExt;
                 for destination in self.destinations.lock().await.values_mut() {
                     tracing::debug!("Notifying client {}", destination.who);
                     let _ = destination.sink.send(Message::Binary(update.clone())).await;
