@@ -20,8 +20,12 @@
     const socket = new WebSocket(`${host}/ws`);
     socket.binaryType = "arraybuffer";
     socket.addEventListener("message", function (event) {
-      console.log("Message from server", new Uint8Array(event.data));
-      Y.applyUpdate(yDoc, new Uint8Array(event.data));
+      if (event.data instanceof ArrayBuffer) {
+        console.log("Binary frame from server", new Uint8Array(event.data));
+        Y.applyUpdate(yDoc, new Uint8Array(event.data));
+      } else {
+        console.log("Text frame from server", event.data);
+      }
     });
 
     while (socket.readyState !== WebSocket.OPEN) {
@@ -39,13 +43,11 @@
     name: string,
     children: string[],
   ): Y.Map<string | Y.Array<string>> {
-    const yChildren = new Y.Array<string>();
-    yChildren.insert(0, children);
-    const yNode = new Y.Map<string | Y.Array<string>>();
-    yNode.set("id", id);
-    yNode.set("name", name);
-    yNode.set("children", yChildren);
-    return yNode;
+    return new Y.Map([
+      ["id", id],
+      ["name", name],
+      ["children", Y.Array.from(children)],
+    ]);
   }
 
   function load() {

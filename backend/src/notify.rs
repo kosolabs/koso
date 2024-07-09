@@ -34,7 +34,9 @@ pub struct Destination {
 impl Notifier {
     pub async fn register_destination(self, socket: WebSocket, who: SocketAddr) {
         use futures::stream::StreamExt;
-        let (sender, mut receiver) = socket.split();
+        let (mut sender, mut receiver) = socket.split();
+
+        let _ = sender.send(Message::Text("Hello".into())).await;
 
         let who = who.to_string() + ":" + &Uuid::new_v4().to_string();
         // Store the sender side of the socket in the list of destinations.
