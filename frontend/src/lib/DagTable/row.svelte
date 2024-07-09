@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { A, Input } from "flowbite-svelte";
   import { AngleRightOutline, BarsOutline } from "flowbite-svelte-icons";
   import { getContext } from "svelte";
   import type { Graph, Path } from ".";
@@ -15,6 +16,7 @@
     addNode,
     moveNode,
     setDragged,
+    editTaskName,
     clearDragged,
     setMaybePeer,
     setMaybeChild,
@@ -24,6 +26,19 @@
   let open = true;
   function toggleOpen() {
     open = !open;
+  }
+
+  let editedDescription: string | null = null;
+
+  function startEditing() {
+    editedDescription = node.name;
+  }
+  function stopEditing() {
+    if (editedDescription === null) {
+      return;
+    }
+    editTaskName(path.name, editedDescription);
+    editedDescription = null;
   }
 
   function dragStart(event: DragEvent) {
@@ -173,7 +188,20 @@
       <div>{path.name}</div>
     </div>
   </div>
-  <div class="w-40 px-2">{node.name}</div>
+  <div class="w-96 px-2">
+    {#if editedDescription !== null}
+      <Input
+        size="sm"
+        on:blur={() => stopEditing()}
+        bind:value={editedDescription}
+        autofocus
+      />
+    {:else}
+      <A on:click={() => startEditing()} on:keydown={() => startEditing()}>
+        {node.name}
+      </A>
+    {/if}
+  </div>
 </div>
 
 {#if interactions.dragged && path.equals(interactions.maybeChild)}

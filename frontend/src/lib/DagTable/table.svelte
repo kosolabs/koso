@@ -15,6 +15,7 @@
       destParentId: string,
       offset: number,
     ) => void;
+    editTaskName: (taskId: string, newName: string) => void;
     setDragged: (node: Path) => void;
     clearDragged: () => void;
     setMaybePeer: (node: Path) => void;
@@ -41,6 +42,7 @@
     destParentId: string,
     offset: number,
   ) => void;
+  export let editTaskName: (taskId: string, newName: string) => void;
 
   function findRoots(graph: Graph): Path[] {
     const allChildren = new Set<string>();
@@ -60,6 +62,7 @@
     addNode,
     removeNode,
     moveNode,
+    editTaskName,
     setDragged: (node: Path) => {
       interactions.dragged = node;
       interactions = interactions;

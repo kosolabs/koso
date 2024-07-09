@@ -94,8 +94,17 @@
       yDestChildren.insert(offset, [nodeId]);
     });
   }
+
+  function editTaskName(taskId: string, newName: string) {
+    yDoc.transact(() => {
+      const yNode = yGraph.get(taskId)!;
+      if (yNode.get("name") !== newName) {
+        yNode.set("name", newName);
+      }
+    });
+  }
 </script>
 
 <Button on:click={() => load()}>Load</Button>
 
-<DagTable {graph} {addNode} {removeNode} {moveNode} />
+<DagTable {graph} {addNode} {removeNode} {moveNode} {editTaskName} />
