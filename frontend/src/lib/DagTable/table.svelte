@@ -118,13 +118,13 @@
           <div>ID</div>
         </div>
       </div>
-      <div class="w-40 px-2">Description</div>
+      <div class="w-96 px-2">Description</div>
     </div>
   </div>
 
   <div
     id="body"
-    class="[&>*:nth-child(even)]:bg-gray-100 [&>*:nth-child(odd)]:bg-gray-200"
+    class="[&>*:nth-child(even)]:bg-slate-50 [&>*:nth-child(odd)]:bg-slate-100"
   >
     {#each roots as root}
       <Row {graph} {interactions} path={root} />
