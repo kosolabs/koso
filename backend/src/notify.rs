@@ -11,8 +11,10 @@ use uuid::Uuid;
 use yrs::{
     types::{Events, PathSegment},
     updates::decoder::Decode,
-    Any, Array, Doc, Map, Out, ReadTxn, StateVector, Transact, Update,
+    Any, Array, ArrayRef, Doc, Map, MapRef, Out, ReadTxn, StateVector, Transact, Update,
 };
+
+use crate::model::Task;
 
 pub fn start_notifications(pool: &'static PgPool) -> (Notifier, tokio::task::JoinHandle<()>) {
     let (tx, rx) = mpsc::channel::<Vec<u8>>(1);
@@ -126,8 +128,26 @@ impl Notifier {
     }
 
     async fn load_graph(&self) -> Result<Doc, Box<dyn Error>> {
-        // TODO
-        Result::Ok(Doc::new())
+        tracing::debug!("Initializing new YGraph");
+        let tasks: Vec<Task> = sqlx::query_as("SELECT id, name, children FROM tasks")
+            .fetch_all(self.pool)
+            .await?;
+        let doc = Doc::new();
+        let graph = doc.get_or_insert_map("graph");
+        {
+            let mut txn = doc.transact_mut();
+            for task in tasks.iter() {
+                let y_task: MapRef = graph.get_or_init(&mut txn, task.id.clone());
+                y_task.insert(&mut txn, "id", task.id.clone());
+                y_task.insert(&mut txn, "name", task.name.clone());
+                let y_children: ArrayRef = y_task.get_or_init(&mut txn, "children");
+                for child in task.children.iter() {
+                    y_children.push_front(&mut txn, child.clone());
+                }
+            }
+        }
+        tracing::debug!("Initialized new YGraph with {} tasks", tasks.len());
+        Result::Ok(doc)
     }
 
     /// Take Update V1's in bytes form and broadcast them to all destinations.
@@ -189,17 +209,26 @@ impl Notifier {
                     };
                 }
                 Message::Close(c) => {
-                    tracing::debug!(
-                        "Removing destination for closed client {who}. Reason: {}",
-                        if let Some(cf) = &c {
-                            format!("code:'{}', detail:'{}'", cf.code, cf.reason)
-                        } else {
-                            "code:'NONE', detail:'No CloseFrame'".to_string()
-                        }
-                    );
-
                     // Remove the destination and close the sink.
-                    let dest = self.destinations.lock().await.remove(&who);
+                    let dest = {
+                        let destinations = &mut self.destinations.lock().await;
+                        tracing::debug!(
+                            "Removing destination for closed client {who}, {} remain. Reason: {}",
+                            destinations.len() - 1,
+                            if let Some(cf) = &c {
+                                format!("code:'{}', detail:'{}'", cf.code, cf.reason)
+                            } else {
+                                "code:'NONE', detail:'No CloseFrame'".to_string()
+                            }
+                        );
+
+                        let dest = destinations.remove(&who);
+                        if destinations.len() == 0 {
+                            tracing::debug!("Last client disconnected, destroying YGraph");
+                            *self.doc_box.lock().await = None;
+                        }
+                        dest
+                    };
                     if dest.is_none() {
                         tracing::warn!("Unexpectedly, received close for client {who} while no destination was registered.")
                     }

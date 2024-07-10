@@ -1,6 +1,5 @@
 <script lang="ts">
   import { DagTable, type Graph } from "$lib/DagTable";
-  import { Button } from "flowbite-svelte";
 
   import { onMount } from "svelte";
   import * as Y from "yjs";
@@ -37,30 +36,6 @@
       socket.send(update);
     });
   });
-
-  function toY(
-    id: string,
-    name: string,
-    children: string[],
-  ): Y.Map<string | Y.Array<string>> {
-    return new Y.Map([
-      ["id", id],
-      ["name", name],
-      ["children", Y.Array.from(children)],
-    ]);
-  }
-
-  function load() {
-    yDoc.transact(() => {
-      yGraph.set("0", toY("0", "Root", ["1", "4", "5"]));
-      yGraph.set("1", toY("1", "Task 1", ["2"]));
-      yGraph.set("2", toY("2", "Task 1.1", ["3"]));
-      yGraph.set("3", toY("3", "Task 1.1.1", []));
-      yGraph.set("4", toY("4", "Task 2", []));
-      yGraph.set("5", toY("5", "Task 3", ["6"]));
-      yGraph.set("6", toY("6", "Task 6", []));
-    });
-  }
 
   function addNode(nodeId: string, parentId: string, offset: number) {
     yDoc.transact(() => {
@@ -104,7 +79,5 @@
     });
   }
 </script>
-
-<Button on:click={() => load()}>Load</Button>
 
 <DagTable {graph} {addNode} {removeNode} {moveNode} {editTaskName} />

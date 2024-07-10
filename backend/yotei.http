@@ -26,6 +26,23 @@ Content-Type: application/json
     "children": ["bfc6e552-c5d4-4617-b8c6-5cae0617f64f"]
 }
 
+### Update a task with a child
+
+PATCH http://localhost:3000/api/tasks
+Content-Type: application/json
+
+{
+    "id": "6f98a57c-0ccc-4551-a1c9-e528eefd7252",
+    "name": "I'm a task",
+    "children": [
+        "bfc6e552-c5d4-4617-b8c6-5cae0617f64f", 
+        "9b8e71c1-7a59-471e-81e9-6a184bb1503a", 
+        "cc26825b-921f-47d9-8233-bc305390e826",
+        "30d70aaa-3155-4250-b021-ff82ea2c6227",
+        "86c93019-2bf4-447d-a55d-da447e6b954e"
+    ]
+}
+
 ### Fetch task bfc6e552-c5d4-4617-b8c6-5cae0617f64f
 
 GET http://localhost:3000/api/tasks/bfc6e552-c5d4-4617-b8c6-5cae0617f64f
