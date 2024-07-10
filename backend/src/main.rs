@@ -71,7 +71,7 @@ async fn start_main_server() {
             .expect("can't connect to database"),
     ));
 
-    let (notifier, notify_task) = notify::start_notifications();
+    let (notifier, notify_task) = notify::start_notifications(pool);
 
     let state = Arc::new(AppState {});
     let app = Router::new()
