@@ -1,6 +1,6 @@
 import { default as Root, default as Row } from "./table.svelte";
 
-export class Path {
+export class Node {
   id: string;
   name: string;
   length: number;
@@ -13,15 +13,15 @@ export class Path {
     this.length = this.path.length;
   }
 
-  parent(): Path {
-    return new Path(this.path.slice(0, -1));
+  parent(): Node {
+    return new Node(this.path.slice(0, -1));
   }
 
   concat(nodeId: string) {
-    return new Path(this.path.concat(nodeId));
+    return new Node(this.path.concat(nodeId));
   }
 
-  equals(other: Path | null): boolean {
+  equals(other: Node | null): boolean {
     if (other === null) {
       return false;
     }
@@ -29,14 +29,14 @@ export class Path {
   }
 }
 
-export type Node = {
+export type Task = {
   id: string;
   name: string;
   children: string[];
 };
 
 export type Graph = {
-  [key: string]: Node;
+  [key: string]: Task;
 };
 
 export { Root as DagTable, Row as DagTableRow, Root };

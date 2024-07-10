@@ -1,10 +1,8 @@
 <script lang="ts" context="module">
   export type Interactions = {
-    dragged: Path | null;
-    ghost: { parentId: string; childId: string; offset: number } | null;
-    maybePeer: Path | null;
-    maybeChild: Path | null;
-    highlighted: Path | null;
+    dragged: Node | null;
+    ghost: { node: Node; offset: number } | null;
+    highlighted: Node | null;
   };
 
   export type TableContext = {
@@ -17,19 +15,18 @@
       offset: number,
     ) => void;
     editTaskName: (taskId: string, newName: string) => void;
-    setDragged: (node: Path) => void;
+    setDragged: (node: Node) => void;
     clearDragged: () => void;
-    setMaybePeer: (node: Path) => void;
-    setMaybeChild: (node: Path) => void;
-    clearMaybePeerAndChild: () => void;
-    setHighlighted: (node: Path) => void;
+    setGhost: (node: Node, offset: number) => void;
+    clearGhost: () => void;
+    setHighlighted: (node: Node) => void;
     clearHighlighted: () => void;
   };
 </script>
 
 <script lang="ts">
   import { setContext } from "svelte";
-  import { Path, type Graph } from ".";
+  import { Node, type Graph } from ".";
   import Row from "./row.svelte";
 
   export let graph: Graph;
@@ -47,7 +44,7 @@
   ) => void;
   export let editTaskName: (taskId: string, newName: string) => void;
 
-  function findRoots(graph: Graph): Path[] {
+  function findRoots(graph: Graph): Node[] {
     const allChildren = new Set<string>();
     for (const node of Object.values(graph)) {
       for (const child of node.children) {
@@ -56,7 +53,7 @@
     }
     const allNodeIds = new Set<string>(Object.keys(graph));
     const rootIds = allNodeIds.difference(allChildren);
-    return Array.from(rootIds).map((rootId) => new Path([rootId]));
+    return Array.from(rootIds).map((rootId) => new Node([rootId]));
   }
 
   $: roots = findRoots(graph);
@@ -66,7 +63,7 @@
     removeNode,
     moveNode,
     editTaskName,
-    setDragged: (node: Path) => {
+    setDragged: (node: Node) => {
       interactions.dragged = node;
       interactions = interactions;
     },
@@ -74,20 +71,15 @@
       interactions.dragged = null;
       interactions = interactions;
     },
-    setMaybePeer: (node: Path) => {
-      interactions.maybePeer = node;
+    setGhost: (node: Node, offset: number) => {
+      interactions.ghost = { node, offset };
       interactions = interactions;
     },
-    setMaybeChild: (node: Path) => {
-      interactions.maybeChild = node;
+    clearGhost: () => {
+      interactions.ghost = null;
       interactions = interactions;
     },
-    clearMaybePeerAndChild: () => {
-      interactions.maybePeer = null;
-      interactions.maybeChild = null;
-      interactions = interactions;
-    },
-    setHighlighted: (node: Path) => {
+    setHighlighted: (node: Node) => {
       interactions.highlighted = node;
       interactions = interactions;
     },
@@ -100,8 +92,6 @@
   let interactions: Interactions = {
     dragged: null,
     ghost: null,
-    maybePeer: null,
-    maybeChild: null,
     highlighted: null,
   };
 </script>
@@ -127,7 +117,7 @@
     class="[&>*:nth-child(even)]:bg-slate-50 [&>*:nth-child(odd)]:bg-slate-100"
   >
     {#each roots as root}
-      <Row {graph} {interactions} path={root} />
+      <Row {graph} {interactions} node={root} />
     {/each}
   </div>
 </div>

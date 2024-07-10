@@ -3,15 +3,16 @@
   import { AngleRightOutline, BarsOutline } from "flowbite-svelte-icons";
   import { getContext } from "svelte";
   import { slide } from "svelte/transition";
-  import type { Graph, Path } from ".";
+  import type { Graph, Node } from ".";
   import { type Interactions, type TableContext } from "./table.svelte";
 
   export let graph: Graph;
-  export let path: Path;
+  export let node: Node;
   export let interactions: Interactions;
-  export let ghost = false;
 
-  $: node = graph[path.name]!;
+  $: task = graph[node.name]!;
+  $: ghost = interactions.ghost;
+  $: isGhost = ghost && node.equals(ghost.node);
 
   const {
     addNode,
@@ -19,9 +20,8 @@
     setDragged,
     editTaskName,
     clearDragged,
-    setMaybePeer,
-    setMaybeChild,
-    clearMaybePeerAndChild,
+    setGhost,
+    clearGhost,
     setHighlighted,
     clearHighlighted,
   } = getContext<TableContext>("graph");
@@ -33,24 +33,25 @@
 
   let editedDescription: string | null = null;
 
-  function startEditing() {
-    editedDescription = node.name;
+  function handleStartEditing() {
+    editedDescription = task.name;
   }
-  function stopEditing() {
+
+  function handleEndEditing() {
     if (editedDescription === null) {
       return;
     }
-    editTaskName(path.name, editedDescription);
+    editTaskName(node.name, editedDescription);
     editedDescription = null;
   }
 
-  function dragStart(event: DragEvent) {
-    setDragged(path);
-    event.dataTransfer!.setData("text/plain", path.id);
+  function handleDragStart(event: DragEvent) {
+    setDragged(node);
+    event.dataTransfer!.setData("text/plain", node.id);
     event.dataTransfer!.effectAllowed = "linkMove";
 
-    const rowEl = document.getElementById(`row-${path.id}`)!;
-    const handleEl = document.getElementById(`handle-${path.id}`)!;
+    const rowEl = document.getElementById(`row-${node.id}`)!;
+    const handleEl = document.getElementById(`handle-${node.id}`)!;
     const rowRect = rowEl.getBoundingClientRect();
     const handleRect = handleEl.getBoundingClientRect();
 
@@ -61,56 +62,75 @@
     );
   }
 
-  function dragEnd(event: DragEvent) {
-    event.preventDefault();
+  function handleDragEnd() {
     clearDragged();
   }
 
-  function drop(event: DragEvent, relationship: "peer" | "child") {
-    event.preventDefault();
-    console.log(
-      "drop",
-      event.dataTransfer!.dropEffect,
-      event.dataTransfer!.effectAllowed,
-    );
-
+  function handleDropPeer(event: DragEvent) {
     if (interactions.dragged === null) {
       return;
     }
 
-    let nodeId = interactions.dragged.name;
-    let srcParentId = interactions.dragged.parent().name;
-    let destParentId =
-      relationship === "child" ? path.name : path.parent().name;
-    let offset =
-      relationship === "child"
-        ? 0
-        : graph[destParentId]!.children.indexOf(path.name) + 1;
+    const nodeId = interactions.dragged.name;
+    const sourceId = interactions.dragged.parent().name;
+    const parentId = node.parent().name;
+    const offset = graph[parentId]!.children.indexOf(node.name) + 1;
 
     if (event.dataTransfer?.effectAllowed !== "link") {
-      moveNode(nodeId, srcParentId, destParentId, offset);
+      moveNode(nodeId, sourceId, parentId, offset);
     } else {
-      addNode(nodeId, destParentId, offset);
+      addNode(nodeId, parentId, offset);
     }
     clearDragged();
-    clearMaybePeerAndChild();
+    clearGhost();
   }
 
-  function dragOver(event: DragEvent, relationship: "peer" | "child") {
-    event.preventDefault();
+  function handleDropChild(event: DragEvent) {
     if (interactions.dragged === null) {
       return;
     }
-    if (relationship === "child") {
-      setMaybeChild(path);
-    } else if (relationship === "peer") {
-      setMaybePeer(path);
+
+    const nodeId = interactions.dragged.name;
+    const sourceId = interactions.dragged.parent().name;
+    const parentId = node.name;
+    const offset = 0;
+
+    if (event.dataTransfer?.effectAllowed !== "link") {
+      moveNode(nodeId, sourceId, parentId, offset);
+    } else {
+      addNode(nodeId, parentId, offset);
     }
+    clearDragged();
+    clearGhost();
   }
 
-  function dragLeave(event: DragEvent) {
-    event.preventDefault();
-    clearMaybePeerAndChild();
+  function handleDragOverPeer() {
+    if (interactions.dragged === null) {
+      return;
+    }
+
+    const parentId = node.parent().name;
+    const offset = graph[parentId]!.children.indexOf(node.name) + 1;
+    setGhost(node.parent().concat(interactions.dragged.name), offset);
+  }
+
+  function handleDragOverChild() {
+    if (interactions.dragged === null) {
+      return;
+    }
+    setGhost(node.concat(interactions.dragged.name), 0);
+  }
+
+  function handleDragLeave() {
+    clearGhost();
+  }
+
+  function handleHighlight() {
+    setHighlighted(node);
+  }
+
+  function handleUnhighlight() {
+    clearHighlighted();
   }
 
   function hasCycle(parent: string, child: string): boolean {
@@ -125,8 +145,11 @@
     return false;
   }
 
-  function isValidRelationship(parent: Path, child: Path | null) {
+  function isValidRelationship(parent: Node, child: Node | null) {
     if (child === null) {
+      return false;
+    }
+    if (parent.length === 0) {
       return false;
     }
     const parentId = parent.name;
@@ -140,113 +163,96 @@
     return true;
   }
 
-  function highlight() {
-    setHighlighted(path);
+  function children() {
+    if (ghost && node.equals(ghost.node.parent())) {
+      return task.children.toSpliced(ghost.offset, 0, ghost.node.name);
+    }
+    return task.children;
   }
 
-  function unhighlight() {
-    clearHighlighted();
-  }
-
-  $: canDragDrop = isValidRelationship(path, interactions.dragged);
+  $: canDragDropPeer = isValidRelationship(node.parent(), interactions.dragged);
+  $: canDragDropChild = isValidRelationship(node, interactions.dragged);
 </script>
 
 <div
-  id="row-{path.id}"
+  id="row-{node.id}"
   role="row"
   tabindex="0"
   class="my-1 flex items-center rounded border p-2"
-  class:border-lime-600={interactions.highlighted?.name === path.name}
-  class:opacity-50={ghost}
-  on:mouseover={highlight}
-  on:mouseout={unhighlight}
-  on:focus={highlight}
-  on:blur={unhighlight}
-  transition:slide={{ duration: ghost ? 0 : 500 }}
+  class:border-lime-600={interactions.highlighted?.name === node.name}
+  class:opacity-50={isGhost}
+  on:mouseover={handleHighlight}
+  on:mouseout={handleUnhighlight}
+  on:focus={handleHighlight}
+  on:blur={handleUnhighlight}
+  transition:slide|global={{ duration: isGhost ? 0 : 400 }}
 >
   <div class="w-48">
     <div class="flex items-center">
       <button
-        class="min-w-5"
-        style="margin-left: {(path.length - 1) * 1.25}rem;"
+        class="min-w-5 transition-transform"
+        class:rotate-90={open && !isGhost}
+        style="margin-left: {(node.length - 1) * 1.25}rem;"
         on:click={() => toggleOpen()}
       >
-        {#if node.children.length > 0}
-          <AngleRightOutline
-            class="h-4 transition-transform {open && !ghost ? 'rotate-90' : ''}"
-          />
+        {#if task.children.length > 0}
+          <AngleRightOutline class="h-4" />
         {/if}
       </button>
       <button
-        id="handle-{path.id}"
+        id="handle-{node.id}"
         class="relative min-w-5"
         draggable={true}
-        on:dragstart={(event) => dragStart(event)}
-        on:dragend={(event) => dragEnd(event)}
+        on:dragstart={(event) => handleDragStart(event)}
+        on:dragend|preventDefault={() => handleDragEnd()}
       >
         <BarsOutline class="h-4" />
-        {#if canDragDrop}
+        {#if canDragDropPeer}
           <div
-            id="peer-dropzone-{path.id}"
+            id="peer-dropzone-{node.id}"
             class="absolute -left-6 z-50 h-7 w-12 bg-red-400"
             role="table"
-            on:dragover={(event) => dragOver(event, "peer")}
-            on:dragleave={(event) => dragLeave(event)}
-            on:drop={(event) => drop(event, "peer")}
+            on:dragover|preventDefault={() => handleDragOverPeer()}
+            on:dragleave|preventDefault={() => handleDragLeave()}
+            on:drop|preventDefault={(event) => handleDropPeer(event)}
           />
+        {/if}
+        {#if canDragDropChild}
           <div
-            id="child-dropzone-{path.id}"
+            id="child-dropzone-{node.id}"
             class="absolute left-6 z-50 h-7 w-12 bg-blue-400"
             role="table"
-            on:dragover={(event) => dragOver(event, "child")}
-            on:dragleave={(event) => dragLeave(event)}
-            on:drop={(event) => drop(event, "child")}
+            on:dragover|preventDefault={() => handleDragOverChild()}
+            on:dragleave|preventDefault={() => handleDragLeave()}
+            on:drop|preventDefault={(event) => handleDropChild(event)}
           />
         {/if}
       </button>
-      <div>{path.name}</div>
+      <div>{node.name}</div>
     </div>
   </div>
   <div class="w-96 px-2">
     {#if editedDescription !== null}
       <Input
         size="sm"
-        on:blur={() => stopEditing()}
+        on:blur={() => handleEndEditing()}
         bind:value={editedDescription}
         autofocus
       />
     {:else}
       <A
         class="hover:no-underline"
-        on:click={() => startEditing()}
-        on:keydown={() => startEditing()}
+        on:click={() => handleStartEditing()}
+        on:keydown={() => handleStartEditing()}
       >
-        {node.name}
+        {task.name}
       </A>
     {/if}
   </div>
 </div>
 
-{#if interactions.dragged && path.equals(interactions.maybeChild)}
-  <svelte:self
-    {graph}
-    {interactions}
-    ghost={true}
-    path={path.concat(interactions.dragged.name)}
-  />
-{/if}
-
-{#if open && !ghost}
-  {#each node.children as child}
-    <svelte:self {graph} {interactions} path={path.concat(child)} />
+{#if open && !isGhost}
+  {#each children() as child}
+    <svelte:self {graph} {interactions} node={node.concat(child)} />
   {/each}
-{/if}
-
-{#if interactions.dragged && path.equals(interactions.maybePeer)}
-  <svelte:self
-    {graph}
-    {interactions}
-    ghost={true}
-    path={path.parent().concat(interactions.dragged.name)}
-  />
 {/if}
