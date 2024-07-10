@@ -62,45 +62,48 @@ impl Notifier {
         // Send a welcome message just for fun!
         let _ = sender.send(Message::Text("Hello!".into())).await;
 
-        let doc_box = self.doc_box.clone();
-        let mut doc_box = doc_box.lock().await;
-        // Load the doc if it wasn't already loaded by another client.
-        if doc_box.is_none() {
-            let doc = match self.load_graph().await {
-                Ok(doc) => doc,
-                Err(e) => {
-                    tracing::warn!("Failed to load graph: {}", e);
-                    return;
-                }
-            };
+        let sv = {
+            let doc_box = self.doc_box.clone();
+            let mut doc_box = doc_box.lock().await;
+            // Load the doc if it wasn't already loaded by another client.
+            if doc_box.is_none() {
+                let doc = match self.load_graph().await {
+                    Ok(doc) => doc,
+                    Err(e) => {
+                        tracing::warn!("Failed to load graph: {}", e);
+                        return;
+                    }
+                };
 
-            // Observe changes to the graph and replicate them to the database.
-            let observer_notifier = self.clone();
-            use yrs::DeepObservable;
-            let sub = doc
-                .get_or_insert_map("graph")
-                .observe_deep(move |txn, events| {
-                    let rows = observer_notifier.events_to_rows(txn, events);
-                    let o = observer_notifier.clone();
-                    tokio::spawn(async move {
-                        o.write_events(&rows).await;
+                // Observe changes to the graph and replicate them to the database.
+                let observer_notifier = self.clone();
+                use yrs::DeepObservable;
+                let sub = doc
+                    .get_or_insert_map("graph")
+                    .observe_deep(move |txn, events| {
+                        let rows = observer_notifier.events_to_rows(txn, events);
+                        let o = observer_notifier.clone();
+                        tokio::spawn(async move {
+                            o.write_events(&rows).await;
+                        });
                     });
+
+                // Store the doc and sub for subsequent clients.
+                *doc_box = Some(DocBox {
+                    doc,
+                    sub: Box::new(sub),
                 });
+            }
 
-            // Store the doc and sub for subsequent clients.
-            *doc_box = Some(DocBox {
-                doc,
-                sub: Box::new(sub),
-            });
-        }
+            let doc = doc_box.as_ref().unwrap();
 
-        let doc = doc_box.as_ref().unwrap();
-
-        // Send the entire state vector to the client.
-        let sv = doc
-            .doc
-            .transact()
-            .encode_state_as_update_v1(&StateVector::default());
+            // Send the entire state vector to the client.
+            let sv = doc
+                .doc
+                .transact()
+                .encode_state_as_update_v1(&StateVector::default());
+            sv
+        };
         if let Err(e) = sender.send(Message::Binary(sv)).await {
             tracing::warn!("Failed to send state vector to client: {e}");
             return;
