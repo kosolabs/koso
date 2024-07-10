@@ -4,6 +4,7 @@
     ghost: { parentId: string; childId: string; offset: number } | null;
     maybePeer: Path | null;
     maybeChild: Path | null;
+    highlighted: Path | null;
   };
 
   export type TableContext = {
@@ -21,6 +22,8 @@
     setMaybePeer: (node: Path) => void;
     setMaybeChild: (node: Path) => void;
     clearMaybePeerAndChild: () => void;
+    setHighlighted: (node: Path) => void;
+    clearHighlighted: () => void;
   };
 </script>
 
@@ -84,6 +87,14 @@
       interactions.maybeChild = null;
       interactions = interactions;
     },
+    setHighlighted: (node: Path) => {
+      interactions.highlighted = node;
+      interactions = interactions;
+    },
+    clearHighlighted: () => {
+      interactions.highlighted = null;
+      interactions = interactions;
+    },
   });
 
   let interactions: Interactions = {
@@ -91,6 +102,7 @@
     ghost: null,
     maybePeer: null,
     maybeChild: null,
+    highlighted: null,
   };
 </script>
 

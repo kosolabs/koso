@@ -21,6 +21,8 @@
     setMaybePeer,
     setMaybeChild,
     clearMaybePeerAndChild,
+    setHighlighted,
+    clearHighlighted,
   } = getContext<TableContext>("graph");
 
   let open = true;
@@ -137,13 +139,28 @@
     return true;
   }
 
+  function highlight() {
+    setHighlighted(path);
+  }
+
+  function unhighlight() {
+    clearHighlighted();
+  }
+
   $: canDragDrop = isValidRelationship(path, interactions.dragged);
 </script>
 
 <div
   id="row-{path.id}"
-  class="my-1 flex items-center rounded p-2"
+  class="my-1 flex items-center rounded border p-2"
+  class:border-lime-600={interactions.highlighted?.name === path.name}
   class:opacity-50={ghost}
+  on:mouseover={highlight}
+  on:mouseout={unhighlight}
+  on:focus={highlight}
+  on:blur={unhighlight}
+  role="row"
+  tabindex="0"
 >
   <div class="w-48">
     <div class="flex items-center">
