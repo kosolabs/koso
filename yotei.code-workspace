@@ -11,5 +11,7 @@
       "path": "backend"
     }
   ],
-  "settings": {}
+  "settings": {
+    "rust-analyzer.check.command": "clippy"
+  }
 }
