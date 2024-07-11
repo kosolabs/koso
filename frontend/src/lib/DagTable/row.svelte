@@ -4,7 +4,11 @@
   import { getContext } from "svelte";
   import { slide } from "svelte/transition";
   import type { Graph, Node } from ".";
-  import { type Interactions, type TableContext } from "./table.svelte";
+  import {
+    type Interactions,
+    type SplicedNode,
+    type TableContext,
+  } from "./table.svelte";
 
   export let graph: Graph;
   export let node: Node;
@@ -71,12 +75,13 @@
       return;
     }
 
-    const nodeId = interactions.dragged.name;
-    const sourceId = interactions.dragged.parent().name;
+    const dragged = interactions.dragged;
+    const nodeId = dragged.name;
     const parentId = node.parent().name;
     const offset = graph[parentId]!.children.indexOf(node.name) + 1;
 
-    if (event.dataTransfer?.effectAllowed !== "link") {
+    if (event.dataTransfer?.effectAllowed !== "link" && !dragged.isRoot()) {
+      const sourceId = dragged.parent().name;
       moveNode(nodeId, sourceId, parentId, offset);
     } else {
       addNode(nodeId, parentId, offset);
@@ -90,12 +95,13 @@
       return;
     }
 
-    const nodeId = interactions.dragged.name;
-    const sourceId = interactions.dragged.parent().name;
+    const dragged = interactions.dragged;
+    const nodeId = dragged.name;
     const parentId = node.name;
     const offset = 0;
 
-    if (event.dataTransfer?.effectAllowed !== "link") {
+    if (event.dataTransfer?.effectAllowed !== "link" && !dragged.isRoot()) {
+      const sourceId = dragged.parent().name;
       moveNode(nodeId, sourceId, parentId, offset);
     } else {
       addNode(nodeId, parentId, offset);
@@ -149,9 +155,6 @@
     if (child === null) {
       return false;
     }
-    if (parent.length === 0) {
-      return false;
-    }
     const parentId = parent.name;
     const childId = child.name;
     if (hasCycle(parentId, childId)) {
@@ -163,15 +166,21 @@
     return true;
   }
 
-  function children() {
+  function spliceGhost(
+    children: string[],
+    ghost: SplicedNode | null,
+  ): string[] {
     if (ghost && node.equals(ghost.node.parent())) {
-      return task.children.toSpliced(ghost.offset, 0, ghost.node.name);
+      return children.toSpliced(ghost.offset, 0, ghost.node.name);
+    } else {
+      return children;
     }
-    return task.children;
   }
 
-  $: canDragDropPeer = isValidRelationship(node.parent(), interactions.dragged);
+  $: canDragDropPeer =
+    !node.isRoot() && isValidRelationship(node.parent(), interactions.dragged);
   $: canDragDropChild = isValidRelationship(node, interactions.dragged);
+  $: children = spliceGhost(task.children, ghost);
 </script>
 
 <div
@@ -185,7 +194,7 @@
   on:mouseout={handleUnhighlight}
   on:focus={handleHighlight}
   on:blur={handleUnhighlight}
-  transition:slide|global={{ duration: isGhost ? 0 : 400 }}
+  transition:slide|global={{ duration: interactions.dragged ? 0 : 400 }}
 >
   <div class="w-48">
     <div class="flex items-center">
@@ -252,7 +261,7 @@
 </div>
 
 {#if open && !isGhost}
-  {#each children() as child}
+  {#each children as child}
     <svelte:self {graph} {interactions} node={node.concat(child)} />
   {/each}
 {/if}

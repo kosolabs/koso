@@ -43,6 +43,16 @@ Content-Type: application/json
     ]
 }
 
+### Update a task with a child
+
+PATCH http://localhost:3000/api/tasks
+Content-Type: application/json
+
+{
+    "id": "6f98a57c-0ccc-4551-a1c9-e528eefd7252",
+    "name": "I'm a task",
+    "children": []
+}
 ### Fetch task bfc6e552-c5d4-4617-b8c6-5cae0617f64f
 
 GET http://localhost:3000/api/tasks/bfc6e552-c5d4-4617-b8c6-5cae0617f64f

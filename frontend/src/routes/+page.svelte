@@ -11,7 +11,6 @@
 
   yGraph.observeDeep(() => {
     graph = yGraph.toJSON();
-    console.log(JSON.stringify(yGraph.toJSON()));
   });
 
   onMount(async () => {
@@ -20,10 +19,10 @@
     socket.binaryType = "arraybuffer";
     socket.addEventListener("message", function (event) {
       if (event.data instanceof ArrayBuffer) {
-        console.log("Binary frame from server", new Uint8Array(event.data));
+        console.log("Received binary frame of length:", event.data.byteLength);
         Y.applyUpdate(yDoc, new Uint8Array(event.data));
       } else {
-        console.log("Text frame from server", event.data);
+        console.log("Received text frame from server:", event.data);
       }
     });
 
@@ -32,7 +31,7 @@
     }
 
     yDoc.on("update", (update) => {
-      console.log("Sending update", update);
+      console.log("Sending binary frame of length:", update.byteLength);
       socket.send(update);
     });
   });

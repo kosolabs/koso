@@ -1,7 +1,12 @@
 <script lang="ts" context="module">
+  export type SplicedNode = {
+    node: Node;
+    offset: number;
+  };
+
   export type Interactions = {
     dragged: Node | null;
-    ghost: { node: Node; offset: number } | null;
+    ghost: SplicedNode | null;
     highlighted: Node | null;
   };
 

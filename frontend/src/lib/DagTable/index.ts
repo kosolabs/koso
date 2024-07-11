@@ -1,4 +1,4 @@
-import { default as Root, default as Row } from "./table.svelte";
+import { default as DagTable } from "./table.svelte";
 
 export class Node {
   id: string;
@@ -7,6 +7,7 @@ export class Node {
   path: string[];
 
   constructor(path: string[]) {
+    if (path.length === 0) throw new Error("path should not be empty");
     this.path = path;
     this.id = this.path.join("-");
     this.name = this.path.at(-1)!;
@@ -15,6 +16,10 @@ export class Node {
 
   parent(): Node {
     return new Node(this.path.slice(0, -1));
+  }
+
+  isRoot(): boolean {
+    return this.path.length === 1;
   }
 
   concat(nodeId: string) {
@@ -39,4 +44,4 @@ export type Graph = {
   [key: string]: Task;
 };
 
-export { Root as DagTable, Row as DagTableRow, Root };
+export { DagTable };
