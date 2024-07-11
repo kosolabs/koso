@@ -107,7 +107,11 @@ impl Notifier {
                             Ok(updates) => {
                                 let o = observer_notifier.clone();
                                 tokio::spawn(async move {
-                                    o.apply_task_updates(&updates).await;
+                                    if let Err(e) = o.apply_task_updates(&updates).await {
+                                        tracing::warn!(
+                                            "Failed to apply task updates: {e}: {updates:?}"
+                                        );
+                                    }
                                 });
                             }
                             Err(e) => {
@@ -277,27 +281,34 @@ impl Notifier {
         }
     }
 
-    async fn apply_task_updates(&self, updates: &TaskUpdates) {
-        // TODO: should wrap all of these in a transaction.
+    async fn apply_task_updates(&self, updates: &TaskUpdates) -> Result<(), Box<dyn Error>> {
+        tracing::debug!("About to apply update events: {updates:?}");
+        let mut txn = self.pool.begin().await?;
         for update in updates.updates.iter() {
-            self.apply_task_update(update).await;
+            self.apply_task_update(update, &mut txn).await?;
         }
+        txn.commit().await?;
+        Ok(())
     }
 
-    async fn apply_task_update(&self, update: &TaskUpdate) {
-        tracing::debug!("About to apply update event: {update:?}");
-
+    async fn apply_task_update(
+        &self,
+        update: &TaskUpdate,
+        txn: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), Box<dyn Error>> {
         match update {
             TaskUpdate::Insert { task } => {
                 match sqlx::query("INSERT tasks (id, name, children) VALUES($1, $2, $3)")
                     .bind(&task.id)
                     .bind(&task.name)
                     .bind(&task.children)
-                    .execute(self.pool)
+                    .execute(&mut **txn)
                     .await
                 {
                     Err(e) => {
-                        tracing::warn!("Failed to apply insert update {update:?}: {e}");
+                        return Err(
+                            format!("Failed to apply insert update: {e}, {update:?}").into()
+                        );
                     }
                     Ok(_res) => {}
                 }
@@ -305,11 +316,13 @@ impl Notifier {
             TaskUpdate::Delete { id } => {
                 match sqlx::query("DELETE tasks WHERE id=$1;")
                     .bind(id)
-                    .execute(self.pool)
+                    .execute(&mut **txn)
                     .await
                 {
                     Err(e) => {
-                        tracing::warn!("Failed to apply delete update {update:?}: {e}");
+                        return Err(
+                            format!("Failed to apply delete update: {e}, {update:?}").into()
+                        );
                     }
                     Ok(res) => {
                         if res.rows_affected() == 0 {
@@ -332,11 +345,13 @@ impl Notifier {
                     .bind(&task.id)
                     .bind(&task.name)
                     .bind(&task.children)
-                    .execute(self.pool)
+                    .execute(&mut **txn)
                     .await
                 {
                     Err(e) => {
-                        tracing::warn!("Failed to apply update {update:?}: {e}");
+                        return Err(
+                            format!("Failed to apply update update: {e}, {update:?}").into()
+                        );
                     }
                     Ok(res) => {
                         if res.rows_affected() == 0 {
@@ -355,6 +370,7 @@ impl Notifier {
                 }
             }
         }
+        Ok(())
     }
 
     fn events_to_updates(
