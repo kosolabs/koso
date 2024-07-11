@@ -41,6 +41,28 @@ pub struct DocBox {
     sub: Box<dyn Send + Sync>,
 }
 
+/// An individual task update: insert, delete or update.
+#[derive(Debug)]
+enum TaskUpdate {
+    #[allow(dead_code)]
+    Insert {
+        task: Task,
+    },
+    #[allow(dead_code)]
+    Delete {
+        id: String,
+    },
+    Update {
+        task: Task,
+    },
+}
+
+/// A set of task updates to be applied transactionally.
+#[derive(Debug)]
+struct TaskUpdates {
+    updates: Vec<TaskUpdate>,
+}
+
 #[derive(Clone)]
 pub struct Notifier {
     destinations: Arc<Mutex<HashMap<String, Destination>>>,
@@ -63,8 +85,7 @@ impl Notifier {
         let _ = sender.send(Message::Text("Hello!".into())).await;
 
         let sv = {
-            let doc_box = self.doc_box.clone();
-            let mut doc_box = doc_box.lock().await;
+            let mut doc_box = self.doc_box.lock().await;
             // Load the doc if it wasn't already loaded by another client.
             if doc_box.is_none() {
                 let doc = match self.load_graph().await {
@@ -81,11 +102,18 @@ impl Notifier {
                 let sub = doc
                     .get_or_insert_map("graph")
                     .observe_deep(move |txn, events| {
-                        let rows = observer_notifier.events_to_rows(txn, events);
-                        let o = observer_notifier.clone();
-                        tokio::spawn(async move {
-                            o.write_events(&rows).await;
-                        });
+                        let updates = observer_notifier.events_to_updates(txn, events);
+                        match updates {
+                            Ok(updates) => {
+                                let o = observer_notifier.clone();
+                                tokio::spawn(async move {
+                                    o.apply_task_updates(&updates).await;
+                                });
+                            }
+                            Err(e) => {
+                                tracing::warn!("Failed to convert event to update: {e}");
+                            }
+                        }
                     });
 
                 // Store the doc and sub for subsequent clients.
@@ -95,10 +123,10 @@ impl Notifier {
                 });
             }
 
-            let doc = doc_box.as_ref().unwrap();
-
             // Send the entire state vector to the client.
-            let sv = doc
+            let sv = doc_box
+                .as_ref()
+                .unwrap()
                 .doc
                 .transact()
                 .encode_state_as_update_v1(&StateVector::default());
@@ -135,21 +163,23 @@ impl Notifier {
         let tasks: Vec<Task> = sqlx::query_as("SELECT id, name, children FROM tasks")
             .fetch_all(self.pool)
             .await?;
+        let tasks_len = tasks.len();
+
         let doc = Doc::new();
         let graph = doc.get_or_insert_map("graph");
         {
             let mut txn = doc.transact_mut();
-            for task in tasks.iter() {
+            for task in tasks {
                 let y_task: MapRef = graph.get_or_init(&mut txn, task.id.clone());
-                y_task.insert(&mut txn, "id", task.id.clone());
-                y_task.insert(&mut txn, "name", task.name.clone());
+                y_task.insert(&mut txn, "id", task.id);
+                y_task.insert(&mut txn, "name", task.name);
                 let y_children: ArrayRef = y_task.get_or_init(&mut txn, "children");
-                for child in task.children.iter() {
-                    y_children.push_front(&mut txn, child.clone());
+                for child in task.children {
+                    y_children.push_front(&mut txn, child);
                 }
             }
         }
-        tracing::debug!("Initialized new YGraph with {} tasks", tasks.len());
+        tracing::debug!("Initialized new YGraph with {} tasks", tasks_len);
         Result::Ok(doc)
     }
 
@@ -247,52 +277,100 @@ impl Notifier {
         }
     }
 
-    async fn write_events(&self, rows: &Vec<(String, String, Vec<String>)>) {
+    async fn apply_task_updates(&self, updates: &TaskUpdates) {
         // TODO: should wrap all of these in a transaction.
-        for row in rows {
-            self.write_event(row).await;
+        for update in updates.updates.iter() {
+            self.apply_task_update(update).await;
         }
     }
-    async fn write_event(&self, row: &(String, String, Vec<String>)) {
-        tracing::debug!("About to write_event row: {row:?}");
-        let (id, name, children) = row;
-        match sqlx::query("UPDATE tasks SET name = $2, children = $3 WHERE id=$1;")
-            .bind(id)
-            .bind(name)
-            .bind(children)
-            .execute(self.pool)
-            .await
-        {
-            Err(e) => {
-                tracing::warn!("Failed to write event {row:?}: {e}");
-            }
-            Ok(res) => {
-                if res.rows_affected() == 0 {
-                    tracing::warn!("task '{id}' does not exist!");
+
+    async fn apply_task_update(&self, update: &TaskUpdate) {
+        tracing::debug!("About to apply update event: {update:?}");
+
+        match update {
+            TaskUpdate::Insert { task } => {
+                match sqlx::query("INSERT tasks (id, name, children) VALUES($1, $2, $3)")
+                    .bind(&task.id)
+                    .bind(&task.name)
+                    .bind(&task.children)
+                    .execute(self.pool)
+                    .await
+                {
+                    Err(e) => {
+                        tracing::warn!("Failed to apply insert update {update:?}: {e}");
+                    }
+                    Ok(_res) => {}
                 }
-                // Given the updates where clause should match 0 or 1 rows and never more,
-                // this should never happen.
-                if res.rows_affected() > 1 {
-                    tracing::warn!(
-                        "unexpectedly updated more than 1 rows ({}) for id '{id}'",
-                        res.rows_affected()
-                    );
+            }
+            TaskUpdate::Delete { id } => {
+                match sqlx::query("DELETE tasks WHERE id=$1;")
+                    .bind(id)
+                    .execute(self.pool)
+                    .await
+                {
+                    Err(e) => {
+                        tracing::warn!("Failed to apply delete update {update:?}: {e}");
+                    }
+                    Ok(res) => {
+                        if res.rows_affected() == 0 {
+                            tracing::warn!("task '{}' does not exist!", id);
+                        }
+                        // Given the updates where clause should match 0 or 1 rows and never more,
+                        // this should never happen.
+                        if res.rows_affected() > 1 {
+                            tracing::warn!(
+                                "unexpectedly updated more than 1 rows ({}) for id '{}'",
+                                res.rows_affected(),
+                                id
+                            );
+                        }
+                    }
+                }
+            }
+            TaskUpdate::Update { task } => {
+                match sqlx::query("UPDATE tasks SET name = $2, children = $3 WHERE id=$1;")
+                    .bind(&task.id)
+                    .bind(&task.name)
+                    .bind(&task.children)
+                    .execute(self.pool)
+                    .await
+                {
+                    Err(e) => {
+                        tracing::warn!("Failed to apply update {update:?}: {e}");
+                    }
+                    Ok(res) => {
+                        if res.rows_affected() == 0 {
+                            tracing::warn!("task '{}' does not exist!", task.id);
+                        }
+                        // Given the updates where clause should match 0 or 1 rows and never more,
+                        // this should never happen.
+                        if res.rows_affected() > 1 {
+                            tracing::warn!(
+                                "unexpectedly updated more than 1 rows ({}) for id '{}'",
+                                res.rows_affected(),
+                                task.id
+                            );
+                        }
+                    }
                 }
             }
         }
     }
 
-    fn events_to_rows(
+    fn events_to_updates(
         &self,
         txn: &yrs::TransactionMut<'_>,
         events: &Events<'_>,
-    ) -> Vec<(String, String, Vec<String>)> {
-        let mut results = Vec::new();
+    ) -> Result<TaskUpdates, Box<dyn Error>> {
+        let mut updates = TaskUpdates {
+            updates: Vec::new(),
+        };
         for evt in events.iter() {
             match evt {
                 yrs::types::Event::Text(evt) => {
-                    tracing::debug!("Got Text event: {:?}", evt.delta(txn));
-                    continue;
+                    return Err(
+                        format!("Text events are not implemented: {:?}", evt.delta(txn)).into(),
+                    );
                 }
                 yrs::types::Event::Array(evt) => {
                     tracing::debug!(
@@ -343,7 +421,13 @@ impl Notifier {
                             children_str.push(child.to_string());
                         }
 
-                        results.push((id.to_string(), name.to_string(), children_str));
+                        updates.updates.push(TaskUpdate::Update {
+                            task: Task {
+                                id: id.to_string(),
+                                name: name.to_string(),
+                                children: children_str,
+                            },
+                        });
                     }
                 }
                 yrs::types::Event::Map(evt) => {
@@ -351,15 +435,22 @@ impl Notifier {
                     continue;
                 }
                 yrs::types::Event::XmlFragment(evt) => {
-                    tracing::debug!("Got XmlFragment event: {:?}", evt.delta(txn));
-                    continue;
+                    return Err(format!(
+                        "XmlFragment events are not implemented: {:?}",
+                        evt.delta(txn)
+                    )
+                    .into());
                 }
                 yrs::types::Event::XmlText(evt) => {
-                    tracing::debug!("Got XmlText event: {:?}", evt.delta(txn));
-                    continue;
+                    return Err(format!(
+                        "XMLText events are not implemented: {:?}",
+                        evt.delta(txn)
+                    )
+                    .into());
                 }
             }
         }
-        results
+
+        Ok(updates)
     }
 }
