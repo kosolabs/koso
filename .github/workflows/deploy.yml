@@ -12,4 +12,4 @@ jobs:
           host: koso.app
           username: root
           key: ${{ secrets.KEY }}
-          script: cd /root/koso && ./deploy.sh
+          script: . /root/koso/.sharedenv && cd /root/koso && ./deploy.sh
