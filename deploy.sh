@@ -16,4 +16,5 @@ cargo build --release
 DATABASE_URL=postgresql://koso:koso@localhost/koso sqlx migrate run
 popd
 
+systemctl daemon-reload
 systemctl restart koso
