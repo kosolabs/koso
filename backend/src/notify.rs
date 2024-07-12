@@ -34,11 +34,7 @@ pub fn start(pool: &'static PgPool) -> Notifier {
         tx,
         updates_task: Arc::new(None),
     };
-    let n = notifier.clone();
-    let updates_task = tokio::spawn(async move {
-        n.process_updates(rx).await;
-        tracing::debug!("Stopped processing updates");
-    });
+    let updates_task = tokio::spawn(notifier.clone().process_updates(rx));
     notifier.updates_task = Arc::new(Some(updates_task));
 
     notifier
@@ -206,21 +202,21 @@ impl Notifier {
 
     /// Take Update V1's in bytes form, applies them to the doc
     /// and then broadcast them to all destinations.
-    async fn process_updates(&self, mut rx: Receiver<YrsUpdate>) {
-        loop {
-            if let Some(update) = rx.recv().await {
-                tracing::debug!("Processing update: {update:?}");
-                if let Err(e) = self.apply_update_to_doc(&update).await {
-                    tracing::error!("Failed to apply update to doc: {e}");
-                    continue;
-                }
+    async fn process_updates(self, mut rx: Receiver<YrsUpdate>) {
+        while let Some(update) = rx.recv().await {
+            tracing::debug!("Processing update: {update:?}");
+            if let Err(e) = self.apply_update_to_doc(&update).await {
+                tracing::error!("Failed to apply update to doc: {e}");
+                continue;
+            }
 
-                if let Err(e) = self.send_update_to_destinations(&update).await {
-                    tracing::error!("Failed to send update to destinations: {e}");
-                    continue;
-                }
+            if let Err(e) = self.send_update_to_destinations(&update).await {
+                tracing::error!("Failed to send update to destinations: {e}");
+                continue;
             }
         }
+
+        tracing::debug!("Stopped processing updates");
     }
 
     async fn apply_update_to_doc(&self, update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
@@ -277,9 +273,9 @@ impl Notifier {
     /// Listen for update or close messages sent by a client.
     async fn receive_updates_from_client(&self, who: String, mut receiver: SplitStream<WebSocket>) {
         use futures::stream::StreamExt;
-        while let Some(Ok(msg)) = receiver.next().await {
+        while let Some(msg) = receiver.next().await {
             match msg {
-                Message::Binary(data) => {
+                Ok(Message::Binary(data)) => {
                     match self
                         .tx
                         .send(YrsUpdate {
@@ -296,12 +292,17 @@ impl Notifier {
                         }
                     };
                 }
-                Message::Close(c) => {
+                Ok(Message::Close(c)) => {
                     // Remove the destination and close the sink.
                     self.close_destination(&who, c).await;
                     break;
                 }
-                _ => {
+                Err(e) => {
+                    tracing::warn!("Got error reading from client socket. Will close socket. {e}");
+                    self.close_destination(&who, None).await;
+                    break;
+                }
+                Ok(_) => {
                     tracing::debug!("Discarding unsolicited message from {who}: {msg:?}");
                 }
             }
