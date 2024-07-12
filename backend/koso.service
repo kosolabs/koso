@@ -1,0 +1,14 @@
+[Unit]
+Description=Koso service
+After=network.target
+
+[Service]
+Restart=always
+RestartSec=1
+User=root
+WorkingDirectory=/root/koso/backend
+Environment=DATABASE_URL=postgresql://koso:koso@localhost/koso
+ExecStart=/root/koso/backend/target/release/yotei
+
+[Install]
+WantedBy=multi-user.target
