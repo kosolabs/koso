@@ -1,10 +1,6 @@
 #!/bin/bash
 set -x
 
-git fetch
-if git merge-base --is-ancestor origin/main main; then
-  exit 0
-fi
 git pull
 
 pushd frontend
