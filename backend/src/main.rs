@@ -8,6 +8,7 @@ use axum::{
 };
 use axum_extra::{headers, TypedHeader};
 use axum_streams::StreamBodyAsOptions;
+use futures::FutureExt;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use sqlx::{
@@ -71,7 +72,7 @@ async fn start_main_server() {
             .expect("can't connect to database"),
     ));
 
-    let (notifier, notify_task) = notify::start_notifications(pool);
+    let notifier = notify::start(pool);
 
     let state = Arc::new(AppState {});
     let app = Router::new()
@@ -94,7 +95,7 @@ async fn start_main_server() {
             // requests don't hang forever.
             TimeoutLayer::new(Duration::from_secs(10)),
             Extension(pool),
-            Extension(notifier),
+            Extension(notifier.clone()),
         ));
 
     // We can either use a listener provided by the environment by ListenFd or
@@ -122,7 +123,7 @@ async fn start_main_server() {
     .unwrap();
 
     // Now that the server is shutdown, it's safe to clean things up.
-    notify_task.abort();
+    notifier.stop().await;
     tracing::debug!("Closing database pool...");
     pool.close().await;
 }
@@ -263,7 +264,13 @@ async fn ws_handler(
 ) -> impl IntoResponse {
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
-    ws.on_upgrade(move |socket| notifier.register_destination(socket, addr))
+    ws.on_upgrade(move |socket| {
+        notifier.register_destination(socket, addr).map(move |res| {
+            if let Err(e) = res {
+                tracing::warn!("Failed to register destination for {addr}: {e}");
+            }
+        })
+    })
 }
 
 /// Utility function for mapping any error into a `500 Internal Server Error` response.
