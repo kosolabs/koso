@@ -1,4 +1,10 @@
-use std::{collections::HashMap, error::Error, fmt::Debug, net::SocketAddr, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    error::Error,
+    fmt::Debug,
+    net::SocketAddr,
+    sync::Arc,
+};
 
 use axum::extract::ws::{Message, WebSocket};
 use futures::{stream::SplitStream, SinkExt};
@@ -9,7 +15,7 @@ use tokio::sync::{
 };
 use uuid::Uuid;
 use yrs::{
-    types::{Events, PathSegment},
+    types::{Events, PathSegment, ToJson},
     updates::decoder::Decode,
     Any, Array, ArrayRef, Doc, Map, MapRef, Out, ReadTxn, StateVector, Transact, Update,
 };
@@ -17,14 +23,14 @@ use yrs::{
 use crate::model::Task;
 
 pub fn start_notifications(pool: &'static PgPool) -> (Notifier, tokio::task::JoinHandle<()>) {
-    let (tx, rx) = mpsc::channel::<Vec<u8>>(1);
+    let (tx, rx) = mpsc::channel::<YrsUpdate>(1);
     let notifier = Notifier {
         destinations: Arc::new(Mutex::new(HashMap::new())),
         pool,
         doc_box: Arc::new(Mutex::new(Option::None)),
         tx,
     };
-    let notify_task = tokio::spawn(notifier.clone().broadcast_updates(rx));
+    let notify_task = tokio::spawn(notifier.clone().process_updates(rx));
     (notifier, notify_task)
 }
 
@@ -45,10 +51,6 @@ pub struct DocBox {
 #[derive(Debug)]
 enum TaskUpdate {
     #[allow(dead_code)]
-    Insert {
-        task: Task,
-    },
-    #[allow(dead_code)]
     Delete {
         id: String,
     },
@@ -63,12 +65,18 @@ struct TaskUpdates {
     updates: Vec<TaskUpdate>,
 }
 
+#[derive(Debug)]
+struct YrsUpdate {
+    who: String,
+    data: Vec<u8>,
+}
+
 #[derive(Clone)]
 pub struct Notifier {
     destinations: Arc<Mutex<HashMap<String, Destination>>>,
     pool: &'static PgPool,
     doc_box: Arc<Mutex<Option<DocBox>>>,
-    tx: Sender<Vec<u8>>,
+    tx: Sender<YrsUpdate>,
 }
 
 // High Level Design
@@ -87,50 +95,22 @@ impl Notifier {
         let sv = {
             let mut doc_box = self.doc_box.lock().await;
             // Load the doc if it wasn't already loaded by another client.
-            if doc_box.is_none() {
-                let doc = match self.load_graph().await {
-                    Ok(doc) => doc,
-                    Err(e) => {
-                        tracing::warn!("Failed to load graph: {}", e);
-                        return;
-                    }
-                };
-
-                // Observe changes to the graph and replicate them to the database.
-                let observer_notifier = self.clone();
-                use yrs::DeepObservable;
-                let sub = doc
-                    .get_or_insert_map("graph")
-                    .observe_deep(move |txn, events| {
-                        let updates = observer_notifier.events_to_updates(txn, events);
-                        match updates {
-                            Ok(updates) => {
-                                let o = observer_notifier.clone();
-                                tokio::spawn(async move {
-                                    if let Err(e) = o.apply_task_updates(&updates).await {
-                                        tracing::warn!(
-                                            "Failed to apply task updates: {e}: {updates:?}"
-                                        );
-                                    }
-                                });
-                            }
-                            Err(e) => {
-                                tracing::warn!("Failed to convert event to update: {e}");
-                            }
+            let doc_box = match doc_box.as_ref() {
+                Some(doc_box) => doc_box,
+                None => {
+                    *doc_box = Some(match self.load_doc_box().await {
+                        Ok(doc) => doc,
+                        Err(e) => {
+                            tracing::warn!("Failed to load graph: {}", e);
+                            return;
                         }
                     });
-
-                // Store the doc and sub for subsequent clients.
-                *doc_box = Some(DocBox {
-                    doc,
-                    sub: Box::new(sub),
-                });
-            }
+                    doc_box.as_ref().unwrap()
+                }
+            };
 
             // Send the entire state vector to the client.
             let sv = doc_box
-                .as_ref()
-                .unwrap()
                 .doc
                 .transact()
                 .encode_state_as_update_v1(&StateVector::default());
@@ -158,8 +138,38 @@ impl Notifier {
         // updates to all other clients or get notified about when the
         // client closes the socket.
         tokio::spawn(async move {
-            self.receive_updates(who, receiver).await;
+            self.receive_updates_from_client(who, receiver).await;
         });
+    }
+
+    async fn load_doc_box(&self) -> Result<DocBox, Box<dyn Error>> {
+        let doc = self.load_graph().await?;
+
+        // Observe changes to the graph and replicate them to the database.
+        let observer_notifier = self.clone();
+        use yrs::DeepObservable;
+        let sub = doc
+            .get_or_insert_map("graph")
+            .observe_deep(move |txn, events| {
+                match observer_notifier.events_to_updates(txn, events) {
+                    Ok(updates) => {
+                        let o = observer_notifier.clone();
+                        tokio::spawn(async move {
+                            if let Err(e) = o.apply_task_updates(&updates).await {
+                                tracing::warn!("Failed to apply task updates: {e}: {updates:?}");
+                            }
+                        });
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to convert event to update: {e}");
+                    }
+                }
+            });
+
+        Ok(DocBox {
+            doc,
+            sub: Box::new(sub),
+        })
     }
 
     async fn load_graph(&self) -> Result<Doc, Box<dyn Error>> {
@@ -187,61 +197,95 @@ impl Notifier {
         Result::Ok(doc)
     }
 
-    /// Take Update V1's in bytes form and broadcast them to all destinations.
-    async fn broadcast_updates(self, mut rx: Receiver<Vec<u8>>) {
+    /// Take Update V1's in bytes form, applies them to the doc
+    /// and then broadcast them to all destinations.
+    async fn process_updates(self, mut rx: Receiver<YrsUpdate>) {
         loop {
             if let Some(update) = rx.recv().await {
-                self.doc_box
-                    .lock()
-                    .await
-                    .as_mut()
-                    .unwrap()
-                    .doc
-                    .transact_mut()
-                    .apply_update(Update::decode_v1(&update).unwrap());
-
-                use futures::sink::SinkExt;
-                use futures::FutureExt;
-                let mut results = Vec::new();
-                let mut destinations = self.destinations.lock().await;
-                for destination in destinations.values_mut() {
-                    tracing::debug!("Notifying client {}", destination.who);
-                    results.push(
-                        destination
-                            .sink
-                            .send(Message::Binary(update.clone()))
-                            .map(|r| match r {
-                                Ok(_) => {
-                                    tracing::debug!("Sent update to {}", destination.who);
-                                }
-                                Err(e) => {
-                                    tracing::debug!(
-                                        "Failed to send update to {}: {e}",
-                                        destination.who
-                                    );
-                                }
-                            }),
-                    );
+                tracing::debug!("Processing update: {update:?}");
+                if let Err(e) = self.apply_update_to_doc(&update).await {
+                    tracing::error!("Failed to apply update to doc: {e}");
+                    continue;
                 }
-                futures::future::join_all(results).await;
 
-                tracing::debug!("Got update: {update:?}");
+                if let Err(e) = self.send_update_to_destinations(&update).await {
+                    tracing::error!("Failed to send update to destinations: {e}");
+                    continue;
+                }
             }
         }
     }
 
+    async fn apply_update_to_doc(&self, update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
+        let update = match Update::decode_v1(&update.data) {
+            Ok(update) => update,
+            Err(e) => {
+                return Err(format!(
+                    "Could not decode update from client: {e}, update: {update:?}"
+                )
+                .into());
+            }
+        };
+
+        let doc_box = self.doc_box.lock().await;
+        let doc_box = match doc_box.as_ref() {
+            Some(doc_box) => doc_box,
+            None => {
+                // TODO: Aside from short races, if this happens, we've got sockets without a doc.
+                // Likely, we should reset all sockets.
+                return Err(
+                    "Tried to broadcast update but doc_box was None. Dropped update: {update:?}"
+                        .into(),
+                );
+            }
+        };
+        doc_box.doc.transact_mut().apply_update(update);
+        Ok(())
+    }
+
+    async fn send_update_to_destinations(&self, update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
+        use futures::sink::SinkExt;
+        let mut results = Vec::new();
+        let mut destinations = self.destinations.lock().await;
+
+        tracing::debug!(
+            "Sending updates to {} clients from {}",
+            destinations.len(),
+            update.who
+        );
+        for destination in destinations.values_mut() {
+            tracing::debug!("Sending update to {}", destination.who);
+            results.push(
+                destination
+                    .sink
+                    .send(Message::Binary(update.data.to_owned())),
+            );
+        }
+        let res = futures::future::join_all(results).await;
+        tracing::debug!("Finished sending updates: {res:?}");
+
+        Ok(())
+    }
+
     /// Listen for update or close messages sent by a client.
-    async fn receive_updates(self, who: String, mut receiver: SplitStream<WebSocket>) {
+    async fn receive_updates_from_client(self, who: String, mut receiver: SplitStream<WebSocket>) {
         use futures::stream::StreamExt;
         while let Some(Ok(msg)) = receiver.next().await {
             match msg {
-                Message::Binary(vec) => {
-                    match self.tx.send(vec).await {
+                Message::Binary(data) => {
+                    match self
+                        .tx
+                        .send(YrsUpdate {
+                            who: who.clone(),
+                            data,
+                        })
+                        .await
+                    {
                         Ok(()) => {
-                            tracing::debug!("Broadcasting update from {who}");
+                            tracing::debug!("Received update from {who}");
                         }
                         Err(err) => {
-                            tracing::debug!("Error broadcasting: {err}");
+                            tracing::debug!("Error sending update from {who}: {err}");
                         }
                     };
                 }
@@ -250,7 +294,7 @@ impl Notifier {
                     let dest = {
                         let destinations = &mut self.destinations.lock().await;
                         tracing::debug!(
-                            "Removing destination for closed client {who}, {} remain. Reason: {}",
+                            "Removing destination for closed client {who}. {} clients remain. Reason: {}",
                             destinations.len() - 1,
                             if let Some(cf) = &c {
                                 format!("code:'{}', detail:'{}'", cf.code, cf.reason)
@@ -288,6 +332,7 @@ impl Notifier {
             self.apply_task_update(update, &mut txn).await?;
         }
         txn.commit().await?;
+        tracing::debug!("Applied update events: {updates:?}");
         Ok(())
     }
 
@@ -297,22 +342,6 @@ impl Notifier {
         txn: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), Box<dyn Error>> {
         match update {
-            TaskUpdate::Insert { task } => {
-                match sqlx::query("INSERT tasks (id, name, children) VALUES($1, $2, $3)")
-                    .bind(&task.id)
-                    .bind(&task.name)
-                    .bind(&task.children)
-                    .execute(&mut **txn)
-                    .await
-                {
-                    Err(e) => {
-                        return Err(
-                            format!("Failed to apply insert update: {e}, {update:?}").into()
-                        );
-                    }
-                    Ok(_res) => {}
-                }
-            }
             TaskUpdate::Delete { id } => {
                 match sqlx::query("DELETE tasks WHERE id=$1;")
                     .bind(id)
@@ -326,27 +355,32 @@ impl Notifier {
                     }
                     Ok(res) => {
                         if res.rows_affected() == 0 {
-                            tracing::warn!("task '{}' does not exist!", id);
+                            return Err(format!("task does not exist to delete: {update:?}").into());
                         }
                         // Given the updates where clause should match 0 or 1 rows and never more,
                         // this should never happen.
                         if res.rows_affected() > 1 {
-                            tracing::warn!(
-                                "unexpectedly updated more than 1 rows ({}) for id '{}'",
-                                res.rows_affected(),
-                                id
-                            );
+                            return Err(format!(
+                                "unexpectedly deleted more than 1 rows ({}): {update:?}",
+                                res.rows_affected()
+                            )
+                            .into());
                         }
                     }
                 }
             }
             TaskUpdate::Update { task } => {
-                match sqlx::query("UPDATE tasks SET name = $2, children = $3 WHERE id=$1;")
-                    .bind(&task.id)
-                    .bind(&task.name)
-                    .bind(&task.children)
-                    .execute(&mut **txn)
-                    .await
+                match sqlx::query(
+                    "INSERT INTO tasks (id, name, children)
+                          VALUES ($1, $2, $3)
+                          ON CONFLICT (id)
+                          DO UPDATE SET name = EXCLUDED.name, children = EXCLUDED.children;",
+                )
+                .bind(&task.id)
+                .bind(&task.name)
+                .bind(&task.children)
+                .execute(&mut **txn)
+                .await
                 {
                     Err(e) => {
                         return Err(
@@ -355,16 +389,16 @@ impl Notifier {
                     }
                     Ok(res) => {
                         if res.rows_affected() == 0 {
-                            tracing::warn!("task '{}' does not exist!", task.id);
+                            return Err(format!("task does not exist to update: {task:?}").into());
                         }
                         // Given the updates where clause should match 0 or 1 rows and never more,
                         // this should never happen.
                         if res.rows_affected() > 1 {
-                            tracing::warn!(
-                                "unexpectedly updated more than 1 rows ({}) for id '{}'",
-                                res.rows_affected(),
-                                task.id
-                            );
+                            return Err(format!(
+                                "unexpectedly updated more than 1 rows ({}): '{update:?}'",
+                                res.rows_affected()
+                            )
+                            .into());
                         }
                     }
                 }
@@ -383,83 +417,47 @@ impl Notifier {
         };
         for evt in events.iter() {
             match evt {
-                yrs::types::Event::Text(evt) => {
-                    return Err(
-                        format!("Text events are not implemented: {:?}", evt.delta(txn)).into(),
-                    );
-                }
                 yrs::types::Event::Array(evt) => {
                     tracing::debug!(
-                        "Got Array event: {:?}, path: {:?}",
-                        evt.delta(txn),
-                        evt.path()
+                        "Processing Array event: path: {:?}, target: {:?}, delta: {:?}",
+                        evt.path(),
+                        evt.target().to_json(txn),
+                        evt.delta(txn)
                     );
-                    let path = evt.path();
-                    let PathSegment::Key(thing) = path.back().unwrap() else {
-                        tracing::warn!("Path segment is not key type: {:?}", path.back().unwrap());
-                        continue;
-                    };
-
-                    if *thing != "children".into() {
-                        tracing::warn!("Path segment is not 'children': {thing}");
-                        continue;
-                    }
-
-                    if let PathSegment::Key(id) = path.front().unwrap() {
-                        let Out::YMap(task) = txn.get_map("graph").unwrap().get(txn, id).unwrap()
-                        else {
-                            tracing::warn!("Could not find graph in: {}", txn.doc());
-                            continue;
-                        };
-
-                        let Out::Any(Any::String(id)) = task.get(txn, "id").unwrap() else {
-                            tracing::warn!("Could not find id in: {task:?}");
-                            continue;
-                        };
-                        let Out::Any(Any::String(name)) = task.get(txn, "name").unwrap() else {
-                            tracing::warn!("Could not find name in: {task:?}");
-                            continue;
-                        };
-                        let Out::YArray(children) = task.get(txn, "children").unwrap() else {
-                            tracing::warn!("Could not find children in: {task:?}");
-                            continue;
-                        };
-
-                        let mut children_str = Vec::new();
-                        for i in 0..children.len(txn) {
-                            let Out::Any(Any::String(child)) = children.get(txn, i).unwrap() else {
-                                tracing::warn!(
-                                    "Could not get child from children at {i}: {children:?}"
-                                );
-
-                                continue;
-                            };
-                            children_str.push(child.to_string());
-                        }
-
-                        updates.updates.push(TaskUpdate::Update {
-                            task: Task {
-                                id: id.to_string(),
-                                name: name.to_string(),
-                                children: children_str,
-                            },
-                        });
-                    }
+                    updates.updates.push(self.to_task_update(evt.path(), txn)?);
                 }
                 yrs::types::Event::Map(evt) => {
-                    tracing::debug!("Got Map event: {:?}", evt.keys(txn));
-                    continue;
+                    tracing::debug!(
+                        "Processing Map event: path: {:?}, target: {:?}, key: {:?}",
+                        evt.path(),
+                        evt.target().to_json(txn),
+                        evt.keys(txn)
+                    );
+                    updates.updates.push(self.to_task_update(evt.path(), txn)?);
+                }
+                yrs::types::Event::Text(evt) => {
+                    return Err(format!(
+                        "Text events are not implemented: path: {:?}, target: {:?}, delta: {:?}",
+                        evt.path(),
+                        evt.target(),
+                        evt.delta(txn)
+                    )
+                    .into());
                 }
                 yrs::types::Event::XmlFragment(evt) => {
                     return Err(format!(
-                        "XmlFragment events are not implemented: {:?}",
+                        "XmlFragment events are not implemented: path: {:?}, target: {:?}, delta: {:?}",
+                        evt.path(),
+                        evt.target(),
                         evt.delta(txn)
                     )
                     .into());
                 }
                 yrs::types::Event::XmlText(evt) => {
                     return Err(format!(
-                        "XMLText events are not implemented: {:?}",
+                        "XMLText events are not implemented: path: {:?}, target: {:?}, delta: {:?}",
+                        evt.path(),
+                        evt.target(),
                         evt.delta(txn)
                     )
                     .into());
@@ -468,5 +466,53 @@ impl Notifier {
         }
 
         Ok(updates)
+    }
+
+    fn to_task_update(
+        &self,
+        path: VecDeque<PathSegment>,
+        txn: &yrs::TransactionMut<'_>,
+    ) -> Result<TaskUpdate, Box<dyn Error>> {
+        let Some(PathSegment::Key(key)) = path.front() else {
+            return Err(format!("Could not get first path segement key: {:?}", path).into());
+        };
+        let Some(graph) = txn.get_map("graph") else {
+            return Err(format!("Could not get map 'graph': {:?}", txn.doc()).into());
+        };
+        let Some(Out::YMap(task)) = graph.get(txn, key) else {
+            return Err(format!("Could not find graph in: {}", txn.doc()).into());
+        };
+        let Some(Out::Any(Any::String(id))) = task.get(txn, "id") else {
+            return Err(format!("Could not find id in: {task:?}").into());
+        };
+        if *key != id {
+            return Err(format!(
+                "Id mismatch, map key ({key}) does not equal 'id' ({id}): {task:?}"
+            )
+            .into());
+        }
+        let Some(Out::Any(Any::String(name))) = task.get(txn, "name") else {
+            return Err(format!("Could not find name in: {task:?}").into());
+        };
+        let Some(Out::YArray(children)) = task.get(txn, "children") else {
+            return Err(format!("Could not find children in: {task:?}").into());
+        };
+        let mut children_str = Vec::new();
+        for i in 0..children.len(txn) {
+            let Some(Out::Any(Any::String(child))) = children.get(txn, i) else {
+                return Err(
+                    format!("Could not get child from children at {i}: {children:?}").into(),
+                );
+            };
+            children_str.push(child.to_string());
+        }
+
+        Ok(TaskUpdate::Update {
+            task: Task {
+                id: id.to_string(),
+                name: name.to_string(),
+                children: children_str,
+            },
+        })
     }
 }
