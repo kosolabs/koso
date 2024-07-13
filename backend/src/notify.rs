@@ -1,17 +1,13 @@
 use std::{
-    collections::{HashMap, VecDeque},
-    error::Error,
-    net::SocketAddr,
-    ops::ControlFlow,
-    sync::Arc,
+    collections::VecDeque, error::Error, net::SocketAddr, ops::ControlFlow, sync::Arc,
     time::Duration,
 };
 
-use axum::extract::ws::{CloseFrame, Message, WebSocket};
-use futures::{stream::SplitStream, SinkExt};
+use axum::extract::ws::{Message, WebSocket};
+use futures::SinkExt;
 use sqlx::PgPool;
 use tokio::sync::{
-    mpsc::{self, Receiver, Sender},
+    broadcast::{self, error::RecvError, Receiver, Sender},
     Mutex,
 };
 use tokio_util::sync::CancellationToken;
@@ -25,24 +21,27 @@ use yrs::{
 use crate::model::Task;
 
 pub fn start(pool: &'static PgPool) -> Notifier {
-    let (tx, rx) = mpsc::channel::<YrsUpdate>(1);
+    let (broadcast_tx, broadcast_rx) = broadcast::channel(1);
     let notifier = Notifier {
-        destinations: Arc::new(Mutex::new(HashMap::new())),
         pool,
         doc_box: Arc::new(Mutex::new(Option::None)),
-        tx,
+        broadcast_tx,
         cancel: CancellationToken::new(),
         tracker: tokio_util::task::TaskTracker::new(),
     };
-    notifier.tracker.spawn(notifier.clone().process_updates(rx));
+    notifier
+        .tracker
+        .spawn(notifier.clone().process_updates(broadcast_rx));
 
     notifier
 }
 
 #[derive(Debug)]
 pub struct Destination {
-    pub sink: futures::stream::SplitSink<WebSocket, Message>,
     pub who: String,
+    broadcast_rx: Receiver<YrsUpdate>,
+    ws_sender: futures::stream::SplitSink<WebSocket, Message>,
+    ws_receiver: futures::stream::SplitStream<WebSocket>,
 }
 
 pub struct DocBox {
@@ -70,18 +69,18 @@ struct TaskUpdates {
     updates: Vec<TaskUpdate>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct YrsUpdate {
+    #[allow(dead_code)]
     who: String,
     data: Vec<u8>,
 }
 
 #[derive(Clone)]
 pub struct Notifier {
-    destinations: Arc<Mutex<HashMap<String, Destination>>>,
     pool: &'static PgPool,
     doc_box: Arc<Mutex<Option<DocBox>>>,
-    tx: Sender<YrsUpdate>,
+    broadcast_tx: Sender<YrsUpdate>,
     cancel: CancellationToken,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -101,39 +100,30 @@ impl Notifier {
         tracing::debug!("Registering destination for client {who}");
 
         use futures::stream::StreamExt;
-        let (mut sender, receiver) = socket.split();
+        let (mut ws_sender, ws_receiver) = socket.split();
 
         // Send a welcome message just for fun!
-        let _ = sender.send(Message::Text("Hello!".into())).await;
+        ws_sender.send(Message::Text("Hello!".into())).await?;
 
         // Init the doc_box, if necessary and grab the state vector.
         let sv = self.init_doc_box().await?;
 
         // Send the entire state vector to the client.
-        if let Err(e) = sender.send(Message::Binary(sv)).await {
-            return Err(format!("Failed to send state vector to client: {e}").into());
-        }
+        ws_sender.send(Message::Binary(sv)).await?;
 
-        // Store the sender side of the socket in the list of destinations.
-        if let Some(existing) = self.destinations.lock().await.insert(
-            who.clone(),
-            Destination {
-                sink: sender,
-                who: who.clone(),
-            },
-        ) {
-            return Err(
-                format!("Unexpectedly, destination {who} already exists: {existing:?}").into(),
-            );
-        }
+        // Tie everything together in a Destination.
+        let dest = Destination {
+            ws_sender,
+            ws_receiver,
+            who,
+            broadcast_rx: self.broadcast_tx.subscribe(),
+        };
 
         // Listen for messages on the read side of the socket to broadcast
         // updates to all other clients or get notified about when the
         // client closes the socket.
-        self.tracker.spawn(
-            self.clone()
-                .receive_updates_from_client(who.clone(), receiver),
-        );
+        self.tracker
+            .spawn(self.clone().receive_updates_from_client(dest));
 
         Ok(())
     }
@@ -199,17 +189,20 @@ impl Notifier {
         Result::Ok(doc)
     }
 
-    /// Take Update V1's in bytes form, applies them to the doc
-    /// and then broadcast them to all destinations.
+    /// Take Update V1's in bytes form, applies them to the doc.
     async fn process_updates(self, mut rx: Receiver<YrsUpdate>) {
         loop {
             tokio::select! {
                 _ = self.cancel.cancelled() => { break; }
                 update = rx.recv() => {
-                    let Some(update) = update else {
-                        break;
-                    };
-                    self.process_update(&update).await;
+                    match update {
+                        Ok(update) => self.process_update(&update).await,
+                        Err(RecvError::Closed) => { break; },
+                        Err(RecvError::Lagged(skipped)) => {
+                            // TODO: Deal with dropped updates in some way.
+                            tracing::warn!("Update receiver lagged. Dropped {skipped} updates.");
+                        },
+                    }
                 }
             }
         }
@@ -220,10 +213,6 @@ impl Notifier {
         tracing::debug!("Processing update: {update:?}");
         if let Err(e) = self.apply_update_to_doc(update).await {
             tracing::error!("Failed to apply update to doc: {e}");
-            return;
-        }
-        if let Err(e) = self.send_update_to_destinations(update).await {
-            tracing::error!("Failed to send update to destinations: {e}");
         }
     }
 
@@ -254,119 +243,89 @@ impl Notifier {
         Ok(())
     }
 
-    async fn send_update_to_destinations(&self, update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
-        use futures::sink::SinkExt;
-        let mut results = Vec::new();
-        let mut destinations = self.destinations.lock().await;
-
-        tracing::debug!(
-            "Sending updates to {} clients from {}",
-            destinations.len(),
-            update.who
-        );
-        for destination in destinations.values_mut() {
-            tracing::debug!("Sending update to {}", destination.who);
-            results.push(
-                destination
-                    .sink
-                    .send(Message::Binary(update.data.to_owned())),
-            );
-        }
-        let res = futures::future::join_all(results).await;
-        tracing::debug!("Finished sending updates: {res:?}");
-
-        Ok(())
-    }
-
     /// Listen for update or close messages sent by a client.
-    async fn receive_updates_from_client(self, who: String, mut receiver: SplitStream<WebSocket>) {
+    async fn receive_updates_from_client(self, mut dest: Destination) {
         use futures::stream::StreamExt;
         loop {
             tokio::select! {
                 _ = self.cancel.cancelled() => { break; }
-                msg = receiver.next() => {
-                    let Some(msg) = msg else {
-                        break;
-                    };
-                    if let ControlFlow::Break(_) = self.receive_update_from_client(&who, msg).await {
-                        break;
+                // Read updates from this client and broadcast them to others.
+                msg = dest.ws_receiver.next() => {
+                    match msg {
+                        Some(msg) => {
+                            if let ControlFlow::Break(_) = self.receive_update_from_client(&dest, msg).await {
+                                break;
+                            }
+                        },
+                        None => {
+                            tracing::debug!("Read None from socket. Will close.");
+                            break;
+                        },
+                    }
+                }
+                // Read updates from others and send them to the client.
+                update = dest.broadcast_rx.recv() => {
+                    match update {
+                        Ok(update) => {
+                            // No need to send the clients own update back to itself.
+                            if update.who == dest.who {
+                                break;
+                            }
+                            tracing::debug!("Sending update to {}", dest.who);
+                            if let Err(e) = dest.ws_sender.send(Message::Binary(update.data.to_owned())).await {
+                                tracing::warn!("Failed to send update to {}: {e}", dest.who);
+                            }
+                        }
+                        Err(RecvError::Closed) => { break; },
+                        Err(RecvError::Lagged(skipped)) => {
+                            // TODO: Deal with dropped updates in some way.
+                            tracing::warn!("Broadcast receiver for {} lagged. Dropped {skipped} updates.", dest.who);
+                        }
                     }
                 }
             }
         }
-        tracing::debug!("Stopped receiving client updates from {who}");
+
+        tracing::debug!(
+            "Stopped receiving client updates from {}. Closing socket.",
+            dest.who
+        );
+        if let Err(e) = dest.ws_sender.close().await {
+            tracing::debug!("Error closing socket for {}: {e}", dest.who);
+        }
     }
 
     async fn receive_update_from_client(
         &self,
-        who: &String,
+        dest: &Destination,
         msg: Result<Message, axum::Error>,
     ) -> ControlFlow<()> {
         match msg {
             Ok(Message::Binary(data)) => {
-                match self
-                    .tx
-                    .send(YrsUpdate {
-                        who: who.clone(),
-                        data,
-                    })
-                    .await
-                {
-                    Ok(()) => {
-                        tracing::debug!("Received update from {who}");
+                match self.broadcast_tx.send(YrsUpdate {
+                    who: dest.who.clone(),
+                    data,
+                }) {
+                    Ok(_) => {
+                        tracing::debug!("Received update from {}", dest.who);
                     }
                     Err(err) => {
-                        tracing::debug!("Error sending update from {who}: {err}");
+                        tracing::debug!("Error sending update from {}: {err}", dest.who);
                     }
                 };
                 ControlFlow::Continue(())
             }
-            Ok(Message::Close(c)) => {
-                // Remove the destination and close the sink.
-                self.close_destination(who, c).await;
+            Ok(Message::Close(_)) => {
+                tracing::debug!("Client closed socket {}", dest.who);
                 ControlFlow::Break(())
             }
             Err(e) => {
                 tracing::warn!("Got error reading from client socket. Will close socket. {e}");
-                self.close_destination(who, None).await;
                 ControlFlow::Break(())
             }
             Ok(_) => {
-                tracing::debug!("Discarding unsolicited message from {who}: {msg:?}");
+                tracing::debug!("Discarding unsolicited message from {}: {msg:?}", dest.who);
                 ControlFlow::Continue(())
-            }
-        }
-    }
-
-    async fn close_destination(&self, who: &String, c: Option<CloseFrame<'_>>) {
-        let dest = {
-            let destinations = &mut self.destinations.lock().await;
-            let dest = destinations.remove(who);
-
-            tracing::debug!(
-                "Removing destination for closed client {who}. {} clients remain. Reason: {}",
-                destinations.len(),
-                if let Some(cf) = &c {
-                    format!("code:'{}', detail:'{}'", cf.code, cf.reason)
-                } else {
-                    "code:'NONE', detail:'No CloseFrame'".to_string()
-                }
-            );
-
-            if destinations.len() == 0 {
-                tracing::debug!("Last client disconnected, destroying YGraph");
-                *self.doc_box.lock().await = None;
-            }
-            dest
-        };
-        match dest {
-            Some(mut dest) => {
-                if let Err(e) = dest.sink.close().await {
-                    tracing::debug!("Failed to close sink for {who}: {e}");
-                }
-            }
-            None => {
-                tracing::warn!("Unexpectedly, received close for client {who} while no destination was registered.")
             }
         }
     }
@@ -596,13 +555,6 @@ impl Notifier {
                 self.tracker.len()
             );
         }
-
-        // Close all client destinations.
-        let mut destinations = self.destinations.lock().await;
-        for dest in destinations.values_mut() {
-            let _ = dest.sink.close().await;
-        }
-        destinations.clear();
 
         // Drop the doc box to stop observing changes.
         *self.doc_box.lock().await = None;
