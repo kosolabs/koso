@@ -1,5 +1,7 @@
-#!/bin/bash
-set -x
+#!/usr/bin/env zsh
+
+source /root/.sharedenv
+source /root/.telegram.zsh
 
 pushd frontend
 npm run build
@@ -13,4 +15,4 @@ popd
 systemctl daemon-reload
 systemctl restart koso
 
-telegram "Deployed $(git rev-parse --short HEAD) - $(git log --format=%s%b -n 1 HEAD)"
+telegram "Deployed $(git rev-parse --short HEAD)"

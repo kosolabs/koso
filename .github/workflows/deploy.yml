@@ -13,8 +13,6 @@ jobs:
           username: root
           key: ${{ secrets.KEY }}
           script: |
-            source /root/.sharedenv
-            source /root/.telegram.zsh
             cd /root/koso
             git pull
             ./deploy.sh
