@@ -12,5 +12,4 @@ jobs:
           host: koso.app
           username: root
           key: ${{ secrets.KEY }}
-          request_pty: true
-          script: cd /root/koso && ./deploy.sh
+          script: source /root/.zshrc && cd /root/koso && ./deploy.sh
