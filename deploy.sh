@@ -1,8 +1,6 @@
 #!/bin/bash
 set -x
 
-git pull
-
 pushd frontend
 npm run build
 popd
