@@ -14,3 +14,5 @@ popd
 
 systemctl daemon-reload
 systemctl restart koso
+
+telegram "Deployed $(git rev-parse --short HEAD)"
