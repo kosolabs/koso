@@ -3,6 +3,7 @@ use std::{
     error::Error,
     fmt::Debug,
     net::SocketAddr,
+    ops::ControlFlow,
     sync::Arc,
 };
 
@@ -133,7 +134,7 @@ impl Notifier {
         // updates to all other clients or get notified about when the
         // client closes the socket.
         tokio::spawn(async move {
-            self.receive_updates_from_client(who, receiver).await;
+            self.receive_updates_from_client(&who, receiver).await;
         });
 
         Ok(())
@@ -204,19 +205,20 @@ impl Notifier {
     /// and then broadcast them to all destinations.
     async fn process_updates(self, mut rx: Receiver<YrsUpdate>) {
         while let Some(update) = rx.recv().await {
-            tracing::debug!("Processing update: {update:?}");
-            if let Err(e) = self.apply_update_to_doc(&update).await {
-                tracing::error!("Failed to apply update to doc: {e}");
-                continue;
-            }
-
-            if let Err(e) = self.send_update_to_destinations(&update).await {
-                tracing::error!("Failed to send update to destinations: {e}");
-                continue;
-            }
+            self.process_update(&update).await
         }
-
         tracing::debug!("Stopped processing updates");
+    }
+
+    async fn process_update(&self, update: &YrsUpdate) {
+        tracing::debug!("Processing update: {update:?}");
+        if let Err(e) = self.apply_update_to_doc(update).await {
+            tracing::error!("Failed to apply update to doc: {e}");
+            return;
+        }
+        if let Err(e) = self.send_update_to_destinations(update).await {
+            tracing::error!("Failed to send update to destinations: {e}");
+        }
     }
 
     async fn apply_update_to_doc(&self, update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
@@ -271,40 +273,57 @@ impl Notifier {
     }
 
     /// Listen for update or close messages sent by a client.
-    async fn receive_updates_from_client(&self, who: String, mut receiver: SplitStream<WebSocket>) {
+    async fn receive_updates_from_client(
+        &self,
+        who: &String,
+        mut receiver: SplitStream<WebSocket>,
+    ) {
         use futures::stream::StreamExt;
         while let Some(msg) = receiver.next().await {
-            match msg {
-                Ok(Message::Binary(data)) => {
-                    match self
-                        .tx
-                        .send(YrsUpdate {
-                            who: who.clone(),
-                            data,
-                        })
-                        .await
-                    {
-                        Ok(()) => {
-                            tracing::debug!("Received update from {who}");
-                        }
-                        Err(err) => {
-                            tracing::debug!("Error sending update from {who}: {err}");
-                        }
-                    };
-                }
-                Ok(Message::Close(c)) => {
-                    // Remove the destination and close the sink.
-                    self.close_destination(&who, c).await;
-                    break;
-                }
-                Err(e) => {
-                    tracing::warn!("Got error reading from client socket. Will close socket. {e}");
-                    self.close_destination(&who, None).await;
-                    break;
-                }
-                Ok(_) => {
-                    tracing::debug!("Discarding unsolicited message from {who}: {msg:?}");
-                }
+            if let ControlFlow::Break(_) = self.receive_update_from_client(who, msg).await {
+                break;
+            }
+        }
+        tracing::debug!("Stopped receiving client updates from {who}");
+    }
+
+    async fn receive_update_from_client(
+        &self,
+        who: &String,
+        msg: Result<Message, axum::Error>,
+    ) -> ControlFlow<()> {
+        match msg {
+            Ok(Message::Binary(data)) => {
+                match self
+                    .tx
+                    .send(YrsUpdate {
+                        who: who.clone(),
+                        data,
+                    })
+                    .await
+                {
+                    Ok(()) => {
+                        tracing::debug!("Received update from {who}");
+                    }
+                    Err(err) => {
+                        tracing::debug!("Error sending update from {who}: {err}");
+                    }
+                };
+                ControlFlow::Continue(())
+            }
+            Ok(Message::Close(c)) => {
+                // Remove the destination and close the sink.
+                self.close_destination(who, c).await;
+                ControlFlow::Break(())
+            }
+            Err(e) => {
+                tracing::warn!("Got error reading from client socket. Will close socket. {e}");
+                self.close_destination(who, None).await;
+                ControlFlow::Break(())
+            }
+            Ok(_) => {
+                tracing::debug!("Discarding unsolicited message from {who}: {msg:?}");
+                ControlFlow::Continue(())
             }
         }
     }
@@ -312,9 +331,11 @@ impl Notifier {
     async fn close_destination(&self, who: &String, c: Option<CloseFrame<'_>>) {
         let dest = {
             let destinations = &mut self.destinations.lock().await;
+            let dest = destinations.remove(who);
+
             tracing::debug!(
                 "Removing destination for closed client {who}. {} clients remain. Reason: {}",
-                destinations.len() - 1,
+                destinations.len(),
                 if let Some(cf) = &c {
                     format!("code:'{}', detail:'{}'", cf.code, cf.reason)
                 } else {
@@ -322,7 +343,6 @@ impl Notifier {
                 }
             );
 
-            let dest = destinations.remove(who);
             if destinations.len() == 0 {
                 tracing::debug!("Last client disconnected, destroying YGraph");
                 *self.doc_box.lock().await = None;
@@ -332,7 +352,7 @@ impl Notifier {
         match dest {
             Some(mut dest) => {
                 if let Err(e) = dest.sink.close().await {
-                    tracing::debug!("Faile dto close sink for {who}: {e}");
+                    tracing::debug!("Failed to close sink for {who}: {e}");
                 }
             }
             None => {
