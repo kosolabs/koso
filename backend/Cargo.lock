@@ -2036,6 +2036,8 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
+ "hashbrown",
  "pin-project-lite",
  "tokio",
 ]
@@ -2555,6 +2557,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "tokio-stream",
+ "tokio-util",
  "tower-http",
  "tracing",
  "tracing-subscriber",

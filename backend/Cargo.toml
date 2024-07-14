@@ -26,3 +26,4 @@ futures = "0.3.30"
 tokio-stream = "0.1.15"
 async-stream = "0.3.5"
 yrs = { version = "0.19.1", features = ["sync"] }
+tokio-util = { version = "0.7.11", features = ["rt"] }

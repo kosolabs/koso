@@ -1,22 +1,20 @@
 use std::{
     collections::{HashMap, VecDeque},
     error::Error,
-    fmt::Debug,
     net::SocketAddr,
     ops::ControlFlow,
     sync::Arc,
+    time::Duration,
 };
 
 use axum::extract::ws::{CloseFrame, Message, WebSocket};
 use futures::{stream::SplitStream, SinkExt};
 use sqlx::PgPool;
-use tokio::{
-    sync::{
-        mpsc::{self, Receiver, Sender},
-        Mutex,
-    },
-    task::JoinHandle,
+use tokio::sync::{
+    mpsc::{self, Receiver, Sender},
+    Mutex,
 };
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 use yrs::{
     types::{Events, PathSegment, ToJson},
@@ -28,15 +26,15 @@ use crate::model::Task;
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (tx, rx) = mpsc::channel::<YrsUpdate>(1);
-    let mut notifier = Notifier {
+    let notifier = Notifier {
         destinations: Arc::new(Mutex::new(HashMap::new())),
         pool,
         doc_box: Arc::new(Mutex::new(Option::None)),
         tx,
-        updates_task: Arc::new(None),
+        cancel: CancellationToken::new(),
+        tracker: tokio_util::task::TaskTracker::new(),
     };
-    let updates_task = tokio::spawn(notifier.clone().process_updates(rx));
-    notifier.updates_task = Arc::new(Some(updates_task));
+    notifier.tracker.spawn(notifier.clone().process_updates(rx));
 
     notifier
 }
@@ -84,9 +82,8 @@ pub struct Notifier {
     pool: &'static PgPool,
     doc_box: Arc<Mutex<Option<DocBox>>>,
     tx: Sender<YrsUpdate>,
-    /// Handle to the background task running 'process_updates'.
-    /// May be cancelled by calling 'stop'.
-    updates_task: Arc<Option<JoinHandle<()>>>,
+    cancel: CancellationToken,
+    tracker: tokio_util::task::TaskTracker,
 }
 
 // High Level Design
@@ -133,9 +130,10 @@ impl Notifier {
         // Listen for messages on the read side of the socket to broadcast
         // updates to all other clients or get notified about when the
         // client closes the socket.
-        tokio::spawn(async move {
-            self.receive_updates_from_client(&who, receiver).await;
-        });
+        self.tracker.spawn(
+            self.clone()
+                .receive_updates_from_client(who.clone(), receiver),
+        );
 
         Ok(())
     }
@@ -204,8 +202,16 @@ impl Notifier {
     /// Take Update V1's in bytes form, applies them to the doc
     /// and then broadcast them to all destinations.
     async fn process_updates(self, mut rx: Receiver<YrsUpdate>) {
-        while let Some(update) = rx.recv().await {
-            self.process_update(&update).await
+        loop {
+            tokio::select! {
+                _ = self.cancel.cancelled() => { break; }
+                update = rx.recv() => {
+                    let Some(update) = update else {
+                        break;
+                    };
+                    self.process_update(&update).await;
+                }
+            }
         }
         tracing::debug!("Stopped processing updates");
     }
@@ -273,15 +279,19 @@ impl Notifier {
     }
 
     /// Listen for update or close messages sent by a client.
-    async fn receive_updates_from_client(
-        &self,
-        who: &String,
-        mut receiver: SplitStream<WebSocket>,
-    ) {
+    async fn receive_updates_from_client(self, who: String, mut receiver: SplitStream<WebSocket>) {
         use futures::stream::StreamExt;
-        while let Some(msg) = receiver.next().await {
-            if let ControlFlow::Break(_) = self.receive_update_from_client(who, msg).await {
-                break;
+        loop {
+            tokio::select! {
+                _ = self.cancel.cancelled() => { break; }
+                msg = receiver.next() => {
+                    let Some(msg) = msg else {
+                        break;
+                    };
+                    if let ControlFlow::Break(_) = self.receive_update_from_client(&who, msg).await {
+                        break;
+                    }
+                }
             }
         }
         tracing::debug!("Stopped receiving client updates from {who}");
@@ -371,25 +381,25 @@ impl Notifier {
 
         // Process the updates in another thread since this function
         // must remain synchronous as it's caller is syncronous.
-        let o = self.clone();
-        tokio::spawn(async move {
-            if let Err(e) = o.apply_task_updates(&updates).await {
-                // TODO: Handle cases where the doc diverges from the DB.
-                tracing::warn!("Failed to apply task updates: {e}: {updates:?}");
-            }
-        });
+        self.tracker.spawn(self.clone().apply_task_updates(updates));
         Ok(())
     }
 
-    async fn apply_task_updates(&self, updates: &TaskUpdates) -> Result<(), Box<dyn Error>> {
-        tracing::debug!("About to apply update events: {updates:?}");
-        let mut txn = self.pool.begin().await?;
-        for update in updates.updates.iter() {
-            self.apply_task_update(update, &mut txn).await?;
+    async fn apply_task_updates(self, updates: TaskUpdates) {
+        async fn _update(n: Notifier, updates: &TaskUpdates) -> Result<(), Box<dyn Error>> {
+            tracing::debug!("About to apply update events: {updates:?}");
+            let mut txn = n.pool.begin().await?;
+            for update in updates.updates.iter() {
+                n.apply_task_update(update, &mut txn).await?;
+            }
+            txn.commit().await?;
+            tracing::debug!("Applied update events: {updates:?}");
+            Ok(())
         }
-        txn.commit().await?;
-        tracing::debug!("Applied update events: {updates:?}");
-        Ok(())
+        if let Err(e) = _update(self, &updates).await {
+            // TODO: Handle cases where the doc diverges from the DB.
+            tracing::warn!("Failed to apply task updates: {e}: {updates:?}")
+        };
     }
 
     async fn apply_task_update(
@@ -573,10 +583,28 @@ impl Notifier {
     }
 
     pub async fn stop(&self) {
-        self.destinations.lock().await.clear();
-        *self.doc_box.lock().await = None;
-        if let Some(task) = self.updates_task.as_ref() {
-            task.abort();
+        // Cancel background tasks and wait for them to complete.
+        tracing::debug!(
+            "Waiting for {} outstanding task(s) to finish..",
+            self.tracker.len()
+        );
+        self.cancel.cancel();
+        self.tracker.close();
+        if let Err(e) = tokio::time::timeout(Duration::from_secs(15), self.tracker.wait()).await {
+            tracing::warn!(
+                "Timed out waiting for tasks. {} remain: {e}",
+                self.tracker.len()
+            );
         }
+
+        // Close all client destinations.
+        let mut destinations = self.destinations.lock().await;
+        for dest in destinations.values_mut() {
+            let _ = dest.sink.close().await;
+        }
+        destinations.clear();
+
+        // Drop the doc box to stop observing changes.
+        *self.doc_box.lock().await = None;
     }
 }
