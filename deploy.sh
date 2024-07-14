@@ -1,6 +1,5 @@
 #!/usr/bin/env zsh
 
-source /root/.sharedenv
 source /root/.telegram.zsh
 
 pushd frontend
@@ -15,4 +14,4 @@ popd
 systemctl daemon-reload
 systemctl restart koso
 
-telegram "Deployed $(git rev-parse --short HEAD) \\- $(git log --format=%s%b -n 1 HEAD | sed -E 's/([][_*()~`>#+-=|{}.!])/\\\1/g')"
+telegram "Deployed $(git rev-parse --short HEAD) \\- $(git log --format=%s%b -n 1 HEAD | telegram_escape)"
