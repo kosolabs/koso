@@ -1,12 +1,15 @@
 <script lang="ts" context="module">
-  export type SplicedNode = {
+  export type IndexedNode = {
     node: Node;
     offset: number;
   };
 
+  export type DropEffect = "link" | "move" | "none";
+
   export type Interactions = {
-    dragged: Node | null;
-    ghost: SplicedNode | null;
+    dragged: IndexedNode | null;
+    ghost: IndexedNode | null;
+    dropEffect: DropEffect;
     highlighted: Node | null;
   };
 
@@ -16,12 +19,14 @@
     moveNode: (
       nodeId: string,
       srcParentId: string,
+      srcOffset: number,
       destParentId: string,
-      offset: number,
+      destOffset: number,
     ) => void;
     editTaskName: (taskId: string, newName: string) => void;
-    setDragged: (node: Node) => void;
+    setDragged: (node: Node, offset: number) => void;
     clearDragged: () => void;
+    setDropEffect: (dropEffect: DropEffect) => void;
     setGhost: (node: Node, offset: number) => void;
     clearGhost: () => void;
     setHighlighted: (node: Node) => void;
@@ -44,8 +49,9 @@
   export let moveNode: (
     nodeId: string,
     srcParentId: string,
+    srcOffset: number,
     destParentId: string,
-    offset: number,
+    destOffset: number,
   ) => void;
   export let editTaskName: (taskId: string, newName: string) => void;
 
@@ -68,12 +74,20 @@
     removeNode,
     moveNode,
     editTaskName,
-    setDragged: (node: Node) => {
-      interactions.dragged = node;
+    setDragged: (node: Node, offset: number) => {
+      interactions.dragged = { node, offset };
       interactions = interactions;
     },
     clearDragged: () => {
       interactions.dragged = null;
+      interactions.dropEffect = "none";
+      interactions = interactions;
+    },
+    setDropEffect: (dropEffect: DropEffect) => {
+      if (interactions.dropEffect === dropEffect) {
+        return;
+      }
+      interactions.dropEffect = dropEffect;
       interactions = interactions;
     },
     setGhost: (node: Node, offset: number) => {
@@ -96,6 +110,7 @@
 
   let interactions: Interactions = {
     dragged: null,
+    dropEffect: "none",
     ghost: null,
     highlighted: null,
   };
@@ -122,7 +137,7 @@
     class="[&>*:nth-child(even)]:bg-slate-50 [&>*:nth-child(odd)]:bg-slate-100"
   >
     {#each roots as root}
-      <Row {graph} {interactions} node={root} />
+      <Row {graph} {interactions} node={root} isGhost={false} />
     {/each}
   </div>
 </div>

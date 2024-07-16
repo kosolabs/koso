@@ -1,29 +1,35 @@
 <script lang="ts">
   import { A, Input } from "flowbite-svelte";
-  import { AngleRightOutline, BarsOutline } from "flowbite-svelte-icons";
+  import {
+    AngleRightOutline,
+    BarsOutline,
+    TrashBinOutline,
+  } from "flowbite-svelte-icons";
   import { getContext } from "svelte";
   import { slide } from "svelte/transition";
   import type { Graph, Node } from ".";
   import {
+    type IndexedNode,
     type Interactions,
-    type SplicedNode,
     type TableContext,
   } from "./table.svelte";
 
   export let graph: Graph;
   export let node: Node;
   export let interactions: Interactions;
+  export let isGhost: boolean;
 
   $: task = graph[node.name]!;
-  $: ghost = interactions.ghost;
-  $: isGhost = ghost && node.equals(ghost.node);
+  $: ({ dragged, ghost, dropEffect, highlighted } = interactions);
 
   const {
     addNode,
     moveNode,
-    setDragged,
+    removeNode,
     editTaskName,
+    setDragged,
     clearDragged,
+    setDropEffect,
     setGhost,
     clearGhost,
     setHighlighted,
@@ -34,6 +40,9 @@
   function toggleOpen() {
     open = !open;
   }
+
+  let dragging = false;
+  let unlinking = false;
 
   let editedDescription: string | null = null;
 
@@ -49,93 +58,117 @@
     editedDescription = null;
   }
 
+  function handleDropUnlink(event: DragEvent) {
+    event.preventDefault();
+    removeNode(node.name, node.parent().name);
+  }
+
   function handleDragStart(event: DragEvent) {
-    setDragged(node);
+    clearHighlighted();
+    setDragged(
+      node,
+      node.isRoot()
+        ? 0
+        : graph[node.parent().name]!.children.indexOf(node.name),
+    );
+    dragging = true;
     event.dataTransfer!.setData("text/plain", node.id);
     event.dataTransfer!.effectAllowed = "linkMove";
-
-    const rowEl = document.getElementById(`row-${node.id}`)!;
-    const handleEl = document.getElementById(`handle-${node.id}`)!;
-    const rowRect = rowEl.getBoundingClientRect();
-    const handleRect = handleEl.getBoundingClientRect();
-
-    event.dataTransfer!.setDragImage(
-      rowEl,
-      handleRect.x - rowRect.x + event.offsetX,
-      handleRect.y - rowRect.y + event.offsetY,
-    );
   }
 
-  function handleDragEnd() {
+  function handleDrag(event: DragEvent) {
+    event.preventDefault();
+  }
+
+  function handleDragEnd(event: DragEvent) {
+    event.preventDefault();
     clearDragged();
+    dragging = false;
   }
 
-  function handleDropPeer(event: DragEvent) {
-    if (interactions.dragged === null) {
+  function handleDropNode(event: DragEvent) {
+    event.preventDefault();
+    if (dragged === null || ghost === null || dropEffect === "none") {
       return;
     }
 
-    const dragged = interactions.dragged;
-    const nodeId = dragged.name;
-    const parentId = node.parent().name;
-    const offset = graph[parentId]!.children.indexOf(node.name) + 1;
-
-    if (event.dataTransfer?.effectAllowed !== "link" && !dragged.isRoot()) {
-      const sourceId = dragged.parent().name;
-      moveNode(nodeId, sourceId, parentId, offset);
+    if (!dragged.node.isRoot() && dropEffect === "move") {
+      moveNode(
+        dragged.node.name,
+        dragged.node.parent().name,
+        dragged.offset,
+        ghost.node.parent().name,
+        ghost.offset,
+      );
     } else {
-      addNode(nodeId, parentId, offset);
+      addNode(dragged.node.name, ghost.node.parent().name, ghost.offset);
     }
     clearDragged();
     clearGhost();
   }
 
-  function handleDropChild(event: DragEvent) {
-    if (interactions.dragged === null) {
-      return;
-    }
-
-    const dragged = interactions.dragged;
-    const nodeId = dragged.name;
-    const parentId = node.name;
-    const offset = 0;
-
-    if (event.dataTransfer?.effectAllowed !== "link" && !dragged.isRoot()) {
-      const sourceId = dragged.parent().name;
-      moveNode(nodeId, sourceId, parentId, offset);
-    } else {
-      addNode(nodeId, parentId, offset);
-    }
-    clearDragged();
-    clearGhost();
+  function handleDragOverUnlink(event: DragEvent) {
+    event.preventDefault();
+    unlinking = true;
   }
 
-  function handleDragOverPeer() {
-    if (interactions.dragged === null) {
+  function handleDragLeaveUnlink(event: DragEvent) {
+    event.preventDefault();
+    unlinking = false;
+  }
+
+  function handleDragOverPeer(event: DragEvent) {
+    event.preventDefault();
+    const dataTransfer = event.dataTransfer;
+    if (dragged === null || dataTransfer === null) {
       return;
+    }
+
+    if (dragged.node.isRoot() || dragged.node.parent().equals(node.parent())) {
+      dataTransfer.dropEffect = "move";
+      setDropEffect("move");
+    } else {
+      setDropEffect(dataTransfer.effectAllowed === "link" ? "link" : "move");
     }
 
     const parentId = node.parent().name;
     const offset = graph[parentId]!.children.indexOf(node.name) + 1;
-    setGhost(node.parent().concat(interactions.dragged.name), offset);
+    setGhost(node.parent().concat(dragged.node.name), offset);
   }
 
-  function handleDragOverChild() {
-    if (interactions.dragged === null) {
+  function handleDragOverChild(event: DragEvent) {
+    event.preventDefault();
+    const dataTransfer = event.dataTransfer;
+    if (dragged === null || dataTransfer === null) {
       return;
     }
-    setGhost(node.concat(interactions.dragged.name), 0);
+
+    if (dragged.node.isRoot() || dragged.node.parent().equals(node)) {
+      dataTransfer.dropEffect = "move";
+      setDropEffect("move");
+    } else {
+      setDropEffect(dataTransfer.effectAllowed === "link" ? "link" : "move");
+    }
+
+    setGhost(node.concat(dragged.node.name), 0);
   }
 
-  function handleDragLeave() {
+  function handleDragLeave(event: DragEvent) {
+    event.preventDefault();
     clearGhost();
   }
 
   function handleHighlight() {
+    if (dragged) {
+      return;
+    }
     setHighlighted(node);
   }
 
   function handleUnhighlight() {
+    if (dragged) {
+      return;
+    }
     clearHighlighted();
   }
 
@@ -151,24 +184,42 @@
     return false;
   }
 
-  function isValidRelationship(parent: Node, child: Node | null) {
-    if (child === null) {
+  function hasChild(parent: Node, child: Node): boolean {
+    if (child.isRoot()) {
       return false;
     }
-    const parentId = parent.name;
-    const childId = child.name;
-    if (hasCycle(parentId, childId)) {
+    if (parent.equals(child.parent())) {
       return false;
     }
-    if (graph[parentId]?.children.includes(childId)) {
+    return graph[parent.name]?.children.includes(child.name);
+  }
+
+  function isSamePeer(node: Node, dragged: IndexedNode): boolean {
+    if (dragged.node.isRoot()) {
       return false;
     }
-    return true;
+    if (!node.parent().equals(dragged.node.parent())) {
+      return false;
+    }
+
+    const parentId = node.parent().name;
+    const children = graph[parentId]!.children;
+    return children.indexOf(node.name) + 1 === dragged.offset;
+  }
+
+  function isSameChild(node: Node, dragged: IndexedNode): boolean {
+    if (dragged.node.isRoot()) {
+      return false;
+    }
+    if (!node.equals(dragged.node.parent())) {
+      return false;
+    }
+    return dragged.offset === 0;
   }
 
   function spliceGhost(
     children: string[],
-    ghost: SplicedNode | null,
+    ghost: IndexedNode | null,
   ): string[] {
     if (ghost && node.equals(ghost.node.parent())) {
       return children.toSpliced(ghost.offset, 0, ghost.node.name);
@@ -178,24 +229,46 @@
   }
 
   $: canDragDropPeer =
-    !node.isRoot() && isValidRelationship(node.parent(), interactions.dragged);
-  $: canDragDropChild = isValidRelationship(node, interactions.dragged);
+    !dragging &&
+    !node.isRoot() &&
+    dragged &&
+    !isSamePeer(node, dragged) &&
+    !hasChild(node.parent(), dragged.node) &&
+    !hasCycle(node.parent().name, dragged.node.name);
+  $: canDragDropChild =
+    !dragging &&
+    dragged &&
+    !isSameChild(node, dragged) &&
+    !hasChild(node, dragged.node) &&
+    !hasCycle(node.name, dragged.node.name);
   $: children = spliceGhost(task.children, ghost);
+  $: isMoving = ghost && dragging && dropEffect === "move";
 </script>
 
 <div
-  id="row-{node.id}"
   role="row"
   tabindex="0"
-  class="my-1 flex items-center rounded border p-2"
-  class:border-lime-600={interactions.highlighted?.name === node.name}
-  class:opacity-50={isGhost}
+  class="my-1 flex items-center rounded border p-2
+    {isMoving || unlinking ? 'border-red-600 opacity-30' : ''}
+    {isGhost ? 'border-green-600 opacity-70' : ''}
+    {highlighted?.name === node.name ? 'border-lime-600' : ''}"
   on:mouseover={handleHighlight}
   on:mouseout={handleUnhighlight}
   on:focus={handleHighlight}
   on:blur={handleUnhighlight}
   transition:slide|global={{ duration: interactions.dragged ? 0 : 400 }}
 >
+  {#if dragging}
+    <div
+      class="absolute left-1 z-50 rounded p-1 opacity-50 outline hover:opacity-100"
+      role="table"
+      on:dragover={handleDragOverUnlink}
+      on:dragleave={handleDragLeaveUnlink}
+      on:drop={handleDropUnlink}
+    >
+      <TrashBinOutline />
+    </div>
+  {/if}
   <div class="w-48">
     <div class="flex items-center">
       <button
@@ -209,31 +282,29 @@
         {/if}
       </button>
       <button
-        id="handle-{node.id}"
         class="relative min-w-5"
         draggable={true}
-        on:dragstart={(event) => handleDragStart(event)}
-        on:dragend|preventDefault={() => handleDragEnd()}
+        on:dragstart={handleDragStart}
+        on:dragend={handleDragEnd}
+        on:drag={handleDrag}
       >
         <BarsOutline class="h-4" />
         {#if canDragDropPeer}
           <div
-            id="peer-dropzone-{node.id}"
-            class="absolute -left-6 z-50 h-7 w-12 bg-red-400"
+            class="absolute -left-6 z-50 h-7 w-12"
             role="table"
-            on:dragover|preventDefault={() => handleDragOverPeer()}
-            on:dragleave|preventDefault={() => handleDragLeave()}
-            on:drop|preventDefault={(event) => handleDropPeer(event)}
+            on:dragover={handleDragOverPeer}
+            on:dragleave={handleDragLeave}
+            on:drop={handleDropNode}
           />
         {/if}
         {#if canDragDropChild}
           <div
-            id="child-dropzone-{node.id}"
-            class="absolute left-6 z-50 h-7 w-12 bg-blue-400"
+            class="absolute left-6 z-50 h-7 w-12"
             role="table"
-            on:dragover|preventDefault={() => handleDragOverChild()}
-            on:dragleave|preventDefault={() => handleDragLeave()}
-            on:drop|preventDefault={(event) => handleDropChild(event)}
+            on:dragover={handleDragOverChild}
+            on:dragleave={handleDragLeave}
+            on:drop={handleDropNode}
           />
         {/if}
       </button>
@@ -261,7 +332,10 @@
 </div>
 
 {#if open && !isGhost}
-  {#each children as child}
-    <svelte:self {graph} {interactions} node={node.concat(child)} />
+  {#each children as childId, offset}
+    {@const child = node.concat(childId)}
+    {@const isGhost =
+      ghost && ghost.node.equals(child) && ghost.offset === offset}
+    <svelte:self {graph} {interactions} {isGhost} node={child} />
   {/each}
 {/if}

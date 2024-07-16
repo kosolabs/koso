@@ -210,7 +210,7 @@ impl Notifier {
                 y_task.insert(&mut txn, "name", task.name);
                 let y_children: ArrayRef = y_task.get_or_init(&mut txn, "children");
                 for child in task.children {
-                    y_children.push_front(&mut txn, child);
+                    y_children.push_back(&mut txn, child);
                 }
             }
         }

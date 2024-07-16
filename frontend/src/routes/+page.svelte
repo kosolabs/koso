@@ -20,7 +20,6 @@
     socket.binaryType = "arraybuffer";
     socket.addEventListener("message", function (event) {
       if (event.data instanceof ArrayBuffer) {
-        console.log("Received binary frame of length:", event.data.byteLength);
         Y.applyUpdate(yDoc, new Uint8Array(event.data));
       } else {
         console.log("Received text frame from server:", event.data);
@@ -32,7 +31,6 @@
     }
 
     yDoc.on("update", (update) => {
-      console.log("Sending binary frame of length:", update.byteLength);
       socket.send(update);
     });
   });
@@ -56,17 +54,21 @@
   function moveNode(
     nodeId: string,
     srcParentId: string,
+    srcOffset: number,
     destParentId: string,
-    offset: number,
+    destOffset: number,
   ) {
     yDoc.transact(() => {
       const ySrcParent = yGraph.get(srcParentId)!;
       const ySrcChildren = ySrcParent.get("children") as Y.Array<string>;
-      ySrcChildren.delete(ySrcChildren.toArray().indexOf(nodeId));
+      ySrcChildren.delete(srcOffset);
 
       const yDestParent = yGraph.get(destParentId)!;
       const yDestChildren = yDestParent.get("children") as Y.Array<string>;
-      yDestChildren.insert(offset, [nodeId]);
+      if (srcParentId === destParentId && srcOffset < destOffset) {
+        destOffset -= 1;
+      }
+      yDestChildren.insert(destOffset, [nodeId]);
     });
   }
 
