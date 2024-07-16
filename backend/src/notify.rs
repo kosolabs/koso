@@ -1,12 +1,14 @@
 use std::{
     collections::{hash_map::Entry, HashMap, VecDeque},
     error::Error,
+    fmt,
     net::SocketAddr,
     ops::ControlFlow,
     sync::Arc,
     time::Duration,
 };
 
+use crate::model::Task;
 use axum::extract::ws::{Message, WebSocket};
 use futures::SinkExt;
 use sqlx::PgPool;
@@ -21,8 +23,6 @@ use yrs::{
     updates::decoder::Decode,
     Any, Array, ArrayRef, Doc, Map, MapRef, Out, ReadTxn, StateVector, Transact, Update,
 };
-
-use crate::model::Task;
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (tx, rx) = mpsc::channel::<YrsUpdate>(1);
@@ -48,14 +48,12 @@ struct Clients {
     map: HashMap<ProjectId, HashMap<String, ClientSender>>,
 }
 
-#[derive(Debug)]
 struct ClientSender {
     ws_sender: futures::stream::SplitSink<WebSocket, Message>,
     who: String,
     project_id: ProjectId,
 }
 
-#[derive(Debug)]
 struct ClientReceiver {
     ws_receiver: futures::stream::SplitStream<WebSocket>,
     who: String,
@@ -84,10 +82,11 @@ enum TaskUpdate {
 /// A set of task updates to be applied transactionally.
 #[derive(Debug)]
 struct TaskUpdates {
+    update_id: String,
+    project_id: ProjectId,
     updates: Vec<TaskUpdate>,
 }
 
-#[derive(Debug)]
 struct YrsUpdate {
     who: String,
     project_id: ProjectId,
@@ -110,6 +109,7 @@ pub struct Notifier {
 // For every event in the observe_deep, generate a mutation to be applied to the database.
 // When the last client disconnects, consider destroying the graph.
 impl Notifier {
+    #[tracing::instrument(skip(self, socket, who), fields(who))]
     pub async fn register_client(
         self,
         socket: WebSocket,
@@ -117,7 +117,8 @@ impl Notifier {
         project_id: ProjectId,
     ) -> Result<(), Box<dyn Error>> {
         let who = who.to_string() + ":" + &Uuid::new_v4().to_string();
-        tracing::debug!("Registering client {who} in {project_id}");
+        tracing::Span::current().record("who", &who);
+        tracing::debug!("Registering client");
 
         use futures::stream::StreamExt;
         let (ws_sender, ws_receiver) = socket.split();
@@ -153,9 +154,8 @@ impl Notifier {
     }
 
     async fn init_doc_box(&self, project_id: &ProjectId) -> Result<Vec<u8>, Box<dyn Error>> {
-        let project_id = project_id.clone();
         let mut doc_boxes = self.doc_boxes.lock().await;
-        if let Some(doc_box) = doc_boxes.get(&project_id) {
+        if let Some(doc_box) = doc_boxes.get(project_id) {
             return Ok(doc_box
                 .doc
                 .transact()
@@ -163,7 +163,7 @@ impl Notifier {
         }
 
         // Load the doc if it wasn't already loaded by another client.
-        let doc = self.load_graph(&project_id).await?;
+        let doc = self.load_graph(project_id).await?;
 
         // Observe changes to the graph and replicate them to the database.
         let observer_notifier = self.clone();
@@ -172,9 +172,13 @@ impl Notifier {
         let sub = doc
             .get_or_insert_map("graph")
             .observe_deep(move |txn, events: &Events| {
-                if let Err(e) = observer_notifier.apply_doc_events(&project_id_clone, txn, events) {
+                let update_id = Uuid::new_v4().to_string();
+                tracing::Span::current().record("update_id", &update_id);
+                if let Err(e) =
+                    observer_notifier.apply_doc_events(&update_id, &project_id_clone, txn, events)
+                {
                     // TODO: Handle cases where the doc diverges from the DB.
-                    tracing::warn!("Failed to process doc event for {project_id_clone}: {e}");
+                    tracing::warn!("Failed to process doc event: {e}");
                 }
             });
 
@@ -191,7 +195,7 @@ impl Notifier {
     }
 
     async fn load_graph(&self, project_id: &ProjectId) -> Result<Doc, Box<dyn Error>> {
-        tracing::debug!("Initializing new YGraph for {project_id}");
+        tracing::debug!("Initializing new YGraph");
         // TODO: Assert that the project actually exists to avoid conflating that with the absence of tasks.
         let tasks: Vec<Task> =
             sqlx::query_as("SELECT id, project_id, name, children FROM tasks WHERE project_id=$1")
@@ -214,12 +218,13 @@ impl Notifier {
                 }
             }
         }
-        tracing::debug!("Initialized new YGraph with {tasks_len} tasks in {project_id}");
+        tracing::debug!("Initialized new YGraph with {tasks_len} tasks");
         Result::Ok(doc)
     }
 
     /// Take Update V1's in bytes form, applies them to the doc
     /// and then broadcast them to all clients.
+    #[tracing::instrument(skip(self, rx))]
     async fn process_updates(self, mut rx: Receiver<YrsUpdate>) {
         loop {
             tokio::select! {
@@ -235,13 +240,11 @@ impl Notifier {
         tracing::debug!("Stopped processing updates");
     }
 
+    #[tracing::instrument(skip(self))]
     async fn process_update(&self, update: &YrsUpdate) {
-        tracing::debug!("Processing update: {update:?}");
+        tracing::debug!("Processing update");
         if let Err(e) = self.apply_update_to_doc(update).await {
-            tracing::error!(
-                "Failed to apply update to doc for {}: {e}",
-                update.project_id
-            );
+            tracing::error!("Failed to apply update to doc: {e}");
             return;
         }
         self.clients.lock().await.send_to_all(update).await;
@@ -275,6 +278,7 @@ impl Notifier {
     }
 
     /// Listen for update or close messages sent by a client.
+    #[tracing::instrument(skip(self))]
     async fn receive_updates_from_client(self, mut receiver: ClientReceiver) {
         loop {
             tokio::select! {
@@ -289,11 +293,7 @@ impl Notifier {
                 }
             }
         }
-        tracing::debug!(
-            "Stopped receiving client updates from {} in {}",
-            receiver.who,
-            receiver.project_id
-        );
+        tracing::debug!("Stopped receiving client updates from {}", receiver.who);
     }
 
     async fn receive_update_from_client(
@@ -301,24 +301,22 @@ impl Notifier {
         receiver: &ClientReceiver,
         msg: Result<Message, axum::Error>,
     ) -> ControlFlow<()> {
-        let who = &receiver.who;
-        let project_id = &receiver.project_id;
         match msg {
             Ok(Message::Binary(data)) => {
                 match self
                     .tx
                     .send(YrsUpdate {
-                        who: who.clone(),
-                        project_id: project_id.clone(),
+                        who: receiver.who.clone(),
+                        project_id: receiver.project_id.clone(),
                         data,
                     })
                     .await
                 {
                     Ok(()) => {
-                        tracing::debug!("Received update from {who} in {}", project_id);
+                        tracing::debug!("Received update");
                     }
                     Err(err) => {
-                        tracing::debug!("Error sending update from {who} in {}: {err}", project_id);
+                        tracing::debug!("Error sending update: {err}");
                     }
                 };
                 ControlFlow::Continue(())
@@ -329,17 +327,18 @@ impl Notifier {
                 } else {
                     "code:'NONE', detail:'No CloseFrame'".to_string()
                 };
-                self.close_client(project_id, who, &reason).await;
+                self.close_client(&receiver.project_id, &receiver.who, &reason)
+                    .await;
                 ControlFlow::Break(())
             }
             Err(e) => {
                 tracing::warn!("Got error reading from client socket. Will close socket. {e}");
-                self.close_client(project_id, who, &format!("Error: {e}"))
+                self.close_client(&receiver.project_id, &receiver.who, &format!("Error: {e}"))
                     .await;
                 ControlFlow::Break(())
             }
             Ok(_) => {
-                tracing::debug!("Discarding unsolicited message from {who}: {msg:?}");
+                tracing::debug!("Discarding unsolicited message: {msg:?}");
                 ControlFlow::Continue(())
             }
         }
@@ -351,13 +350,13 @@ impl Notifier {
             let client = clients.remove(project_id, who);
 
             tracing::debug!(
-                "Removing closed client {who} in {project_id}. {} clients remain. Reason: {}",
+                "Removing closed client. {} clients remain. Reason: {}",
                 clients.len(),
                 reason
             );
 
             if clients.len() == 0 {
-                tracing::debug!("Last client disconnected in {project_id}, destroying YGraph");
+                tracing::debug!("Last client disconnected, destroying YGraph");
                 self.doc_boxes.lock().await.remove(project_id);
             }
             client
@@ -365,25 +364,27 @@ impl Notifier {
         match client {
             Some(mut client) => {
                 if let Err(e) = client.close().await {
-                    tracing::debug!("Failed to close sink for {who} in {project_id}: {e}");
+                    tracing::debug!("Failed to close client: {e}");
                 }
             }
             None => {
                 tracing::warn!(
-                    "Unexpectedly, received close for client {who} in {project_id} while no client was registered."
+                    "Unexpectedly, received close for client while no client was registered."
                 )
             }
         }
     }
 
     /// Apply a yrs event generated by observe_deep asyncronously to the database.
+    #[tracing::instrument(skip(self, txn, events))]
     fn apply_doc_events(
         &self,
+        update_id: &String,
         project_id: &ProjectId,
         txn: &yrs::TransactionMut,
         events: &Events,
     ) -> Result<(), Box<dyn Error>> {
-        let updates = self.events_to_updates(project_id, txn, events)?;
+        let updates = self.events_to_updates(update_id, project_id, txn, events)?;
 
         // Process the updates in another thread since this function
         // must remain synchronous as it's caller is syncronous.
@@ -391,6 +392,7 @@ impl Notifier {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self, updates), fields(update_id=&updates.update_id, project_id=&updates.project_id))]
     async fn apply_task_updates(self, updates: TaskUpdates) {
         async fn _update(n: Notifier, updates: &TaskUpdates) -> Result<(), Box<dyn Error>> {
             tracing::debug!("About to apply update events: {updates:?}");
@@ -399,12 +401,12 @@ impl Notifier {
                 n.apply_task_update(update, &mut txn).await?;
             }
             txn.commit().await?;
-            tracing::debug!("Applied update events: {updates:?}");
+            tracing::debug!("Applied update events");
             Ok(())
         }
         if let Err(e) = _update(self, &updates).await {
             // TODO: Handle cases where the doc diverges from the DB.
-            tracing::warn!("Failed to apply task updates: {e}: {updates:?}")
+            tracing::warn!("Failed to apply task updates: {e}")
         };
     }
 
@@ -482,11 +484,14 @@ impl Notifier {
 
     fn events_to_updates(
         &self,
+        update_id: &str,
         project_id: &ProjectId,
         txn: &yrs::TransactionMut<'_>,
         events: &Events<'_>,
     ) -> Result<TaskUpdates, Box<dyn Error>> {
         let mut updates = TaskUpdates {
+            update_id: update_id.to_string(),
+            project_id: project_id.clone(),
             updates: Vec::new(),
         };
         for evt in events.iter() {
@@ -500,7 +505,7 @@ impl Notifier {
                     );
                     updates
                         .updates
-                        .push(self.to_task_update(project_id, evt.path(), txn)?);
+                        .push(self.to_task_update(project_id, &evt.path(), txn)?);
                 }
                 yrs::types::Event::Map(evt) => {
                     tracing::debug!(
@@ -511,7 +516,7 @@ impl Notifier {
                     );
                     updates
                         .updates
-                        .push(self.to_task_update(project_id, evt.path(), txn)?);
+                        .push(self.to_task_update(project_id, &evt.path(), txn)?);
                 }
                 yrs::types::Event::Text(evt) => {
                     return Err(format!(
@@ -549,7 +554,7 @@ impl Notifier {
     fn to_task_update(
         &self,
         project_id: &ProjectId,
-        path: VecDeque<PathSegment>,
+        path: &VecDeque<PathSegment>,
         txn: &yrs::TransactionMut<'_>,
     ) -> Result<TaskUpdate, Box<dyn Error>> {
         let Some(PathSegment::Key(key)) = path.front() else {
@@ -596,6 +601,7 @@ impl Notifier {
         })
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn stop(&self) {
         // Cancel background tasks and wait for them to complete.
         tracing::debug!(
@@ -647,19 +653,11 @@ impl Clients {
 
     async fn send_to_all(&mut self, update: &YrsUpdate) {
         let Some(clients) = self.map.get_mut(&update.project_id) else {
-            tracing::warn!(
-                "No clients for project {} exist to send to.",
-                update.project_id
-            );
+            tracing::warn!("No clients for project exist to send to.");
             return;
         };
 
-        tracing::debug!(
-            "Sending updates to {} clients from {} in {}",
-            clients.len(),
-            update.who,
-            update.project_id
-        );
+        tracing::debug!("Sending updates to {} clients", clients.len());
         let mut results = Vec::new();
         for client in clients.values_mut() {
             tracing::debug!("Sending update to {}", client.who);
@@ -689,9 +687,43 @@ impl ClientSender {
     }
 }
 
+impl fmt::Debug for ClientSender {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ClientSender")
+            .field("who", &self.who)
+            .field("project_id", &self.project_id)
+            .finish()
+    }
+}
+
 impl ClientReceiver {
     async fn next(&mut self) -> Option<Result<Message, axum::Error>> {
         use futures::stream::StreamExt;
         self.ws_receiver.next().await
+    }
+}
+
+impl fmt::Debug for ClientReceiver {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ClientReceiver")
+            .field("who", &self.who)
+            .field("project_id", &self.project_id)
+            .finish()
+    }
+}
+
+impl fmt::Debug for DocBox {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("DocBox").field("doc", &self.doc).finish()
+    }
+}
+
+impl fmt::Debug for YrsUpdate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("YrsUpdate")
+            .field("project_id", &self.project_id)
+            .field("who", &self.who)
+            .field("data.len()", &self.data.len())
+            .finish()
     }
 }
