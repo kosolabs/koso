@@ -8,7 +8,7 @@ RestartSec=1
 User=root
 WorkingDirectory=/root/koso/backend
 Environment=DATABASE_URL=postgresql://koso:koso@localhost/koso
-ExecStart=/root/koso/backend/target/release/yotei
+ExecStart=/root/koso/backend/target/release/koso
 
 [Install]
 WantedBy=multi-user.target
