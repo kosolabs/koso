@@ -265,7 +265,7 @@ async fn ws_handler(
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
     ws.on_upgrade(move |socket| {
-        notifier.register_destination(socket, addr).map(move |res| {
+        notifier.register_client(socket, addr).map(move |res| {
             if let Err(e) = res {
                 tracing::warn!("Failed to register destination for {addr}: {e}");
             }
