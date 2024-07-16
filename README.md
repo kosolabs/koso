@@ -36,7 +36,7 @@
 1. Configure SQLx with the DATABASE_URL.
 
    ```sh
-   export DATABASE_URL=postgresql://localhost/yotei
+   export DATABASE_URL=postgresql://localhost/koso
    ```
 
    Also, add the environment variable to the appropriate profile file (`~/.profile`, `~/.bash_profile`, `~/.bashrc`, `~/.zshrc`, `~/.zshenv`) so you don't have to run it every time.
@@ -86,7 +86,7 @@
 
 ### VS Code
 
-The [Yotei Workspace](yotei.code-workspace) is configured for development in VS Code.
+The [Koso Workspace](koso.code-workspace) is configured for development in VS Code.
 
 The following plugins are recommended:
 
@@ -108,10 +108,6 @@ Run migrations
 ```bash
 sqlx migrate run
 ```
-
-### Backend Interactions
-
-Once a server has been started, you can interact with it at http://localhost:3000. There are example requests in [yotei.http](backend/yotei.http) which you can run with [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client).
 
 ### Backend Auto-reload
 
