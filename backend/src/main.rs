@@ -47,6 +47,7 @@ async fn main() {
     let (_main_server, _metrics_server) = tokio::join!(start_main_server(), start_metrics_server());
 }
 
+#[tracing::instrument()]
 async fn start_main_server() {
     // Connect to the Postgres database.
     let db_connection_str =
@@ -184,6 +185,7 @@ async fn shutdown_signal(name: &str) {
 }
 
 /// Starts a prometheus metrics server and returns a future that completes on termination.
+#[tracing::instrument()]
 async fn start_metrics_server() {
     const EXPONENTIAL_SECONDS: &[f64] = &[
         0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0,
