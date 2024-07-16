@@ -17,7 +17,6 @@ use tokio::sync::{
     Mutex,
 };
 use tokio_util::sync::CancellationToken;
-use tracing::span;
 use uuid::Uuid;
 use yrs::{
     types::{Events, PathSegment, ToJson},
@@ -83,7 +82,7 @@ enum TaskUpdate {
 /// A set of task updates to be applied transactionally.
 #[derive(Debug)]
 struct TaskUpdates {
-    trace_id: String,
+    update_id: String,
     #[allow(dead_code)]
     project_id: ProjectId,
     updates: Vec<TaskUpdate>,
@@ -157,9 +156,8 @@ impl Notifier {
     }
 
     async fn init_doc_box(&self, project_id: &ProjectId) -> Result<Vec<u8>, Box<dyn Error>> {
-        let project_id = project_id.clone();
         let mut doc_boxes = self.doc_boxes.lock().await;
-        if let Some(doc_box) = doc_boxes.get(&project_id) {
+        if let Some(doc_box) = doc_boxes.get(project_id) {
             return Ok(doc_box
                 .doc
                 .transact()
@@ -167,7 +165,7 @@ impl Notifier {
         }
 
         // Load the doc if it wasn't already loaded by another client.
-        let doc = self.load_graph(&project_id).await?;
+        let doc = self.load_graph(project_id).await?;
 
         // Observe changes to the graph and replicate them to the database.
         let observer_notifier = self.clone();
@@ -176,10 +174,10 @@ impl Notifier {
         let sub = doc
             .get_or_insert_map("graph")
             .observe_deep(move |txn, events: &Events| {
-                let trace_id = Uuid::new_v4().to_string();
-                tracing::Span::current().record("trace_id", &trace_id);
+                let update_id = Uuid::new_v4().to_string();
+                tracing::Span::current().record("update_id", &update_id);
                 if let Err(e) =
-                    observer_notifier.apply_doc_events(&trace_id, &project_id_clone, txn, events)
+                    observer_notifier.apply_doc_events(&update_id, &project_id_clone, txn, events)
                 {
                     // TODO: Handle cases where the doc diverges from the DB.
                     tracing::warn!("Failed to process doc event: {e}");
@@ -305,15 +303,13 @@ impl Notifier {
         receiver: &ClientReceiver,
         msg: Result<Message, axum::Error>,
     ) -> ControlFlow<()> {
-        let who = &receiver.who;
-        let project_id = &receiver.project_id;
         match msg {
             Ok(Message::Binary(data)) => {
                 match self
                     .tx
                     .send(YrsUpdate {
-                        who: who.clone(),
-                        project_id: project_id.clone(),
+                        who: receiver.who.clone(),
+                        project_id: receiver.project_id.clone(),
                         data,
                     })
                     .await
@@ -333,12 +329,13 @@ impl Notifier {
                 } else {
                     "code:'NONE', detail:'No CloseFrame'".to_string()
                 };
-                self.close_client(project_id, who, &reason).await;
+                self.close_client(&receiver.project_id, &receiver.who, &reason)
+                    .await;
                 ControlFlow::Break(())
             }
             Err(e) => {
                 tracing::warn!("Got error reading from client socket. Will close socket. {e}");
-                self.close_client(project_id, who, &format!("Error: {e}"))
+                self.close_client(&receiver.project_id, &receiver.who, &format!("Error: {e}"))
                     .await;
                 ControlFlow::Break(())
             }
@@ -384,12 +381,12 @@ impl Notifier {
     #[tracing::instrument(skip(self, txn, events))]
     fn apply_doc_events(
         &self,
-        trace_id: &String,
+        update_id: &String,
         project_id: &ProjectId,
         txn: &yrs::TransactionMut,
         events: &Events,
     ) -> Result<(), Box<dyn Error>> {
-        let updates = self.events_to_updates(trace_id, project_id, txn, events)?;
+        let updates = self.events_to_updates(update_id, project_id, txn, events)?;
 
         // Process the updates in another thread since this function
         // must remain synchronous as it's caller is syncronous.
@@ -397,7 +394,7 @@ impl Notifier {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self, updates), fields(trace_id=&updates.trace_id, project_id=&updates.project_id))]
+    #[tracing::instrument(skip(self, updates), fields(update_id=&updates.update_id, project_id=&updates.project_id))]
     async fn apply_task_updates(self, updates: TaskUpdates) {
         async fn _update(n: Notifier, updates: &TaskUpdates) -> Result<(), Box<dyn Error>> {
             tracing::debug!("About to apply update events: {updates:?}");
@@ -489,13 +486,13 @@ impl Notifier {
 
     fn events_to_updates(
         &self,
-        trace_id: &str,
+        update_id: &str,
         project_id: &ProjectId,
         txn: &yrs::TransactionMut<'_>,
         events: &Events<'_>,
     ) -> Result<TaskUpdates, Box<dyn Error>> {
         let mut updates = TaskUpdates {
-            trace_id: trace_id.to_string(),
+            update_id: update_id.to_string(),
             project_id: project_id.clone(),
             updates: Vec::new(),
         };
@@ -510,7 +507,7 @@ impl Notifier {
                     );
                     updates
                         .updates
-                        .push(self.to_task_update(project_id, evt.path(), txn)?);
+                        .push(self.to_task_update(project_id, &evt.path(), txn)?);
                 }
                 yrs::types::Event::Map(evt) => {
                     tracing::debug!(
@@ -521,7 +518,7 @@ impl Notifier {
                     );
                     updates
                         .updates
-                        .push(self.to_task_update(project_id, evt.path(), txn)?);
+                        .push(self.to_task_update(project_id, &evt.path(), txn)?);
                 }
                 yrs::types::Event::Text(evt) => {
                     return Err(format!(
@@ -559,7 +556,7 @@ impl Notifier {
     fn to_task_update(
         &self,
         project_id: &ProjectId,
-        path: VecDeque<PathSegment>,
+        path: &VecDeque<PathSegment>,
         txn: &yrs::TransactionMut<'_>,
     ) -> Result<TaskUpdate, Box<dyn Error>> {
         let Some(PathSegment::Key(key)) = path.front() else {
@@ -696,6 +693,7 @@ impl fmt::Debug for ClientSender {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ClientSender")
             .field("who", &self.who)
+            .field("project_id", &self.project_id)
             .finish()
     }
 }
@@ -711,6 +709,7 @@ impl fmt::Debug for ClientReceiver {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ClientReceiver")
             .field("who", &self.who)
+            .field("project_id", &self.project_id)
             .finish()
     }
 }
