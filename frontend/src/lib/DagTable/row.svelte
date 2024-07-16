@@ -41,7 +41,6 @@
     open = !open;
   }
 
-  let dragging = false;
   let unlinking = false;
 
   let editedDescription: string | null = null;
@@ -71,7 +70,6 @@
         ? 0
         : graph[node.parent().name]!.children.indexOf(node.name),
     );
-    dragging = true;
     event.dataTransfer!.setData("text/plain", node.id);
     event.dataTransfer!.effectAllowed = "linkMove";
   }
@@ -83,7 +81,6 @@
   function handleDragEnd(event: DragEvent) {
     event.preventDefault();
     clearDragged();
-    dragging = false;
   }
 
   function handleDropNode(event: DragEvent) {
@@ -228,6 +225,7 @@
     }
   }
 
+  $: dragging = !isGhost && dragged && node.equals(dragged.node);
   $: canDragDropPeer =
     !dragging &&
     !node.isRoot() &&

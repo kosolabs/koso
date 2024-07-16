@@ -75,6 +75,13 @@
     moveNode,
     editTaskName,
     setDragged: (node: Node, offset: number) => {
+      if (
+        interactions.dragged &&
+        node.equals(interactions.dragged.node) &&
+        offset === interactions.dragged.offset
+      ) {
+        return;
+      }
       interactions.dragged = { node, offset };
       interactions = interactions;
     },
@@ -91,18 +98,34 @@
       interactions = interactions;
     },
     setGhost: (node: Node, offset: number) => {
+      if (
+        interactions.ghost &&
+        node.equals(interactions.ghost.node) &&
+        offset === interactions.ghost.offset
+      ) {
+        return;
+      }
       interactions.ghost = { node, offset };
       interactions = interactions;
     },
     clearGhost: () => {
+      if (interactions.ghost === null) {
+        return;
+      }
       interactions.ghost = null;
       interactions = interactions;
     },
     setHighlighted: (node: Node) => {
+      if (node.equals(interactions.highlighted)) {
+        return;
+      }
       interactions.highlighted = node;
       interactions = interactions;
     },
     clearHighlighted: () => {
+      if (interactions.highlighted === null) {
+        return;
+      }
       interactions.highlighted = null;
       interactions = interactions;
     },
