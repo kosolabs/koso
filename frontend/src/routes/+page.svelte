@@ -15,7 +15,8 @@
 
   onMount(async () => {
     const host = location.origin.replace(/^http/, "ws");
-    const socket = new WebSocket(`${host}/ws`);
+    // TODO: Get project id from the path.
+    const socket = new WebSocket(`${host}/ws/projects/koso-staging`);
     socket.binaryType = "arraybuffer";
     socket.addEventListener("message", function (event) {
       if (event.data instanceof ArrayBuffer) {

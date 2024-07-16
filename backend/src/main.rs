@@ -2,12 +2,11 @@ use axum::{
     extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
     http::StatusCode,
     middleware::{self, Next},
-    response::{IntoResponse, Json},
-    routing::{delete, get, patch, post},
+    response::IntoResponse,
+    routing::get,
     Extension, Router,
 };
 use axum_extra::{headers, TypedHeader};
-use axum_streams::StreamBodyAsOptions;
 use futures::FutureExt;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
@@ -28,10 +27,6 @@ use tower_http::{
     trace::{DefaultMakeSpan, TraceLayer},
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use uuid::Uuid;
-
-use model::NewTask;
-use model::Task;
 
 mod model;
 mod notify;
@@ -76,13 +71,7 @@ async fn start_main_server() {
 
     let state = Arc::new(AppState {});
     let app = Router::new()
-        .route("/api/tasks/:task_id", get(get_task))
-        .route("/api/tasks", get(list_tasks))
-        .route("/api/tasks", post(create_task))
-        .route("/api/tasks", patch(update_task))
-        .route("/api/tasks/:task_id", delete(delete_task))
-        .route("/api/tasks/stream", get(stream_tasks))
-        .route("/ws", get(ws_handler))
+        .route("/ws/projects/:project_id", get(ws_handler))
         .nest_service("/", ServeDir::new("static"))
         .route_layer(middleware::from_fn(emit_request_metrics))
         .fallback(handler_404)
@@ -128,129 +117,6 @@ async fn start_main_server() {
     pool.close().await;
 }
 
-async fn create_task(
-    Extension(pool): Extension<&'static PgPool>,
-    Json(new_task): Json<NewTask>,
-) -> Result<Json<Task>, (StatusCode, String)> {
-    let task = Task {
-        id: Uuid::new_v4().to_string(),
-        name: new_task.name,
-        children: new_task.children,
-    };
-
-    sqlx::query("INSERT INTO tasks(id, name, children) VALUES ($1, $2, $3);")
-        .bind(&task.id)
-        .bind(&task.name)
-        .bind(&task.children)
-        .execute(pool)
-        .await
-        .map_err(internal_error)?;
-    Ok(Json(task))
-}
-
-async fn update_task(
-    Extension(pool): Extension<&'static PgPool>,
-    Json(task): Json<Task>,
-) -> Result<Json<Task>, (StatusCode, String)> {
-    let res = sqlx::query("UPDATE tasks SET name = $2, children = $3 WHERE id=$1;")
-        .bind(&task.id)
-        .bind(&task.name)
-        .bind(&task.children)
-        .execute(pool)
-        .await
-        .map_err(internal_error)?;
-    if res.rows_affected() == 0 {
-        return Err((
-            StatusCode::NOT_FOUND,
-            format!("task '{}' does not exist!", &task.id),
-        ));
-    }
-    // Given the updates where clause should match 0 or 1 rows and never more,
-    // this should never happen.
-    if res.rows_affected() > 1 {
-        tracing::error!(
-            "unexpectedly updated more than 1 rows ({}) for id '{}'",
-            res.rows_affected(),
-            &task.id
-        )
-    }
-    Ok(Json(task))
-}
-
-async fn delete_task(
-    Extension(pool): Extension<&'static PgPool>,
-    Path(task_id): Path<String>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let res = sqlx::query("DELETE FROM tasks WHERE id = $1")
-        .bind(&task_id)
-        .execute(pool)
-        .await
-        .map_err(internal_error)?;
-    if res.rows_affected() == 0 {
-        return Err((
-            StatusCode::NOT_FOUND,
-            format!("task '{}' does not exist!", &task_id),
-        ));
-    }
-    // Given the delete where clause should match 0 or 1 rows and never more,
-    // this should never happen.
-    if res.rows_affected() > 1 {
-        tracing::error!(
-            "unexpectedly deleted more than 1 rows ({}) for id '{}'",
-            res.rows_affected(),
-            &task_id
-        )
-    }
-    Ok(StatusCode::NO_CONTENT)
-}
-
-async fn get_task(
-    Extension(pool): Extension<&'static PgPool>,
-    Path(task_id): Path<String>,
-) -> Result<Json<Task>, (StatusCode, String)> {
-    let task: Task = sqlx::query_as("SELECT id, name, children FROM tasks WHERE id = $1")
-        .bind(&task_id)
-        .fetch_one(pool)
-        .await
-        .map_err(internal_error)?;
-    Ok(Json(task))
-}
-
-async fn list_tasks(
-    Extension(pool): Extension<&'static PgPool>,
-) -> Result<Json<Vec<Task>>, (StatusCode, String)> {
-    let tasks: Vec<Task> = sqlx::query_as("SELECT id, name, children FROM tasks")
-        .fetch_all(pool)
-        .await
-        .map_err(internal_error)?;
-    Ok(Json(tasks))
-}
-
-async fn stream_tasks(Extension(pool): Extension<&'static PgPool>) -> impl IntoResponse {
-    use tokio_stream::StreamExt;
-
-    let tasks = sqlx::query_as("SELECT id, name, children FROM tasks")
-        .fetch(pool)
-        .map(|r: Result<Task, sqlx::Error>| match r {
-            Ok(t) => Ok(t),
-            Err(e) => {
-                tracing::warn!("stream_tasks query failed: {}", e);
-                Err(axum::Error::new(e))
-            }
-        });
-
-    StreamBodyAsOptions::new()
-        .buffering_ready_items(5)
-        // An error mid stream will break the connection and cause
-        // most clients to produce an ERR_INCOMPLETE_CHUNKED_ENCODING error.
-        // Server side, you'll see the log above and a message like:
-        // "axum::serve: failed to serve connection: error from user's Body stream"
-        // An alternative is to return what amouts to a Result of Task rather
-        // than simply Task to clients and require clients handle errors explicitly.
-        // See https://github.com/abdolence/axum-streams-rs/issues/54
-        .json_array_with_errors(tasks)
-}
-
 /// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
 /// of websocket negotiation). After this completes, the actual switching from HTTP to
 /// websocket protocol will occur.
@@ -258,27 +124,29 @@ async fn stream_tasks(Extension(pool): Extension<&'static PgPool>) -> impl IntoR
 /// as well as things from HTTP headers such as user-agent of the browser etc.
 async fn ws_handler(
     ws: WebSocketUpgrade,
+    Path(project_id): Path<String>,
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(notifier): Extension<notify::Notifier>,
 ) -> impl IntoResponse {
+    if project_id.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            "projects segment must not be empty",
+        )
+            .into_response();
+    }
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
     ws.on_upgrade(move |socket| {
-        notifier.register_client(socket, addr).map(move |res| {
-            if let Err(e) = res {
-                tracing::warn!("Failed to register destination for {addr}: {e}");
-            }
-        })
+        notifier
+            .register_client(socket, addr, project_id)
+            .map(move |res| {
+                if let Err(e) = res {
+                    tracing::warn!("Failed to register destination for {addr}: {e}");
+                }
+            })
     })
-}
-
-/// Utility function for mapping any error into a `500 Internal Server Error` response.
-fn internal_error<E>(err: E) -> (StatusCode, String)
-where
-    E: std::error::Error,
-{
-    (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
 }
 
 // Default 404 handler.

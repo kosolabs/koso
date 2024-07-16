@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{hash_map::Entry, HashMap, VecDeque},
     error::Error,
     net::SocketAddr,
     ops::ControlFlow,
@@ -31,7 +31,7 @@ pub fn start(pool: &'static PgPool) -> Notifier {
             map: HashMap::new(),
         })),
         pool,
-        doc_box: Arc::new(Mutex::new(Option::None)),
+        doc_boxes: Arc::new(Mutex::new(HashMap::new())),
         tx,
         cancel: CancellationToken::new(),
         tracker: tokio_util::task::TaskTracker::new(),
@@ -41,21 +41,25 @@ pub fn start(pool: &'static PgPool) -> Notifier {
     notifier
 }
 
+type ProjectId = String;
+
 #[derive(Debug)]
 struct Clients {
-    map: HashMap<String, ClientSender>,
+    map: HashMap<ProjectId, HashMap<String, ClientSender>>,
 }
 
 #[derive(Debug)]
 struct ClientSender {
     ws_sender: futures::stream::SplitSink<WebSocket, Message>,
     who: String,
+    project_id: ProjectId,
 }
 
 #[derive(Debug)]
 struct ClientReceiver {
     ws_receiver: futures::stream::SplitStream<WebSocket>,
     who: String,
+    project_id: ProjectId,
 }
 
 struct DocBox {
@@ -86,6 +90,7 @@ struct TaskUpdates {
 #[derive(Debug)]
 struct YrsUpdate {
     who: String,
+    project_id: ProjectId,
     data: Vec<u8>,
 }
 
@@ -93,7 +98,7 @@ struct YrsUpdate {
 pub struct Notifier {
     clients: Arc<Mutex<Clients>>,
     pool: &'static PgPool,
-    doc_box: Arc<Mutex<Option<DocBox>>>,
+    doc_boxes: Arc<Mutex<HashMap<String, DocBox>>>,
     tx: Sender<YrsUpdate>,
     cancel: CancellationToken,
     tracker: tokio_util::task::TaskTracker,
@@ -109,23 +114,26 @@ impl Notifier {
         self,
         socket: WebSocket,
         who: SocketAddr,
+        project_id: ProjectId,
     ) -> Result<(), Box<dyn Error>> {
         let who = who.to_string() + ":" + &Uuid::new_v4().to_string();
-        tracing::debug!("Registering client {who}");
+        tracing::debug!("Registering client {who} in {project_id}");
 
         use futures::stream::StreamExt;
         let (ws_sender, ws_receiver) = socket.split();
         let mut sender = ClientSender {
             ws_sender,
             who: who.clone(),
+            project_id: project_id.clone(),
         };
         let receiver = ClientReceiver {
             ws_receiver,
             who: who.clone(),
+            project_id: project_id.clone(),
         };
 
         // Init the doc_box, if necessary and grab the state vector.
-        let sv = self.init_doc_box().await?;
+        let sv = self.init_doc_box(&project_id).await?;
 
         // Send the entire state vector to the client.
         if let Err(e) = sender.send(sv).await {
@@ -144,9 +152,10 @@ impl Notifier {
         Ok(())
     }
 
-    async fn init_doc_box(&self) -> Result<Vec<u8>, Box<dyn Error>> {
-        let mut doc_box = self.doc_box.lock().await;
-        if let Some(doc_box) = doc_box.as_ref() {
+    async fn init_doc_box(&self, project_id: &ProjectId) -> Result<Vec<u8>, Box<dyn Error>> {
+        let project_id = project_id.clone();
+        let mut doc_boxes = self.doc_boxes.lock().await;
+        if let Some(doc_box) = doc_boxes.get(&project_id) {
             return Ok(doc_box
                 .doc
                 .transact()
@@ -154,17 +163,18 @@ impl Notifier {
         }
 
         // Load the doc if it wasn't already loaded by another client.
-        let doc = self.load_graph().await?;
+        let doc = self.load_graph(&project_id).await?;
 
         // Observe changes to the graph and replicate them to the database.
         let observer_notifier = self.clone();
+        let project_id_clone = project_id.clone();
         use yrs::DeepObservable;
         let sub = doc
             .get_or_insert_map("graph")
             .observe_deep(move |txn, events: &Events| {
-                if let Err(e) = observer_notifier.apply_doc_events(txn, events) {
+                if let Err(e) = observer_notifier.apply_doc_events(&project_id_clone, txn, events) {
                     // TODO: Handle cases where the doc diverges from the DB.
-                    tracing::warn!("Failed to process doc event: {e}");
+                    tracing::warn!("Failed to process doc event for {project_id_clone}: {e}");
                 }
             });
 
@@ -176,15 +186,18 @@ impl Notifier {
             .doc
             .transact()
             .encode_state_as_update_v1(&StateVector::default());
-        *doc_box = Some(db);
+        doc_boxes.insert(project_id.clone(), db);
         Ok(sv)
     }
 
-    async fn load_graph(&self) -> Result<Doc, Box<dyn Error>> {
-        tracing::debug!("Initializing new YGraph");
-        let tasks: Vec<Task> = sqlx::query_as("SELECT id, name, children FROM tasks")
-            .fetch_all(self.pool)
-            .await?;
+    async fn load_graph(&self, project_id: &ProjectId) -> Result<Doc, Box<dyn Error>> {
+        tracing::debug!("Initializing new YGraph for {project_id}");
+        // TODO: Assert that the project actually exists to avoid conflating that with the absence of tasks.
+        let tasks: Vec<Task> =
+            sqlx::query_as("SELECT id, project_id, name, children FROM tasks WHERE project_id=$1")
+                .bind(project_id)
+                .fetch_all(self.pool)
+                .await?;
         let tasks_len = tasks.len();
 
         let doc = Doc::new();
@@ -201,7 +214,7 @@ impl Notifier {
                 }
             }
         }
-        tracing::debug!("Initialized new YGraph with {} tasks", tasks_len);
+        tracing::debug!("Initialized new YGraph with {tasks_len} tasks in {project_id}");
         Result::Ok(doc)
     }
 
@@ -225,25 +238,28 @@ impl Notifier {
     async fn process_update(&self, update: &YrsUpdate) {
         tracing::debug!("Processing update: {update:?}");
         if let Err(e) = self.apply_update_to_doc(update).await {
-            tracing::error!("Failed to apply update to doc: {e}");
+            tracing::error!(
+                "Failed to apply update to doc for {}: {e}",
+                update.project_id
+            );
             return;
         }
         self.clients.lock().await.send_to_all(update).await;
     }
 
-    async fn apply_update_to_doc(&self, update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
-        let update = match Update::decode_v1(&update.data) {
+    async fn apply_update_to_doc(&self, yrs_update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
+        let update = match Update::decode_v1(&yrs_update.data) {
             Ok(update) => update,
             Err(e) => {
                 return Err(format!(
-                    "Could not decode update from client: {e}, update: {update:?}"
+                    "Could not decode update from client: {e}, update: {yrs_update:?}"
                 )
                 .into());
             }
         };
 
-        let doc_box = self.doc_box.lock().await;
-        let doc_box = match doc_box.as_ref() {
+        let doc_boxes = self.doc_boxes.lock().await;
+        let doc_box = match doc_boxes.get(&yrs_update.project_id) {
             Some(doc_box) => doc_box,
             None => {
                 // TODO: Aside from short races, if this happens, we've got sockets without a doc.
@@ -273,7 +289,11 @@ impl Notifier {
                 }
             }
         }
-        tracing::debug!("Stopped receiving client updates from {}", receiver.who);
+        tracing::debug!(
+            "Stopped receiving client updates from {} in {}",
+            receiver.who,
+            receiver.project_id
+        );
     }
 
     async fn receive_update_from_client(
@@ -282,21 +302,23 @@ impl Notifier {
         msg: Result<Message, axum::Error>,
     ) -> ControlFlow<()> {
         let who = &receiver.who;
+        let project_id = &receiver.project_id;
         match msg {
             Ok(Message::Binary(data)) => {
                 match self
                     .tx
                     .send(YrsUpdate {
                         who: who.clone(),
+                        project_id: project_id.clone(),
                         data,
                     })
                     .await
                 {
                     Ok(()) => {
-                        tracing::debug!("Received update from {who}");
+                        tracing::debug!("Received update from {who} in {}", project_id);
                     }
                     Err(err) => {
-                        tracing::debug!("Error sending update from {who}: {err}");
+                        tracing::debug!("Error sending update from {who} in {}: {err}", project_id);
                     }
                 };
                 ControlFlow::Continue(())
@@ -307,12 +329,13 @@ impl Notifier {
                 } else {
                     "code:'NONE', detail:'No CloseFrame'".to_string()
                 };
-                self.close_client(who, &reason).await;
+                self.close_client(project_id, who, &reason).await;
                 ControlFlow::Break(())
             }
             Err(e) => {
                 tracing::warn!("Got error reading from client socket. Will close socket. {e}");
-                self.close_client(who, &format!("Error: {e}")).await;
+                self.close_client(project_id, who, &format!("Error: {e}"))
+                    .await;
                 ControlFlow::Break(())
             }
             Ok(_) => {
@@ -322,32 +345,32 @@ impl Notifier {
         }
     }
 
-    async fn close_client(&self, who: &String, reason: &String) {
+    async fn close_client(&self, project_id: &ProjectId, who: &String, reason: &String) {
         let client = {
             let clients = &mut self.clients.lock().await;
-            let client = clients.remove(who);
+            let client = clients.remove(project_id, who);
 
             tracing::debug!(
-                "Removing closed client {who}. {} clients remain. Reason: {}",
+                "Removing closed client {who} in {project_id}. {} clients remain. Reason: {}",
                 clients.len(),
                 reason
             );
 
             if clients.len() == 0 {
-                tracing::debug!("Last client disconnected, destroying YGraph");
-                *self.doc_box.lock().await = None;
+                tracing::debug!("Last client disconnected in {project_id}, destroying YGraph");
+                self.doc_boxes.lock().await.remove(project_id);
             }
             client
         };
         match client {
             Some(mut client) => {
                 if let Err(e) = client.close().await {
-                    tracing::debug!("Failed to close sink for {who}: {e}");
+                    tracing::debug!("Failed to close sink for {who} in {project_id}: {e}");
                 }
             }
             None => {
                 tracing::warn!(
-                    "Unexpectedly, received close for client {who} while no client was registered."
+                    "Unexpectedly, received close for client {who} in {project_id} while no client was registered."
                 )
             }
         }
@@ -356,10 +379,11 @@ impl Notifier {
     /// Apply a yrs event generated by observe_deep asyncronously to the database.
     fn apply_doc_events(
         &self,
+        project_id: &ProjectId,
         txn: &yrs::TransactionMut,
         events: &Events,
     ) -> Result<(), Box<dyn Error>> {
-        let updates = self.events_to_updates(txn, events)?;
+        let updates = self.events_to_updates(project_id, txn, events)?;
 
         // Process the updates in another thread since this function
         // must remain synchronous as it's caller is syncronous.
@@ -419,12 +443,13 @@ impl Notifier {
             }
             TaskUpdate::Update { task } => {
                 match sqlx::query(
-                    "INSERT INTO tasks (id, name, children)
-                          VALUES ($1, $2, $3)
+                    "INSERT INTO tasks (id, project_id, name, children)
+                          VALUES ($1, $2, $3, $4)
                           ON CONFLICT (id)
                           DO UPDATE SET name = EXCLUDED.name, children = EXCLUDED.children;",
                 )
                 .bind(&task.id)
+                .bind(&task.project_id)
                 .bind(&task.name)
                 .bind(&task.children)
                 .execute(&mut **txn)
@@ -457,6 +482,7 @@ impl Notifier {
 
     fn events_to_updates(
         &self,
+        project_id: &ProjectId,
         txn: &yrs::TransactionMut<'_>,
         events: &Events<'_>,
     ) -> Result<TaskUpdates, Box<dyn Error>> {
@@ -472,7 +498,9 @@ impl Notifier {
                         evt.target().to_json(txn),
                         evt.delta(txn)
                     );
-                    updates.updates.push(self.to_task_update(evt.path(), txn)?);
+                    updates
+                        .updates
+                        .push(self.to_task_update(project_id, evt.path(), txn)?);
                 }
                 yrs::types::Event::Map(evt) => {
                     tracing::debug!(
@@ -481,7 +509,9 @@ impl Notifier {
                         evt.target().to_json(txn),
                         evt.keys(txn)
                     );
-                    updates.updates.push(self.to_task_update(evt.path(), txn)?);
+                    updates
+                        .updates
+                        .push(self.to_task_update(project_id, evt.path(), txn)?);
                 }
                 yrs::types::Event::Text(evt) => {
                     return Err(format!(
@@ -518,6 +548,7 @@ impl Notifier {
 
     fn to_task_update(
         &self,
+        project_id: &ProjectId,
         path: VecDeque<PathSegment>,
         txn: &yrs::TransactionMut<'_>,
     ) -> Result<TaskUpdate, Box<dyn Error>> {
@@ -558,6 +589,7 @@ impl Notifier {
         Ok(TaskUpdate::Update {
             task: Task {
                 id: id.to_string(),
+                project_id: project_id.to_string(),
                 name: name.to_string(),
                 children: children_str,
             },
@@ -583,20 +615,30 @@ impl Notifier {
         self.clients.lock().await.close_all().await;
 
         // Drop the doc box to stop observing changes.
-        *self.doc_box.lock().await = None;
+        self.doc_boxes.lock().await.clear();
     }
 }
 
 impl Clients {
     fn add(&mut self, client: ClientSender) -> Result<(), Box<dyn Error>> {
-        if let Some(existing) = self.map.insert(client.who.clone(), client) {
-            return Err(format!("Unexpectedly, client already exists: {existing:?}").into());
+        let who = client.who.clone();
+        let project_id = client.project_id.clone();
+        let clients = match self.map.entry(project_id.clone()) {
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => v.insert(HashMap::new()),
+        };
+        if let Some(existing) = clients.insert(who.clone(), client) {
+            return Err(format!(
+                "Unexpectedly, client {who} already exists in {project_id}: {existing:?}"
+            )
+            .into());
         }
         Ok(())
     }
 
-    fn remove(&mut self, who: &String) -> Option<ClientSender> {
-        self.map.remove(who)
+    fn remove(&mut self, project_id: &ProjectId, who: &String) -> Option<ClientSender> {
+        let clients = self.map.get_mut(project_id)?;
+        clients.remove(who)
     }
 
     fn len(&self) -> usize {
@@ -604,13 +646,22 @@ impl Clients {
     }
 
     async fn send_to_all(&mut self, update: &YrsUpdate) {
+        let Some(clients) = self.map.get_mut(&update.project_id) else {
+            tracing::warn!(
+                "No clients for project {} exist to send to.",
+                update.project_id
+            );
+            return;
+        };
+
         tracing::debug!(
-            "Sending updates to {} clients from {}",
-            self.map.len(),
-            update.who
+            "Sending updates to {} clients from {} in {}",
+            clients.len(),
+            update.who,
+            update.project_id
         );
         let mut results = Vec::new();
-        for client in self.map.values_mut() {
+        for client in clients.values_mut() {
             tracing::debug!("Sending update to {}", client.who);
             results.push(client.send(update.data.to_owned()));
         }
@@ -619,8 +670,10 @@ impl Clients {
     }
 
     async fn close_all(&mut self) {
-        for client in self.map.values_mut() {
-            let _ = client.close().await;
+        for clients in self.map.values_mut() {
+            for client in clients.values_mut() {
+                let _ = client.close().await;
+            }
         }
         self.map.clear();
     }
