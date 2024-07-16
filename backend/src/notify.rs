@@ -83,13 +83,11 @@ enum TaskUpdate {
 #[derive(Debug)]
 struct TaskUpdates {
     update_id: String,
-    #[allow(dead_code)]
     project_id: ProjectId,
     updates: Vec<TaskUpdate>,
 }
 
 struct YrsUpdate {
-    #[allow(dead_code)]
     who: String,
     project_id: ProjectId,
     data: Vec<u8>,
