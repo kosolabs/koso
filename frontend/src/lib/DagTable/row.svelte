@@ -322,6 +322,7 @@
   </div>
 </div>
 
+<!-- Ghost is the first child of node. -->
 {#if dragged && ghost && node.equals(ghost.node.parent()) && ghost.offset === 0}
   <svelte:self
     {graph}
@@ -344,6 +345,7 @@
   {/each}
 {/if}
 
+<!-- Ghost is a peer immedicately proceeding node. -->
 {#if dragged && ghost && !node.isRoot() && node
     .parent()
     .equals(ghost.node.parent()) && ghost.offset === offset + 1}
