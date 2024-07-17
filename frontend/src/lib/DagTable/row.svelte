@@ -345,7 +345,7 @@
   {/each}
 {/if}
 
-<!-- Ghost is a peer immedicately proceeding node. -->
+<!-- Ghost is the peer immedicately proceeding node. -->
 {#if dragged && ghost && !node.isRoot() && node
     .parent()
     .equals(ghost.node.parent()) && ghost.offset === offset + 1}
