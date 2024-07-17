@@ -23,10 +23,7 @@
   $: ({ dragged, ghost, dropEffect, highlighted } = interactions);
 
   const {
-    addNode,
-    moveNode,
-    removeNode,
-    editTaskName,
+    kosoGraph,
     setDragged,
     clearDragged,
     setDropEffect,
@@ -53,13 +50,13 @@
     if (editedDescription === null) {
       return;
     }
-    editTaskName(node.name, editedDescription);
+    kosoGraph.editTaskName(node.name, editedDescription);
     editedDescription = null;
   }
 
   function handleDropUnlink(event: DragEvent) {
     event.preventDefault();
-    removeNode(node.name, node.parent().name);
+    kosoGraph.removeNode(node.name, node.parent().name);
   }
 
   function handleDragStart(event: DragEvent) {
@@ -90,7 +87,7 @@
     }
 
     if (!dragged.node.isRoot() && dropEffect === "move") {
-      moveNode(
+      kosoGraph.moveNode(
         dragged.node.name,
         dragged.node.parent().name,
         dragged.offset,
@@ -98,7 +95,11 @@
         ghost.offset,
       );
     } else {
-      addNode(dragged.node.name, ghost.node.parent().name, ghost.offset);
+      kosoGraph.addNode(
+        dragged.node.name,
+        ghost.node.parent().name,
+        ghost.offset,
+      );
     }
     clearDragged();
     clearGhost();

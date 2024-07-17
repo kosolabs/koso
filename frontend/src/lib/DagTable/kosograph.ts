@@ -1,0 +1,77 @@
+import * as Y from "yjs";
+
+export class KosoGraph {
+  yDoc: Y.Doc;
+  yGraph: Y.Map<Y.Map<string | Y.Array<string>>>;
+
+  constructor(yDoc: Y.Doc) {
+    this.yDoc = yDoc;
+    this.yGraph = yDoc.getMap("graph");
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  observe(f: (arg0: Array<Y.YEvent<any>>, arg1: Y.Transaction) => void) {
+    this.yGraph.observeDeep(f);
+  }
+
+  onupdate(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    f: (arg0: Uint8Array, arg1: any, arg2: Y.Doc, arg3: Y.Transaction) => void,
+  ) {
+    this.yDoc.on("update", f);
+  }
+
+  update(data: Uint8Array) {
+    Y.applyUpdate(this.yDoc, data);
+  }
+
+  toJSON() {
+    return this.yGraph.toJSON();
+  }
+
+  addNode(nodeId: string, parentId: string, offset: number) {
+    this.yDoc.transact(() => {
+      const yParent = this.yGraph.get(parentId)!;
+      const yChildren = yParent.get("children") as Y.Array<string>;
+      yChildren.insert(offset, [nodeId]);
+    });
+  }
+
+  removeNode(nodeId: string, parentId: string) {
+    this.yDoc.transact(() => {
+      const yParent = this.yGraph.get(parentId)!;
+      const yChildren = yParent.get("children") as Y.Array<string>;
+      yChildren.delete(yChildren.toArray().indexOf(nodeId));
+    });
+  }
+
+  moveNode(
+    nodeId: string,
+    srcParentId: string,
+    srcOffset: number,
+    destParentId: string,
+    destOffset: number,
+  ) {
+    this.yDoc.transact(() => {
+      const ySrcParent = this.yGraph.get(srcParentId)!;
+      const ySrcChildren = ySrcParent.get("children") as Y.Array<string>;
+      ySrcChildren.delete(srcOffset);
+
+      const yDestParent = this.yGraph.get(destParentId)!;
+      const yDestChildren = yDestParent.get("children") as Y.Array<string>;
+      if (srcParentId === destParentId && srcOffset < destOffset) {
+        destOffset -= 1;
+      }
+      yDestChildren.insert(destOffset, [nodeId]);
+    });
+  }
+
+  editTaskName(taskId: string, newName: string) {
+    this.yDoc.transact(() => {
+      const yNode = this.yGraph.get(taskId)!;
+      if (yNode.get("name") !== newName) {
+        yNode.set("name", newName);
+      }
+    });
+  }
+}
