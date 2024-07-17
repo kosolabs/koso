@@ -334,8 +334,13 @@
 
 {#if open && !isGhost}
   {#each task.children as childId, offset}
-    {@const child = node.concat(childId)}
-    <svelte:self {graph} {interactions} isGhost={false} node={child} {offset} />
+    <svelte:self
+      {graph}
+      {interactions}
+      isGhost={false}
+      node={node.concat(childId)}
+      {offset}
+    />
   {/each}
 {/if}
 
