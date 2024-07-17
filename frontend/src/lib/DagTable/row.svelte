@@ -18,6 +18,7 @@
   export let node: Node;
   export let interactions: Interactions;
   export let isGhost: boolean;
+  export let offset: number;
 
   $: task = graph[node.name]!;
   $: ({ dragged, ghost, dropEffect, highlighted } = interactions);
@@ -215,17 +216,6 @@
     return dragged.offset === 0;
   }
 
-  function spliceGhost(
-    children: string[],
-    ghost: IndexedNode | null,
-  ): string[] {
-    if (ghost && node.equals(ghost.node.parent())) {
-      return children.toSpliced(ghost.offset, 0, ghost.node.name);
-    } else {
-      return children;
-    }
-  }
-
   $: dragging = !isGhost && dragged && node.equals(dragged.node);
   $: canDragDropPeer =
     !dragging &&
@@ -240,7 +230,6 @@
     !isSameChild(node, dragged) &&
     !hasChild(node, dragged.node) &&
     !hasCycle(node.name, dragged.node.name);
-  $: children = spliceGhost(task.children, ghost);
   $: isMoving = ghost && dragging && dropEffect === "move";
 </script>
 
@@ -333,11 +322,38 @@
   </div>
 </div>
 
+<!-- Ghost is the first child of node. -->
+{#if dragged && ghost && node.equals(ghost.node.parent()) && ghost.offset === 0}
+  <svelte:self
+    {graph}
+    {interactions}
+    isGhost={true}
+    node={ghost.node}
+    offset={ghost.offset}
+  />
+{/if}
+
 {#if open && !isGhost}
-  {#each children as childId, offset}
-    {@const child = node.concat(childId)}
-    {@const isGhost =
-      ghost && ghost.node.equals(child) && ghost.offset === offset}
-    <svelte:self {graph} {interactions} {isGhost} node={child} />
+  {#each task.children as childId, offset}
+    <svelte:self
+      {graph}
+      {interactions}
+      isGhost={false}
+      node={node.concat(childId)}
+      {offset}
+    />
   {/each}
+{/if}
+
+<!-- Ghost is the peer immedicately proceeding node. -->
+{#if dragged && ghost && !node.isRoot() && node
+    .parent()
+    .equals(ghost.node.parent()) && ghost.offset === offset + 1}
+  <svelte:self
+    {graph}
+    {interactions}
+    isGhost={true}
+    node={ghost.node}
+    offset={ghost.offset}
+  />
 {/if}
