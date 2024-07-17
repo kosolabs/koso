@@ -291,7 +291,8 @@
         {#if canDragDropPeer}
           <div
             class="absolute z-50 h-7"
-            style="width: {(node.length + 1) * 1.25}rem; left: {-node.length * 1.25}rem"
+            style="width: {(node.length + 1) * 1.25}rem; 
+              left: {-node.length * 1.25}rem"
             role="table"
             on:dragover={handleDragOverPeer}
             on:dragleave={handleDragLeave}
@@ -300,8 +301,8 @@
         {/if}
         {#if canDragDropChild}
           <div
-            class="absolute z-50 h-7"
-            style="width: {10.5 - node.length * 1.25}rem; left: 1.25rem;"
+            class="absolute left-5 z-50 h-7"
+            style="width: {10.5 - node.length * 1.25}rem"
             role="table"
             on:dragover={handleDragOverChild}
             on:dragleave={handleDragLeave}
