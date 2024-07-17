@@ -140,7 +140,7 @@
     class="[&>*:nth-child(even)]:bg-slate-50 [&>*:nth-child(odd)]:bg-slate-100"
   >
     {#each roots as root, offset}
-      <Row {graph} {interactions} {offset} node={root} isGhost={false} />
+      <Row {graph} {interactions} isGhost={false} node={root} {offset} />
     {/each}
   </div>
 </div>
