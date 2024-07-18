@@ -10,6 +10,7 @@ trap _on_fail ZERR
 source /root/.telegram.zsh
 
 pushd frontend
+npm install
 npm run build
 popd
 
