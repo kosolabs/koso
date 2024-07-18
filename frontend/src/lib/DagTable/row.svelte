@@ -8,6 +8,7 @@
   import { getContext } from "svelte";
   import { slide } from "svelte/transition";
   import type { Graph, Node } from ".";
+  import { getTask } from ".";
   import {
     type IndexedNode,
     type Interactions,
@@ -20,7 +21,7 @@
   export let isGhost: boolean;
   export let offset: number;
 
-  $: task = graph[node.name]!;
+  $: task = getTask(graph, node.name);
   $: ({ dragged, ghost, dropEffect, highlighted } = interactions);
 
   const {
@@ -66,10 +67,11 @@
       node,
       node.isRoot()
         ? 0
-        : graph[node.parent().name]!.children.indexOf(node.name),
+        : getTask(graph, node.parent().name).children.indexOf(node.name),
     );
-    event.dataTransfer!.setData("text/plain", node.id);
-    event.dataTransfer!.effectAllowed = "linkMove";
+    if (!event.dataTransfer) throw new Error("dataTransfer is undefined");
+    event.dataTransfer.setData("text/plain", node.id);
+    event.dataTransfer.effectAllowed = "linkMove";
   }
 
   function handleDrag(event: DragEvent) {
@@ -131,7 +133,7 @@
     }
 
     const parentId = node.parent().name;
-    const offset = graph[parentId]!.children.indexOf(node.name) + 1;
+    const offset = getTask(graph, parentId).children.indexOf(node.name) + 1;
     setGhost(node.parent().concat(dragged.node.name), offset);
   }
 
@@ -175,7 +177,7 @@
     if (child === parent) {
       return true;
     }
-    for (const next of graph[child]!.children) {
+    for (const next of getTask(graph, child).children) {
       if (hasCycle(parent, next)) {
         return true;
       }
@@ -190,7 +192,7 @@
     if (parent.equals(child.parent())) {
       return false;
     }
-    return graph[parent.name]?.children.includes(child.name);
+    return getTask(graph, parent.name).children.includes(child.name);
   }
 
   function isSamePeer(node: Node, dragged: IndexedNode): boolean {
@@ -202,7 +204,7 @@
     }
 
     const parentId = node.parent().name;
-    const children = graph[parentId]!.children;
+    const children = getTask(graph, parentId).children;
     return children.indexOf(node.name) + 1 === dragged.offset;
   }
 
