@@ -1,11 +1,6 @@
 <script lang="ts">
-  import { A, Input } from "flowbite-svelte";
-  import {
-    AngleRightOutline,
-    BarsOutline,
-    CirclePlusOutline,
-    TrashBinOutline,
-  } from "flowbite-svelte-icons";
+  import { A, Input, Tooltip } from "flowbite-svelte";
+  import { ChevronRight, List, ListTree, Menu, Unlink } from "lucide-svelte";
   import { getContext } from "svelte";
   import { slide } from "svelte/transition";
   import type { Graph, Node } from ".";
@@ -250,15 +245,15 @@
   transition:slide|global={{ duration: interactions.dragged ? 0 : 400 }}
 >
   {#if dragging}
-    <div
+    <button
       class="absolute left-1 z-50 rounded p-1 opacity-50 outline hover:opacity-100"
-      role="table"
       on:dragover={handleDragOverUnlink}
       on:dragleave={handleDragLeaveUnlink}
       on:drop={handleDropUnlink}
     >
-      <TrashBinOutline />
-    </div>
+      <Unlink class="h-4" />
+    </button>
+    <Tooltip class="text-nowrap" placement="bottom">Insert Peer</Tooltip>
   {/if}
   <div class="w-48">
     <div class="flex items-center">
@@ -269,22 +264,28 @@
         on:click={() => toggleOpen()}
       >
         {#if task.children.length > 0}
-          <AngleRightOutline class="h-4" />
+          <ChevronRight class="h-4" />
         {/if}
       </button>
-      <div class="relative h-4">
+      <Tooltip class="text-nowrap" placement="bottom">
+        {open ? "Collapse" : "Expand"}
+      </Tooltip>
+      <div class="relative">
         <button
-          class="absolute -left-3 top-4 rounded p-1 opacity-0 outline hover:opacity-100"
-          on:click={() => kosoGraph.insertNode(node.parent().name, offset+1)}
+          data-tooltip-target="tooltip-default"
+          class="absolute -left-3 top-3 rounded p-1 opacity-0 outline hover:opacity-60"
+          on:click={() => kosoGraph.insertNode(node.parent().name, offset + 1)}
         >
-          <CirclePlusOutline />
+          <List class="h-5" />
         </button>
+        <Tooltip class="text-nowrap" placement="bottom">Insert Peer</Tooltip>
         <button
-          class="absolute left-5 top-4 rounded p-1 opacity-0 outline hover:opacity-100"
+          class="absolute left-5 top-3 rounded p-1 opacity-0 outline hover:opacity-60"
           on:click={() => kosoGraph.insertNode(node.name, 0)}
         >
-          <CirclePlusOutline />
+          <ListTree class="h-5" />
         </button>
+        <Tooltip class="text-nowrap" placement="bottom">Insert Child</Tooltip>
       </div>
       <button
         class="relative min-w-5"
@@ -293,7 +294,7 @@
         on:dragend={handleDragEnd}
         on:drag={handleDrag}
       >
-        <BarsOutline class="h-4" />
+        <Menu class="h-4" />
         {#if canDragDropPeer}
           <div
             class="absolute z-50 h-7"
