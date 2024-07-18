@@ -58,6 +58,10 @@
   }
 
   function handleDragStart(event: DragEvent) {
+    const dataTransfer = event.dataTransfer;
+    if (dataTransfer === null) {
+      return;
+    }
     clearHighlighted();
     setDragged(
       node,
@@ -65,9 +69,8 @@
         ? 0
         : getTask(graph, node.parent().name).children.indexOf(node.name),
     );
-    if (!event.dataTransfer) throw new Error("dataTransfer is undefined");
-    event.dataTransfer.setData("text/plain", node.id);
-    event.dataTransfer.effectAllowed = "linkMove";
+    dataTransfer.setData("text/plain", node.id);
+    dataTransfer.effectAllowed = "linkMove";
   }
 
   function handleDrag(event: DragEvent) {
@@ -133,6 +136,11 @@
     setGhost(node.parent().concat(dragged.node.name), offset);
   }
 
+  function handleDragEnterPeer(event: DragEvent) {
+    event.preventDefault();
+    open = false;
+  }
+
   function handleDragOverChild(event: DragEvent) {
     event.preventDefault();
     const dataTransfer = event.dataTransfer;
@@ -148,6 +156,11 @@
     }
 
     setGhost(node.concat(dragged.node.name), 0);
+  }
+
+  function handleDragEnterChild(event: DragEvent) {
+    event.preventDefault();
+    open = true;
   }
 
   function handleDragLeave(event: DragEvent) {
@@ -302,6 +315,7 @@
               left: {-node.length * 1.25}rem"
             role="table"
             on:dragover={handleDragOverPeer}
+            on:dragenter={handleDragEnterPeer}
             on:dragleave={handleDragLeave}
             on:drop={handleDropNode}
           />
@@ -312,6 +326,7 @@
             style="width: {10.5 - node.length * 1.25}rem"
             role="table"
             on:dragover={handleDragOverChild}
+            on:dragenter={handleDragEnterChild}
             on:dragleave={handleDragLeave}
             on:drop={handleDropNode}
           />
