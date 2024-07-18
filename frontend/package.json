@@ -29,6 +29,7 @@
     "flowbite": "^2.3.0",
     "flowbite-svelte": "^0.46.1",
     "globals": "^15.0.0",
+    "google-oauth-gsi": "^4.0.1",
     "lucide-svelte": "^0.408.0",
     "postcss": "^8.4.38",
     "prettier": "^3.1.1",
