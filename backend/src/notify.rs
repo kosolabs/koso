@@ -1,5 +1,5 @@
 use std::{
-    collections::{hash_map::Entry, HashMap, VecDeque},
+    collections::{hash_map::Entry, HashMap},
     error::Error,
     fmt,
     net::SocketAddr,
@@ -498,26 +498,81 @@ impl Notifier {
         for evt in events.iter() {
             match evt {
                 yrs::types::Event::Array(evt) => {
+                    let path = evt.path();
                     tracing::debug!(
                         "Processing Array event: path: {:?}, target: {:?}, delta: {:?}",
                         evt.path(),
                         evt.target().to_json(txn),
                         evt.delta(txn)
                     );
+                    let Some(PathSegment::Key(id)) = path.front() else {
+                        return Err(
+                            format!("Could not get first path segement key: {:?}", path).into()
+                        );
+                    };
                     updates
                         .updates
-                        .push(self.to_task_update(project_id, &evt.path(), txn)?);
+                        .push(self.to_task_update(project_id, id.to_string(), txn)?);
                 }
                 yrs::types::Event::Map(evt) => {
+                    let path = evt.path();
+                    let keys = evt.keys(txn);
                     tracing::debug!(
                         "Processing Map event: path: {:?}, target: {:?}, key: {:?}",
-                        evt.path(),
+                        path,
                         evt.target().to_json(txn),
-                        evt.keys(txn)
+                        keys
                     );
+
+                    // Edits to an existing task will have a path pointing to the task,
+                    // e.g. [Key("3")]
+                    // We could use "keys" instead to patch the udpate, but that's just
+                    // an optimization.
+                    // e.g.: {"name": Updated(Any(String("33")), Any(String("33333")))}
+                    if !path.is_empty() {
+                        let Some(PathSegment::Key(id)) = path.front() else {
+                            return Err(format!(
+                                "Could not get first path segement key: {:?}",
+                                path
+                            )
+                            .into());
+                        };
+                        updates.updates.push(self.to_task_update(
+                            project_id,
+                            id.to_string(),
+                            txn,
+                        )?);
+                        continue;
+                    };
+
+                    // Otherwise, a task is being inserted.
+                    if keys.len() > 1 {
+                        return Err(format!(
+                            "Found map event with empty path and multiple keys: {keys:?}"
+                        )
+                        .into());
+                    }
+
+                    let (id, change) = match keys.iter().next() {
+                        Some((id, change)) => (id, change),
+                        None => return Err("Found map event with empty path and zero keys".into()),
+                    };
+
+                    // The only change should be the insertion.
+                    // e.g. {"9": Inserted(YMap(MapRef(<1496944415#11>)))}
+                    let _ = match change {
+                        yrs::types::EntryChange::Inserted(inserted) => inserted,
+                        _ => {
+                            return Err(format!(
+                                "Unexpected got non-Inserted map event: {change:?}"
+                            )
+                            .into())
+                        }
+                    };
+
                     updates
                         .updates
-                        .push(self.to_task_update(project_id, &evt.path(), txn)?);
+                        .push(self.to_task_update(project_id, id.to_string(), txn)?);
                 }
                 yrs::types::Event::Text(evt) => {
                     return Err(format!(
@@ -555,24 +610,21 @@ impl Notifier {
     fn to_task_update(
         &self,
         project_id: &ProjectId,
-        path: &VecDeque<PathSegment>,
+        id: String,
         txn: &yrs::TransactionMut<'_>,
     ) -> Result<TaskUpdate, Box<dyn Error>> {
-        let Some(PathSegment::Key(key)) = path.front() else {
-            return Err(format!("Could not get first path segement key: {:?}", path).into());
-        };
         let Some(graph) = txn.get_map("graph") else {
             return Err(format!("Could not get map 'graph': {:?}", txn.doc()).into());
         };
-        let Some(Out::YMap(task)) = graph.get(txn, key) else {
+        let Some(Out::YMap(task)) = graph.get(txn, &id) else {
             return Err(format!("Could not find graph in: {}", txn.doc()).into());
         };
-        let Some(Out::Any(Any::String(id))) = task.get(txn, "id") else {
+        let Some(Out::Any(Any::String(task_id))) = task.get(txn, "id") else {
             return Err(format!("Could not find id in: {task:?}").into());
         };
-        if *key != id {
+        if *id != *task_id {
             return Err(format!(
-                "Id mismatch, map key ({key}) does not equal 'id' ({id}): {task:?}"
+                "Id mismatch, expected id ({id}) does not equal 'id' ({task_id}): {task:?}"
             )
             .into());
         }
@@ -594,7 +646,7 @@ impl Notifier {
 
         Ok(TaskUpdate::Update {
             task: Task {
-                id: id.to_string(),
+                id,
                 project_id: project_id.to_string(),
                 name: name.to_string(),
                 children: children_str,
