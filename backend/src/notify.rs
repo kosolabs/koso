@@ -349,13 +349,14 @@ impl Notifier {
             let clients = &mut self.clients.lock().await;
             let client = clients.remove(project_id, who);
 
+            let remaining_clients = clients.len(project_id);
             tracing::debug!(
                 "Removing closed client. {} clients remain. Reason: {}",
-                clients.len(),
+                remaining_clients,
                 reason
             );
 
-            if clients.len() == 0 {
+            if remaining_clients == 0 {
                 tracing::debug!("Last client disconnected, destroying YGraph");
                 self.doc_boxes.lock().await.remove(project_id);
             }
@@ -647,8 +648,8 @@ impl Clients {
         clients.remove(who)
     }
 
-    fn len(&self) -> usize {
-        self.map.len()
+    fn len(&self, project_id: &ProjectId) -> usize {
+        self.map.get(project_id).map(|c| c.len()).unwrap_or(0)
     }
 
     async fn send_to_all(&mut self, update: &YrsUpdate) {
