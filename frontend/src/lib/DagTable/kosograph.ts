@@ -1,5 +1,13 @@
 import * as Y from "yjs";
 
+function makeTask(id: string, name: string, children: string[]) {
+  return new Y.Map<string | Y.Array<string>>([
+    ["id", id],
+    ["name", name],
+    ["children", Y.Array.from(children)],
+  ]);
+}
+
 export class KosoGraph {
   yDoc: Y.Doc;
   yGraph: Y.Map<Y.Map<string | Y.Array<string>>>;
@@ -27,6 +35,17 @@ export class KosoGraph {
 
   toJSON() {
     return this.yGraph.toJSON();
+  }
+
+  newId(): string {
+    let max = 0;
+    for (const currId of this.yGraph.keys()) {
+      const curr = parseInt(currId);
+      if (curr > max) {
+        max = curr;
+      }
+    }
+    return `${max + 1}`;
   }
 
   addNode(nodeId: string, parentId: string, offset: number) {
@@ -69,6 +88,16 @@ export class KosoGraph {
         destOffset -= 1;
       }
       yDestChildren.insert(destOffset, [nodeId]);
+    });
+  }
+
+  insertNode(parentId: string, offset: number) {
+    this.yDoc.transact(() => {
+      const nodeId = this.newId();
+      this.yGraph.set(nodeId, makeTask(nodeId, "Untitled", []));
+      const yParent = this.yGraph.get(parentId)!;
+      const yChildren = yParent.get("children") as Y.Array<string>;
+      yChildren.insert(offset, [nodeId]);
     });
   }
 

@@ -3,6 +3,7 @@
   import {
     AngleRightOutline,
     BarsOutline,
+    CirclePlusOutline,
     TrashBinOutline,
   } from "flowbite-svelte-icons";
   import { getContext } from "svelte";
@@ -271,6 +272,20 @@
           <AngleRightOutline class="h-4" />
         {/if}
       </button>
+      <div class="relative h-4">
+        <button
+          class="absolute -left-3 top-4 rounded p-1 opacity-0 outline hover:opacity-100"
+          on:click={() => kosoGraph.insertNode(node.parent().name, offset+1)}
+        >
+          <CirclePlusOutline />
+        </button>
+        <button
+          class="absolute left-5 top-4 rounded p-1 opacity-0 outline hover:opacity-100"
+          on:click={() => kosoGraph.insertNode(node.name, 0)}
+        >
+          <CirclePlusOutline />
+        </button>
+      </div>
       <button
         class="relative min-w-5"
         draggable={true}
