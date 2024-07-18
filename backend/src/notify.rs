@@ -70,16 +70,9 @@ struct DocBox {
 /// An individual task update: insert, delete or update.
 #[derive(Debug)]
 enum TaskUpdate {
-    #[allow(dead_code)]
-    Delete {
-        id: String,
-    },
-    Insert {
-        task: Task,
-    },
-    Update {
-        task: Task,
-    },
+    Delete { id: String },
+    Insert { task: Task },
+    Update { task: Task },
 }
 
 enum UpdateType {
@@ -426,7 +419,7 @@ impl Notifier {
     ) -> Result<(), Box<dyn Error>> {
         match update {
             TaskUpdate::Delete { id } => {
-                match sqlx::query("DELETE tasks WHERE id=$1;")
+                match sqlx::query("DELETE FROM tasks WHERE id=$1;")
                     .bind(id)
                     .execute(&mut **txn)
                     .await
@@ -599,22 +592,26 @@ impl Notifier {
 
                     // The only change should be the insertion.
                     // e.g. {"9": Inserted(YMap(MapRef(<1496944415#11>)))}
-                    let _ = match change {
-                        yrs::types::EntryChange::Inserted(inserted) => inserted,
-                        _ => {
-                            return Err(format!(
-                                "Unexpected got non-Inserted map event: {change:?}"
+                    match change {
+                        yrs::types::EntryChange::Inserted(_) => {
+                            updates.updates.push(self.to_task_update(
+                                project_id,
+                                id.to_string(),
+                                UpdateType::Insert,
+                                txn,
+                            )?);
+                        }
+                        yrs::types::EntryChange::Removed(_) => {
+                            updates
+                                .updates
+                                .push(TaskUpdate::Delete { id: id.to_string() });
+                        }
+                        yrs::types::EntryChange::Updated(..) => {
+                            return Err(
+                                format!("Unexpectedly got Updated map event: {change:?}").into()
                             )
-                            .into())
                         }
                     };
-
-                    updates.updates.push(self.to_task_update(
-                        project_id,
-                        id.to_string(),
-                        UpdateType::Insert,
-                        txn,
-                    )?);
                 }
                 yrs::types::Event::Text(evt) => {
                     return Err(format!(
