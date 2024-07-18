@@ -31,7 +31,8 @@ export class KosoGraph {
 
   addNode(nodeId: string, parentId: string, offset: number) {
     this.yDoc.transact(() => {
-      const yParent = this.yGraph.get(parentId)!;
+      const yParent = this.yGraph.get(parentId);
+      if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
       const yChildren = yParent.get("children") as Y.Array<string>;
       yChildren.insert(offset, [nodeId]);
     });
@@ -39,7 +40,8 @@ export class KosoGraph {
 
   removeNode(nodeId: string, parentId: string) {
     this.yDoc.transact(() => {
-      const yParent = this.yGraph.get(parentId)!;
+      const yParent = this.yGraph.get(parentId);
+      if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
       const yChildren = yParent.get("children") as Y.Array<string>;
       yChildren.delete(yChildren.toArray().indexOf(nodeId));
     });
@@ -53,11 +55,15 @@ export class KosoGraph {
     destOffset: number,
   ) {
     this.yDoc.transact(() => {
-      const ySrcParent = this.yGraph.get(srcParentId)!;
+      const ySrcParent = this.yGraph.get(srcParentId);
+      if (!ySrcParent)
+        throw new Error(`Task ${srcParentId} is not in the graph`);
       const ySrcChildren = ySrcParent.get("children") as Y.Array<string>;
       ySrcChildren.delete(srcOffset);
 
-      const yDestParent = this.yGraph.get(destParentId)!;
+      const yDestParent = this.yGraph.get(destParentId);
+      if (!yDestParent)
+        throw new Error(`Task ${destParentId} is not in the graph`);
       const yDestChildren = yDestParent.get("children") as Y.Array<string>;
       if (srcParentId === destParentId && srcOffset < destOffset) {
         destOffset -= 1;
@@ -68,7 +74,8 @@ export class KosoGraph {
 
   editTaskName(taskId: string, newName: string) {
     this.yDoc.transact(() => {
-      const yNode = this.yGraph.get(taskId)!;
+      const yNode = this.yGraph.get(taskId);
+      if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
       if (yNode.get("name") !== newName) {
         yNode.set("name", newName);
       }

@@ -7,14 +7,16 @@ export class Node {
   path: string[];
 
   constructor(path: string[]) {
-    if (path.length === 0) throw new Error("path should not be empty");
     this.path = path;
     this.id = this.path.join("-");
-    this.name = this.path.at(-1)!;
+    const maybeName = this.path.at(-1);
+    if (!maybeName) throw new Error("path should not be empty");
+    this.name = maybeName;
     this.length = this.path.length;
   }
 
   parent(): Node {
+    if (this.isRoot()) throw new Error("Cannot get parent or root node");
     return new Node(this.path.slice(0, -1));
   }
 
@@ -32,6 +34,14 @@ export class Node {
     }
     return this.id === other.id;
   }
+}
+
+export function getTask(graph: Graph, id: string): Task {
+  const task = graph[id];
+  if (!task) {
+    throw new Error(`Task ${id} doesn't exist`);
+  }
+  return task;
 }
 
 export type Task = {
