@@ -156,4 +156,20 @@ describe("KosoGraph tests", () => {
       "4": { id: "4", name: "Task 4", children: [] },
     });
   });
+
+  it("insert node creates a new untitled task", () => {
+    const kg = new KosoGraph(new Y.Doc());
+    addItem(kg, "1", "Task 1", ["B", "3"]);
+    addItem(kg, "B", "Task B", []);
+    addItem(kg, "3", "Task 3", []);
+
+    kg.insertNode("1", 2);
+
+    expect(kg.toJSON()).toStrictEqual({
+      "1": { id: "1", name: "Task 1", children: ["B", "3", "4"] },
+      B: { id: "B", name: "Task B", children: [] },
+      "3": { id: "3", name: "Task 3", children: [] },
+      "4": { id: "4", name: "Untitled", children: [] },
+    });
+  });
 });
