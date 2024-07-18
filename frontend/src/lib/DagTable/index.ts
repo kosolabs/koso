@@ -16,7 +16,7 @@ export class Node {
   }
 
   parent(): Node {
-    if (this.isRoot()) throw new Error("Cannot get parent or root node");
+    if (this.isRoot()) throw new Error("Cannot get parent of root node");
     return new Node(this.path.slice(0, -1));
   }
 

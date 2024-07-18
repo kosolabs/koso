@@ -1,6 +1,13 @@
 <script lang="ts">
   import { A, Input, Tooltip } from "flowbite-svelte";
-  import { ChevronRight, List, ListTree, Menu, Unlink } from "lucide-svelte";
+  import {
+    ChevronRight,
+    List,
+    ListTree,
+    Menu,
+    Unlink,
+    Trash,
+  } from "lucide-svelte";
   import { getContext } from "svelte";
   import { slide } from "svelte/transition";
   import type { Graph, Node } from ".";
@@ -37,6 +44,7 @@
   }
 
   let unlinking = false;
+  let deleting = false;
 
   let editedDescription: string | null = null;
 
@@ -55,6 +63,14 @@
   function handleDropUnlink(event: DragEvent) {
     event.preventDefault();
     kosoGraph.removeNode(node.name, node.parent().name);
+  }
+
+  function handleDropDelete(event: DragEvent) {
+    event.preventDefault();
+    if (!node.isRoot()) {
+      throw new Error(`Cannot delete non-root node ${node.name}`);
+    }
+    kosoGraph.deleteNode(node.name);
   }
 
   function handleDragStart(event: DragEvent) {
@@ -115,6 +131,16 @@
   function handleDragLeaveUnlink(event: DragEvent) {
     event.preventDefault();
     unlinking = false;
+  }
+
+  function handleDragOverDelete(event: DragEvent) {
+    event.preventDefault();
+    deleting = true;
+  }
+
+  function handleDragLeaveDelete(event: DragEvent) {
+    event.preventDefault();
+    deleting = false;
   }
 
   function handleDragOverPeer(event: DragEvent) {
@@ -248,7 +274,7 @@
   role="row"
   tabindex="0"
   class="my-1 flex items-center rounded border p-2
-    {isMoving || unlinking ? 'border-red-600 opacity-30' : ''}
+    {isMoving || unlinking || deleting ? 'border-red-600 opacity-30' : ''}
     {isGhost ? 'border-green-600 opacity-70' : ''}
     {highlighted?.name === node.name ? 'border-lime-600' : ''}"
   on:mouseover={handleHighlight}
@@ -258,15 +284,27 @@
   transition:slide|global={{ duration: interactions.dragged ? 0 : 400 }}
 >
   {#if dragging}
-    <button
-      class="absolute left-1 z-50 rounded p-1 opacity-50 outline hover:opacity-100"
-      on:dragover={handleDragOverUnlink}
-      on:dragleave={handleDragLeaveUnlink}
-      on:drop={handleDropUnlink}
-    >
-      <Unlink class="h-4" />
-    </button>
-    <Tooltip class="text-nowrap" placement="bottom">Insert Peer</Tooltip>
+    {#if node.isRoot()}
+      <button
+        class="absolute left-1 z-50 rounded p-1 opacity-50 outline hover:opacity-100"
+        on:dragover={handleDragOverDelete}
+        on:dragleave={handleDragLeaveDelete}
+        on:drop={handleDropDelete}
+      >
+        <Trash class="h-4" />
+      </button>
+      <Tooltip class="text-nowrap" placement="bottom">Delete Task</Tooltip>
+    {:else}
+      <button
+        class="absolute left-1 z-50 rounded p-1 opacity-50 outline hover:opacity-100"
+        on:dragover={handleDragOverUnlink}
+        on:dragleave={handleDragLeaveUnlink}
+        on:drop={handleDropUnlink}
+      >
+        <Unlink class="h-4" />
+      </button>
+      <Tooltip class="text-nowrap" placement="bottom">Unlink Task</Tooltip>
+    {/if}
   {/if}
   <div class="w-48">
     <div class="flex items-center">
