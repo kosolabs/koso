@@ -74,9 +74,17 @@ enum TaskUpdate {
     Delete {
         id: String,
     },
+    Insert {
+        task: Task,
+    },
     Update {
         task: Task,
     },
+}
+
+enum UpdateType {
+    Insert,
+    Update,
 }
 
 /// A set of task updates to be applied transactionally.
@@ -444,12 +452,39 @@ impl Notifier {
                     }
                 }
             }
-            TaskUpdate::Update { task } => {
+            TaskUpdate::Insert { task } => {
                 match sqlx::query(
                     "INSERT INTO tasks (id, project_id, name, children)
-                          VALUES ($1, $2, $3, $4)
-                          ON CONFLICT (id)
-                          DO UPDATE SET name = EXCLUDED.name, children = EXCLUDED.children;",
+                          VALUES ($1, $2, $3, $4)",
+                )
+                .bind(&task.id)
+                .bind(&task.project_id)
+                .bind(&task.name)
+                .bind(&task.children)
+                .execute(&mut **txn)
+                .await
+                {
+                    Err(e) => {
+                        return Err(
+                            format!("Failed to apply insert update: {e}, {update:?}").into()
+                        );
+                    }
+                    Ok(res) => {
+                        if res.rows_affected() != 1 {
+                            return Err(format!(
+                                "unexpectedly modified zero or more than 1 row ({}): '{update:?}'",
+                                res.rows_affected()
+                            )
+                            .into());
+                        }
+                    }
+                }
+            }
+            TaskUpdate::Update { task } => {
+                match sqlx::query(
+                    "update tasks
+                    SET name=$3, children=$4
+                    WHERE id=$1; and project_id=$2",
                 )
                 .bind(&task.id)
                 .bind(&task.project_id)
@@ -510,9 +545,12 @@ impl Notifier {
                             format!("Could not get first path segement key: {:?}", path).into()
                         );
                     };
-                    updates
-                        .updates
-                        .push(self.to_task_update(project_id, id.to_string(), txn)?);
+                    updates.updates.push(self.to_task_update(
+                        project_id,
+                        id.to_string(),
+                        UpdateType::Update,
+                        txn,
+                    )?);
                 }
                 yrs::types::Event::Map(evt) => {
                     let path = evt.path();
@@ -540,6 +578,7 @@ impl Notifier {
                         updates.updates.push(self.to_task_update(
                             project_id,
                             id.to_string(),
+                            UpdateType::Update,
                             txn,
                         )?);
                         continue;
@@ -570,9 +609,12 @@ impl Notifier {
                         }
                     };
 
-                    updates
-                        .updates
-                        .push(self.to_task_update(project_id, id.to_string(), txn)?);
+                    updates.updates.push(self.to_task_update(
+                        project_id,
+                        id.to_string(),
+                        UpdateType::Insert,
+                        txn,
+                    )?);
                 }
                 yrs::types::Event::Text(evt) => {
                     return Err(format!(
@@ -611,6 +653,7 @@ impl Notifier {
         &self,
         project_id: &ProjectId,
         id: String,
+        update_type: UpdateType,
         txn: &yrs::TransactionMut<'_>,
     ) -> Result<TaskUpdate, Box<dyn Error>> {
         let Some(graph) = txn.get_map("graph") else {
@@ -644,14 +687,24 @@ impl Notifier {
             children_str.push(child.to_string());
         }
 
-        Ok(TaskUpdate::Update {
-            task: Task {
-                id,
-                project_id: project_id.to_string(),
-                name: name.to_string(),
-                children: children_str,
-            },
-        })
+        match update_type {
+            UpdateType::Insert => Ok(TaskUpdate::Insert {
+                task: Task {
+                    id,
+                    project_id: project_id.to_string(),
+                    name: name.to_string(),
+                    children: children_str,
+                },
+            }),
+            UpdateType::Update => Ok(TaskUpdate::Update {
+                task: Task {
+                    id,
+                    project_id: project_id.to_string(),
+                    name: name.to_string(),
+                    children: children_str,
+                },
+            }),
+        }
     }
 
     #[tracing::instrument(skip(self))]
