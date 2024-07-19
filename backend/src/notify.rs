@@ -69,16 +69,9 @@ struct DocBox {
 /// An individual task update: insert, delete or update.
 #[derive(Debug)]
 enum TaskUpdate {
-    #[allow(dead_code)]
-    Delete {
-        id: String,
-    },
-    Insert {
-        task: Task,
-    },
-    Update {
-        task: Task,
-    },
+    Delete { id: String },
+    Insert { task: Task },
+    Update { task: Task },
 }
 
 enum UpdateType {
@@ -185,7 +178,7 @@ impl Notifier {
                     observer_notifier.apply_doc_events(&update_id, &project_id_clone, txn, events)
                 {
                     // TODO: Handle cases where the doc diverges from the DB.
-                    tracing::warn!("Failed to process doc event: {e}");
+                    tracing::error!("Failed to process doc event: {e}");
                 }
             });
 
@@ -216,7 +209,7 @@ impl Notifier {
         {
             let mut txn = doc.transact_mut();
             for task in tasks {
-                let y_task: MapRef = graph.get_or_init(&mut txn, task.id.clone());
+                let y_task: MapRef = graph.get_or_init(&mut txn, task.id.as_str());
                 y_task.insert(&mut txn, "id", task.id);
                 y_task.insert(&mut txn, "name", task.name);
                 let y_children: ArrayRef = y_task.get_or_init(&mut txn, "children");
@@ -227,61 +220,6 @@ impl Notifier {
         }
         tracing::debug!("Initialized new YGraph with {tasks_len} tasks");
         Result::Ok(doc)
-    }
-
-    /// Take Update V1's in bytes form, applies them to the doc
-    /// and then broadcast them to all clients.
-    #[tracing::instrument(skip(self, rx))]
-    async fn process_updates(self, mut rx: Receiver<YrsUpdate>) {
-        loop {
-            tokio::select! {
-                _ = self.cancel.cancelled() => { break; }
-                update = rx.recv() => {
-                    let Some(update) = update else {
-                        break;
-                    };
-                    self.process_update(&update).await;
-                }
-            }
-        }
-        tracing::debug!("Stopped processing updates");
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn process_update(&self, update: &YrsUpdate) {
-        tracing::debug!("Processing update");
-        if let Err(e) = self.apply_update_to_doc(update).await {
-            tracing::error!("Failed to apply update to doc: {e}");
-            return;
-        }
-        self.clients.lock().await.send_to_all(update).await;
-    }
-
-    async fn apply_update_to_doc(&self, yrs_update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
-        let update = match Update::decode_v1(&yrs_update.data) {
-            Ok(update) => update,
-            Err(e) => {
-                return Err(format!(
-                    "Could not decode update from client: {e}, update: {yrs_update:?}"
-                )
-                .into());
-            }
-        };
-
-        let doc_boxes = self.doc_boxes.lock().await;
-        let doc_box = match doc_boxes.get(&yrs_update.project_id) {
-            Some(doc_box) => doc_box,
-            None => {
-                // TODO: Aside from short races, if this happens, we've got sockets without a doc.
-                // Likely, we should reset all sockets.
-                return Err(
-                    "Tried to broadcast update but doc_box was None. Dropped update: {update:?}"
-                        .into(),
-                );
-            }
-        };
-        doc_box.doc.transact_mut().apply_update(update);
-        Ok(())
     }
 
     /// Listen for update or close messages sent by a client.
@@ -310,7 +248,8 @@ impl Notifier {
     ) -> ControlFlow<()> {
         match msg {
             Ok(Message::Binary(data)) => {
-                match self
+                tracing::debug!("Received update from client");
+                if let Err(e) = self
                     .tx
                     .send(YrsUpdate {
                         who: receiver.who.clone(),
@@ -319,12 +258,7 @@ impl Notifier {
                     })
                     .await
                 {
-                    Ok(()) => {
-                        tracing::debug!("Received update");
-                    }
-                    Err(err) => {
-                        tracing::debug!("Error sending update: {err}");
-                    }
+                    tracing::error!("Error sending update to process channel: {e}");
                 };
                 ControlFlow::Continue(())
             }
@@ -345,7 +279,7 @@ impl Notifier {
                 ControlFlow::Break(())
             }
             Ok(_) => {
-                tracing::debug!("Discarding unsolicited message: {msg:?}");
+                tracing::warn!("Discarding unsolicited message: {msg:?}");
                 ControlFlow::Continue(())
             }
         }
@@ -376,11 +310,66 @@ impl Notifier {
                 }
             }
             None => {
-                tracing::warn!(
+                tracing::error!(
                     "Unexpectedly, received close for client while no client was registered."
                 )
             }
         }
+    }
+
+    /// Take Update V1's in bytes form, applies them to the doc
+    /// and then broadcast them to all clients.
+    #[tracing::instrument(skip(self, rx))]
+    async fn process_updates(self, mut rx: Receiver<YrsUpdate>) {
+        loop {
+            tokio::select! {
+                _ = self.cancel.cancelled() => { break; }
+                update = rx.recv() => {
+                    let Some(update) = update else {
+                        break;
+                    };
+                    self.process_update(&update).await;
+                }
+            }
+        }
+        tracing::debug!("Stopped processing updates");
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn process_update(&self, update: &YrsUpdate) {
+        tracing::debug!("Processing update");
+        if let Err(e) = self.apply_update_to_doc(update).await {
+            tracing::error!("Failed to apply update to doc: {e}");
+            return;
+        }
+        self.clients.lock().await.broadcast(update).await;
+    }
+
+    async fn apply_update_to_doc(&self, yrs_update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
+        let update = match Update::decode_v1(&yrs_update.data) {
+            Ok(update) => update,
+            Err(e) => {
+                return Err(format!(
+                    "Could not decode update from client: {e}, update: {yrs_update:?}"
+                )
+                .into());
+            }
+        };
+
+        let doc_boxes = self.doc_boxes.lock().await;
+        let doc_box = match doc_boxes.get(&yrs_update.project_id) {
+            Some(doc_box) => doc_box,
+            None => {
+                // TODO: Aside from short races, if this happens, we've got sockets without a doc.
+                // Likely, we should reset all sockets.
+                return Err(
+                    "Tried to broadcast update but doc_box was None. Dropped update: {update:?}"
+                        .into(),
+                );
+            }
+        };
+        doc_box.doc.transact_mut().apply_update(update);
+        Ok(())
     }
 
     /// Apply a yrs event generated by observe_deep asyncronously to the database.
@@ -403,18 +392,18 @@ impl Notifier {
     #[tracing::instrument(skip(self, updates), fields(update_id=&updates.update_id, project_id=&updates.project_id))]
     async fn apply_task_updates(self, updates: TaskUpdates) {
         async fn _update(n: Notifier, updates: &TaskUpdates) -> Result<(), Box<dyn Error>> {
-            tracing::debug!("About to apply update events: {updates:?}");
+            tracing::debug!("About to commit task updates: {updates:?}");
             let mut txn = n.pool.begin().await?;
             for update in updates.updates.iter() {
                 n.apply_task_update(update, &mut txn).await?;
             }
             txn.commit().await?;
-            tracing::debug!("Applied update events");
+            tracing::debug!("Committed task updates");
             Ok(())
         }
         if let Err(e) = _update(self, &updates).await {
             // TODO: Handle cases where the doc diverges from the DB.
-            tracing::warn!("Failed to apply task updates: {e}")
+            tracing::error!("Failed to commit task updates: {e}")
         };
     }
 
@@ -425,15 +414,13 @@ impl Notifier {
     ) -> Result<(), Box<dyn Error>> {
         match update {
             TaskUpdate::Delete { id } => {
-                match sqlx::query("DELETE tasks WHERE id=$1;")
+                match sqlx::query("DELETE FROM tasks WHERE id=$1;")
                     .bind(id)
                     .execute(&mut **txn)
                     .await
                 {
                     Err(e) => {
-                        return Err(
-                            format!("Failed to apply delete update: {e}, {update:?}").into()
-                        );
+                        return Err(format!("Failed to delete task: {e}, {update:?}").into());
                     }
                     Ok(res) => {
                         if res.rows_affected() == 0 {
@@ -483,7 +470,7 @@ impl Notifier {
                 match sqlx::query(
                     "update tasks
                     SET name=$3, children=$4
-                    WHERE id=$1; and project_id=$2",
+                    WHERE id=$1 and project_id=$2;",
                 )
                 .bind(&task.id)
                 .bind(&task.project_id)
@@ -533,7 +520,7 @@ impl Notifier {
             match evt {
                 yrs::types::Event::Array(evt) => {
                     let path = evt.path();
-                    tracing::debug!(
+                    tracing::trace!(
                         "Processing Array event: path: {:?}, target: {:?}, delta: {:?}",
                         evt.path(),
                         evt.target().to_json(txn),
@@ -554,7 +541,7 @@ impl Notifier {
                 yrs::types::Event::Map(evt) => {
                     let path = evt.path();
                     let keys = evt.keys(txn);
-                    tracing::debug!(
+                    tracing::trace!(
                         "Processing Map event: path: {:?}, target: {:?}, key: {:?}",
                         path,
                         evt.target().to_json(txn),
@@ -598,22 +585,26 @@ impl Notifier {
 
                     // The only change should be the insertion.
                     // e.g. {"9": Inserted(YMap(MapRef(<1496944415#11>)))}
-                    let _ = match change {
-                        yrs::types::EntryChange::Inserted(inserted) => inserted,
-                        _ => {
-                            return Err(format!(
-                                "Unexpected got non-Inserted map event: {change:?}"
+                    match change {
+                        yrs::types::EntryChange::Inserted(_) => {
+                            updates.updates.push(self.to_task_update(
+                                project_id,
+                                id.to_string(),
+                                UpdateType::Insert,
+                                txn,
+                            )?);
+                        }
+                        yrs::types::EntryChange::Removed(_) => {
+                            updates
+                                .updates
+                                .push(TaskUpdate::Delete { id: id.to_string() });
+                        }
+                        yrs::types::EntryChange::Updated(..) => {
+                            return Err(
+                                format!("Unexpectedly got Updated map event: {change:?}").into()
                             )
-                            .into())
                         }
                     };
-
-                    updates.updates.push(self.to_task_update(
-                        project_id,
-                        id.to_string(),
-                        UpdateType::Insert,
-                        txn,
-                    )?);
                 }
                 yrs::types::Event::Text(evt) => {
                     return Err(format!(
@@ -732,17 +723,12 @@ impl Notifier {
 
 impl Clients {
     fn add(&mut self, client: ClientSender) -> Result<(), Box<dyn Error>> {
-        let who = client.who.clone();
-        let project_id = client.project_id.clone();
-        let clients = match self.map.entry(project_id.clone()) {
+        let clients = match self.map.entry(client.project_id.clone()) {
             Entry::Occupied(o) => o.into_mut(),
             Entry::Vacant(v) => v.insert(HashMap::new()),
         };
-        if let Some(existing) = clients.insert(who.clone(), client) {
-            return Err(format!(
-                "Unexpectedly, client {who} already exists in {project_id}: {existing:?}"
-            )
-            .into());
+        if let Some(existing) = clients.insert(client.who.clone(), client) {
+            return Err(format!("Unexpectedly, client already exists: {existing:?}").into());
         }
         Ok(())
     }
@@ -756,20 +742,20 @@ impl Clients {
         self.map.get(project_id).map(|c| c.len()).unwrap_or(0)
     }
 
-    async fn send_to_all(&mut self, update: &YrsUpdate) {
+    async fn broadcast(&mut self, update: &YrsUpdate) {
         let Some(clients) = self.map.get_mut(&update.project_id) else {
-            tracing::warn!("No clients for project exist to send to.");
+            tracing::warn!("No clients for project exist to broadcast to.");
             return;
         };
 
-        tracing::debug!("Sending updates to {} clients", clients.len());
+        tracing::debug!("Broadcasting updates to {} clients", clients.len());
         let mut results = Vec::new();
         for client in clients.values_mut() {
             tracing::debug!("Sending update to {}", client.who);
             results.push(client.send(update.data.to_owned()));
         }
         let res = futures::future::join_all(results).await;
-        tracing::debug!("Finished sending updates: {res:?}");
+        tracing::debug!("Finished broadcasting updates: {res:?}");
     }
 
     async fn close_all(&mut self) {

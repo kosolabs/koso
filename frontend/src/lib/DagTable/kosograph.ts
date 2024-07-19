@@ -66,6 +66,12 @@ export class KosoGraph {
     });
   }
 
+  deleteNode(nodeId: string) {
+    this.yDoc.transact(() => {
+      this.yGraph.delete(nodeId);
+    });
+  }
+
   moveNode(
     nodeId: string,
     srcParentId: string,
