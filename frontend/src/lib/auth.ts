@@ -12,7 +12,7 @@ export type User = {
 export const CREDENTIAL_KEY = "credential";
 
 export const token = writable<string | null>(
-  sessionStorage.getItem(CREDENTIAL_KEY) || undefined,
+  sessionStorage.getItem(CREDENTIAL_KEY) || null,
 );
 
 token.subscribe((token) => {

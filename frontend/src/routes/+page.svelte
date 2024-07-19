@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
+  import { token } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { KosoGraph } from "$lib/DagTable/kosograph";
 
@@ -8,6 +10,9 @@
   const kosoGraph = new KosoGraph(new Y.Doc());
 
   onMount(async () => {
+    if ($token === null) {
+      return await goto("/login");
+    }
     const host = location.origin.replace(/^http/, "ws");
     // TODO: Get project id from the path.
     const socket = new WebSocket(`${host}/ws/projects/koso-staging`);
