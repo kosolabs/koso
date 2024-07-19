@@ -51,3 +51,31 @@ pub struct Claims {
     pub name: String,
     pub exp: usize,
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::google::Certs;
+    use crate::google::{fetch, parse};
+
+    fn certs() -> Certs {
+        parse(include_str!("testdata/certs.json")).unwrap()
+    }
+
+    #[tokio::test]
+    async fn fetch_succeeds() {
+        let result = fetch();
+        assert!(result.await.is_ok());
+    }
+
+    #[test]
+    fn get_returns_error_if_kid_is_missing() {
+        let certs = certs();
+        assert!(certs.get("missing").is_err())
+    }
+
+    #[test]
+    fn get_returns_key_if_kid_exists() {
+        let certs = certs();
+        assert!(certs.get("1").is_ok())
+    }
+}
