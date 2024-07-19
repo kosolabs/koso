@@ -43,6 +43,10 @@
       },
     });
   });
+
+  function logout() {
+    token = null;
+  }
 </script>
 
 <div class="m-auto w-96 rounded border bg-slate-100 p-10 text-center">
@@ -52,7 +56,7 @@
       class="flex items-center justify-center rounded-full border bg-slate-200 p-2"
     >
       <div><Avatar src={user.picture} /></div>
-      <div class="pl-2">{user.name}</div>
+      <button class="pl-2" on:click={() => logout()}>Logout {user.name}</button>
     </div>
   {/if}
   <div id="google-login-button" hidden={!!token} />
