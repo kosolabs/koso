@@ -1,6 +1,5 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
   import { token } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { KosoGraph } from "$lib/DagTable/kosograph";
@@ -11,12 +10,14 @@
   const kosoGraph = new KosoGraph(new Y.Doc());
 
   onMount(async () => {
-    if ($token === null) {
-      return await goto("/login");
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get("project");
+    if ($token === null || projectId === null) {
+      return await goto("/");
     }
     const host = location.origin.replace(/^http/, "ws");
     // TODO: Get project id from the path.
-    const socket = new WebSocket(`${host}/ws/projects/${$page.params.slug}`, [
+    const socket = new WebSocket(`${host}/ws/projects/${projectId}`, [
       "bearer",
       $token,
     ]);
