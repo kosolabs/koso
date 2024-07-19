@@ -22,11 +22,18 @@ export class Koso {
     this.yGraph.observeDeep(f);
   }
 
-  onupdate(
+  onLocalUpdate(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    f: (arg0: Uint8Array, arg1: any, arg2: Y.Doc, arg3: Y.Transaction) => void,
+    f: (arg0: Uint8Array) => void,
   ) {
-    this.yDoc.on("update", f);
+    this.yDoc.on(
+      "update",
+      (update: Uint8Array, _arg1: any, _arg2: Y.Doc, txn: Y.Transaction) => {
+        if (txn.local) {
+          f(update);
+        }
+      },
+    );
   }
 
   update(data: Uint8Array) {
