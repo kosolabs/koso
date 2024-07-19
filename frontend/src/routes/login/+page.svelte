@@ -1,25 +1,8 @@
 <script lang="ts">
-  import type { User } from "$lib/auth";
+  import { logout, token, user } from "$lib/auth";
   import { Avatar } from "flowbite-svelte";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
-  import { jwtDecode } from "jwt-decode";
   import { onMount } from "svelte";
-
-  const CREDENTIAL_KEY = "credential";
-
-  let token: string | null = sessionStorage.getItem(CREDENTIAL_KEY) || null;
-
-  function decodeUser(token: string | null): User | null {
-    if (token === null) {
-      return null;
-    }
-    const user = jwtDecode(token) as User;
-    if (user.exp * 1000 < Date.now()) {
-      return null;
-    }
-    return user;
-  }
-  $: user = decodeUser(token);
 
   onMount(() => {
     const googleProvider = new GoogleOAuthProvider({
@@ -36,28 +19,27 @@
               console.error("Credential is missing", res);
               return;
             }
-            token = res.credential;
-            sessionStorage.setItem(CREDENTIAL_KEY, res.credential);
+            $token = res.credential;
           },
         })();
       },
     });
   });
-
-  function logout() {
-    token = null;
-  }
 </script>
 
-<div class="m-auto w-96 rounded border bg-slate-100 p-10 text-center">
+<div
+  class="m-auto flex w-96 flex-col rounded border bg-slate-100 p-10 text-center"
+>
   <h1 class="mb-8 text-2xl">Sign in to Koso</h1>
-  {#if user}
-    <div
-      class="flex items-center justify-center rounded-full border bg-slate-200 p-2"
-    >
-      <div><Avatar src={user.picture} /></div>
-      <button class="pl-2" on:click={() => logout()}>Logout {user.name}</button>
+  {#if $user}
+    <div class="m-auto">
+      <div class="flex items-center rounded-full border bg-slate-200 p-2">
+        <div><Avatar src={$user.picture} size="xs" /></div>
+        <button class="pl-2" on:click={() => logout()}>
+          Logout {$user.name}
+        </button>
+      </div>
     </div>
   {/if}
-  <div id="google-login-button" hidden={!!token} />
+  <div id="google-login-button" hidden={!!$user} />
 </div>
