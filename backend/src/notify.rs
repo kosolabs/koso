@@ -1,3 +1,7 @@
+use crate::model::Task;
+use axum::extract::ws::{Message, WebSocket};
+use futures::SinkExt;
+use sqlx::PgPool;
 use std::{
     collections::{hash_map::Entry, HashMap},
     error::Error,
@@ -7,11 +11,6 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-
-use crate::model::Task;
-use axum::extract::ws::{Message, WebSocket};
-use futures::SinkExt;
-use sqlx::PgPool;
 use tokio::sync::{
     mpsc::{self, Receiver, Sender},
     Mutex,

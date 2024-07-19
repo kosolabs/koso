@@ -8,6 +8,8 @@ use axum::{
 };
 use axum_extra::{headers, TypedHeader};
 use futures::FutureExt;
+use google::Claims;
+use jsonwebtoken::Validation;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use sqlx::{
@@ -28,6 +30,7 @@ use tower_http::{
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod google;
 mod model;
 mod notify;
 
@@ -138,14 +141,14 @@ async fn ws_handler(
         )
             .into_response();
     }
-    let Some(header) = headers.get("sec-websocket-protocol") else {
+    let Some(swp_header) = headers.get("sec-websocket-protocol") else {
         return (
             StatusCode::UNAUTHORIZED,
             "sec-websocket-protocol must be set",
         )
             .into_response();
     };
-    let Ok(swp) = header.to_str() else {
+    let Ok(swp) = swp_header.to_str() else {
         return (
             StatusCode::UNAUTHORIZED,
             "sec-websocket-protocol must be only visible ASCII chars",
@@ -161,8 +164,36 @@ async fn ws_handler(
             .into_response();
     }
     let bearer = parts[1];
-    // Validate the bearer token
-    tracing::debug!("Bearer token: {}", bearer);
+    let Ok(header) = jsonwebtoken::decode_header(bearer) else {
+        return (StatusCode::UNAUTHORIZED, "failed to decode the jwt header").into_response();
+    };
+    let Some(kid) = header.kid else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            "failed to extract kid from jwt header",
+        )
+            .into_response();
+    };
+    // TODO: Get certs only once and inject them
+    let Ok(certs) = google::fetch().await else {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "failed to fetch google certs",
+        )
+            .into_response();
+    };
+    let Ok(key) = certs.get(&kid) else {
+        return (StatusCode::UNAUTHORIZED, "invalid kid").into_response();
+    };
+    let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
+    validation.set_audience(&[
+        "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
+    ]);
+    validation.set_issuer(&["https://accounts.google.com"]);
+    let Ok(token) = jsonwebtoken::decode::<Claims>(bearer, &key, &validation) else {
+        return (StatusCode::UNAUTHORIZED, "failed validation").into_response();
+    };
+    tracing::debug!("Bearer token: {:?}", token);
 
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
