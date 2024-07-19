@@ -28,6 +28,7 @@ export class Koso {
   ) {
     this.yDoc.on(
       "update",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (update: Uint8Array, arg1: any, arg2: Y.Doc, txn: Y.Transaction) => {
         if (txn.local) {
           f(update, arg1, arg2, txn);
