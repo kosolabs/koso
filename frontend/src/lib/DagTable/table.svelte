@@ -119,8 +119,6 @@
   };
 </script>
 
-<h1 class="my-8 text-4xl">Koso Hierarchical Table</h1>
-
 <div>
   <div id="header" class="rounded border text-xs font-bold uppercase">
     <div class="my-1 flex items-center rounded p-2">
