@@ -1,9 +1,8 @@
 use jsonwebtoken::DecodingKey;
-use jsonwebtoken::Validation;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct Key {
     kid: String,
     alg: String,
@@ -13,7 +12,7 @@ struct Key {
     r#use: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Certs {
     keys: Vec<Key>,
 }

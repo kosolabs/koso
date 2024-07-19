@@ -8,7 +8,7 @@ use axum::{
 };
 use axum_extra::{headers, TypedHeader};
 use futures::FutureExt;
-use google::Claims;
+use google::{Certs, Claims};
 use jsonwebtoken::Validation;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
@@ -72,6 +72,7 @@ async fn start_main_server() {
     ));
 
     let notifier = notify::start(pool);
+    let certs = google::fetch().await.unwrap();
 
     let state = Arc::new(AppState {});
     let app = Router::new()
@@ -83,12 +84,13 @@ async fn start_main_server() {
         .layer((
             // Enable request tracing. Must enable `tower_http=debug`
             TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::default().include_headers(true)),
+                .make_span_with(DefaultMakeSpan::default().include_headers(false)),
             // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
             // requests don't hang forever.
             TimeoutLayer::new(Duration::from_secs(10)),
             Extension(pool),
             Extension(notifier.clone()),
+            Extension(certs),
         ));
 
     // We can either use a listener provided by the environment by ListenFd or
@@ -133,6 +135,7 @@ async fn ws_handler(
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(notifier): Extension<notify::Notifier>,
+    Extension(certs): Extension<Certs>,
 ) -> impl IntoResponse {
     if project_id.is_empty() {
         return (
@@ -171,14 +174,6 @@ async fn ws_handler(
         return (
             StatusCode::UNAUTHORIZED,
             "failed to extract kid from jwt header",
-        )
-            .into_response();
-    };
-    // TODO: Get certs only once and inject them
-    let Ok(certs) = google::fetch().await else {
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "failed to fetch google certs",
         )
             .into_response();
     };
