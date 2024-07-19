@@ -1,6 +1,6 @@
 use axum::{
     extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
     routing::get,
@@ -125,6 +125,7 @@ async fn start_main_server() {
 /// as well as things from HTTP headers such as user-agent of the browser etc.
 async fn ws_handler(
     ws: WebSocketUpgrade,
+    headers: HeaderMap,
     Path(project_id): Path<String>,
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
@@ -137,9 +138,35 @@ async fn ws_handler(
         )
             .into_response();
     }
+    let Some(header) = headers.get("sec-websocket-protocol") else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            "sec-websocket-protocol must be set",
+        )
+            .into_response();
+    };
+    let Ok(swp) = header.to_str() else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            "sec-websocket-protocol must be only visible ASCII chars",
+        )
+            .into_response();
+    };
+    let parts: Vec<&str> = swp.split(", ").collect();
+    if parts.len() != 2 || parts[0] != "bearer" {
+        return (
+            StatusCode::UNAUTHORIZED,
+            "sec-websocket-protocol must contain a bearer token",
+        )
+            .into_response();
+    }
+    let bearer = parts[1];
+    // Validate the bearer token
+    tracing::debug!("Bearer token: {}", bearer);
+
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
-    ws.on_upgrade(move |socket| {
+    ws.protocols(["bearer"]).on_upgrade(move |socket| {
         notifier
             .register_client(socket, addr, project_id)
             .map(move |res| {

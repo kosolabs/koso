@@ -15,7 +15,10 @@
     }
     const host = location.origin.replace(/^http/, "ws");
     // TODO: Get project id from the path.
-    const socket = new WebSocket(`${host}/ws/projects/koso-staging`);
+    const socket = new WebSocket(`${host}/ws/projects/koso-staging`, [
+      "bearer",
+      $token,
+    ]);
     socket.binaryType = "arraybuffer";
     socket.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) {
