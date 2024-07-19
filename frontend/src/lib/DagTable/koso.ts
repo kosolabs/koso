@@ -24,13 +24,13 @@ export class Koso {
 
   onLocalUpdate(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    f: (arg0: Uint8Array) => void,
+    f: (arg0: Uint8Array, arg1: any, arg2: Y.Doc, arg3: Y.Transaction) => void,
   ) {
     this.yDoc.on(
       "update",
-      (update: Uint8Array, _arg1: any, _arg2: Y.Doc, txn: Y.Transaction) => {
+      (update: Uint8Array, arg1: any, arg2: Y.Doc, txn: Y.Transaction) => {
         if (txn.local) {
-          f(update);
+          f(update, arg1, arg2, txn);
         }
       },
     );
