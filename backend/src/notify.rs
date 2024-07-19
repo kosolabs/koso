@@ -477,7 +477,7 @@ impl Notifier {
                 match sqlx::query(
                     "update tasks
                     SET name=$3, children=$4
-                    WHERE id=$1; and project_id=$2",
+                    WHERE id=$1 and project_id=$2;",
                 )
                 .bind(&task.id)
                 .bind(&task.project_id)
