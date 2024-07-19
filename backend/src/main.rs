@@ -1,6 +1,6 @@
 use axum::{
     extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
     routing::get,
@@ -8,6 +8,8 @@ use axum::{
 };
 use axum_extra::{headers, TypedHeader};
 use futures::FutureExt;
+use google::{Certs, Claims};
+use jsonwebtoken::Validation;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use sqlx::{
@@ -28,6 +30,7 @@ use tower_http::{
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod google;
 mod model;
 mod notify;
 
@@ -69,6 +72,7 @@ async fn start_main_server() {
     ));
 
     let notifier = notify::start(pool);
+    let certs = google::fetch().await.unwrap();
 
     let state = Arc::new(AppState {});
     let app = Router::new()
@@ -80,12 +84,13 @@ async fn start_main_server() {
         .layer((
             // Enable request tracing. Must enable `tower_http=debug`
             TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::default().include_headers(true)),
+                .make_span_with(DefaultMakeSpan::default().include_headers(false)),
             // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
             // requests don't hang forever.
             TimeoutLayer::new(Duration::from_secs(10)),
             Extension(pool),
             Extension(notifier.clone()),
+            Extension(certs),
         ));
 
     // We can either use a listener provided by the environment by ListenFd or
@@ -125,10 +130,12 @@ async fn start_main_server() {
 /// as well as things from HTTP headers such as user-agent of the browser etc.
 async fn ws_handler(
     ws: WebSocketUpgrade,
+    headers: HeaderMap,
     Path(project_id): Path<String>,
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(notifier): Extension<notify::Notifier>,
+    Extension(certs): Extension<Certs>,
 ) -> impl IntoResponse {
     if project_id.is_empty() {
         return (
@@ -137,9 +144,55 @@ async fn ws_handler(
         )
             .into_response();
     }
+    let Some(swp_header) = headers.get("sec-websocket-protocol") else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            "sec-websocket-protocol must be set",
+        )
+            .into_response();
+    };
+    let Ok(swp) = swp_header.to_str() else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            "sec-websocket-protocol must be only visible ASCII chars",
+        )
+            .into_response();
+    };
+    let parts: Vec<&str> = swp.split(", ").collect();
+    if parts.len() != 2 || parts[0] != "bearer" {
+        return (
+            StatusCode::UNAUTHORIZED,
+            "sec-websocket-protocol must contain a bearer token",
+        )
+            .into_response();
+    }
+    let bearer = parts[1];
+    let Ok(header) = jsonwebtoken::decode_header(bearer) else {
+        return (StatusCode::UNAUTHORIZED, "failed to decode the jwt header").into_response();
+    };
+    let Some(kid) = header.kid else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            "failed to extract kid from jwt header",
+        )
+            .into_response();
+    };
+    let Ok(key) = certs.get(&kid) else {
+        return (StatusCode::UNAUTHORIZED, "invalid kid").into_response();
+    };
+    let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
+    validation.set_audience(&[
+        "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
+    ]);
+    validation.set_issuer(&["https://accounts.google.com"]);
+    let Ok(token) = jsonwebtoken::decode::<Claims>(bearer, &key, &validation) else {
+        return (StatusCode::UNAUTHORIZED, "failed validation").into_response();
+    };
+    tracing::debug!("Bearer token: {:?}", token);
+
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
-    ws.on_upgrade(move |socket| {
+    ws.protocols(["bearer"]).on_upgrade(move |socket| {
         notifier
             .register_client(socket, addr, project_id)
             .map(move |res| {
