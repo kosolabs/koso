@@ -3,7 +3,7 @@
 set -e
 
 function _on_fail {
-    telegram "Failed to deploy $(git rev-parse --short HEAD) \\- $(git log --format=%s%b -n 1 HEAD | telegram_escape)" "❌"
+    telegram "Failed to deploy $(git rev-parse --short HEAD) \\- $(git log --format=%s -n 1 HEAD | telegram_escape)" "❌"
 }
 trap _on_fail ZERR
 
@@ -22,4 +22,4 @@ popd
 systemctl daemon-reload
 systemctl restart koso
 
-telegram "Deployed $(git rev-parse --short HEAD) \\- $(git log --format=%s%b -n 1 HEAD | telegram_escape)" "✅"
+telegram "Deployed $(git rev-parse --short HEAD) \\- $(git log --format=%s -n 1 HEAD | telegram_escape)" "✅"
