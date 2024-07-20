@@ -24,7 +24,7 @@ use std::{
 };
 use tokio::{net::TcpListener, signal};
 use tower_http::{
-    services::ServeDir,
+    services::{ServeDir, ServeFile},
     timeout::TimeoutLayer,
     trace::{DefaultMakeSpan, TraceLayer},
 };
@@ -78,8 +78,8 @@ async fn start_main_server() {
     let app = Router::new()
         .route("/ws/projects/:project_id", get(ws_handler))
         .nest_service("/", ServeDir::new("static"))
+        .fallback_service(ServeFile::new("static/index.html"))
         .route_layer(middleware::from_fn(emit_request_metrics))
-        .fallback(handler_404)
         .with_state(state)
         .layer((
             // Enable request tracing. Must enable `tower_http=debug`
@@ -201,11 +201,6 @@ async fn ws_handler(
                 }
             })
     })
-}
-
-// Default 404 handler.
-async fn handler_404() -> impl IntoResponse {
-    (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
 
 // Completion of this function signals to a server,
