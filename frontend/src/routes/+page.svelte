@@ -46,7 +46,7 @@
     <h1 class="mt-8 text-xl">Projects</h1>
 
     <div class="m-auto my-2">
-      <Button on:click={() => goto("/projects?project=koso-staging")}>
+      <Button on:click={() => goto("/projects/koso-staging")}>
         koso-staging
       </Button>
     </div>
