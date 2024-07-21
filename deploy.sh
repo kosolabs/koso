@@ -7,6 +7,7 @@ function _on_fail {
 }
 trap _on_fail ZERR
 
+source /root/.environment
 source /root/.telegram.zsh
 
 pushd frontend
