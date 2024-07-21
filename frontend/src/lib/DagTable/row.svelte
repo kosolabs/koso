@@ -5,8 +5,8 @@
     List,
     ListTree,
     Menu,
-    Unlink,
     Trash,
+    Unlink,
   } from "lucide-svelte";
   import { getContext } from "svelte";
   import { slide } from "svelte/transition";
@@ -28,7 +28,7 @@
   $: ({ dragged, ghost, dropEffect, highlighted } = interactions);
 
   const {
-    kosoGraph,
+    koso,
     setDragged,
     clearDragged,
     setDropEffect,
@@ -56,13 +56,13 @@
     if (editedDescription === null) {
       return;
     }
-    kosoGraph.editTaskName(node.name, editedDescription);
+    koso.editTaskName(node.name, editedDescription);
     editedDescription = null;
   }
 
   function handleDropUnlink(event: DragEvent) {
     event.preventDefault();
-    kosoGraph.removeNode(node.name, node.parent().name);
+    koso.removeNode(node.name, node.parent().name);
   }
 
   function handleDropDelete(event: DragEvent) {
@@ -70,7 +70,7 @@
     if (!node.isRoot()) {
       throw new Error(`Cannot delete non-root node ${node.name}`);
     }
-    kosoGraph.deleteNode(node.name);
+    koso.deleteNode(node.name);
   }
 
   function handleDragStart(event: DragEvent) {
@@ -105,7 +105,7 @@
     }
 
     if (!dragged.node.isRoot() && dropEffect === "move") {
-      kosoGraph.moveNode(
+      koso.moveNode(
         dragged.node.name,
         dragged.node.parent().name,
         dragged.offset,
@@ -113,11 +113,7 @@
         ghost.offset,
       );
     } else {
-      kosoGraph.addNode(
-        dragged.node.name,
-        ghost.node.parent().name,
-        ghost.offset,
-      );
+      koso.addNode(dragged.node.name, ghost.node.parent().name, ghost.offset);
     }
     clearDragged();
     clearGhost();
@@ -325,14 +321,14 @@
         <button
           data-tooltip-target="tooltip-default"
           class="absolute -left-3 top-3 rounded p-1 opacity-0 outline hover:opacity-60"
-          on:click={() => kosoGraph.insertNode(node.parent().name, offset + 1)}
+          on:click={() => koso.insertNode(node.parent().name, offset + 1)}
         >
           <List class="h-5" />
         </button>
         <Tooltip class="text-nowrap" placement="bottom">Insert Peer</Tooltip>
         <button
           class="absolute left-5 top-3 rounded p-1 opacity-0 outline hover:opacity-60"
-          on:click={() => kosoGraph.insertNode(node.name, 0)}
+          on:click={() => koso.insertNode(node.name, 0)}
         >
           <ListTree class="h-5" />
         </button>
