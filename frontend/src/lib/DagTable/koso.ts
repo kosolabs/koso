@@ -8,7 +8,7 @@ function makeTask(id: string, name: string, children: string[]) {
   ]);
 }
 
-export class KosoGraph {
+export class Koso {
   yDoc: Y.Doc;
   yGraph: Y.Map<Y.Map<string | Y.Array<string>>>;
 

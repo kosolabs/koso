@@ -14,7 +14,7 @@
   };
 
   export type TableContext = {
-    kosoGraph: KosoGraph;
+    koso: Koso;
     setDragged: (node: Node, offset: number) => void;
     clearDragged: () => void;
     setDropEffect: (dropEffect: DropEffect) => void;
@@ -28,14 +28,14 @@
 <script lang="ts">
   import { setContext } from "svelte";
   import { Node, type Graph } from ".";
-  import { KosoGraph } from "./kosograph";
+  import { Koso } from "./koso";
   import Row from "./row.svelte";
 
-  export let kosoGraph: KosoGraph;
+  export let koso: Koso;
   let graph: Graph = {};
 
-  kosoGraph.observe(() => {
-    graph = kosoGraph.toJSON();
+  koso.observe(() => {
+    graph = koso.toJSON();
   });
 
   function findRoots(graph: Graph): Node[] {
@@ -53,7 +53,7 @@
   $: roots = findRoots(graph);
 
   setContext<TableContext>("graph", {
-    kosoGraph,
+    koso,
     setDragged: (node: Node, offset: number) => {
       if (
         interactions.dragged &&

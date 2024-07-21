@@ -3,12 +3,12 @@
   import { page } from "$app/stores";
   import { token } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
-  import { KosoGraph } from "$lib/DagTable/kosograph";
+  import { Koso } from "$lib/DagTable/koso";
   import { A } from "flowbite-svelte";
   import { onMount } from "svelte";
   import * as Y from "yjs";
 
-  const kosoGraph = new KosoGraph(new Y.Doc());
+  const kosoGraph = new Koso(new Y.Doc());
 
   onMount(async () => {
     const projectId = $page.params.slug;
@@ -41,4 +41,4 @@
 </script>
 
 <A href="/"><h1 class="mb-4 text-2xl">Koso Home</h1></A>
-<DagTable {kosoGraph} />
+<DagTable koso={kosoGraph} />
