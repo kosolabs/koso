@@ -7,3 +7,9 @@ pub struct Task {
     pub assignee: Option<String>,
     pub reporter: String,
 }
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
+pub struct Project {
+    pub project_id: String,
+    pub name: String,
+}

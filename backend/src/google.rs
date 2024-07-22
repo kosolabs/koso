@@ -45,7 +45,7 @@ pub async fn fetch() -> Result<Certs, Box<dyn Error>> {
     Ok(certs)
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
     pub email: String,
     pub name: String,
