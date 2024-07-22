@@ -46,18 +46,40 @@
   let unlinking = false;
   let deleting = false;
 
-  let editedDescription: string | null = null;
+  let editedTaskName: string | null = null;
 
-  function handleStartEditing() {
-    editedDescription = task.name;
+  function handleStartEditingTaskName() {
+    editedTaskName = task.name;
   }
 
-  function handleEndEditing() {
-    if (editedDescription === null) {
+  function saveEditedTaskName() {
+    if (editedTaskName === null) {
       return;
     }
-    koso.editTaskName(node.name, editedDescription);
-    editedDescription = null;
+    koso.editTaskName(node.name, editedTaskName);
+    editedTaskName = null;
+  }
+
+  function revertEditedTaskName() {
+    if (editedTaskName === null) {
+      return;
+    }
+    editedTaskName = null;
+  }
+
+  function handleEditedTaskNameBlur() {
+    saveEditedTaskName();
+  }
+
+  function handleEditedTaskNameKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      revertEditedTaskName();
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      saveEditedTaskName();
+    }
   }
 
   function handleDropUnlink(event: DragEvent) {
@@ -370,18 +392,19 @@
     </div>
   </div>
   <div class="w-96 px-2">
-    {#if editedDescription !== null}
+    {#if editedTaskName !== null}
       <Input
         size="sm"
-        on:blur={() => handleEndEditing()}
-        bind:value={editedDescription}
+        on:blur={handleEditedTaskNameBlur}
+        on:keydown={handleEditedTaskNameKeydown}
+        bind:value={editedTaskName}
         autofocus
       />
     {:else}
       <A
         class="hover:no-underline"
-        on:click={() => handleStartEditing()}
-        on:keydown={() => handleStartEditing()}
+        on:click={handleStartEditingTaskName}
+        on:keydown={handleStartEditingTaskName}
       >
         {task.name}
       </A>
