@@ -200,7 +200,7 @@ impl Notifier {
         tracing::debug!("Initializing new YGraph");
         // TODO: Assert that the project actually exists to avoid conflating that with the absence of tasks.
         let tasks: Vec<Task> =
-            sqlx::query_as("SELECT id, project_id, name, children FROM tasks WHERE project_id=$1")
+            sqlx::query_as("SELECT id, project_id, name, children, assignee, reporter FROM tasks WHERE project_id=$1")
                 .bind(project_id)
                 .fetch_all(self.pool)
                 .await?;
@@ -214,6 +214,8 @@ impl Notifier {
                 let y_task: MapRef = graph.get_or_init(&mut txn, task.id.as_str());
                 y_task.insert(&mut txn, "id", task.id);
                 y_task.insert(&mut txn, "name", task.name);
+                y_task.insert(&mut txn, "assignee", task.assignee);
+                y_task.insert(&mut txn, "reporter", task.reporter);
                 let y_children: ArrayRef = y_task.get_or_init(&mut txn, "children");
                 for child in task.children {
                     y_children.push_back(&mut txn, child);
@@ -668,6 +670,18 @@ impl Notifier {
         let Some(Out::YArray(children)) = task.get(txn, "children") else {
             return Err(format!("Could not find children in: {task:?}").into());
         };
+        let assignee = match task.get(txn, "assignee") {
+            Some(Out::Any(Any::String(assignee))) => Some(assignee.to_string()),
+            Some(Out::Any(Any::Null)) => None,
+            unknown => {
+                return Err(
+                    format!("Could not find assignee in: {task:?}. Got {unknown:?}").into(),
+                );
+            }
+        };
+        let Some(Out::Any(Any::String(reporter))) = task.get(txn, "reporter") else {
+            return Err(format!("Could not find reporter in: {task:?}").into());
+        };
         let mut children_str = Vec::new();
         for i in 0..children.len(txn) {
             let Some(Out::Any(Any::String(child))) = children.get(txn, i) else {
@@ -685,6 +699,8 @@ impl Notifier {
                     project_id: project_id.to_string(),
                     name: name.to_string(),
                     children: children_str,
+                    assignee,
+                    reporter: reporter.to_string(),
                 },
             }),
             UpdateType::Update => Ok(TaskUpdate::Update {
@@ -693,6 +709,8 @@ impl Notifier {
                     project_id: project_id.to_string(),
                     name: name.to_string(),
                     children: children_str,
+                    assignee,
+                    reporter: reporter.to_string(),
                 },
             }),
         }

@@ -48,6 +48,8 @@ export type Task = {
   id: string;
   name: string;
   children: string[];
+  assignee: string | null;
+  reporter: string;
 };
 
 export type Graph = {

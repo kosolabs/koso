@@ -4,4 +4,6 @@ pub struct Task {
     pub project_id: String,
     pub name: String,
     pub children: Vec<String>,
+    pub assignee: Option<String>,
+    pub reporter: String,
 }
