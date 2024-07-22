@@ -414,7 +414,7 @@
     {task.reporter}
   </div>
   <div class="w-96 px-2">
-    {task.assignee}
+    {task.assignee ?? "Unassigned"}
   </div>
 </div>
 

@@ -16,12 +16,20 @@
         login = googleProvider.useGoogleOneTapLogin({
           cancel_on_tap_outside: true,
           use_fedcm_for_prompt: true,
-          onSuccess: (res) => {
+          onSuccess: async (res) => {
             if (!res.credential) {
               console.error("Credential is missing", res);
               return;
             }
-            $token = res.credential;
+            const response = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${res.credential}`,
+              },
+            });
+            if (response.ok) {
+              $token = res.credential!;
+            }
           },
         });
       },

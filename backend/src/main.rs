@@ -3,7 +3,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
     Extension, Router,
 };
 use axum_extra::{headers, TypedHeader};
@@ -14,9 +14,10 @@ use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use sqlx::{
     postgres::{PgConnectOptions, PgPool, PgPoolOptions},
-    ConnectOptions,
+    ConnectOptions, Pool, Postgres,
 };
 use std::{
+    error::Error,
     future::ready,
     net::SocketAddr,
     sync::Arc,
@@ -76,6 +77,7 @@ async fn start_main_server() {
 
     let state = Arc::new(AppState {});
     let app = Router::new()
+        .route("/api/auth/login", post(login_handler))
         .route("/ws/projects/:project_id", get(ws_handler))
         .nest_service("/", ServeDir::new("static"))
         .fallback_service(ServeFile::new("static/index.html"))
@@ -121,6 +123,59 @@ async fn start_main_server() {
     notifier.stop().await;
     tracing::debug!("Closing database pool...");
     pool.close().await;
+}
+
+async fn login_handler(
+    headers: HeaderMap,
+    Extension(certs): Extension<Certs>,
+    Extension(pool): Extension<&'static PgPool>,
+) -> StatusCode {
+    let Some(auth_header) = headers.get("Authorization") else {
+        return StatusCode::UNAUTHORIZED;
+    };
+    let Ok(auth) = auth_header.to_str() else {
+        return StatusCode::UNAUTHORIZED;
+    };
+    let parts: Vec<&str> = auth.split(" ").collect();
+    if parts.len() != 2 || parts[0] != "Bearer" {
+        return StatusCode::UNAUTHORIZED;
+    }
+    let bearer = parts[1];
+    let Ok(header) = jsonwebtoken::decode_header(bearer) else {
+        return StatusCode::UNAUTHORIZED;
+    };
+    let Some(kid) = header.kid else {
+        return StatusCode::UNAUTHORIZED;
+    };
+    let Ok(key) = certs.get(&kid) else {
+        return StatusCode::UNAUTHORIZED;
+    };
+    let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
+    validation.set_audience(&[
+        "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
+    ]);
+    validation.set_issuer(&["https://accounts.google.com"]);
+    let Ok(token) = jsonwebtoken::decode::<Claims>(bearer, &key, &validation) else {
+        return StatusCode::UNAUTHORIZED;
+    };
+
+    if let Err(e) = sqlx::query(
+        "
+        INSERT INTO users (email, name, picture)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (email)
+        DO UPDATE SET name = EXCLUDED.name, picture = EXCLUDED.picture;",
+    )
+    .bind(&token.claims.email)
+    .bind(&token.claims.name)
+    .bind(&token.claims.picture)
+    .execute(pool)
+    .await
+    {
+        tracing::warn!("Failed: {e}");
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    }
+    StatusCode::NO_CONTENT
 }
 
 /// The handler for the HTTP request (this gets called when the HTTP GET lands at the start

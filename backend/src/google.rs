@@ -49,6 +49,7 @@ pub async fn fetch() -> Result<Certs, Box<dyn Error>> {
 pub struct Claims {
     pub email: String,
     pub name: String,
+    pub picture: String,
     pub exp: usize,
 }
 
