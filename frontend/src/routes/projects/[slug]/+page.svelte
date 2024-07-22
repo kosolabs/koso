@@ -34,7 +34,7 @@
       await new Promise((r) => setTimeout(r, 100));
     }
 
-    kosoGraph.onupdate((update) => {
+    kosoGraph.onLocalUpdate((update) => {
       socket.send(update);
     });
   });
