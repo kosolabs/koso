@@ -751,8 +751,10 @@ impl Clients {
         tracing::debug!("Broadcasting updates to {} clients", clients.len());
         let mut results = Vec::new();
         for client in clients.values_mut() {
-            tracing::debug!("Sending update to {}", client.who);
-            results.push(client.send(update.data.to_owned()));
+            if client.who != update.who {
+                tracing::debug!("Sending update to {}", client.who);
+                results.push(client.send(update.data.to_owned()));
+            }
         }
         let res = futures::future::join_all(results).await;
         tracing::debug!("Finished broadcasting updates: {res:?}");
