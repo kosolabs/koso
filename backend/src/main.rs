@@ -100,7 +100,6 @@ async fn start_main_server() {
         )
         // This is unreachable as the service above matches all routes.
         .fallback(handler_404)
-        //.fallback_service(ServeFile::new("static/index.html"))
         .route_layer(middleware::from_fn(emit_request_metrics))
         .with_state(state)
         .layer((
@@ -252,7 +251,7 @@ async fn login_handler(
     .execute(pool)
     .await
     {
-        tracing::warn!("Failed: {e}");
+        tracing::warn!("Failed to upsert user on login: {e}");
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
     StatusCode::NO_CONTENT
