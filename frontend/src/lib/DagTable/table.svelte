@@ -26,9 +26,9 @@
 </script>
 
 <script lang="ts">
+  import type { Koso } from "$lib/koso";
   import { setContext } from "svelte";
   import { Node, type Graph } from ".";
-  import { Koso } from "./koso";
   import Row from "./row.svelte";
 
   export let koso: Koso;
