@@ -94,9 +94,13 @@ async fn start_main_server() {
         // IMPORTANT - any routes subsequent to the auth layer allow
         // unauthenticated access. e.g. static content.
         .layer(middleware::from_fn(authenticate))
-        .route_service("/static", ServeDir::new("static/"))
-        // Delegate all further routing to the frontend by serving index.html.
-        .fallback_service(ServeFile::new("static/index.html"))
+        .nest_service(
+            "/",
+            ServeDir::new("static").fallback(ServeFile::new("static/index.html")),
+        )
+        // This is unreachable as the service above matches all routes.
+        .fallback(handler_404)
+        //.fallback_service(ServeFile::new("static/index.html"))
         .route_layer(middleware::from_fn(emit_request_metrics))
         .with_state(state)
         .layer((
