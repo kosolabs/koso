@@ -129,7 +129,9 @@
           <div>ID</div>
         </div>
       </div>
-      <div class="w-96 px-2">Description</div>
+      <div class="w-96 border-r px-2">Name</div>
+      <div class="w-96 border-r px-2">Reporter</div>
+      <div class="w-96 px-2">Assignee</div>
     </div>
   </div>
 

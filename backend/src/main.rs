@@ -1,10 +1,10 @@
 use axum::{
     extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     middleware::{self, Next},
-    response::IntoResponse,
-    routing::get,
-    Extension, Router,
+    response::{IntoResponse, Response},
+    routing::{get, post},
+    Extension, Json, Router,
 };
 use axum_extra::{headers, TypedHeader};
 use futures::FutureExt;
@@ -12,6 +12,7 @@ use google::{Certs, Claims};
 use jsonwebtoken::Validation;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
+use model::Project;
 use sqlx::{
     postgres::{PgConnectOptions, PgPool, PgPoolOptions},
     ConnectOptions,
@@ -28,6 +29,7 @@ use tower_http::{
     timeout::TimeoutLayer,
     trace::{DefaultMakeSpan, TraceLayer},
 };
+use tracing::Instrument;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod google;
@@ -76,9 +78,28 @@ async fn start_main_server() {
 
     let state = Arc::new(AppState {});
     let app = Router::new()
-        .route("/ws/projects/:project_id", get(ws_handler))
-        .nest_service("/", ServeDir::new("static"))
-        .fallback_service(ServeFile::new("static/index.html"))
+        .nest(
+            "/api",
+            Router::new()
+                .route("/auth/login", post(login_handler))
+                .route("/projects", get(list_projects_handler))
+                .fallback(handler_404),
+        )
+        .nest(
+            "/ws",
+            Router::new()
+                .route("/projects/:project_id", get(ws_handler))
+                .fallback(handler_404),
+        )
+        // IMPORTANT - any routes subsequent to the auth layer allow
+        // unauthenticated access. e.g. static content.
+        .layer(middleware::from_fn(authenticate))
+        .nest_service(
+            "/",
+            ServeDir::new("static").fallback(ServeFile::new("static/index.html")),
+        )
+        // This is unreachable as the service above matches all routes.
+        .fallback(handler_404)
         .route_layer(middleware::from_fn(emit_request_metrics))
         .with_state(state)
         .layer((
@@ -123,19 +144,131 @@ async fn start_main_server() {
     pool.close().await;
 }
 
+#[tracing::instrument(skip(request, next), fields(email))]
+async fn authenticate(mut request: Request, next: Next) -> Result<Response, StatusCode> {
+    let certs = request.extensions().get::<Certs>().unwrap();
+    let headers = request.headers();
+
+    let bearer = if let Some(auth_header) = headers.get("Authorization") {
+        let Ok(auth) = auth_header.to_str() else {
+            tracing::warn!("Could not convert auth header to string: {auth_header:?}");
+            return Err(StatusCode::UNAUTHORIZED);
+        };
+        let parts: Vec<&str> = auth.split(' ').collect();
+        if parts.len() != 2 || parts[0] != "Bearer" {
+            tracing::warn!("Could not split bearer parts: {parts:?}");
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+        parts[1]
+    } else if let Some(swp_header) = headers.get("sec-websocket-protocol") {
+        let Ok(swp) = swp_header.to_str() else {
+            tracing::warn!(
+                "sec-websocket-protocol must be only visible ASCII chars: {swp_header:?}"
+            );
+            return Err(StatusCode::UNAUTHORIZED);
+        };
+        let parts: Vec<&str> = swp.split(", ").collect();
+        if parts.len() != 2 || parts[0] != "bearer" {
+            tracing::warn!("sec-websocket-protocol must contain a bearer token: {parts:?}");
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+        parts[1]
+    } else {
+        tracing::warn!("Authorization header is absent.");
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+
+    let Ok(header) = jsonwebtoken::decode_header(bearer) else {
+        tracing::warn!("Could not decode header: {bearer:?}");
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+    let Some(kid) = header.kid else {
+        tracing::warn!("header.kid is absent: {header:?}");
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+    let key = match certs.get(&kid) {
+        Ok(key) => key,
+        Err(e) => {
+            tracing::warn!("certs is absent for {kid:?}: {e}");
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+    };
+    let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
+    validation.set_audience(&[
+        "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
+    ]);
+    validation.set_issuer(&["https://accounts.google.com"]);
+    let token = match jsonwebtoken::decode::<Claims>(bearer, &key, &validation) {
+        Ok(token) => token,
+        Err(e) => {
+            tracing::warn!("Failed validation: {e}");
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+    };
+
+    tracing::Span::current().record("email", token.claims.email.clone());
+    assert!(request.extensions_mut().insert(token.claims).is_none());
+
+    Ok(next.run(request).await)
+}
+
+#[tracing::instrument(skip(claims, pool))]
+async fn list_projects_handler(
+    Extension(claims): Extension<Claims>,
+    Extension(pool): Extension<&'static PgPool>,
+) -> Result<Json<Vec<Project>>, StatusCode> {
+    let tasks: Vec<Project> = sqlx::query_as(
+        "
+        SELECT
+          project_permissions.project_id,
+          projects.name
+        FROM project_permissions 
+        JOIN projects ON (project_permissions.project_id = projects.id)
+        WHERE email = $1",
+    )
+    .bind(claims.email)
+    .fetch_all(pool)
+    .await
+    .map_err(|_e| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(tasks))
+}
+
+#[tracing::instrument(skip(claims, pool))]
+async fn login_handler(
+    Extension(claims): Extension<Claims>,
+    Extension(pool): Extension<&'static PgPool>,
+) -> StatusCode {
+    if let Err(e) = sqlx::query(
+        "
+        INSERT INTO users (email, name, picture)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (email)
+        DO UPDATE SET name = EXCLUDED.name, picture = EXCLUDED.picture;",
+    )
+    .bind(&claims.email)
+    .bind(&claims.name)
+    .bind(&claims.picture)
+    .execute(pool)
+    .await
+    {
+        tracing::warn!("Failed to upsert user on login: {e}");
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    }
+    StatusCode::NO_CONTENT
+}
+
 /// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
 /// of websocket negotiation). After this completes, the actual switching from HTTP to
 /// websocket protocol will occur.
 /// This is the last point where we can extract TCP/IP metadata such as IP address of the client
 /// as well as things from HTTP headers such as user-agent of the browser etc.
+#[tracing::instrument(skip(ws, project_id, _user_agent, addr, notifier))]
 async fn ws_handler(
     ws: WebSocketUpgrade,
-    headers: HeaderMap,
     Path(project_id): Path<String>,
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(notifier): Extension<notify::Notifier>,
-    Extension(certs): Extension<Certs>,
 ) -> impl IntoResponse {
     if project_id.is_empty() {
         return (
@@ -144,54 +277,10 @@ async fn ws_handler(
         )
             .into_response();
     }
-    let Some(swp_header) = headers.get("sec-websocket-protocol") else {
-        return (
-            StatusCode::UNAUTHORIZED,
-            "sec-websocket-protocol must be set",
-        )
-            .into_response();
-    };
-    let Ok(swp) = swp_header.to_str() else {
-        return (
-            StatusCode::UNAUTHORIZED,
-            "sec-websocket-protocol must be only visible ASCII chars",
-        )
-            .into_response();
-    };
-    let parts: Vec<&str> = swp.split(", ").collect();
-    if parts.len() != 2 || parts[0] != "bearer" {
-        return (
-            StatusCode::UNAUTHORIZED,
-            "sec-websocket-protocol must contain a bearer token",
-        )
-            .into_response();
-    }
-    let bearer = parts[1];
-    let Ok(header) = jsonwebtoken::decode_header(bearer) else {
-        return (StatusCode::UNAUTHORIZED, "failed to decode the jwt header").into_response();
-    };
-    let Some(kid) = header.kid else {
-        return (
-            StatusCode::UNAUTHORIZED,
-            "failed to extract kid from jwt header",
-        )
-            .into_response();
-    };
-    let Ok(key) = certs.get(&kid) else {
-        return (StatusCode::UNAUTHORIZED, "invalid kid").into_response();
-    };
-    let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
-    validation.set_audience(&[
-        "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
-    ]);
-    validation.set_issuer(&["https://accounts.google.com"]);
-    let Ok(token) = jsonwebtoken::decode::<Claims>(bearer, &key, &validation) else {
-        return (StatusCode::UNAUTHORIZED, "failed validation").into_response();
-    };
-    tracing::debug!("Bearer token: {:?}", token);
 
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
+    let cs = tracing::Span::current();
     ws.protocols(["bearer"]).on_upgrade(move |socket| {
         notifier
             .register_client(socket, addr, project_id)
@@ -200,6 +289,7 @@ async fn ws_handler(
                     tracing::warn!("Failed to register destination for {addr}: {e}");
                 }
             })
+            .instrument(cs)
     })
 }
 
@@ -286,4 +376,8 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
         .record(start.elapsed().as_secs_f64());
 
     response
+}
+
+async fn handler_404() -> impl IntoResponse {
+    (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }

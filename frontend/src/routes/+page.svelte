@@ -1,27 +1,43 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { logout, token, user } from "$lib/auth";
-  import { Avatar, Button } from "flowbite-svelte";
+  import { Alert, Avatar, Button } from "flowbite-svelte";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { onMount } from "svelte";
   import Google from "./google.svelte";
 
-  let login: () => void;
+  let googleLogin: () => void;
+  let errorMessage: string | null = null;
+
+  function login() {
+    errorMessage = null;
+    googleLogin();
+  }
 
   onMount(() => {
     const googleProvider = new GoogleOAuthProvider({
       clientId:
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
       onScriptLoadSuccess: () => {
-        login = googleProvider.useGoogleOneTapLogin({
+        googleLogin = googleProvider.useGoogleOneTapLogin({
           cancel_on_tap_outside: true,
           use_fedcm_for_prompt: true,
-          onSuccess: (res) => {
-            if (!res.credential) {
-              console.error("Credential is missing", res);
+          onSuccess: async (oneTapResponse) => {
+            if (!oneTapResponse.credential) {
+              console.error("Credential is missing", oneTapResponse);
               return;
             }
-            $token = res.credential;
+            const loginResponse = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${oneTapResponse.credential}`,
+              },
+            });
+            if (loginResponse.ok) {
+              $token = oneTapResponse.credential!;
+            } else {
+              errorMessage = `Failed to login: ${loginResponse.statusText} (${loginResponse.status})`;
+            }
           },
         });
       },
@@ -52,5 +68,8 @@
     </div>
   {:else}
     <Google on:click={login} />
+  {/if}
+  {#if errorMessage}
+    <Alert class="mt-8" border>{errorMessage}</Alert>
   {/if}
 </div>

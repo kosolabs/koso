@@ -410,6 +410,12 @@
       </A>
     {/if}
   </div>
+  <div class="w-96 px-2">
+    {task.reporter}
+  </div>
+  <div class="w-96 px-2">
+    {task.assignee ?? "Unassigned"}
+  </div>
 </div>
 
 <!-- Ghost is the first child of node. -->
