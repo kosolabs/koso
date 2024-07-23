@@ -77,11 +77,24 @@ async fn start_main_server() {
 
     let state = Arc::new(AppState {});
     let app = Router::new()
-        .route("/api/auth/login", post(login_handler))
-        .route("/api/projects", get(list_projects_handler))
-        .route("/ws/projects/:project_id", get(ws_handler))
+        .nest(
+            "/api",
+            Router::new()
+                .route("/auth/login", post(login_handler))
+                .route("/projects", get(list_projects_handler))
+                .fallback(handler_404),
+        )
+        .nest(
+            "/ws",
+            Router::new()
+                .route("/projects/:project_id", get(ws_handler))
+                .fallback(handler_404),
+        )
+        // IMPORTANT - any routes subsequent to the auth layer allow
+        // unauthenticated access. e.g. static content.
         .layer(middleware::from_fn(authh))
-        .nest_service("/", ServeDir::new("static"))
+        .route_service("/static", ServeDir::new("static/"))
+        // Delegate all further routing to the frontend by serving index.html.
         .fallback_service(ServeFile::new("static/index.html"))
         .route_layer(middleware::from_fn(emit_request_metrics))
         .with_state(state)
@@ -353,4 +366,8 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
         .record(start.elapsed().as_secs_f64());
 
     response
+}
+
+async fn handler_404() -> impl IntoResponse {
+    (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
