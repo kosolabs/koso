@@ -29,6 +29,7 @@ use tower_http::{
     timeout::TimeoutLayer,
     trace::{DefaultMakeSpan, TraceLayer},
 };
+use tracing::Instrument;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod google;
@@ -92,7 +93,7 @@ async fn start_main_server() {
         )
         // IMPORTANT - any routes subsequent to the auth layer allow
         // unauthenticated access. e.g. static content.
-        .layer(middleware::from_fn(authh))
+        .layer(middleware::from_fn(authenticate))
         .route_service("/static", ServeDir::new("static/"))
         // Delegate all further routing to the frontend by serving index.html.
         .fallback_service(ServeFile::new("static/index.html"))
@@ -140,8 +141,8 @@ async fn start_main_server() {
     pool.close().await;
 }
 
-#[tracing::instrument(skip(request, next))]
-async fn authh(mut request: Request, next: Next) -> Result<Response, StatusCode> {
+#[tracing::instrument(skip(request, next), fields(email))]
+async fn authenticate(mut request: Request, next: Next) -> Result<Response, StatusCode> {
     let certs = request.extensions().get::<Certs>().unwrap();
     let headers = request.headers();
 
@@ -202,11 +203,13 @@ async fn authh(mut request: Request, next: Next) -> Result<Response, StatusCode>
         }
     };
 
+    tracing::Span::current().record("email", token.claims.email.clone());
     assert!(request.extensions_mut().insert(token.claims).is_none());
 
     Ok(next.run(request).await)
 }
 
+#[tracing::instrument(skip(claims, pool))]
 async fn list_projects_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
@@ -227,6 +230,7 @@ async fn list_projects_handler(
     Ok(Json(tasks))
 }
 
+#[tracing::instrument(skip(claims, pool))]
 async fn login_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
@@ -255,6 +259,7 @@ async fn login_handler(
 /// websocket protocol will occur.
 /// This is the last point where we can extract TCP/IP metadata such as IP address of the client
 /// as well as things from HTTP headers such as user-agent of the browser etc.
+#[tracing::instrument(skip(ws, project_id, _user_agent, addr, notifier))]
 async fn ws_handler(
     ws: WebSocketUpgrade,
     Path(project_id): Path<String>,
@@ -272,6 +277,7 @@ async fn ws_handler(
 
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
+    let cs = tracing::Span::current();
     ws.protocols(["bearer"]).on_upgrade(move |socket| {
         notifier
             .register_client(socket, addr, project_id)
@@ -280,6 +286,7 @@ async fn ws_handler(
                     tracing::warn!("Failed to register destination for {addr}: {e}");
                 }
             })
+            .instrument(cs)
     })
 }
 
