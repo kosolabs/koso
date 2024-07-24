@@ -4,7 +4,9 @@
   import { logout, token } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
-  import { A } from "flowbite-svelte";
+  import { Button, Navbar, NavBrand, NavHamburger } from "flowbite-svelte";
+  import NavContainer from "flowbite-svelte/NavContainer.svelte";
+  import { UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
   import * as Y from "yjs";
 
@@ -41,8 +43,15 @@
   });
 </script>
 
-<A class="m-auto mb-4" href="/">
-  <img class="w-10" alt="Koso Logo" src={kosoLogo} />
-  <div class="ml-2 text-4xl">Koso</div>
-</A>
+<Navbar color="primary" class="mb-4">
+  <NavContainer>
+    <NavBrand>
+      <img class="w-14" alt="Koso Logo" src={kosoLogo} />
+    </NavBrand>
+    <div class="flex md:order-2">
+      <Button size="xs"><UserPlus /></Button>
+      <NavHamburger />
+    </div>
+  </NavContainer>
+</Navbar>
 <DagTable {koso} />
