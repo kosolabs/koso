@@ -26,13 +26,16 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::{net::TcpListener, signal};
-use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
+use tower_http::{
+    request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
+    trace::MakeSpan,
+};
 use tower_http::{
     services::{ServeDir, ServeFile},
     timeout::TimeoutLayer,
     trace::{DefaultMakeSpan, TraceLayer},
 };
-use tracing::Instrument;
+use tracing::{Instrument, Level, Span};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod google;
@@ -88,17 +91,16 @@ async fn start_main_server() {
             Router::new()
                 .route("/auth/login", post(login_handler))
                 .route("/projects", get(list_projects_handler))
+                .layer(middleware::from_fn(authenticate))
                 .fallback(handler_404),
         )
         .nest(
             "/ws",
             Router::new()
                 .route("/projects/:project_id", get(ws_handler))
+                .layer(middleware::from_fn(authenticate))
                 .fallback(handler_404),
         )
-        // IMPORTANT - any routes subsequent to the auth layer allow
-        // unauthenticated access. e.g. static content.
-        .layer(middleware::from_fn(authenticate))
         .nest_service(
             "/",
             ServeDir::new("static").fallback(ServeFile::new("static/index.html")),
@@ -108,11 +110,10 @@ async fn start_main_server() {
         .route_layer(middleware::from_fn(emit_request_metrics))
         .with_state(state)
         .layer((
-            // Enable request tracing. Must enable `tower_http=debug`
-            TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::default().include_headers(false)),
             SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
             PropagateRequestIdLayer::new(HeaderName::from_static("x-request-id")),
+            // Enable request tracing. Must enable `tower_http=debug`
+            TraceLayer::new_for_http().make_span_with(KosoMakeSpan {}),
             // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
             // requests don't hang forever.
             TimeoutLayer::new(Duration::from_secs(10)),
@@ -250,7 +251,9 @@ async fn login_handler(
     if let Err(e) = sqlx::query(
         "
         INSERT INTO users (email, name, picture)
-        VALUES ($1, $2, $3)",
+        VALUES ($1, $2, $3)
+        ON CONFLICT (email)
+        DO UPDATE SET name = EXCLUDED.name, picture = EXCLUDED.picture;",
     )
     .bind(&claims.email)
     .bind(&claims.name)
@@ -444,4 +447,26 @@ where
 fn dev_mode() -> bool {
     // TODO: Decide on this based on an environment variable or the build.
     false
+}
+
+#[derive(Clone)]
+struct KosoMakeSpan {}
+
+impl<B> MakeSpan<B> for KosoMakeSpan {
+    fn make_span(&mut self, request: &Request<B>) -> Span {
+        let request_id = request
+            .extensions()
+            .get::<RequestId>()
+            .map(|h| h.header_value().to_str().unwrap_or("INVALID"))
+            .unwrap_or("MISSING");
+
+        tracing::span!(
+            Level::DEBUG,
+            "request",
+            method = %request.method(),
+            uri = %request.uri(),
+            version = ?request.version(),
+            request_id = request_id,
+        )
+    }
 }
