@@ -446,12 +446,13 @@ where
 
 fn dev_mode() -> bool {
     // TODO: Decide on this based on an environment variable or the build.
-    false
+    true
 }
 
 #[derive(Clone)]
 struct KosoMakeSpan {}
 
+/// Forked from tracing's DefaultMakeSpan in order to add request_id
 impl<B> MakeSpan<B> for KosoMakeSpan {
     fn make_span(&mut self, request: &Request<B>) -> Span {
         let request_id = request
