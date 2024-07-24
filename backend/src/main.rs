@@ -16,7 +16,7 @@ use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use model::{Project, ProjectPermission};
 use sqlx::{
     postgres::{PgConnectOptions, PgPool, PgPoolOptions},
-    ConnectOptions, Pool, Postgres,
+    ConnectOptions,
 };
 use std::{
     error::Error,
@@ -222,6 +222,11 @@ async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Bo
             return Err(unauthorized_error(&format!("Failed validation: {e}")));
         }
     };
+    if token.claims.email.is_empty() {
+        return Err(unauthorized_error(&format!(
+            "Claims email is empty: {token:?}"
+        )));
+    }
 
     tracing::Span::current().record("email", token.claims.email.clone());
     assert!(request.extensions_mut().insert(token.claims).is_none());
@@ -234,7 +239,12 @@ async fn list_projects_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Vec<Project>>> {
-    let tasks: Vec<Project> = sqlx::query_as(
+    let projects = list_projects(&claims.email, pool).await?;
+    Ok(Json(projects))
+}
+
+async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>, Box<dyn Error>> {
+    let projects: Vec<Project> = sqlx::query_as(
         "
         SELECT
           project_permissions.project_id,
@@ -243,10 +253,11 @@ async fn list_projects_handler(
         JOIN projects ON (project_permissions.project_id = projects.id)
         WHERE email = $1",
     )
-    .bind(claims.email)
+    .bind(email)
     .fetch_all(pool)
     .await?;
-    Ok(Json(tasks))
+
+    Ok(projects)
 }
 
 #[tracing::instrument(skip(claims, pool))]
@@ -255,8 +266,14 @@ async fn create_project_handler(
     Extension(pool): Extension<&'static PgPool>,
     Json(mut project): Json<Project>,
 ) -> ApiResult<Json<Project>> {
-    // TODO: Make idempotent or return appropriate status code if project already exists.
-    // TODO: Limit number of projects.
+    let projects = list_projects(&claims.email, pool).await?;
+    if projects.len() >= 5 {
+        return Err(bad_request_error(&format!(
+            "User has more than 5 projects ({})",
+            projects.len()
+        )));
+    }
+
     project.project_id = Uuid::new_v4().to_string();
 
     let mut txn = pool.begin().await?;
@@ -264,20 +281,18 @@ async fn create_project_handler(
         .bind(&project.project_id)
         .bind(&project.name)
         .execute(&mut *txn)
-        .await
-        .map_err(|e| -> Box<dyn Error> { format!("Failed to insert projects: {e}").into() })?;
+        .await?;
     sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2)")
         .bind(&project.project_id)
         .bind(&claims.email)
         .execute(&mut *txn)
-        .await
-        .map_err(|e| -> Box<dyn Error> { format!("Failed to insert permissions: {e}").into() })?;
+        .await?;
     txn.commit().await?;
 
     Ok(Json(project))
 }
 
-#[tracing::instrument(skip(claims, pool))]
+#[tracing::instrument(skip(pool))]
 async fn add_project_permission_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
@@ -290,16 +305,29 @@ async fn add_project_permission_handler(
             permission.project_id
         )));
     }
+    if permission.email.is_empty() {
+        return Err(bad_request_error("Permission email is empty"));
+    }
 
-    // TODO: Authorize access.
+    let projects = list_projects(&claims.email, pool).await?;
+    let mut has_permission = false;
+    for project in projects {
+        if project.project_id == project_id {
+            has_permission = true;
+            break;
+        }
+    }
+    if !has_permission {
+        return Err(unauthorized_error(&format!(
+            "Authorized to share project {project_id}"
+        )));
+    }
+
     sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2) ON CONFLICT DO NOTHING")
             .bind(&permission.project_id)
             .bind(&permission.email)
             .execute(pool)
-            .await
-            .map_err(|e| -> Box<dyn Error> {
-                format!("Failed to insert permissions: {e}").into()
-            })?;
+            .await?;
     Ok(())
 }
 
