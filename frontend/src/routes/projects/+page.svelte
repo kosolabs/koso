@@ -1,7 +1,7 @@
 <script lang="ts">
   import { token } from "$lib/auth";
   import { onMount } from "svelte";
-  import { Alert, Avatar, Button, Input, Label, A } from "flowbite-svelte";
+  import { Alert, Button, A } from "flowbite-svelte";
   import { goto } from "$app/navigation";
 
   type Project = {
