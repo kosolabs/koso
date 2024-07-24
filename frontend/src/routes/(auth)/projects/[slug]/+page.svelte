@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores";
+  import kosoLogo from "$lib/assets/koso.svg";
   import { logout, token } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
@@ -40,5 +41,8 @@
   });
 </script>
 
-<A href="/"><h1 class="mb-4 text-2xl">Koso Home</h1></A>
+<A class="m-auto mb-4" href="/">
+  <img class="w-10" alt="Koso Logo" src={kosoLogo} />
+  <div class="ml-2 text-4xl">Koso</div>
+</A>
 <DagTable {koso} />
