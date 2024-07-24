@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import kosoLogo from "$lib/assets/koso.svg";
   import { logout, token, user } from "$lib/auth";
   import { Alert, Avatar, Button } from "flowbite-svelte";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
@@ -48,7 +49,8 @@
 <div
   class="m-auto flex flex-col rounded border bg-slate-100 p-10 text-center lg:w-96"
 >
-  <h1 class="mb-8 text-2xl">Koso</h1>
+  <img class="m-auto mb-8 w-20" alt="Koso Logo" src={kosoLogo} />
+  <h1 class="mb-8 text-4xl text-teal-800">Koso</h1>
   {#if $user}
     <div class="m-auto my-2">
       <div class="flex items-center rounded-full border bg-slate-200 p-2">
