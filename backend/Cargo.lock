@@ -945,6 +945,7 @@ dependencies = [
  "async-stream",
  "axum",
  "axum-extra",
+ "base64 0.22.1",
  "futures",
  "jsonwebtoken",
  "listenfd",

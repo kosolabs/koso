@@ -1,7 +1,7 @@
 <script lang="ts">
   import { token } from "$lib/auth";
   import { onMount } from "svelte";
-  import { Alert, Avatar, Button, Input, Label } from "flowbite-svelte";
+  import { Alert, Avatar, Button, Input, Label, A } from "flowbite-svelte";
   import { goto } from "$app/navigation";
 
   type Project = {
@@ -10,7 +10,7 @@
   };
 
   let projects: Promise<Project[]> = new Promise(() => {});
-  let projectName: String;
+  let errorMessage: string | null = null;
 
   async function fetchProjects() {
     const response = await fetch("/api/projects", {
@@ -23,21 +23,22 @@
   }
 
   async function createProject() {
-    const projectId = projectName.toLowerCase().replaceAll(/ |_/g, "-");
-    // TODO: validate stuff
+    errorMessage = null;
+
     const response = await fetch("/api/projects", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${$token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ project_id: projectId, name: projectName }),
+      body: JSON.stringify({ name: "My Project!" }),
     });
     if (!response.ok) {
       console.log("failed create", response);
-      // TODO: Handle errors
+      errorMessage = `Failed to create project: ${response.statusText} (${response.status})`;
     } else {
-      goto(`projects/${projectId}`);
+      const project: Project = await response.json();
+      goto(`projects/${project.project_id}`);
     }
   }
 
@@ -48,31 +49,32 @@
 
 <div class="flex flex-col rounded border p-4">
   {#await projects}
-    loading
+    <div>Loading...</div>
   {:then projects}
     {#if projects.length === 0}
       <div class="m-auto mb-8 text-xl">Create your first Koso project!</div>
+      <div class="m-auto flex items-end gap-2">
+        <div>
+          <Button on:click={() => createProject()}>New project</Button>
+        </div>
+        {#if errorMessage}
+          <Alert class="mt-8" border>{errorMessage}</Alert>
+        {/if}
+      </div>
     {:else}
       <div>
+        <div>
+          <Button on:click={() => createProject()}>New project</Button>
+        </div>
+        {#if errorMessage}
+          <Alert class="mt-8" border>{errorMessage}</Alert>
+        {/if}
+      </div>
+      <div>
         {#each projects as project}
-          <div>{project.project_id}: {project.name}</div>
+          <div><A href="projects/{project.project_id}">{project.name}</A></div>
         {/each}
       </div>
     {/if}
-    <div class="m-auto flex items-end gap-2">
-      <div>
-        <Input
-          type="text"
-          id="name"
-          bind:value={projectName}
-          placeholder="My Amazing Project"
-          aria-label="Project Name"
-          required
-        />
-      </div>
-      <div>
-        <Button on:click={() => createProject()}>New project</Button>
-      </div>
-    </div>
   {/await}
 </div>

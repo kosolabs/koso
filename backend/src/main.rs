@@ -8,6 +8,7 @@ use axum::{
     Extension, Json, Router,
 };
 use axum_extra::{headers, TypedHeader};
+use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use futures::FutureExt;
 use google::{Certs, Claims};
 use jsonwebtoken::Validation;
@@ -274,7 +275,7 @@ async fn create_project_handler(
         )));
     }
 
-    project.project_id = Uuid::new_v4().to_string();
+    project.project_id = BASE64_URL_SAFE_NO_PAD.encode(Uuid::new_v4());
 
     let mut txn = pool.begin().await?;
     sqlx::query("INSERT INTO projects (id, name) VALUES ($1, $2)")
@@ -288,6 +289,12 @@ async fn create_project_handler(
         .execute(&mut *txn)
         .await?;
     txn.commit().await?;
+
+    tracing::debug!(
+        "Created project '{}' with id '{}'",
+        project.name,
+        project.project_id
+    );
 
     Ok(Json(project))
 }
