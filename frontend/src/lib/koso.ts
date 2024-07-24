@@ -1,3 +1,4 @@
+import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 
 function makeTask(id: string, name: string, children: string[]) {
@@ -11,10 +12,12 @@ function makeTask(id: string, name: string, children: string[]) {
 export class Koso {
   yDoc: Y.Doc;
   yGraph: Y.Map<Y.Map<string | Y.Array<string>>>;
+  yIndexedDb: IndexeddbPersistence;
 
   constructor(yDoc: Y.Doc) {
     this.yDoc = yDoc;
     this.yGraph = yDoc.getMap("graph");
+    this.yIndexedDb = new IndexeddbPersistence("koso", this.yDoc);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

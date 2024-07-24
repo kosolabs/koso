@@ -26,6 +26,7 @@
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-svelte": "^2.36.0",
+    "fake-indexeddb": "^6.0.0",
     "flowbite": "^2.3.0",
     "flowbite-svelte": "^0.46.1",
     "globals": "^15.0.0",
@@ -44,6 +45,7 @@
     "typescript-eslint": "^8.0.0-alpha.20",
     "vite": "^5.0.3",
     "vitest": "^2.0.2",
+    "y-indexeddb": "^9.0.12",
     "yjs": "^13.6.18"
   }
 }
