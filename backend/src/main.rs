@@ -8,12 +8,13 @@ use axum::{
     Extension, Json, Router,
 };
 use axum_extra::{headers, TypedHeader};
+use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use futures::FutureExt;
 use google::{Certs, Claims};
 use jsonwebtoken::Validation;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
-use model::Project;
+use model::{Project, ProjectPermission};
 use sqlx::{
     postgres::{PgConnectOptions, PgPool, PgPoolOptions},
     ConnectOptions,
@@ -37,6 +38,7 @@ use tower_http::{
 };
 use tracing::{Instrument, Level, Span};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use uuid::Uuid;
 
 mod google;
 mod model;
@@ -91,6 +93,11 @@ async fn start_main_server() {
             Router::new()
                 .route("/auth/login", post(login_handler))
                 .route("/projects", get(list_projects_handler))
+                .route("/projects", post(create_project_handler))
+                .route(
+                    "/projects/:project_id/permissions",
+                    post(add_project_permission_handler),
+                )
                 .layer(middleware::from_fn(authenticate))
                 .fallback(handler_404),
         )
@@ -216,6 +223,11 @@ async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Bo
             return Err(unauthorized_error(&format!("Failed validation: {e}")));
         }
     };
+    if token.claims.email.is_empty() {
+        return Err(unauthorized_error(&format!(
+            "Claims email is empty: {token:?}"
+        )));
+    }
 
     tracing::Span::current().record("email", token.claims.email.clone());
     assert!(request.extensions_mut().insert(token.claims).is_none());
@@ -228,7 +240,12 @@ async fn list_projects_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Vec<Project>>> {
-    let tasks: Vec<Project> = sqlx::query_as(
+    let projects = list_projects(&claims.email, pool).await?;
+    Ok(Json(projects))
+}
+
+async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>, Box<dyn Error>> {
+    let projects: Vec<Project> = sqlx::query_as(
         "
         SELECT
           project_permissions.project_id,
@@ -237,10 +254,88 @@ async fn list_projects_handler(
         JOIN projects ON (project_permissions.project_id = projects.id)
         WHERE email = $1",
     )
-    .bind(claims.email)
+    .bind(email)
     .fetch_all(pool)
     .await?;
-    Ok(Json(tasks))
+
+    Ok(projects)
+}
+
+#[tracing::instrument(skip(claims, pool))]
+async fn create_project_handler(
+    Extension(claims): Extension<Claims>,
+    Extension(pool): Extension<&'static PgPool>,
+    Json(mut project): Json<Project>,
+) -> ApiResult<Json<Project>> {
+    let projects = list_projects(&claims.email, pool).await?;
+    if projects.len() >= 5 {
+        return Err(bad_request_error(&format!(
+            "User has more than 5 projects ({})",
+            projects.len()
+        )));
+    }
+
+    project.project_id = BASE64_URL_SAFE_NO_PAD.encode(Uuid::new_v4());
+
+    let mut txn = pool.begin().await?;
+    sqlx::query("INSERT INTO projects (id, name) VALUES ($1, $2)")
+        .bind(&project.project_id)
+        .bind(&project.name)
+        .execute(&mut *txn)
+        .await?;
+    sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2)")
+        .bind(&project.project_id)
+        .bind(&claims.email)
+        .execute(&mut *txn)
+        .await?;
+    txn.commit().await?;
+
+    tracing::debug!(
+        "Created project '{}' with id '{}'",
+        project.name,
+        project.project_id
+    );
+
+    Ok(Json(project))
+}
+
+#[tracing::instrument(skip(claims, pool))]
+async fn add_project_permission_handler(
+    Extension(claims): Extension<Claims>,
+    Extension(pool): Extension<&'static PgPool>,
+    Path(project_id): Path<String>,
+    Json(permission): Json<ProjectPermission>,
+) -> ApiResult<()> {
+    if project_id != permission.project_id {
+        return Err(bad_request_error(&format!(
+            "Path project id ({project_id} is different than body project id {}",
+            permission.project_id
+        )));
+    }
+    if permission.email.is_empty() {
+        return Err(bad_request_error("Permission email is empty"));
+    }
+
+    let projects = list_projects(&claims.email, pool).await?;
+    let mut has_permission = false;
+    for project in projects {
+        if project.project_id == project_id {
+            has_permission = true;
+            break;
+        }
+    }
+    if !has_permission {
+        return Err(unauthorized_error(&format!(
+            "Authorized to share project {project_id}"
+        )));
+    }
+
+    sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+            .bind(&permission.project_id)
+            .bind(&permission.email)
+            .execute(pool)
+            .await?;
+    Ok(())
 }
 
 #[tracing::instrument(skip(claims, pool))]
