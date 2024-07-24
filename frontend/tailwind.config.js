@@ -1,4 +1,5 @@
 import flowbitePlugin from "flowbite/plugin";
+import { fontFamily } from "tailwindcss/defaultTheme";
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -22,6 +23,9 @@ export default {
           800: "#115e59",
           900: "#134e4a",
         },
+      },
+      fontFamily: {
+        sans: ["Nunito", ...fontFamily.sans],
       },
     },
   },
