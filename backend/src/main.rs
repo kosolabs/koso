@@ -33,7 +33,7 @@ use tower_http::{
 use tower_http::{
     services::{ServeDir, ServeFile},
     timeout::TimeoutLayer,
-    trace::{DefaultMakeSpan, TraceLayer},
+    trace::TraceLayer,
 };
 use tracing::{Instrument, Level, Span};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
