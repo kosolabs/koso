@@ -32,7 +32,7 @@
   import Row from "./row.svelte";
 
   export let koso: Koso;
-  let graph: Graph = {};
+  let graph: Graph = koso.toJSON();
 
   koso.observe(() => {
     graph = koso.toJSON();
