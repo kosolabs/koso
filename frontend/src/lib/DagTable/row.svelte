@@ -324,7 +324,7 @@
       <Tooltip class="text-nowrap" placement="bottom">Unlink Task</Tooltip>
     {/if}
   {/if}
-  <div class="min-w-40 overflow-x-hidden whitespace-nowrap">
+  <div class="min-w-48 overflow-x-clip whitespace-nowrap">
     <div class="flex items-center">
       <button
         class="min-w-5 transition-transform"
@@ -336,7 +336,7 @@
           <ChevronRight class="h-4" />
         {/if}
       </button>
-      <Tooltip class="text-nowrap" placement="bottom">
+      <Tooltip class="text-nowrap" placement="top">
         {open ? "Collapse" : "Expand"}
       </Tooltip>
       <div class="relative">
@@ -388,7 +388,7 @@
           />
         {/if}
       </button>
-      <div>{node.name}</div>
+      <div class="overflow-x-hidden whitespace-nowrap">{node.name}</div>
     </div>
   </div>
   <div class="w-96 overflow-x-hidden whitespace-nowrap px-2">

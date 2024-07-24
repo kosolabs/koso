@@ -122,10 +122,10 @@
 <div class="rounded border">
   <div id="header" class="text-xs font-bold uppercase">
     <div class="my-1 flex items-center p-2">
-      <div class="min-w-40 whitespace-nowrap border-r">
+      <div class="min-w-48 whitespace-nowrap border-r">
         <div class="flex items-center">
-          <div class="w-5"></div>
-          <div class="w-5"></div>
+          <div class="min-w-5"></div>
+          <div class="min-w-5"></div>
           <div>ID</div>
         </div>
       </div>
