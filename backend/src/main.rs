@@ -253,44 +253,28 @@ async fn list_projects_handler(
 async fn create_project_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
-    Json(project): Json<Project>,
-) -> Result<Json<Project>, StatusCode> {
+    Json(mut project): Json<Project>,
+) -> ApiResult<Json<Project>> {
     // TODO: Make idempotent or return appropriate status code if project already exists.
     // TODO: Limit number of projects.
-    async fn create(
-        claims: Claims,
-        pool: &Pool<Postgres>,
-        mut project: Project,
-    ) -> Result<Json<Project>, Box<dyn Error>> {
-        project.project_id = Uuid::new_v4().to_string();
+    project.project_id = Uuid::new_v4().to_string();
 
-        let mut txn = pool.begin().await?;
-        sqlx::query("INSERT INTO projects (id, name) VALUES ($1, $2)")
-            .bind(&project.project_id)
-            .bind(&project.name)
-            .execute(&mut *txn)
-            .await
-            .map_err(|e| -> Box<dyn Error> { format!("Failed to insert projects: {e}").into() })?;
-        sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2)")
-            .bind(&project.project_id)
-            .bind(&claims.email)
-            .execute(&mut *txn)
-            .await
-            .map_err(|e| -> Box<dyn Error> {
-                format!("Failed to insert permissions: {e}").into()
-            })?;
-        txn.commit().await?;
+    let mut txn = pool.begin().await?;
+    sqlx::query("INSERT INTO projects (id, name) VALUES ($1, $2)")
+        .bind(&project.project_id)
+        .bind(&project.name)
+        .execute(&mut *txn)
+        .await
+        .map_err(|e| -> Box<dyn Error> { format!("Failed to insert projects: {e}").into() })?;
+    sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2)")
+        .bind(&project.project_id)
+        .bind(&claims.email)
+        .execute(&mut *txn)
+        .await
+        .map_err(|e| -> Box<dyn Error> { format!("Failed to insert permissions: {e}").into() })?;
+    txn.commit().await?;
 
-        Ok(Json(project))
-    }
-
-    match create(claims, pool, project).await {
-        Ok(res) => Ok(res),
-        Err(e) => {
-            tracing::warn!("Failed to create project: {e}");
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
-        }
-    }
+    Ok(Json(project))
 }
 
 #[tracing::instrument(skip(claims, pool))]
@@ -299,22 +283,16 @@ async fn add_project_permission_handler(
     Extension(pool): Extension<&'static PgPool>,
     Path(project_id): Path<String>,
     Json(permission): Json<ProjectPermission>,
-) -> StatusCode {
+) -> ApiResult<()> {
     if project_id != permission.project_id {
-        tracing::warn!(
+        return Err(bad_request_error(&format!(
             "Path project id ({project_id} is different than body project id {}",
             permission.project_id
-        );
-        return StatusCode::BAD_REQUEST;
+        )));
     }
 
     // TODO: Authorize access.
-    async fn create(
-        claims: Claims,
-        pool: &Pool<Postgres>,
-        permission: ProjectPermission,
-    ) -> Result<(), Box<dyn Error>> {
-        sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+    sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2) ON CONFLICT DO NOTHING")
             .bind(&permission.project_id)
             .bind(&permission.email)
             .execute(pool)
@@ -322,16 +300,7 @@ async fn add_project_permission_handler(
             .map_err(|e| -> Box<dyn Error> {
                 format!("Failed to insert permissions: {e}").into()
             })?;
-        Ok(())
-    }
-
-    match create(claims, pool, permission).await {
-        Ok(_) => StatusCode::OK,
-        Err(e) => {
-            tracing::warn!("Failed to add permission: {e}");
-            StatusCode::INTERNAL_SERVER_ERROR
-        }
-    }
+    Ok(())
 }
 
 #[tracing::instrument(skip(claims, pool))]
