@@ -1,6 +1,7 @@
 use axum::{
+    body::Body,
     extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
-    http::StatusCode,
+    http::{HeaderName, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -18,6 +19,7 @@ use sqlx::{
     ConnectOptions,
 };
 use std::{
+    error::Error,
     future::ready,
     net::SocketAddr,
     sync::Arc,
@@ -25,16 +27,22 @@ use std::{
 };
 use tokio::{net::TcpListener, signal};
 use tower_http::{
+    request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
+    trace::MakeSpan,
+};
+use tower_http::{
     services::{ServeDir, ServeFile},
     timeout::TimeoutLayer,
-    trace::{DefaultMakeSpan, TraceLayer},
+    trace::TraceLayer,
 };
-use tracing::Instrument;
+use tracing::{Instrument, Level, Span};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod google;
 mod model;
 mod notify;
+
+type ApiResult<T> = Result<T, ErrorResponse>;
 
 struct AppState {}
 
@@ -83,17 +91,16 @@ async fn start_main_server() {
             Router::new()
                 .route("/auth/login", post(login_handler))
                 .route("/projects", get(list_projects_handler))
+                .layer(middleware::from_fn(authenticate))
                 .fallback(handler_404),
         )
         .nest(
             "/ws",
             Router::new()
                 .route("/projects/:project_id", get(ws_handler))
+                .layer(middleware::from_fn(authenticate))
                 .fallback(handler_404),
         )
-        // IMPORTANT - any routes subsequent to the auth layer allow
-        // unauthenticated access. e.g. static content.
-        .layer(middleware::from_fn(authenticate))
         .nest_service(
             "/",
             ServeDir::new("static").fallback(ServeFile::new("static/index.html")),
@@ -103,9 +110,10 @@ async fn start_main_server() {
         .route_layer(middleware::from_fn(emit_request_metrics))
         .with_state(state)
         .layer((
+            SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
+            PropagateRequestIdLayer::new(HeaderName::from_static("x-request-id")),
             // Enable request tracing. Must enable `tower_http=debug`
-            TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::default().include_headers(false)),
+            TraceLayer::new_for_http().make_span_with(KosoMakeSpan {}),
             // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
             // requests don't hang forever.
             TimeoutLayer::new(Duration::from_secs(10)),
@@ -145,52 +153,56 @@ async fn start_main_server() {
 }
 
 #[tracing::instrument(skip(request, next), fields(email))]
-async fn authenticate(mut request: Request, next: Next) -> Result<Response, StatusCode> {
+async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Body>> {
     let certs = request.extensions().get::<Certs>().unwrap();
     let headers = request.headers();
 
     let bearer = if let Some(auth_header) = headers.get("Authorization") {
         let Ok(auth) = auth_header.to_str() else {
-            tracing::warn!("Could not convert auth header to string: {auth_header:?}");
-            return Err(StatusCode::UNAUTHORIZED);
+            return Err(unauthorized_error(&format!(
+                "Could not convert auth header to string: {auth_header:?}"
+            )));
         };
         let parts: Vec<&str> = auth.split(' ').collect();
         if parts.len() != 2 || parts[0] != "Bearer" {
-            tracing::warn!("Could not split bearer parts: {parts:?}");
-            return Err(StatusCode::UNAUTHORIZED);
+            return Err(unauthorized_error(&format!(
+                "Could not split bearer parts: {parts:?}"
+            )));
         }
         parts[1]
     } else if let Some(swp_header) = headers.get("sec-websocket-protocol") {
         let Ok(swp) = swp_header.to_str() else {
-            tracing::warn!(
+            return Err(unauthorized_error(&format!(
                 "sec-websocket-protocol must be only visible ASCII chars: {swp_header:?}"
-            );
-            return Err(StatusCode::UNAUTHORIZED);
+            )));
         };
         let parts: Vec<&str> = swp.split(", ").collect();
         if parts.len() != 2 || parts[0] != "bearer" {
-            tracing::warn!("sec-websocket-protocol must contain a bearer token: {parts:?}");
-            return Err(StatusCode::UNAUTHORIZED);
+            return Err(unauthorized_error(&format!(
+                "sec-websocket-protocol must contain a bearer token: {parts:?}"
+            )));
         }
         parts[1]
     } else {
-        tracing::warn!("Authorization header is absent.");
-        return Err(StatusCode::UNAUTHORIZED);
+        return Err(unauthorized_error("Authorization header is absent."));
     };
 
     let Ok(header) = jsonwebtoken::decode_header(bearer) else {
-        tracing::warn!("Could not decode header: {bearer:?}");
-        return Err(StatusCode::UNAUTHORIZED);
+        return Err(unauthorized_error(&format!(
+            "Could not decode header: {bearer:?}"
+        )));
     };
     let Some(kid) = header.kid else {
-        tracing::warn!("header.kid is absent: {header:?}");
-        return Err(StatusCode::UNAUTHORIZED);
+        return Err(unauthorized_error(&format!(
+            "header.kid is absent: {header:?}"
+        )));
     };
     let key = match certs.get(&kid) {
         Ok(key) => key,
         Err(e) => {
-            tracing::warn!("certs is absent for {kid:?}: {e}");
-            return Err(StatusCode::UNAUTHORIZED);
+            return Err(unauthorized_error(&format!(
+                "certs is absent for {kid:?}: {e}"
+            )));
         }
     };
     let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
@@ -201,8 +213,7 @@ async fn authenticate(mut request: Request, next: Next) -> Result<Response, Stat
     let token = match jsonwebtoken::decode::<Claims>(bearer, &key, &validation) {
         Ok(token) => token,
         Err(e) => {
-            tracing::warn!("Failed validation: {e}");
-            return Err(StatusCode::UNAUTHORIZED);
+            return Err(unauthorized_error(&format!("Failed validation: {e}")));
         }
     };
 
@@ -216,7 +227,7 @@ async fn authenticate(mut request: Request, next: Next) -> Result<Response, Stat
 async fn list_projects_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
-) -> Result<Json<Vec<Project>>, StatusCode> {
+) -> ApiResult<Json<Vec<Project>>> {
     let tasks: Vec<Project> = sqlx::query_as(
         "
         SELECT
@@ -228,8 +239,7 @@ async fn list_projects_handler(
     )
     .bind(claims.email)
     .fetch_all(pool)
-    .await
-    .map_err(|_e| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .await?;
     Ok(Json(tasks))
 }
 
@@ -237,7 +247,7 @@ async fn list_projects_handler(
 async fn login_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
-) -> StatusCode {
+) -> ApiResult<()> {
     if let Err(e) = sqlx::query(
         "
         INSERT INTO users (email, name, picture)
@@ -251,10 +261,11 @@ async fn login_handler(
     .execute(pool)
     .await
     {
-        tracing::warn!("Failed to upsert user on login: {e}");
-        return StatusCode::INTERNAL_SERVER_ERROR;
+        return Err(internal_error(&format!(
+            "Failed to upsert user on login: {e}"
+        )));
     }
-    StatusCode::NO_CONTENT
+    Ok(())
 }
 
 /// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
@@ -269,19 +280,15 @@ async fn ws_handler(
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(notifier): Extension<notify::Notifier>,
-) -> impl IntoResponse {
+) -> ApiResult<Response<Body>> {
     if project_id.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            "projects segment must not be empty",
-        )
-            .into_response();
+        return Err(bad_request_error("projects segment must not be empty"));
     }
 
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
     let cs = tracing::Span::current();
-    ws.protocols(["bearer"]).on_upgrade(move |socket| {
+    Ok(ws.protocols(["bearer"]).on_upgrade(move |socket| {
         notifier
             .register_client(socket, addr, project_id)
             .map(move |res| {
@@ -290,7 +297,7 @@ async fn ws_handler(
                 }
             })
             .instrument(cs)
-    })
+    }))
 }
 
 // Completion of this function signals to a server,
@@ -380,4 +387,87 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
 
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
+}
+
+fn internal_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::INTERNAL_SERVER_ERROR, msg)
+}
+
+fn unauthorized_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::UNAUTHORIZED, msg)
+}
+
+fn bad_request_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::BAD_REQUEST, msg)
+}
+
+fn error_response(code: StatusCode, msg: &str) -> ErrorResponse {
+    tracing::error!("Failed: {}: {}", code, msg);
+    ErrorResponse {
+        code,
+        msg: msg.to_string(),
+    }
+}
+
+struct ErrorResponse {
+    code: StatusCode,
+    msg: String,
+}
+
+/// Converts from ErrorResponse to Response.
+impl IntoResponse for ErrorResponse {
+    fn into_response(self) -> Response {
+        let msg = if dev_mode() {
+            self.msg
+        } else {
+            // Redact the the error message outside of dev.
+            "See server logs for details.".to_string()
+        };
+        Response::builder()
+            .status(self.code)
+            .body(Body::from(format!("{}: {}", self.code, msg)))
+            .unwrap()
+    }
+}
+
+/// Converts from boxed Error to ErrorResponse and logs the error.
+impl<E> From<E> for ErrorResponse
+where
+    E: Into<Box<dyn Error>>,
+{
+    fn from(err: E) -> Self {
+        let err = err.into();
+        let code = StatusCode::INTERNAL_SERVER_ERROR;
+        let msg = format!("{:?}", err);
+        tracing::error!("Failed: {}: {}", code, msg);
+        ErrorResponse { code, msg }
+    }
+}
+
+fn dev_mode() -> bool {
+    // TODO: Decide on this based on an environment variable or the build.
+    true
+}
+
+#[derive(Clone)]
+struct KosoMakeSpan {}
+
+/// Forked from tracing's DefaultMakeSpan in order to add request_id
+impl<B> MakeSpan<B> for KosoMakeSpan {
+    fn make_span(&mut self, request: &Request<B>) -> Span {
+        let request_id = request
+            .extensions()
+            .get::<RequestId>()
+            .map(|h| h.header_value().to_str().unwrap_or("INVALID"))
+            .unwrap_or("MISSING");
+
+        tracing::span!(
+            Level::DEBUG,
+            "request",
+            method = %request.method(),
+            uri = %request.uri(),
+            version = ?request.version(),
+            request_id = request_id,
+        )
+    }
 }
