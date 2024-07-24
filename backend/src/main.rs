@@ -37,6 +37,7 @@ use tower_http::{
 };
 use tracing::{Instrument, Level, Span};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use uuid::Uuid;
 
 mod google;
 mod model;
@@ -253,37 +254,41 @@ async fn create_project_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
     Json(project): Json<Project>,
-) -> StatusCode {
+) -> Result<Json<Project>, StatusCode> {
     // TODO: Make idempotent or return appropriate status code if project already exists.
     // TODO: Limit number of projects.
     async fn create(
         claims: Claims,
         pool: &Pool<Postgres>,
-        project: Project,
-    ) -> Result<(), Box<dyn Error>> {
+        mut project: Project,
+    ) -> Result<Json<Project>, Box<dyn Error>> {
+        project.project_id = Uuid::new_v4().to_string();
+
         let mut txn = pool.begin().await?;
         sqlx::query("INSERT INTO projects (id, name) VALUES ($1, $2)")
             .bind(&project.project_id)
             .bind(&project.name)
             .execute(&mut *txn)
             .await
-            .map(|_| ())?;
+            .map_err(|e| -> Box<dyn Error> { format!("Failed to insert projects: {e}").into() })?;
         sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2)")
             .bind(&project.project_id)
             .bind(&claims.email)
             .execute(&mut *txn)
             .await
-            .map(|_| ())?;
+            .map_err(|e| -> Box<dyn Error> {
+                format!("Failed to insert permissions: {e}").into()
+            })?;
         txn.commit().await?;
 
-        Ok(())
+        Ok(Json(project))
     }
 
     match create(claims, pool, project).await {
-        Ok(_) => StatusCode::NO_CONTENT,
+        Ok(res) => Ok(res),
         Err(e) => {
             tracing::warn!("Failed to create project: {e}");
-            StatusCode::INTERNAL_SERVER_ERROR
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }
@@ -314,7 +319,9 @@ async fn add_project_permission_handler(
             .bind(&permission.email)
             .execute(pool)
             .await
-            .map(|_| ())?;
+            .map_err(|e| -> Box<dyn Error> {
+                format!("Failed to insert permissions: {e}").into()
+            })?;
         Ok(())
     }
 
