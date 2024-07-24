@@ -119,8 +119,8 @@
   };
 </script>
 
-<div class="rounded border">
-  <div id="header" class="text-xs font-bold uppercase">
+<div class="rounded-t border">
+  <div id="header" class="border-b text-xs font-bold uppercase">
     <div class="my-1 flex items-center p-2">
       <div class="min-w-48 whitespace-nowrap border-r">
         <div class="flex items-center">

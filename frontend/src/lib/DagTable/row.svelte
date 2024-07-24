@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cn } from "$lib/utils";
   import { A, Input, Tooltip } from "flowbite-svelte";
   import {
     ChevronRight,
@@ -291,10 +292,12 @@
 <div
   role="row"
   tabindex="0"
-  class="flex items-center border-t p-2
-    {isMoving || unlinking || deleting ? 'border-red-600 opacity-30' : ''}
-    {isGhost ? 'border-green-600 opacity-70' : ''}
-    {highlighted?.name === node.name ? 'border-lime-600' : ''}"
+  class={cn(
+    "flex items-center border border-transparent p-2",
+    isMoving || unlinking || deleting ? "border-red-600 opacity-30" : "",
+    isGhost ? "border-green-600 opacity-70" : "",
+    highlighted?.name === node.name ? "border-lime-600" : "",
+  )}
   on:mouseover={handleHighlight}
   on:mouseout={handleUnhighlight}
   on:focus={handleHighlight}
