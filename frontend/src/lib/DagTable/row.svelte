@@ -291,7 +291,7 @@
 <div
   role="row"
   tabindex="0"
-  class="my-1 flex items-center rounded border p-2
+  class="flex items-center border-t p-2
     {isMoving || unlinking || deleting ? 'border-red-600 opacity-30' : ''}
     {isGhost ? 'border-green-600 opacity-70' : ''}
     {highlighted?.name === node.name ? 'border-lime-600' : ''}"
@@ -324,7 +324,7 @@
       <Tooltip class="text-nowrap" placement="bottom">Unlink Task</Tooltip>
     {/if}
   {/if}
-  <div class="w-48">
+  <div class="min-w-40 overflow-x-hidden whitespace-nowrap">
     <div class="flex items-center">
       <button
         class="min-w-5 transition-transform"
@@ -391,7 +391,7 @@
       <div>{node.name}</div>
     </div>
   </div>
-  <div class="w-96 px-2">
+  <div class="w-96 overflow-x-hidden whitespace-nowrap px-2">
     {#if editedTaskName !== null}
       <Input
         size="sm"
@@ -410,10 +410,10 @@
       </A>
     {/if}
   </div>
-  <div class="w-96 px-2">
+  <div class="w-96 overflow-x-hidden whitespace-nowrap px-2">
     {task.reporter}
   </div>
-  <div class="w-96 px-2">
+  <div class="w-96 overflow-x-hidden whitespace-nowrap px-2">
     {task.assignee ?? "Unassigned"}
   </div>
 </div>

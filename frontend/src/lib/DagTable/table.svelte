@@ -119,26 +119,23 @@
   };
 </script>
 
-<div>
-  <div id="header" class="rounded border text-xs font-bold uppercase">
-    <div class="my-1 flex items-center rounded p-2">
-      <div class="border-r" style="width: 12rem">
+<div class="rounded border">
+  <div id="header" class="text-xs font-bold uppercase">
+    <div class="my-1 flex items-center p-2">
+      <div class="min-w-40 whitespace-nowrap border-r">
         <div class="flex items-center">
           <div class="w-5"></div>
           <div class="w-5"></div>
           <div>ID</div>
         </div>
       </div>
-      <div class="w-96 border-r px-2">Name</div>
-      <div class="w-96 border-r px-2">Reporter</div>
-      <div class="w-96 px-2">Assignee</div>
+      <div class="w-96 whitespace-nowrap border-r px-2">Name</div>
+      <div class="w-96 whitespace-nowrap border-r px-2">Reporter</div>
+      <div class="w-96 whitespace-nowrap px-2">Assignee</div>
     </div>
   </div>
 
-  <div
-    id="body"
-    class="[&>*:nth-child(even)]:bg-slate-50 [&>*:nth-child(odd)]:bg-slate-100"
-  >
+  <div id="body" class="[&>*:nth-child(even)]:bg-slate-50">
     {#each roots as root, offset}
       <Row {graph} {interactions} isGhost={false} node={root} {offset} />
     {/each}
