@@ -1,6 +1,9 @@
+use crate::ApiResult::AErr;
+use crate::ApiResult::AOk;
 use axum::{
+    body::Body,
     extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
-    http::StatusCode,
+    http::{HeaderName, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -18,12 +21,15 @@ use sqlx::{
     ConnectOptions,
 };
 use std::{
+    error::Error,
+    fmt::{self, Display},
     future::ready,
     net::SocketAddr,
     sync::Arc,
     time::{Duration, Instant},
 };
 use tokio::{net::TcpListener, signal};
+use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
 use tower_http::{
     services::{ServeDir, ServeFile},
     timeout::TimeoutLayer,
@@ -35,6 +41,15 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod google;
 mod model;
 mod notify;
+
+// type ApiResult<T> = Result<T, ErrorResponse>;
+
+pub enum ApiResult<T, E = ErrorResponse> {
+    AOk(T),
+
+    /// Contains the error value
+    AErr(E),
+}
 
 struct AppState {}
 
@@ -106,6 +121,8 @@ async fn start_main_server() {
             // Enable request tracing. Must enable `tower_http=debug`
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::default().include_headers(false)),
+            SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
+            PropagateRequestIdLayer::new(HeaderName::from_static("x-request-id")),
             // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
             // requests don't hang forever.
             TimeoutLayer::new(Duration::from_secs(10)),
@@ -145,52 +162,58 @@ async fn start_main_server() {
 }
 
 #[tracing::instrument(skip(request, next), fields(email))]
-async fn authenticate(mut request: Request, next: Next) -> Result<Response, StatusCode> {
+async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Body>> {
     let certs = request.extensions().get::<Certs>().unwrap();
     let headers = request.headers();
 
+    // return Err(internal_error("HACKINGGGGG Failure"));
+
     let bearer = if let Some(auth_header) = headers.get("Authorization") {
         let Ok(auth) = auth_header.to_str() else {
-            tracing::warn!("Could not convert auth header to string: {auth_header:?}");
-            return Err(StatusCode::UNAUTHORIZED);
+            return AErr(unauthorized_error(format!(
+                "Could not convert auth header to string: {auth_header:?}"
+            )));
         };
         let parts: Vec<&str> = auth.split(' ').collect();
         if parts.len() != 2 || parts[0] != "Bearer" {
-            tracing::warn!("Could not split bearer parts: {parts:?}");
-            return Err(StatusCode::UNAUTHORIZED);
+            return AErr(unauthorized_error(format!(
+                "Could not split bearer parts: {parts:?}"
+            )));
         }
         parts[1]
     } else if let Some(swp_header) = headers.get("sec-websocket-protocol") {
         let Ok(swp) = swp_header.to_str() else {
-            tracing::warn!(
+            return AErr(unauthorized_error(format!(
                 "sec-websocket-protocol must be only visible ASCII chars: {swp_header:?}"
-            );
-            return Err(StatusCode::UNAUTHORIZED);
+            )));
         };
         let parts: Vec<&str> = swp.split(", ").collect();
         if parts.len() != 2 || parts[0] != "bearer" {
-            tracing::warn!("sec-websocket-protocol must contain a bearer token: {parts:?}");
-            return Err(StatusCode::UNAUTHORIZED);
+            return AErr(unauthorized_error(format!(
+                "sec-websocket-protocol must contain a bearer token: {parts:?}"
+            )));
         }
         parts[1]
     } else {
-        tracing::warn!("Authorization header is absent.");
-        return Err(StatusCode::UNAUTHORIZED);
+        return AErr(unauthorized_error("Authorization header is absent."));
     };
 
     let Ok(header) = jsonwebtoken::decode_header(bearer) else {
-        tracing::warn!("Could not decode header: {bearer:?}");
-        return Err(StatusCode::UNAUTHORIZED);
+        return AErr(unauthorized_error(format!(
+            "Could not decode header: {bearer:?}"
+        )));
     };
     let Some(kid) = header.kid else {
-        tracing::warn!("header.kid is absent: {header:?}");
-        return Err(StatusCode::UNAUTHORIZED);
+        return AErr(unauthorized_error(format!(
+            "header.kid is absent: {header:?}"
+        )));
     };
     let key = match certs.get(&kid) {
         Ok(key) => key,
         Err(e) => {
-            tracing::warn!("certs is absent for {kid:?}: {e}");
-            return Err(StatusCode::UNAUTHORIZED);
+            return AErr(unauthorized_error(format!(
+                "certs is absent for {kid:?}: {e}"
+            )));
         }
     };
     let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
@@ -201,22 +224,21 @@ async fn authenticate(mut request: Request, next: Next) -> Result<Response, Stat
     let token = match jsonwebtoken::decode::<Claims>(bearer, &key, &validation) {
         Ok(token) => token,
         Err(e) => {
-            tracing::warn!("Failed validation: {e}");
-            return Err(StatusCode::UNAUTHORIZED);
+            return AErr(unauthorized_error(format!("Failed validation: {e}")));
         }
     };
 
     tracing::Span::current().record("email", token.claims.email.clone());
     assert!(request.extensions_mut().insert(token.claims).is_none());
 
-    Ok(next.run(request).await)
+    AOk(next.run(request).await)
 }
 
 #[tracing::instrument(skip(claims, pool))]
 async fn list_projects_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
-) -> Result<Json<Vec<Project>>, StatusCode> {
+) -> ApiResult<Json<Vec<Project>>> {
     let tasks: Vec<Project> = sqlx::query_as(
         "
         SELECT
@@ -228,22 +250,19 @@ async fn list_projects_handler(
     )
     .bind(claims.email)
     .fetch_all(pool)
-    .await
-    .map_err(|_e| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(tasks))
+    .await?;
+    AOk(Json(tasks))
 }
 
 #[tracing::instrument(skip(claims, pool))]
 async fn login_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
-) -> StatusCode {
+) -> ApiResult<()> {
     if let Err(e) = sqlx::query(
         "
         INSERT INTO users (email, name, picture)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (email)
-        DO UPDATE SET name = EXCLUDED.name, picture = EXCLUDED.picture;",
+        VALUES ($1, $2, $3)",
     )
     .bind(&claims.email)
     .bind(&claims.name)
@@ -251,10 +270,11 @@ async fn login_handler(
     .execute(pool)
     .await
     {
-        tracing::warn!("Failed to upsert user on login: {e}");
-        return StatusCode::INTERNAL_SERVER_ERROR;
+        return AErr(internal_error(format!(
+            "Failed to upsert user on login: {e}"
+        )));
     }
-    StatusCode::NO_CONTENT
+    AOk(())
 }
 
 /// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
@@ -269,19 +289,15 @@ async fn ws_handler(
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(notifier): Extension<notify::Notifier>,
-) -> impl IntoResponse {
+) -> ApiResult<Response<Body>> {
     if project_id.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            "projects segment must not be empty",
-        )
-            .into_response();
+        return AErr(internal_error("projects segment must not be empty"));
     }
 
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
     let cs = tracing::Span::current();
-    ws.protocols(["bearer"]).on_upgrade(move |socket| {
+    AOk(ws.protocols(["bearer"]).on_upgrade(move |socket| {
         notifier
             .register_client(socket, addr, project_id)
             .map(move |res| {
@@ -290,7 +306,7 @@ async fn ws_handler(
                 }
             })
             .instrument(cs)
-    })
+    }))
 }
 
 // Completion of this function signals to a server,
@@ -380,4 +396,120 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
 
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
+}
+
+fn internal_error<T: std::fmt::Debug>(msg: T) -> ErrorResponse {
+    ErrorResponse(
+        Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .body(Body::from(format!("{:?}", msg)))
+            .unwrap(),
+    )
+}
+
+fn unauthorized_error<T: std::fmt::Debug>(msg: T) -> ErrorResponse {
+    ErrorResponse(
+        Response::builder()
+            .status(StatusCode::UNAUTHORIZED)
+            .body(Body::from(format!("{:?}", msg)))
+            .unwrap(),
+    )
+}
+
+fn bad_request_error<T: std::fmt::Debug>(msg: T) -> ErrorResponse {
+    ErrorResponse(
+        Response::builder()
+            .status(StatusCode::BAD_REQUEST)
+            .body(Body::from(format!("{:?}", msg)))
+            .unwrap(),
+    )
+}
+
+impl<T> IntoResponse for ApiResult<T>
+where
+    T: IntoResponse,
+{
+    fn into_response(self) -> Response {
+        match self {
+            AOk(ok) => ok.into_response(),
+            AErr(err) => err.0,
+        }
+    }
+}
+
+impl std::ops::FromResidual for ApiResult<T> {
+    fn from_residual(residual: <Self as std::ops::Try>::Residual) -> Self {
+        todo!()
+    }
+}
+
+pub struct ErrorResponse(Response);
+
+impl<T> From<T> for ErrorResponse
+where
+    T: IntoResponse,
+{
+    fn from(value: T) -> Self {
+        Self(value.into_response())
+    }
+}
+
+// impl<E> From<E> for Response<Body>
+// where
+//     E: Into<Box<dyn Error>>,
+// {
+//     fn from(e: E) -> Self {
+//         internal_error(format!("{:?}", e.into()))
+//     }
+// }
+
+// struct AppError {
+//     error: String,
+//     code: StatusCode,
+// }
+
+// // Tell axum how to convert `AppError` into a response.
+// impl IntoResponse for AppError {
+//     fn into_response(self) -> Response {
+//         match self.code {
+//             StatusCode::INTERNAL_SERVER_ERROR => tracing::error!("{} -- {}", self.code, self.error),
+//             _ => tracing::warn!("{} -- {}", self.code, self.error),
+//         }
+//         if dev_mode() {
+//             (self.code, format!("{} -- {}", self.code, self.error)).into_response()
+//         } else {
+//             (self.code, format!("{}", self.code)).into_response()
+//         }
+//     }
+// }
+
+// This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
+// `Result<_, AppError>`. That way you don't need to do that manually.
+// impl<E> From<E> for Response<String>
+// where
+//     E: Into<Box<dyn Error>>,
+// {
+//     fn from(err: E) -> Self {
+//         Response::builder()
+//             .status(StatusCode::INTERNAL_SERVER_ERROR)
+//             .body(format!("{}", err.into()))
+//             .unwrap()
+//     }
+// }
+
+// impl<E> From<E> for AppError
+// where
+//     E: Into<(String, StatusCode)>,
+// {
+//     fn from(t: E) -> Self {
+//         let tt: (String, StatusCode) = t.into();
+//         AppError {
+//             error: tt.0,
+//             code: tt.1,
+//         }
+//     }
+// }
+
+fn dev_mode() -> bool {
+    true // TODO
 }
