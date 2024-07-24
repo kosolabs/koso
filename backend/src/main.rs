@@ -299,7 +299,7 @@ async fn create_project_handler(
     Ok(Json(project))
 }
 
-#[tracing::instrument(skip(pool))]
+#[tracing::instrument(skip(claims, pool))]
 async fn add_project_permission_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
