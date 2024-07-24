@@ -1,5 +1,3 @@
-use crate::ApiResult::AErr;
-use crate::ApiResult::AOk;
 use axum::{
     body::Body,
     extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
@@ -22,7 +20,6 @@ use sqlx::{
 };
 use std::{
     error::Error,
-    fmt::{self, Display},
     future::ready,
     net::SocketAddr,
     sync::Arc,
@@ -42,14 +39,7 @@ mod google;
 mod model;
 mod notify;
 
-// type ApiResult<T> = Result<T, ErrorResponse>;
-
-pub enum ApiResult<T, E = ErrorResponse> {
-    AOk(T),
-
-    /// Contains the error value
-    AErr(E),
-}
+type ApiResult<T> = Result<T, ErrorResponse>;
 
 struct AppState {}
 
@@ -166,52 +156,50 @@ async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Bo
     let certs = request.extensions().get::<Certs>().unwrap();
     let headers = request.headers();
 
-    // return Err(internal_error("HACKINGGGGG Failure"));
-
     let bearer = if let Some(auth_header) = headers.get("Authorization") {
         let Ok(auth) = auth_header.to_str() else {
-            return AErr(unauthorized_error(format!(
+            return Err(unauthorized_error(&format!(
                 "Could not convert auth header to string: {auth_header:?}"
             )));
         };
         let parts: Vec<&str> = auth.split(' ').collect();
         if parts.len() != 2 || parts[0] != "Bearer" {
-            return AErr(unauthorized_error(format!(
+            return Err(unauthorized_error(&format!(
                 "Could not split bearer parts: {parts:?}"
             )));
         }
         parts[1]
     } else if let Some(swp_header) = headers.get("sec-websocket-protocol") {
         let Ok(swp) = swp_header.to_str() else {
-            return AErr(unauthorized_error(format!(
+            return Err(unauthorized_error(&format!(
                 "sec-websocket-protocol must be only visible ASCII chars: {swp_header:?}"
             )));
         };
         let parts: Vec<&str> = swp.split(", ").collect();
         if parts.len() != 2 || parts[0] != "bearer" {
-            return AErr(unauthorized_error(format!(
+            return Err(unauthorized_error(&format!(
                 "sec-websocket-protocol must contain a bearer token: {parts:?}"
             )));
         }
         parts[1]
     } else {
-        return AErr(unauthorized_error("Authorization header is absent."));
+        return Err(unauthorized_error("Authorization header is absent."));
     };
 
     let Ok(header) = jsonwebtoken::decode_header(bearer) else {
-        return AErr(unauthorized_error(format!(
+        return Err(unauthorized_error(&format!(
             "Could not decode header: {bearer:?}"
         )));
     };
     let Some(kid) = header.kid else {
-        return AErr(unauthorized_error(format!(
+        return Err(unauthorized_error(&format!(
             "header.kid is absent: {header:?}"
         )));
     };
     let key = match certs.get(&kid) {
         Ok(key) => key,
         Err(e) => {
-            return AErr(unauthorized_error(format!(
+            return Err(unauthorized_error(&format!(
                 "certs is absent for {kid:?}: {e}"
             )));
         }
@@ -224,14 +212,14 @@ async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Bo
     let token = match jsonwebtoken::decode::<Claims>(bearer, &key, &validation) {
         Ok(token) => token,
         Err(e) => {
-            return AErr(unauthorized_error(format!("Failed validation: {e}")));
+            return Err(unauthorized_error(&format!("Failed validation: {e}")));
         }
     };
 
     tracing::Span::current().record("email", token.claims.email.clone());
     assert!(request.extensions_mut().insert(token.claims).is_none());
 
-    AOk(next.run(request).await)
+    Ok(next.run(request).await)
 }
 
 #[tracing::instrument(skip(claims, pool))]
@@ -251,7 +239,7 @@ async fn list_projects_handler(
     .bind(claims.email)
     .fetch_all(pool)
     .await?;
-    AOk(Json(tasks))
+    Ok(Json(tasks))
 }
 
 #[tracing::instrument(skip(claims, pool))]
@@ -270,11 +258,11 @@ async fn login_handler(
     .execute(pool)
     .await
     {
-        return AErr(internal_error(format!(
+        return Err(internal_error(&format!(
             "Failed to upsert user on login: {e}"
         )));
     }
-    AOk(())
+    Ok(())
 }
 
 /// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
@@ -291,13 +279,13 @@ async fn ws_handler(
     Extension(notifier): Extension<notify::Notifier>,
 ) -> ApiResult<Response<Body>> {
     if project_id.is_empty() {
-        return AErr(internal_error("projects segment must not be empty"));
+        return Err(bad_request_error("projects segment must not be empty"));
     }
 
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
     let cs = tracing::Span::current();
-    AOk(ws.protocols(["bearer"]).on_upgrade(move |socket| {
+    Ok(ws.protocols(["bearer"]).on_upgrade(move |socket| {
         notifier
             .register_client(socket, addr, project_id)
             .map(move |res| {
@@ -398,118 +386,62 @@ async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
 
-fn internal_error<T: std::fmt::Debug>(msg: T) -> ErrorResponse {
-    ErrorResponse(
-        Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body(Body::from(format!("{:?}", msg)))
-            .unwrap(),
-    )
+fn internal_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::INTERNAL_SERVER_ERROR, msg)
 }
 
-fn unauthorized_error<T: std::fmt::Debug>(msg: T) -> ErrorResponse {
-    ErrorResponse(
-        Response::builder()
-            .status(StatusCode::UNAUTHORIZED)
-            .body(Body::from(format!("{:?}", msg)))
-            .unwrap(),
-    )
+fn unauthorized_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::UNAUTHORIZED, msg)
 }
 
-fn bad_request_error<T: std::fmt::Debug>(msg: T) -> ErrorResponse {
-    ErrorResponse(
-        Response::builder()
-            .status(StatusCode::BAD_REQUEST)
-            .body(Body::from(format!("{:?}", msg)))
-            .unwrap(),
-    )
+fn bad_request_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::BAD_REQUEST, msg)
 }
 
-impl<T> IntoResponse for ApiResult<T>
-where
-    T: IntoResponse,
-{
+fn error_response(code: StatusCode, msg: &str) -> ErrorResponse {
+    tracing::error!("Failed: {}: {}", code, msg);
+    ErrorResponse {
+        code,
+        msg: msg.to_string(),
+    }
+}
+
+struct ErrorResponse {
+    code: StatusCode,
+    msg: String,
+}
+
+/// Converts from ErrorResponse to Response.
+impl IntoResponse for ErrorResponse {
     fn into_response(self) -> Response {
-        match self {
-            AOk(ok) => ok.into_response(),
-            AErr(err) => err.0,
-        }
+        let msg = if dev_mode() {
+            self.msg
+        } else {
+            // Redact the the error message outside of dev.
+            "See server logs for details.".to_string()
+        };
+        Response::builder()
+            .status(self.code)
+            .body(Body::from(format!("{}: {}", self.code, msg)))
+            .unwrap()
     }
 }
 
-impl std::ops::FromResidual for ApiResult<T> {
-    fn from_residual(residual: <Self as std::ops::Try>::Residual) -> Self {
-        todo!()
-    }
-}
-
-pub struct ErrorResponse(Response);
-
-impl<T> From<T> for ErrorResponse
+/// Converts from boxed Error to ErrorResponse and logs the error.
+impl<E> From<E> for ErrorResponse
 where
-    T: IntoResponse,
+    E: Into<Box<dyn Error>>,
 {
-    fn from(value: T) -> Self {
-        Self(value.into_response())
+    fn from(err: E) -> Self {
+        let err = err.into();
+        let code = StatusCode::INTERNAL_SERVER_ERROR;
+        let msg = format!("{:?}", err);
+        tracing::error!("Failed: {}: {}", code, msg);
+        ErrorResponse { code, msg }
     }
 }
-
-// impl<E> From<E> for Response<Body>
-// where
-//     E: Into<Box<dyn Error>>,
-// {
-//     fn from(e: E) -> Self {
-//         internal_error(format!("{:?}", e.into()))
-//     }
-// }
-
-// struct AppError {
-//     error: String,
-//     code: StatusCode,
-// }
-
-// // Tell axum how to convert `AppError` into a response.
-// impl IntoResponse for AppError {
-//     fn into_response(self) -> Response {
-//         match self.code {
-//             StatusCode::INTERNAL_SERVER_ERROR => tracing::error!("{} -- {}", self.code, self.error),
-//             _ => tracing::warn!("{} -- {}", self.code, self.error),
-//         }
-//         if dev_mode() {
-//             (self.code, format!("{} -- {}", self.code, self.error)).into_response()
-//         } else {
-//             (self.code, format!("{}", self.code)).into_response()
-//         }
-//     }
-// }
-
-// This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
-// `Result<_, AppError>`. That way you don't need to do that manually.
-// impl<E> From<E> for Response<String>
-// where
-//     E: Into<Box<dyn Error>>,
-// {
-//     fn from(err: E) -> Self {
-//         Response::builder()
-//             .status(StatusCode::INTERNAL_SERVER_ERROR)
-//             .body(format!("{}", err.into()))
-//             .unwrap()
-//     }
-// }
-
-// impl<E> From<E> for AppError
-// where
-//     E: Into<(String, StatusCode)>,
-// {
-//     fn from(t: E) -> Self {
-//         let tt: (String, StatusCode) = t.into();
-//         AppError {
-//             error: tt.0,
-//             code: tt.1,
-//         }
-//     }
-// }
 
 fn dev_mode() -> bool {
-    true // TODO
+    // TODO: Decide on this based on an environment variable or the build.
+    false
 }
