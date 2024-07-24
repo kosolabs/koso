@@ -13,10 +13,10 @@ use google::{Certs, Claims};
 use jsonwebtoken::Validation;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
-use model::Project;
+use model::{Project, ProjectPermission};
 use sqlx::{
     postgres::{PgConnectOptions, PgPool, PgPoolOptions},
-    ConnectOptions,
+    ConnectOptions, Pool, Postgres,
 };
 use std::{
     error::Error,
@@ -91,6 +91,11 @@ async fn start_main_server() {
             Router::new()
                 .route("/auth/login", post(login_handler))
                 .route("/projects", get(list_projects_handler))
+                .route("/projects", post(create_project_handler))
+                .route(
+                    "/projects/:project_id/permissions",
+                    post(add_project_permission_handler),
+                )
                 .layer(middleware::from_fn(authenticate))
                 .fallback(handler_404),
         )
@@ -241,6 +246,85 @@ async fn list_projects_handler(
     .fetch_all(pool)
     .await?;
     Ok(Json(tasks))
+}
+
+#[tracing::instrument(skip(claims, pool))]
+async fn create_project_handler(
+    Extension(claims): Extension<Claims>,
+    Extension(pool): Extension<&'static PgPool>,
+    Json(project): Json<Project>,
+) -> StatusCode {
+    // TODO: Make idempotent or return appropriate status code if project already exists.
+    // TODO: Limit number of projects.
+    async fn create(
+        claims: Claims,
+        pool: &Pool<Postgres>,
+        project: Project,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut txn = pool.begin().await?;
+        sqlx::query("INSERT INTO projects (id, name) VALUES ($1, $2)")
+            .bind(&project.project_id)
+            .bind(&project.name)
+            .execute(&mut *txn)
+            .await
+            .map(|_| ())?;
+        sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2)")
+            .bind(&project.project_id)
+            .bind(&claims.email)
+            .execute(&mut *txn)
+            .await
+            .map(|_| ())?;
+        txn.commit().await?;
+
+        Ok(())
+    }
+
+    match create(claims, pool, project).await {
+        Ok(_) => StatusCode::NO_CONTENT,
+        Err(e) => {
+            tracing::warn!("Failed to create project: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
+}
+
+#[tracing::instrument(skip(claims, pool))]
+async fn add_project_permission_handler(
+    Extension(claims): Extension<Claims>,
+    Extension(pool): Extension<&'static PgPool>,
+    Path(project_id): Path<String>,
+    Json(permission): Json<ProjectPermission>,
+) -> StatusCode {
+    if project_id != permission.project_id {
+        tracing::warn!(
+            "Path project id ({project_id} is different than body project id {}",
+            permission.project_id
+        );
+        return StatusCode::BAD_REQUEST;
+    }
+
+    // TODO: Authorize access.
+    async fn create(
+        claims: Claims,
+        pool: &Pool<Postgres>,
+        permission: ProjectPermission,
+    ) -> Result<(), Box<dyn Error>> {
+        sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2) ON CONFLICT DO NOTHING")
+            .bind(&permission.project_id)
+            .bind(&permission.email)
+            .execute(pool)
+            .await
+            .map(|_| ())?;
+        Ok(())
+    }
+
+    match create(claims, pool, permission).await {
+        Ok(_) => StatusCode::OK,
+        Err(e) => {
+            tracing::warn!("Failed to add permission: {e}");
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
 }
 
 #[tracing::instrument(skip(claims, pool))]
