@@ -1,16 +1,11 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { page } from "$app/stores";
-  import { logout, token, user } from "$lib/auth";
+  import { logout, token } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
   import { A } from "flowbite-svelte";
   import { onMount } from "svelte";
   import * as Y from "yjs";
-
-  $: if (!$user) {
-    goto("/");
-  }
 
   const koso = new Koso(new Y.Doc());
 
