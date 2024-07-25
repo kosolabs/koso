@@ -2,6 +2,12 @@
   import { goto } from "$app/navigation";
   import kosoLogo from "$lib/assets/koso.svg";
   import { logout, token, user } from "$lib/auth";
+  import { fetchProjects } from "$lib/projects";
+  import {
+    onLoginRedirect,
+    lastVisitedProjectId,
+    DO_NOT_REDIRECT,
+  } from "$lib/nav";
   import { Alert, Avatar, Button } from "flowbite-svelte";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { onMount } from "svelte";
@@ -16,6 +22,10 @@
   }
 
   onMount(() => {
+    if ($onLoginRedirect == DO_NOT_REDIRECT) {
+      $onLoginRedirect = null;
+    }
+
     const googleProvider = new GoogleOAuthProvider({
       clientId:
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
@@ -36,6 +46,33 @@
             });
             if (loginResponse.ok) {
               $token = oneTapResponse.credential!;
+              if ($onLoginRedirect) {
+                const redirect = $onLoginRedirect;
+                $onLoginRedirect = null;
+                console.log(`redirecting to prior page ${redirect}...`);
+                await goto(redirect);
+                return;
+              } else {
+                if ($lastVisitedProjectId) {
+                  console.log(
+                    `going to last visited project ${$lastVisitedProjectId}`,
+                  );
+                  await goto(`/projects/${$lastVisitedProjectId}`);
+                  return;
+                }
+
+                const projects = await fetchProjects($token);
+                if (projects.length == 1) {
+                  const onlyProjectId = projects[0].project_id;
+                  console.log(`going to only project ${onlyProjectId}`);
+                  await goto(`/projects/${onlyProjectId}`);
+                  return;
+                } else {
+                  console.log("going to projects: /projects");
+                  await goto(`/projects`);
+                  return;
+                }
+              }
             } else {
               errorMessage = `Failed to login: ${loginResponse.statusText} (${loginResponse.status})`;
             }

@@ -4,7 +4,6 @@
   import { A, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
-  import { slide } from "svelte/transition";
   import type { Graph, Node } from ".";
   import { getOffset, getTask } from ".";
   import { dragged, dropEffect, ghost, highlighted, selected } from "./state";
@@ -246,7 +245,6 @@
   on:focus={handleHighlight}
   on:blur={handleUnhighlight}
   on:click={handleSelect}
-  transition:slide|global={{ duration: $dragged ? 0 : 400 }}
 >
   <div class="min-w-48 overflow-x-clip whitespace-nowrap">
     <div class="flex items-center">
