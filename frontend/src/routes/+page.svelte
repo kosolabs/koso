@@ -3,6 +3,11 @@
   import kosoLogo from "$lib/assets/koso.svg";
   import { logout, token, user } from "$lib/auth";
   import { fetchProjects } from "$lib/projects";
+  import {
+    onLoginRedirect,
+    lastVisitedProjectId,
+    DO_NOT_REDIRECT,
+  } from "$lib/nav";
   import { Alert, Avatar, Button } from "flowbite-svelte";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { onMount } from "svelte";
@@ -17,11 +22,10 @@
   }
 
   onMount(() => {
-    const redirect = sessionStorage.getItem("login-redirect");
-    if (redirect === "DO_NOT") {
-      console.log("Removing DO_NOT redirect");
-      sessionStorage.removeItem("login-redirect");
+    if ($onLoginRedirect == DO_NOT_REDIRECT) {
+      $onLoginRedirect = null;
     }
+
     const googleProvider = new GoogleOAuthProvider({
       clientId:
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
@@ -42,19 +46,18 @@
             });
             if (loginResponse.ok) {
               $token = oneTapResponse.credential!;
-              const redirect = sessionStorage.getItem("login-redirect");
-              sessionStorage.removeItem("login-redirect");
-              if (redirect && redirect !== "DO_NOT") {
+              if ($onLoginRedirect) {
+                const redirect = $onLoginRedirect;
+                $onLoginRedirect = null;
                 console.log(`redirecting to prior page ${redirect}...`);
                 await goto(redirect);
                 return;
               } else {
-                const lastProjectId = localStorage.getItem(
-                  "last-visited-project",
-                );
-                if (lastProjectId) {
-                  console.log(`going to last visited project ${lastProjectId}`);
-                  await goto(`/projects/${lastProjectId}`);
+                if ($lastVisitedProjectId) {
+                  console.log(
+                    `going to last visited project ${$lastVisitedProjectId}`,
+                  );
+                  await goto(`/projects/${$lastVisitedProjectId}`);
                   return;
                 }
 

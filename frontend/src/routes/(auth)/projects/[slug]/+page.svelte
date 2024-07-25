@@ -17,13 +17,18 @@
   import { UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
   import * as Y from "yjs";
+  import {
+    lastVisitedProjectId,
+    onLoginRedirect,
+    DO_NOT_REDIRECT,
+  } from "$lib/nav";
 
   const koso = new Koso(new Y.Doc());
 
   async function logout_and_goto() {
     logout();
     console.log("going to / on logout and setting redirect to DO_NOT");
-    sessionStorage.setItem("login-redirect", "DO_NOT");
+    $onLoginRedirect = DO_NOT_REDIRECT;
     await goto("/");
   }
 
@@ -31,8 +36,6 @@
     if (!$user || !$token) {
       return;
     }
-
-    localStorage.setItem("last-visited-project", $page.params.slug);
 
     const host = location.origin.replace(/^http/, "ws");
     const wsUrl = `${host}/ws/projects/${$page.params.slug}`;
@@ -54,6 +57,8 @@
     while (socket.readyState !== WebSocket.OPEN) {
       await new Promise((r) => setTimeout(r, 100));
     }
+
+    $lastVisitedProjectId = $page.params.slug;
 
     koso.onLocalUpdate((update) => {
       socket.send(update);
