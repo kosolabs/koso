@@ -7,11 +7,13 @@
   $: if (!$user) {
     if ($onLoginRedirect === DO_NOT_REDIRECT) {
       $onLoginRedirect = null;
-      console.log(`User is logged out. Going to / without a redirect set`);
+      console.log(
+        "User isn't logged in and DO_NOT_REDIRECT is set. Going to / without a redirect destination.",
+      );
     } else {
       $onLoginRedirect = $page.url.pathname;
       console.log(
-        `User is logged out. Going to / with redirect ${$onLoginRedirect}`,
+        `User isn't logged in. Going to / with redirect destination ${$onLoginRedirect}`,
       );
     }
 

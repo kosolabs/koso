@@ -51,7 +51,6 @@
     // If there's no better choice, go to the projects page.
     console.log("Going to /projects");
     await goto(`/projects`);
-    return;
   }
 
   onMount(() => {
