@@ -27,9 +27,12 @@
 
 <script lang="ts">
   import type { Koso } from "$lib/koso";
+  import { Button } from "flowbite-svelte";
+  import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
   import { setContext } from "svelte";
   import { Node, type Graph } from ".";
   import Row from "./row.svelte";
+  import { selected } from "./state";
 
   export let koso: Koso;
   let graph: Graph = koso.toJSON();
@@ -48,6 +51,46 @@
     const allNodeIds = new Set<string>(Object.keys(graph));
     const rootIds = allNodeIds.difference(allChildren);
     return Array.from(rootIds).map((rootId) => new Node([rootId]));
+  }
+
+  function addRoot() {
+    koso.addRoot();
+  }
+
+  function addPeer() {
+    if (!$selected) return;
+    let node: Node;
+    const offset = $selected.offset + 1;
+    if ($selected.node.isRoot()) {
+      const newNodeId = koso.addRoot();
+      node = new Node([newNodeId]);
+    } else {
+      const parent = $selected.node.parent();
+      const newNodeId = koso.insertNode(parent.name, offset);
+      node = parent.concat(newNodeId);
+    }
+    $selected = { node, offset };
+  }
+
+  function addChild() {
+    if (!$selected) return;
+    const newNodeId = koso.insertNode($selected.node.name, 0);
+    $selected = {
+      node: $selected.node.concat(newNodeId),
+      offset: 0,
+    };
+  }
+
+  function unlink() {
+    if (!$selected) return;
+    koso.removeNode($selected.node.name, $selected.node.parent().name);
+    $selected = null;
+  }
+
+  function remove() {
+    if (!$selected) return;
+    koso.deleteNode($selected.node.name);
+    $selected = null;
   }
 
   $: roots = findRoots(graph);
@@ -118,6 +161,30 @@
     highlighted: null,
   };
 </script>
+
+<div class="my-2 flex gap-2">
+  {#if $selected}
+    <Button size="xs" on:click={addPeer}>
+      <List class="me-2 w-4" />Add Peer
+    </Button>
+    <Button size="xs" on:click={addChild}>
+      <ListTree class="me-2 w-4" />Add Child
+    </Button>
+    {#if $selected.node.isRoot()}
+      <Button size="xs" on:click={remove}>
+        <Trash class="me-2 w-4" />Delete
+      </Button>
+    {:else}
+      <Button size="xs" on:click={unlink}>
+        <Unlink class="me-2 w-4" />Unlink
+      </Button>
+    {/if}
+  {:else}
+    <Button size="xs" on:click={addRoot}>
+      <ListStart class="me-2 w-4" />Add Root
+    </Button>
+  {/if}
+</div>
 
 <div class="rounded-t border">
   <div id="header" class="border-b text-xs font-bold uppercase">

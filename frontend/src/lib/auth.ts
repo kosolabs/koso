@@ -12,15 +12,15 @@ export type User = {
 export const CREDENTIAL_KEY = "credential";
 
 export const token = writable<string | null>(
-  sessionStorage.getItem(CREDENTIAL_KEY) || null,
+  localStorage.getItem(CREDENTIAL_KEY) || null,
 );
 
 token.subscribe((token) => {
   if (token === null) {
     googleLogout();
-    sessionStorage.removeItem(CREDENTIAL_KEY);
+    localStorage.removeItem(CREDENTIAL_KEY);
   } else {
-    sessionStorage.setItem(CREDENTIAL_KEY, token);
+    localStorage.setItem(CREDENTIAL_KEY, token);
   }
 });
 
