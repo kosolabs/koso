@@ -1,80 +1,78 @@
 <script lang="ts">
-  import { token } from "$lib/auth";
+  import { token, user } from "$lib/auth";
   import { onMount } from "svelte";
   import { Alert, Button, A } from "flowbite-svelte";
   import { goto } from "$app/navigation";
-
-  type Project = {
-    project_id: string;
-    name: string;
-  };
+  import {
+    createProject as projectsCreateProject,
+    fetchProjects,
+    type Project,
+  } from "$lib/projects";
+  import { Layers } from "lucide-svelte";
 
   let projects: Promise<Project[]> = new Promise(() => {});
   let errorMessage: string | null = null;
 
-  async function fetchProjects() {
-    const response = await fetch("/api/projects", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${$token}`,
-      },
-    });
-    return await response.json();
-  }
-
   async function createProject() {
     errorMessage = null;
-
-    const response = await fetch("/api/projects", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${$token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name: "My Project!" }),
-    });
-    if (!response.ok) {
-      console.log("failed create", response);
-      errorMessage = `Failed to create project: ${response.statusText} (${response.status})`;
-    } else {
-      const project: Project = await response.json();
-      goto(`projects/${project.project_id}`);
+    let project;
+    try {
+      project = await projectsCreateProject($token);
+    } catch (err) {
+      errorMessage = `${err}`;
+      return;
     }
+    await goto(`/projects/${project.project_id}`);
   }
 
   onMount(() => {
-    projects = fetchProjects();
+    if (!$user) {
+      return;
+    }
+
+    projects = fetchProjects($token);
   });
 </script>
 
-<div class="flex flex-col rounded border p-4">
-  {#await projects}
-    <div>Loading...</div>
-  {:then projects}
-    {#if projects.length === 0}
-      <div class="m-auto mb-8 text-xl">Create your first Koso project!</div>
-      <div class="m-auto flex items-end gap-2">
+{#await projects}
+  <div class="flex flex-col items-center justify-center rounded border p-4">
+    <div class="text-xl">Loading...</div>
+  </div>
+{:then projects}
+  {#if projects.length === 0}
+    <div class="flex flex-col items-center justify-center rounded border p-4">
+      <div class="mb-2"><Layers /></div>
+      <div class="mb-4 text-xl">Create your first Koso project!</div>
+      <div>
+        <Button on:click={() => createProject()}>New project</Button>
+      </div>
+      {#if errorMessage}
+        <div class="mt-4">
+          <Alert class="border">{errorMessage}</Alert>
+        </div>
+      {/if}
+    </div>
+  {:else}
+    <div class="flex flex-col rounded border">
+      <div class="roundedborder flex flex-col items-end bg-slate-100 p-2">
         <div>
           <Button on:click={() => createProject()}>New project</Button>
         </div>
         {#if errorMessage}
-          <Alert class="mt-8" border>{errorMessage}</Alert>
+          <div class="mt-4 flex-grow-0">
+            <Alert class="border">{errorMessage}</Alert>
+          </div>
         {/if}
       </div>
-    {:else}
-      <div>
-        <div>
-          <Button on:click={() => createProject()}>New project</Button>
-        </div>
-        {#if errorMessage}
-          <Alert class="mt-8" border>{errorMessage}</Alert>
-        {/if}
-      </div>
-      <div>
+      <div
+        class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50"
+      >
         {#each projects as project}
-          <div><A href="projects/{project.project_id}">{project.name}</A></div>
+          <div class="rounded border p-2">
+            <A href="projects/{project.project_id}">{project.name}</A>
+          </div>
         {/each}
       </div>
-    {/if}
-  {/await}
-</div>
+    </div>
+  {/if}
+{/await}
