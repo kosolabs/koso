@@ -3,17 +3,21 @@
   import { onMount } from "svelte";
   import { Alert, Button, A } from "flowbite-svelte";
   import { goto } from "$app/navigation";
-  import { createProject, fetchProjects, type Project } from "$lib/projects";
+  import {
+    createProject as projectsCreateProject,
+    fetchProjects,
+    type Project,
+  } from "$lib/projects";
   import { Layers } from "lucide-svelte";
 
   let projects: Promise<Project[]> = new Promise(() => {});
   let errorMessage: string | null = null;
 
-  async function createProjectt() {
+  async function createProject() {
     errorMessage = null;
     let project;
     try {
-      project = await createProject($token);
+      project = await projectsCreateProject($token);
     } catch (err) {
       errorMessage = `${err}`;
       return;
@@ -40,7 +44,7 @@
       <div class="mb-2"><Layers /></div>
       <div class="mb-4 text-xl">Create your first Koso project!</div>
       <div>
-        <Button on:click={() => createProjectt()}>New project</Button>
+        <Button on:click={() => createProject()}>New project</Button>
       </div>
       {#if errorMessage}
         <div class="mt-4">
@@ -52,7 +56,7 @@
     <div class="flex flex-col rounded border">
       <div class="roundedborder flex flex-col items-end bg-slate-100 p-2">
         <div>
-          <Button on:click={() => createProjectt()}>New project</Button>
+          <Button on:click={() => createProject()}>New project</Button>
         </div>
         {#if errorMessage}
           <div class="mt-4 flex-grow-0">
