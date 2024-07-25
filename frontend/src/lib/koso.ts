@@ -59,6 +59,14 @@ export class Koso {
     return `${max + 1}`;
   }
 
+  addRoot(): string {
+    const nodeId = this.newId();
+    this.yDoc.transact(() => {
+      this.yGraph.set(nodeId, makeTask(nodeId, "Untitled", []));
+    });
+    return nodeId;
+  }
+
   addNode(nodeId: string, parentId: string, offset: number) {
     this.yDoc.transact(() => {
       const yParent = this.yGraph.get(parentId);
@@ -108,14 +116,15 @@ export class Koso {
     });
   }
 
-  insertNode(parentId: string, offset: number) {
+  insertNode(parentId: string, offset: number): string {
+    const nodeId = this.newId();
     this.yDoc.transact(() => {
-      const nodeId = this.newId();
       this.yGraph.set(nodeId, makeTask(nodeId, "Untitled", []));
       const yParent = this.yGraph.get(parentId)!;
       const yChildren = yParent.get("children") as Y.Array<string>;
       yChildren.insert(offset, [nodeId]);
     });
+    return nodeId;
   }
 
   editTaskName(taskId: string, newName: string) {

@@ -1,18 +1,12 @@
 <script lang="ts">
   import { cn } from "$lib/utils";
   import { A, Input, Tooltip } from "flowbite-svelte";
-  import {
-    ChevronRight,
-    List,
-    ListTree,
-    Menu,
-    Trash,
-    Unlink,
-  } from "lucide-svelte";
+  import { ChevronRight, Menu } from "lucide-svelte";
   import { getContext } from "svelte";
   import { slide } from "svelte/transition";
   import type { Graph, Node } from ".";
   import { getTask } from ".";
+  import { selected } from "./state";
   import {
     type IndexedNode,
     type Interactions,
@@ -43,9 +37,6 @@
   function toggleOpen() {
     open = !open;
   }
-
-  let unlinking = false;
-  let deleting = false;
 
   let editedTaskName: string | null = null;
 
@@ -142,26 +133,6 @@
     clearGhost();
   }
 
-  function handleDragOverUnlink(event: DragEvent) {
-    event.preventDefault();
-    unlinking = true;
-  }
-
-  function handleDragLeaveUnlink(event: DragEvent) {
-    event.preventDefault();
-    unlinking = false;
-  }
-
-  function handleDragOverDelete(event: DragEvent) {
-    event.preventDefault();
-    deleting = true;
-  }
-
-  function handleDragLeaveDelete(event: DragEvent) {
-    event.preventDefault();
-    deleting = false;
-  }
-
   function handleDragOverPeer(event: DragEvent) {
     event.preventDefault();
     const dataTransfer = event.dataTransfer;
@@ -227,6 +198,10 @@
     clearHighlighted();
   }
 
+  function handleSelect() {
+    $selected = { node, offset };
+  }
+
   function hasCycle(parent: string, child: string): boolean {
     if (child === parent) {
       return true;
@@ -287,46 +262,27 @@
     !hasChild(node, dragged.node) &&
     !hasCycle(node.name, dragged.node.name);
   $: isMoving = ghost && dragging && dropEffect === "move";
+  $: isSelected = node.equals($selected?.node || null);
 </script>
 
+<!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
   role="row"
   tabindex="0"
   class={cn(
     "flex items-center border border-transparent p-2",
-    isMoving || unlinking || deleting ? "border-red-600 opacity-30" : "",
+    isMoving ? "border-red-600 opacity-30" : "",
     isGhost ? "border-green-600 opacity-70" : "",
     highlighted?.name === node.name ? "border-lime-600" : "",
+    isSelected ? "border-primary-600" : "",
   )}
   on:mouseover={handleHighlight}
   on:mouseout={handleUnhighlight}
   on:focus={handleHighlight}
   on:blur={handleUnhighlight}
+  on:click={handleSelect}
   transition:slide|global={{ duration: interactions.dragged ? 0 : 400 }}
 >
-  {#if dragging}
-    {#if node.isRoot()}
-      <button
-        class="absolute left-1 z-50 rounded p-1 opacity-50 outline hover:opacity-100"
-        on:dragover={handleDragOverDelete}
-        on:dragleave={handleDragLeaveDelete}
-        on:drop={handleDropDelete}
-      >
-        <Trash class="h-4" />
-      </button>
-      <Tooltip class="text-nowrap" placement="bottom">Delete Task</Tooltip>
-    {:else}
-      <button
-        class="absolute left-1 z-50 rounded p-1 opacity-50 outline hover:opacity-100"
-        on:dragover={handleDragOverUnlink}
-        on:dragleave={handleDragLeaveUnlink}
-        on:drop={handleDropUnlink}
-      >
-        <Unlink class="h-4" />
-      </button>
-      <Tooltip class="text-nowrap" placement="bottom">Unlink Task</Tooltip>
-    {/if}
-  {/if}
   <div class="min-w-48 overflow-x-clip whitespace-nowrap">
     <div class="flex items-center">
       <button
@@ -342,23 +298,6 @@
       <Tooltip class="text-nowrap" placement="top">
         {open ? "Collapse" : "Expand"}
       </Tooltip>
-      <div class="relative">
-        <button
-          data-tooltip-target="tooltip-default"
-          class="absolute -left-3 top-3 rounded p-1 opacity-0 outline hover:opacity-60"
-          on:click={() => koso.insertNode(node.parent().name, offset + 1)}
-        >
-          <List class="h-5" />
-        </button>
-        <Tooltip class="text-nowrap" placement="bottom">Insert Peer</Tooltip>
-        <button
-          class="absolute left-5 top-3 rounded p-1 opacity-0 outline hover:opacity-60"
-          on:click={() => koso.insertNode(node.name, 0)}
-        >
-          <ListTree class="h-5" />
-        </button>
-        <Tooltip class="text-nowrap" placement="bottom">Insert Child</Tooltip>
-      </div>
       <button
         class="relative min-w-5"
         draggable={true}
