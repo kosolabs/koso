@@ -21,6 +21,39 @@
     googleLogin();
   }
 
+  async function redirectOnLogin() {
+    // If the user tried to access a page while unauthenticated,
+    // clear the redirect and go there.
+    const redirect = $onLoginRedirect;
+    $onLoginRedirect = null;
+    if (redirect && redirect !== DO_NOT_REDIRECT) {
+      console.log(`Going to prior page: ${redirect}`);
+      await goto(redirect);
+      return;
+    }
+
+    // Go to the previously viewed project, if there is one.
+    if ($lastVisitedProjectId) {
+      console.log(`Going to last visited project: ${$lastVisitedProjectId}`);
+      await goto(`/projects/${$lastVisitedProjectId}`);
+      return;
+    }
+
+    // If there's only 1 project, go to it.
+    const projects = await fetchProjects($token);
+    if (projects.length == 1) {
+      const onlyProjectId = projects[0].project_id;
+      console.log(`Going to singular project: ${onlyProjectId}`);
+      await goto(`/projects/${onlyProjectId}`);
+      return;
+    }
+
+    // If there's no better choice, go to the projects page.
+    console.log("Going to /projects");
+    await goto(`/projects`);
+    return;
+  }
+
   onMount(() => {
     const googleProvider = new GoogleOAuthProvider({
       clientId:
@@ -42,34 +75,7 @@
             });
             if (loginResponse.ok) {
               $token = oneTapResponse.credential!;
-
-              const redirect = $onLoginRedirect;
-              $onLoginRedirect = null;
-              if (redirect && redirect !== DO_NOT_REDIRECT) {
-                console.log(`redirecting to prior page ${redirect}...`);
-                await goto(redirect);
-                return;
-              } else {
-                if ($lastVisitedProjectId) {
-                  console.log(
-                    `going to last visited project ${$lastVisitedProjectId}`,
-                  );
-                  await goto(`/projects/${$lastVisitedProjectId}`);
-                  return;
-                }
-
-                const projects = await fetchProjects($token);
-                if (projects.length == 1) {
-                  const onlyProjectId = projects[0].project_id;
-                  console.log(`going to only project ${onlyProjectId}`);
-                  await goto(`/projects/${onlyProjectId}`);
-                  return;
-                } else {
-                  console.log("going to projects: /projects");
-                  await goto(`/projects`);
-                  return;
-                }
-              }
+              await redirectOnLogin();
             } else {
               errorMessage = `Failed to login: ${loginResponse.statusText} (${loginResponse.status})`;
             }
