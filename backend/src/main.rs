@@ -364,7 +364,7 @@ async fn login_handler(
 /// websocket protocol will occur.
 /// This is the last point where we can extract TCP/IP metadata such as IP address of the client
 /// as well as things from HTTP headers such as user-agent of the browser etc.
-#[tracing::instrument(skip(ws, project_id, _user_agent, addr, notifier))]
+#[tracing::instrument(skip(ws, _user_agent, addr, claims, notifier, pool))]
 async fn ws_handler(
     ws: WebSocketUpgrade,
     Path(project_id): Path<String>,
