@@ -10,7 +10,6 @@
     Unlink,
   } from "lucide-svelte";
   import { getContext } from "svelte";
-  import { slide } from "svelte/transition";
   import type { Graph, Node } from ".";
   import { getTask } from ".";
   import {
@@ -302,7 +301,6 @@
   on:mouseout={handleUnhighlight}
   on:focus={handleHighlight}
   on:blur={handleUnhighlight}
-  transition:slide|global={{ duration: interactions.dragged ? 0 : 400 }}
 >
   {#if dragging}
     {#if node.isRoot()}

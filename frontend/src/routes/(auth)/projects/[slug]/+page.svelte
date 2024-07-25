@@ -20,13 +20,15 @@
 
   const koso = new Koso(new Y.Doc());
 
+  async function logout_and_goto() {
+    logout();
+    console.log("going to / on logout and setting redirect to DO_NOT");
+    sessionStorage.setItem("login-redirect", "DO_NOT");
+    await goto("/");
+  }
+
   onMount(async () => {
-    if (!$user) {
-      sessionStorage.setItem(
-        "login-redirect",
-        `/projects/${$page.params.slug}`,
-      );
-      goto("/");
+    if (!$user || !$token) {
       return;
     }
 
@@ -68,8 +70,8 @@
       <Button size="xs"><UserPlus /></Button>
       <NavHamburger />
       <NavUl>
-        <NavLi href="/projects">Projects</NavLi>
-        <NavLi href="/logout">Logout</NavLi>
+        <NavLi on:click={() => goto("/projects")}>Projects</NavLi>
+        <NavLi on:click={() => logout_and_goto()}>Logout</NavLi>
       </NavUl>
     </div>
   </NavContainer>

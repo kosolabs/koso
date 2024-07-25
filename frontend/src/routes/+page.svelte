@@ -17,6 +17,11 @@
   }
 
   onMount(() => {
+    const redirect = sessionStorage.getItem("login-redirect");
+    if (redirect === "DO_NOT") {
+      console.log("Removing DO_NOT redirect");
+      sessionStorage.removeItem("login-redirect");
+    }
     const googleProvider = new GoogleOAuthProvider({
       clientId:
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
@@ -38,29 +43,30 @@
             if (loginResponse.ok) {
               $token = oneTapResponse.credential!;
               const redirect = sessionStorage.getItem("login-redirect");
-              if (redirect) {
-                console.log("redirecting to prior page...");
-                sessionStorage.removeItem("login-redirect");
-                goto(redirect);
+              sessionStorage.removeItem("login-redirect");
+              if (redirect && redirect !== "DO_NOT") {
+                console.log(`redirecting to prior page ${redirect}...`);
+                await goto(redirect);
                 return;
               } else {
                 const lastProjectId = localStorage.getItem(
                   "last-visited-project",
                 );
                 if (lastProjectId) {
-                  console.log("going to last visited project");
-                  goto(`/projects/${lastProjectId}`);
+                  console.log(`going to last visited project ${lastProjectId}`);
+                  await goto(`/projects/${lastProjectId}`);
                   return;
                 }
 
                 const projects = await fetchProjects($token);
                 if (projects.length == 1) {
-                  console.log("going to only project");
-                  goto(`/projects/${projects[0].project_id}`);
+                  const onlyProjectId = projects[0].project_id;
+                  console.log(`going to only project ${onlyProjectId}`);
+                  await goto(`/projects/${onlyProjectId}`);
                   return;
                 } else {
-                  console.log("going to projects");
-                  goto(`/projects`);
+                  console.log("going to projects: /projects");
+                  await goto(`/projects`);
                   return;
                 }
               }
