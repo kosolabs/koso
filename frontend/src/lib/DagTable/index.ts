@@ -44,6 +44,12 @@ export function getTask(graph: Graph, id: string): Task {
   return task;
 }
 
+export function getOffset(graph: Graph, node: Node): number {
+  if (node.isRoot()) return 0;
+  const task = getTask(graph, node.parent().name);
+  return task.children.indexOf(node.name);
+}
+
 export type Task = {
   id: string;
   name: string;

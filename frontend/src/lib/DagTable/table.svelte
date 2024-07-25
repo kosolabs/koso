@@ -1,36 +1,9 @@
-<script lang="ts" context="module">
-  export type IndexedNode = {
-    node: Node;
-    offset: number;
-  };
-
-  export type DropEffect = "link" | "move" | "none";
-
-  export type Interactions = {
-    dragged: IndexedNode | null;
-    ghost: IndexedNode | null;
-    dropEffect: DropEffect;
-    highlighted: Node | null;
-  };
-
-  export type TableContext = {
-    koso: Koso;
-    setDragged: (node: Node, offset: number) => void;
-    clearDragged: () => void;
-    setDropEffect: (dropEffect: DropEffect) => void;
-    setGhost: (node: Node, offset: number) => void;
-    clearGhost: () => void;
-    setHighlighted: (node: Node) => void;
-    clearHighlighted: () => void;
-  };
-</script>
-
 <script lang="ts">
   import type { Koso } from "$lib/koso";
   import { Button } from "flowbite-svelte";
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
   import { setContext } from "svelte";
-  import { Node, type Graph } from ".";
+  import { getOffset, Node, type Graph } from ".";
   import Row from "./row.svelte";
   import { selected } from "./state";
 
@@ -59,107 +32,40 @@
 
   function addPeer() {
     if (!$selected) return;
-    let node: Node;
-    const offset = $selected.offset + 1;
-    if ($selected.node.isRoot()) {
+    if ($selected.isRoot()) {
       const newNodeId = koso.addRoot();
-      node = new Node([newNodeId]);
+      $selected = new Node([newNodeId]);
     } else {
-      const parent = $selected.node.parent();
-      const newNodeId = koso.insertNode(parent.name, offset);
-      node = parent.concat(newNodeId);
+      const parent = $selected.parent();
+      const newNodeId = koso.insertNode(
+        parent.name,
+        getOffset(graph, $selected) + 1,
+      );
+      $selected = parent.concat(newNodeId);
     }
-    $selected = { node, offset };
   }
 
   function addChild() {
     if (!$selected) return;
-    const newNodeId = koso.insertNode($selected.node.name, 0);
-    $selected = {
-      node: $selected.node.concat(newNodeId),
-      offset: 0,
-    };
+    const newNodeId = koso.insertNode($selected.name, 0);
+    $selected = $selected.concat(newNodeId);
   }
 
   function unlink() {
     if (!$selected) return;
-    koso.removeNode($selected.node.name, $selected.node.parent().name);
+    koso.removeNode($selected.name, $selected.parent().name);
     $selected = null;
   }
 
   function remove() {
     if (!$selected) return;
-    koso.deleteNode($selected.node.name);
+    koso.deleteNode($selected.name);
     $selected = null;
   }
 
   $: roots = findRoots(graph);
 
-  setContext<TableContext>("graph", {
-    koso,
-    setDragged: (node: Node, offset: number) => {
-      if (
-        interactions.dragged &&
-        node.equals(interactions.dragged.node) &&
-        offset === interactions.dragged.offset
-      ) {
-        return;
-      }
-      interactions.dragged = { node, offset };
-      interactions = interactions;
-    },
-    clearDragged: () => {
-      interactions.dragged = null;
-      interactions.dropEffect = "none";
-      interactions = interactions;
-    },
-    setDropEffect: (dropEffect: DropEffect) => {
-      if (interactions.dropEffect === dropEffect) {
-        return;
-      }
-      interactions.dropEffect = dropEffect;
-      interactions = interactions;
-    },
-    setGhost: (node: Node, offset: number) => {
-      if (
-        interactions.ghost &&
-        node.equals(interactions.ghost.node) &&
-        offset === interactions.ghost.offset
-      ) {
-        return;
-      }
-      interactions.ghost = { node, offset };
-      interactions = interactions;
-    },
-    clearGhost: () => {
-      if (interactions.ghost === null) {
-        return;
-      }
-      interactions.ghost = null;
-      interactions = interactions;
-    },
-    setHighlighted: (node: Node) => {
-      if (node.equals(interactions.highlighted)) {
-        return;
-      }
-      interactions.highlighted = node;
-      interactions = interactions;
-    },
-    clearHighlighted: () => {
-      if (interactions.highlighted === null) {
-        return;
-      }
-      interactions.highlighted = null;
-      interactions = interactions;
-    },
-  });
-
-  let interactions: Interactions = {
-    dragged: null,
-    dropEffect: "none",
-    ghost: null,
-    highlighted: null,
-  };
+  setContext<Koso>("koso", koso);
 </script>
 
 <div class="my-2 flex gap-2">
@@ -170,7 +76,7 @@
     <Button size="xs" on:click={addChild}>
       <ListTree class="me-2 w-4" />Add Child
     </Button>
-    {#if $selected.node.isRoot()}
+    {#if $selected.isRoot()}
       <Button size="xs" on:click={remove}>
         <Trash class="me-2 w-4" />Delete
       </Button>
@@ -203,8 +109,8 @@
   </div>
 
   <div id="body" class="[&>*:nth-child(even)]:bg-slate-50">
-    {#each roots as root, offset}
-      <Row {graph} {interactions} isGhost={false} node={root} {offset} />
+    {#each roots as root}
+      <Row {graph} isGhost={false} node={root} />
     {/each}
   </div>
 </div>
