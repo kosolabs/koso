@@ -1,20 +1,3 @@
-<script lang="ts" context="module">
-  export type IndexedNode = {
-    node: Node;
-    offset: number;
-  };
-
-  export type Interactions = {
-    ghost: IndexedNode | null;
-  };
-
-  export type TableContext = {
-    koso: Koso;
-    setGhost: (node: Node, offset: number) => void;
-    clearGhost: () => void;
-  };
-</script>
-
 <script lang="ts">
   import type { Koso } from "$lib/koso";
   import { Button } from "flowbite-svelte";
@@ -82,31 +65,7 @@
 
   $: roots = findRoots(graph);
 
-  setContext<TableContext>("graph", {
-    koso,
-    setGhost: (node: Node, offset: number) => {
-      if (
-        interactions.ghost &&
-        node.equals(interactions.ghost.node) &&
-        offset === interactions.ghost.offset
-      ) {
-        return;
-      }
-      interactions.ghost = { node, offset };
-      interactions = interactions;
-    },
-    clearGhost: () => {
-      if (interactions.ghost === null) {
-        return;
-      }
-      interactions.ghost = null;
-      interactions = interactions;
-    },
-  });
-
-  let interactions: Interactions = {
-    ghost: null,
-  };
+  setContext<Koso>("koso", koso);
 </script>
 
 <div class="my-2 flex gap-2">
@@ -151,7 +110,7 @@
 
   <div id="body" class="[&>*:nth-child(even)]:bg-slate-50">
     {#each roots as root}
-      <Row {graph} {interactions} isGhost={false} node={root} />
+      <Row {graph} isGhost={false} node={root} />
     {/each}
   </div>
 </div>

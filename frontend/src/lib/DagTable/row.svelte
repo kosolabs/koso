@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Koso } from "$lib/koso";
   import { cn } from "$lib/utils";
   import { A, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
@@ -6,18 +7,15 @@
   import { slide } from "svelte/transition";
   import type { Graph, Node } from ".";
   import { getOffset, getTask } from ".";
-  import { dragged, dropEffect, highlighted, selected } from "./state";
-  import { type Interactions, type TableContext } from "./table.svelte";
+  import { dragged, dropEffect, ghost, highlighted, selected } from "./state";
 
   export let graph: Graph;
   export let node: Node;
-  export let interactions: Interactions;
   export let isGhost: boolean;
 
   $: task = getTask(graph, node.name);
-  $: ({ ghost } = interactions);
 
-  const { koso, setGhost, clearGhost } = getContext<TableContext>("graph");
+  const koso = getContext<Koso>("koso");
 
   let open = true;
   function toggleOpen() {
@@ -66,6 +64,7 @@
       return;
     }
     $highlighted = null;
+    $selected = null;
     $dragged = node;
     dataTransfer.setData("text/plain", node.id);
     dataTransfer.effectAllowed = "linkMove";
@@ -82,7 +81,7 @@
 
   function handleDropNode(event: DragEvent) {
     event.preventDefault();
-    if ($dragged === null || ghost === null || $dropEffect === "none") {
+    if ($dragged === null || $ghost === null || $dropEffect === "none") {
       return;
     }
 
@@ -91,14 +90,14 @@
         $dragged.name,
         $dragged.parent().name,
         getOffset(graph, $dragged),
-        ghost.node.parent().name,
-        ghost.offset,
+        $ghost.node.parent().name,
+        $ghost.offset,
       );
     } else {
-      koso.addNode($dragged.name, ghost.node.parent().name, ghost.offset);
+      koso.addNode($dragged.name, $ghost.node.parent().name, $ghost.offset);
     }
     $dragged = null;
-    clearGhost();
+    $ghost = null;
   }
 
   function handleDragOverPeer(event: DragEvent) {
@@ -115,7 +114,10 @@
       $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
     }
 
-    setGhost(node.parent().concat($dragged.name), getOffset(graph, node) + 1);
+    $ghost = {
+      node: node.parent().concat($dragged.name),
+      offset: getOffset(graph, node) + 1,
+    };
   }
 
   function handleDragEnterPeer(event: DragEvent) {
@@ -137,7 +139,10 @@
       $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
     }
 
-    setGhost(node.concat($dragged.name), 0);
+    $ghost = {
+      node: node.concat($dragged.name),
+      offset: 0,
+    };
   }
 
   function handleDragEnterChild(event: DragEvent) {
@@ -147,7 +152,7 @@
 
   function handleDragLeave(event: DragEvent) {
     event.preventDefault();
-    clearGhost();
+    $ghost = null;
   }
 
   function handleHighlight() {
@@ -226,6 +231,7 @@
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
+  id="row-{node.id}"
   role="row"
   tabindex="0"
   class={cn(
@@ -320,24 +326,21 @@
 </div>
 
 <!-- Ghost is the first child of node. -->
-{#if dragged && ghost && !isGhost && node.equals(ghost.node.parent()) && ghost.offset === 0}
-  <svelte:self {graph} {interactions} isGhost={true} node={ghost.node} />
-{/if}
+{#if !isGhost}
+  {#if $ghost && node.equals($ghost.node.parent()) && $ghost.offset === 0}
+    <svelte:self {graph} isGhost={true} node={$ghost.node} />
+  {/if}
 
-{#if open && !isGhost}
-  {#each task.children as childId}
-    <svelte:self
-      {graph}
-      {interactions}
-      isGhost={false}
-      node={node.concat(childId)}
-    />
-  {/each}
-{/if}
+  {#if open}
+    {#each task.children as childId}
+      <svelte:self {graph} isGhost={false} node={node.concat(childId)} />
+    {/each}
+  {/if}
 
-<!-- Ghost is the peer immedicately proceeding node. -->
-{#if dragged && ghost && !isGhost && !node.isRoot() && node
-    .parent()
-    .equals(ghost.node.parent()) && ghost.offset === getOffset(graph, node) + 1}
-  <svelte:self {graph} {interactions} isGhost={true} node={ghost.node} />
+  <!-- Ghost is the peer immedicately proceeding node. -->
+  {#if $ghost && !node.isRoot() && node
+      .parent()
+      .equals($ghost.node.parent()) && $ghost.offset === getOffset(graph, node) + 1}
+    <svelte:self {graph} isGhost={true} node={$ghost.node} />
+  {/if}
 {/if}
