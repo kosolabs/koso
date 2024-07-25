@@ -1,4 +1,4 @@
 import { writable } from "svelte/store";
-import type { IndexedNode } from "./table.svelte";
+import type { Node } from ".";
 
-export const selected = writable<IndexedNode | null>(null);
+export const selected = writable<Node | null>(null);

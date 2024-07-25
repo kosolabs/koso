@@ -30,7 +30,7 @@
   import { Button } from "flowbite-svelte";
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
   import { setContext } from "svelte";
-  import { Node, type Graph } from ".";
+  import { getOffset, Node, type Graph } from ".";
   import Row from "./row.svelte";
   import { selected } from "./state";
 
@@ -59,37 +59,34 @@
 
   function addPeer() {
     if (!$selected) return;
-    let node: Node;
-    const offset = $selected.offset + 1;
-    if ($selected.node.isRoot()) {
+    if ($selected.isRoot()) {
       const newNodeId = koso.addRoot();
-      node = new Node([newNodeId]);
+      $selected = new Node([newNodeId]);
     } else {
-      const parent = $selected.node.parent();
-      const newNodeId = koso.insertNode(parent.name, offset);
-      node = parent.concat(newNodeId);
+      const parent = $selected.parent();
+      const newNodeId = koso.insertNode(
+        parent.name,
+        getOffset(graph, $selected) + 1,
+      );
+      $selected = parent.concat(newNodeId);
     }
-    $selected = { node, offset };
   }
 
   function addChild() {
     if (!$selected) return;
-    const newNodeId = koso.insertNode($selected.node.name, 0);
-    $selected = {
-      node: $selected.node.concat(newNodeId),
-      offset: 0,
-    };
+    const newNodeId = koso.insertNode($selected.name, 0);
+    $selected = $selected.concat(newNodeId);
   }
 
   function unlink() {
     if (!$selected) return;
-    koso.removeNode($selected.node.name, $selected.node.parent().name);
+    koso.removeNode($selected.name, $selected.parent().name);
     $selected = null;
   }
 
   function remove() {
     if (!$selected) return;
-    koso.deleteNode($selected.node.name);
+    koso.deleteNode($selected.name);
     $selected = null;
   }
 
@@ -170,7 +167,7 @@
     <Button size="xs" on:click={addChild}>
       <ListTree class="me-2 w-4" />Add Child
     </Button>
-    {#if $selected.node.isRoot()}
+    {#if $selected.isRoot()}
       <Button size="xs" on:click={remove}>
         <Trash class="me-2 w-4" />Delete
       </Button>
@@ -203,8 +200,8 @@
   </div>
 
   <div id="body" class="[&>*:nth-child(even)]:bg-slate-50">
-    {#each roots as root, offset}
-      <Row {graph} {interactions} isGhost={false} node={root} {offset} />
+    {#each roots as root}
+      <Row {graph} {interactions} isGhost={false} node={root} />
     {/each}
   </div>
 </div>

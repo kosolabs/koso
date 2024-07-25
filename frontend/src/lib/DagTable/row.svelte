@@ -5,7 +5,7 @@
   import { getContext } from "svelte";
   import { slide } from "svelte/transition";
   import type { Graph, Node } from ".";
-  import { getTask } from ".";
+  import { getOffset, getTask } from ".";
   import { selected } from "./state";
   import {
     type IndexedNode,
@@ -17,7 +17,6 @@
   export let node: Node;
   export let interactions: Interactions;
   export let isGhost: boolean;
-  export let offset: number;
 
   $: task = getTask(graph, node.name);
   $: ({ dragged, ghost, dropEffect, highlighted } = interactions);
@@ -80,12 +79,7 @@
       return;
     }
     clearHighlighted();
-    setDragged(
-      node,
-      node.isRoot()
-        ? 0
-        : getTask(graph, node.parent().name).children.indexOf(node.name),
-    );
+    setDragged(node, getOffset(graph, node));
     dataTransfer.setData("text/plain", node.id);
     dataTransfer.effectAllowed = "linkMove";
   }
@@ -134,9 +128,10 @@
       setDropEffect(dataTransfer.effectAllowed === "link" ? "link" : "move");
     }
 
-    const parentId = node.parent().name;
-    const offset = getTask(graph, parentId).children.indexOf(node.name) + 1;
-    setGhost(node.parent().concat(dragged.node.name), offset);
+    setGhost(
+      node.parent().concat(dragged.node.name),
+      getOffset(graph, node) + 1,
+    );
   }
 
   function handleDragEnterPeer(event: DragEvent) {
@@ -186,7 +181,7 @@
   }
 
   function handleSelect() {
-    $selected = { node, offset };
+    $selected = node;
   }
 
   function hasCycle(parent: string, child: string): boolean {
@@ -218,10 +213,7 @@
     if (!node.parent().equals(dragged.node.parent())) {
       return false;
     }
-
-    const parentId = node.parent().name;
-    const children = getTask(graph, parentId).children;
-    return children.indexOf(node.name) + 1 === dragged.offset;
+    return getOffset(graph, node) + 1 === dragged.offset;
   }
 
   function isSameChild(node: Node, dragged: IndexedNode): boolean {
@@ -249,7 +241,7 @@
     !hasChild(node, dragged.node) &&
     !hasCycle(node.name, dragged.node.name);
   $: isMoving = ghost && dragging && dropEffect === "move";
-  $: isSelected = node.equals($selected?.node || null);
+  $: isSelected = node.equals($selected);
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -348,37 +340,24 @@
 </div>
 
 <!-- Ghost is the first child of node. -->
-{#if dragged && ghost && node.equals(ghost.node.parent()) && ghost.offset === 0}
-  <svelte:self
-    {graph}
-    {interactions}
-    isGhost={true}
-    node={ghost.node}
-    offset={ghost.offset}
-  />
+{#if dragged && ghost && !isGhost && node.equals(ghost.node.parent()) && ghost.offset === 0}
+  <svelte:self {graph} {interactions} isGhost={true} node={ghost.node} />
 {/if}
 
 {#if open && !isGhost}
-  {#each task.children as childId, offset}
+  {#each task.children as childId}
     <svelte:self
       {graph}
       {interactions}
       isGhost={false}
       node={node.concat(childId)}
-      {offset}
     />
   {/each}
 {/if}
 
 <!-- Ghost is the peer immedicately proceeding node. -->
-{#if dragged && ghost && !node.isRoot() && node
+{#if dragged && ghost && !isGhost && !node.isRoot() && node
     .parent()
-    .equals(ghost.node.parent()) && ghost.offset === offset + 1}
-  <svelte:self
-    {graph}
-    {interactions}
-    isGhost={true}
-    node={ghost.node}
-    offset={ghost.offset}
-  />
+    .equals(ghost.node.parent()) && ghost.offset === getOffset(graph, node) + 1}
+  <svelte:self {graph} {interactions} isGhost={true} node={ghost.node} />
 {/if}
