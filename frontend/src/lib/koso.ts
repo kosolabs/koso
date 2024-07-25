@@ -14,10 +14,10 @@ export class Koso {
   yGraph: Y.Map<Y.Map<string | Y.Array<string>>>;
   yIndexedDb: IndexeddbPersistence;
 
-  constructor(yDoc: Y.Doc) {
+  constructor(projectId: string, yDoc: Y.Doc) {
     this.yDoc = yDoc;
     this.yGraph = yDoc.getMap("graph");
-    this.yIndexedDb = new IndexeddbPersistence("koso", this.yDoc);
+    this.yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.yDoc);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

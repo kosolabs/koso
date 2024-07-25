@@ -10,14 +10,15 @@
   import { onMount } from "svelte";
   import * as Y from "yjs";
 
-  const koso = new Koso(new Y.Doc());
+  const projectId = $page.params.slug;
+  const koso = new Koso(projectId, new Y.Doc());
 
   onMount(async () => {
     if (!$token) {
       return;
     }
     const host = location.origin.replace(/^http/, "ws");
-    const wsUrl = `${host}/ws/projects/${$page.params.slug}`;
+    const wsUrl = `${host}/ws/projects/${projectId}`;
     const socket = new WebSocket(wsUrl, ["bearer", $token]);
     socket.binaryType = "arraybuffer";
     socket.onmessage = (event) => {
