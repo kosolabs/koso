@@ -156,12 +156,12 @@
   }
 
   function handleHighlight() {
-    if (dragged) return;
+    if ($dragged) return;
     $highlighted = node;
   }
 
   function handleUnhighlight() {
-    if (dragged) return;
+    if ($dragged) return;
     $highlighted = null;
   }
 
@@ -251,7 +251,7 @@
   <div class="min-w-48 overflow-x-clip whitespace-nowrap">
     <div class="flex items-center">
       <button
-        class="min-w-5 transition-transform"
+        class="w-5 transition-transform"
         class:rotate-90={open && !isGhost}
         style="margin-left: {(node.length - 1) * 1.25}rem;"
         on:click={() => toggleOpen()}
@@ -264,7 +264,7 @@
         {open ? "Collapse" : "Expand"}
       </Tooltip>
       <button
-        class="relative min-w-5"
+        class="relative w-5"
         draggable={true}
         on:dragstart={handleDragStart}
         on:dragend={handleDragEnd}

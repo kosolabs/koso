@@ -97,8 +97,8 @@
     <div class="my-1 flex items-center p-2">
       <div class="min-w-48 whitespace-nowrap border-r">
         <div class="flex items-center">
-          <div class="min-w-5"></div>
-          <div class="min-w-5"></div>
+          <div class="w-5"></div>
+          <div class="w-5"></div>
           <div>ID</div>
         </div>
       </div>
