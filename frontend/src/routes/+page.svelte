@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import kosoLogo from "$lib/assets/koso.svg";
   import { logout, token, user } from "$lib/auth";
+  import { fetchProjects } from "$lib/projects";
   import { Alert, Avatar, Button } from "flowbite-svelte";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { onMount } from "svelte";
@@ -36,6 +37,33 @@
             });
             if (loginResponse.ok) {
               $token = oneTapResponse.credential!;
+              const redirect = sessionStorage.getItem("login-redirect");
+              if (redirect) {
+                console.log("redirecting to prior page...");
+                sessionStorage.removeItem("login-redirect");
+                goto(redirect);
+                return;
+              } else {
+                const lastProjectId = localStorage.getItem(
+                  "last-visited-project",
+                );
+                if (lastProjectId) {
+                  console.log("going to last visited project");
+                  goto(`/projects/${lastProjectId}`);
+                  return;
+                }
+
+                const projects = await fetchProjects($token);
+                if (projects.length == 1) {
+                  console.log("going to only project");
+                  goto(`/projects/${projects[0].project_id}`);
+                  return;
+                } else {
+                  console.log("going to projects");
+                  goto(`/projects`);
+                  return;
+                }
+              }
             } else {
               errorMessage = `Failed to login: ${loginResponse.statusText} (${loginResponse.status})`;
             }
