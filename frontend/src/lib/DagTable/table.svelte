@@ -4,24 +4,14 @@
     offset: number;
   };
 
-  export type DropEffect = "link" | "move" | "none";
-
   export type Interactions = {
-    dragged: IndexedNode | null;
     ghost: IndexedNode | null;
-    dropEffect: DropEffect;
-    highlighted: Node | null;
   };
 
   export type TableContext = {
     koso: Koso;
-    setDragged: (node: Node, offset: number) => void;
-    clearDragged: () => void;
-    setDropEffect: (dropEffect: DropEffect) => void;
     setGhost: (node: Node, offset: number) => void;
     clearGhost: () => void;
-    setHighlighted: (node: Node) => void;
-    clearHighlighted: () => void;
   };
 </script>
 
@@ -94,29 +84,6 @@
 
   setContext<TableContext>("graph", {
     koso,
-    setDragged: (node: Node, offset: number) => {
-      if (
-        interactions.dragged &&
-        node.equals(interactions.dragged.node) &&
-        offset === interactions.dragged.offset
-      ) {
-        return;
-      }
-      interactions.dragged = { node, offset };
-      interactions = interactions;
-    },
-    clearDragged: () => {
-      interactions.dragged = null;
-      interactions.dropEffect = "none";
-      interactions = interactions;
-    },
-    setDropEffect: (dropEffect: DropEffect) => {
-      if (interactions.dropEffect === dropEffect) {
-        return;
-      }
-      interactions.dropEffect = dropEffect;
-      interactions = interactions;
-    },
     setGhost: (node: Node, offset: number) => {
       if (
         interactions.ghost &&
@@ -135,27 +102,10 @@
       interactions.ghost = null;
       interactions = interactions;
     },
-    setHighlighted: (node: Node) => {
-      if (node.equals(interactions.highlighted)) {
-        return;
-      }
-      interactions.highlighted = node;
-      interactions = interactions;
-    },
-    clearHighlighted: () => {
-      if (interactions.highlighted === null) {
-        return;
-      }
-      interactions.highlighted = null;
-      interactions = interactions;
-    },
   });
 
   let interactions: Interactions = {
-    dragged: null,
-    dropEffect: "none",
     ghost: null,
-    highlighted: null,
   };
 </script>
 
