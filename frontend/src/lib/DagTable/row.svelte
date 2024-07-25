@@ -74,19 +74,6 @@
     }
   }
 
-  function handleDropUnlink(event: DragEvent) {
-    event.preventDefault();
-    koso.removeNode(node.name, node.parent().name);
-  }
-
-  function handleDropDelete(event: DragEvent) {
-    event.preventDefault();
-    if (!node.isRoot()) {
-      throw new Error(`Cannot delete non-root node ${node.name}`);
-    }
-    koso.deleteNode(node.name);
-  }
-
   function handleDragStart(event: DragEvent) {
     const dataTransfer = event.dataTransfer;
     if (dataTransfer === null) {
