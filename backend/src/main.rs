@@ -316,17 +316,13 @@ async fn add_project_permission_handler(
         return Err(bad_request_error("Permission email is empty"));
     }
 
-    let projects = list_projects(&claims.email, pool).await?;
-    let mut has_permission = false;
-    for project in projects {
-        if project.project_id == project_id {
-            has_permission = true;
-            break;
-        }
-    }
-    if !has_permission {
+    let allowed = list_projects(&claims.email, pool)
+        .await?
+        .iter()
+        .any(|p| p.project_id == project_id);
+    if !allowed {
         return Err(unauthorized_error(&format!(
-            "Authorized to share project {project_id}"
+            "Not authorized to access project {project_id}"
         )));
     }
 
@@ -374,10 +370,21 @@ async fn ws_handler(
     Path(project_id): Path<String>,
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    Extension(claims): Extension<Claims>,
     Extension(notifier): Extension<notify::Notifier>,
+    Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Response<Body>> {
     if project_id.is_empty() {
         return Err(bad_request_error("projects segment must not be empty"));
+    }
+    let allowed = list_projects(&claims.email, pool)
+        .await?
+        .iter()
+        .any(|p| p.project_id == project_id);
+    if !allowed {
+        return Err(unauthorized_error(&format!(
+            "Not authorized to access project {project_id}"
+        )));
     }
 
     // finalize the upgrade process by returning upgrade callback.
