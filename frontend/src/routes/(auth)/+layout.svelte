@@ -1,11 +1,10 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
   import { user } from "$lib/auth";
-  import { setRedirectOnUserNotAuthenticated } from "$lib/nav";
+  import { pushRedirectOnUserNotAuthenticated } from "$lib/nav";
 
   $: if (!$user) {
-    setRedirectOnUserNotAuthenticated();
+    pushRedirectOnUserNotAuthenticated();
     goto("/");
   }
 </script>

@@ -44,7 +44,7 @@ export function disableRedirectOnLogOut() {
 // Call this when a user becomes non-authenticated,
 // whether by accessing a page without being logged in
 // or their credentials expiring.
-export function setRedirectOnUserNotAuthenticated() {
+export function pushRedirectOnUserNotAuthenticated() {
   if (get(onLoginRedirect) === DO_NOT_REDIRECT) {
     onLoginRedirect.update(() => null);
     console.log(
