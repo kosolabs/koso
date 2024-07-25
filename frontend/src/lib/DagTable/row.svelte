@@ -211,7 +211,7 @@
     return getOffset(graph, dragged) === 0;
   }
 
-  $: dragging = !isGhost && $dragged && node.equals($dragged);
+  $: dragging = !isGhost && node.equals($dragged);
   $: canDragDropPeer =
     !dragging &&
     !node.isRoot() &&
@@ -225,7 +225,7 @@
     !isSameChild(node, $dragged) &&
     !hasChild(node, $dragged) &&
     !hasCycle(node.name, $dragged.name);
-  $: isMoving = ghost && dragging && $dropEffect === "move";
+  $: isMoving = $ghost && dragging && $dropEffect === "move";
   $: isSelected = node.equals($selected);
 </script>
 
