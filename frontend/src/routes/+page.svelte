@@ -2,6 +2,8 @@
   import { goto } from "$app/navigation";
   import kosoLogo from "$lib/assets/koso.svg";
   import { logout, token, user } from "$lib/auth";
+  import { fetchProjects } from "$lib/projects";
+  import { lastVisitedProjectId, popRedirectOnLogin } from "$lib/nav";
   import { Alert, Avatar, Button } from "flowbite-svelte";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { onMount } from "svelte";
@@ -13,6 +15,37 @@
   function login() {
     errorMessage = null;
     googleLogin();
+  }
+
+  async function redirectOnLogin() {
+    // If the user tried to access a page while unauthenticated,
+    // clear the redirect and go there.
+    const redirect = popRedirectOnLogin();
+    if (redirect) {
+      console.log(`Going to prior page: ${redirect}`);
+      await goto(redirect);
+      return;
+    }
+
+    // Go to the previously viewed project, if there is one.
+    if ($lastVisitedProjectId) {
+      console.log(`Going to last visited project: ${$lastVisitedProjectId}`);
+      await goto(`/projects/${$lastVisitedProjectId}`);
+      return;
+    }
+
+    // If there's only 1 project, go to it.
+    const projects = await fetchProjects($token);
+    if (projects.length == 1) {
+      const onlyProjectId = projects[0].project_id;
+      console.log(`Going to singular project: ${onlyProjectId}`);
+      await goto(`/projects/${onlyProjectId}`);
+      return;
+    }
+
+    // If there's no better choice, go to the projects page.
+    console.log("Going to /projects");
+    await goto(`/projects`);
   }
 
   onMount(() => {
@@ -36,6 +69,7 @@
             });
             if (loginResponse.ok) {
               $token = oneTapResponse.credential!;
+              await redirectOnLogin();
             } else {
               errorMessage = `Failed to login: ${loginResponse.statusText} (${loginResponse.status})`;
             }
