@@ -17,17 +17,13 @@
   import { UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
   import * as Y from "yjs";
-  import {
-    lastVisitedProjectId,
-    onLoginRedirect,
-    DO_NOT_REDIRECT,
-  } from "$lib/nav";
+  import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
 
   const projectId = $page.params.slug;
   const koso = new Koso(projectId, new Y.Doc());
 
   async function logout() {
-    $onLoginRedirect = DO_NOT_REDIRECT;
+    disableRedirectOnLogOut();
     auth_logout();
   }
 
