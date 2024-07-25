@@ -22,10 +22,6 @@
   }
 
   onMount(() => {
-    if ($onLoginRedirect == DO_NOT_REDIRECT) {
-      $onLoginRedirect = null;
-    }
-
     const googleProvider = new GoogleOAuthProvider({
       clientId:
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
@@ -46,9 +42,10 @@
             });
             if (loginResponse.ok) {
               $token = oneTapResponse.credential!;
-              if ($onLoginRedirect) {
-                const redirect = $onLoginRedirect;
-                $onLoginRedirect = null;
+
+              const redirect = $onLoginRedirect;
+              $onLoginRedirect = null;
+              if (redirect && redirect !== DO_NOT_REDIRECT) {
                 console.log(`redirecting to prior page ${redirect}...`);
                 await goto(redirect);
                 return;

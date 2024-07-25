@@ -50,7 +50,6 @@
     socket.onerror = (event) => {
       console.log(event);
       // Error type is not available, so assume unauthorized and logout
-      $onLoginRedirect = DO_NOT_REDIRECT;
       $lastVisitedProjectId = null;
       logout();
     };

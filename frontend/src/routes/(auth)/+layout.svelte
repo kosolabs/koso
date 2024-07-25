@@ -5,8 +5,9 @@
   import { onLoginRedirect, DO_NOT_REDIRECT } from "$lib/nav";
 
   $: if (!$user) {
-    if ($onLoginRedirect == DO_NOT_REDIRECT) {
-      console.log(`User is logged out. Going to / with DO_NOT redirect set`);
+    if ($onLoginRedirect === DO_NOT_REDIRECT) {
+      $onLoginRedirect = null;
+      console.log(`User is logged out. Going to / without a redirect set`);
     } else {
       $onLoginRedirect = $page.url.pathname;
       console.log(
