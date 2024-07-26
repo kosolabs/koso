@@ -811,8 +811,8 @@ impl ProjectState {
     async fn close_all(&self) {
         // Close all clients.
         let mut clients = self.clients.lock().await;
-        for client in clients.iter_mut() {
-            let _ = client.1.close().await;
+        for client in clients.values_mut() {
+            let _ = client.close().await;
         }
         clients.clear();
         // Drop the doc box to stop observing changes.
