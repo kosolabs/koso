@@ -128,6 +128,7 @@ impl Notifier {
             project_id: project_id.clone(),
         };
 
+        // Get of insert the project state.
         let project = self
             .projects
             .entry(project_id.clone())
@@ -149,13 +150,8 @@ impl Notifier {
         }
 
         // Store the sender side of the socket in the list of clients.
-        if let Some(existing) = project
-            .clients
-            .lock()
-            .await
-            .insert(sender.who.clone(), sender)
-        {
-            tracing::error!("Unexpectedly, client already exists: {existing:?}");
+        if let Some(existing) = project.add_client(sender).await {
+            return Err(format!("Unexpectedly, client already exists: {existing:?}").into());
         };
 
         // Listen for messages on the read side of the socket to broadcast
@@ -307,24 +303,7 @@ impl Notifier {
             return;
         };
 
-        let client = {
-            let clients = &mut project.clients.lock().await;
-            let client = clients.remove(who);
-
-            let remaining_clients = clients.len();
-            tracing::debug!(
-                "Removing closed client. {} clients remain. Reason: {}",
-                remaining_clients,
-                reason
-            );
-
-            if remaining_clients == 0 {
-                tracing::debug!("Last client disconnected, destroying YGraph");
-                *project.doc_box.lock().await = None;
-            }
-            client
-        };
-        match client {
+        match project.remove_client(who, reason).await {
             Some(mut client) => {
                 if let Err(e) = client.close().await {
                     tracing::debug!("Failed to close client: {e}");
@@ -758,14 +737,7 @@ impl Notifier {
         }
 
         for project in self.projects.iter() {
-            // Close all clients.
-            let mut clients = project.clients.lock().await;
-            for client in clients.iter_mut() {
-                let _ = client.1.close().await;
-            }
-            clients.clear();
-            // Drop the doc box to stop observing changes.
-            *project.doc_box.lock().await = None;
+            project.close_all().await;
         }
         self.projects.clear();
     }
@@ -775,7 +747,35 @@ impl Notifier {
             tracing::warn!("No clients for project exist to broadcast to.");
             return;
         };
-        let mut clients = project.clients.lock().await;
+        project.broadcast(update).await;
+    }
+}
+
+impl ProjectState {
+    async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
+        self.clients.lock().await.insert(sender.who.clone(), sender)
+    }
+
+    async fn remove_client(&self, who: &String, reason: &String) -> Option<ClientSender> {
+        let clients = &mut self.clients.lock().await;
+        let client = clients.remove(who);
+
+        let remaining_clients = clients.len();
+        tracing::debug!(
+            "Removing closed client. {} clients remain. Reason: {}",
+            remaining_clients,
+            reason
+        );
+
+        if remaining_clients == 0 {
+            tracing::debug!("Last client disconnected, destroying YGraph");
+            *self.doc_box.lock().await = None;
+        }
+        client
+    }
+
+    async fn broadcast(&self, update: &YrsUpdate) {
+        let mut clients = self.clients.lock().await;
 
         tracing::debug!("Broadcasting updates to {} clients", clients.len());
         let mut results = Vec::new();
@@ -787,6 +787,16 @@ impl Notifier {
         }
         let res = futures::future::join_all(results).await;
         tracing::debug!("Finished broadcasting updates: {res:?}");
+    }
+    async fn close_all(&self) {
+        // Close all clients.
+        let mut clients = self.clients.lock().await;
+        for client in clients.iter_mut() {
+            let _ = client.1.close().await;
+        }
+        clients.clear();
+        // Drop the doc box to stop observing changes.
+        *self.doc_box.lock().await = None;
     }
 }
 
