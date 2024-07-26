@@ -673,6 +673,7 @@ impl Notifier {
         let assignee = match task.get(txn, "assignee") {
             Some(Out::Any(Any::String(assignee))) => Some(assignee.to_string()),
             Some(Out::Any(Any::Null)) => None,
+            None => None,
             unknown => {
                 return Err(
                     format!("Could not find assignee in: {task:?}. Got {unknown:?}").into(),
