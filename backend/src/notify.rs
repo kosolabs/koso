@@ -40,11 +40,11 @@ pub fn start(pool: &'static PgPool) -> Notifier {
 type ProjectId = String;
 
 struct ProjectsState {
-    projects: DashMap<String, Arc<ProjectState>>,
+    projects: DashMap<ProjectId, Arc<ProjectState>>,
 }
 
 struct ProjectState {
-    project_id: String,
+    project_id: ProjectId,
     clients: Mutex<HashMap<String, ClientSender>>,
     doc_box: Mutex<Option<DocBox>>,
 }
@@ -746,7 +746,7 @@ impl Notifier {
 }
 
 impl ProjectsState {
-    fn get_or_insert(&self, project_id: &str) -> Arc<ProjectState> {
+    fn get_or_insert(&self, project_id: &ProjectId) -> Arc<ProjectState> {
         self.projects
             .entry(project_id.to_string())
             .or_insert_with(|| {
@@ -759,7 +759,7 @@ impl ProjectsState {
             .clone()
     }
 
-    fn get(&self, project_id: &String) -> Option<Arc<ProjectState>> {
+    fn get(&self, project_id: &ProjectId) -> Option<Arc<ProjectState>> {
         self.projects.get(project_id).map(|p| p.clone())
     }
 
