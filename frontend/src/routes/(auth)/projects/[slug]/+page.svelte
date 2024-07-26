@@ -62,19 +62,19 @@
   });
 </script>
 
-<Navbar color="primary" class="mb-4">
-  <NavContainer>
+<Navbar color="primary" class="mb-4" fluid={true}>
+  <NavContainer fluid={true}>
     <NavBrand>
       <img class="w-14" alt="Koso Logo" src={kosoLogo} />
     </NavBrand>
     <div class="flex md:order-2">
       <Button size="xs"><UserPlus /></Button>
       <NavHamburger />
-      <NavUl>
-        <NavLi on:click={() => goto("/projects")}>Projects</NavLi>
-        <NavLi on:click={() => logout()}>Logout</NavLi>
-      </NavUl>
     </div>
+    <NavUl slideParams={{ delay: 0, duration: 250 }}>
+      <NavLi href="/projects">Projects</NavLi>
+      <NavLi on:click={() => logout()}>Logout</NavLi>
+    </NavUl>
   </NavContainer>
 </Navbar>
 <DagTable {koso} />
