@@ -1,11 +1,19 @@
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
+import type { User } from "./auth";
 
-function makeTask(id: string, name: string, children: string[]) {
+function makeTask(
+  id: string,
+  name: string,
+  children: string[],
+  reporter: string,
+) {
   return new Y.Map<string | Y.Array<string>>([
     ["id", id],
     ["name", name],
     ["children", Y.Array.from(children)],
+    ["reporter", reporter],
+    ["assignee", null],
   ]);
 }
 
@@ -59,10 +67,10 @@ export class Koso {
     return `${max + 1}`;
   }
 
-  addRoot(): string {
+  addRoot(user: User): string {
     const nodeId = this.newId();
     this.yDoc.transact(() => {
-      this.yGraph.set(nodeId, makeTask(nodeId, "Untitled", []));
+      this.yGraph.set(nodeId, makeTask(nodeId, "Untitled", [], user.email));
     });
     return nodeId;
   }
@@ -116,10 +124,10 @@ export class Koso {
     });
   }
 
-  insertNode(parentId: string, offset: number): string {
+  insertNode(parentId: string, offset: number, user: User): string {
     const nodeId = this.newId();
     this.yDoc.transact(() => {
-      this.yGraph.set(nodeId, makeTask(nodeId, "Untitled", []));
+      this.yGraph.set(nodeId, makeTask(nodeId, "Untitled", [], user.email));
       const yParent = this.yGraph.get(parentId)!;
       const yChildren = yParent.get("children") as Y.Array<string>;
       yChildren.insert(offset, [nodeId]);

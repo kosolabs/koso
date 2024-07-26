@@ -445,13 +445,15 @@ impl Notifier {
             }
             TaskUpdate::Insert { task } => {
                 match sqlx::query(
-                    "INSERT INTO tasks (id, project_id, name, children)
-                          VALUES ($1, $2, $3, $4)",
+                    "INSERT INTO tasks (id, project_id, name, children, assignee, reporter)
+                          VALUES ($1, $2, $3, $4, $5, $6)",
                 )
                 .bind(&task.id)
                 .bind(&task.project_id)
                 .bind(&task.name)
                 .bind(&task.children)
+                .bind(&task.assignee)
+                .bind(&task.reporter)
                 .execute(&mut **txn)
                 .await
                 {
@@ -474,13 +476,15 @@ impl Notifier {
             TaskUpdate::Update { task } => {
                 match sqlx::query(
                     "update tasks
-                    SET name=$3, children=$4
+                    SET name=$3, children=$4, assignee=$5, reporter=$6
                     WHERE id=$1 and project_id=$2;",
                 )
                 .bind(&task.id)
                 .bind(&task.project_id)
                 .bind(&task.name)
                 .bind(&task.children)
+                .bind(&task.assignee)
+                .bind(&task.reporter)
                 .execute(&mut **txn)
                 .await
                 {
