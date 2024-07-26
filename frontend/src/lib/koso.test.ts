@@ -164,13 +164,28 @@ describe("Koso tests", () => {
     addItem(koso, "B", "Task B", []);
     addItem(koso, "3", "Task 3", []);
 
-    koso.insertNode("1", 2);
+    koso.insertNode("1", 2, {
+      email: "test@koso.app",
+      exp: 0,
+      name: "Test",
+      picture: "",
+    });
 
     expect(koso.toJSON()).toStrictEqual({
-      "1": { id: "1", name: "Task 1", children: ["B", "3", "4"] },
+      "1": {
+        id: "1",
+        name: "Task 1",
+        children: ["B", "3", "4"],
+      },
       B: { id: "B", name: "Task B", children: [] },
       "3": { id: "3", name: "Task 3", children: [] },
-      "4": { id: "4", name: "Untitled", children: [] },
+      "4": {
+        id: "4",
+        name: "Untitled",
+        children: [],
+        assignee: null,
+        reporter: "test@koso.app",
+      },
     });
   });
 });

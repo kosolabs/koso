@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { user } from "$lib/auth";
   import type { Koso } from "$lib/koso";
   import { Button } from "flowbite-svelte";
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
@@ -27,19 +28,22 @@
   }
 
   function addRoot() {
-    koso.addRoot();
+    if (!$user) throw new Error("Unauthenticated");
+    koso.addRoot($user);
   }
 
   function addPeer() {
     if (!$selected) return;
+    if (!$user) throw new Error("Unauthenticated");
     if ($selected.isRoot()) {
-      const newNodeId = koso.addRoot();
+      const newNodeId = koso.addRoot($user);
       $selected = new Node([newNodeId]);
     } else {
       const parent = $selected.parent();
       const newNodeId = koso.insertNode(
         parent.name,
         getOffset(graph, $selected) + 1,
+        $user,
       );
       $selected = parent.concat(newNodeId);
     }
@@ -47,7 +51,8 @@
 
   function addChild() {
     if (!$selected) return;
-    const newNodeId = koso.insertNode($selected.name, 0);
+    if (!$user) throw new Error("Unauthenticated");
+    const newNodeId = koso.insertNode($selected.name, 0, $user);
     $selected = $selected.concat(newNodeId);
   }
 
