@@ -1,14 +1,10 @@
 use crate::model::Task;
 use axum::extract::ws::{Message, WebSocket};
+use dashmap::DashMap;
 use futures::SinkExt;
 use sqlx::PgPool;
 use std::{
-    collections::{hash_map::Entry, HashMap},
-    error::Error,
-    fmt,
-    net::SocketAddr,
-    ops::ControlFlow,
-    sync::Arc,
+    collections::HashMap, error::Error, fmt, net::SocketAddr, ops::ControlFlow, sync::Arc,
     time::Duration,
 };
 use tokio::sync::{
@@ -26,11 +22,8 @@ use yrs::{
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsUpdate>(1);
     let notifier = Notifier {
-        clients: Arc::new(Mutex::new(Clients {
-            map: HashMap::new(),
-        })),
+        projects: Arc::new(DashMap::new()),
         pool,
-        doc_boxes: Arc::new(Mutex::new(HashMap::new())),
         process_tx,
         cancel: CancellationToken::new(),
         tracker: tokio_util::task::TaskTracker::new(),
@@ -44,9 +37,10 @@ pub fn start(pool: &'static PgPool) -> Notifier {
 
 type ProjectId = String;
 
-#[derive(Debug)]
-struct Clients {
-    map: HashMap<ProjectId, HashMap<String, ClientSender>>,
+struct ProjectState {
+    project_id: String,
+    clients: Mutex<HashMap<String, ClientSender>>,
+    doc_box: Mutex<Option<DocBox>>,
 }
 
 struct ClientSender {
@@ -97,9 +91,8 @@ struct YrsUpdate {
 
 #[derive(Clone)]
 pub struct Notifier {
-    clients: Arc<Mutex<Clients>>,
+    projects: Arc<DashMap<String, ProjectState>>,
     pool: &'static PgPool,
-    doc_boxes: Arc<Mutex<HashMap<String, DocBox>>>,
     process_tx: Sender<YrsUpdate>,
     cancel: CancellationToken,
     tracker: tokio_util::task::TaskTracker,
@@ -135,8 +128,18 @@ impl Notifier {
             project_id: project_id.clone(),
         };
 
+        let project = self
+            .projects
+            .entry(project_id.clone())
+            .or_insert_with(|| ProjectState {
+                project_id,
+                clients: Mutex::new(HashMap::new()),
+                doc_box: Mutex::new(None),
+            })
+            .downgrade();
+
         // Init the doc_box, if necessary and grab the state vector.
-        let sv = self.init_doc_box(&project_id).await?;
+        let sv = self.init_doc_box(&project).await?;
 
         // Send the entire state vector to the client.
         if let Err(e) = sender.send(sv).await {
@@ -144,7 +147,14 @@ impl Notifier {
         }
 
         // Store the sender side of the socket in the list of clients.
-        self.clients.lock().await.add(sender)?;
+        if let Some(existing) = project
+            .clients
+            .lock()
+            .await
+            .insert(sender.who.clone(), sender)
+        {
+            tracing::error!("Unexpectedly, client already exists: {existing:?}");
+        };
 
         // Listen for messages on the read side of the socket to broadcast
         // updates to all other clients or get notified about when the
@@ -155,9 +165,9 @@ impl Notifier {
         Ok(())
     }
 
-    async fn init_doc_box(&self, project_id: &ProjectId) -> Result<Vec<u8>, Box<dyn Error>> {
-        let mut doc_boxes = self.doc_boxes.lock().await;
-        if let Some(doc_box) = doc_boxes.get(project_id) {
+    async fn init_doc_box(&self, project: &ProjectState) -> Result<Vec<u8>, Box<dyn Error>> {
+        let mut doc_box = project.doc_box.lock().await;
+        if let Some(doc_box) = doc_box.as_ref() {
             return Ok(doc_box
                 .doc
                 .transact()
@@ -165,11 +175,11 @@ impl Notifier {
         }
 
         // Load the doc if it wasn't already loaded by another client.
-        let doc = self.load_graph(project_id).await?;
+        let doc = self.load_graph(&project.project_id).await?;
 
         // Observe changes to the graph and replicate them to the database.
         let observer_notifier = self.clone();
-        let project_id_clone = project_id.clone();
+        let project_id_clone = project.project_id.clone();
         use yrs::DeepObservable;
         let sub = doc
             .get_or_insert_map("graph")
@@ -192,7 +202,7 @@ impl Notifier {
             .doc
             .transact()
             .encode_state_as_update_v1(&StateVector::default());
-        doc_boxes.insert(project_id.clone(), db);
+        *doc_box = Some(db);
         Ok(sv)
     }
 
@@ -290,11 +300,16 @@ impl Notifier {
     }
 
     async fn close_client(&self, project_id: &ProjectId, who: &String, reason: &String) {
-        let client = {
-            let clients = &mut self.clients.lock().await;
-            let client = clients.remove(project_id, who);
+        let Some(project) = self.projects.get(project_id) else {
+            tracing::error!("Unexpectedly, received close for client but the project is missing.");
+            return;
+        };
 
-            let remaining_clients = clients.len(project_id);
+        let client = {
+            let clients = &mut project.clients.lock().await;
+            let client = clients.remove(who);
+
+            let remaining_clients = clients.len();
             tracing::debug!(
                 "Removing closed client. {} clients remain. Reason: {}",
                 remaining_clients,
@@ -303,7 +318,7 @@ impl Notifier {
 
             if remaining_clients == 0 {
                 tracing::debug!("Last client disconnected, destroying YGraph");
-                self.doc_boxes.lock().await.remove(project_id);
+                *project.doc_box.lock().await = None;
             }
             client
         };
@@ -346,7 +361,7 @@ impl Notifier {
             tracing::error!("Failed to apply update to doc: {e}");
             return;
         }
-        self.clients.lock().await.broadcast(&update).await;
+        self.broadcast_update(&update).await;
     }
 
     async fn apply_update_to_doc(&self, yrs_update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
@@ -360,17 +375,21 @@ impl Notifier {
             }
         };
 
-        let doc_boxes = self.doc_boxes.lock().await;
-        let doc_box = match doc_boxes.get(&yrs_update.project_id) {
-            Some(doc_box) => doc_box,
-            None => {
-                // TODO: Aside from short races, if this happens, we've got sockets without a doc.
-                // Likely, we should reset all sockets.
-                return Err(
-                    "Tried to broadcast update but doc_box was None. Dropped update: {update:?}"
-                        .into(),
-                );
-            }
+        let Some(project) = self.projects.get(&yrs_update.project_id) else {
+            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
+            // Likely, we should reset all sockets.
+            return Err(
+                "Tried to broadcast update but project was None. Dropped update: {update:?}".into(),
+            );
+        };
+
+        let doc_box = project.doc_box.lock().await;
+        let Some(doc_box) = doc_box.as_ref() else {
+            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
+            // Likely, we should reset all sockets.
+            return Err(
+                "Tried to broadcast update but doc_box was None. Dropped update: {update:?}".into(),
+            );
         };
         doc_box.doc.transact_mut().apply_update(update);
         Ok(())
@@ -736,40 +755,25 @@ impl Notifier {
             );
         }
 
-        // Close all clients.
-        self.clients.lock().await.close_all().await;
-
-        // Drop the doc box to stop observing changes.
-        self.doc_boxes.lock().await.clear();
-    }
-}
-
-impl Clients {
-    fn add(&mut self, client: ClientSender) -> Result<(), Box<dyn Error>> {
-        let clients = match self.map.entry(client.project_id.clone()) {
-            Entry::Occupied(o) => o.into_mut(),
-            Entry::Vacant(v) => v.insert(HashMap::new()),
-        };
-        if let Some(existing) = clients.insert(client.who.clone(), client) {
-            return Err(format!("Unexpectedly, client already exists: {existing:?}").into());
+        for project in self.projects.iter() {
+            // Close all clients.
+            let mut clients = project.clients.lock().await;
+            for client in clients.iter_mut() {
+                let _ = client.1.close().await;
+            }
+            clients.clear();
+            // Drop the doc box to stop observing changes.
+            *project.doc_box.lock().await = None;
         }
-        Ok(())
+        self.projects.clear();
     }
 
-    fn remove(&mut self, project_id: &ProjectId, who: &String) -> Option<ClientSender> {
-        let clients = self.map.get_mut(project_id)?;
-        clients.remove(who)
-    }
-
-    fn len(&self, project_id: &ProjectId) -> usize {
-        self.map.get(project_id).map(|c| c.len()).unwrap_or(0)
-    }
-
-    async fn broadcast(&mut self, update: &YrsUpdate) {
-        let Some(clients) = self.map.get_mut(&update.project_id) else {
+    async fn broadcast_update(&self, update: &YrsUpdate) {
+        let Some(project) = self.projects.get(&update.project_id) else {
             tracing::warn!("No clients for project exist to broadcast to.");
             return;
         };
+        let mut clients = project.clients.lock().await;
 
         tracing::debug!("Broadcasting updates to {} clients", clients.len());
         let mut results = Vec::new();
@@ -781,15 +785,6 @@ impl Clients {
         }
         let res = futures::future::join_all(results).await;
         tracing::debug!("Finished broadcasting updates: {res:?}");
-    }
-
-    async fn close_all(&mut self) {
-        for clients in self.map.values_mut() {
-            for client in clients.values_mut() {
-                let _ = client.close().await;
-            }
-        }
-        self.map.clear();
     }
 }
 
