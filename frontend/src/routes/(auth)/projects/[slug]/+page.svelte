@@ -1,6 +1,5 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { goto } from "$app/navigation";
   import kosoLogo from "$lib/assets/koso.svg";
   import { logout as auth_logout, token, user } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
