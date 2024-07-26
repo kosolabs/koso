@@ -22,7 +22,9 @@ use yrs::{
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsUpdate>(1);
     let notifier = Notifier {
-        projects: Arc::new(DashMap::new()),
+        state: Arc::new(ProjectsState {
+            projects: DashMap::new(),
+        }),
         pool,
         process_tx,
         cancel: CancellationToken::new(),
@@ -36,6 +38,10 @@ pub fn start(pool: &'static PgPool) -> Notifier {
 }
 
 type ProjectId = String;
+
+struct ProjectsState {
+    projects: DashMap<String, Arc<ProjectState>>,
+}
 
 struct ProjectState {
     project_id: String,
@@ -91,7 +97,7 @@ struct YrsUpdate {
 
 #[derive(Clone)]
 pub struct Notifier {
-    projects: Arc<DashMap<String, Arc<ProjectState>>>,
+    state: Arc<ProjectsState>,
     pool: &'static PgPool,
     process_tx: Sender<YrsUpdate>,
     cancel: CancellationToken,
@@ -129,17 +135,7 @@ impl Notifier {
         };
 
         // Get of insert the project state.
-        let project = self
-            .projects
-            .entry(project_id.clone())
-            .or_insert_with(|| {
-                Arc::new(ProjectState {
-                    project_id,
-                    clients: Mutex::new(HashMap::new()),
-                    doc_box: Mutex::new(None),
-                })
-            })
-            .clone();
+        let project = self.state.get_or_insert(&project_id);
 
         // Init the doc_box, if necessary and grab the state vector.
         let sv = self.init_doc_box(&project).await?;
@@ -298,7 +294,7 @@ impl Notifier {
     }
 
     async fn close_client(&self, project_id: &ProjectId, who: &String, reason: &String) {
-        let Some(project) = self.projects.get(project_id).map(|p| p.clone()) else {
+        let Some(project) = self.state.get(project_id) else {
             tracing::error!("Unexpectedly, received close for client but the project is missing.");
             return;
         };
@@ -356,7 +352,7 @@ impl Notifier {
             }
         };
 
-        let Some(project) = self.projects.get(&yrs_update.project_id).map(|p| p.clone()) else {
+        let Some(project) = self.state.get(&yrs_update.project_id) else {
             // TODO: Aside from short races, if this happens, we've got sockets without a doc.
             // Likely, we should reset all sockets.
             return Err(
@@ -736,18 +732,42 @@ impl Notifier {
             );
         }
 
-        for project in self.projects.iter() {
-            project.close_all().await;
-        }
-        self.projects.clear();
+        // Close all the project state, including client connections.
+        self.state.close().await;
     }
 
     async fn broadcast_update(&self, update: &YrsUpdate) {
-        let Some(project) = self.projects.get(&update.project_id).map(|p| p.clone()) else {
+        let Some(project) = self.state.get(&update.project_id) else {
             tracing::warn!("No clients for project exist to broadcast to.");
             return;
         };
         project.broadcast(update).await;
+    }
+}
+
+impl ProjectsState {
+    fn get_or_insert(&self, project_id: &str) -> Arc<ProjectState> {
+        self.projects
+            .entry(project_id.to_string())
+            .or_insert_with(|| {
+                Arc::new(ProjectState {
+                    project_id: project_id.to_string(),
+                    clients: Mutex::new(HashMap::new()),
+                    doc_box: Mutex::new(None),
+                })
+            })
+            .clone()
+    }
+
+    fn get(&self, project_id: &String) -> Option<Arc<ProjectState>> {
+        self.projects.get(project_id).map(|p| p.clone())
+    }
+
+    async fn close(&self) {
+        for project in self.projects.iter() {
+            project.close_all().await;
+        }
+        self.projects.clear();
     }
 }
 
