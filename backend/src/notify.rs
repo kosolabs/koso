@@ -91,7 +91,7 @@ struct YrsUpdate {
 
 #[derive(Clone)]
 pub struct Notifier {
-    projects: Arc<DashMap<String, ProjectState>>,
+    projects: Arc<DashMap<String, Arc<ProjectState>>>,
     pool: &'static PgPool,
     process_tx: Sender<YrsUpdate>,
     cancel: CancellationToken,
@@ -131,12 +131,14 @@ impl Notifier {
         let project = self
             .projects
             .entry(project_id.clone())
-            .or_insert_with(|| ProjectState {
-                project_id,
-                clients: Mutex::new(HashMap::new()),
-                doc_box: Mutex::new(None),
+            .or_insert_with(|| {
+                Arc::new(ProjectState {
+                    project_id,
+                    clients: Mutex::new(HashMap::new()),
+                    doc_box: Mutex::new(None),
+                })
             })
-            .downgrade();
+            .clone();
 
         // Init the doc_box, if necessary and grab the state vector.
         let sv = self.init_doc_box(&project).await?;
@@ -300,7 +302,7 @@ impl Notifier {
     }
 
     async fn close_client(&self, project_id: &ProjectId, who: &String, reason: &String) {
-        let Some(project) = self.projects.get(project_id) else {
+        let Some(project) = self.projects.get(project_id).map(|p| p.clone()) else {
             tracing::error!("Unexpectedly, received close for client but the project is missing.");
             return;
         };
@@ -375,7 +377,7 @@ impl Notifier {
             }
         };
 
-        let Some(project) = self.projects.get(&yrs_update.project_id) else {
+        let Some(project) = self.projects.get(&yrs_update.project_id).map(|p| p.clone()) else {
             // TODO: Aside from short races, if this happens, we've got sockets without a doc.
             // Likely, we should reset all sockets.
             return Err(
@@ -769,7 +771,7 @@ impl Notifier {
     }
 
     async fn broadcast_update(&self, update: &YrsUpdate) {
-        let Some(project) = self.projects.get(&update.project_id) else {
+        let Some(project) = self.projects.get(&update.project_id).map(|p| p.clone()) else {
             tracing::warn!("No clients for project exist to broadcast to.");
             return;
         };
