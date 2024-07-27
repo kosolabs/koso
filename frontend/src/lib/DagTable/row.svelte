@@ -4,10 +4,16 @@
   import { A, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
-  import { slide } from "svelte/transition";
-  import type { Graph, Node } from ".";
-  import { getOffset, getTask } from ".";
-  import { dragged, dropEffect, ghost, highlighted, selected } from "./state";
+  import type { Graph, Node } from "../koso";
+  import { getOffset, getTask } from "../koso";
+  import {
+    collapsed,
+    dragged,
+    dropEffect,
+    ghost,
+    highlighted,
+    selected,
+  } from "./state";
 
   export let graph: Graph;
   export let node: Node;
@@ -17,10 +23,30 @@
 
   const koso = getContext<Koso>("koso");
 
-  let open = true;
-  function toggleOpen() {
-    open = !open;
+  $: open = !$collapsed.has(node.id);
+
+  function setOpen(open: boolean) {
+    if (open) {
+      $collapsed.delete(node.id);
+      $collapsed = $collapsed;
+    } else {
+      $collapsed = $collapsed.add(node.id);
+    }
   }
+
+  function toggleOpen() {
+    setOpen(!open);
+  }
+
+  function isHidden(nodes: Set<string>) {
+    for (const collapsed of nodes) {
+      if (node.id.startsWith(collapsed + "-")) {
+        return true;
+      }
+    }
+    return false;
+  }
+  $: hidden = isHidden($collapsed);
 
   let editedTaskName: string | null = null;
 
@@ -122,7 +148,7 @@
 
   function handleDragEnterPeer(event: DragEvent) {
     event.preventDefault();
-    open = false;
+    setOpen(false);
   }
 
   function handleDragOverChild(event: DragEvent) {
@@ -147,7 +173,7 @@
 
   function handleDragEnterChild(event: DragEvent) {
     event.preventDefault();
-    open = true;
+    setOpen(true);
   }
 
   function handleDragLeave(event: DragEvent) {
@@ -240,13 +266,13 @@
     isGhost ? "border-green-600 opacity-70" : "",
     $highlighted?.name === node.name ? "border-lime-600" : "",
     isSelected ? "border-primary-600" : "",
+    hidden ? "hidden" : "",
   )}
   on:mouseover={handleHighlight}
   on:mouseout={handleUnhighlight}
   on:focus={handleHighlight}
   on:blur={handleUnhighlight}
   on:click={handleSelect}
-  transition:slide|global
 >
   <div class="min-w-48 overflow-x-clip whitespace-nowrap">
     <div class="flex items-center">
@@ -326,21 +352,8 @@
 </div>
 
 <!-- Ghost is the first child of node. -->
-{#if !isGhost}
-  {#if $ghost && node.equals($ghost.node.parent()) && $ghost.offset === 0}
-    <svelte:self {graph} isGhost={true} node={$ghost.node} />
-  {/if}
-
-  {#if open}
-    {#each task.children as childId}
-      <svelte:self {graph} isGhost={false} node={node.concat(childId)} />
-    {/each}
-  {/if}
-
-  <!-- Ghost is the peer immedicately proceeding node. -->
-  {#if $ghost && !node.isRoot() && node
-      .parent()
-      .equals($ghost.node.parent()) && $ghost.offset === getOffset(graph, node) + 1}
-    <svelte:self {graph} isGhost={true} node={$ghost.node} />
-  {/if}
+{#if !isGhost && $ghost && ((node.equals($ghost.node.parent()) && $ghost.offset === 0) || (!node.isRoot() && node
+        .parent()
+        .equals($ghost.node.parent()) && $ghost.offset === getOffset(graph, node) + 1))}
+  <svelte:self {graph} isGhost={true} node={$ghost.node} />
 {/if}

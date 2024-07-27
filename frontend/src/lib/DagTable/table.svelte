@@ -4,9 +4,11 @@
   import { Button } from "flowbite-svelte";
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
   import { setContext } from "svelte";
-  import { getOffset, Node, type Graph } from ".";
+  import { flip } from "svelte/animate";
+  import { getOffset, getTask, Node, type Graph } from "../koso";
   import Row from "./row.svelte";
   import { selected } from "./state";
+  import { receive, send } from "./transition";
 
   export let koso: Koso;
   let graph: Graph = koso.toJSON();
@@ -15,7 +17,7 @@
     graph = koso.toJSON();
   });
 
-  function findRoots(graph: Graph): Node[] {
+  function findRoots(graph: Graph): string[] {
     const allChildren = new Set<string>();
     for (const node of Object.values(graph)) {
       for (const child of node.children) {
@@ -23,8 +25,23 @@
       }
     }
     const allNodeIds = new Set<string>(Object.keys(graph));
-    const rootIds = allNodeIds.difference(allChildren);
-    return Array.from(rootIds).map((rootId) => new Node([rootId]));
+    return Array.from(allNodeIds.difference(allChildren));
+  }
+
+  function flatten(node: Node, nodes: Node[]) {
+    nodes.push(node);
+    for (const child of getTask(graph, node.name).children) {
+      flatten(node.concat(child), nodes);
+    }
+  }
+
+  function toListOfNodes(graph: Graph): Node[] {
+    const roots = findRoots(graph);
+    const nodes: Node[] = [];
+    for (const root of roots) {
+      flatten(new Node([root]), nodes);
+    }
+    return nodes;
   }
 
   function addRoot() {
@@ -68,7 +85,7 @@
     $selected = null;
   }
 
-  $: roots = findRoots(graph);
+  $: nodes = toListOfNodes(graph);
 
   setContext<Koso>("koso", koso);
 </script>
@@ -114,8 +131,14 @@
   </div>
 
   <div id="body" class="[&>*:nth-child(even)]:bg-slate-50">
-    {#each roots as root}
-      <Row {graph} isGhost={false} node={root} />
+    {#each nodes as node (node.id)}
+      <div
+        in:receive={{ key: node.id }}
+        out:send={{ key: node.id }}
+        animate:flip={{ duration: 250 }}
+      >
+        <Row {graph} isGhost={false} {node} />
+      </div>
     {/each}
   </div>
 </div>
