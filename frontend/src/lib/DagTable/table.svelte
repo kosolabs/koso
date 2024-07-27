@@ -4,28 +4,18 @@
   import { Button } from "flowbite-svelte";
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
   import { setContext } from "svelte";
-  import { getOffset, Node, type Graph } from ".";
+  import { flip } from "svelte/animate";
+  import { Node } from "../koso";
   import Row from "./row.svelte";
   import { selected } from "./state";
+  import { receive, send } from "./transition";
 
   export let koso: Koso;
-  let graph: Graph = koso.toJSON();
+  let nodes: Node[] = koso.toNodes();
 
   koso.observe(() => {
-    graph = koso.toJSON();
+    nodes = koso.toNodes();
   });
-
-  function findRoots(graph: Graph): Node[] {
-    const allChildren = new Set<string>();
-    for (const node of Object.values(graph)) {
-      for (const child of node.children) {
-        allChildren.add(child);
-      }
-    }
-    const allNodeIds = new Set<string>(Object.keys(graph));
-    const rootIds = allNodeIds.difference(allChildren);
-    return Array.from(rootIds).map((rootId) => new Node([rootId]));
-  }
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
@@ -42,7 +32,7 @@
       const parent = $selected.parent();
       const newNodeId = koso.insertNode(
         parent.name,
-        getOffset(graph, $selected) + 1,
+        koso.getOffset($selected) + 1,
         $user,
       );
       $selected = parent.concat(newNodeId);
@@ -67,8 +57,6 @@
     koso.deleteNode($selected.name);
     $selected = null;
   }
-
-  $: roots = findRoots(graph);
 
   setContext<Koso>("koso", koso);
 </script>
@@ -114,8 +102,14 @@
   </div>
 
   <div id="body" class="[&>*:nth-child(even)]:bg-slate-50">
-    {#each roots as root}
-      <Row {graph} isGhost={false} node={root} />
+    {#each nodes as node (node.id)}
+      <div
+        in:receive={{ key: node.id }}
+        out:send={{ key: node.id }}
+        animate:flip={{ duration: 250 }}
+      >
+        <Row {node} isGhost={false} />
+      </div>
     {/each}
   </div>
 </div>
