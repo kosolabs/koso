@@ -9,13 +9,15 @@
     collapsed,
     dragged,
     dropEffect,
-    ghost,
     highlighted,
     selected,
   } from "./state";
 
   export let node: Node;
-  export let isGhost: boolean;
+  export let isGhost: boolean = false;
+
+  let ghostNode: Node | null = null;
+  let ghostOffset: number;
 
   $: task = koso.getTask(node.name);
 
@@ -105,7 +107,7 @@
 
   function handleDropNode(event: DragEvent) {
     event.preventDefault();
-    if ($dragged === null || $ghost === null || $dropEffect === "none") {
+    if ($dragged === null || ghostNode === null || $dropEffect === "none") {
       return;
     }
 
@@ -114,14 +116,14 @@
         $dragged.name,
         $dragged.parent().name,
         koso.getOffset($dragged),
-        $ghost.node.parent().name,
-        $ghost.offset,
+        ghostNode.parent().name,
+        ghostOffset,
       );
     } else {
-      koso.addNode($dragged.name, $ghost.node.parent().name, $ghost.offset);
+      koso.addNode($dragged.name, ghostNode.parent().name, ghostOffset);
     }
     $dragged = null;
-    $ghost = null;
+    ghostNode = null;
   }
 
   function handleDragOverPeer(event: DragEvent) {
@@ -138,10 +140,8 @@
       $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
     }
 
-    $ghost = {
-      node: node.parent().concat($dragged.name),
-      offset: koso.getOffset(node) + 1,
-    };
+    ghostNode = node.parent().concat($dragged.name);
+    ghostOffset = koso.getOffset(node) + 1;
   }
 
   function handleDragEnterPeer(event: DragEvent) {
@@ -163,10 +163,8 @@
       $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
     }
 
-    $ghost = {
-      node: node.concat($dragged.name),
-      offset: 0,
-    };
+    ghostNode = node.concat($dragged.name);
+    ghostOffset = 0;
   }
 
   function handleDragEnterChild(event: DragEvent) {
@@ -176,7 +174,7 @@
 
   function handleDragLeave(event: DragEvent) {
     event.preventDefault();
-    $ghost = null;
+    ghostNode = null;
   }
 
   function handleHighlight() {
@@ -249,7 +247,7 @@
     !isSameChild(node, $dragged) &&
     !hasChild(node, $dragged) &&
     !hasCycle(node.name, $dragged.name);
-  $: isMoving = $ghost && dragging && $dropEffect === "move";
+  $: isMoving = dragging && $dropEffect === "move";
   $: isSelected = node.equals($selected);
 </script>
 
@@ -349,8 +347,6 @@
   </div>
 </div>
 
-{#if !isGhost && $ghost && ((node.equals($ghost.node.parent()) && $ghost.offset === 0) || (!node.isRoot() && node
-        .parent()
-        .equals($ghost.node.parent()) && $ghost.offset === koso.getOffset(node) + 1))}
-  <svelte:self node={$ghost.node} isGhost={true} />
+{#if ghostNode}
+  <svelte:self node={ghostNode} isGhost={true} />
 {/if}
