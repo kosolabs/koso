@@ -16,7 +16,7 @@ use uuid::Uuid;
 use yrs::{
     types::{Events, PathSegment, ToJson},
     updates::decoder::Decode,
-    Any, Array, ArrayRef, Doc, Map, MapRef, Out, ReadTxn, StateVector, Transact, Update,
+    Any, Array, ArrayRef, Doc, Map, MapRef, Origin, Out, ReadTxn, StateVector, Transact, Update,
 };
 
 pub fn start(pool: &'static PgPool) -> Notifier {
@@ -92,6 +92,7 @@ struct TaskUpdates {
 struct YrsUpdate {
     who: String,
     project_id: ProjectId,
+    update_id: String,
     data: Vec<u8>,
 }
 
@@ -178,7 +179,8 @@ impl Notifier {
         let sub = doc
             .get_or_insert_map("graph")
             .observe_deep(move |txn, events: &Events| {
-                let update_id = Uuid::new_v4().to_string();
+                let update_id = as_update_id(txn.origin());
+
                 tracing::Span::current().record("update_id", &update_id);
                 if let Err(e) =
                     observer_notifier.commit_doc_events(&update_id, &project_id_clone, txn, events)
@@ -262,6 +264,7 @@ impl Notifier {
                     .send(YrsUpdate {
                         who: receiver.who.clone(),
                         project_id: receiver.project_id.clone(),
+                        update_id: Uuid::new_v4().to_string(),
                         data,
                     })
                     .await
@@ -368,7 +371,10 @@ impl Notifier {
                 "Tried to broadcast update but doc_box was None. Dropped update: {update:?}".into(),
             );
         };
-        doc_box.doc.transact_mut().apply_update(update);
+        doc_box
+            .doc
+            .transact_mut_with(as_origin(&yrs_update.update_id))
+            .apply_update(update);
         Ok(())
     }
 
@@ -866,7 +872,27 @@ impl fmt::Debug for YrsUpdate {
         f.debug_struct("YrsUpdate")
             .field("project_id", &self.project_id)
             .field("who", &self.who)
+            .field("update_id", &self.update_id)
             .field("data.len()", &self.data.len())
             .finish()
     }
+}
+
+fn as_update_id(origin: Option<&Origin>) -> String {
+    origin
+        .map(|o| match String::from_utf8(o.as_ref().to_vec()) {
+            Ok(v) => v,
+            Err(e) => {
+                tracing::error!("Failed to parse origin: {o}: {e}");
+                Uuid::new_v4().to_string()
+            }
+        })
+        .unwrap_or_else(|| {
+            tracing::warn!("Missing origin");
+            Uuid::new_v4().to_string()
+        })
+}
+
+fn as_origin(update_id: &str) -> Origin {
+    update_id.into()
 }
