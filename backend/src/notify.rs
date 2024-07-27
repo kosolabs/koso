@@ -170,7 +170,7 @@ impl Notifier {
         }
 
         // Load the doc if it wasn't already loaded by another client.
-        let doc = self.load_graph(&project.project_id).await?;
+        let doc = self.load_doc(&project.project_id).await?;
 
         // Observe changes to the graph and replicate them to the database.
         let observer_notifier = self.clone();
@@ -201,33 +201,20 @@ impl Notifier {
         Ok(sv)
     }
 
-    async fn load_graph(&self, project_id: &ProjectId) -> Result<Doc, Box<dyn Error>> {
-        tracing::debug!("Initializing new YGraph");
+    async fn load_doc(&self, project_id: &ProjectId) -> Result<Doc, Box<dyn Error>> {
+        tracing::debug!("Initializing new YDoc");
         // TODO: Assert that the project actually exists to avoid conflating that with the absence of tasks.
-        let tasks: Vec<Task> =
-            sqlx::query_as("SELECT id, project_id, name, children, assignee, reporter FROM tasks WHERE project_id=$1")
+        let state: (String, Vec<u8>) =
+            sqlx::query_as("SELECT project_id, state FROM docs WHERE project_id=$1")
                 .bind(project_id)
-                .fetch_all(self.pool)
+                .fetch_one(self.pool)
                 .await?;
-        let tasks_len = tasks.len();
 
         let doc = Doc::new();
-        let graph = doc.get_or_insert_map("graph");
-        {
-            let mut txn = doc.transact_mut();
-            for task in tasks {
-                let y_task: MapRef = graph.get_or_init(&mut txn, task.id.as_str());
-                y_task.insert(&mut txn, "id", task.id);
-                y_task.insert(&mut txn, "name", task.name);
-                y_task.insert(&mut txn, "assignee", task.assignee);
-                y_task.insert(&mut txn, "reporter", task.reporter);
-                let y_children: ArrayRef = y_task.get_or_init(&mut txn, "children");
-                for child in task.children {
-                    y_children.push_back(&mut txn, child);
-                }
-            }
-        }
-        tracing::debug!("Initialized new YGraph with {tasks_len} tasks");
+        let update = Update::decode_v1(state.1.as_ref())?;
+        doc.transact_mut().apply_update(update);
+
+        tracing::debug!("Initialized new YDoc");
         Result::Ok(doc)
     }
 
@@ -757,6 +744,7 @@ impl Notifier {
 
     #[tracing::instrument(skip(self))]
     async fn store_doc(self, project_id: String) {
+        tracing::debug!("Storing doc");
         let sv = {
             let Some(project) = self.state.get(&project_id) else {
                 // TODO: Aside from short races, if this happens, we've got sockets without a doc.
@@ -793,6 +781,7 @@ impl Notifier {
                 tracing::error!("Failed to update doc in DB {e}");
             }
             Ok(res) => {
+                tracing::debug!("Stored doc");
                 if res.rows_affected() == 0 {
                     tracing::error!("Doc does not exist to update");
                 }
