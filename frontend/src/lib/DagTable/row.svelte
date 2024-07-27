@@ -4,7 +4,7 @@
   import { A, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
-  import type { Graph, Node } from "../koso";
+  import type { Node } from "../koso";
   import {
     collapsed,
     dragged,
@@ -14,7 +14,6 @@
     selected,
   } from "./state";
 
-  export let graph: Graph;
   export let node: Node;
   export let isGhost: boolean;
 
@@ -354,5 +353,5 @@
 {#if !isGhost && $ghost && ((node.equals($ghost.node.parent()) && $ghost.offset === 0) || (!node.isRoot() && node
         .parent()
         .equals($ghost.node.parent()) && $ghost.offset === koso.getOffset(node) + 1))}
-  <svelte:self {graph} isGhost={true} node={$ghost.node} />
+  <svelte:self node={$ghost.node} isGhost={true} />
 {/if}

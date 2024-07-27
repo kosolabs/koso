@@ -46,10 +46,6 @@ export type Task = {
   reporter: string;
 };
 
-export type Graph = {
-  [key: string]: Task;
-};
-
 export class Koso {
   yDoc: Y.Doc;
   yGraph: Y.Map<Y.Map<string | Y.Array<string>>>;

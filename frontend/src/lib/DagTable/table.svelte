@@ -5,17 +5,15 @@
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
   import { setContext } from "svelte";
   import { flip } from "svelte/animate";
-  import { Node, type Graph } from "../koso";
+  import { Node } from "../koso";
   import Row from "./row.svelte";
   import { selected } from "./state";
   import { receive, send } from "./transition";
 
   export let koso: Koso;
-  let graph: Graph = koso.toJSON();
   let nodes: Node[] = koso.toNodes();
 
   koso.observe(() => {
-    graph = koso.toJSON();
     nodes = koso.toNodes();
   });
 
@@ -110,7 +108,7 @@
         out:send={{ key: node.id }}
         animate:flip={{ duration: 250 }}
       >
-        <Row {graph} isGhost={false} {node} />
+        <Row {node} isGhost={false} />
       </div>
     {/each}
   </div>
