@@ -38,20 +38,6 @@ export class Node {
   }
 }
 
-export function getTask(graph: Graph, id: string): Task {
-  const task = graph[id];
-  if (!task) {
-    throw new Error(`Task ${id} doesn't exist`);
-  }
-  return task;
-}
-
-export function getOffset(graph: Graph, node: Node): number {
-  if (node.isRoot()) return 0;
-  const task = getTask(graph, node.parent().name);
-  return task.children.indexOf(node.name);
-}
-
 export type Task = {
   id: string;
   name: string;
@@ -63,21 +49,6 @@ export type Task = {
 export type Graph = {
   [key: string]: Task;
 };
-
-function makeTask(
-  id: string,
-  name: string,
-  children: string[],
-  reporter: string,
-) {
-  return new Y.Map<string | Y.Array<string>>([
-    ["id", id],
-    ["name", name],
-    ["children", Y.Array.from(children)],
-    ["reporter", reporter],
-    ["assignee", null],
-  ]);
-}
 
 export class Koso {
   yDoc: Y.Doc;
@@ -118,6 +89,55 @@ export class Koso {
     return this.yGraph.toJSON();
   }
 
+  getRoots(): Set<string> {
+    const allChildTaskIds = new Set<string>();
+    for (const task of this.yGraph.values()) {
+      for (const childTaskId of task.get("children") as Y.Array<string>) {
+        allChildTaskIds.add(childTaskId);
+      }
+    }
+    const allTaskIds = new Set<string>();
+    for (const taskId of this.yGraph.keys()) {
+      allTaskIds.add(taskId);
+    }
+    return allTaskIds.difference(allChildTaskIds);
+  }
+
+  getTask(taskId: string): Task {
+    const yTask = this.yGraph.get(taskId);
+    if (!yTask) throw new Error(`Task ID ${taskId} not found in yGraph`);
+    return yTask.toJSON() as Task;
+  }
+
+  getChildren(taskId: string): string[] {
+    const yTask = this.yGraph.get(taskId);
+    if (!yTask) throw new Error(`Task ID ${taskId} not found in yGraph`);
+    const yChildren = yTask.get("children") as Y.Array<string>;
+    return yChildren.toArray();
+  }
+
+  getOffset(node: Node): number {
+    if (node.isRoot()) return 0;
+    const task = this.getTask(node.parent().name);
+    return task.children.indexOf(node.name);
+  }
+
+  #flatten(node: Node, nodes: Node[]) {
+    nodes.push(node);
+    for (const child of this.getChildren(node.name)) {
+      this.#flatten(node.concat(child), nodes);
+    }
+  }
+
+  toNodes(): Node[] {
+    const roots = this.getRoots();
+    const nodes: Node[] = [];
+    for (const root of roots) {
+      this.#flatten(new Node([root]), nodes);
+    }
+    return nodes;
+  }
+
   newId(): string {
     let max = 0;
     for (const currId of this.yGraph.keys()) {
@@ -129,10 +149,31 @@ export class Koso {
     return `${max + 1}`;
   }
 
+  upsert(task: Task) {
+    this.yDoc.transact(() => {
+      this.yGraph.set(
+        task.id,
+        new Y.Map<string | Y.Array<string>>([
+          ["id", task.id],
+          ["name", task.name],
+          ["children", Y.Array.from(task.children)],
+          ["reporter", task.reporter],
+          ["assignee", task.assignee],
+        ]),
+      );
+    });
+  }
+
   addRoot(user: User): string {
     const nodeId = this.newId();
     this.yDoc.transact(() => {
-      this.yGraph.set(nodeId, makeTask(nodeId, "Untitled", [], user.email));
+      this.upsert({
+        id: nodeId,
+        name: "Untitled",
+        children: [],
+        reporter: user.email,
+        assignee: null,
+      });
     });
     return nodeId;
   }
@@ -189,7 +230,13 @@ export class Koso {
   insertNode(parentId: string, offset: number, user: User): string {
     const nodeId = this.newId();
     this.yDoc.transact(() => {
-      this.yGraph.set(nodeId, makeTask(nodeId, "Untitled", [], user.email));
+      this.upsert({
+        id: nodeId,
+        name: "Untitled",
+        children: [],
+        reporter: user.email,
+        assignee: null,
+      });
       const yParent = this.yGraph.get(parentId)!;
       const yChildren = yParent.get("children") as Y.Array<string>;
       yChildren.insert(offset, [nodeId]);

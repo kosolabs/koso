@@ -5,44 +5,19 @@
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
   import { setContext } from "svelte";
   import { flip } from "svelte/animate";
-  import { getOffset, getTask, Node, type Graph } from "../koso";
+  import { Node, type Graph } from "../koso";
   import Row from "./row.svelte";
   import { selected } from "./state";
   import { receive, send } from "./transition";
 
   export let koso: Koso;
   let graph: Graph = koso.toJSON();
+  let nodes: Node[] = koso.toNodes();
 
   koso.observe(() => {
     graph = koso.toJSON();
+    nodes = koso.toNodes();
   });
-
-  function findRoots(graph: Graph): string[] {
-    const allChildren = new Set<string>();
-    for (const node of Object.values(graph)) {
-      for (const child of node.children) {
-        allChildren.add(child);
-      }
-    }
-    const allNodeIds = new Set<string>(Object.keys(graph));
-    return Array.from(allNodeIds.difference(allChildren));
-  }
-
-  function flatten(node: Node, nodes: Node[]) {
-    nodes.push(node);
-    for (const child of getTask(graph, node.name).children) {
-      flatten(node.concat(child), nodes);
-    }
-  }
-
-  function toListOfNodes(graph: Graph): Node[] {
-    const roots = findRoots(graph);
-    const nodes: Node[] = [];
-    for (const root of roots) {
-      flatten(new Node([root]), nodes);
-    }
-    return nodes;
-  }
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
@@ -59,7 +34,7 @@
       const parent = $selected.parent();
       const newNodeId = koso.insertNode(
         parent.name,
-        getOffset(graph, $selected) + 1,
+        koso.getOffset($selected) + 1,
         $user,
       );
       $selected = parent.concat(newNodeId);
@@ -84,8 +59,6 @@
     koso.deleteNode($selected.name);
     $selected = null;
   }
-
-  $: nodes = toListOfNodes(graph);
 
   setContext<Koso>("koso", koso);
 </script>
