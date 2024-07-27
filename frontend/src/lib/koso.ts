@@ -81,10 +81,6 @@ export class Koso {
     Y.applyUpdate(this.yDoc, data);
   }
 
-  toJSON() {
-    return this.yGraph.toJSON();
-  }
-
   getRoots(): Set<string> {
     const allChildTaskIds = new Set<string>();
     for (const task of this.yGraph.values()) {

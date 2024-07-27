@@ -103,16 +103,16 @@ describe("Koso tests", () => {
     });
   });
 
-  describe("toJSON", () => {
+  describe("graph", () => {
     it("empty graph renders successfully", () => {
       const koso = new Koso(pId, new Y.Doc());
-      expect(koso.toJSON()).toStrictEqual({});
+      expect(koso.yGraph.toJSON()).toStrictEqual({});
     });
 
     it("graph with one root node renders to json successfully", () => {
       const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", []);
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",
@@ -127,7 +127,7 @@ describe("Koso tests", () => {
       const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2"]);
       addItem(koso, "2", "Task 2", []);
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",
@@ -152,7 +152,7 @@ describe("Koso tests", () => {
 
       koso.addNode("2", "1", 0);
 
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",
@@ -177,7 +177,7 @@ describe("Koso tests", () => {
 
       koso.removeNode("2", "1");
 
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",
@@ -203,7 +203,7 @@ describe("Koso tests", () => {
 
       koso.addNode("3", "1", 1);
 
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",
@@ -236,7 +236,7 @@ describe("Koso tests", () => {
 
       koso.addNode("3", "1", 0);
 
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",
@@ -268,7 +268,7 @@ describe("Koso tests", () => {
 
       koso.editTaskName("2", "Edited Task 2");
 
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",
@@ -295,7 +295,7 @@ describe("Koso tests", () => {
 
       koso.moveNode("4", "1", 2, "3", 0);
 
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",
@@ -336,7 +336,7 @@ describe("Koso tests", () => {
 
       koso.moveNode("4", "1", 2, "1", 1);
 
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",
@@ -377,7 +377,7 @@ describe("Koso tests", () => {
 
       koso.moveNode("3", "1", 1, "1", 3);
 
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",
@@ -422,7 +422,7 @@ describe("Koso tests", () => {
         picture: "",
       });
 
-      expect(koso.toJSON()).toStrictEqual({
+      expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
           id: "1",
           name: "Task 1",

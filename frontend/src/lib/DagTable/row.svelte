@@ -349,7 +349,6 @@
   </div>
 </div>
 
-<!-- Ghost is the first child of node. -->
 {#if !isGhost && $ghost && ((node.equals($ghost.node.parent()) && $ghost.offset === 0) || (!node.isRoot() && node
         .parent()
         .equals($ghost.node.parent()) && $ghost.offset === koso.getOffset(node) + 1))}
