@@ -13,6 +13,7 @@
     selected,
   } from "./state";
 
+  export let index: number;
   export let node: Node;
   export let isGhost: boolean = false;
 
@@ -188,7 +189,7 @@
   }
 
   function handleSelect() {
-    $selected = node;
+    $selected = node.equals($selected) ? null : node;
   }
 
   function hasCycle(parent: string, child: string): boolean {
@@ -258,10 +259,11 @@
   tabindex="0"
   class={cn(
     "flex items-center border border-transparent p-2",
+    index % 2 === 0 ? "bg-slate-50" : "bg-white",
     isMoving ? "border-red-600 opacity-30" : "",
     isGhost ? "border-green-600 opacity-70" : "",
     $highlighted?.name === node.name ? "border-lime-600" : "",
-    isSelected ? "border-primary-600" : "",
+    isSelected ? "border-primary-600 bg-primary-300" : "",
     hidden ? "hidden" : "",
   )}
   on:mouseover={handleHighlight}
@@ -348,5 +350,5 @@
 </div>
 
 {#if ghostNode}
-  <svelte:self node={ghostNode} isGhost={true} />
+  <svelte:self index={index + 1} node={ghostNode} isGhost={true} />
 {/if}
