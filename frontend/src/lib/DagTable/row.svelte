@@ -347,8 +347,6 @@
   </div>
 </div>
 
-{#if ghostNode && ((node.equals(ghostNode.parent()) && ghostOffset === 0) || (!node.isRoot() && node
-        .parent()
-        .equals(ghostNode.parent()) && ghostOffset === koso.getOffset(node) + 1))}
+{#if ghostNode}
   <svelte:self node={ghostNode} isGhost={true} />
 {/if}
