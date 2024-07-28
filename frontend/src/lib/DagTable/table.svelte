@@ -17,6 +17,32 @@
     nodes = koso.toNodes();
   });
 
+  function handleKeydown(event: KeyboardEvent) {
+    console.log(event);
+    if (event.key === "ArrowDown") {
+      if ($selected === null && nodes.length > 0) {
+        $selected = nodes[0];
+      } else if (
+        $selected !== null &&
+        nodes.indexOf($selected) < nodes.length - 1
+      ) {
+        const currentIndex = nodes.indexOf($selected);
+        $selected = nodes[currentIndex + 1];
+      }
+    } else if (event.key === "ArrowUp") {
+      if ($selected === null && nodes.length > 0) {
+        $selected = nodes[nodes.length - 1];
+      } else if ($selected !== null && nodes.indexOf($selected) > 0) {
+        const currentIndex = nodes.indexOf($selected);
+        $selected = nodes[currentIndex - 1];
+      }
+    } else {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
     koso.addRoot($user);
@@ -85,7 +111,7 @@
   {/if}
 </div>
 
-<div class="rounded-t border">
+<div role="presentation" class="rounded-t border" on:keydown={handleKeydown}>
   <div id="header" class="border-b text-xs font-bold uppercase">
     <div class="my-1 flex items-center p-2">
       <div class="min-w-48 whitespace-nowrap border-r">

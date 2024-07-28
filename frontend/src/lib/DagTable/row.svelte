@@ -17,8 +17,13 @@
   export let node: Node;
   export let isGhost: boolean = false;
 
+  let element: HTMLDivElement | undefined;
   let ghostNode: Node | null = null;
   let ghostOffset: number;
+
+  function row(el: HTMLDivElement) {
+    element = el;
+  }
 
   $: task = koso.getTask(node.name);
 
@@ -190,12 +195,36 @@
     $highlighted = null;
   }
 
-  function handleSelect(event: MouseEvent | KeyboardEvent) {
-    if (
-      event.type === "click" ||
-      (event.type === "keydown" && (event as KeyboardEvent).key === "Enter")
-    )
-      $selected = node.equals($selected) ? null : node;
+  function handleFocus(event: FocusEvent) {
+    if ($selected !== node) {
+      $selected = node;
+    }
+  }
+
+  $: if (element && $selected === node) {
+    element.focus();
+  }
+
+  function handleBlur(event: FocusEvent) {}
+
+  function handleRowClick(event: MouseEvent) {
+    event.preventDefault();
+    $selected = node.equals($selected) ? null : node;
+  }
+
+  function handleRowKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      $selected = node;
+    } else if (event.key === "Escape") {
+      $selected = null;
+    } else if (event.key === "ArrowLeft") {
+      setOpen(false);
+    } else if (event.key === "ArrowRight") {
+      setOpen(true);
+    } else {
+      return;
+    }
+    event.stopPropagation();
   }
 
   function hasCycle(parent: string, child: string): boolean {
@@ -273,10 +302,11 @@
   )}
   on:mouseover={handleHighlight}
   on:mouseout={handleUnhighlight}
-  on:focus={handleHighlight}
-  on:blur={handleUnhighlight}
-  on:click={handleSelect}
-  on:keydown={handleSelect}
+  on:focus={handleFocus}
+  on:blur={handleBlur}
+  on:click={handleRowClick}
+  on:keydown={handleRowKeydown}
+  use:row
 >
   <div class="min-w-48 overflow-x-clip whitespace-nowrap">
     <div class="flex items-center">
