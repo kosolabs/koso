@@ -13,6 +13,7 @@
     selected,
   } from "./state";
 
+  export let index: number;
   export let node: Node;
   export let isGhost: boolean = false;
 
@@ -34,7 +35,8 @@
     }
   }
 
-  function toggleOpen() {
+  function handleToggleOpen(event: MouseEvent) {
+    event.stopPropagation();
     setOpen(!open);
   }
 
@@ -50,7 +52,8 @@
 
   let editedTaskName: string | null = null;
 
-  function handleStartEditingTaskName() {
+  function handleStartEditingTaskName(event: MouseEvent | CustomEvent) {
+    event.stopPropagation();
     editedTaskName = task.name;
   }
 
@@ -187,8 +190,12 @@
     $highlighted = null;
   }
 
-  function handleSelect() {
-    $selected = node;
+  function handleSelect(event: MouseEvent | KeyboardEvent) {
+    if (
+      event.type === "click" ||
+      (event.type === "keydown" && (event as KeyboardEvent).key === "Enter")
+    )
+      $selected = node.equals($selected) ? null : node;
   }
 
   function hasCycle(parent: string, child: string): boolean {
@@ -233,35 +240,35 @@
     return koso.getOffset(dragged) === 0;
   }
 
-  $: dragging = !isGhost && node.equals($dragged);
+  $: isDragging = !isGhost && node.equals($dragged);
   $: canDragDropPeer =
-    !dragging &&
+    !isDragging &&
     !node.isRoot() &&
     $dragged &&
     !isSamePeer(node, $dragged) &&
     !hasChild(node.parent(), $dragged) &&
     !hasCycle(node.parent().name, $dragged.name);
   $: canDragDropChild =
-    !dragging &&
+    !isDragging &&
     $dragged &&
     !isSameChild(node, $dragged) &&
     !hasChild(node, $dragged) &&
     !hasCycle(node.name, $dragged.name);
-  $: isMoving = dragging && $dropEffect === "move";
+  $: isMoving = isDragging && $dropEffect === "move";
   $: isSelected = node.equals($selected);
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
 <div
   id="row-{node.id}"
   role="row"
   tabindex="0"
   class={cn(
     "flex items-center border border-transparent p-2",
-    isMoving ? "border-red-600 opacity-30" : "",
+    index % 2 === 0 ? "bg-slate-50" : "bg-white",
+    isMoving ? "border-rose-600 opacity-50" : "",
     isGhost ? "border-green-600 opacity-70" : "",
     $highlighted?.name === node.name ? "border-lime-600" : "",
-    isSelected ? "border-primary-600" : "",
+    isSelected ? "border-primary-600 bg-primary-200" : "",
     hidden ? "hidden" : "",
   )}
   on:mouseover={handleHighlight}
@@ -269,30 +276,31 @@
   on:focus={handleHighlight}
   on:blur={handleUnhighlight}
   on:click={handleSelect}
+  on:keydown={handleSelect}
 >
   <div class="min-w-48 overflow-x-clip whitespace-nowrap">
     <div class="flex items-center">
+      <div style="width: {(node.length - 1) * 1.25}rem;" />
       <button
-        class="w-5 transition-transform"
+        class="w-4 transition-transform"
         class:rotate-90={open && !isGhost}
-        style="margin-left: {(node.length - 1) * 1.25}rem;"
-        on:click={() => toggleOpen()}
+        on:click={handleToggleOpen}
       >
         {#if task.children.length > 0}
-          <ChevronRight class="h-4" />
+          <ChevronRight class="w-4" />
         {/if}
       </button>
-      <Tooltip class="text-nowrap" placement="top">
+      <Tooltip class="text-nowrap">
         {open ? "Collapse" : "Expand"}
       </Tooltip>
       <button
-        class="relative w-5"
+        class="relative w-4"
         draggable={true}
         on:dragstart={handleDragStart}
         on:dragend={handleDragEnd}
         on:drag={handleDrag}
       >
-        <GripVertical class="h-4" />
+        <GripVertical class="w-4" />
         {#if canDragDropPeer}
           <div
             class="absolute z-50 h-7"
@@ -324,6 +332,7 @@
     {#if editedTaskName !== null}
       <Input
         size="sm"
+        on:click={(event) => event.stopPropagation()}
         on:blur={handleEditedTaskNameBlur}
         on:keydown={handleEditedTaskNameKeydown}
         bind:value={editedTaskName}
@@ -348,5 +357,5 @@
 </div>
 
 {#if ghostNode}
-  <svelte:self node={ghostNode} isGhost={true} />
+  <svelte:self index={index + 1} node={ghostNode} isGhost={true} />
 {/if}

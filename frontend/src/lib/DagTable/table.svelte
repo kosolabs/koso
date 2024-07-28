@@ -101,15 +101,13 @@
     </div>
   </div>
 
-  <div id="body" class="[&>*:nth-child(even)]:bg-slate-50">
-    {#each nodes as node (node.id)}
-      <div
-        in:receive={{ key: node.id }}
-        out:send={{ key: node.id }}
-        animate:flip={{ duration: 250 }}
-      >
-        <Row {node} isGhost={false} />
-      </div>
-    {/each}
-  </div>
+  {#each nodes as node, index (node.id)}
+    <div
+      in:receive={{ key: node.id }}
+      out:send={{ key: node.id }}
+      animate:flip={{ duration: 250 }}
+    >
+      <Row {index} {node} isGhost={false} />
+    </div>
+  {/each}
 </div>
