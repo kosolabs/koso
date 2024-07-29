@@ -9,6 +9,7 @@
     collapsed,
     dragged,
     dropEffect,
+    hidden,
     highlighted,
     selected,
   } from "./state";
@@ -44,16 +45,6 @@
     event.stopPropagation();
     setOpen(!open);
   }
-
-  function isHidden(nodes: Set<string>) {
-    for (const collapsed of nodes) {
-      if (node.id.startsWith(collapsed + "-")) {
-        return true;
-      }
-    }
-    return false;
-  }
-  $: hidden = isHidden($collapsed);
 
   let editedTaskName: string | null = null;
 
@@ -311,6 +302,7 @@
     !hasCycle(node.name, $dragged.name);
   $: isMoving = isDragging && $dropEffect === "move";
   $: isSelected = node.equals($selected);
+  $: isHidden = $hidden.has(node.id);
 </script>
 
 <div
@@ -324,7 +316,7 @@
     isGhost ? "border-green-600 opacity-70" : "",
     $highlighted?.name === node.name ? "border-lime-600" : "",
     isSelected ? "border-primary-600 bg-primary-200" : "",
-    hidden ? "hidden" : "",
+    isHidden ? "hidden" : "",
   )}
   on:mouseout={handleUnhighlight}
   on:mouseover={handleHighlight}
