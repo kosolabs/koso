@@ -388,6 +388,7 @@
     {#if editedTaskName !== null}
       <Input
         size="sm"
+        class="my-1 p-1"
         on:click={(event) => event.stopPropagation()}
         on:blur={handleEditedTaskNameBlur}
         on:keydown={handleEditedTaskNameKeydown}
