@@ -7,15 +7,57 @@
   import { flip } from "svelte/animate";
   import { Node } from "../koso";
   import Row from "./row.svelte";
-  import { selected } from "./state";
+  import { hidden, nodes, selected } from "./state";
   import { receive, send } from "./transition";
 
   export let koso: Koso;
-  let nodes: Node[] = koso.toNodes();
+  $nodes = koso.toNodes();
 
   koso.observe(() => {
-    nodes = koso.toNodes();
+    $nodes = koso.toNodes();
   });
+
+  document.onkeydown = (event: KeyboardEvent) => {
+    if (event.key === "ArrowDown") {
+      if ($nodes.length > 0) {
+        const paths = $nodes.map((node) => node.id);
+        const selectedIndex = $selected ? paths.indexOf($selected.id) : -1;
+        if (selectedIndex === -1) {
+          $selected = $nodes[0];
+        } else {
+          for (let i = selectedIndex + 1; i < paths.length; i++) {
+            if (!$hidden.has($nodes[i].id)) {
+              $selected = $nodes[i];
+              break;
+            }
+          }
+        }
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      if ($nodes.length > 0) {
+        const paths = $nodes.map((node) => node.id);
+        const selectedIndex = $selected ? paths.indexOf($selected.id) : -1;
+        if (selectedIndex === -1) {
+          $selected = $nodes[$nodes.length - 1];
+        } else {
+          for (let i = selectedIndex - 1; i >= 0; i--) {
+            if (!$hidden.has($nodes[i].id)) {
+              $selected = $nodes[i];
+              break;
+            }
+          }
+        }
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+  };
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
@@ -101,7 +143,7 @@
     </div>
   </div>
 
-  {#each nodes as node, index (node.id)}
+  {#each $nodes as node, index (node.id)}
     <div
       in:receive={{ key: node.id }}
       out:send={{ key: node.id }}

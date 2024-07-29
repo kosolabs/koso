@@ -9,6 +9,7 @@
     collapsed,
     dragged,
     dropEffect,
+    hidden,
     highlighted,
     selected,
   } from "./state";
@@ -17,8 +18,13 @@
   export let node: Node;
   export let isGhost: boolean = false;
 
+  let element: HTMLDivElement | undefined;
   let ghostNode: Node | null = null;
   let ghostOffset: number;
+
+  function row(el: HTMLDivElement) {
+    element = el;
+  }
 
   $: task = koso.getTask(node.name);
 
@@ -40,20 +46,11 @@
     setOpen(!open);
   }
 
-  function isHidden(nodes: Set<string>) {
-    for (const collapsed of nodes) {
-      if (node.id.startsWith(collapsed + "-")) {
-        return true;
-      }
-    }
-    return false;
-  }
-  $: hidden = isHidden($collapsed);
-
   let editedTaskName: string | null = null;
 
   function handleStartEditingTaskName(event: MouseEvent | CustomEvent) {
     event.stopPropagation();
+    $selected = node;
     editedTaskName = task.name;
   }
 
@@ -78,12 +75,19 @@
 
   function handleEditedTaskNameKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
-      event.preventDefault();
       revertEditedTaskName();
-    }
-    if (event.key === "Enter") {
+      $selected = node;
       event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key === "Enter") {
       saveEditedTaskName();
+      $selected = node;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
     }
   }
 
@@ -190,12 +194,56 @@
     $highlighted = null;
   }
 
-  function handleSelect(event: MouseEvent | KeyboardEvent) {
-    if (
-      event.type === "click" ||
-      (event.type === "keydown" && (event as KeyboardEvent).key === "Enter")
-    )
-      $selected = node.equals($selected) ? null : node;
+  function handleFocus(event: FocusEvent) {
+    event.preventDefault();
+    $selected = node;
+  }
+
+  $: if (element && $selected === node) {
+    console.log(element);
+    element.focus();
+  }
+
+  function handleRowClick(event: MouseEvent) {
+    event.preventDefault();
+    $selected = node;
+  }
+
+  function handleRowKeydown(event: KeyboardEvent) {
+    if (!element) throw new Error("Reference to focusable div is undefined");
+
+    if (editedTaskName !== null) {
+      return;
+    }
+
+    if (event.key === "Enter") {
+      editedTaskName = task.name;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      $selected = null;
+      element.blur();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      setOpen(false);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      setOpen(true);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
   }
 
   function hasCycle(parent: string, child: string): boolean {
@@ -256,6 +304,7 @@
     !hasCycle(node.name, $dragged.name);
   $: isMoving = isDragging && $dropEffect === "move";
   $: isSelected = node.equals($selected);
+  $: isHidden = $hidden.has(node.id);
 </script>
 
 <div
@@ -263,23 +312,24 @@
   role="row"
   tabindex="0"
   class={cn(
-    "flex items-center border border-transparent p-2",
+    "flex items-center border border-transparent p-1",
     index % 2 === 0 ? "bg-slate-50" : "bg-white",
     isMoving ? "border-rose-600 opacity-50" : "",
     isGhost ? "border-green-600 opacity-70" : "",
     $highlighted?.name === node.name ? "border-lime-600" : "",
     isSelected ? "border-primary-600 bg-primary-200" : "",
-    hidden ? "hidden" : "",
+    isHidden ? "hidden" : "",
   )}
-  on:mouseover={handleHighlight}
   on:mouseout={handleUnhighlight}
-  on:focus={handleHighlight}
-  on:blur={handleUnhighlight}
-  on:click={handleSelect}
-  on:keydown={handleSelect}
+  on:mouseover={handleHighlight}
+  on:blur={() => {}}
+  on:focus={handleFocus}
+  on:click={handleRowClick}
+  on:keydown={handleRowKeydown}
+  use:row
 >
   <div class="min-w-48 overflow-x-clip whitespace-nowrap">
-    <div class="flex items-center">
+    <div class="flex items-center p-1">
       <div style="width: {(node.length - 1) * 1.25}rem;" />
       <button
         class="w-4 transition-transform"
@@ -332,6 +382,7 @@
     {#if editedTaskName !== null}
       <Input
         size="sm"
+        class="my-1 p-1"
         on:click={(event) => event.stopPropagation()}
         on:blur={handleEditedTaskNameBlur}
         on:keydown={handleEditedTaskNameKeydown}
