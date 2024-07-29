@@ -59,7 +59,7 @@
 
   function handleStartEditingTaskName(event: MouseEvent | CustomEvent) {
     event.stopPropagation();
-    $selected = null;
+    $selected = node;
     editedTaskName = task.name;
   }
 
@@ -318,7 +318,7 @@
   role="row"
   tabindex="0"
   class={cn(
-    "flex items-center border border-transparent p-2",
+    "flex items-center border border-transparent p-1",
     index % 2 === 0 ? "bg-slate-50" : "bg-white",
     isMoving ? "border-rose-600 opacity-50" : "",
     isGhost ? "border-green-600 opacity-70" : "",
@@ -335,7 +335,7 @@
   use:row
 >
   <div class="min-w-48 overflow-x-clip whitespace-nowrap">
-    <div class="flex items-center">
+    <div class="flex items-center p-1">
       <div style="width: {(node.length - 1) * 1.25}rem;" />
       <button
         class="w-4 transition-transform"
