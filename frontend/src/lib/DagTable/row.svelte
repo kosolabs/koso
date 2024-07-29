@@ -59,6 +59,7 @@
 
   function handleStartEditingTaskName(event: MouseEvent | CustomEvent) {
     event.stopPropagation();
+    $selected = null;
     editedTaskName = task.name;
   }
 
@@ -83,12 +84,19 @@
 
   function handleEditedTaskNameKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
-      event.preventDefault();
       revertEditedTaskName();
-    }
-    if (event.key === "Enter") {
+      $selected = node;
       event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key === "Enter") {
       saveEditedTaskName();
+      $selected = node;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
     }
   }
 
@@ -196,35 +204,53 @@
   }
 
   function handleFocus(event: FocusEvent) {
-    if ($selected !== node) {
-      $selected = node;
-    }
+    $selected = node;
   }
 
   $: if (element && $selected === node) {
+    console.log(element);
     element.focus();
   }
 
-  function handleBlur(event: FocusEvent) {}
-
   function handleRowClick(event: MouseEvent) {
-    event.preventDefault();
-    $selected = node.equals($selected) ? null : node;
+    $selected = node;
   }
 
   function handleRowKeydown(event: KeyboardEvent) {
-    if (event.key === "Enter") {
-      $selected = node;
-    } else if (event.key === "Escape") {
-      $selected = null;
-    } else if (event.key === "ArrowLeft") {
-      setOpen(false);
-    } else if (event.key === "ArrowRight") {
-      setOpen(true);
-    } else {
+    if (!element) throw new Error("Reference to focusable div is undefined");
+
+    if (editedTaskName !== null) {
       return;
     }
-    event.stopPropagation();
+
+    if (event.key === "Enter") {
+      editedTaskName = task.name;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      $selected = null;
+      element.blur();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      setOpen(false);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      setOpen(true);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
   }
 
   function hasCycle(parent: string, child: string): boolean {
@@ -300,10 +326,10 @@
     isSelected ? "border-primary-600 bg-primary-200" : "",
     hidden ? "hidden" : "",
   )}
-  on:mouseover={handleHighlight}
   on:mouseout={handleUnhighlight}
+  on:mouseover={handleHighlight}
+  on:blur={() => {}}
   on:focus={handleFocus}
-  on:blur={handleBlur}
   on:click={handleRowClick}
   on:keydown={handleRowKeydown}
   use:row

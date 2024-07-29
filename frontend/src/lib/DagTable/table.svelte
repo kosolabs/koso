@@ -17,31 +17,37 @@
     nodes = koso.toNodes();
   });
 
-  function handleKeydown(event: KeyboardEvent) {
-    console.log(event);
+  document.onkeydown = (event: KeyboardEvent) => {
     if (event.key === "ArrowDown") {
-      if ($selected === null && nodes.length > 0) {
-        $selected = nodes[0];
-      } else if (
-        $selected !== null &&
-        nodes.indexOf($selected) < nodes.length - 1
-      ) {
-        const currentIndex = nodes.indexOf($selected);
-        $selected = nodes[currentIndex + 1];
+      if (nodes.length > 0) {
+        const paths = nodes.map((node) => node.id);
+        const selectedIndex = $selected ? paths.indexOf($selected.id) : -1;
+        if (selectedIndex === -1) {
+          $selected = nodes[0];
+        } else if (selectedIndex < paths.length - 1) {
+          $selected = nodes[selectedIndex + 1];
+        }
       }
-    } else if (event.key === "ArrowUp") {
-      if ($selected === null && nodes.length > 0) {
-        $selected = nodes[nodes.length - 1];
-      } else if ($selected !== null && nodes.indexOf($selected) > 0) {
-        const currentIndex = nodes.indexOf($selected);
-        $selected = nodes[currentIndex - 1];
-      }
-    } else {
+      event.preventDefault();
+      event.stopPropagation();
       return;
     }
-    event.preventDefault();
-    event.stopPropagation();
-  }
+
+    if (event.key === "ArrowUp") {
+      if (nodes.length > 0) {
+        const paths = nodes.map((node) => node.id);
+        const selectedIndex = $selected ? paths.indexOf($selected.id) : -1;
+        if (selectedIndex === -1) {
+          $selected = nodes[nodes.length - 1];
+        } else if (selectedIndex > 0) {
+          $selected = nodes[selectedIndex - 1];
+        }
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+  };
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
@@ -111,7 +117,7 @@
   {/if}
 </div>
 
-<div role="presentation" class="rounded-t border" on:keydown={handleKeydown}>
+<div role="presentation" class="rounded-t border">
   <div id="header" class="border-b text-xs font-bold uppercase">
     <div class="my-1 flex items-center p-2">
       <div class="min-w-48 whitespace-nowrap border-r">
