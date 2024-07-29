@@ -78,7 +78,7 @@ export class Koso {
   }
 
   update(data: Uint8Array) {
-    Y.applyUpdate(this.yDoc, data);
+    Y.applyUpdateV2(this.yDoc, data);
   }
 
   getRoots(): Set<string> {

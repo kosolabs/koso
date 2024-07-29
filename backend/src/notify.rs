@@ -166,7 +166,7 @@ impl Notifier {
             return Ok(doc_box
                 .doc
                 .transact()
-                .encode_state_as_update_v1(&StateVector::default()));
+                .encode_state_as_update_v2(&StateVector::default()));
         }
 
         // Load the doc if it wasn't already loaded by another client.
@@ -197,7 +197,7 @@ impl Notifier {
         let sv = db
             .doc
             .transact()
-            .encode_state_as_update_v1(&StateVector::default());
+            .encode_state_as_update_v2(&StateVector::default());
         *doc_box = Some(db);
         Ok(sv)
     }
@@ -345,7 +345,7 @@ impl Notifier {
     }
 
     async fn apply_update_to_doc(&self, yrs_update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
-        let update = match Update::decode_v1(&yrs_update.data) {
+        let update = match Update::decode_v2(&yrs_update.data) {
             Ok(update) => update,
             Err(e) => {
                 return Err(format!(
