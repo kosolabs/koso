@@ -307,12 +307,11 @@
   $: isHidden = $hidden.has(node.id);
 </script>
 
-<div
+<tr
   id="row-{node.id}"
-  role="row"
   tabindex="0"
   class={cn(
-    "flex items-center border border-transparent p-1",
+    "border border-transparent p-1",
     index % 2 === 0 ? "bg-slate-50" : "bg-white",
     isMoving ? "border-rose-600 opacity-50" : "",
     isGhost ? "border-green-600 opacity-70" : "",
@@ -328,7 +327,7 @@
   on:keydown={handleRowKeydown}
   use:row
 >
-  <div class="min-w-48 overflow-x-clip whitespace-nowrap">
+  <td>
     <div class="flex items-center p-1">
       <div style="width: {(node.length - 1) * 1.25}rem;" />
       <button
@@ -377,8 +376,8 @@
       </button>
       <div class="overflow-x-hidden whitespace-nowrap">{node.name}</div>
     </div>
-  </div>
-  <div class="w-96 overflow-x-hidden whitespace-nowrap px-2">
+  </td>
+  <td class="px-2">
     {#if editedTaskName !== null}
       <Input
         size="sm"
@@ -398,14 +397,14 @@
         {task.name}
       </A>
     {/if}
-  </div>
-  <div class="w-96 overflow-x-hidden whitespace-nowrap px-2">
+  </td>
+  <td class="px-2">
     {task.reporter}
-  </div>
-  <div class="w-96 overflow-x-hidden whitespace-nowrap px-2">
+  </td>
+  <td class="px-2">
     {task.assignee ?? "Unassigned"}
-  </div>
-</div>
+  </td>
+</tr>
 
 {#if ghostNode}
   <svelte:self index={index + 1} node={ghostNode} isGhost={true} />
