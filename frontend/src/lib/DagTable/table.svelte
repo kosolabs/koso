@@ -127,7 +127,7 @@
   {/if}
 </div>
 
-<div role="presentation" class="rounded-t border">
+<div class="rounded-t border">
   <div id="header" class="border-b text-xs font-bold uppercase">
     <div class="my-1 flex items-center p-2">
       <div class="min-w-48 whitespace-nowrap border-r">

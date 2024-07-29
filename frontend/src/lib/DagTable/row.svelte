@@ -195,6 +195,7 @@
   }
 
   function handleFocus(event: FocusEvent) {
+    event.preventDefault();
     $selected = node;
   }
 
@@ -204,6 +205,7 @@
   }
 
   function handleRowClick(event: MouseEvent) {
+    event.preventDefault();
     $selected = node;
   }
 
