@@ -14,11 +14,8 @@
     NavUl,
   } from "flowbite-svelte";
   import NavContainer from "flowbite-svelte/NavContainer.svelte";
-  import * as decoding from "lib0/decoding";
-  import * as encoding from "lib0/encoding";
   import { UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
-  import * as syncProtocol from "y-protocols/sync";
   import * as Y from "yjs";
 
   const projectId = $page.params.slug;
@@ -40,35 +37,18 @@
     socket.binaryType = "arraybuffer";
 
     socket.onopen = (event) => {
-      socket.send(koso.createSyncRequest());
-
-      koso.onLocalUpdate((update) => {
-        const encoder = encoding.createEncoder();
-        encoding.writeVarInt(encoder, 0);
-        syncProtocol.writeUpdate(encoder, update);
-        socket.send(encoding.toUint8Array(encoder));
+      koso.handleClientMessage((update) => {
+        socket.send(update);
       });
+      socket.send(koso.createSyncRequest());
       $lastVisitedProjectId = $page.params.slug;
     };
 
     socket.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) {
         console.log("Received: ", new Uint8Array(event.data));
-        const decoder = decoding.createDecoder(new Uint8Array(event.data));
-        const messageProtocolType = decoding.readVarUint(decoder);
-        if (messageProtocolType !== 0) {
-          throw new Error(
-            `Expected protocol message type to be Sync (0) but was: ${messageProtocolType}`,
-          );
-        }
-
-        const encoder = encoding.createEncoder();
-        encoding.writeVarUint(encoder, 0);
-        const emptyLength = encoding.length(encoder);
-        syncProtocol.readSyncMessage(decoder, encoder, koso.yDoc, "");
-
-        if (encoding.length(encoder) > emptyLength) {
-          const reply = encoding.toUint8Array(encoder);
+        const reply = koso.handleServerMessage(new Uint8Array(event.data));
+        if (reply) {
           console.log("Sending: ", reply);
           socket.send(reply);
         }

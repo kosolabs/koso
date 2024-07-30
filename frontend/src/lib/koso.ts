@@ -1,7 +1,17 @@
-import * as protocol from "$lib/protocol";
+import * as decoding from "lib0/decoding";
+import * as encoding from "lib0/encoding";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
+
+const MSG_SYNC = 0;
+// const MSG_AWARENESS = 1;
+// const MSG_AUTH = 2;
+// const MSG_QUERY_AWARENESS = 3;
+
+const MSG_SYNC_STEP_1 = 0;
+const MSG_SYNC_STEP_2 = 1;
+const MSG_SYNC_UPDATE = 2;
 
 export class Node {
   id: string;
@@ -64,26 +74,60 @@ export class Koso {
   }
 
   createSyncRequest(): Uint8Array {
-    return protocol.syncRequest(this.yDoc);
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, MSG_SYNC);
+    encoding.writeVarUint(encoder, MSG_SYNC_STEP_1);
+    const sv = Y.encodeStateVector(this.yDoc);
+    encoding.writeVarUint8Array(encoder, sv);
+    return encoding.toUint8Array(encoder);
   }
 
-  onLocalUpdate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    f: (arg0: Uint8Array, arg1: any, arg2: Y.Doc, arg3: Y.Transaction) => void,
-  ) {
+  handleServerMessage(message: Uint8Array): Uint8Array | undefined {
+    const decoder = decoding.createDecoder(message);
+    const messageType = decoding.readVarUint(decoder);
+    if (messageType === MSG_SYNC) {
+      const encoder = encoding.createEncoder();
+      const syncType = decoding.readVarUint(decoder);
+
+      if (syncType === MSG_SYNC_STEP_1) {
+        const encodedStateVector = decoding.readVarUint8Array(decoder);
+        encoding.writeVarUint(encoder, MSG_SYNC);
+        encoding.writeVarUint(encoder, MSG_SYNC_STEP_2);
+        encoding.writeVarUint8Array(
+          encoder,
+          Y.encodeStateAsUpdate(this.yDoc, encodedStateVector),
+        );
+      } else if (syncType === MSG_SYNC_STEP_2 || syncType === MSG_SYNC_UPDATE) {
+        const message = decoding.readVarUint8Array(decoder);
+        Y.applyUpdate(this.yDoc, message);
+      } else {
+        throw new Error(`Unknown sync type: ${syncType}`);
+      }
+
+      if (encoding.length(encoder) > 0) {
+        return encoding.toUint8Array(encoder);
+      }
+    } else {
+      throw new Error(
+        `Expected message type to be Sync (0) but was: ${messageType}`,
+      );
+    }
+  }
+
+  handleClientMessage(f: (message: Uint8Array) => void) {
     this.yDoc.on(
       "update",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (update: Uint8Array, arg1: any, arg2: Y.Doc, txn: Y.Transaction) => {
+      (message: Uint8Array, arg1: any, arg2: Y.Doc, txn: Y.Transaction) => {
         if (txn.local) {
-          f(update, arg1, arg2, txn);
+          const encoder = encoding.createEncoder();
+          encoding.writeVarUint(encoder, MSG_SYNC);
+          encoding.writeVarUint(encoder, MSG_SYNC_UPDATE);
+          encoding.writeVarUint8Array(encoder, message);
+          f(encoding.toUint8Array(encoder));
         }
       },
     );
-  }
-
-  update(data: Uint8Array) {
-    Y.applyUpdateV2(this.yDoc, data);
   }
 
   getRoots(): Set<string> {
