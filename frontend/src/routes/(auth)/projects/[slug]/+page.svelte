@@ -4,19 +4,22 @@
   import { logout as auth_logout, token, user } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
+  import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
   import {
     Button,
     Navbar,
     NavBrand,
-    NavUl,
-    NavLi,
     NavHamburger,
+    NavLi,
+    NavUl,
   } from "flowbite-svelte";
   import NavContainer from "flowbite-svelte/NavContainer.svelte";
+  import * as decoding from "lib0/decoding";
+  import * as encoding from "lib0/encoding";
   import { UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
+  import * as syncProtocol from "y-protocols/sync";
   import * as Y from "yjs";
-  import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
 
   const projectId = $page.params.slug;
   const koso = new Koso(projectId, new Y.Doc());
@@ -35,9 +38,43 @@
     const wsUrl = `${host}/ws/projects/${projectId}`;
     const socket = new WebSocket(wsUrl, ["bearer", $token]);
     socket.binaryType = "arraybuffer";
+
+    socket.onopen = (event) => {
+      const encoder = encoding.createEncoder();
+      encoding.writeVarInt(encoder, 0);
+      syncProtocol.writeSyncStep1(encoder, koso.yDoc);
+      socket.send(encoding.toUint8Array(encoder));
+
+      koso.onLocalUpdate((update) => {
+        const encoder = encoding.createEncoder();
+        encoding.writeVarInt(encoder, 0);
+        syncProtocol.writeUpdate(encoder, update);
+        socket.send(encoding.toUint8Array(encoder));
+      });
+      $lastVisitedProjectId = $page.params.slug;
+    };
+
     socket.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) {
-        koso.update(new Uint8Array(event.data));
+        console.log("Received: ", new Uint8Array(event.data));
+        const decoder = decoding.createDecoder(new Uint8Array(event.data));
+        const messageProtocolType = decoding.readVarUint(decoder);
+        if (messageProtocolType !== 0) {
+          throw new Error(
+            `Expected protocol message type to be Sync (0) but was: ${messageProtocolType}`,
+          );
+        }
+
+        const encoder = encoding.createEncoder();
+        encoding.writeVarUint(encoder, 0);
+        const emptyLength = encoding.length(encoder);
+        syncProtocol.readSyncMessage(decoder, encoder, koso.yDoc, "");
+
+        if (encoding.length(encoder) > emptyLength) {
+          const reply = encoding.toUint8Array(encoder);
+          console.log("Sending: ", reply);
+          socket.send(reply);
+        }
       } else {
         console.log("Received text frame from server:", event.data);
       }
@@ -52,12 +89,6 @@
     while (socket.readyState !== WebSocket.OPEN) {
       await new Promise((r) => setTimeout(r, 100));
     }
-
-    $lastVisitedProjectId = $page.params.slug;
-
-    koso.onLocalUpdate((update) => {
-      socket.send(update);
-    });
   });
 </script>
 

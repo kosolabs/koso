@@ -12,7 +12,11 @@ use tokio::sync::{
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
-use yrs::{updates::decoder::Decode, Doc, ReadTxn, StateVector, Transact, Update};
+use yrs::{
+    sync::{self, Awareness, DefaultProtocol, Protocol},
+    updates::{decoder::Decode, encoder::Encode},
+    Doc, ReadTxn, StateVector, Transact, Update,
+};
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsUpdate>(1);
@@ -57,7 +61,7 @@ struct ClientReceiver {
 }
 
 struct DocBox {
-    doc: Doc,
+    awareness: Awareness,
 }
 
 struct YrsUpdate {
@@ -114,6 +118,8 @@ impl Notifier {
         let sv = self.init_doc_box(&project).await?;
 
         // Send the entire state vector to the client.
+        let sv = sync::Message::Sync(sync::SyncMessage::SyncStep1(sv)).encode_v1();
+        tracing::debug!("Sending SV to client {:?}", sv);
         if let Err(e) = sender.send(sv).await {
             return Err(format!("Failed to send state vector to client: {e}").into());
         }
@@ -132,23 +138,17 @@ impl Notifier {
         Ok(())
     }
 
-    async fn init_doc_box(&self, project: &ProjectState) -> Result<Vec<u8>, Box<dyn Error>> {
+    async fn init_doc_box(&self, project: &ProjectState) -> Result<StateVector, Box<dyn Error>> {
         let mut doc_box = project.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
-            return Ok(doc_box
-                .doc
-                .transact()
-                .encode_state_as_update_v2(&StateVector::default()));
+            return Ok(doc_box.awareness.doc().transact().state_vector());
         }
 
         // Load the doc if it wasn't already loaded by another client.
-        let doc = self.load_graph(&project.project_id).await?;
+        let awareness = Awareness::new(self.load_graph(&project.project_id).await?);
 
-        let db = DocBox { doc };
-        let sv = db
-            .doc
-            .transact()
-            .encode_state_as_update_v2(&StateVector::default());
+        let db = DocBox { awareness };
+        let sv = db.awareness.doc().transact().state_vector();
         *doc_box = Some(db);
         Ok(sv)
     }
@@ -166,8 +166,7 @@ impl Notifier {
         {
             let mut txn = doc.transact_mut();
             for (update,) in updates {
-                let update = Update::decode_v2(&update)?;
-                txn.apply_update(update);
+                txn.apply_update(Update::decode_v1(&update)?);
             }
         }
         tracing::debug!("Initialized new YDoc with {update_count} updates");
@@ -278,67 +277,106 @@ impl Notifier {
     #[tracing::instrument(skip(self))]
     async fn process_update(&self, update: YrsUpdate) {
         tracing::debug!("Processing update");
-        if let Err(e) = self.apply_update_to_doc(&update).await {
-            tracing::error!("Failed to apply update to doc: {e}");
-            return;
-        }
-        self.broadcast_update(&update).await;
-        if let Err(e) = self.persist_update(&update).await {
-            tracing::error!("Failed to persist y-update: {e}");
-            return;
-        }
-    }
 
-    async fn apply_update_to_doc(&self, yrs_update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
-        let update = match Update::decode_v2(&yrs_update.data) {
-            Ok(update) => update,
-            Err(e) => {
-                return Err(format!(
-                    "Could not decode update from client: {e}, update: {yrs_update:?}"
-                )
-                .into());
+        let Some(project) = self.state.get(&update.project_id) else {
+            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
+            // Likely, we should reset all sockets.
+            tracing::error!(
+                "Tried to handle message but project was None. Dropped update: {update:?}"
+            );
+            return;
+        };
+
+        let reply = {
+            match self.handle_message(&project, &update).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!("Failed to handle_message: {e}");
+                    return;
+                }
             }
         };
+        if let Some(reply) = reply {
+            match reply {
+                sync::Message::Sync(sync::SyncMessage::SyncStep2(m))
+                | sync::Message::Sync(sync::SyncMessage::Update(m)) => {
+                    if let Err(e) = self.persist_update(&project.project_id, &m).await {
+                        tracing::error!("Failed to persist y-update: {e}");
+                        return;
+                    }
 
-        let Some(project) = self.state.get(&yrs_update.project_id) else {
-            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
-            // Likely, we should reset all sockets.
-            return Err(
-                "Tried to broadcast update but project was None. Dropped update: {update:?}".into(),
-            );
-        };
-
-        let doc_box = project.doc_box.lock().await;
-        let Some(doc_box) = doc_box.as_ref() else {
-            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
-            // Likely, we should reset all sockets.
-            return Err(
-                "Tried to broadcast update but doc_box was None. Dropped update: {update:?}".into(),
-            );
-        };
-        doc_box.doc.transact_mut().apply_update(update);
-        Ok(())
+                    project
+                        .broadcast(
+                            &update.who,
+                            sync::Message::Sync(sync::SyncMessage::Update(m)).encode_v1(),
+                        )
+                        .await;
+                }
+                m => {
+                    tracing::error!("Unexpected reply to client: {m:?}");
+                    return;
+                }
+            }
+        }
     }
 
-    async fn persist_update(&self, update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
+    async fn handle_message(
+        &self,
+        project: &ProjectState,
+        yrs_update: &YrsUpdate,
+    ) -> Result<Option<sync::Message>, Box<dyn Error>> {
+        let mut doc_box = project.doc_box.lock().await;
+        let Some(doc_box) = doc_box.as_mut() else {
+            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
+            // Likely, we should reset all sockets.
+            return Err(
+                "Tried to handle message but doc_box was None. Dropped update: {update:?}".into(),
+            );
+        };
+
+        let protocol = DefaultProtocol {};
+        let sync_message = match sync::Message::decode_v1(&yrs_update.data)? {
+            sync::Message::Sync(m) => m,
+            m => return Err(format!("Unimplemented message protocol type: {m:?}").into()),
+        };
+
+        match sync_message {
+            sync::SyncMessage::SyncStep1(sv) => {
+                tracing::debug!("Handling syncstep1: {sv:?}");
+                Ok(protocol.handle_sync_step1(&doc_box.awareness, sv)?)
+            }
+            sync::SyncMessage::SyncStep2(update) => {
+                tracing::debug!("Handling syncstep2: {update:?}");
+                Ok(protocol
+                    .handle_sync_step2(&mut doc_box.awareness, Update::decode_v1(&update)?)?)
+            }
+            sync::SyncMessage::Update(update) => {
+                tracing::debug!("Handling update: {update:?}");
+                if let Some(reply) =
+                    protocol.handle_update(&mut doc_box.awareness, Update::decode_v1(&update)?)?
+                {
+                    return Err(format!("Unexpectedly got reply on update: {reply:?}").into());
+                }
+                Ok(Some(sync::Message::Sync(sync::SyncMessage::Update(update))))
+            }
+        }
+    }
+
+    async fn persist_update(
+        &self,
+        project_id: &ProjectId,
+        data: &Vec<u8>,
+    ) -> Result<(), Box<dyn Error>> {
         sqlx::query(
             "
             INSERT INTO yupdates (project_id, seq, update_v2)
             VALUES ($1, DEFAULT, $2)",
         )
-        .bind(&update.project_id)
-        .bind(&update.data)
+        .bind(project_id)
+        .bind(data)
         .execute(self.pool)
         .await?;
         Ok(())
-    }
-
-    async fn broadcast_update(&self, update: &YrsUpdate) {
-        let Some(project) = self.state.get(&update.project_id) else {
-            tracing::warn!("No clients for project exist to broadcast to.");
-            return;
-        };
-        project.broadcast(update).await;
     }
 
     #[tracing::instrument(skip(self))]
@@ -411,18 +449,18 @@ impl ProjectState {
         client
     }
 
-    async fn broadcast(&self, update: &YrsUpdate) {
+    async fn broadcast(&self, who: &String, data: Vec<u8>) {
         let mut clients = self.clients.lock().await;
 
-        tracing::debug!("Broadcasting updates to {} clients", clients.len());
+        tracing::debug!("Broadcasting to {} clients", clients.len());
         let mut results = Vec::new();
         for client in clients.values_mut() {
-            if client.who != update.who {
-                results.push(client.send(update.data.to_owned()));
+            if client.who != *who {
+                results.push(client.send(data.to_owned()));
             }
         }
         let res = futures::future::join_all(results).await;
-        tracing::debug!("Finished broadcasting updates: {res:?}");
+        tracing::debug!("Finished broadcasting: {res:?}");
     }
     async fn close_all(&self) {
         // Close all clients.
@@ -468,12 +506,6 @@ impl fmt::Debug for ClientReceiver {
             .field("who", &self.who)
             .field("project_id", &self.project_id)
             .finish()
-    }
-}
-
-impl fmt::Debug for DocBox {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("DocBox").field("doc", &self.doc).finish()
     }
 }
 
