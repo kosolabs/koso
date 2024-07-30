@@ -127,7 +127,7 @@
   {/if}
 </div>
 
-<table class="-border-collapse rounded-t border">
+<table class="border-separate rounded border">
   <thead class="text-left text-xs font-bold uppercase">
     <tr>
       <th class="p-2">ID</th>

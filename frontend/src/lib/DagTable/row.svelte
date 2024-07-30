@@ -311,7 +311,7 @@
   id="row-{node.id}"
   tabindex="0"
   class={cn(
-    "border border-transparent p-1",
+    "border-2",
     index % 2 === 0 ? "bg-slate-50" : "bg-white",
     isMoving ? "border-rose-600 opacity-50" : "",
     isGhost ? "border-green-600 opacity-70" : "",
@@ -327,8 +327,8 @@
   on:keydown={handleRowKeydown}
   use:row
 >
-  <td>
-    <div class="flex items-center p-1">
+  <td class="border-none p-2">
+    <div class="flex items-center">
       <div style="width: {(node.length - 1) * 1.25}rem;" />
       <button
         class="w-4 transition-transform"
@@ -377,7 +377,7 @@
       <div class="overflow-x-hidden whitespace-nowrap">{node.name}</div>
     </div>
   </td>
-  <td class="px-2">
+  <td class="p-2">
     {#if editedTaskName !== null}
       <Input
         size="sm"
@@ -398,10 +398,10 @@
       </A>
     {/if}
   </td>
-  <td class="px-2">
+  <td class="p-2">
     {task.reporter}
   </td>
-  <td class="px-2">
+  <td class="p-2">
     {task.assignee ?? "Unassigned"}
   </td>
 </tr>
