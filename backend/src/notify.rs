@@ -276,60 +276,47 @@ impl Notifier {
 
     #[tracing::instrument(skip(self))]
     async fn process_update(&self, update: YrsUpdate) {
-        tracing::debug!("Processing update");
-
         let Some(project) = self.state.get(&update.project_id) else {
-            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
-            // Likely, we should reset all sockets.
-            tracing::error!(
-                "Tried to handle message but project was None. Dropped update: {update:?}"
-            );
+            tracing::error!("Tried to handle message but project was None.");
             return;
         };
 
-        let reply = {
-            match self.handle_message(&project, &update).await {
-                Ok(r) => r,
-                Err(e) => {
-                    tracing::error!("Failed to handle_message: {e}");
-                    return;
-                }
+        let reply = match self.handle_message(&project, &update).await {
+            Ok(Some(r)) => r,
+            Ok(None) => return,
+            Err(e) => {
+                tracing::error!("Failed to handle_message: {e}");
+                return;
             }
         };
-        if let Some(reply) = reply {
-            match reply {
-                sync::Message::Sync(sync::SyncMessage::SyncStep2(m)) => {
-                    if let Err(e) = self.persist_update(&project.project_id, &m).await {
-                        tracing::error!("Failed to persist y-update: {e}");
-                        return;
-                    }
-
-                    let mut clients = project.clients.lock().await;
-                    let Some(client) = clients.get_mut(&update.who) else {
-                        tracing::error!("Unexpectedly found no client to reply to");
-                        return;
-                    };
-                    if let Err(e) = client
-                        .send(sync::Message::Sync(sync::SyncMessage::SyncStep2(m)).encode_v1())
-                        .await
-                    {
-                        tracing::error!("Failed to send reply to client: {e}");
-                        return;
-                    };
-                }
-
-                sync::Message::Sync(sync::SyncMessage::Update(m)) => {
-                    if let Err(e) = self.persist_update(&project.project_id, &m).await {
-                        tracing::error!("Failed to persist y-update: {e}");
-                        return;
-                    }
-                    let reply = sync::Message::Sync(sync::SyncMessage::SyncStep2(m)).encode_v1();
-                    project.broadcast(&update.who, reply).await;
-                }
-                m => {
-                    tracing::error!("Unexpected reply to client: {m:?}");
+        match &reply {
+            // This is the response to a SyncStep1 client message containing
+            // changes the server has but the client doesn't.
+            // Send it ONLY to the requesting client. Do not broadcast or persist it
+            sync::Message::Sync(sync::SyncMessage::SyncStep2(_)) => {
+                let mut clients = project.clients.lock().await;
+                let Some(client) = clients.get_mut(&update.who) else {
+                    tracing::error!("Unexpectedly found no client to reply to");
+                    return;
+                };
+                if let Err(e) = client.send(reply.encode_v1()).await {
+                    tracing::error!("Failed to send reply to client: {e}");
+                    return;
+                };
+            }
+            // This is the response to a SyncStep2 OR update client message containing
+            // changes the client has but the server doesn't.
+            // Broadcast the change to everyone except the given client AND persist it.
+            sync::Message::Sync(sync::SyncMessage::Update(m)) => {
+                if let Err(e) = self.persist_update(&project.project_id, m).await {
+                    tracing::error!("Failed to persist Update: {e}");
                     return;
                 }
+                project.broadcast(&update.who, reply.encode_v1()).await;
+            }
+            m => {
+                tracing::error!("Unexpected type of reply to client: {m:?}");
+                return;
             }
         }
     }
@@ -339,41 +326,38 @@ impl Notifier {
         project: &ProjectState,
         yrs_update: &YrsUpdate,
     ) -> Result<Option<sync::Message>, Box<dyn Error>> {
-        let mut doc_box = project.doc_box.lock().await;
-        let Some(doc_box) = doc_box.as_mut() else {
-            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
-            // Likely, we should reset all sockets.
-            return Err(
-                "Tried to handle message but doc_box was None. Dropped update: {update:?}".into(),
-            );
-        };
-
         let protocol = DefaultProtocol {};
         let sync_message = match sync::Message::decode_v1(&yrs_update.data)? {
             sync::Message::Sync(m) => m,
             m => return Err(format!("Unimplemented message protocol type: {m:?}").into()),
         };
 
+        let mut doc_box = project.doc_box.lock().await;
+        let Some(doc_box) = doc_box.as_mut() else {
+            return Err("Tried to handle message but doc_box was None.".into());
+        };
         match sync_message {
             sync::SyncMessage::SyncStep1(sv) => {
-                tracing::debug!("Handling syncstep1: {sv:?}");
+                tracing::debug!("Handling SyncStep1 message");
                 Ok(protocol.handle_sync_step1(&doc_box.awareness, sv)?)
             }
             sync::SyncMessage::SyncStep2(update) => {
-                tracing::debug!("Handling syncstep2: {update:?}");
+                tracing::debug!("Handling SyncStep2 message");
                 if let Some(reply) = protocol
                     .handle_sync_step2(&mut doc_box.awareness, Update::decode_v1(&update)?)?
                 {
-                    return Err(format!("Unexpectedly got reply on syncstep2: {reply:?}").into());
+                    return Err(format!("Unexpectedly got reply on SyncStep2: {reply:?}").into());
                 }
+                // This update contains things the client has but the server didn't have.
+                // Handle it in the same way we would any other update.
                 Ok(Some(sync::Message::Sync(sync::SyncMessage::Update(update))))
             }
             sync::SyncMessage::Update(update) => {
-                tracing::debug!("Handling update: {update:?}");
+                tracing::debug!("Handling Update message");
                 if let Some(reply) =
                     protocol.handle_update(&mut doc_box.awareness, Update::decode_v1(&update)?)?
                 {
-                    return Err(format!("Unexpectedly got reply on update: {reply:?}").into());
+                    return Err(format!("Unexpectedly got reply on Update: {reply:?}").into());
                 }
                 Ok(Some(sync::Message::Sync(sync::SyncMessage::Update(update))))
             }
