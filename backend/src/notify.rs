@@ -298,19 +298,33 @@ impl Notifier {
         };
         if let Some(reply) = reply {
             match reply {
-                sync::Message::Sync(sync::SyncMessage::SyncStep2(m))
-                | sync::Message::Sync(sync::SyncMessage::Update(m)) => {
+                sync::Message::Sync(sync::SyncMessage::SyncStep2(m)) => {
                     if let Err(e) = self.persist_update(&project.project_id, &m).await {
                         tracing::error!("Failed to persist y-update: {e}");
                         return;
                     }
 
-                    project
-                        .broadcast(
-                            &update.who,
-                            sync::Message::Sync(sync::SyncMessage::Update(m)).encode_v1(),
-                        )
-                        .await;
+                    let mut clients = project.clients.lock().await;
+                    let Some(client) = clients.get_mut(&update.who) else {
+                        tracing::error!("Unexpectedly found no client to reply to");
+                        return;
+                    };
+                    if let Err(e) = client
+                        .send(sync::Message::Sync(sync::SyncMessage::SyncStep2(m)).encode_v1())
+                        .await
+                    {
+                        tracing::error!("Failed to send reply to client: {e}");
+                        return;
+                    };
+                }
+
+                sync::Message::Sync(sync::SyncMessage::Update(m)) => {
+                    if let Err(e) = self.persist_update(&project.project_id, &m).await {
+                        tracing::error!("Failed to persist y-update: {e}");
+                        return;
+                    }
+                    let reply = sync::Message::Sync(sync::SyncMessage::SyncStep2(m)).encode_v1();
+                    project.broadcast(&update.who, reply).await;
                 }
                 m => {
                     tracing::error!("Unexpected reply to client: {m:?}");
@@ -347,8 +361,12 @@ impl Notifier {
             }
             sync::SyncMessage::SyncStep2(update) => {
                 tracing::debug!("Handling syncstep2: {update:?}");
-                Ok(protocol
-                    .handle_sync_step2(&mut doc_box.awareness, Update::decode_v1(&update)?)?)
+                if let Some(reply) = protocol
+                    .handle_sync_step2(&mut doc_box.awareness, Update::decode_v1(&update)?)?
+                {
+                    return Err(format!("Unexpectedly got reply on syncstep2: {reply:?}").into());
+                }
+                Ok(Some(sync::Message::Sync(sync::SyncMessage::Update(update))))
             }
             sync::SyncMessage::Update(update) => {
                 tracing::debug!("Handling update: {update:?}");

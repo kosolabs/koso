@@ -40,10 +40,7 @@
     socket.binaryType = "arraybuffer";
 
     socket.onopen = (event) => {
-      const encoder = encoding.createEncoder();
-      encoding.writeVarInt(encoder, 0);
-      syncProtocol.writeSyncStep1(encoder, koso.yDoc);
-      socket.send(encoding.toUint8Array(encoder));
+      socket.send(koso.createSyncRequest());
 
       koso.onLocalUpdate((update) => {
         const encoder = encoding.createEncoder();

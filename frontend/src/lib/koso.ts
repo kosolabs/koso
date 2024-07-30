@@ -1,3 +1,4 @@
+import * as protocol from "$lib/protocol";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
@@ -60,6 +61,10 @@ export class Koso {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   observe(f: (arg0: Array<Y.YEvent<any>>, arg1: Y.Transaction) => void) {
     this.yGraph.observeDeep(f);
+  }
+
+  createSyncRequest(): Uint8Array {
+    return protocol.syncRequest(this.yDoc);
   }
 
   onLocalUpdate(
