@@ -6,30 +6,20 @@ use std::{
     collections::HashMap, error::Error, fmt, net::SocketAddr, ops::ControlFlow, sync::Arc,
     time::Duration,
 };
-use tokio::sync::{
-    mpsc::{self, Receiver, Sender},
-    Mutex,
-};
+use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 use yrs::{updates::decoder::Decode, Doc, ReadTxn, StateVector, Transact, Update};
 
 pub fn start(pool: &'static PgPool) -> Notifier {
-    let (process_tx, process_rx) = mpsc::channel::<YrsUpdate>(1);
-    let notifier = Notifier {
+    Notifier {
         state: Arc::new(ProjectsState {
             projects: DashMap::new(),
         }),
         pool,
-        process_tx,
         cancel: CancellationToken::new(),
         tracker: tokio_util::task::TaskTracker::new(),
-    };
-    notifier
-        .tracker
-        .spawn(notifier.clone().process_updates(process_rx));
-
-    notifier
+    }
 }
 
 type ProjectId = String;
@@ -62,7 +52,7 @@ struct DocBox {
 
 struct YrsUpdate {
     who: String,
-    project_id: ProjectId,
+    project: Arc<ProjectState>,
     update_id: String,
     data: Vec<u8>,
 }
@@ -71,7 +61,6 @@ struct YrsUpdate {
 pub struct Notifier {
     state: Arc<ProjectsState>,
     pool: &'static PgPool,
-    process_tx: Sender<YrsUpdate>,
     cancel: CancellationToken,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -127,7 +116,7 @@ impl Notifier {
         // updates to all other clients or get notified about when the
         // client closes the socket.
         self.tracker
-            .spawn(self.clone().receive_updates_from_client(receiver));
+            .spawn(self.clone().receive_updates_from_client(receiver, project));
 
         Ok(())
     }
@@ -175,8 +164,12 @@ impl Notifier {
     }
 
     /// Listen for update or close messages sent by a client.
-    #[tracing::instrument(skip(self))]
-    async fn receive_updates_from_client(self, mut receiver: ClientReceiver) {
+    #[tracing::instrument(skip(self, project))]
+    async fn receive_updates_from_client(
+        self,
+        mut receiver: ClientReceiver,
+        project: Arc<ProjectState>,
+    ) {
         loop {
             tokio::select! {
                 _ = self.cancel.cancelled() => { break; }
@@ -184,7 +177,7 @@ impl Notifier {
                     let Some(msg) = msg else {
                         break;
                     };
-                    if let ControlFlow::Break(_) = self.receive_update_from_client(&receiver, msg).await {
+                    if let ControlFlow::Break(_) = self.receive_update_from_client(&receiver, &project, msg).await {
                         break;
                     }
                 }
@@ -196,22 +189,20 @@ impl Notifier {
     async fn receive_update_from_client(
         &self,
         receiver: &ClientReceiver,
+        project: &Arc<ProjectState>,
         msg: Result<Message, axum::Error>,
     ) -> ControlFlow<()> {
         match msg {
             Ok(Message::Binary(data)) => {
-                tracing::debug!("Received update from client");
-                if let Err(e) = self
-                    .process_tx
-                    .send(YrsUpdate {
-                        who: receiver.who.clone(),
-                        project_id: receiver.project_id.clone(),
-                        update_id: Uuid::new_v4().to_string(),
-                        data,
-                    })
-                    .await
-                {
-                    tracing::error!("Error sending update to process channel: {e}");
+                let update = YrsUpdate {
+                    who: receiver.who.clone(),
+                    project: project.clone(),
+                    update_id: Uuid::new_v4().to_string(),
+                    data,
+                };
+                tracing::debug!("Received update from client: {update:?}");
+                if let Err(e) = self.process_update(update).await {
+                    tracing::error!("Error processing update: {e}");
                 };
                 ControlFlow::Continue(())
             }
@@ -221,13 +212,12 @@ impl Notifier {
                 } else {
                     "code:'NONE', detail:'No CloseFrame'".to_string()
                 };
-                self.close_client(&receiver.project_id, &receiver.who, &reason)
-                    .await;
+                self.close_client(project, &receiver.who, &reason).await;
                 ControlFlow::Break(())
             }
             Err(e) => {
                 tracing::warn!("Got error reading from client socket. Will close socket. {e}");
-                self.close_client(&receiver.project_id, &receiver.who, &format!("Error: {e}"))
+                self.close_client(project, &receiver.who, &format!("Error: {e}"))
                     .await;
                 ControlFlow::Break(())
             }
@@ -238,12 +228,46 @@ impl Notifier {
         }
     }
 
-    async fn close_client(&self, project_id: &ProjectId, who: &String, reason: &String) {
-        let Some(project) = self.state.get(project_id) else {
-            tracing::error!("Unexpectedly, received close for client but the project is missing.");
-            return;
+    #[tracing::instrument(skip(self))]
+    async fn process_update(&self, update: YrsUpdate) -> Result<(), Box<dyn Error>> {
+        self.apply_update_to_doc(&update).await?;
+        update.project.broadcast(&update).await;
+        self.persist_update(&update).await?;
+        Ok(())
+    }
+
+    async fn apply_update_to_doc(&self, yrs_update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
+        let update = match Update::decode_v2(&yrs_update.data) {
+            Ok(update) => update,
+            Err(e) => {
+                return Err(format!("Could not decode update from client: {e}").into());
+            }
         };
 
+        let doc_box = yrs_update.project.doc_box.lock().await;
+        let Some(doc_box) = doc_box.as_ref() else {
+            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
+            // Likely, we should reset all sockets.
+            return Err("Tried to apply update but doc_box was None.".into());
+        };
+        doc_box.doc.transact_mut().apply_update(update);
+        Ok(())
+    }
+
+    async fn persist_update(&self, update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
+        sqlx::query(
+            "
+            INSERT INTO yupdates (project_id, seq, update_v2)
+            VALUES ($1, DEFAULT, $2)",
+        )
+        .bind(&update.project.project_id)
+        .bind(&update.data)
+        .execute(self.pool)
+        .await?;
+        Ok(())
+    }
+
+    async fn close_client(&self, project: &ProjectState, who: &String, reason: &String) {
         match project.remove_client(who, reason).await {
             Some(mut client) => {
                 if let Err(e) = client.close().await {
@@ -256,89 +280,6 @@ impl Notifier {
                 )
             }
         }
-    }
-
-    /// Receive updates from `process_rx`, apply them to the doc and broadcast to all clients.
-    #[tracing::instrument(skip(self, process_rx))]
-    async fn process_updates(self, mut process_rx: Receiver<YrsUpdate>) {
-        loop {
-            tokio::select! {
-                _ = self.cancel.cancelled() => { break; }
-                update = process_rx.recv() => {
-                    let Some(update) = update else {
-                        break;
-                    };
-                    self.process_update(update).await;
-                }
-            }
-        }
-        tracing::debug!("Stopped processing updates");
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn process_update(&self, update: YrsUpdate) {
-        tracing::debug!("Processing update");
-        if let Err(e) = self.apply_update_to_doc(&update).await {
-            tracing::error!("Failed to apply update to doc: {e}");
-            return;
-        }
-        self.broadcast_update(&update).await;
-        if let Err(e) = self.persist_update(&update).await {
-            tracing::error!("Failed to persist y-update: {e}");
-            return;
-        }
-    }
-
-    async fn apply_update_to_doc(&self, yrs_update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
-        let update = match Update::decode_v2(&yrs_update.data) {
-            Ok(update) => update,
-            Err(e) => {
-                return Err(format!(
-                    "Could not decode update from client: {e}, update: {yrs_update:?}"
-                )
-                .into());
-            }
-        };
-
-        let Some(project) = self.state.get(&yrs_update.project_id) else {
-            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
-            // Likely, we should reset all sockets.
-            return Err(
-                "Tried to broadcast update but project was None. Dropped update: {update:?}".into(),
-            );
-        };
-
-        let doc_box = project.doc_box.lock().await;
-        let Some(doc_box) = doc_box.as_ref() else {
-            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
-            // Likely, we should reset all sockets.
-            return Err(
-                "Tried to broadcast update but doc_box was None. Dropped update: {update:?}".into(),
-            );
-        };
-        doc_box.doc.transact_mut().apply_update(update);
-        Ok(())
-    }
-
-    async fn persist_update(&self, update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
-        sqlx::query(
-            "
-            INSERT INTO yupdates (project_id, seq, update_v2)
-            VALUES ($1, DEFAULT, $2)",
-        )
-        .bind(&update.project_id)
-        .bind(&update.data)
-        .execute(self.pool)
-        .await?;
-        Ok(())
-    }
-
-    async fn broadcast_update(&self, update: &YrsUpdate) {
-        let Some(project) = self.state.get(&update.project_id) else {
-            tracing::warn!("No clients for project exist to broadcast to.");
-            return;
-        };
-        project.broadcast(update).await;
     }
 
     #[tracing::instrument(skip(self))]
@@ -374,10 +315,6 @@ impl ProjectsState {
                 })
             })
             .clone()
-    }
-
-    fn get(&self, project_id: &ProjectId) -> Option<Arc<ProjectState>> {
-        self.projects.get(project_id).map(|p| p.clone())
     }
 
     async fn close(&self) {
@@ -480,7 +417,7 @@ impl fmt::Debug for DocBox {
 impl fmt::Debug for YrsUpdate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("YrsUpdate")
-            .field("project_id", &self.project_id)
+            .field("project_id", &self.project.project_id)
             .field("who", &self.who)
             .field("update_id", &self.update_id)
             .field("data.len()", &self.data.len())
