@@ -19,7 +19,7 @@ use yrs::{
 };
 
 pub fn start(pool: &'static PgPool) -> Notifier {
-    let (process_tx, process_rx) = mpsc::channel::<YrsUpdate>(1);
+    let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
     let notifier = Notifier {
         state: Arc::new(ProjectsState {
             projects: DashMap::new(),
@@ -31,7 +31,7 @@ pub fn start(pool: &'static PgPool) -> Notifier {
     };
     notifier
         .tracker
-        .spawn(notifier.clone().process_updates(process_rx));
+        .spawn(notifier.clone().process_messages(process_rx));
 
     notifier
 }
@@ -64,10 +64,10 @@ struct DocBox {
     awareness: Awareness,
 }
 
-struct YrsUpdate {
+struct YrsMessage {
     who: String,
     project_id: ProjectId,
-    update_id: String,
+    id: String,
     data: Vec<u8>,
 }
 
@@ -75,7 +75,7 @@ struct YrsUpdate {
 pub struct Notifier {
     state: Arc<ProjectsState>,
     pool: &'static PgPool,
-    process_tx: Sender<YrsUpdate>,
+    process_tx: Sender<YrsMessage>,
     cancel: CancellationToken,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -119,7 +119,7 @@ impl Notifier {
 
         // Send the entire state vector to the client.
         let sv = sync::Message::Sync(sync::SyncMessage::SyncStep1(sv)).encode_v1();
-        tracing::debug!("Sending SV to client {:?}", sv);
+        tracing::debug!("Sending SV to client");
         if let Err(e) = sender.send(sv).await {
             return Err(format!("Failed to send state vector to client: {e}").into());
         }
@@ -129,11 +129,9 @@ impl Notifier {
             return Err(format!("Unexpectedly, client already exists: {existing:?}").into());
         };
 
-        // Listen for messages on the read side of the socket to broadcast
-        // updates to all other clients or get notified about when the
-        // client closes the socket.
+        // Listen for messages on the read side of the socket.
         self.tracker
-            .spawn(self.clone().receive_updates_from_client(receiver));
+            .spawn(self.clone().receive_messages_from_client(receiver));
 
         Ok(())
     }
@@ -175,7 +173,7 @@ impl Notifier {
 
     /// Listen for update or close messages sent by a client.
     #[tracing::instrument(skip(self))]
-    async fn receive_updates_from_client(self, mut receiver: ClientReceiver) {
+    async fn receive_messages_from_client(self, mut receiver: ClientReceiver) {
         loop {
             tokio::select! {
                 _ = self.cancel.cancelled() => { break; }
@@ -183,34 +181,33 @@ impl Notifier {
                     let Some(msg) = msg else {
                         break;
                     };
-                    if let ControlFlow::Break(_) = self.receive_update_from_client(&receiver, msg).await {
+                    if let ControlFlow::Break(_) = self.receive_message_from_client(&receiver, msg).await {
                         break;
                     }
                 }
             }
         }
-        tracing::debug!("Stopped receiving client updates from {}", receiver.who);
+        tracing::debug!("Stopped receiving messages from client");
     }
 
-    async fn receive_update_from_client(
+    async fn receive_message_from_client(
         &self,
         receiver: &ClientReceiver,
         msg: Result<Message, axum::Error>,
     ) -> ControlFlow<()> {
         match msg {
             Ok(Message::Binary(data)) => {
-                tracing::debug!("Received update from client");
                 if let Err(e) = self
                     .process_tx
-                    .send(YrsUpdate {
+                    .send(YrsMessage {
                         who: receiver.who.clone(),
                         project_id: receiver.project_id.clone(),
-                        update_id: Uuid::new_v4().to_string(),
+                        id: Uuid::new_v4().to_string(),
                         data,
                     })
                     .await
                 {
-                    tracing::error!("Error sending update to process channel: {e}");
+                    tracing::error!("Error sending message to process channel: {e}");
                 };
                 ControlFlow::Continue(())
             }
@@ -257,17 +254,17 @@ impl Notifier {
         }
     }
 
-    /// Receive updates from `process_rx`, apply them to the doc and broadcast to all clients.
+    /// Receive messages from `process_rx`, apply them to the doc and broadcast to all clients.
     #[tracing::instrument(skip(self, process_rx))]
-    async fn process_updates(self, mut process_rx: Receiver<YrsUpdate>) {
+    async fn process_messages(self, mut process_rx: Receiver<YrsMessage>) {
         loop {
             tokio::select! {
                 _ = self.cancel.cancelled() => { break; }
-                update = process_rx.recv() => {
-                    let Some(update) = update else {
+                msg = process_rx.recv() => {
+                    let Some(msg) = msg else {
                         break;
                     };
-                    self.process_update(update).await;
+                    self.process_message(msg).await;
                 }
             }
         }
@@ -275,13 +272,13 @@ impl Notifier {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn process_update(&self, update: YrsUpdate) {
-        let Some(project) = self.state.get(&update.project_id) else {
+    async fn process_message(&self, msg: YrsMessage) {
+        let Some(project) = self.state.get(&msg.project_id) else {
             tracing::error!("Tried to handle message but project was None.");
             return;
         };
 
-        let reply = match self.handle_message(&project, &update).await {
+        let reply = match self.handle_message(&project, &msg).await {
             Ok(Some(r)) => r,
             Ok(None) => return,
             Err(e) => {
@@ -295,7 +292,7 @@ impl Notifier {
             // Send it ONLY to the requesting client. Do not broadcast or persist it
             sync::Message::Sync(sync::SyncMessage::SyncStep2(_)) => {
                 let mut clients = project.clients.lock().await;
-                let Some(client) = clients.get_mut(&update.who) else {
+                let Some(client) = clients.get_mut(&msg.who) else {
                     tracing::error!("Unexpectedly found no client to reply to");
                     return;
                 };
@@ -309,10 +306,10 @@ impl Notifier {
             // Broadcast the change to everyone except the given client AND persist it.
             sync::Message::Sync(sync::SyncMessage::Update(m)) => {
                 if let Err(e) = self.persist_update(&project.project_id, m).await {
-                    tracing::error!("Failed to persist Update: {e}");
+                    tracing::error!("Failed to persist update: {e}");
                     return;
                 }
-                project.broadcast(&update.who, reply.encode_v1()).await;
+                project.broadcast(&msg.who, reply.encode_v1()).await;
             }
             m => {
                 tracing::error!("Unexpected type of reply to client: {m:?}");
@@ -324,10 +321,10 @@ impl Notifier {
     async fn handle_message(
         &self,
         project: &ProjectState,
-        yrs_update: &YrsUpdate,
+        msg: &YrsMessage,
     ) -> Result<Option<sync::Message>, Box<dyn Error>> {
         let protocol = DefaultProtocol {};
-        let sync_message = match sync::Message::decode_v1(&yrs_update.data)? {
+        let sync_message = match sync::Message::decode_v1(&msg.data)? {
             sync::Message::Sync(m) => m,
             m => return Err(format!("Unimplemented message protocol type: {m:?}").into()),
         };
@@ -511,12 +508,12 @@ impl fmt::Debug for ClientReceiver {
     }
 }
 
-impl fmt::Debug for YrsUpdate {
+impl fmt::Debug for YrsMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("YrsUpdate")
+        f.debug_struct("YrsMessage")
             .field("project_id", &self.project_id)
             .field("who", &self.who)
-            .field("update_id", &self.update_id)
+            .field("id", &self.id)
             .field("data.len()", &self.data.len())
             .finish()
     }
