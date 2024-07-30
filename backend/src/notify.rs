@@ -77,9 +77,10 @@ pub struct Notifier {
 }
 
 // High Level Design
-// If this is the very first client being registered, load everything from the database, and construct the initial graph.
+// If this is the very first client being registered, load everything from the database, and construct the initial doc.
 // For every client that joins, send the current graph as the initial state vector.
-// For every event in the observe_deep, generate a mutation to be applied to the database.
+// When a client sends an update, apply the update to the doc, store it in the database
+// and broadcast it to other clients.
 // When the last client disconnects, consider destroying the graph.
 impl Notifier {
     #[tracing::instrument(skip(self, socket, who), fields(who))]

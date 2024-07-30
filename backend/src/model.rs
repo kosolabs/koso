@@ -1,14 +1,4 @@
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
-pub struct Task {
-    pub id: String,
-    pub project_id: String,
-    pub name: String,
-    pub children: Vec<String>,
-    pub assignee: Option<String>,
-    pub reporter: String,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
 pub struct Project {
     #[serde(default)]
     pub project_id: String,
