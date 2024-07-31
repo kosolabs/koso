@@ -295,7 +295,7 @@ impl Notifier {
                     .encode_state_as_update_v1(&sv);
 
                 // This is the response to a SyncStep1 client message containing
-                // changes known to the server but the client.
+                // changes known to the server but not the client.
                 // Send it ONLY to the requesting client. Do not broadcast or persist it
                 tracing::debug!("Sending SyncStep2 message to client.");
                 let mut clients = project.clients.lock().await;
