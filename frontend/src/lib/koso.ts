@@ -9,8 +9,8 @@ const MSG_SYNC = 0;
 // const MSG_AUTH = 2;
 // const MSG_QUERY_AWARENESS = 3;
 
-const MSG_SYNC_STEP_1 = 0;
-const MSG_SYNC_STEP_2 = 1;
+const MSG_SYNC_REQUEST = 0;
+const MSG_SYNC_RESPONSE = 1;
 const MSG_SYNC_UPDATE = 2;
 
 export class Node {
@@ -98,18 +98,21 @@ export class Koso {
     if (messageType === MSG_SYNC) {
       const syncType = decoding.readVarUint(decoder);
 
-      if (syncType === MSG_SYNC_STEP_1) {
+      if (syncType === MSG_SYNC_REQUEST) {
         const encoder = encoding.createEncoder();
         const encodedStateVector = decoding.readVarUint8Array(decoder);
         encoding.writeVarUint(encoder, MSG_SYNC);
-        encoding.writeVarUint(encoder, MSG_SYNC_STEP_2);
+        encoding.writeVarUint(encoder, MSG_SYNC_RESPONSE);
         encoding.writeVarUint8Array(
           encoder,
           Y.encodeStateAsUpdate(this.yDoc, encodedStateVector),
         );
         console.log("Sending sync response:", encoding.toUint8Array(encoder));
         this.clientMessageHandler(encoding.toUint8Array(encoder));
-      } else if (syncType === MSG_SYNC_STEP_2 || syncType === MSG_SYNC_UPDATE) {
+      } else if (
+        syncType === MSG_SYNC_RESPONSE ||
+        syncType === MSG_SYNC_UPDATE
+      ) {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdate(this.yDoc, message);
       } else {
@@ -127,7 +130,7 @@ export class Koso {
 
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_SYNC);
-    encoding.writeVarUint(encoder, MSG_SYNC_STEP_1);
+    encoding.writeVarUint(encoder, MSG_SYNC_REQUEST);
     const sv = Y.encodeStateVector(this.yDoc);
     encoding.writeVarUint8Array(encoder, sv);
     console.log("Sending sync request:", encoding.toUint8Array(encoder));
