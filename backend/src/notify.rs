@@ -119,7 +119,7 @@ impl Notifier {
 
         // Send the entire state vector to the client.
         let sv = sync::Message::Sync(sync::SyncMessage::SyncStep1(sv)).encode_v1();
-        tracing::debug!("Sending SV to client");
+        tracing::debug!("Sending SyncStep1 message to client");
         if let Err(e) = sender.send(sv).await {
             return Err(format!("Failed to send state vector to client: {e}").into());
         }
@@ -268,13 +268,13 @@ impl Notifier {
                 }
             }
         }
-        tracing::debug!("Stopped processing updates");
+        tracing::debug!("Stopped processing messages");
     }
 
     #[tracing::instrument(skip(self))]
     async fn process_message(&self, msg: YrsMessage) {
         if let Err(e) = self.process_message_internal(msg).await {
-            tracing::error!("Failed to process message: {e}");
+            tracing::warn!("Failed to process message: {e}");
         }
     }
 
@@ -334,6 +334,7 @@ impl Notifier {
             // changes the server has but the client doesn't.
             // Send it ONLY to the requesting client. Do not broadcast or persist it
             sync::Message::Sync(sync::SyncMessage::SyncStep2(_)) => {
+                tracing::debug!("Sending SyncStep2 message to client.");
                 let mut clients = project.clients.lock().await;
                 let Some(client) = clients.get_mut(&msg.who) else {
                     return Err("Unexpectedly found no client to reply to"
@@ -351,10 +352,10 @@ impl Notifier {
                 if let Err(e) = self.persist_update(&project.project_id, m).await {
                     return Err(format!("Failed to persist update: {e}").into());
                 }
-                project.broadcast(&msg.who, reply.encode_v1()).await;
+                project.broadcast_msg(&msg.who, reply.encode_v1()).await;
             }
-            m => {
-                return Err(format!("Unexpected type of reply to client: {m:?}").into());
+            _ => {
+                return Err(format!("Unexpected type of reply to client: {reply:?}").into());
             }
         }
         Ok(())
@@ -447,7 +448,7 @@ impl ProjectState {
         client
     }
 
-    async fn broadcast(&self, who: &String, data: Vec<u8>) {
+    async fn broadcast_msg(&self, who: &String, data: Vec<u8>) {
         let mut clients = self.clients.lock().await;
 
         tracing::debug!("Broadcasting to {} clients", clients.len());
