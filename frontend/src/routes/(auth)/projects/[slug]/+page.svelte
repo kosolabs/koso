@@ -40,18 +40,12 @@
       koso.handleClientMessage((update) => {
         socket.send(update);
       });
-      socket.send(koso.createSyncRequest());
       $lastVisitedProjectId = $page.params.slug;
     };
 
     socket.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) {
-        console.log("Received: ", new Uint8Array(event.data));
-        const reply = koso.handleServerMessage(new Uint8Array(event.data));
-        if (reply) {
-          console.log("Sending: ", reply);
-          socket.send(reply);
-        }
+        koso.handleServerMessage(new Uint8Array(event.data));
       } else {
         console.log("Received text frame from server:", event.data);
       }
