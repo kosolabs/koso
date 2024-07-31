@@ -13,7 +13,7 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 use yrs::{
-    sync::{self, Awareness, DefaultProtocol, Protocol},
+    sync::{self, Awareness, SyncMessage},
     updates::{decoder::Decode, encoder::Encode},
     Doc, ReadTxn, StateVector, Transact, Update,
 };
@@ -285,55 +285,18 @@ impl Notifier {
                 .into());
         };
 
-        let reply = {
-            let protocol = DefaultProtocol {};
-            let sync_message = match sync::Message::decode_v1(&msg.data)? {
-                sync::Message::Sync(m) => m,
-                m => return Err(format!("Unimplemented message protocol type: {m:?}").into()),
-            };
+        match sync::Message::decode_v1(&msg.data)? {
+            sync::Message::Sync(sync::SyncMessage::SyncStep1(sv)) => {
+                tracing::debug!("Handling SyncStep1 message");
+                let update = DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
+                    .awareness
+                    .doc()
+                    .transact()
+                    .encode_state_as_update_v1(&sv);
 
-            let mut doc_box = project.doc_box.lock().await;
-            let Some(doc_box) = doc_box.as_mut() else {
-                return Err("Tried to handle message but doc_box was None.".into());
-            };
-            match sync_message {
-                sync::SyncMessage::SyncStep1(sv) => {
-                    tracing::debug!("Handling SyncStep1 message");
-                    protocol.handle_sync_step1(&doc_box.awareness, sv)?
-                }
-                sync::SyncMessage::SyncStep2(update) => {
-                    tracing::debug!("Handling SyncStep2 message");
-                    if let Some(reply) = protocol
-                        .handle_sync_step2(&mut doc_box.awareness, Update::decode_v1(&update)?)?
-                    {
-                        return Err(
-                            format!("Unexpectedly got reply on SyncStep2: {reply:?}").into()
-                        );
-                    }
-                    // This update contains things the client has but the server didn't have.
-                    // Handle it in the same way we would any other update.
-                    Some(sync::Message::Sync(sync::SyncMessage::Update(update)))
-                }
-                sync::SyncMessage::Update(update) => {
-                    tracing::debug!("Handling Update message");
-                    if let Some(reply) = protocol
-                        .handle_update(&mut doc_box.awareness, Update::decode_v1(&update)?)?
-                    {
-                        return Err(format!("Unexpectedly got reply on Update: {reply:?}").into());
-                    }
-                    Some(sync::Message::Sync(sync::SyncMessage::Update(update)))
-                }
-            }
-        };
-        let Some(reply) = reply else {
-            return Ok(());
-        };
-
-        match &reply {
-            // This is the response to a SyncStep1 client message containing
-            // changes the server has but the client doesn't.
-            // Send it ONLY to the requesting client. Do not broadcast or persist it
-            sync::Message::Sync(sync::SyncMessage::SyncStep2(_)) => {
+                // This is the response to a SyncStep1 client message containing
+                // changes known to the server but the client.
+                // Send it ONLY to the requesting client. Do not broadcast or persist it
                 tracing::debug!("Sending SyncStep2 message to client.");
                 let mut clients = project.clients.lock().await;
                 let Some(client) = clients.get_mut(&msg.who) else {
@@ -341,23 +304,37 @@ impl Notifier {
                         .to_string()
                         .into());
                 };
-                if let Err(e) = client.send(reply.encode_v1()).await {
+                if let Err(e) = client
+                    .send(sync::Message::Sync(SyncMessage::SyncStep2(update)).encode_v1())
+                    .await
+                {
                     return Err(format!("Failed to send reply to client: {e}").into());
                 };
             }
-            // This is the response to a SyncStep2 OR update client message containing
-            // changes the client has but the server doesn't.
-            // Broadcast the change to everyone except the given client AND persist it.
-            sync::Message::Sync(sync::SyncMessage::Update(m)) => {
-                if let Err(e) = self.persist_update(&project.project_id, m).await {
+            sync::Message::Sync(sync::SyncMessage::Update(update))
+            | sync::Message::Sync(sync::SyncMessage::SyncStep2(update)) => {
+                tracing::debug!("Handling Update|SyncStep2 message");
+                DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
+                    .awareness
+                    .doc()
+                    .transact_mut()
+                    .apply_update(Update::decode_v1(&update)?);
+
+                // Both Update and SyncStep2 messages contain changes not known to the server.
+                // Broadcast the update to all clients AND persist it in the database.
+                if let Err(e) = self.persist_update(&project.project_id, &update).await {
                     return Err(format!("Failed to persist update: {e}").into());
                 }
-                project.broadcast_msg(&msg.who, reply.encode_v1()).await;
+                project
+                    .broadcast_msg(
+                        &msg.who,
+                        sync::Message::Sync(sync::SyncMessage::Update(update)).encode_v1(),
+                    )
+                    .await;
             }
-            _ => {
-                return Err(format!("Unexpected type of reply to client: {reply:?}").into());
-            }
+            m => return Err(format!("Unimplemented message protocol type: {m:?}").into()),
         }
+
         Ok(())
     }
 
@@ -461,6 +438,7 @@ impl ProjectState {
         let res = futures::future::join_all(results).await;
         tracing::debug!("Finished broadcasting: {res:?}");
     }
+
     async fn close_all(&self) {
         // Close all clients.
         let mut clients = self.clients.lock().await;
@@ -470,6 +448,15 @@ impl ProjectState {
         clients.clear();
         // Drop the doc box to stop observing changes.
         *self.doc_box.lock().await = None;
+    }
+}
+
+impl DocBox {
+    fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox, Box<dyn Error>> {
+        match doc_box {
+            Some(db) => Ok(db),
+            None => Err("DocBox is absent".to_string().into()),
+        }
     }
 }
 
