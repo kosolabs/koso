@@ -1,17 +1,23 @@
+use crate::postgres::compact;
 use axum::extract::ws::{Message, WebSocket};
 use dashmap::DashMap;
 use futures::SinkExt;
 use sqlx::PgPool;
 use std::{
-    collections::HashMap, error::Error, fmt, net::SocketAddr, ops::ControlFlow, sync::Arc,
+    collections::HashMap,
+    error::Error,
+    fmt,
+    net::SocketAddr,
+    ops::ControlFlow,
+    sync::{
+        atomic::{self, Ordering::Relaxed},
+        Arc,
+    },
     time::Duration,
 };
-use tokio::{
-    spawn,
-    sync::{
-        mpsc::{self, Receiver, Sender},
-        Mutex,
-    },
+use tokio::sync::{
+    mpsc::{self, Receiver, Sender},
+    Mutex,
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -23,8 +29,6 @@ use yrs::{
     },
     Doc, ReadTxn, StateVector, Transact, Update,
 };
-
-use crate::postgres::compact;
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
@@ -63,6 +67,7 @@ struct ProjectState {
     project_id: ProjectId,
     clients: Mutex<HashMap<String, ClientSender>>,
     doc_box: Mutex<Option<DocBox>>,
+    updates: atomic::AtomicUsize,
 }
 
 struct ClientSender {
@@ -276,8 +281,12 @@ impl Notifier {
             }
         }
 
-        if project.clients.lock().await.len() == 0 {
+        let updates = project.updates.load(Relaxed);
+        if updates > 10 && project.clients.lock().await.len() == 0 {
+            project.updates.store(0, Relaxed);
             self.tracker.spawn(compact(self.pool, project_id.clone()));
+        } else {
+            tracing::debug!("Skipping compacting, only {updates} updates exist")
         }
     }
 
@@ -370,7 +379,7 @@ impl Notifier {
                             tracing::debug!("sync_update|sync_response message has no changes, will not persist or broadcast");
                             return Ok(());
                         }
-                        if let Err(e) = self.persist_update(&project.project_id, &update).await {
+                        if let Err(e) = self.persist_update(&project, &update).await {
                             return Err(format!("Failed to persist update: {e}").into());
                         }
                         let sync_update_msg = {
@@ -393,7 +402,7 @@ impl Notifier {
 
     async fn persist_update(
         &self,
-        project_id: &ProjectId,
+        project: &ProjectState,
         data: &Vec<u8>,
     ) -> Result<(), Box<dyn Error>> {
         sqlx::query(
@@ -401,10 +410,11 @@ impl Notifier {
             INSERT INTO yupdates (project_id, seq, update_v2)
             VALUES ($1, DEFAULT, $2)",
         )
-        .bind(project_id)
+        .bind(&project.project_id)
         .bind(data)
         .execute(self.pool)
         .await?;
+        project.updates.fetch_add(1, Relaxed);
         Ok(())
     }
 
@@ -438,6 +448,7 @@ impl ProjectsState {
                     project_id: project_id.to_string(),
                     clients: Mutex::new(HashMap::new()),
                     doc_box: Mutex::new(None),
+                    updates: atomic::AtomicUsize::new(0),
                 })
             })
             .clone()

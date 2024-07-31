@@ -29,11 +29,6 @@ async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<(), Box<dyn Er
     .fetch_all(&mut *txn)
     .await?;
 
-    if updates.len() < 10 {
-        tracing::debug!("Skipping compaction, only {} updates exist", updates.len());
-        return Ok(());
-    }
-
     let merged_update = Update::merge_updates(
         updates
             .iter()
