@@ -286,7 +286,7 @@ impl Notifier {
                 }
             }
         }
-        tracing::debug!("Stopped processing messages");
+        tracing::info!("Stopped processing messages");
     }
 
     #[tracing::instrument(skip(self))]
@@ -336,14 +336,16 @@ impl Notifier {
                                     .into());
                             };
                             if let Err(e) = client.send(sync_response_msg).await {
-                                return Err(format!("Failed to send reply to client: {e}").into());
+                                return Err(
+                                    format!("Failed to send sync_response to client: {e}").into()
+                                );
                             };
                         }
 
                         Ok(())
                     }
                     MSG_SYNC_RESPONSE | MSG_SYNC_UPDATE => {
-                        tracing::debug!("Handling update|sync_response message");
+                        tracing::debug!("Handling sync_update|sync_response message");
                         let update = decoder.read_buf()?.to_vec();
                         {
                             let update = Update::decode_v1(&update)?;
@@ -356,20 +358,20 @@ impl Notifier {
                         // Both update and sync_response messages contain changes not known to the server.
                         // Broadcast the update to all clients AND persist it in the database.
                         if update == vec![0, 0] {
-                            tracing::debug!("update|sync_response message has no changes, will not persist or broadcast");
+                            tracing::debug!("sync_update|sync_response message has no changes, will not persist or broadcast");
                             return Ok(());
                         }
                         if let Err(e) = self.persist_update(&project.project_id, &update).await {
                             return Err(format!("Failed to persist update: {e}").into());
                         }
-                        let update_msg = {
+                        let sync_update_msg = {
                             let mut encoder = EncoderV1::new();
                             encoder.write_var(MSG_SYNC);
                             encoder.write_var(MSG_SYNC_UPDATE);
                             encoder.write_buf(update);
                             encoder.to_vec()
                         };
-                        project.broadcast_msg(&msg.who, update_msg).await;
+                        project.broadcast_msg(&msg.who, sync_update_msg).await;
 
                         Ok(())
                     }
@@ -400,7 +402,7 @@ impl Notifier {
     #[tracing::instrument(skip(self))]
     pub async fn stop(&self) {
         // Cancel background tasks and wait for them to complete.
-        tracing::debug!(
+        tracing::info!(
             "Waiting for {} outstanding task(s) to finish..",
             self.tracker.len()
         );
