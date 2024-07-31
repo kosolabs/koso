@@ -1,9 +1,18 @@
+use crate::postgres::compact;
 use axum::extract::ws::{Message, WebSocket};
 use dashmap::DashMap;
 use futures::SinkExt;
 use sqlx::PgPool;
 use std::{
-    collections::HashMap, error::Error, fmt, net::SocketAddr, ops::ControlFlow, sync::Arc,
+    collections::HashMap,
+    error::Error,
+    fmt,
+    net::SocketAddr,
+    ops::ControlFlow,
+    sync::{
+        atomic::{self, Ordering::Relaxed},
+        Arc,
+    },
     time::Duration,
 };
 use tokio::sync::{
@@ -48,7 +57,7 @@ const MSG_SYNC_REQUEST: u8 = 0;
 const MSG_SYNC_RESPONSE: u8 = 1;
 const MSG_SYNC_UPDATE: u8 = 2;
 
-type ProjectId = String;
+pub type ProjectId = String;
 
 struct ProjectsState {
     projects: DashMap<ProjectId, Arc<ProjectState>>,
@@ -58,6 +67,7 @@ struct ProjectState {
     project_id: ProjectId,
     clients: Mutex<HashMap<String, ClientSender>>,
     doc_box: Mutex<Option<DocBox>>,
+    updates: atomic::AtomicUsize,
 }
 
 struct ClientSender {
@@ -270,6 +280,14 @@ impl Notifier {
                 )
             }
         }
+
+        let updates = project.updates.load(Relaxed);
+        if updates > 10 && project.clients.lock().await.len() == 0 {
+            project.updates.store(0, Relaxed);
+            self.tracker.spawn(compact(self.pool, project_id.clone()));
+        } else {
+            tracing::debug!("Skipping compacting, only {updates} updates exist")
+        }
     }
 
     /// Receive messages from `process_rx`, apply them to the doc and broadcast to all clients.
@@ -361,7 +379,7 @@ impl Notifier {
                             tracing::debug!("sync_update|sync_response message has no changes, will not persist or broadcast");
                             return Ok(());
                         }
-                        if let Err(e) = self.persist_update(&project.project_id, &update).await {
+                        if let Err(e) = self.persist_update(&project, &update).await {
                             return Err(format!("Failed to persist update: {e}").into());
                         }
                         let sync_update_msg = {
@@ -384,7 +402,7 @@ impl Notifier {
 
     async fn persist_update(
         &self,
-        project_id: &ProjectId,
+        project: &ProjectState,
         data: &Vec<u8>,
     ) -> Result<(), Box<dyn Error>> {
         sqlx::query(
@@ -392,10 +410,11 @@ impl Notifier {
             INSERT INTO yupdates (project_id, seq, update_v2)
             VALUES ($1, DEFAULT, $2)",
         )
-        .bind(project_id)
+        .bind(&project.project_id)
         .bind(data)
         .execute(self.pool)
         .await?;
+        project.updates.fetch_add(1, Relaxed);
         Ok(())
     }
 
@@ -429,6 +448,7 @@ impl ProjectsState {
                     project_id: project_id.to_string(),
                     clients: Mutex::new(HashMap::new()),
                     doc_box: Mutex::new(None),
+                    updates: atomic::AtomicUsize::new(0),
                 })
             })
             .clone()
