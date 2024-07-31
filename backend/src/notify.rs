@@ -322,6 +322,12 @@ impl Notifier {
 
                 // Both Update and SyncStep2 messages contain changes not known to the server.
                 // Broadcast the update to all clients AND persist it in the database.
+                if update == vec![0, 0] {
+                    tracing::debug!(
+                        "SyncStep2|Update message has no changes, will not persist or broadcast"
+                    );
+                    return Ok(());
+                }
                 if let Err(e) = self.persist_update(&project.project_id, &update).await {
                     return Err(format!("Failed to persist update: {e}").into());
                 }
