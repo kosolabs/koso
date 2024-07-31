@@ -36,7 +36,7 @@
     const socket = new WebSocket(wsUrl, ["bearer", $token]);
     socket.binaryType = "arraybuffer";
 
-    socket.onopen = (event) => {
+    socket.onopen = () => {
       koso.handleClientMessage((update) => {
         socket.send(update);
       });
