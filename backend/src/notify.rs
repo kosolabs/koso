@@ -6,9 +6,12 @@ use std::{
     collections::HashMap, error::Error, fmt, net::SocketAddr, ops::ControlFlow, sync::Arc,
     time::Duration,
 };
-use tokio::sync::{
-    mpsc::{self, Receiver, Sender},
-    Mutex,
+use tokio::{
+    spawn,
+    sync::{
+        mpsc::{self, Receiver, Sender},
+        Mutex,
+    },
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
@@ -20,6 +23,8 @@ use yrs::{
     },
     Doc, ReadTxn, StateVector, Transact, Update,
 };
+
+use crate::postgres::compact;
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
@@ -48,7 +53,7 @@ const MSG_SYNC_REQUEST: u8 = 0;
 const MSG_SYNC_RESPONSE: u8 = 1;
 const MSG_SYNC_UPDATE: u8 = 2;
 
-type ProjectId = String;
+pub type ProjectId = String;
 
 struct ProjectsState {
     projects: DashMap<ProjectId, Arc<ProjectState>>,
@@ -269,6 +274,10 @@ impl Notifier {
                     "Unexpectedly, received close for client while no client was registered."
                 )
             }
+        }
+
+        if project.clients.lock().await.len() == 0 {
+            self.tracker.spawn(compact(self.pool, project_id.clone()));
         }
     }
 

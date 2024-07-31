@@ -43,6 +43,7 @@ use uuid::Uuid;
 mod google;
 mod model;
 mod notify;
+mod postgres;
 
 type ApiResult<T> = Result<T, ErrorResponse>;
 
