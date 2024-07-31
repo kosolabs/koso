@@ -4,19 +4,19 @@
   import { logout as auth_logout, token, user } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
+  import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
   import {
     Button,
     Navbar,
     NavBrand,
-    NavUl,
-    NavLi,
     NavHamburger,
+    NavLi,
+    NavUl,
   } from "flowbite-svelte";
   import NavContainer from "flowbite-svelte/NavContainer.svelte";
   import { UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
   import * as Y from "yjs";
-  import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
 
   const projectId = $page.params.slug;
   const koso = new Koso(projectId, new Y.Doc());
@@ -35,9 +35,17 @@
     const wsUrl = `${host}/ws/projects/${projectId}`;
     const socket = new WebSocket(wsUrl, ["bearer", $token]);
     socket.binaryType = "arraybuffer";
+
+    socket.onopen = () => {
+      koso.handleClientMessage((update) => {
+        socket.send(update);
+      });
+      $lastVisitedProjectId = $page.params.slug;
+    };
+
     socket.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) {
-        koso.update(new Uint8Array(event.data));
+        koso.handleServerMessage(new Uint8Array(event.data));
       } else {
         console.log("Received text frame from server:", event.data);
       }
@@ -52,12 +60,6 @@
     while (socket.readyState !== WebSocket.OPEN) {
       await new Promise((r) => setTimeout(r, 100));
     }
-
-    $lastVisitedProjectId = $page.params.slug;
-
-    koso.onLocalUpdate((update) => {
-      socket.send(update);
-    });
   });
 </script>
 

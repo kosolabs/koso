@@ -1,34 +1,35 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { Koso, Node } from "./koso";
 
-const pId = "something";
 function addItem(koso: Koso, id: string, name: string, children: string[]) {
   koso.upsert({ id, name, children, reporter: "t@koso.app", assignee: null });
 }
 
 describe("Koso tests", () => {
+  let koso: Koso;
+  beforeEach(() => {
+    koso = new Koso("project-id", new Y.Doc());
+    koso.handleClientMessage(() => {});
+  });
+
   describe("getRoots", () => {
     it("empty graph returns empty set", () => {
-      const koso = new Koso(pId, new Y.Doc());
       expect(koso.getRoots()).toStrictEqual(new Set([]));
     });
 
     it("graph with one task returns one root", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", []);
       expect(koso.getRoots()).toStrictEqual(new Set(["1"]));
     });
 
     it("graph with two tasks and one root returns one root", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2"]);
       addItem(koso, "2", "Task 2", []);
       expect(koso.getRoots()).toStrictEqual(new Set(["1"]));
     });
 
     it("graph with two roots returns two roots", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", []);
       addItem(koso, "2", "Task 2", []);
       expect(koso.getRoots()).toStrictEqual(new Set(["1", "2"]));
@@ -37,7 +38,6 @@ describe("Koso tests", () => {
 
   describe("getTask", () => {
     it("retrieves task 2", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2"]);
       addItem(koso, "2", "Task 2", []);
       expect(koso.getTask("2")).toStrictEqual({
@@ -50,7 +50,6 @@ describe("Koso tests", () => {
     });
 
     it("invalid task id throws an exception", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", []);
       addItem(koso, "2", "Task 2", []);
       expect(() => koso.getTask("3")).toThrow();
@@ -59,21 +58,18 @@ describe("Koso tests", () => {
 
   describe("getChildren", () => {
     it("retrieves task 1's children", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2"]);
       addItem(koso, "2", "Task 2", []);
       expect(koso.getChildren("1")).toStrictEqual(["2"]);
     });
 
     it("retrieves empty list of children for leaf task", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2"]);
       addItem(koso, "2", "Task 2", []);
       expect(koso.getChildren("2")).toStrictEqual([]);
     });
 
     it("invalid task id throws an exception", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", []);
       addItem(koso, "2", "Task 2", []);
       expect(() => koso.getChildren("3")).toThrow();
@@ -82,18 +78,15 @@ describe("Koso tests", () => {
 
   describe("toNodes", () => {
     it("empty graph renders successfully", () => {
-      const koso = new Koso(pId, new Y.Doc());
       expect(koso.toNodes()).toStrictEqual([]);
     });
 
     it("graph with one root node renders successfully", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", []);
       expect(koso.toNodes()).toStrictEqual([new Node(["1"])]);
     });
 
     it("populated graph renders successfully", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2"]);
       addItem(koso, "2", "Task 2", []);
       expect(koso.toNodes()).toStrictEqual([
@@ -105,12 +98,10 @@ describe("Koso tests", () => {
 
   describe("graph", () => {
     it("empty graph renders successfully", () => {
-      const koso = new Koso(pId, new Y.Doc());
       expect(koso.yGraph.toJSON()).toStrictEqual({});
     });
 
     it("graph with one root node renders to json successfully", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", []);
       expect(koso.yGraph.toJSON()).toStrictEqual({
         "1": {
@@ -124,7 +115,6 @@ describe("Koso tests", () => {
     });
 
     it("populated graph renders to json successfully", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2"]);
       addItem(koso, "2", "Task 2", []);
       expect(koso.yGraph.toJSON()).toStrictEqual({
@@ -146,7 +136,6 @@ describe("Koso tests", () => {
     });
 
     it("reparent root node 2 to root node 1 succeeds", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", []);
       addItem(koso, "2", "Task 2", []);
 
@@ -171,7 +160,6 @@ describe("Koso tests", () => {
     });
 
     it("unparent node 2 from node 1 succeeds", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2"]);
       addItem(koso, "2", "Task 2", []);
 
@@ -196,7 +184,6 @@ describe("Koso tests", () => {
     });
 
     it("reparent root node 3 to node 1 as a peer of node 2 succeeds", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2"]);
       addItem(koso, "2", "Task 2", []);
       addItem(koso, "3", "Task 3", []);
@@ -229,7 +216,6 @@ describe("Koso tests", () => {
     });
 
     it("reparent root node 3 to node 1 as the immediate child succeeds", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2"]);
       addItem(koso, "2", "Task 2", []);
       addItem(koso, "3", "Task 3", []);
@@ -262,7 +248,6 @@ describe("Koso tests", () => {
     });
 
     it("editing node 2's name succeeds", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", []);
       addItem(koso, "2", "Task 2", []);
 
@@ -287,7 +272,6 @@ describe("Koso tests", () => {
     });
 
     it("move node 4 to be a child of node 3 removes it as a child from node 1", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2", "3", "4"]);
       addItem(koso, "2", "Task 2", []);
       addItem(koso, "3", "Task 3", []);
@@ -328,7 +312,6 @@ describe("Koso tests", () => {
     });
 
     it("move node 4 to be the peer of node 2 succeeds", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2", "3", "4"]);
       addItem(koso, "2", "Task 2", []);
       addItem(koso, "3", "Task 3", []);
@@ -369,7 +352,6 @@ describe("Koso tests", () => {
     });
 
     it("move node 3 to be the peer of node 4 succeeds", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["2", "3", "4"]);
       addItem(koso, "2", "Task 2", []);
       addItem(koso, "3", "Task 3", []);
@@ -410,7 +392,6 @@ describe("Koso tests", () => {
     });
 
     it("insert node creates a new untitled task", () => {
-      const koso = new Koso(pId, new Y.Doc());
       addItem(koso, "1", "Task 1", ["B", "3"]);
       addItem(koso, "B", "Task B", []);
       addItem(koso, "3", "Task 3", []);

@@ -12,10 +12,17 @@ use tokio::sync::{
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
-use yrs::{updates::decoder::Decode, Doc, ReadTxn, StateVector, Transact, Update};
+use yrs::{
+    encoding::{read::Read as _, write::Write as _},
+    updates::{
+        decoder::{Decode, DecoderV1},
+        encoder::{Encode, Encoder as _, EncoderV1},
+    },
+    Doc, ReadTxn, StateVector, Transact, Update,
+};
 
 pub fn start(pool: &'static PgPool) -> Notifier {
-    let (process_tx, process_rx) = mpsc::channel::<YrsUpdate>(1);
+    let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
     let notifier = Notifier {
         state: Arc::new(ProjectsState {
             projects: DashMap::new(),
@@ -27,10 +34,19 @@ pub fn start(pool: &'static PgPool) -> Notifier {
     };
     notifier
         .tracker
-        .spawn(notifier.clone().process_updates(process_rx));
+        .spawn(notifier.clone().process_messages(process_rx));
 
     notifier
 }
+
+const MSG_SYNC: u8 = 0;
+// const MSG_AWARENESS: u8 = 1;
+// const MSG_AUTH: u8 = 2;
+// const MSG_QUERY_AWARENESS: u8 = 3;
+
+const MSG_SYNC_REQUEST: u8 = 0;
+const MSG_SYNC_RESPONSE: u8 = 1;
+const MSG_SYNC_UPDATE: u8 = 2;
 
 type ProjectId = String;
 
@@ -60,10 +76,10 @@ struct DocBox {
     doc: Doc,
 }
 
-struct YrsUpdate {
+struct YrsMessage {
     who: String,
     project_id: ProjectId,
-    update_id: String,
+    id: String,
     data: Vec<u8>,
 }
 
@@ -71,7 +87,7 @@ struct YrsUpdate {
 pub struct Notifier {
     state: Arc<ProjectsState>,
     pool: &'static PgPool,
-    process_tx: Sender<YrsUpdate>,
+    process_tx: Sender<YrsMessage>,
     cancel: CancellationToken,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -114,7 +130,15 @@ impl Notifier {
         let sv = self.init_doc_box(&project).await?;
 
         // Send the entire state vector to the client.
-        if let Err(e) = sender.send(sv).await {
+        tracing::debug!("Sending sync_request message to client");
+        let sync_request_msg = {
+            let mut encoder = EncoderV1::new();
+            encoder.write_var(MSG_SYNC);
+            encoder.write_var(MSG_SYNC_REQUEST);
+            encoder.write_buf(sv.encode_v1());
+            encoder.to_vec()
+        };
+        if let Err(e) = sender.send(sync_request_msg).await {
             return Err(format!("Failed to send state vector to client: {e}").into());
         }
 
@@ -123,32 +147,24 @@ impl Notifier {
             return Err(format!("Unexpectedly, client already exists: {existing:?}").into());
         };
 
-        // Listen for messages on the read side of the socket to broadcast
-        // updates to all other clients or get notified about when the
-        // client closes the socket.
+        // Listen for messages on the read side of the socket.
         self.tracker
-            .spawn(self.clone().receive_updates_from_client(receiver));
+            .spawn(self.clone().receive_messages_from_client(receiver));
 
         Ok(())
     }
 
-    async fn init_doc_box(&self, project: &ProjectState) -> Result<Vec<u8>, Box<dyn Error>> {
+    async fn init_doc_box(&self, project: &ProjectState) -> Result<StateVector, Box<dyn Error>> {
         let mut doc_box = project.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
-            return Ok(doc_box
-                .doc
-                .transact()
-                .encode_state_as_update_v2(&StateVector::default()));
+            return Ok(doc_box.doc.transact().state_vector());
         }
 
         // Load the doc if it wasn't already loaded by another client.
         let doc = self.load_graph(&project.project_id).await?;
 
         let db = DocBox { doc };
-        let sv = db
-            .doc
-            .transact()
-            .encode_state_as_update_v2(&StateVector::default());
+        let sv = db.doc.transact().state_vector();
         *doc_box = Some(db);
         Ok(sv)
     }
@@ -166,8 +182,7 @@ impl Notifier {
         {
             let mut txn = doc.transact_mut();
             for (update,) in updates {
-                let update = Update::decode_v2(&update)?;
-                txn.apply_update(update);
+                txn.apply_update(Update::decode_v2(&update)?);
             }
         }
         tracing::debug!("Initialized new YDoc with {update_count} updates");
@@ -176,7 +191,7 @@ impl Notifier {
 
     /// Listen for update or close messages sent by a client.
     #[tracing::instrument(skip(self))]
-    async fn receive_updates_from_client(self, mut receiver: ClientReceiver) {
+    async fn receive_messages_from_client(self, mut receiver: ClientReceiver) {
         loop {
             tokio::select! {
                 _ = self.cancel.cancelled() => { break; }
@@ -184,34 +199,33 @@ impl Notifier {
                     let Some(msg) = msg else {
                         break;
                     };
-                    if let ControlFlow::Break(_) = self.receive_update_from_client(&receiver, msg).await {
+                    if let ControlFlow::Break(_) = self.receive_message_from_client(&receiver, msg).await {
                         break;
                     }
                 }
             }
         }
-        tracing::debug!("Stopped receiving client updates from {}", receiver.who);
+        tracing::debug!("Stopped receiving messages from client");
     }
 
-    async fn receive_update_from_client(
+    async fn receive_message_from_client(
         &self,
         receiver: &ClientReceiver,
         msg: Result<Message, axum::Error>,
     ) -> ControlFlow<()> {
         match msg {
             Ok(Message::Binary(data)) => {
-                tracing::debug!("Received update from client");
                 if let Err(e) = self
                     .process_tx
-                    .send(YrsUpdate {
+                    .send(YrsMessage {
                         who: receiver.who.clone(),
                         project_id: receiver.project_id.clone(),
-                        update_id: Uuid::new_v4().to_string(),
+                        id: Uuid::new_v4().to_string(),
                         data,
                     })
                     .await
                 {
-                    tracing::error!("Error sending update to process channel: {e}");
+                    tracing::error!("Error sending message to process channel: {e}");
                 };
                 ControlFlow::Continue(())
             }
@@ -258,93 +272,137 @@ impl Notifier {
         }
     }
 
-    /// Receive updates from `process_rx`, apply them to the doc and broadcast to all clients.
+    /// Receive messages from `process_rx`, apply them to the doc and broadcast to all clients.
     #[tracing::instrument(skip(self, process_rx))]
-    async fn process_updates(self, mut process_rx: Receiver<YrsUpdate>) {
+    async fn process_messages(self, mut process_rx: Receiver<YrsMessage>) {
         loop {
             tokio::select! {
                 _ = self.cancel.cancelled() => { break; }
-                update = process_rx.recv() => {
-                    let Some(update) = update else {
+                msg = process_rx.recv() => {
+                    let Some(msg) = msg else {
                         break;
                     };
-                    self.process_update(update).await;
+                    self.process_message(msg).await;
                 }
             }
         }
-        tracing::debug!("Stopped processing updates");
+        tracing::info!("Stopped processing messages");
     }
 
     #[tracing::instrument(skip(self))]
-    async fn process_update(&self, update: YrsUpdate) {
-        tracing::debug!("Processing update");
-        if let Err(e) = self.apply_update_to_doc(&update).await {
-            tracing::error!("Failed to apply update to doc: {e}");
-            return;
-        }
-        self.broadcast_update(&update).await;
-        if let Err(e) = self.persist_update(&update).await {
-            tracing::error!("Failed to persist y-update: {e}");
-            return;
+    async fn process_message(&self, msg: YrsMessage) {
+        if let Err(e) = self.process_message_internal(msg).await {
+            tracing::warn!("Failed to process message: {e}");
         }
     }
 
-    async fn apply_update_to_doc(&self, yrs_update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
-        let update = match Update::decode_v2(&yrs_update.data) {
-            Ok(update) => update,
-            Err(e) => {
-                return Err(format!(
-                    "Could not decode update from client: {e}, update: {yrs_update:?}"
-                )
+    async fn process_message_internal(&self, msg: YrsMessage) -> Result<(), Box<dyn Error>> {
+        let Some(project) = self.state.get(&msg.project_id) else {
+            return Err("Tried to handle message but project was None."
+                .to_string()
                 .into());
+        };
+
+        let mut decoder = DecoderV1::from(msg.data.as_slice());
+        match decoder.read_var()? {
+            MSG_SYNC => {
+                match decoder.read_var()? {
+                    MSG_SYNC_REQUEST => {
+                        tracing::debug!("Handling sync_request message");
+                        let update = {
+                            let sv: StateVector = StateVector::decode_v1(decoder.read_buf()?)?;
+                            DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
+                                .doc
+                                .transact()
+                                .encode_state_as_update_v2(&sv)
+                        };
+
+                        // Respond to the client with a sync_response message containing
+                        // changes known to the server but not the client.
+                        // There's no need to broadcast such updates to others or perist them.
+                        tracing::debug!("Sending synce_response message to client.");
+                        let sync_response_msg = {
+                            let mut encoder = EncoderV1::new();
+                            encoder.write_var(MSG_SYNC);
+                            encoder.write_var(MSG_SYNC_RESPONSE);
+                            encoder.write_buf(update);
+                            encoder.to_vec()
+                        };
+                        {
+                            let mut clients = project.clients.lock().await;
+                            let Some(client) = clients.get_mut(&msg.who) else {
+                                return Err("Unexpectedly found no client to reply to"
+                                    .to_string()
+                                    .into());
+                            };
+                            if let Err(e) = client.send(sync_response_msg).await {
+                                return Err(
+                                    format!("Failed to send sync_response to client: {e}").into()
+                                );
+                            };
+                        }
+
+                        Ok(())
+                    }
+                    MSG_SYNC_RESPONSE | MSG_SYNC_UPDATE => {
+                        tracing::debug!("Handling sync_update|sync_response message");
+                        let update = decoder.read_buf()?.to_vec();
+                        {
+                            let update = Update::decode_v2(&update)?;
+                            DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
+                                .doc
+                                .transact_mut()
+                                .apply_update(update);
+                        }
+
+                        // Both update and sync_response messages contain changes not known to the server.
+                        // Broadcast the update to all clients AND persist it in the database.
+                        if update == vec![0, 0] {
+                            tracing::debug!("sync_update|sync_response message has no changes, will not persist or broadcast");
+                            return Ok(());
+                        }
+                        if let Err(e) = self.persist_update(&project.project_id, &update).await {
+                            return Err(format!("Failed to persist update: {e}").into());
+                        }
+                        let sync_update_msg = {
+                            let mut encoder = EncoderV1::new();
+                            encoder.write_var(MSG_SYNC);
+                            encoder.write_var(MSG_SYNC_UPDATE);
+                            encoder.write_buf(update);
+                            encoder.to_vec()
+                        };
+                        project.broadcast_msg(&msg.who, sync_update_msg).await;
+
+                        Ok(())
+                    }
+                    invalid_type => Err(format!("Invalid sync type: {invalid_type}").into()),
+                }
             }
-        };
-
-        let Some(project) = self.state.get(&yrs_update.project_id) else {
-            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
-            // Likely, we should reset all sockets.
-            return Err(
-                "Tried to broadcast update but project was None. Dropped update: {update:?}".into(),
-            );
-        };
-
-        let doc_box = project.doc_box.lock().await;
-        let Some(doc_box) = doc_box.as_ref() else {
-            // TODO: Aside from short races, if this happens, we've got sockets without a doc.
-            // Likely, we should reset all sockets.
-            return Err(
-                "Tried to broadcast update but doc_box was None. Dropped update: {update:?}".into(),
-            );
-        };
-        doc_box.doc.transact_mut().apply_update(update);
-        Ok(())
+            invalid_type => Err(format!("Invalid message protocol type: {invalid_type}").into()),
+        }
     }
 
-    async fn persist_update(&self, update: &YrsUpdate) -> Result<(), Box<dyn Error>> {
+    async fn persist_update(
+        &self,
+        project_id: &ProjectId,
+        data: &Vec<u8>,
+    ) -> Result<(), Box<dyn Error>> {
         sqlx::query(
             "
             INSERT INTO yupdates (project_id, seq, update_v2)
             VALUES ($1, DEFAULT, $2)",
         )
-        .bind(&update.project_id)
-        .bind(&update.data)
+        .bind(project_id)
+        .bind(data)
         .execute(self.pool)
         .await?;
         Ok(())
     }
 
-    async fn broadcast_update(&self, update: &YrsUpdate) {
-        let Some(project) = self.state.get(&update.project_id) else {
-            tracing::warn!("No clients for project exist to broadcast to.");
-            return;
-        };
-        project.broadcast(update).await;
-    }
-
     #[tracing::instrument(skip(self))]
     pub async fn stop(&self) {
         // Cancel background tasks and wait for them to complete.
-        tracing::debug!(
+        tracing::info!(
             "Waiting for {} outstanding task(s) to finish..",
             self.tracker.len()
         );
@@ -411,19 +469,20 @@ impl ProjectState {
         client
     }
 
-    async fn broadcast(&self, update: &YrsUpdate) {
+    async fn broadcast_msg(&self, who: &String, data: Vec<u8>) {
         let mut clients = self.clients.lock().await;
 
-        tracing::debug!("Broadcasting updates to {} clients", clients.len());
+        tracing::debug!("Broadcasting to {} clients", clients.len());
         let mut results = Vec::new();
         for client in clients.values_mut() {
-            if client.who != update.who {
-                results.push(client.send(update.data.to_owned()));
+            if client.who != *who {
+                results.push(client.send(data.to_owned()));
             }
         }
         let res = futures::future::join_all(results).await;
-        tracing::debug!("Finished broadcasting updates: {res:?}");
+        tracing::debug!("Finished broadcasting: {res:?}");
     }
+
     async fn close_all(&self) {
         // Close all clients.
         let mut clients = self.clients.lock().await;
@@ -433,6 +492,15 @@ impl ProjectState {
         clients.clear();
         // Drop the doc box to stop observing changes.
         *self.doc_box.lock().await = None;
+    }
+}
+
+impl DocBox {
+    fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox, Box<dyn Error>> {
+        match doc_box {
+            Some(db) => Ok(db),
+            None => Err("DocBox is absent".to_string().into()),
+        }
     }
 }
 
@@ -471,18 +539,12 @@ impl fmt::Debug for ClientReceiver {
     }
 }
 
-impl fmt::Debug for DocBox {
+impl fmt::Debug for YrsMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("DocBox").field("doc", &self.doc).finish()
-    }
-}
-
-impl fmt::Debug for YrsUpdate {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("YrsUpdate")
+        f.debug_struct("YrsMessage")
             .field("project_id", &self.project_id)
             .field("who", &self.who)
-            .field("update_id", &self.update_id)
+            .field("id", &self.id)
             .field("data.len()", &self.data.len())
             .finish()
     }
