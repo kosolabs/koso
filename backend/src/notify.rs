@@ -13,8 +13,11 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 use yrs::{
-    sync::{self, Awareness, SyncMessage},
-    updates::{decoder::Decode, encoder::Encode},
+    encoding::{read::Read as _, write::Write as _},
+    updates::{
+        decoder::{Decode, DecoderV1},
+        encoder::{Encode, Encoder, EncoderV1},
+    },
     Doc, ReadTxn, StateVector, Transact, Update,
 };
 
@@ -35,6 +38,15 @@ pub fn start(pool: &'static PgPool) -> Notifier {
 
     notifier
 }
+
+const MSG_SYNC: u8 = 0;
+// const MSG_AWARENESS: u8 = 1;
+// const MSG_AUTH: u8 = 2;
+// const MSG_QUERY_AWARENESS: u8 = 3;
+
+const MSG_SYNC_REQUEST: u8 = 0;
+const MSG_SYNC_RESPONSE: u8 = 1;
+const MSG_SYNC_UPDATE: u8 = 2;
 
 type ProjectId = String;
 
@@ -61,7 +73,7 @@ struct ClientReceiver {
 }
 
 struct DocBox {
-    awareness: Awareness,
+    doc: Doc,
 }
 
 struct YrsMessage {
@@ -118,9 +130,15 @@ impl Notifier {
         let sv = self.init_doc_box(&project).await?;
 
         // Send the entire state vector to the client.
-        let sv = sync::Message::Sync(sync::SyncMessage::SyncStep1(sv)).encode_v1();
-        tracing::debug!("Sending SyncStep1 message to client");
-        if let Err(e) = sender.send(sv).await {
+        tracing::debug!("Sending sync_request message to client");
+        let sync_request_msg = {
+            let mut encoder = EncoderV1::new();
+            encoder.write_var(MSG_SYNC);
+            encoder.write_var(MSG_SYNC_REQUEST);
+            encoder.write_buf(sv.encode_v1());
+            encoder.to_vec()
+        };
+        if let Err(e) = sender.send(sync_request_msg).await {
             return Err(format!("Failed to send state vector to client: {e}").into());
         }
 
@@ -139,14 +157,14 @@ impl Notifier {
     async fn init_doc_box(&self, project: &ProjectState) -> Result<StateVector, Box<dyn Error>> {
         let mut doc_box = project.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
-            return Ok(doc_box.awareness.doc().transact().state_vector());
+            return Ok(doc_box.doc.transact().state_vector());
         }
 
         // Load the doc if it wasn't already loaded by another client.
-        let awareness = Awareness::new(self.load_graph(&project.project_id).await?);
+        let doc = self.load_graph(&project.project_id).await?;
 
-        let db = DocBox { awareness };
-        let sv = db.awareness.doc().transact().state_vector();
+        let db = DocBox { doc };
+        let sv = db.doc.transact().state_vector();
         *doc_box = Some(db);
         Ok(sv)
     }
@@ -285,63 +303,81 @@ impl Notifier {
                 .into());
         };
 
-        match sync::Message::decode_v1(&msg.data)? {
-            sync::Message::Sync(sync::SyncMessage::SyncStep1(sv)) => {
-                tracing::debug!("Handling SyncStep1 message");
-                let update = DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
-                    .awareness
-                    .doc()
-                    .transact()
-                    .encode_state_as_update_v1(&sv);
+        let mut decoder = DecoderV1::from(msg.data.as_slice());
+        match decoder.read_var()? {
+            MSG_SYNC => {
+                match decoder.read_var()? {
+                    MSG_SYNC_REQUEST => {
+                        tracing::debug!("Handling sync_request message");
+                        let update = {
+                            let sv: StateVector = StateVector::decode_v1(decoder.read_buf()?)?;
+                            DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
+                                .doc
+                                .transact()
+                                .encode_state_as_update_v1(&sv)
+                        };
 
-                // This is the response to a SyncStep1 client message containing
-                // changes known to the server but not the client.
-                // Send it ONLY to the requesting client. Do not broadcast or persist it
-                tracing::debug!("Sending SyncStep2 message to client.");
-                let mut clients = project.clients.lock().await;
-                let Some(client) = clients.get_mut(&msg.who) else {
-                    return Err("Unexpectedly found no client to reply to"
-                        .to_string()
-                        .into());
-                };
-                if let Err(e) = client
-                    .send(sync::Message::Sync(SyncMessage::SyncStep2(update)).encode_v1())
-                    .await
-                {
-                    return Err(format!("Failed to send reply to client: {e}").into());
-                };
-            }
-            sync::Message::Sync(sync::SyncMessage::Update(update))
-            | sync::Message::Sync(sync::SyncMessage::SyncStep2(update)) => {
-                tracing::debug!("Handling Update|SyncStep2 message");
-                DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
-                    .awareness
-                    .doc()
-                    .transact_mut()
-                    .apply_update(Update::decode_v1(&update)?);
+                        // Respond to the client with a sync_response message containing
+                        // changes known to the server but not the client.
+                        // There's no need to broadcast such updates to others or perist them.
+                        tracing::debug!("Sending synce_response message to client.");
+                        let sync_response_msg = {
+                            let mut encoder = EncoderV1::new();
+                            encoder.write_var(MSG_SYNC);
+                            encoder.write_var(MSG_SYNC_RESPONSE);
+                            encoder.write_buf(update);
+                            encoder.to_vec()
+                        };
+                        {
+                            let mut clients = project.clients.lock().await;
+                            let Some(client) = clients.get_mut(&msg.who) else {
+                                return Err("Unexpectedly found no client to reply to"
+                                    .to_string()
+                                    .into());
+                            };
+                            if let Err(e) = client.send(sync_response_msg).await {
+                                return Err(format!("Failed to send reply to client: {e}").into());
+                            };
+                        }
 
-                // Both Update and SyncStep2 messages contain changes not known to the server.
-                // Broadcast the update to all clients AND persist it in the database.
-                if update == vec![0, 0] {
-                    tracing::debug!(
-                        "SyncStep2|Update message has no changes, will not persist or broadcast"
-                    );
-                    return Ok(());
+                        Ok(())
+                    }
+                    MSG_SYNC_RESPONSE | MSG_SYNC_UPDATE => {
+                        tracing::debug!("Handling update|sync_response message");
+                        let update = decoder.read_buf()?.to_vec();
+                        {
+                            let update = Update::decode_v1(&update)?;
+                            DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
+                                .doc
+                                .transact_mut()
+                                .apply_update(update);
+                        }
+
+                        // Both update and sync_response messages contain changes not known to the server.
+                        // Broadcast the update to all clients AND persist it in the database.
+                        if update == vec![0, 0] {
+                            tracing::debug!("update|sync_response message has no changes, will not persist or broadcast");
+                            return Ok(());
+                        }
+                        if let Err(e) = self.persist_update(&project.project_id, &update).await {
+                            return Err(format!("Failed to persist update: {e}").into());
+                        }
+                        let update_msg = {
+                            let mut encoder = EncoderV1::new();
+                            encoder.write_var(MSG_SYNC);
+                            encoder.write_var(MSG_SYNC_UPDATE);
+                            encoder.write_buf(update);
+                            encoder.to_vec()
+                        };
+                        project.broadcast_msg(&msg.who, update_msg).await;
+
+                        Ok(())
+                    }
+                    invalid_type => Err(format!("Invalid sync type: {invalid_type}").into()),
                 }
-                if let Err(e) = self.persist_update(&project.project_id, &update).await {
-                    return Err(format!("Failed to persist update: {e}").into());
-                }
-                project
-                    .broadcast_msg(
-                        &msg.who,
-                        sync::Message::Sync(sync::SyncMessage::Update(update)).encode_v1(),
-                    )
-                    .await;
             }
-            m => return Err(format!("Unimplemented message protocol type: {m:?}").into()),
+            invalid_type => Err(format!("Invalid message protocol type: {invalid_type}").into()),
         }
-
-        Ok(())
     }
 
     async fn persist_update(
