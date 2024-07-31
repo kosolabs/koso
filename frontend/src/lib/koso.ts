@@ -72,7 +72,7 @@ export class Koso {
     };
 
     this.yDoc.on(
-      "update",
+      "updateV2",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (message: Uint8Array, arg1: any, arg2: Y.Doc, txn: Y.Transaction) => {
         if (txn.local) {
@@ -80,7 +80,6 @@ export class Koso {
           encoding.writeVarUint(encoder, MSG_SYNC);
           encoding.writeVarUint(encoder, MSG_SYNC_UPDATE);
           encoding.writeVarUint8Array(encoder, message);
-          console.log("Sending update:", encoding.toUint8Array(encoder));
           this.clientMessageHandler(encoding.toUint8Array(encoder));
         }
       },
@@ -105,16 +104,15 @@ export class Koso {
         encoding.writeVarUint(encoder, MSG_SYNC_RESPONSE);
         encoding.writeVarUint8Array(
           encoder,
-          Y.encodeStateAsUpdate(this.yDoc, encodedStateVector),
+          Y.encodeStateAsUpdateV2(this.yDoc, encodedStateVector),
         );
-        console.log("Sending sync response:", encoding.toUint8Array(encoder));
         this.clientMessageHandler(encoding.toUint8Array(encoder));
       } else if (
         syncType === MSG_SYNC_RESPONSE ||
         syncType === MSG_SYNC_UPDATE
       ) {
         const message = decoding.readVarUint8Array(decoder);
-        Y.applyUpdate(this.yDoc, message);
+        Y.applyUpdateV2(this.yDoc, message);
       } else {
         throw new Error(`Unknown sync type: ${syncType}`);
       }
@@ -133,7 +131,6 @@ export class Koso {
     encoding.writeVarUint(encoder, MSG_SYNC_REQUEST);
     const sv = Y.encodeStateVector(this.yDoc);
     encoding.writeVarUint8Array(encoder, sv);
-    console.log("Sending sync request:", encoding.toUint8Array(encoder));
     this.clientMessageHandler(encoding.toUint8Array(encoder));
   }
 

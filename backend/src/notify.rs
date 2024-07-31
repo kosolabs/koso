@@ -16,7 +16,7 @@ use yrs::{
     encoding::{read::Read as _, write::Write as _},
     updates::{
         decoder::{Decode, DecoderV1},
-        encoder::{Encode, Encoder, EncoderV1},
+        encoder::{Encode, Encoder as _, EncoderV1},
     },
     Doc, ReadTxn, StateVector, Transact, Update,
 };
@@ -182,7 +182,7 @@ impl Notifier {
         {
             let mut txn = doc.transact_mut();
             for (update,) in updates {
-                txn.apply_update(Update::decode_v1(&update)?);
+                txn.apply_update(Update::decode_v2(&update)?);
             }
         }
         tracing::debug!("Initialized new YDoc with {update_count} updates");
@@ -314,7 +314,7 @@ impl Notifier {
                             DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
                                 .doc
                                 .transact()
-                                .encode_state_as_update_v1(&sv)
+                                .encode_state_as_update_v2(&sv)
                         };
 
                         // Respond to the client with a sync_response message containing
@@ -348,7 +348,7 @@ impl Notifier {
                         tracing::debug!("Handling sync_update|sync_response message");
                         let update = decoder.read_buf()?.to_vec();
                         {
-                            let update = Update::decode_v1(&update)?;
+                            let update = Update::decode_v2(&update)?;
                             DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
                                 .doc
                                 .transact_mut()
