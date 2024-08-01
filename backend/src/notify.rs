@@ -22,6 +22,7 @@ use tokio::sync::{
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
+use yrs::Origin;
 use yrs::{
     encoding::{read::Read as _, write::Write as _},
     updates::{
@@ -33,15 +34,20 @@ use yrs::{
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
+    let (doc_update_tx, doc_update_rx) = mpsc::channel::<YrsUpdate>(50);
     let notifier = Notifier {
         state: Arc::new(ProjectsState {
             projects: DashMap::new(),
         }),
         pool,
         process_tx,
+        doc_update_tx,
         cancel: CancellationToken::new(),
         tracker: tokio_util::task::TaskTracker::new(),
     };
+    notifier
+        .tracker
+        .spawn(notifier.clone().receive_doc_updates(doc_update_rx));
     notifier
         .tracker
         .spawn(notifier.clone().process_messages(process_rx));
@@ -85,9 +91,19 @@ struct ClientReceiver {
 
 struct DocBox {
     doc: Doc,
+    /// Subscription to observe changes to doc.
+    #[allow(dead_code)]
+    sub: Box<dyn Send>,
 }
 
 struct YrsMessage {
+    who: String,
+    project_id: ProjectId,
+    id: String,
+    data: Vec<u8>,
+}
+
+struct YrsUpdate {
     who: String,
     project_id: ProjectId,
     id: String,
@@ -99,6 +115,7 @@ pub struct Notifier {
     state: Arc<ProjectsState>,
     pool: &'static PgPool,
     process_tx: Sender<YrsMessage>,
+    doc_update_tx: Sender<YrsUpdate>,
     cancel: CancellationToken,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -165,7 +182,7 @@ impl Notifier {
         Ok(())
     }
 
-    async fn init_doc_box(&self, project: &ProjectState) -> Result<StateVector> {
+    async fn init_doc_box(&self, project: &Arc<ProjectState>) -> Result<StateVector> {
         let mut doc_box = project.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
             return Ok(doc_box.doc.transact().state_vector());
@@ -174,7 +191,18 @@ impl Notifier {
         // Load the doc if it wasn't already loaded by another client.
         let doc = self.load_graph(project).await?;
 
-        let db = DocBox { doc };
+        // Persist and broadcast update events by subscribing to the callback.
+        let observer_notifier = self.clone();
+        let observer_project = Arc::clone(project);
+        let res = doc.observe_update_v2(move |txn, update| {
+            observer_notifier.handle_doc_update_v2_event(&observer_project, txn, update);
+        });
+        let sub = match res {
+            Ok(sub) => Box::new(sub),
+            Err(e) => return Err(anyhow!("Failed to create observer: {e}")),
+        };
+
+        let db = DocBox { doc, sub };
         let sv = db.doc.transact().state_vector();
         *doc_box = Some(db);
         Ok(sv)
@@ -292,7 +320,6 @@ impl Notifier {
         }
     }
 
-    /// Receive messages from `process_rx`, apply them to the doc and broadcast to all clients.
     #[tracing::instrument(skip(self, process_rx))]
     async fn process_messages(self, mut process_rx: Receiver<YrsMessage>) {
         loop {
@@ -365,27 +392,9 @@ impl Notifier {
                             let update = Update::decode_v2(&update)?;
                             DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
                                 .doc
-                                .transact_mut()
+                                .transact_mut_with(as_origin(&msg.who, &msg.id))
                                 .apply_update(update);
                         }
-
-                        // Both update and sync_response messages contain changes not known to the server.
-                        // Broadcast the update to all clients AND persist it in the database.
-                        if update == vec![0, 0] {
-                            tracing::debug!("sync_update|sync_response message has no changes, will not persist or broadcast");
-                            return Ok(());
-                        }
-                        if let Err(e) = self.persist_update(&project, &update).await {
-                            return Err(anyhow!("Failed to persist update: {e}"));
-                        }
-                        let sync_update_msg = {
-                            let mut encoder = EncoderV1::new();
-                            encoder.write_var(MSG_SYNC);
-                            encoder.write_var(MSG_SYNC_UPDATE);
-                            encoder.write_buf(update);
-                            encoder.to_vec()
-                        };
-                        project.broadcast_msg(&msg.who, sync_update_msg).await;
 
                         Ok(())
                     }
@@ -394,6 +403,81 @@ impl Notifier {
             }
             invalid_type => Err(anyhow!("Invalid message protocol type: {invalid_type}")),
         }
+    }
+
+    /// Callback invoked on update_v2 doc events, triggered by calls to "apply_update" in process_message_internal.
+    /// observe_update_v2 only accepts synchronous callbacks thus requiring this function be synchronous
+    /// and any async operations, including sendin to a channel, to occur in a spawned task.
+    fn handle_doc_update_v2_event(
+        &self,
+        observer_project: &ProjectState,
+        txn: &yrs::TransactionMut,
+        event: &yrs::UpdateEvent,
+    ) {
+        let origin = match from_origin(txn.origin()) {
+            Ok(o) => o,
+            Err(e) => {
+                tracing::error!("Failed to parse origin: {e}");
+                return;
+            }
+        };
+        let update = YrsUpdate {
+            who: origin.who,
+            project_id: observer_project.project_id.clone(),
+            id: origin.id,
+            data: event.update.clone(),
+        };
+        let nn = self.clone();
+        self.tracker.spawn(async move {
+            if let Err(e) = nn.doc_update_tx.send(update).await {
+                tracing::error!("failed to send to broadcast channel: {e}");
+            }
+        });
+    }
+
+    #[tracing::instrument(skip(self, doc_update_rx))]
+    async fn receive_doc_updates(self, mut doc_update_rx: Receiver<YrsUpdate>) {
+        loop {
+            tokio::select! {
+                _ = self.cancel.cancelled() => { break; }
+                msg = doc_update_rx.recv() => {
+                    let Some(msg) = msg else {
+                        break;
+                    };
+                    self.process_doc_update(msg).await;
+                }
+            }
+        }
+        tracing::info!("Stopped processing doc updates");
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn process_doc_update(&self, update: YrsUpdate) {
+        if let Err(e) = self.process_doc_update_internal(update).await {
+            tracing::warn!("Failed to process doc update: {e}");
+        }
+    }
+
+    async fn process_doc_update_internal(&self, update: YrsUpdate) -> Result<()> {
+        let Some(project) = self.state.get(&update.project_id) else {
+            return Err(anyhow!(
+                "Unexpectedly, received close for client but the project is missing."
+            ));
+        };
+
+        if let Err(e) = self.persist_update(&project, &update.data).await {
+            return Err(anyhow!("Failed to persist update: {e}"));
+        }
+        let sync_update_msg = {
+            let mut encoder = EncoderV1::new();
+            encoder.write_var(MSG_SYNC);
+            encoder.write_var(MSG_SYNC_UPDATE);
+            encoder.write_buf(update.data);
+            encoder.to_vec()
+        };
+        project.broadcast_msg(&update.who, sync_update_msg).await;
+
+        Ok(())
     }
 
     async fn persist_update(&self, project: &ProjectState, data: &Vec<u8>) -> Result<()> {
@@ -560,4 +644,42 @@ impl fmt::Debug for YrsMessage {
             .field("data.len()", &self.data.len())
             .finish()
     }
+}
+
+impl fmt::Debug for YrsUpdate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("YrsUpdate")
+            .field("project_id", &self.project_id)
+            .field("who", &self.who)
+            .field("id", &self.id)
+            .field("data.len()", &self.data.len())
+            .finish()
+    }
+}
+
+struct YOrigin {
+    who: String,
+    id: String,
+}
+
+fn from_origin(origin: Option<&Origin>) -> Result<YOrigin> {
+    origin
+        .map(|o| match String::from_utf8(o.as_ref().to_vec()) {
+            Ok(v) => {
+                let mut parts = v.split("@@");
+                let (Some(who), Some(id)) = (parts.next(), parts.next()) else {
+                    return Err(anyhow!("Could not split origin into parts: {v}"));
+                };
+                Ok(YOrigin {
+                    who: who.to_string(),
+                    id: id.to_string(),
+                })
+            }
+            Err(e) => Err(anyhow!("Failed to parse origin bytes to string: {o}: {e}")),
+        })
+        .unwrap_or_else(|| Err(anyhow!("Missing origin")))
+}
+
+fn as_origin(who: &str, id: &str) -> Origin {
+    format!("{who}@@{id}").into()
 }
