@@ -172,7 +172,7 @@ impl Notifier {
         }
 
         // Load the doc if it wasn't already loaded by another client.
-        let doc = self.load_graph(&project.project_id).await?;
+        let doc = self.load_graph(project).await?;
 
         let db = DocBox { doc };
         let sv = db.doc.transact().state_vector();
@@ -180,14 +180,15 @@ impl Notifier {
         Ok(sv)
     }
 
-    async fn load_graph(&self, project_id: &ProjectId) -> Result<Doc> {
+    async fn load_graph(&self, project: &ProjectState) -> Result<Doc> {
         tracing::debug!("Initializing new YDoc");
         let updates: Vec<(Vec<u8>,)> =
             sqlx::query_as("SELECT update_v2 FROM yupdates WHERE project_id=$1")
-                .bind(project_id)
+                .bind(&project.project_id)
                 .fetch_all(self.pool)
                 .await?;
         let update_count = updates.len();
+        project.updates.store(update_count, Relaxed);
 
         let doc = Doc::new();
         {

@@ -28,17 +28,24 @@ async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<(), Box<dyn Er
     .bind(&project_id)
     .fetch_all(&mut *txn)
     .await?;
+    if updates.len() <= 1 {
+        tracing::debug!("only {} updates exist, skipping compaction", updates.len());
+        return Ok(());
+    }
 
+    let consumed_sequences = updates.iter().map(|(seq, _)| *seq).collect::<Vec<_>>();
+    let Some(last_sequence) = consumed_sequences.iter().max() else {
+        return Err("Could not get max sequence number".into());
+    };
     let merged_update = Update::merge_updates(
         updates
-            .iter()
-            .map(|(_, update)| Update::decode_v2(update))
+            .into_iter()
+            .map(|(_, update)| Update::decode_v2(&update))
             .collect::<Result<Vec<_>, _>>()?,
     )
     .encode_v2();
-    let consumed_sequences = updates.into_iter().map(|(seq, _)| seq).collect::<Vec<_>>();
 
-    sqlx::query(
+    let deletes = sqlx::query(
         "
         DELETE FROM yupdates
         WHERE project_id = $1
@@ -48,10 +55,13 @@ async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<(), Box<dyn Er
     .bind(&consumed_sequences)
     .execute(&mut *txn)
     .await?;
-
-    let Some(last_sequence) = consumed_sequences.iter().max() else {
-        return Err("Could not get max sequence number".into());
-    };
+    if deletes.rows_affected() != consumed_sequences.len() as u64 {
+        // This would only happen if multiple compactions and inserts interleave, which can happen with the
+        // default postgres "read committed" isolation levels.
+        // For example, after compaction A selects rows to compact, say 55, an update is inserted and compaction B sees 56 rows.
+        // Compaction A would merge 1-55 and insert as 55 while compaction B would merge 1-56 and insert as 56.
+        return Err(format!("Expected to delete {} yupdates, but actually deleted {}. Expected sequences: {consumed_sequences:?}", consumed_sequences.len(), deletes.rows_affected()).into());
+    }
 
     sqlx::query(
         "
