@@ -195,7 +195,7 @@ impl Notifier {
         let observer_notifier = self.clone();
         let observer_project = Arc::clone(project);
         let res = doc.observe_update_v2(move |txn, update| {
-            observer_notifier.handle_observe_update_v2(&observer_project, txn, update);
+            observer_notifier.handle_doc_update_v2_event(&observer_project, txn, update);
         });
         let sub = match res {
             Ok(sub) => Box::new(sub),
@@ -408,7 +408,7 @@ impl Notifier {
     /// Callback invoked on update_v2 doc events, triggered by calls to "apply_update" in process_message_internal.
     /// observe_update_v2 only accepts synchronous callbacks thus requiring this function be synchronous
     /// and any async operations, including sendin to a channel, to occur in a spawned task.
-    fn handle_observe_update_v2(
+    fn handle_doc_update_v2_event(
         &self,
         observer_project: &ProjectState,
         txn: &yrs::TransactionMut,
@@ -444,21 +444,21 @@ impl Notifier {
                     let Some(msg) = msg else {
                         break;
                     };
-                    self.broadcast_and_persist(msg).await;
+                    self.process_doc_update(msg).await;
                 }
             }
         }
-        tracing::info!("Stopped receiving broadcast and persist messages");
+        tracing::info!("Stopped processing doc updates");
     }
 
     #[tracing::instrument(skip(self))]
-    async fn broadcast_and_persist(&self, update: YrsUpdate) {
-        if let Err(e) = self.broadcast_and_persist_internal(update).await {
-            tracing::warn!("Failed to broadcast and persist message: {e}");
+    async fn process_doc_update(&self, update: YrsUpdate) {
+        if let Err(e) = self.process_doc_update_internal(update).await {
+            tracing::warn!("Failed to process doc update: {e}");
         }
     }
 
-    async fn broadcast_and_persist_internal(&self, update: YrsUpdate) -> Result<()> {
+    async fn process_doc_update_internal(&self, update: YrsUpdate) -> Result<()> {
         let Some(project) = self.state.get(&update.project_id) else {
             return Err(anyhow!(
                 "Unexpectedly, received close for client but the project is missing."
