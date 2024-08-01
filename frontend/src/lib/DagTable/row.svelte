@@ -317,7 +317,8 @@
     isMoving ? "bg-red-200 opacity-50" : "",
     isGhost ? "bg-green-200 opacity-70" : "",
     isHovered ? "bg-primary-50" : "",
-    isSelected ? "bg-primary-200 outline-primary-400 outline outline-2" : "",
+    isSelected ? "bg-primary-200 outline-primary-400" : "",
+    isSelected ? "outline outline-2" : "",
     isHidden ? "hidden" : "",
   )}
   on:mouseout={handleUnhighlight}
