@@ -318,7 +318,7 @@
     isGhost ? "bg-green-200 opacity-70" : "",
     isHovered ? "bg-primary-50" : "",
     isSelected
-      ? "bg-primary-200 outline-primary-400 rounded outline outline-2"
+      ? "rounded bg-primary-200 outline outline-2 outline-primary-400"
       : "",
     isHidden ? "hidden" : "",
   )}
