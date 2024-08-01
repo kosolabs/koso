@@ -109,12 +109,6 @@ async fn start_main_server() {
                 .layer(middleware::from_fn(authenticate))
                 .fallback(handler_404),
         )
-        .nest_service(
-            "/",
-            ServeDir::new("static").fallback(ServeFile::new("static/index.html")),
-        )
-        // This is unreachable as the service above matches all routes.
-        .fallback(handler_404)
         .route_layer(middleware::from_fn(emit_request_metrics))
         .with_state(state)
         .layer((
@@ -128,7 +122,13 @@ async fn start_main_server() {
             Extension(pool),
             Extension(notifier.clone()),
             Extension(certs),
-        ));
+        ))
+        .nest_service(
+            "/",
+            ServeDir::new("static").fallback(ServeFile::new("static/index.html")),
+        )
+        // This is unreachable as the service above matches all routes.
+        .fallback(handler_404);
 
     // We can either use a listener provided by the environment by ListenFd or
     // listen on a local port. The former is convenient when using `cargo watch`
