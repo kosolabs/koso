@@ -312,14 +312,13 @@
   id="row-{node.id}"
   tabindex="0"
   class={cn(
-    "border",
+    "rounded border",
     index % 2 === 0 ? "bg-slate-50" : "bg-white",
     isMoving ? "bg-red-200 opacity-50" : "",
     isGhost ? "bg-green-200 opacity-70" : "",
     isHovered ? "bg-primary-50" : "",
-    isSelected
-      ? "rounded bg-primary-200 outline outline-2 outline-primary-400"
-      : "",
+    isSelected ? "bg-primary-200 outline-primary-400" : "",
+    isSelected ? "outline outline-2" : "",
     isHidden ? "hidden" : "",
   )}
   on:mouseout={handleUnhighlight}
