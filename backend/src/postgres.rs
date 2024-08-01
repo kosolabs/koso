@@ -1,6 +1,7 @@
 use crate::notify::ProjectId;
+use anyhow::anyhow;
+use anyhow::Result;
 use sqlx::PgPool;
-use std::error::Error;
 use yrs::{
     updates::{decoder::Decode, encoder::Encode},
     Update,
@@ -13,7 +14,7 @@ pub async fn compact(pool: &PgPool, project_id: ProjectId) {
     }
 }
 
-async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<(), Box<dyn Error>> {
+async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<()> {
     tracing::debug!("Starting compaction");
     let mut txn = pool.begin().await?;
 
@@ -35,7 +36,7 @@ async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<(), Box<dyn Er
 
     let consumed_sequences = updates.iter().map(|(seq, _)| *seq).collect::<Vec<_>>();
     let Some(last_sequence) = consumed_sequences.iter().max() else {
-        return Err("Could not get max sequence number".into());
+        return Err(anyhow!("Could not get max sequence number"));
     };
     let merged_update = Update::merge_updates(
         updates
@@ -60,7 +61,10 @@ async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<(), Box<dyn Er
         // default postgres "read committed" isolation levels.
         // For example, after compaction A selects rows to compact, say 55, an update is inserted and compaction B sees 56 rows.
         // Compaction A would merge 1-55 and insert as 55 while compaction B would merge 1-56 and insert as 56.
-        return Err(format!("Expected to delete {} yupdates, but actually deleted {}. Expected sequences: {consumed_sequences:?}", consumed_sequences.len(), deletes.rows_affected()).into());
+        return Err(anyhow!(
+            "Expected to delete {} yupdates, but actually deleted {}. Expected sequences: {consumed_sequences:?}", 
+            consumed_sequences.len(), deletes.rows_affected()
+        ));
     }
 
     sqlx::query(
