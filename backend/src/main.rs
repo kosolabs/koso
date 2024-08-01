@@ -1,3 +1,4 @@
+use anyhow::Result;
 use axum::{
     body::Body,
     extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
@@ -245,7 +246,7 @@ async fn list_projects_handler(
     Ok(Json(projects))
 }
 
-async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>, Box<dyn Error>> {
+async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>> {
     let projects: Vec<Project> = sqlx::query_as(
         "
         SELECT

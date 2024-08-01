@@ -1,11 +1,12 @@
 use crate::postgres::compact;
+use anyhow::anyhow;
+use anyhow::Result;
 use axum::extract::ws::{Message, WebSocket};
 use dashmap::DashMap;
 use futures::SinkExt;
 use sqlx::PgPool;
 use std::{
     collections::HashMap,
-    error::Error,
     fmt,
     net::SocketAddr,
     ops::ControlFlow,
@@ -115,7 +116,7 @@ impl Notifier {
         socket: WebSocket,
         who: SocketAddr,
         project_id: ProjectId,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<()> {
         let who = who.to_string() + ":" + &Uuid::new_v4().to_string();
         tracing::Span::current().record("who", &who);
         tracing::debug!("Registering client");
@@ -149,12 +150,12 @@ impl Notifier {
             encoder.to_vec()
         };
         if let Err(e) = sender.send(sync_request_msg).await {
-            return Err(format!("Failed to send state vector to client: {e}").into());
+            return Err(anyhow!("Failed to send state vector to client: {e}"));
         }
 
         // Store the sender side of the socket in the list of clients.
         if let Some(existing) = project.add_client(sender).await {
-            return Err(format!("Unexpectedly, client already exists: {existing:?}").into());
+            return Err(anyhow!("Unexpectedly, client already exists: {existing:?}"));
         };
 
         // Listen for messages on the read side of the socket.
@@ -164,7 +165,7 @@ impl Notifier {
         Ok(())
     }
 
-    async fn init_doc_box(&self, project: &ProjectState) -> Result<StateVector, Box<dyn Error>> {
+    async fn init_doc_box(&self, project: &ProjectState) -> Result<StateVector> {
         let mut doc_box = project.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
             return Ok(doc_box.doc.transact().state_vector());
@@ -179,7 +180,7 @@ impl Notifier {
         Ok(sv)
     }
 
-    async fn load_graph(&self, project_id: &ProjectId) -> Result<Doc, Box<dyn Error>> {
+    async fn load_graph(&self, project_id: &ProjectId) -> Result<Doc> {
         tracing::debug!("Initializing new YDoc");
         let updates: Vec<(Vec<u8>,)> =
             sqlx::query_as("SELECT update_v2 FROM yupdates WHERE project_id=$1")
@@ -314,11 +315,9 @@ impl Notifier {
         }
     }
 
-    async fn process_message_internal(&self, msg: YrsMessage) -> Result<(), Box<dyn Error>> {
+    async fn process_message_internal(&self, msg: YrsMessage) -> Result<()> {
         let Some(project) = self.state.get(&msg.project_id) else {
-            return Err("Tried to handle message but project was None."
-                .to_string()
-                .into());
+            return Err(anyhow!("Tried to handle message but project was None."));
         };
 
         let mut decoder = DecoderV1::from(msg.data.as_slice());
@@ -349,14 +348,10 @@ impl Notifier {
                         {
                             let mut clients = project.clients.lock().await;
                             let Some(client) = clients.get_mut(&msg.who) else {
-                                return Err("Unexpectedly found no client to reply to"
-                                    .to_string()
-                                    .into());
+                                return Err(anyhow!("Unexpectedly found no client to reply to"));
                             };
                             if let Err(e) = client.send(sync_response_msg).await {
-                                return Err(
-                                    format!("Failed to send sync_response to client: {e}").into()
-                                );
+                                return Err(anyhow!("Failed to send sync_response to client: {e}"));
                             };
                         }
 
@@ -380,7 +375,7 @@ impl Notifier {
                             return Ok(());
                         }
                         if let Err(e) = self.persist_update(&project, &update).await {
-                            return Err(format!("Failed to persist update: {e}").into());
+                            return Err(anyhow!("Failed to persist update: {e}"));
                         }
                         let sync_update_msg = {
                             let mut encoder = EncoderV1::new();
@@ -393,18 +388,14 @@ impl Notifier {
 
                         Ok(())
                     }
-                    invalid_type => Err(format!("Invalid sync type: {invalid_type}").into()),
+                    invalid_type => Err(anyhow!("Invalid sync type: {invalid_type}")),
                 }
             }
-            invalid_type => Err(format!("Invalid message protocol type: {invalid_type}").into()),
+            invalid_type => Err(anyhow!("Invalid message protocol type: {invalid_type}")),
         }
     }
 
-    async fn persist_update(
-        &self,
-        project: &ProjectState,
-        data: &Vec<u8>,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn persist_update(&self, project: &ProjectState, data: &Vec<u8>) -> Result<()> {
         sqlx::query(
             "
             INSERT INTO yupdates (project_id, seq, update_v2)
@@ -516,10 +507,10 @@ impl ProjectState {
 }
 
 impl DocBox {
-    fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox, Box<dyn Error>> {
+    fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox> {
         match doc_box {
             Some(db) => Ok(db),
-            None => Err("DocBox is absent".to_string().into()),
+            None => Err(anyhow!("DocBox is absent")),
         }
     }
 }
