@@ -5,6 +5,7 @@
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
   import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
+  import type { ProjectUsers } from "$lib/projects";
   import {
     Button,
     Navbar,
@@ -21,15 +22,39 @@
   const projectId = $page.params.slug;
   const koso = new Koso(projectId, new Y.Doc());
 
+  let projectUsers: ProjectUsers = {};
+  $: console.log(projectUsers);
+
   async function logout() {
     disableRedirectOnLogOut();
     auth_logout();
+  }
+
+  async function updateProjectUsers() {
+    if (!$user || !$token) throw new Error("User is unauthorized");
+
+    let resp = await fetch(`/api/projects/${projectId}/users`, {
+      headers: { Authorization: "Bearer " + $token },
+    });
+    if (!resp.ok) {
+      throw new Error(
+        `Failed to fetch project users: ${resp.statusText} (${resp.status})`,
+      );
+    }
+
+    const projectUsers: ProjectUsers = {};
+    for (const user of await resp.json()) {
+      projectUsers[user.email] = user;
+    }
+    return projectUsers;
   }
 
   onMount(async () => {
     if (!$user || !$token) {
       return;
     }
+
+    projectUsers = await updateProjectUsers();
 
     const host = location.origin.replace(/^http/, "ws");
     const wsUrl = `${host}/ws/projects/${projectId}`;
@@ -78,4 +103,4 @@
     </NavUl>
   </NavContainer>
 </Navbar>
-<DagTable {koso} />
+<DagTable {koso} {projectUsers} />

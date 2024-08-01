@@ -1,6 +1,7 @@
 <script lang="ts">
   import { user } from "$lib/auth";
   import type { Koso } from "$lib/koso";
+  import type { ProjectUsers } from "$lib/projects";
   import { Button } from "flowbite-svelte";
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
   import { setContext } from "svelte";
@@ -11,8 +12,9 @@
   import { receive, send } from "./transition";
 
   export let koso: Koso;
-  $nodes = koso.toNodes();
+  export let projectUsers: ProjectUsers;
 
+  $nodes = koso.toNodes();
   koso.observe(() => {
     $nodes = koso.toNodes();
   });
@@ -143,7 +145,7 @@
       out:send={{ key: node.id }}
       animate:flip={{ duration: 250 }}
     >
-      <Row {index} {node} isGhost={false} />
+      <Row {index} {node} {projectUsers} isGhost={false} />
     </tbody>
   {/each}
 </table>

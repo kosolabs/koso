@@ -1,3 +1,11 @@
+export type ProjectUsers = {
+  [email: string]: {
+    name: string;
+    email: string;
+    picture: string;
+  };
+};
+
 export type Project = {
   project_id: string;
   name: string;
