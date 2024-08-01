@@ -34,20 +34,20 @@ use yrs::{
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
-    let (broadcast_tx, broadcast_rx) = mpsc::channel::<YrsMessage>(50);
+    let (doc_update_tx, doc_update_rx) = mpsc::channel::<YrsUpdate>(50);
     let notifier = Notifier {
         state: Arc::new(ProjectsState {
             projects: DashMap::new(),
         }),
         pool,
         process_tx,
-        broadcast_tx,
+        doc_update_tx,
         cancel: CancellationToken::new(),
         tracker: tokio_util::task::TaskTracker::new(),
     };
     notifier
         .tracker
-        .spawn(notifier.clone().receive_broadcast_and_persist(broadcast_rx));
+        .spawn(notifier.clone().receive_doc_updates(doc_update_rx));
     notifier
         .tracker
         .spawn(notifier.clone().process_messages(process_rx));
@@ -103,12 +103,19 @@ struct YrsMessage {
     data: Vec<u8>,
 }
 
+struct YrsUpdate {
+    who: String,
+    project_id: ProjectId,
+    id: String,
+    data: Vec<u8>,
+}
+
 #[derive(Clone)]
 pub struct Notifier {
     state: Arc<ProjectsState>,
     pool: &'static PgPool,
     process_tx: Sender<YrsMessage>,
-    broadcast_tx: Sender<YrsMessage>,
+    doc_update_tx: Sender<YrsUpdate>,
     cancel: CancellationToken,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -184,14 +191,15 @@ impl Notifier {
         // Load the doc if it wasn't already loaded by another client.
         let doc = self.load_graph(project).await?;
 
-        let n = self.clone();
+        // Persist and broadcast update events by subscribing to the callback.
+        let observer_notifier = self.clone();
         let observer_project = Arc::clone(project);
         let res = doc.observe_update_v2(move |txn, update| {
-            n.handle_observe_update_v2(&observer_project, txn, update);
+            observer_notifier.handle_observe_update_v2(&observer_project, txn, update);
         });
         let sub = match res {
             Ok(sub) => Box::new(sub),
-            Err(e) => return Err(anyhow!("failed to observe: {e}")),
+            Err(e) => return Err(anyhow!("Failed to create observer: {e}")),
         };
 
         let db = DocBox { doc, sub };
@@ -397,28 +405,14 @@ impl Notifier {
         }
     }
 
-    async fn persist_update(&self, project: &ProjectState, data: &Vec<u8>) -> Result<()> {
-        sqlx::query(
-            "
-            INSERT INTO yupdates (project_id, seq, update_v2)
-            VALUES ($1, DEFAULT, $2)",
-        )
-        .bind(&project.project_id)
-        .bind(data)
-        .execute(self.pool)
-        .await?;
-        project.updates.fetch_add(1, Relaxed);
-        Ok(())
-    }
-
-    /// Callback invoked on update_v2 doc events.
+    /// Callback invoked on update_v2 doc events, triggered by calls to "apply_update" in process_message_internal.
     /// observe_update_v2 only accepts synchronous callbacks thus requiring this function be synchronous
-    /// and any async operations, including sendin to a channel, occur in a spawned task.
+    /// and any async operations, including sendin to a channel, to occur in a spawned task.
     fn handle_observe_update_v2(
         &self,
         observer_project: &ProjectState,
         txn: &yrs::TransactionMut,
-        update: &yrs::UpdateEvent,
+        event: &yrs::UpdateEvent,
     ) {
         let origin = match from_origin(txn.origin()) {
             Ok(o) => o,
@@ -427,26 +421,26 @@ impl Notifier {
                 return;
             }
         };
-        let msg = YrsMessage {
+        let update = YrsUpdate {
             who: origin.who,
             project_id: observer_project.project_id.clone(),
             id: origin.id,
-            data: update.update.clone(),
+            data: event.update.clone(),
         };
         let nn = self.clone();
         self.tracker.spawn(async move {
-            if let Err(e) = nn.broadcast_tx.send(msg).await {
+            if let Err(e) = nn.doc_update_tx.send(update).await {
                 tracing::error!("failed to send to broadcast channel: {e}");
             }
         });
     }
 
-    #[tracing::instrument(skip(self, broadcast_rx))]
-    async fn receive_broadcast_and_persist(self, mut broadcast_rx: Receiver<YrsMessage>) {
+    #[tracing::instrument(skip(self, doc_update_rx))]
+    async fn receive_doc_updates(self, mut doc_update_rx: Receiver<YrsUpdate>) {
         loop {
             tokio::select! {
                 _ = self.cancel.cancelled() => { break; }
-                msg = broadcast_rx.recv() => {
+                msg = doc_update_rx.recv() => {
                     let Some(msg) = msg else {
                         break;
                     };
@@ -458,31 +452,45 @@ impl Notifier {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn broadcast_and_persist(&self, msg: YrsMessage) {
-        if let Err(e) = self.broadcast_and_persist_internal(msg).await {
+    async fn broadcast_and_persist(&self, update: YrsUpdate) {
+        if let Err(e) = self.broadcast_and_persist_internal(update).await {
             tracing::warn!("Failed to broadcast and persist message: {e}");
         }
     }
 
-    async fn broadcast_and_persist_internal(&self, msg: YrsMessage) -> Result<()> {
-        let Some(project) = self.state.get(&msg.project_id) else {
+    async fn broadcast_and_persist_internal(&self, update: YrsUpdate) -> Result<()> {
+        let Some(project) = self.state.get(&update.project_id) else {
             return Err(anyhow!(
                 "Unexpectedly, received close for client but the project is missing."
             ));
         };
 
-        if let Err(e) = self.persist_update(&project, &msg.data).await {
+        if let Err(e) = self.persist_update(&project, &update.data).await {
             return Err(anyhow!("Failed to persist update: {e}"));
         }
         let sync_update_msg = {
             let mut encoder = EncoderV1::new();
             encoder.write_var(MSG_SYNC);
             encoder.write_var(MSG_SYNC_UPDATE);
-            encoder.write_buf(msg.data);
+            encoder.write_buf(update.data);
             encoder.to_vec()
         };
-        project.broadcast_msg(&msg.who, sync_update_msg).await;
+        project.broadcast_msg(&update.who, sync_update_msg).await;
 
+        Ok(())
+    }
+
+    async fn persist_update(&self, project: &ProjectState, data: &Vec<u8>) -> Result<()> {
+        sqlx::query(
+            "
+            INSERT INTO yupdates (project_id, seq, update_v2)
+            VALUES ($1, DEFAULT, $2)",
+        )
+        .bind(&project.project_id)
+        .bind(data)
+        .execute(self.pool)
+        .await?;
+        project.updates.fetch_add(1, Relaxed);
         Ok(())
     }
 
@@ -630,6 +638,17 @@ impl fmt::Debug for ClientReceiver {
 impl fmt::Debug for YrsMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("YrsMessage")
+            .field("project_id", &self.project_id)
+            .field("who", &self.who)
+            .field("id", &self.id)
+            .field("data.len()", &self.data.len())
+            .finish()
+    }
+}
+
+impl fmt::Debug for YrsUpdate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("YrsUpdate")
             .field("project_id", &self.project_id)
             .field("who", &self.who)
             .field("id", &self.id)
