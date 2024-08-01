@@ -56,6 +56,10 @@ async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<(), Box<dyn Er
     .execute(&mut *txn)
     .await?;
     if deletes.rows_affected() != consumed_sequences.len() as u64 {
+        // This would only happen if multiple compactions and inserts interleave, which can happen with the
+        // default postgres "read committed" isolation levels.
+        // For example, after compaction A selects rows to compact, say 55, an update is inserted and compaction B sees 56 rows.
+        // Compaction A would merge 1-55 and insert as 55 while compaction B would merge 1-56 and insert as 56.
         return Err(format!("Expected to delete {} yupdates, but actually deleted {}. Expected sequences: {consumed_sequences:?}", consumed_sequences.len(), deletes.rows_affected()).into());
     }
 
