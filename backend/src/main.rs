@@ -15,7 +15,9 @@ use google::{Certs, Claims};
 use jsonwebtoken::Validation;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
-use model::{Project, ProjectPermission};
+use model::{Project, ProjectPermission, ProjectUser};
+use notify::ProjectId;
+use postgres::list_project_users;
 use sqlx::{
     postgres::{PgConnectOptions, PgPool, PgPoolOptions},
     ConnectOptions,
@@ -99,6 +101,10 @@ async fn start_main_server() {
                 .route(
                     "/projects/:project_id/permissions",
                     post(add_project_permission_handler),
+                )
+                .route(
+                    "/projects/:project_id/users",
+                    get(list_project_users_handler),
                 )
                 .layer(middleware::from_fn(authenticate))
                 .fallback(handler_404),
@@ -302,6 +308,17 @@ async fn create_project_handler(
 }
 
 #[tracing::instrument(skip(claims, pool))]
+async fn list_project_users_handler(
+    Extension(claims): Extension<Claims>,
+    Extension(pool): Extension<&'static PgPool>,
+    Path(project_id): Path<String>,
+) -> ApiResult<Json<Vec<ProjectUser>>> {
+    verify_access(pool, claims, &project_id).await?;
+    let users = list_project_users(pool, &project_id).await?;
+    Ok(Json(users))
+}
+
+#[tracing::instrument(skip(claims, pool))]
 async fn add_project_permission_handler(
     Extension(claims): Extension<Claims>,
     Extension(pool): Extension<&'static PgPool>,
@@ -487,6 +504,54 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
         .record(start.elapsed().as_secs_f64());
 
     response
+}
+
+async fn verify_access(
+    pool: &PgPool,
+    user: Claims,
+    project_id: &ProjectId,
+) -> Result<(), ErrorResponse> {
+    if project_id.is_empty() {
+        return Err(bad_request_error("Project ID must not be empty"));
+    }
+
+    let mut txn = match pool.begin().await {
+        Ok(txn) => txn,
+        Err(e) => {
+            return Err(internal_error(&format!(
+                "Failed to check user permission: {e}"
+            )))
+        }
+    };
+
+    let permission: Option<ProjectPermission> = match sqlx::query_as(
+        "
+        SELECT project_id, email
+        FROM project_permissions
+        WHERE project_id = $1
+          AND email = $2;
+        ",
+    )
+    .bind(project_id)
+    .bind(&user.email)
+    .fetch_optional(&mut *txn)
+    .await
+    {
+        Ok(permission) => permission,
+        Err(e) => {
+            return Err(internal_error(&format!(
+                "Failed to check user permission: {e}"
+            )))
+        }
+    };
+
+    match permission {
+        Some(_) => Ok(()),
+        None => Err(unauthorized_error(&format!(
+            "User {} is not authorized to access {}",
+            user.email, project_id
+        ))),
+    }
 }
 
 async fn handler_404() -> impl IntoResponse {

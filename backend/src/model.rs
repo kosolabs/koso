@@ -10,3 +10,11 @@ pub struct ProjectPermission {
     pub project_id: String,
     pub email: String,
 }
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
+pub struct ProjectUser {
+    pub project_id: String,
+    pub email: String,
+    pub name: String,
+    pub picture: String,
+}

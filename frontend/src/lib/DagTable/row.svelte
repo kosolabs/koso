@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Koso } from "$lib/koso";
+  import type { ProjectUsers } from "$lib/projects";
   import { cn } from "$lib/utils";
-  import { A, Input, Tooltip } from "flowbite-svelte";
+  import { A, Avatar, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
   import type { Node } from "../koso";
@@ -17,6 +18,7 @@
   export let index: number;
   export let node: Node;
   export let isGhost: boolean = false;
+  export let projectUsers: ProjectUsers;
 
   let element: HTMLDivElement | undefined;
   let ghostNode: Node | null = null;
@@ -27,6 +29,10 @@
   }
 
   $: task = koso.getTask(node.name);
+  $: reporterImage = projectUsers[task.reporter]?.picture || "";
+  $: assigneeImage = task.assignee
+    ? projectUsers[task.assignee]?.picture || ""
+    : "";
 
   const koso = getContext<Koso>("koso");
 
@@ -200,7 +206,6 @@
   }
 
   $: if (element && $selected === node) {
-    console.log(element);
     element.focus();
   }
 
@@ -403,10 +408,16 @@
     {/if}
   </td>
   <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
-    {task.reporter}
+    <Avatar src={reporterImage || ""} rounded size="xs" />
+    <Tooltip>
+      {task.reporter}
+    </Tooltip>
   </td>
   <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
-    {task.assignee ?? "Unassigned"}
+    <Avatar src={assigneeImage} rounded size="xs" />
+    <Tooltip>
+      {task.assignee || "Unassigned"}
+    </Tooltip>
   </td>
 </tr>
 
