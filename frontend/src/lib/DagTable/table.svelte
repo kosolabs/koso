@@ -127,13 +127,13 @@
   {/if}
 </div>
 
-<table class="border-separate rounded border">
+<table class="w-full border">
   <thead class="text-left text-xs font-bold uppercase">
     <tr>
-      <th class="p-2">ID</th>
-      <th class="p-2">Name</th>
-      <th class="p-2">Reporter</th>
-      <th class="p-2">Assignee</th>
+      <th class="border p-2">ID</th>
+      <th class="border p-2">Name</th>
+      <th class="border p-2">Reporter</th>
+      <th class="border p-2">Assignee</th>
     </tr>
   </thead>
 
