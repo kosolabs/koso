@@ -127,29 +127,23 @@
   {/if}
 </div>
 
-<div class="rounded-t border">
-  <div id="header" class="border-b text-xs font-bold uppercase">
-    <div class="my-1 flex items-center p-2">
-      <div class="min-w-48 whitespace-nowrap border-r">
-        <div class="flex items-center">
-          <div class="w-5"></div>
-          <div class="w-5"></div>
-          <div>ID</div>
-        </div>
-      </div>
-      <div class="w-96 whitespace-nowrap border-r px-2">Name</div>
-      <div class="w-96 whitespace-nowrap border-r px-2">Reporter</div>
-      <div class="w-96 whitespace-nowrap px-2">Assignee</div>
-    </div>
-  </div>
+<table class="w-full border">
+  <thead class="text-left text-xs font-bold uppercase">
+    <tr>
+      <th class="border p-2">ID</th>
+      <th class="border p-2">Name</th>
+      <th class="border p-2">Reporter</th>
+      <th class="border p-2">Assignee</th>
+    </tr>
+  </thead>
 
   {#each $nodes as node, index (node.id)}
-    <div
+    <tbody
       in:receive={{ key: node.id }}
       out:send={{ key: node.id }}
       animate:flip={{ duration: 250 }}
     >
       <Row {index} {node} isGhost={false} />
-    </div>
+    </tbody>
   {/each}
-</div>
+</table>

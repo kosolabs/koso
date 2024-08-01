@@ -303,21 +303,23 @@
     !hasChild(node, $dragged) &&
     !hasCycle(node.name, $dragged.name);
   $: isMoving = isDragging && $dropEffect === "move";
+  $: isHovered = $highlighted?.name === node.name;
   $: isSelected = node.equals($selected);
   $: isHidden = $hidden.has(node.id);
 </script>
 
-<div
+<tr
   id="row-{node.id}"
-  role="row"
   tabindex="0"
   class={cn(
-    "flex items-center border border-transparent p-1",
+    "border",
     index % 2 === 0 ? "bg-slate-50" : "bg-white",
-    isMoving ? "border-rose-600 opacity-50" : "",
-    isGhost ? "border-green-600 opacity-70" : "",
-    $highlighted?.name === node.name ? "border-lime-600" : "",
-    isSelected ? "border-primary-600 bg-primary-200" : "",
+    isMoving ? "bg-red-200 opacity-50" : "",
+    isGhost ? "bg-green-200 opacity-70" : "",
+    isHovered ? "bg-primary-50" : "",
+    isSelected
+      ? "rounded bg-primary-200 outline outline-2 outline-primary-400"
+      : "",
     isHidden ? "hidden" : "",
   )}
   on:mouseout={handleUnhighlight}
@@ -328,21 +330,23 @@
   on:keydown={handleRowKeydown}
   use:row
 >
-  <div class="min-w-48 overflow-x-clip whitespace-nowrap">
-    <div class="flex items-center p-1">
+  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
+    <div class="flex items-center">
       <div style="width: {(node.length - 1) * 1.25}rem;" />
-      <button
-        class="w-4 transition-transform"
-        class:rotate-90={open && !isGhost}
-        on:click={handleToggleOpen}
-      >
-        {#if task.children.length > 0}
+      {#if task.children.length > 0}
+        <button
+          class="w-4 transition-transform"
+          class:rotate-90={open && !isGhost}
+          on:click={handleToggleOpen}
+        >
           <ChevronRight class="w-4" />
-        {/if}
-      </button>
-      <Tooltip class="text-nowrap">
-        {open ? "Collapse" : "Expand"}
-      </Tooltip>
+        </button>
+        <Tooltip class="text-nowrap">
+          {open ? "Collapse" : "Expand"}
+        </Tooltip>
+      {:else}
+        <div class="w-4" />
+      {/if}
       <button
         class="relative w-4"
         draggable={true}
@@ -377,12 +381,12 @@
       </button>
       <div class="overflow-x-hidden whitespace-nowrap">{node.name}</div>
     </div>
-  </div>
-  <div class="w-96 overflow-x-hidden whitespace-nowrap px-2">
+  </td>
+  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
     {#if editedTaskName !== null}
       <Input
         size="sm"
-        class="my-1 p-1"
+        class="p-1"
         on:click={(event) => event.stopPropagation()}
         on:blur={handleEditedTaskNameBlur}
         on:keydown={handleEditedTaskNameKeydown}
@@ -398,14 +402,14 @@
         {task.name}
       </A>
     {/if}
-  </div>
-  <div class="w-96 overflow-x-hidden whitespace-nowrap px-2">
+  </td>
+  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
     {task.reporter}
-  </div>
-  <div class="w-96 overflow-x-hidden whitespace-nowrap px-2">
+  </td>
+  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
     {task.assignee ?? "Unassigned"}
-  </div>
-</div>
+  </td>
+</tr>
 
 {#if ghostNode}
   <svelte:self index={index + 1} node={ghostNode} isGhost={true} />
