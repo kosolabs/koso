@@ -14,15 +14,14 @@ export const hidden = derived(
   ([$nodes, $collapsed]) =>
     new Set(
       $nodes
-        .map((node) => node.id)
         .filter((node) => {
           for (const c of $collapsed) {
-            // TODO
-            if (node.startsWith(c + "-")) {
+            if (node.hasAncestor(c)) {
               return true;
             }
           }
           return false;
-        }),
+        })
+        .map((node) => node.id),
     ),
 );

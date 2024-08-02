@@ -17,12 +17,12 @@ const MSG_SYNC_UPDATE = 2;
 export class Node {
   id: string;
   depth: number;
-  _parentNodeId: string | null;
+  _parentNode: Node | null;
 
-  constructor(id: string, parentNodeId: string | null, depth: number) {
+  constructor(id: string, parentNode: Node | null, depth: number) {
     this.id = id;
     this.depth = depth;
-    this._parentNodeId = parentNodeId;
+    this._parentNode = parentNode;
   }
 
   taskId(): string {
@@ -30,10 +30,10 @@ export class Node {
   }
 
   parentNodeId(): string {
-    if (!this._parentNodeId) {
+    if (!this._parentNode) {
       throw new Error("Root has no parent");
     }
-    return this._parentNodeId;
+    return this._parentNode.id;
   }
 
   parentTaskId(): string {
@@ -41,21 +41,32 @@ export class Node {
   }
 
   isRoot(): boolean {
-    return !this._parentNodeId;
+    return !this._parentNode;
   }
 
-  // equals(other: Node | null): boolean {
-  //   if (other === null) {
-  //     return false;
-  //   }
-  //   return this.id === other.id;
-  // }
+  equals(other: Node | null): boolean {
+    if (other === null) {
+      return false;
+    }
+    return this.id === other.id;
+  }
 
   new_child_node(id: string): Node {
-    return new Node(id, this.id, this.depth + 1);
+    return new Node(id, this, this.depth + 1);
   }
   new_peer_node(id: string): Node {
-    return new Node(id, this.parentNodeId(), this.depth);
+    return new Node(id, this._parentNode, this.depth);
+  }
+
+  hasAncestor(id: string): boolean {
+    let node = this._parentNode;
+    while (node !== null) {
+      if (node.id === id) {
+        return true;
+      }
+      node = this._parentNode;
+    }
+    return false;
   }
 }
 

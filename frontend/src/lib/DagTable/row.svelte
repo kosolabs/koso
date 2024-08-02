@@ -310,7 +310,6 @@
   $: isMoving = isDragging && $dropEffect === "move";
   $: isHovered = $highlighted?.taskId() === node.taskId();
   $: isSelected = node.id === $selected?.id;
-  // TODO
   $: isHidden = $hidden.has(node.id);
 </script>
 

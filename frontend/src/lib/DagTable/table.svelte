@@ -85,7 +85,7 @@
   function addChild() {
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    const newNodeId = koso.insertNode($selected.parentTaskId(), 0, $user);
+    const newNodeId = koso.insertNode($selected.taskId(), 0, $user);
     $selected = $selected.new_child_node(newNodeId);
   }
 
