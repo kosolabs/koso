@@ -17,6 +17,7 @@ export const hidden = derived(
         .map((node) => node.id)
         .filter((node) => {
           for (const c of $collapsed) {
+            // TODO
             if (node.startsWith(c + "-")) {
               return true;
             }

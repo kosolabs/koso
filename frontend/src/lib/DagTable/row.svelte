@@ -36,7 +36,6 @@
 
   const koso = getContext<Koso>("koso");
 
-  // TODO
   $: open = !$collapsed.has(node.id);
 
   function setOpen(open: boolean) {
@@ -154,7 +153,7 @@
       $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
     }
 
-    ghostNode = new Node($dragged.id, node.parentNodeId(), node.depth + 1);
+    ghostNode = node.new_child_node($dragged.id);
     ghostOffset = koso.getOffset(node) + 1;
   }
 
@@ -170,14 +169,14 @@
       return;
     }
 
-    if ($dragged.isRoot() || $dragged.parentNodeId() == node.id) {
+    if ($dragged.isRoot() || $dragged.parentTaskId() == node.taskId()) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
     } else {
       $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
     }
 
-    ghostNode = new Node($dragged.id, node.id, node.depth + 1);
+    ghostNode = node.new_child_node($dragged.id);
     ghostOffset = 0;
   }
 
@@ -278,7 +277,7 @@
     if (dragged.isRoot()) {
       return false;
     }
-    if (node.parentNodeId() !== dragged.parentNodeId()) {
+    if (node.parentTaskId() !== dragged.parentTaskId()) {
       return false;
     }
     return koso.getOffset(node) + 1 === koso.getOffset(dragged);
@@ -288,13 +287,13 @@
     if (dragged.isRoot()) {
       return false;
     }
-    if (node.id !== dragged.parentNodeId()) {
+    if (node.taskId() !== dragged.parentTaskId()) {
       return false;
     }
     return koso.getOffset(dragged) === 0;
   }
 
-  $: isDragging = !isGhost && node.equals($dragged);
+  $: isDragging = !isGhost && node.id == $dragged?.id;
   $: canDragDropPeer =
     !isDragging &&
     !node.isRoot() &&
@@ -309,8 +308,8 @@
     !hasChild(node.taskId(), $dragged) &&
     !hasCycle(node.taskId(), $dragged.taskId());
   $: isMoving = isDragging && $dropEffect === "move";
-  $: isHovered = $highlighted?.id === node.id;
-  $: isSelected = node.equals($selected);
+  $: isHovered = $highlighted?.taskId() === node.taskId();
+  $: isSelected = node.id === $selected?.id;
   // TODO
   $: isHidden = $hidden.has(node.id);
 </script>

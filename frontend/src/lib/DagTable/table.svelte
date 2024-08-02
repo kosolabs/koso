@@ -73,27 +73,24 @@
       const newNodeId = koso.addRoot($user);
       $selected = new Node(newNodeId, null, 0);
     } else {
-      const parentNodeId = $selected.parentNodeId();
       const newNodeId = koso.insertNode(
-        parentNodeId,
+        $selected.parentTaskId(),
         koso.getOffset($selected) + 1,
         $user,
       );
-      $selected = new Node(newNodeId, parentNodeId, $selected.depth);
+      $selected = $selected.new_peer_node(newNodeId);
     }
   }
 
   function addChild() {
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    const parentNodeId = $selected.id;
-    const newNodeId = koso.insertNode(parentNodeId, 0, $user);
-    $selected = new Node(newNodeId, parentNodeId, $selected.depth + 1);
+    const newNodeId = koso.insertNode($selected.parentTaskId(), 0, $user);
+    $selected = $selected.new_child_node(newNodeId);
   }
 
   function unlink() {
     if (!$selected) return;
-    // TODO: Verify
     koso.removeNode($selected.id, $selected.parentTaskId());
     $selected = null;
   }

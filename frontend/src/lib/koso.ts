@@ -44,11 +44,18 @@ export class Node {
     return !this._parentNodeId;
   }
 
-  equals(other: Node | null): boolean {
-    if (other === null) {
-      return false;
-    }
-    return this.id === other.id;
+  // equals(other: Node | null): boolean {
+  //   if (other === null) {
+  //     return false;
+  //   }
+  //   return this.id === other.id;
+  // }
+
+  new_child_node(id: string): Node {
+    return new Node(id, this.id, this.depth + 1);
+  }
+  new_peer_node(id: string): Node {
+    return new Node(id, this.parentNodeId(), this.depth);
   }
 }
 
@@ -233,7 +240,7 @@ export class Koso {
   #flatten(node: Node, nodes: Node[]) {
     nodes.push(node);
     for (const childNodeId of this.getChildrenNodeIds(node.taskId())) {
-      this.#flatten(new Node(childNodeId, node.id, node.depth + 1), nodes);
+      this.#flatten(node.new_child_node(childNodeId), nodes);
     }
   }
 
@@ -343,7 +350,7 @@ export class Koso {
     });
   }
 
-  insertNode(parentId: string, offset: number, user: User): string {
+  insertNode(parentTaskId: string, offset: number, user: User): string {
     const taskId = this.newId();
     const childNodeId = this.newChildNodeId(taskId);
     this.yDoc.transact(() => {
@@ -355,7 +362,8 @@ export class Koso {
         reporter: user.email,
         assignee: null,
       });
-      const yParent = this.yGraph.get(parentId)!;
+      const yParent = this.yGraph.get(parentTaskId)!;
+      if (!yParent) throw new Error(`Task ${parentTaskId} is not in the graph`);
       const yChildren = yParent.get("children") as Y.Array<string>;
       yChildren.insert(offset, [childNodeId]);
     });
