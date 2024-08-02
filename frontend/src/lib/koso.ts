@@ -324,42 +324,40 @@ export class Koso {
     console.log(`Going to convert with mappings`, idMapping);
     this.yDoc.transact(() => {
       for (const task of this.yGraph.values()) {
-        if (!task.get("num")) {
-          const taskNum = task.get("id") as string;
-          console.log(`Converting task ${taskNum}...`, task.toJSON());
-          const newTaskId = idMapping[taskNum];
-          if (!newTaskId) {
-            throw Error("Id mapping missing");
-          }
-          const name = task.get("name");
-          const reporter = task.get("reporter");
-          const assignee = task.get("assignee");
-
-          const childNodeIds = [];
-          for (const childTaskId of task.get("children") as Y.Array<string>) {
-            const newChildTaskId = idMapping[childTaskId];
-            if (!newChildTaskId) {
-              throw Error("Id mapping missing");
-            }
-            childNodeIds.push(newChildTaskId);
-          }
-          const newTask = new Y.Map<string | Y.Array<string>>([
-            ["id", newTaskId],
-            ["num", taskNum],
-            ["name", name],
-            ["children", Y.Array.from(childNodeIds)],
-            ["reporter", reporter],
-            ["assignee", assignee],
-          ]);
-          console.log(
-            `Converted task ${taskNum}, new id is ${newTaskId}.`,
-            newTask.toJSON(),
-          );
-          this.yGraph.delete(taskNum);
-          this.yGraph.set(newTaskId, newTask);
-        } else {
+        if (task.get("num")) {
           console.log(`Task already converted`, task.toJSON());
+          continue;
         }
+
+        const taskNum = task.get("id") as string;
+        console.log(`Converting task ${taskNum}...`, task.toJSON());
+        const newTaskId = idMapping[taskNum];
+        if (!newTaskId) {
+          throw Error("Id mapping missing");
+        }
+
+        const childNodeIds = [];
+        for (const childTaskId of task.get("children") as Y.Array<string>) {
+          const newChildTaskId = idMapping[childTaskId];
+          if (!newChildTaskId) throw Error("Id mapping missing");
+          childNodeIds.push(newChildTaskId);
+        }
+
+        const newTask = new Y.Map<string | Y.Array<string>>([
+          ["id", newTaskId],
+          ["num", taskNum],
+          ["name", task.get("name")],
+          ["children", Y.Array.from(childNodeIds)],
+          ["reporter", task.get("reporter")],
+          ["assignee", task.get("assignee")],
+        ]);
+        this.yGraph.delete(taskNum);
+        this.yGraph.set(newTaskId, newTask);
+
+        console.log(
+          `Converted task ${taskNum}, new id is ${newTaskId}.`,
+          newTask.toJSON(),
+        );
       }
     });
     console.log("Finished converting", this.yGraph.toJSON());
