@@ -422,5 +422,10 @@
 </tr>
 
 {#if ghostNode}
-  <svelte:self index={index + 1} node={ghostNode} isGhost={true} />
+  <svelte:self
+    index={index + 1}
+    node={ghostNode}
+    {projectUsers}
+    isGhost={true}
+  />
 {/if}
