@@ -11,8 +11,7 @@ use axum::{
 use axum_extra::{headers, TypedHeader};
 use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use futures::FutureExt;
-use google::{Certs, Claims};
-use jsonwebtoken::Validation;
+use google::User;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use model::{Project, ProjectPermission, ProjectUser};
@@ -106,14 +105,14 @@ async fn start_main_server() {
                     "/projects/:project_id/users",
                     get(list_project_users_handler),
                 )
-                .layer(middleware::from_fn(authenticate))
+                .layer(middleware::from_fn(google::authenticate))
                 .fallback(handler_404),
         )
         .nest(
             "/ws",
             Router::new()
                 .route("/projects/:project_id", get(ws_handler))
-                .layer(middleware::from_fn(authenticate))
+                .layer(middleware::from_fn(google::authenticate))
                 .fallback(handler_404),
         )
         .route_layer(middleware::from_fn(emit_request_metrics))
@@ -167,88 +166,12 @@ async fn start_main_server() {
     pool.close().await;
 }
 
-#[tracing::instrument(skip(request, next), fields(email))]
-async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Body>> {
-    let certs = request.extensions().get::<Certs>().unwrap();
-    let headers = request.headers();
-
-    let bearer = if let Some(auth_header) = headers.get("Authorization") {
-        let Ok(auth) = auth_header.to_str() else {
-            return Err(unauthorized_error(&format!(
-                "Could not convert auth header to string: {auth_header:?}"
-            )));
-        };
-        let parts: Vec<&str> = auth.split(' ').collect();
-        if parts.len() != 2 || parts[0] != "Bearer" {
-            return Err(unauthorized_error(&format!(
-                "Could not split bearer parts: {parts:?}"
-            )));
-        }
-        parts[1]
-    } else if let Some(swp_header) = headers.get("sec-websocket-protocol") {
-        let Ok(swp) = swp_header.to_str() else {
-            return Err(unauthorized_error(&format!(
-                "sec-websocket-protocol must be only visible ASCII chars: {swp_header:?}"
-            )));
-        };
-        let parts: Vec<&str> = swp.split(", ").collect();
-        if parts.len() != 2 || parts[0] != "bearer" {
-            return Err(unauthorized_error(&format!(
-                "sec-websocket-protocol must contain a bearer token: {parts:?}"
-            )));
-        }
-        parts[1]
-    } else {
-        return Err(unauthorized_error("Authorization header is absent."));
-    };
-
-    let Ok(header) = jsonwebtoken::decode_header(bearer) else {
-        return Err(unauthorized_error(&format!(
-            "Could not decode header: {bearer:?}"
-        )));
-    };
-    let Some(kid) = header.kid else {
-        return Err(unauthorized_error(&format!(
-            "header.kid is absent: {header:?}"
-        )));
-    };
-    let key = match certs.get(&kid) {
-        Ok(key) => key,
-        Err(e) => {
-            return Err(unauthorized_error(&format!(
-                "certs is absent for {kid:?}: {e}"
-            )));
-        }
-    };
-    let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
-    validation.set_audience(&[
-        "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
-    ]);
-    validation.set_issuer(&["https://accounts.google.com"]);
-    let token = match jsonwebtoken::decode::<Claims>(bearer, &key, &validation) {
-        Ok(token) => token,
-        Err(e) => {
-            return Err(unauthorized_error(&format!("Failed validation: {e}")));
-        }
-    };
-    if token.claims.email.is_empty() {
-        return Err(unauthorized_error(&format!(
-            "Claims email is empty: {token:?}"
-        )));
-    }
-
-    tracing::Span::current().record("email", token.claims.email.clone());
-    assert!(request.extensions_mut().insert(token.claims).is_none());
-
-    Ok(next.run(request).await)
-}
-
-#[tracing::instrument(skip(claims, pool))]
+#[tracing::instrument(skip(user, pool))]
 async fn list_projects_handler(
-    Extension(claims): Extension<Claims>,
+    Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Vec<Project>>> {
-    let projects = list_projects(&claims.email, pool).await?;
+    let projects = list_projects(&user.email, pool).await?;
     Ok(Json(projects))
 }
 
@@ -269,13 +192,13 @@ async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>> {
     Ok(projects)
 }
 
-#[tracing::instrument(skip(claims, pool))]
+#[tracing::instrument(skip(user, pool))]
 async fn create_project_handler(
-    Extension(claims): Extension<Claims>,
+    Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Json(mut project): Json<Project>,
 ) -> ApiResult<Json<Project>> {
-    let projects = list_projects(&claims.email, pool).await?;
+    let projects = list_projects(&user.email, pool).await?;
     if projects.len() >= 5 {
         return Err(bad_request_error(&format!(
             "User has more than 5 projects ({})",
@@ -293,7 +216,7 @@ async fn create_project_handler(
         .await?;
     sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2)")
         .bind(&project.project_id)
-        .bind(&claims.email)
+        .bind(&user.email)
         .execute(&mut *txn)
         .await?;
     txn.commit().await?;
@@ -307,42 +230,35 @@ async fn create_project_handler(
     Ok(Json(project))
 }
 
-#[tracing::instrument(skip(claims, pool))]
+#[tracing::instrument(skip(user, pool))]
 async fn list_project_users_handler(
-    Extension(claims): Extension<Claims>,
+    Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Path(project_id): Path<String>,
 ) -> ApiResult<Json<Vec<ProjectUser>>> {
-    verify_access(pool, claims, &project_id).await?;
+    verify_access(pool, user, &project_id).await?;
     let users = list_project_users(pool, &project_id).await?;
     Ok(Json(users))
 }
 
-#[tracing::instrument(skip(claims, pool))]
+#[tracing::instrument(skip(user, pool))]
 async fn add_project_permission_handler(
-    Extension(claims): Extension<Claims>,
+    Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Path(project_id): Path<String>,
     Json(permission): Json<ProjectPermission>,
 ) -> ApiResult<()> {
+    verify_access(pool, user, &project_id).await?;
+
     if project_id != permission.project_id {
         return Err(bad_request_error(&format!(
             "Path project id ({project_id} is different than body project id {}",
             permission.project_id
         )));
     }
+
     if permission.email.is_empty() {
         return Err(bad_request_error("Permission email is empty"));
-    }
-
-    let allowed = list_projects(&claims.email, pool)
-        .await?
-        .iter()
-        .any(|p| p.project_id == project_id);
-    if !allowed {
-        return Err(unauthorized_error(&format!(
-            "Not authorized to access project {project_id}"
-        )));
     }
 
     sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2) ON CONFLICT DO NOTHING")
@@ -353,9 +269,9 @@ async fn add_project_permission_handler(
     Ok(())
 }
 
-#[tracing::instrument(skip(claims, pool))]
+#[tracing::instrument(skip(user, pool))]
 async fn login_handler(
-    Extension(claims): Extension<Claims>,
+    Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<()> {
     if let Err(e) = sqlx::query(
@@ -365,9 +281,9 @@ async fn login_handler(
         ON CONFLICT (email)
         DO UPDATE SET name = EXCLUDED.name, picture = EXCLUDED.picture;",
     )
-    .bind(&claims.email)
-    .bind(&claims.name)
-    .bind(&claims.picture)
+    .bind(&user.email)
+    .bind(&user.name)
+    .bind(&user.picture)
     .execute(pool)
     .await
     {
@@ -383,28 +299,17 @@ async fn login_handler(
 /// websocket protocol will occur.
 /// This is the last point where we can extract TCP/IP metadata such as IP address of the client
 /// as well as things from HTTP headers such as user-agent of the browser etc.
-#[tracing::instrument(skip(ws, _user_agent, addr, claims, notifier, pool))]
+#[tracing::instrument(skip(ws, _user_agent, addr, user, notifier, pool))]
 async fn ws_handler(
     ws: WebSocketUpgrade,
     Path(project_id): Path<String>,
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    Extension(claims): Extension<Claims>,
+    Extension(user): Extension<User>,
     Extension(notifier): Extension<notify::Notifier>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Response<Body>> {
-    if project_id.is_empty() {
-        return Err(bad_request_error("projects segment must not be empty"));
-    }
-    let allowed = list_projects(&claims.email, pool)
-        .await?
-        .iter()
-        .any(|p| p.project_id == project_id);
-    if !allowed {
-        return Err(unauthorized_error(&format!(
-            "Not authorized to access project {project_id}"
-        )));
-    }
+    verify_access(pool, user, &project_id).await?;
 
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
@@ -508,7 +413,7 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
 
 async fn verify_access(
     pool: &PgPool,
-    user: Claims,
+    user: User,
     project_id: &ProjectId,
 ) -> Result<(), ErrorResponse> {
     if project_id.is_empty() {
