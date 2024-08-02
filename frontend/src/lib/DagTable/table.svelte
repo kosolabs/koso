@@ -71,34 +71,36 @@
     if (!$user) throw new Error("Unauthenticated");
     if ($selected.isRoot()) {
       const newNodeId = koso.addRoot($user);
-      $selected = new Node([newNodeId]);
+      $selected = new Node(newNodeId, null, 0);
     } else {
-      const parent = $selected.parent();
+      const parentNodeId = $selected.parentNodeId();
       const newNodeId = koso.insertNode(
-        parent.name,
+        parentNodeId,
         koso.getOffset($selected) + 1,
         $user,
       );
-      $selected = parent.concat(newNodeId);
+      $selected = new Node(newNodeId, parentNodeId, $selected.depth);
     }
   }
 
   function addChild() {
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    const newNodeId = koso.insertNode($selected.name, 0, $user);
-    $selected = $selected.concat(newNodeId);
+    const parentNodeId = $selected.id;
+    const newNodeId = koso.insertNode(parentNodeId, 0, $user);
+    $selected = new Node(newNodeId, parentNodeId, $selected.depth + 1);
   }
 
   function unlink() {
     if (!$selected) return;
-    koso.removeNode($selected.name, $selected.parent().name);
+    // TODO: Verify
+    koso.removeNode($selected.id, $selected.parentTaskId());
     $selected = null;
   }
 
   function remove() {
     if (!$selected) return;
-    koso.deleteNode($selected.name);
+    koso.deleteTask($selected.taskId());
     $selected = null;
   }
 

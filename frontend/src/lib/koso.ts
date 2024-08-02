@@ -3,6 +3,7 @@ import * as encoding from "lib0/encoding";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
+import { v4 as uuidv4 } from "uuid";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -15,30 +16,32 @@ const MSG_SYNC_UPDATE = 2;
 
 export class Node {
   id: string;
-  name: string;
-  length: number;
-  path: string[];
+  depth: number;
+  _parentNodeId: string | null;
 
-  constructor(path: string[]) {
-    this.path = path;
-    this.id = this.path.join("-");
-    const maybeName = this.path.at(-1);
-    if (!maybeName) throw new Error("path should not be empty");
-    this.name = maybeName;
-    this.length = this.path.length;
+  constructor(id: string, parentNodeId: string | null, depth: number) {
+    this.id = id;
+    this.depth = depth;
+    this._parentNodeId = parentNodeId;
   }
 
-  parent(): Node {
-    if (this.isRoot()) throw new Error("Cannot get parent of root node");
-    return new Node(this.path.slice(0, -1));
+  taskId(): string {
+    return this.id.split("|")[0];
+  }
+
+  parentNodeId(): string {
+    if (!this._parentNodeId) {
+      throw new Error("Root has no parent");
+    }
+    return this._parentNodeId;
+  }
+
+  parentTaskId(): string {
+    return this.parentNodeId().split("|")[0];
   }
 
   isRoot(): boolean {
-    return this.path.length === 1;
-  }
-
-  concat(nodeId: string) {
-    return new Node(this.path.concat(nodeId));
+    return !this._parentNodeId;
   }
 
   equals(other: Node | null): boolean {
@@ -51,6 +54,7 @@ export class Node {
 
 export type Task = {
   id: string;
+  num: string;
   name: string;
   children: string[];
   assignee: string | null;
@@ -84,6 +88,44 @@ export class Koso {
         }
       },
     );
+
+    const idMapping: { [id: string]: string } = {};
+    for (const task of this.yGraph.values()) {
+      const num = task.get("num") as string;
+      if (num) {
+        idMapping[num] = task.get("id") as string;
+      } else {
+        idMapping[task.get("id") as string] = this.newId();
+      }
+    }
+    this.yDoc.transact(() => {
+      for (const task of this.yGraph.values()) {
+        const taskId = task.get("id") as string;
+        if (task.get("num")) {
+          console.log(`Converting tasking ${taskId}...`);
+          this.yGraph.delete(taskId);
+          const newTaskId = idMapping[taskId];
+          if (!newTaskId) {
+            throw Error("Id mapping missing");
+          }
+          task.set("id", newTaskId);
+
+          const childNodeIds = [];
+          for (const childTaskId of task.get("children") as Y.Array<string>) {
+            const newChildTaskId = idMapping[childTaskId];
+            if (!newChildTaskId) {
+              throw Error("Id mapping missing");
+            }
+            childNodeIds.push(this.newChildNodeId(childTaskId));
+          }
+          task.set("children", Y.Array.from(childNodeIds));
+          console.log(
+            `Converted task ${taskId}, new id is ${newTaskId}. Task: ${task.toJSON()}`,
+          );
+          this.yGraph.set(newTaskId, task);
+        }
+      }
+    });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,18 +176,21 @@ export class Koso {
     this.clientMessageHandler(encoding.toUint8Array(encoder));
   }
 
-  getRoots(): Set<string> {
+  getRootNodeIds(): Set<string> {
     const allChildTaskIds = new Set<string>();
     for (const task of this.yGraph.values()) {
-      for (const childTaskId of task.get("children") as Y.Array<string>) {
-        allChildTaskIds.add(childTaskId);
+      for (const childNodeId of task.get("children") as Y.Array<string>) {
+        allChildTaskIds.add(this.splitChildNodeId(childNodeId)[0]);
       }
     }
-    const allTaskIds = new Set<string>();
-    for (const taskId of this.yGraph.keys()) {
-      allTaskIds.add(taskId);
+    const rootNodeIds = new Set<string>();
+    for (const task of this.yGraph.values()) {
+      const taskId = task.get("id") as string;
+      if (!allChildTaskIds.has(taskId)) {
+        rootNodeIds.add(taskId);
+      }
     }
-    return allTaskIds.difference(allChildTaskIds);
+    return rootNodeIds;
   }
 
   getTask(taskId: string): Task {
@@ -154,44 +199,67 @@ export class Koso {
     return yTask.toJSON() as Task;
   }
 
-  getChildren(taskId: string): string[] {
+  getChildrenTaskIds(taskId: string): string[] {
+    return this.getChildrenNodeIds(taskId).map(
+      (c) => this.splitChildNodeId(c)[0],
+    );
+  }
+
+  getChildrenNodeIds(taskId: string): string[] {
     const yTask = this.yGraph.get(taskId);
     if (!yTask) throw new Error(`Task ID ${taskId} not found in yGraph`);
     const yChildren = yTask.get("children") as Y.Array<string>;
     return yChildren.toArray();
   }
 
+  newChildNodeId(childTaskId: string): string {
+    return childTaskId + "|" + this.newId();
+  }
+
+  splitChildNodeId(nodeId: string): [string, string] {
+    const parts = nodeId.split("|");
+    if (parts.length != 2) {
+      throw new Error("Expected two parts from node id: " + nodeId);
+    }
+    return [parts[0], parts[1]];
+  }
+
   getOffset(node: Node): number {
     if (node.isRoot()) return 0;
-    const task = this.getTask(node.parent().name);
-    return task.children.indexOf(node.name);
+    const task = this.getTask(node.parentTaskId());
+    return task.children.indexOf(node.id);
   }
 
   #flatten(node: Node, nodes: Node[]) {
     nodes.push(node);
-    for (const child of this.getChildren(node.name)) {
-      this.#flatten(node.concat(child), nodes);
+    for (const childNodeId of this.getChildrenNodeIds(node.taskId())) {
+      this.#flatten(new Node(childNodeId, node.id, node.depth + 1), nodes);
     }
   }
 
   toNodes(): Node[] {
-    const roots = this.getRoots();
+    const roots = this.getRootNodeIds();
     const nodes: Node[] = [];
     for (const root of roots) {
-      this.#flatten(new Node([root]), nodes);
+      this.#flatten(new Node(root, null, 0), nodes);
     }
     return nodes;
   }
 
-  newId(): string {
+  newNum(): string {
     let max = 0;
-    for (const currId of this.yGraph.keys()) {
-      const curr = parseInt(currId);
+    for (const task of this.yGraph.values()) {
+      const currNum = task.get("num") as string;
+      const curr = parseInt(currNum);
       if (curr > max) {
         max = curr;
       }
     }
     return `${max + 1}`;
+  }
+
+  newId(): string {
+    return uuidv4();
   }
 
   upsert(task: Task) {
@@ -200,6 +268,7 @@ export class Koso {
         task.id,
         new Y.Map<string | Y.Array<string>>([
           ["id", task.id],
+          ["num", task.num],
           ["name", task.name],
           ["children", Y.Array.from(task.children)],
           ["reporter", task.reporter],
@@ -210,62 +279,64 @@ export class Koso {
   }
 
   addRoot(user: User): string {
-    const nodeId = this.newId();
+    const taskId = this.newId();
     this.yDoc.transact(() => {
       this.upsert({
-        id: nodeId,
+        id: taskId,
+        num: this.newNum(),
         name: "Untitled",
         children: [],
         reporter: user.email,
         assignee: null,
       });
     });
-    return nodeId;
+    return taskId;
   }
 
-  addNode(nodeId: string, parentId: string, offset: number) {
+  addNode(taskId: string, parentTaskId: string, offset: number) {
+    const childNodeId = this.newChildNodeId(taskId);
     this.yDoc.transact(() => {
-      const yParent = this.yGraph.get(parentId);
-      if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
+      const yParent = this.yGraph.get(parentTaskId);
+      if (!yParent) throw new Error(`Task ${parentTaskId} is not in the graph`);
       const yChildren = yParent.get("children") as Y.Array<string>;
-      yChildren.insert(offset, [nodeId]);
+      yChildren.insert(offset, [childNodeId]);
     });
   }
 
-  removeNode(nodeId: string, parentId: string) {
+  removeNode(nodeId: string, parentTaskId: string) {
     this.yDoc.transact(() => {
-      const yParent = this.yGraph.get(parentId);
-      if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
+      const yParent = this.yGraph.get(parentTaskId);
+      if (!yParent) throw new Error(`Task ${parentTaskId} is not in the graph`);
       const yChildren = yParent.get("children") as Y.Array<string>;
       yChildren.delete(yChildren.toArray().indexOf(nodeId));
     });
   }
 
-  deleteNode(nodeId: string) {
+  deleteTask(taskId: string) {
     this.yDoc.transact(() => {
-      this.yGraph.delete(nodeId);
+      this.yGraph.delete(taskId);
     });
   }
 
   moveNode(
     nodeId: string,
-    srcParentId: string,
+    srcParentTaskId: string,
     srcOffset: number,
-    destParentId: string,
+    destParentTaskId: string,
     destOffset: number,
   ) {
     this.yDoc.transact(() => {
-      const ySrcParent = this.yGraph.get(srcParentId);
+      const ySrcParent = this.yGraph.get(srcParentTaskId);
       if (!ySrcParent)
-        throw new Error(`Task ${srcParentId} is not in the graph`);
+        throw new Error(`Task ${srcParentTaskId} is not in the graph`);
       const ySrcChildren = ySrcParent.get("children") as Y.Array<string>;
       ySrcChildren.delete(srcOffset);
 
-      const yDestParent = this.yGraph.get(destParentId);
+      const yDestParent = this.yGraph.get(destParentTaskId);
       if (!yDestParent)
-        throw new Error(`Task ${destParentId} is not in the graph`);
+        throw new Error(`Task ${destParentTaskId} is not in the graph`);
       const yDestChildren = yDestParent.get("children") as Y.Array<string>;
-      if (srcParentId === destParentId && srcOffset < destOffset) {
+      if (destParentTaskId === destParentTaskId && srcOffset < destOffset) {
         destOffset -= 1;
       }
       yDestChildren.insert(destOffset, [nodeId]);
@@ -273,10 +344,12 @@ export class Koso {
   }
 
   insertNode(parentId: string, offset: number, user: User): string {
-    const nodeId = this.newId();
+    const taskId = this.newId();
+    const childNodeId = this.newChildNodeId(taskId);
     this.yDoc.transact(() => {
       this.upsert({
-        id: nodeId,
+        id: taskId,
+        num: this.newNum(),
         name: "Untitled",
         children: [],
         reporter: user.email,
@@ -284,9 +357,9 @@ export class Koso {
       });
       const yParent = this.yGraph.get(parentId)!;
       const yChildren = yParent.get("children") as Y.Array<string>;
-      yChildren.insert(offset, [nodeId]);
+      yChildren.insert(offset, [childNodeId]);
     });
-    return nodeId;
+    return childNodeId;
   }
 
   editTaskName(taskId: string, newName: string) {

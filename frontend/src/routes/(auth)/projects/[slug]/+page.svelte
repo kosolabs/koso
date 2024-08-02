@@ -23,7 +23,7 @@
   const koso = new Koso(projectId, new Y.Doc());
 
   let projectUsers: ProjectUsers = {};
-  $: console.log(projectUsers);
+  $: console.log("Users", projectUsers);
 
   async function logout() {
     disableRedirectOnLogOut();

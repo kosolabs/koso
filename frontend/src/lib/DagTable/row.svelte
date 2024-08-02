@@ -5,7 +5,7 @@
   import { A, Avatar, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
-  import type { Node } from "../koso";
+  import { Node } from "../koso";
   import {
     collapsed,
     dragged,
@@ -28,7 +28,7 @@
     element = el;
   }
 
-  $: task = koso.getTask(node.name);
+  $: task = koso.getTask(node.taskId());
   $: reporterImage = projectUsers[task.reporter]?.picture || "";
   $: assigneeImage = task.assignee
     ? projectUsers[task.assignee]?.picture || ""
@@ -36,6 +36,7 @@
 
   const koso = getContext<Koso>("koso");
 
+  // TODO
   $: open = !$collapsed.has(node.id);
 
   function setOpen(open: boolean) {
@@ -64,7 +65,7 @@
     if (editedTaskName === null) {
       return;
     }
-    koso.editTaskName(node.name, editedTaskName);
+    koso.editTaskName(node.taskId(), editedTaskName);
     editedTaskName = null;
   }
 
@@ -126,14 +127,14 @@
 
     if (!$dragged.isRoot() && $dropEffect === "move") {
       koso.moveNode(
-        $dragged.name,
-        $dragged.parent().name,
+        $dragged.id,
+        $dragged.parentTaskId(),
         koso.getOffset($dragged),
-        ghostNode.parent().name,
+        ghostNode.parentTaskId(),
         ghostOffset,
       );
     } else {
-      koso.addNode($dragged.name, ghostNode.parent().name, ghostOffset);
+      koso.addNode($dragged.taskId(), ghostNode.parentTaskId(), ghostOffset);
     }
     $dragged = null;
     ghostNode = null;
@@ -146,14 +147,14 @@
       return;
     }
 
-    if ($dragged.isRoot() || $dragged.parent().equals(node.parent())) {
+    if ($dragged.isRoot() || $dragged.parentTaskId() === node.parentTaskId()) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
     } else {
       $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
     }
 
-    ghostNode = node.parent().concat($dragged.name);
+    ghostNode = new Node($dragged.id, node.parentNodeId(), node.depth + 1);
     ghostOffset = koso.getOffset(node) + 1;
   }
 
@@ -169,14 +170,14 @@
       return;
     }
 
-    if ($dragged.isRoot() || $dragged.parent().equals(node)) {
+    if ($dragged.isRoot() || $dragged.parentNodeId() == node.id) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
     } else {
       $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
     }
 
-    ghostNode = node.concat($dragged.name);
+    ghostNode = new Node($dragged.id, node.id, node.depth + 1);
     ghostOffset = 0;
   }
 
@@ -251,33 +252,33 @@
     }
   }
 
-  function hasCycle(parent: string, child: string): boolean {
-    if (child === parent) {
+  function hasCycle(parentTaskId: string, childTaskId: string): boolean {
+    if (childTaskId === parentTaskId) {
       return true;
     }
-    for (const next of koso.getChildren(child)) {
-      if (hasCycle(parent, next)) {
+    for (const nextTaskId of koso.getChildrenTaskIds(childTaskId)) {
+      if (hasCycle(parentTaskId, nextTaskId)) {
         return true;
       }
     }
     return false;
   }
 
-  function hasChild(parent: Node, child: Node): boolean {
+  function hasChild(parentTaskId: string, child: Node): boolean {
     if (child.isRoot()) {
       return false;
     }
-    if (parent.equals(child.parent())) {
+    if (parentTaskId === child.parentTaskId()) {
       return false;
     }
-    return koso.getChildren(parent.name).includes(child.name);
+    return koso.getChildrenTaskIds(parentTaskId).includes(child.taskId());
   }
 
   function isSamePeer(node: Node, dragged: Node): boolean {
     if (dragged.isRoot()) {
       return false;
     }
-    if (!node.parent().equals(dragged.parent())) {
+    if (node.parentNodeId() !== dragged.parentNodeId()) {
       return false;
     }
     return koso.getOffset(node) + 1 === koso.getOffset(dragged);
@@ -287,7 +288,7 @@
     if (dragged.isRoot()) {
       return false;
     }
-    if (!node.equals(dragged.parent())) {
+    if (node.id !== dragged.parentNodeId()) {
       return false;
     }
     return koso.getOffset(dragged) === 0;
@@ -299,17 +300,18 @@
     !node.isRoot() &&
     $dragged &&
     !isSamePeer(node, $dragged) &&
-    !hasChild(node.parent(), $dragged) &&
-    !hasCycle(node.parent().name, $dragged.name);
+    !hasChild(node.parentTaskId(), $dragged) &&
+    !hasCycle(node.parentTaskId(), $dragged.taskId());
   $: canDragDropChild =
     !isDragging &&
     $dragged &&
     !isSameChild(node, $dragged) &&
-    !hasChild(node, $dragged) &&
-    !hasCycle(node.name, $dragged.name);
+    !hasChild(node.taskId(), $dragged) &&
+    !hasCycle(node.taskId(), $dragged.taskId());
   $: isMoving = isDragging && $dropEffect === "move";
-  $: isHovered = $highlighted?.name === node.name;
+  $: isHovered = $highlighted?.id === node.id;
   $: isSelected = node.equals($selected);
+  // TODO
   $: isHidden = $hidden.has(node.id);
 </script>
 
@@ -336,7 +338,7 @@
 >
   <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
     <div class="flex items-center">
-      <div style="width: {(node.length - 1) * 1.25}rem;" />
+      <div style="width: {node.depth * 1.25}rem;" />
       {#if task.children.length > 0}
         <button
           class="w-4 transition-transform"
@@ -362,8 +364,8 @@
         {#if canDragDropPeer}
           <div
             class="absolute z-50 h-7"
-            style="width: {(node.length + 1) * 1.25}rem; 
-              left: {-node.length * 1.25}rem"
+            style="width: {(node.depth + 2) * 1.25}rem; 
+              left: {-(node.depth + 1) * 1.25}rem"
             role="table"
             on:dragover={handleDragOverPeer}
             on:dragenter={handleDragEnterPeer}
@@ -374,7 +376,7 @@
         {#if canDragDropChild}
           <div
             class="absolute left-5 z-50 h-7"
-            style="width: {10.5 - node.length * 1.25}rem"
+            style="width: {10.5 - (node.depth + 1) * 1.25}rem"
             role="table"
             on:dragover={handleDragOverChild}
             on:dragenter={handleDragEnterChild}
@@ -383,7 +385,7 @@
           />
         {/if}
       </button>
-      <div class="overflow-x-hidden whitespace-nowrap">{node.name}</div>
+      <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
     </div>
   </td>
   <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
@@ -422,5 +424,10 @@
 </tr>
 
 {#if ghostNode}
-  <svelte:self index={index + 1} node={ghostNode} isGhost={true} />
+  <svelte:self
+    index={index + 1}
+    node={ghostNode}
+    {projectUsers}
+    isGhost={true}
+  />
 {/if}
