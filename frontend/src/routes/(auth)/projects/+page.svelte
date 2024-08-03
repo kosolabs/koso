@@ -1,14 +1,27 @@
 <script lang="ts">
-  import { token, user } from "$lib/auth";
+  import { logout, token, user } from "$lib/auth";
   import { onMount } from "svelte";
-  import { Alert, Button, A } from "flowbite-svelte";
+  import {
+    Avatar,
+    Alert,
+    Button,
+    A,
+    Navbar,
+    NavBrand,
+    NavHamburger,
+    Dropdown,
+    DropdownItem,
+    DropdownHeader,
+  } from "flowbite-svelte";
+  import NavContainer from "flowbite-svelte/NavContainer.svelte";
   import { goto } from "$app/navigation";
   import {
     createProject as projectsCreateProject,
     fetchProjects,
     type Project,
   } from "$lib/projects";
-  import { Layers } from "lucide-svelte";
+  import kosoLogo from "$lib/assets/koso.svg";
+  import { Layers, UserPlus } from "lucide-svelte";
 
   let projects: Promise<Project[]> = new Promise(() => {});
   let errorMessage: string | null = null;
@@ -33,6 +46,33 @@
     projects = fetchProjects($token);
   });
 </script>
+
+<Navbar color="primary" class="mb-4" fluid={true}>
+  <NavContainer fluid={true}>
+    <NavBrand href="/projects">
+      <img class="w-14" alt="Koso Logo" src={kosoLogo} />
+    </NavBrand>
+    <div class="flex md:order-2">
+      <Button size="xs" title="Share Project"><UserPlus /></Button>
+      <Button
+        id="profile-menu"
+        class="ms-3 rounded-full border bg-slate-200 p-2"
+        title="Profile"
+      >
+        <div><Avatar src={$user?.picture} size="xs" /></div>
+      </Button>
+      <Dropdown triggeredBy="#profile-menu">
+        <DropdownHeader>
+          <span class="block text-sm">{$user?.name}</span>
+          <span class="block truncate text-sm font-medium">{$user?.email}</span>
+        </DropdownHeader>
+        <DropdownItem href="/projects">Projects</DropdownItem>
+        <DropdownItem on:click={() => logout()}>Logout</DropdownItem>
+      </Dropdown>
+      <NavHamburger />
+    </div>
+  </NavContainer>
+</Navbar>
 
 {#await projects}
   <div class="flex flex-col items-center justify-center rounded border p-4">

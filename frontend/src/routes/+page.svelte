@@ -1,13 +1,17 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import kosoLogo from "$lib/assets/koso.svg";
-  import { logout, token, user } from "$lib/auth";
+  import { token, user } from "$lib/auth";
   import { fetchProjects } from "$lib/projects";
   import { lastVisitedProjectId, popRedirectOnLogin } from "$lib/nav";
-  import { Alert, Avatar, Button } from "flowbite-svelte";
+  import { Alert } from "flowbite-svelte";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { onMount } from "svelte";
   import Google from "./google.svelte";
+
+  if ($user) {
+    redirectOnLogin();
+  }
 
   let googleLogin: () => void;
   let errorMessage: string | null = null;
@@ -49,6 +53,10 @@
   }
 
   onMount(() => {
+    if ($user) {
+      return;
+    }
+
     const googleProvider = new GoogleOAuthProvider({
       clientId:
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
@@ -80,32 +88,15 @@
   });
 </script>
 
-<div
-  class="m-auto flex flex-col rounded border bg-slate-100 p-10 text-center lg:w-96"
->
-  <img class="m-auto mb-8 w-20" alt="Koso Logo" src={kosoLogo} />
-  <h1 class="mb-8 text-4xl text-teal-800">Koso</h1>
-  {#if $user}
-    <div class="m-auto my-2">
-      <div class="flex items-center rounded-full border bg-slate-200 p-2">
-        <div><Avatar src={$user.picture} size="xs" /></div>
-        <button class="pl-2" on:click={() => logout()}>
-          Logout {$user.name}
-        </button>
-      </div>
-    </div>
-
-    <h1 class="mt-8 text-xl">Projects</h1>
-
-    <div class="m-auto my-2">
-      <Button on:click={() => goto("/projects/koso-staging")}>
-        koso-staging
-      </Button>
-    </div>
-  {:else}
+{#if !$user}
+  <div
+    class="m-auto flex flex-col rounded border bg-slate-100 p-10 text-center lg:w-96"
+  >
+    <img class="m-auto mb-8 w-20" alt="Koso Logo" src={kosoLogo} />
+    <h1 class="mb-8 text-4xl text-teal-800">Koso</h1>
     <Google on:click={login} />
-  {/if}
-  {#if errorMessage}
-    <Alert class="mt-8" border>{errorMessage}</Alert>
-  {/if}
-</div>
+    {#if errorMessage}
+      <Alert class="mt-8" border>{errorMessage}</Alert>
+    {/if}
+  </div>
+{/if}

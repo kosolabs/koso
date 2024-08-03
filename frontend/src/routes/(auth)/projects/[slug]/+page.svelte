@@ -7,12 +7,14 @@
   import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
   import type { ProjectUsers } from "$lib/projects";
   import {
+    Avatar,
     Button,
+    Dropdown,
+    DropdownHeader,
+    DropdownItem,
     Navbar,
     NavBrand,
     NavHamburger,
-    NavLi,
-    NavUl,
   } from "flowbite-svelte";
   import NavContainer from "flowbite-svelte/NavContainer.svelte";
   import { UserPlus } from "lucide-svelte";
@@ -90,17 +92,29 @@
 
 <Navbar color="primary" class="mb-4" fluid={true}>
   <NavContainer fluid={true}>
-    <NavBrand>
+    <NavBrand href="/projects">
       <img class="w-14" alt="Koso Logo" src={kosoLogo} />
     </NavBrand>
     <div class="flex md:order-2">
-      <Button size="xs"><UserPlus /></Button>
+      <Button size="xs" title="Share Project"><UserPlus /></Button>
+      <Button
+        id="profile-menu"
+        class="ms-3 rounded-full border bg-slate-200 p-2"
+        title="Profile"
+      >
+        <div><Avatar src={$user?.picture} size="xs" /></div>
+      </Button>
+      <Dropdown triggeredBy="#profile-menu">
+        <DropdownHeader>
+          <span class="block text-sm">{$user?.name}</span>
+          <span class="block truncate text-sm font-medium">{$user?.email}</span>
+        </DropdownHeader>
+        <DropdownItem href="/projects">Projects</DropdownItem>
+        <DropdownItem on:click={() => logout()}>Logout</DropdownItem>
+      </Dropdown>
       <NavHamburger />
     </div>
-    <NavUl slideParams={{ delay: 0, duration: 250 }}>
-      <NavLi href="/projects">Projects</NavLi>
-      <NavLi on:click={() => logout()}>Logout</NavLi>
-    </NavUl>
   </NavContainer>
 </Navbar>
+
 <DagTable {koso} {projectUsers} />
