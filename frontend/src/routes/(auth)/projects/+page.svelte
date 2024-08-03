@@ -2,6 +2,7 @@
   import { token, user } from "$lib/auth";
   import { onMount } from "svelte";
   import { Alert, Button, A } from "flowbite-svelte";
+  import { NavBar } from "$lib/NavBar";
   import { goto } from "$app/navigation";
   import {
     createProject as projectsCreateProject,
@@ -33,6 +34,8 @@
     projects = fetchProjects($token);
   });
 </script>
+
+<NavBar></NavBar>
 
 {#await projects}
   <div class="flex flex-col items-center justify-center rounded border p-4">
