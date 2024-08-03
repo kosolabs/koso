@@ -1,22 +1,12 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import kosoLogo from "$lib/assets/koso.svg";
   import { logout as auth_logout, token, user } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
+  import { NavBar } from "$lib/NavBar";
   import { Koso } from "$lib/koso";
   import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
   import type { ProjectUsers } from "$lib/projects";
-  import {
-    Avatar,
-    Button,
-    Dropdown,
-    DropdownHeader,
-    DropdownItem,
-    Navbar,
-    NavBrand,
-    NavHamburger,
-  } from "flowbite-svelte";
-  import NavContainer from "flowbite-svelte/NavContainer.svelte";
+  import { Button } from "flowbite-svelte";
   import { UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
   import * as Y from "yjs";
@@ -90,31 +80,8 @@
   });
 </script>
 
-<Navbar color="primary" class="mb-4" fluid={true}>
-  <NavContainer fluid={true}>
-    <NavBrand href="/projects">
-      <img class="w-14" alt="Koso Logo" src={kosoLogo} />
-    </NavBrand>
-    <div class="flex md:order-2">
-      <Button size="xs" title="Share Project"><UserPlus /></Button>
-      <Button
-        id="profile-menu"
-        class="ms-3 rounded-full border bg-slate-200 p-2"
-        title="Profile"
-      >
-        <div><Avatar src={$user?.picture} size="xs" /></div>
-      </Button>
-      <Dropdown triggeredBy="#profile-menu">
-        <DropdownHeader>
-          <span class="block text-sm">{$user?.name}</span>
-          <span class="block truncate text-sm font-medium">{$user?.email}</span>
-        </DropdownHeader>
-        <DropdownItem href="/projects">Projects</DropdownItem>
-        <DropdownItem on:click={() => logout()}>Logout</DropdownItem>
-      </Dropdown>
-      <NavHamburger />
-    </div>
-  </NavContainer>
-</Navbar>
+<NavBar>
+  <Button slot="nav-items" size="xs" title="Share Project"><UserPlus /></Button>
+</NavBar>
 
 <DagTable {koso} {projectUsers} />
