@@ -1,9 +1,8 @@
+use crate::api::{unauthorized_error, ApiResult};
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
 use jsonwebtoken::{DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-
-use crate::{unauthorized_error, ApiResult};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Key {

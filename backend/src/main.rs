@@ -1,31 +1,21 @@
-use anyhow::Result;
+use crate::api::handler_404;
 use axum::{
-    body::Body,
-    extract::{connect_info::ConnectInfo, ws::WebSocketUpgrade, MatchedPath, Path, Request},
-    http::{HeaderName, StatusCode},
+    extract::{MatchedPath, Request},
+    http::HeaderName,
     middleware::{self, Next},
-    response::{IntoResponse, Response},
-    routing::{get, patch, post},
-    Extension, Json, Router,
+    response::IntoResponse,
+    routing::get,
+    Extension, Router,
 };
-use axum_extra::{headers, TypedHeader};
-use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
-use futures::FutureExt;
-use google::User;
 use listenfd::ListenFd;
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
-use model::{Project, ProjectPermission, ProjectUser};
-use notify::ProjectId;
-use postgres::list_project_users;
 use sqlx::{
     postgres::{PgConnectOptions, PgPool, PgPoolOptions},
     ConnectOptions,
 };
 use std::{
-    error::Error,
     future::ready,
     net::SocketAddr,
-    sync::Arc,
     time::{Duration, Instant},
 };
 use tokio::{net::TcpListener, signal};
@@ -38,18 +28,14 @@ use tower_http::{
     timeout::TimeoutLayer,
     trace::TraceLayer,
 };
-use tracing::{Instrument, Level, Span};
+use tracing::{Level, Span};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use uuid::Uuid;
 
+mod api;
 mod google;
-mod model;
 mod notify;
 mod postgres;
-
-type ApiResult<T> = Result<T, ErrorResponse>;
-
-struct AppState {}
+mod ws;
 
 #[tokio::main]
 async fn main() {
@@ -89,35 +75,10 @@ async fn start_main_server() {
     let notifier = notify::start(pool);
     let certs = google::fetch().await.unwrap();
 
-    let state = Arc::new(AppState {});
     let app = Router::new()
-        .nest(
-            "/api",
-            Router::new()
-                .route("/auth/login", post(login_handler))
-                .route("/projects", get(list_projects_handler))
-                .route("/projects", post(create_project_handler))
-                .route("/projects/:project_id", patch(update_project_handler))
-                .route(
-                    "/projects/:project_id/permissions",
-                    post(add_project_permission_handler),
-                )
-                .route(
-                    "/projects/:project_id/users",
-                    get(list_project_users_handler),
-                )
-                .layer(middleware::from_fn(google::authenticate))
-                .fallback(handler_404),
-        )
-        .nest(
-            "/ws",
-            Router::new()
-                .route("/projects/:project_id", get(ws_handler))
-                .layer(middleware::from_fn(google::authenticate))
-                .fallback(handler_404),
-        )
+        .nest("/api", api::api_router())
+        .nest("/ws", ws::ws_router())
         .route_layer(middleware::from_fn(emit_request_metrics))
-        .with_state(state)
         .layer((
             SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
             PropagateRequestIdLayer::new(HeaderName::from_static("x-request-id")),
@@ -165,194 +126,6 @@ async fn start_main_server() {
     notifier.stop().await;
     tracing::debug!("Closing database pool...");
     pool.close().await;
-}
-
-#[tracing::instrument(skip(user, pool))]
-async fn list_projects_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-) -> ApiResult<Json<Vec<Project>>> {
-    let projects = list_projects(&user.email, pool).await?;
-    Ok(Json(projects))
-}
-
-async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>> {
-    let projects: Vec<Project> = sqlx::query_as(
-        "
-        SELECT
-          project_permissions.project_id,
-          projects.name
-        FROM project_permissions 
-        JOIN projects ON (project_permissions.project_id = projects.id)
-        WHERE email = $1",
-    )
-    .bind(email)
-    .fetch_all(pool)
-    .await?;
-
-    Ok(projects)
-}
-
-#[tracing::instrument(skip(user, pool))]
-async fn create_project_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-    Json(mut project): Json<Project>,
-) -> ApiResult<Json<Project>> {
-    let projects = list_projects(&user.email, pool).await?;
-    if projects.len() >= 5 {
-        return Err(bad_request_error(&format!(
-            "User has more than 5 projects ({})",
-            projects.len()
-        )));
-    }
-
-    project.project_id = BASE64_URL_SAFE_NO_PAD.encode(Uuid::new_v4());
-
-    let mut txn = pool.begin().await?;
-    sqlx::query("INSERT INTO projects (id, name) VALUES ($1, $2)")
-        .bind(&project.project_id)
-        .bind(&project.name)
-        .execute(&mut *txn)
-        .await?;
-    sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2)")
-        .bind(&project.project_id)
-        .bind(&user.email)
-        .execute(&mut *txn)
-        .await?;
-    txn.commit().await?;
-
-    tracing::debug!(
-        "Created project '{}' with id '{}'",
-        project.name,
-        project.project_id
-    );
-
-    Ok(Json(project))
-}
-
-#[tracing::instrument(skip(user, pool))]
-async fn list_project_users_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-    Path(project_id): Path<String>,
-) -> ApiResult<Json<Vec<ProjectUser>>> {
-    verify_access(pool, user, &project_id).await?;
-    let users = list_project_users(pool, &project_id).await?;
-    Ok(Json(users))
-}
-
-#[tracing::instrument(skip(user, pool))]
-async fn update_project_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-    Path(project_id): Path<String>,
-    Json(project): Json<Project>,
-) -> ApiResult<Json<Project>> {
-    verify_access(pool, user, &project_id).await?;
-
-    if project_id != project.project_id {
-        return Err(bad_request_error(&format!(
-            "Path project id ({project_id} is different than body project id {}",
-            project.project_id
-        )));
-    }
-
-    if project.name.is_empty() {
-        return Err(bad_request_error("Project name is empty"));
-    }
-
-    sqlx::query("UPDATE projects SET name=$2 WHERE id=$1")
-        .bind(&project.project_id)
-        .bind(&project.name)
-        .execute(pool)
-        .await?;
-    Ok(Json(project))
-}
-
-#[tracing::instrument(skip(user, pool))]
-async fn add_project_permission_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-    Path(project_id): Path<String>,
-    Json(permission): Json<ProjectPermission>,
-) -> ApiResult<()> {
-    verify_access(pool, user, &project_id).await?;
-
-    if project_id != permission.project_id {
-        return Err(bad_request_error(&format!(
-            "Path project id ({project_id} is different than body project id {}",
-            permission.project_id
-        )));
-    }
-
-    if permission.email.is_empty() {
-        return Err(bad_request_error("Permission email is empty"));
-    }
-
-    sqlx::query("INSERT INTO project_permissions (project_id, email) VALUES ($1, $2) ON CONFLICT DO NOTHING")
-            .bind(&permission.project_id)
-            .bind(&permission.email)
-            .execute(pool)
-            .await?;
-    Ok(())
-}
-
-#[tracing::instrument(skip(user, pool))]
-async fn login_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-) -> ApiResult<()> {
-    if let Err(e) = sqlx::query(
-        "
-        INSERT INTO users (email, name, picture)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (email)
-        DO UPDATE SET name = EXCLUDED.name, picture = EXCLUDED.picture;",
-    )
-    .bind(&user.email)
-    .bind(&user.name)
-    .bind(&user.picture)
-    .execute(pool)
-    .await
-    {
-        return Err(internal_error(&format!(
-            "Failed to upsert user on login: {e}"
-        )));
-    }
-    Ok(())
-}
-
-/// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
-/// of websocket negotiation). After this completes, the actual switching from HTTP to
-/// websocket protocol will occur.
-/// This is the last point where we can extract TCP/IP metadata such as IP address of the client
-/// as well as things from HTTP headers such as user-agent of the browser etc.
-#[tracing::instrument(skip(ws, _user_agent, addr, user, notifier, pool))]
-async fn ws_handler(
-    ws: WebSocketUpgrade,
-    Path(project_id): Path<String>,
-    _user_agent: Option<TypedHeader<headers::UserAgent>>,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    Extension(user): Extension<User>,
-    Extension(notifier): Extension<notify::Notifier>,
-    Extension(pool): Extension<&'static PgPool>,
-) -> ApiResult<Response<Body>> {
-    verify_access(pool, user, &project_id).await?;
-
-    // finalize the upgrade process by returning upgrade callback.
-    // we can customize the callback by sending additional info such as address.
-    let cs = tracing::Span::current();
-    Ok(ws.protocols(["bearer"]).on_upgrade(move |socket| {
-        notifier
-            .register_client(socket, addr, project_id)
-            .map(move |res| {
-                if let Err(e) = res {
-                    tracing::warn!("Failed to register destination for {addr}: {e}");
-                }
-            })
-            .instrument(cs)
-    }))
 }
 
 // Completion of this function signals to a server,
@@ -439,119 +212,6 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
 
     response
 }
-
-async fn verify_access(
-    pool: &PgPool,
-    user: User,
-    project_id: &ProjectId,
-) -> Result<(), ErrorResponse> {
-    if project_id.is_empty() {
-        return Err(bad_request_error("Project ID must not be empty"));
-    }
-
-    let mut txn = match pool.begin().await {
-        Ok(txn) => txn,
-        Err(e) => {
-            return Err(internal_error(&format!(
-                "Failed to check user permission: {e}"
-            )))
-        }
-    };
-
-    let permission: Option<ProjectPermission> = match sqlx::query_as(
-        "
-        SELECT project_id, email
-        FROM project_permissions
-        WHERE project_id = $1
-          AND email = $2;
-        ",
-    )
-    .bind(project_id)
-    .bind(&user.email)
-    .fetch_optional(&mut *txn)
-    .await
-    {
-        Ok(permission) => permission,
-        Err(e) => {
-            return Err(internal_error(&format!(
-                "Failed to check user permission: {e}"
-            )))
-        }
-    };
-
-    match permission {
-        Some(_) => Ok(()),
-        None => Err(unauthorized_error(&format!(
-            "User {} is not authorized to access {}",
-            user.email, project_id
-        ))),
-    }
-}
-
-async fn handler_404() -> impl IntoResponse {
-    (StatusCode::NOT_FOUND, "404! Nothing to see here")
-}
-
-fn internal_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::INTERNAL_SERVER_ERROR, msg)
-}
-
-fn unauthorized_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::UNAUTHORIZED, msg)
-}
-
-fn bad_request_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::BAD_REQUEST, msg)
-}
-
-fn error_response(code: StatusCode, msg: &str) -> ErrorResponse {
-    tracing::error!("Failed: {}: {}", code, msg);
-    ErrorResponse {
-        code,
-        msg: msg.to_string(),
-    }
-}
-
-struct ErrorResponse {
-    code: StatusCode,
-    msg: String,
-}
-
-/// Converts from ErrorResponse to Response.
-impl IntoResponse for ErrorResponse {
-    fn into_response(self) -> Response {
-        let msg = if dev_mode() {
-            self.msg
-        } else {
-            // Redact the the error message outside of dev.
-            "See server logs for details.".to_string()
-        };
-        Response::builder()
-            .status(self.code)
-            .body(Body::from(format!("{}: {}", self.code, msg)))
-            .unwrap()
-    }
-}
-
-/// Converts from boxed Error to ErrorResponse and logs the error.
-impl<E> From<E> for ErrorResponse
-where
-    E: Into<Box<dyn Error>>,
-{
-    fn from(err: E) -> Self {
-        let err = err.into();
-        let code = StatusCode::INTERNAL_SERVER_ERROR;
-        let msg = format!("{:?}", err);
-        tracing::error!("Failed: {}: {}", code, msg);
-        ErrorResponse { code, msg }
-    }
-}
-
-fn dev_mode() -> bool {
-    // TODO: Decide on this based on an environment variable or the build.
-    true
-}
-
 #[derive(Clone)]
 struct KosoMakeSpan {}
 
