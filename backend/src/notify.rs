@@ -298,7 +298,17 @@ impl Notifier {
             return;
         };
 
-        match project.remove_client(who, reason).await {
+        let (client, remaining_clients) = project.remove_client(who, reason).await;
+        if remaining_clients == 0 {
+            let updates = project.updates.swap(0, Relaxed);
+            if updates > 10 {
+                self.tracker.spawn(compact(self.pool, project_id.clone()));
+            } else {
+                tracing::debug!("Skipping compacting, only {updates} updates exist")
+            }
+        }
+
+        match client {
             Some(mut client) => {
                 if let Err(e) = client.close().await {
                     tracing::debug!("Failed to close client: {e}");
@@ -309,14 +319,6 @@ impl Notifier {
                     "Unexpectedly, received close for client while no client was registered."
                 )
             }
-        }
-
-        let updates = project.updates.load(Relaxed);
-        if updates > 10 && project.clients.lock().await.len() == 0 {
-            project.updates.store(0, Relaxed);
-            self.tracker.spawn(compact(self.pool, project_id.clone()));
-        } else {
-            tracing::debug!("Skipping compacting, only {updates} updates exist")
         }
     }
 
@@ -547,7 +549,7 @@ impl ProjectState {
         self.clients.lock().await.insert(sender.who.clone(), sender)
     }
 
-    async fn remove_client(&self, who: &String, reason: &String) -> Option<ClientSender> {
+    async fn remove_client(&self, who: &String, reason: &String) -> (Option<ClientSender>, usize) {
         let clients = &mut self.clients.lock().await;
         let client = clients.remove(who);
 
@@ -562,7 +564,7 @@ impl ProjectState {
             tracing::debug!("Last client disconnected, destroying YGraph");
             *self.doc_box.lock().await = None;
         }
-        client
+        (client, remaining_clients)
     }
 
     async fn broadcast_msg(&self, who: &String, data: Vec<u8>) {
