@@ -42,3 +42,23 @@ export async function createProject(token: string | null): Promise<Project> {
   }
   return await response.json();
 }
+
+export async function updateProject(
+  token: string | null,
+  project: Project,
+): Promise<Project> {
+  const response = await fetch(`/api/projects/${project.project_id}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(project),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to update project name: ${response.statusText} (${response.status})`,
+    );
+  }
+  return await response.json();
+}

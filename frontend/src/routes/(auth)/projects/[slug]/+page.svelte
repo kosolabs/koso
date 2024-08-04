@@ -5,8 +5,13 @@
   import { Koso } from "$lib/koso";
   import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
   import { NavBar } from "$lib/NavBar";
-  import type { ProjectUsers } from "$lib/projects";
-  import { Button } from "flowbite-svelte";
+  import {
+    fetchProjects,
+    type Project,
+    type ProjectUsers,
+    updateProject,
+  } from "$lib/projects";
+  import { A, Button, Input } from "flowbite-svelte";
   import { UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
   import * as Y from "yjs";
@@ -15,6 +20,7 @@
   const koso = new Koso(projectId, new Y.Doc());
 
   let projectUsers: ProjectUsers = {};
+  let project: Project | null = null;
 
   async function logout() {
     disableRedirectOnLogOut();
@@ -40,12 +46,81 @@
     return projectUsers;
   }
 
+  async function loadProject() {
+    if (!$user || !$token) throw new Error("User is unauthorized");
+
+    const projects = await fetchProjects($token);
+    for (const project of projects) {
+      if (project.project_id == projectId) {
+        return project;
+      }
+    }
+    throw new Error(
+      `Project ${projectId} does not exist or user no longer has access: ${projects})`,
+    );
+  }
+
+  let editedProjectName: string | null = null;
+
+  function handleStartEditingProjectName(event: MouseEvent | CustomEvent) {
+    event.stopPropagation();
+    editedProjectName = project?.name || "";
+  }
+
+  async function saveEditedProjectName() {
+    if (!editedProjectName) {
+      editedProjectName = null;
+      return;
+    }
+    if (!$user || !$token) throw new Error("User is unauthorized");
+
+    const updatedProject = await updateProject($token, {
+      project_id: projectId,
+      name: editedProjectName,
+    });
+
+    if (project) {
+      project.name = updatedProject.name;
+    }
+    editedProjectName = null;
+  }
+
+  function revertEditedProjectName() {
+    if (editedProjectName === null) {
+      return;
+    }
+    editedProjectName = null;
+  }
+
+  async function handleEditedProjectNameBlur() {
+    await saveEditedProjectName();
+  }
+
+  async function handleEditedProjectNameKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      revertEditedProjectName();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key === "Enter") {
+      await saveEditedProjectName();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+  }
+
   onMount(async () => {
     if (!$user || !$token) {
       return;
     }
 
-    projectUsers = await updateProjectUsers();
+    [projectUsers, project] = await Promise.all([
+      updateProjectUsers(),
+      loadProject(),
+    ]);
 
     const host = location.origin.replace(/^http/, "ws");
     const wsUrl = `${host}/ws/projects/${projectId}`;
@@ -80,7 +155,32 @@
 </script>
 
 <NavBar>
-  <Button slot="nav-items" size="xs" title="Share Project"><UserPlus /></Button>
+  <svelte:fragment slot="left-items">
+    <div>
+      {#if editedProjectName !== null}
+        <Input
+          size="lg"
+          class="ml-2 p-1"
+          on:click={(event) => event.stopPropagation()}
+          on:blur={handleEditedProjectNameBlur}
+          on:keydown={handleEditedProjectNameKeydown}
+          bind:value={editedProjectName}
+          autofocus
+        />
+      {:else if project}
+        <A
+          class="ml-2 hover:no-underline"
+          on:click={handleStartEditingProjectName}
+          on:keydown={handleStartEditingProjectName}
+        >
+          {project.name}
+        </A>
+      {/if}
+    </div>
+  </svelte:fragment>
+  <svelte:fragment slot="right-items">
+    <Button size="xs" title="Share Project"><UserPlus /></Button>
+  </svelte:fragment>
 </NavBar>
 
 <DagTable {koso} {projectUsers} />
