@@ -4,7 +4,7 @@
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
   import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
-  import { NavBar } from "$lib/NavBar";
+  import Navbar from "$lib/navbar.svelte";
   import {
     fetchProjects,
     type Project,
@@ -154,7 +154,7 @@
   });
 </script>
 
-<NavBar>
+<Navbar>
   <svelte:fragment slot="left-items">
     <div>
       {#if editedProjectName !== null}
@@ -181,6 +181,6 @@
   <svelte:fragment slot="right-items">
     <Button size="xs" title="Share Project"><UserPlus /></Button>
   </svelte:fragment>
-</NavBar>
+</Navbar>
 
 <DagTable {koso} {projectUsers} />
