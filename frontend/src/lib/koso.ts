@@ -186,6 +186,10 @@ export class Koso {
     return nodes;
   }
 
+  newId(): string {
+    return uuidv4();
+  }
+
   newNum(): string {
     let max = 0;
     for (const task of this.yGraph.values()) {
@@ -196,10 +200,6 @@ export class Koso {
       }
     }
     return `${max + 1}`;
-  }
-
-  newId(): string {
-    return uuidv4();
   }
 
   upsert(task: Task) {
