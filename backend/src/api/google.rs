@@ -1,9 +1,8 @@
+use crate::api::{unauthorized_error, ApiResult};
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
 use jsonwebtoken::{DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
-
-use crate::{unauthorized_error, ApiResult};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Key {
@@ -134,11 +133,11 @@ pub struct User {
 
 #[cfg(test)]
 mod tests {
-    use crate::google::Certs;
-    use crate::google::{fetch, parse};
+    use crate::api::google::Certs;
+    use crate::api::google::{fetch, parse};
 
     fn certs() -> Certs {
-        parse(include_str!("testdata/certs.json")).unwrap()
+        parse(include_str!("../testdata/certs.json")).unwrap()
     }
 
     #[tokio::test]

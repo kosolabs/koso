@@ -1,3 +1,4 @@
+use crate::api::model::ProjectId;
 use crate::postgres::compact;
 use anyhow::anyhow;
 use anyhow::Result;
@@ -63,8 +64,6 @@ const MSG_SYNC: u8 = 0;
 const MSG_SYNC_REQUEST: u8 = 0;
 const MSG_SYNC_RESPONSE: u8 = 1;
 const MSG_SYNC_UPDATE: u8 = 2;
-
-pub type ProjectId = String;
 
 struct ProjectsState {
     projects: DashMap<ProjectId, Arc<ProjectState>>,

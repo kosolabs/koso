@@ -1,4 +1,4 @@
-use crate::{model::ProjectUser, notify::ProjectId};
+use crate::api::model::{ProjectId, ProjectUser};
 use anyhow::anyhow;
 use anyhow::Result;
 use sqlx::PgPool;
