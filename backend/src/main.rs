@@ -5,7 +5,7 @@ use axum::{
     http::{HeaderName, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{get, patch, post},
     Extension, Json, Router,
 };
 use axum_extra::{headers, TypedHeader};
@@ -97,6 +97,7 @@ async fn start_main_server() {
                 .route("/auth/login", post(login_handler))
                 .route("/projects", get(list_projects_handler))
                 .route("/projects", post(create_project_handler))
+                .route("/projects/:project_id", patch(update_project_handler))
                 .route(
                     "/projects/:project_id/permissions",
                     post(add_project_permission_handler),
@@ -239,6 +240,34 @@ async fn list_project_users_handler(
     verify_access(pool, user, &project_id).await?;
     let users = list_project_users(pool, &project_id).await?;
     Ok(Json(users))
+}
+
+#[tracing::instrument(skip(user, pool))]
+async fn update_project_handler(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+    Path(project_id): Path<String>,
+    Json(project): Json<Project>,
+) -> ApiResult<Json<Project>> {
+    verify_access(pool, user, &project_id).await?;
+
+    if project_id != project.project_id {
+        return Err(bad_request_error(&format!(
+            "Path project id ({project_id} is different than body project id {}",
+            project.project_id
+        )));
+    }
+
+    if project.name.is_empty() {
+        return Err(bad_request_error("Project name is empty"));
+    }
+
+    sqlx::query("UPDATE projects SET name=$2 WHERE id=$1")
+        .bind(&project.project_id)
+        .bind(&project.name)
+        .execute(pool)
+        .await?;
+    Ok(Json(project))
 }
 
 #[tracing::instrument(skip(user, pool))]

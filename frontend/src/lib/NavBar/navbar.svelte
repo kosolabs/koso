@@ -8,19 +8,21 @@
     DropdownHeader,
     DropdownItem,
     Navbar,
-    NavBrand,
-    NavHamburger,
   } from "flowbite-svelte";
   import NavContainer from "flowbite-svelte/NavContainer.svelte";
 </script>
 
 <Navbar color="primary" class="mb-4" fluid={true}>
   <NavContainer fluid={true}>
-    <NavBrand href="/projects">
-      <img class="w-14" alt="Koso Logo" src={kosoLogo} />
-    </NavBrand>
+    <div class="flex items-center">
+      <a href="/projects">
+        <img class="w-14" alt="Koso Logo" src={kosoLogo} />
+      </a>
+      <slot name="left-items"></slot>
+    </div>
+
     <div class="flex md:order-2">
-      <slot name="nav-items"></slot>
+      <slot name="right-items"></slot>
 
       {#if $user}
         <Button
@@ -41,8 +43,6 @@
           <DropdownItem on:click={() => logout()}>Logout</DropdownItem>
         </Dropdown>
       {/if}
-
-      <NavHamburger />
     </div>
   </NavContainer>
 </Navbar>
