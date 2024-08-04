@@ -28,7 +28,6 @@ pub fn projects_router() -> Router {
             post(add_project_permission_handler),
         )
         .route("/:project_id/users", get(list_project_users_handler))
-        .fallback(handler_404)
 }
 
 #[tracing::instrument(skip(user, pool))]
