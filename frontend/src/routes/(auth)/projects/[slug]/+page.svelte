@@ -2,9 +2,9 @@
   import { page } from "$app/stores";
   import { logout as auth_logout, token, user } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
-  import { NavBar } from "$lib/NavBar";
   import { Koso } from "$lib/koso";
   import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
+  import { NavBar } from "$lib/NavBar";
   import type { ProjectUsers } from "$lib/projects";
   import { Button } from "flowbite-svelte";
   import { UserPlus } from "lucide-svelte";
@@ -15,7 +15,6 @@
   const koso = new Koso(projectId, new Y.Doc());
 
   let projectUsers: ProjectUsers = {};
-  $: console.log(projectUsers);
 
   async function logout() {
     disableRedirectOnLogOut();
