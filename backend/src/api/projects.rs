@@ -5,6 +5,7 @@ use crate::{
         model::{Project, ProjectPermission, ProjectUser},
         verify_access, ApiResult,
     },
+    notify::Notifier,
     postgres::list_project_users,
 };
 use anyhow::Result;
@@ -27,6 +28,7 @@ pub fn projects_router() -> Router {
             post(add_project_permission_handler),
         )
         .route("/:project_id/users", get(list_project_users_handler))
+        .route("/:project_id/doc", get(get_project_doc_handler))
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -158,4 +160,16 @@ async fn add_project_permission_handler(
             .execute(pool)
             .await?;
     Ok(())
+}
+
+#[tracing::instrument(skip(user, pool, notifier))]
+async fn get_project_doc_handler(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+    Extension(notifier): Extension<Notifier>,
+    Path(project_id): Path<String>,
+) -> ApiResult<Json<yrs::Any>> {
+    verify_access(pool, user, &project_id).await?;
+
+    Ok(Json(notifier.get_doc(&project_id).await?))
 }
