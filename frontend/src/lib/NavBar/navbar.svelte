@@ -2,15 +2,12 @@
   import { logout, user } from "$lib/auth";
   import kosoLogo from "$lib/assets/koso.svg";
   import {
-    A,
     Avatar,
     Button,
     Dropdown,
     DropdownHeader,
     DropdownItem,
     Navbar,
-    NavBrand,
-    NavHamburger,
   } from "flowbite-svelte";
   import NavContainer from "flowbite-svelte/NavContainer.svelte";
 </script>
