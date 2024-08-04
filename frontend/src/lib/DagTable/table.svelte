@@ -132,10 +132,10 @@
 <table class="w-full border">
   <thead class="text-left text-xs font-bold uppercase">
     <tr>
-      <th class="border p-2">ID</th>
+      <th class="w-32 border p-2">ID</th>
       <th class="border p-2">Name</th>
-      <th class="border p-2">Reporter</th>
       <th class="border p-2">Assignee</th>
+      <th class="border p-2 max-md:hidden">Reporter</th>
     </tr>
   </thead>
 

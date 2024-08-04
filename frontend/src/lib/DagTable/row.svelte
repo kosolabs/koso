@@ -29,10 +29,8 @@
   }
 
   $: task = koso.getTask(node.name);
-  $: reporterImage = projectUsers[task.reporter]?.picture || "";
-  $: assigneeImage = task.assignee
-    ? projectUsers[task.assignee]?.picture || ""
-    : "";
+  $: reporter = projectUsers[task.reporter] || null;
+  $: assignee = task.assignee ? projectUsers[task.assignee] : null || null;
 
   const koso = getContext<Koso>("koso");
 
@@ -408,16 +406,21 @@
     {/if}
   </td>
   <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
-    <Avatar src={reporterImage || ""} rounded size="xs" />
-    <Tooltip>
-      {task.reporter}
-    </Tooltip>
+    <div class="flex gap-1">
+      <Avatar src={assignee?.picture || ""} rounded size="xs" />
+      <div class="max-md:hidden">{assignee?.name || "Unassigned"}</div>
+    </div>
   </td>
-  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
-    <Avatar src={assigneeImage} rounded size="xs" />
-    <Tooltip>
-      {task.assignee || "Unassigned"}
-    </Tooltip>
+  <td
+    class={cn(
+      "border p-2 max-md:hidden",
+      isSelected ? "border-transparent" : "",
+    )}
+  >
+    <div class="flex gap-1">
+      <Avatar src={reporter?.picture || ""} rounded size="xs" />
+      {reporter?.name || "Unknown"}
+    </div>
   </td>
 </tr>
 
