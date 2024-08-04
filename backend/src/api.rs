@@ -1,4 +1,3 @@
-use crate::google;
 use anyhow::Result;
 use axum::{
     body::Body,
@@ -13,6 +12,7 @@ use sqlx::postgres::PgPool;
 use std::error::Error;
 
 pub mod auth;
+pub mod google;
 pub mod model;
 pub mod projects;
 

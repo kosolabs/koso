@@ -1,4 +1,5 @@
 use crate::api::handler_404;
+use api::google;
 use axum::{
     extract::{MatchedPath, Request},
     http::HeaderName,
@@ -32,7 +33,6 @@ use tracing::{Level, Span};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
-mod google;
 mod notify;
 mod postgres;
 mod ws;

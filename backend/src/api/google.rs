@@ -133,11 +133,11 @@ pub struct User {
 
 #[cfg(test)]
 mod tests {
-    use crate::google::Certs;
-    use crate::google::{fetch, parse};
+    use crate::api::google::Certs;
+    use crate::api::google::{fetch, parse};
 
     fn certs() -> Certs {
-        parse(include_str!("testdata/certs.json")).unwrap()
+        parse(include_str!("../testdata/certs.json")).unwrap()
     }
 
     #[tokio::test]

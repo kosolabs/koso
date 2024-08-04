@@ -2,7 +2,7 @@ use crate::api::{internal_error, ApiResult};
 use axum::{routing::post, Extension, Router};
 use sqlx::PgPool;
 
-use crate::google::User;
+use crate::api::google::User;
 
 pub fn auth_router() -> Router {
     Router::new().route("/login", post(login_handler))

@@ -1,10 +1,11 @@
 use crate::{
     api::{
-        bad_request_error, handler_404,
+        bad_request_error,
+        google::User,
+        handler_404,
         model::{Project, ProjectPermission, ProjectUser},
         verify_access, ApiResult,
     },
-    google::User,
     postgres::list_project_users,
 };
 use anyhow::Result;
