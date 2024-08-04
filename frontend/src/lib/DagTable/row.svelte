@@ -381,7 +381,7 @@
           />
         {/if}
       </button>
-      <div class="overflow-x-hidden whitespace-nowrap">{node.name}</div>
+      <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
     </div>
   </td>
   <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>

@@ -3,6 +3,7 @@ import * as encoding from "lib0/encoding";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
+import { v4 as uuidv4 } from "uuid";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -51,6 +52,7 @@ export class Node {
 
 export type Task = {
   id: string;
+  num: string;
   name: string;
   children: string[];
   assignee: string | null;
@@ -113,6 +115,7 @@ export class Koso {
       ) {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdateV2(this.yDoc, message);
+        this.convertToTaskNum();
       } else {
         throw new Error(`Unknown sync type: ${syncType}`);
       }
@@ -184,9 +187,14 @@ export class Koso {
   }
 
   newId(): string {
+    return uuidv4();
+  }
+
+  newNum(): string {
     let max = 0;
-    for (const currId of this.yGraph.keys()) {
-      const curr = parseInt(currId);
+    for (const task of this.yGraph.values()) {
+      const currNum = task.get("num") as string;
+      const curr = parseInt(currNum);
       if (curr > max) {
         max = curr;
       }
@@ -200,6 +208,7 @@ export class Koso {
         task.id,
         new Y.Map<string | Y.Array<string>>([
           ["id", task.id],
+          ["num", task.num],
           ["name", task.name],
           ["children", Y.Array.from(task.children)],
           ["reporter", task.reporter],
@@ -214,6 +223,7 @@ export class Koso {
     this.yDoc.transact(() => {
       this.upsert({
         id: nodeId,
+        num: this.newNum(),
         name: "Untitled",
         children: [],
         reporter: user.email,
@@ -277,6 +287,7 @@ export class Koso {
     this.yDoc.transact(() => {
       this.upsert({
         id: nodeId,
+        num: this.newNum(),
         name: "Untitled",
         children: [],
         reporter: user.email,
@@ -297,5 +308,58 @@ export class Koso {
         yNode.set("name", newName);
       }
     });
+  }
+
+  convertToTaskNum() {
+    console.log("Working on ygraph", this.yGraph.toJSON());
+    const idMapping: { [id: string]: string } = {};
+    for (const task of this.yGraph.values()) {
+      const num = task.get("num") as string;
+      if (num) {
+        idMapping[num] = task.get("id") as string;
+      } else {
+        idMapping[task.get("id") as string] = this.newId();
+      }
+    }
+    console.log(`Going to convert with mappings`, idMapping);
+    this.yDoc.transact(() => {
+      for (const task of this.yGraph.values()) {
+        if (task.get("num")) {
+          console.log(`Task already converted`, task.toJSON());
+          continue;
+        }
+
+        const taskNum = task.get("id") as string;
+        console.log(`Converting task ${taskNum}...`, task.toJSON());
+        const newTaskId = idMapping[taskNum];
+        if (!newTaskId) {
+          throw Error("Id mapping missing");
+        }
+
+        const childNodeIds = [];
+        for (const childTaskId of task.get("children") as Y.Array<string>) {
+          const newChildTaskId = idMapping[childTaskId];
+          if (!newChildTaskId) throw Error("Id mapping missing");
+          childNodeIds.push(newChildTaskId);
+        }
+
+        const newTask = new Y.Map<string | Y.Array<string>>([
+          ["id", newTaskId],
+          ["num", taskNum],
+          ["name", task.get("name")],
+          ["children", Y.Array.from(childNodeIds)],
+          ["reporter", task.get("reporter")],
+          ["assignee", task.get("assignee")],
+        ]);
+        this.yGraph.delete(taskNum);
+        this.yGraph.set(newTaskId, newTask);
+
+        console.log(
+          `Converted task ${taskNum}, new id is ${newTaskId}.`,
+          newTask.toJSON(),
+        );
+      }
+    });
+    console.log("Finished converting", this.yGraph.toJSON());
   }
 }
