@@ -30,7 +30,7 @@
 
   $: task = koso.getTask(node.name);
   $: reporter = projectUsers[task.reporter] || null;
-  $: assignee = task.assignee ? projectUsers[task.assignee] : null || null;
+  $: assignee = (task.assignee ? projectUsers[task.assignee] : null) || null;
 
   const koso = getContext<Koso>("koso");
 
