@@ -22,7 +22,6 @@ pub fn ws_router() -> Router {
     Router::new()
         .route("/projects/:project_id", get(ws_handler))
         .layer(middleware::from_fn(google::authenticate))
-        .fallback(api::handler_404)
 }
 /// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
 /// of websocket negotiation). After this completes, the actual switching from HTTP to

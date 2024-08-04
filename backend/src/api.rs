@@ -23,7 +23,6 @@ pub fn api_router() -> Router {
         .nest("/projects", projects::projects_router())
         .nest("/auth", auth::auth_router())
         .layer(middleware::from_fn(google::authenticate))
-        .fallback(handler_404)
 }
 
 pub async fn verify_access(

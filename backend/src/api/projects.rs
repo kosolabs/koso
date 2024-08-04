@@ -2,7 +2,6 @@ use crate::{
     api::{
         bad_request_error,
         google::User,
-        handler_404,
         model::{Project, ProjectPermission, ProjectUser},
         verify_access, ApiResult,
     },

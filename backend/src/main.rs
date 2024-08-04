@@ -1,4 +1,3 @@
-use crate::api::handler_404;
 use api::google;
 use axum::{
     extract::{MatchedPath, Request},
@@ -76,8 +75,8 @@ async fn start_main_server() {
     let certs = google::fetch().await.unwrap();
 
     let app = Router::new()
-        .nest("/api", api::api_router())
-        .nest("/ws", ws::ws_router())
+        .nest("/api", api::api_router().fallback(api::handler_404))
+        .nest("/ws", ws::ws_router().fallback(api::handler_404))
         .route_layer(middleware::from_fn(emit_request_metrics))
         .layer((
             SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
@@ -91,12 +90,7 @@ async fn start_main_server() {
             Extension(notifier.clone()),
             Extension(certs),
         ))
-        .nest_service(
-            "/",
-            ServeDir::new("static").fallback(ServeFile::new("static/index.html")),
-        )
-        // This is unreachable as the service above matches all routes.
-        .fallback(handler_404);
+        .fallback_service(ServeDir::new("static").fallback(ServeFile::new("static/index.html")));
 
     // We can either use a listener provided by the environment by ListenFd or
     // listen on a local port. The former is convenient when using `cargo watch`
