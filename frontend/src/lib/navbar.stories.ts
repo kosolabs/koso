@@ -1,12 +1,12 @@
-import { NavBar } from "$lib/NavBar";
 import type { Meta, StoryObj } from "@storybook/svelte";
+import Navbar from "./navbar.svelte";
 
 // More on how to set up stories at: https://storybook.js.org/docs/writing-stories
 const meta = {
-  title: "Koso/NavBar",
-  component: NavBar,
+  title: "Koso/Navbar",
+  component: Navbar,
   tags: ["autodocs"],
-} satisfies Meta<NavBar>;
+} satisfies Meta<Navbar>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

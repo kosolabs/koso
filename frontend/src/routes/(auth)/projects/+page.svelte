@@ -1,15 +1,15 @@
 <script lang="ts">
-  import { token, user } from "$lib/auth";
-  import { onMount } from "svelte";
-  import { Alert, Button, A } from "flowbite-svelte";
-  import { NavBar } from "$lib/NavBar";
   import { goto } from "$app/navigation";
+  import { token, user } from "$lib/auth";
+  import Navbar from "$lib/navbar.svelte";
   import {
-    createProject as projectsCreateProject,
     fetchProjects,
+    createProject as projectsCreateProject,
     type Project,
   } from "$lib/projects";
+  import { A, Alert, Button } from "flowbite-svelte";
   import { Layers } from "lucide-svelte";
+  import { onMount } from "svelte";
 
   let projects: Promise<Project[]> = new Promise(() => {});
   let errorMessage: string | null = null;
@@ -35,7 +35,7 @@
   });
 </script>
 
-<NavBar></NavBar>
+<Navbar />
 
 {#await projects}
   <div class="flex flex-col items-center justify-center rounded border p-4">
