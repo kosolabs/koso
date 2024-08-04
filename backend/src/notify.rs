@@ -1,6 +1,7 @@
 use crate::api::model::ProjectId;
 use crate::postgres::compact;
 use anyhow::anyhow;
+use anyhow::Error;
 use anyhow::Result;
 use axum::extract::ws::{Message, WebSocket};
 use dashmap::DashMap;
@@ -23,6 +24,7 @@ use tokio::sync::{
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
+use yrs::types::ToJson;
 use yrs::Origin;
 use yrs::{
     encoding::{read::Read as _, write::Write as _},
@@ -513,6 +515,17 @@ impl Notifier {
 
         // Close all the project state, including client connections.
         self.state.close().await;
+    }
+
+    pub async fn get_doc(&self, project_id: &ProjectId) -> Result<yrs::Any, Error> {
+        let doc = self
+            .load_graph(&self.state.get_or_insert(project_id))
+            .await?;
+        let txn = doc.transact();
+        let Some(graph) = txn.get_map("graph") else {
+            return Err(anyhow!("No graph present in doc"));
+        };
+        Ok(graph.to_json(&txn))
     }
 }
 
