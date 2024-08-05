@@ -115,7 +115,6 @@ export class Koso {
       ) {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdateV2(this.yDoc, message);
-        this.convertToTaskNum();
       } else {
         throw new Error(`Unknown sync type: ${syncType}`);
       }
@@ -308,58 +307,5 @@ export class Koso {
         yNode.set("name", newName);
       }
     });
-  }
-
-  convertToTaskNum() {
-    console.log("Working on ygraph", this.yGraph.toJSON());
-    const idMapping: { [id: string]: string } = {};
-    for (const task of this.yGraph.values()) {
-      const num = task.get("num") as string;
-      if (num) {
-        idMapping[num] = task.get("id") as string;
-      } else {
-        idMapping[task.get("id") as string] = this.newId();
-      }
-    }
-    console.log(`Going to convert with mappings`, idMapping);
-    this.yDoc.transact(() => {
-      for (const task of this.yGraph.values()) {
-        if (task.get("num")) {
-          console.log(`Task already converted`, task.toJSON());
-          continue;
-        }
-
-        const taskNum = task.get("id") as string;
-        console.log(`Converting task ${taskNum}...`, task.toJSON());
-        const newTaskId = idMapping[taskNum];
-        if (!newTaskId) {
-          throw Error("Id mapping missing");
-        }
-
-        const childNodeIds = [];
-        for (const childTaskId of task.get("children") as Y.Array<string>) {
-          const newChildTaskId = idMapping[childTaskId];
-          if (!newChildTaskId) throw Error("Id mapping missing");
-          childNodeIds.push(newChildTaskId);
-        }
-
-        const newTask = new Y.Map<string | Y.Array<string>>([
-          ["id", newTaskId],
-          ["num", taskNum],
-          ["name", task.get("name")],
-          ["children", Y.Array.from(childNodeIds)],
-          ["reporter", task.get("reporter")],
-          ["assignee", task.get("assignee")],
-        ]);
-        this.yGraph.delete(taskNum);
-        this.yGraph.set(newTaskId, newTask);
-
-        console.log(
-          `Converted task ${taskNum}, new id is ${newTaskId}.`,
-          newTask.toJSON(),
-        );
-      }
-    });
-    console.log("Finished converting", this.yGraph.toJSON());
   }
 }
