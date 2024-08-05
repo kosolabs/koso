@@ -31,7 +31,7 @@ updates:
         update-types:
           - "major"
   - package-ecosystem: "github-actions" # See documentation for possible values
-    directory: "/frontend" # Location of package manifests
+    directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"
     groups:
