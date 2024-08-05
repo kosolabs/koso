@@ -3,9 +3,9 @@ use crate::{
         bad_request_error,
         google::User,
         model::{Project, ProjectPermission, ProjectUser},
+        notify::Notifier,
         verify_access, ApiResult,
     },
-    notify::Notifier,
     postgres::list_project_users,
 };
 use anyhow::Result;

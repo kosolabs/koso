@@ -123,7 +123,7 @@
     ]);
 
     const host = location.origin.replace(/^http/, "ws");
-    const wsUrl = `${host}/ws/projects/${projectId}`;
+    const wsUrl = `${host}/api/ws/projects/${projectId}`;
     const socket = new WebSocket(wsUrl, ["bearer", $token]);
     socket.binaryType = "arraybuffer";
 

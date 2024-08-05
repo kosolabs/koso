@@ -1,4 +1,4 @@
-use api::google;
+use api::{google, notify};
 use axum::{
     extract::{MatchedPath, Request},
     http::HeaderName,
@@ -32,9 +32,7 @@ use tracing::{Level, Span};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
-mod notify;
 mod postgres;
-mod ws;
 
 #[tokio::main]
 async fn main() {
@@ -76,9 +74,8 @@ async fn start_main_server() {
 
     let app = Router::new()
         .nest("/api", api::api_router().fallback(api::handler_404))
-        .nest("/ws", ws::ws_router().fallback(api::handler_404))
-        .route_layer(middleware::from_fn(emit_request_metrics))
         .layer((
+            middleware::from_fn(emit_request_metrics),
             SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
             PropagateRequestIdLayer::new(HeaderName::from_static("x-request-id")),
             // Enable request tracing. Must enable `tower_http=debug`
@@ -89,6 +86,7 @@ async fn start_main_server() {
             Extension(pool),
             Extension(notifier.clone()),
             Extension(certs),
+            middleware::from_fn(google::authenticate),
         ))
         .fallback_service(ServeDir::new("static").fallback(ServeFile::new("static/index.html")));
 
@@ -187,7 +185,7 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
     let path = if let Some(matched_path) = req.extensions().get::<MatchedPath>() {
         matched_path.as_str().to_owned()
     } else {
-        req.uri().path().to_owned()
+        "404_UNMATCHED_PATH".to_string()
     };
     let method = req.method().to_string();
 
@@ -206,6 +204,7 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
 
     response
 }
+
 #[derive(Clone)]
 struct KosoMakeSpan {}
 
