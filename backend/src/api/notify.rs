@@ -1,5 +1,4 @@
-use crate::api::model::ProjectId;
-use crate::postgres::compact;
+use crate::{api::model::ProjectId, postgres::compact};
 use anyhow::anyhow;
 use anyhow::Error;
 use anyhow::Result;

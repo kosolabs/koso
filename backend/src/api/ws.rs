@@ -1,14 +1,12 @@
 use std::net::SocketAddr;
 
 use crate::{
-    api::{self, ApiResult},
-    google::{self, User},
-    notify,
+    api::google::User,
+    api::{self, notify::Notifier, ApiResult},
 };
 use axum::{
     body::Body,
     extract::{ConnectInfo, Path, WebSocketUpgrade},
-    middleware,
     response::Response,
     routing::get,
     Extension, Router,
@@ -19,9 +17,7 @@ use sqlx::PgPool;
 use tracing::Instrument as _;
 
 pub fn ws_router() -> Router {
-    Router::new()
-        .route("/projects/:project_id", get(ws_handler))
-        .layer(middleware::from_fn(google::authenticate))
+    Router::new().route("/projects/:project_id", get(ws_handler))
 }
 /// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
 /// of websocket negotiation). After this completes, the actual switching from HTTP to
@@ -35,7 +31,7 @@ async fn ws_handler(
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(user): Extension<User>,
-    Extension(notifier): Extension<notify::Notifier>,
+    Extension(notifier): Extension<Notifier>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Response<Body>> {
     api::verify_access(pool, user, &project_id).await?;

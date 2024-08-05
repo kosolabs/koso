@@ -2,7 +2,6 @@ use anyhow::Result;
 use axum::{
     body::Body,
     http::StatusCode,
-    middleware::{self},
     response::{IntoResponse, Response},
     Router,
 };
@@ -14,7 +13,9 @@ use std::error::Error;
 pub mod auth;
 pub mod google;
 pub mod model;
+pub mod notify;
 pub mod projects;
+pub mod ws;
 
 pub type ApiResult<T> = Result<T, ErrorResponse>;
 
@@ -22,7 +23,7 @@ pub fn api_router() -> Router {
     Router::new()
         .nest("/projects", projects::projects_router())
         .nest("/auth", auth::auth_router())
-        .layer(middleware::from_fn(google::authenticate))
+        .nest("/ws", ws::ws_router())
 }
 
 pub async fn verify_access(
