@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { Circle, CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
+  import TaskStatus from "./task-status.svelte";
 
   const dispatch = createEventDispatcher<{ select: string | null }>();
 
@@ -17,14 +18,7 @@
       <div
         class="flex items-center gap-2 rounded p-2 text-left hover:bg-primary-100"
       >
-        {#if status === "Not Started"}
-          <Circle />
-        {:else if status == "In Progress"}
-          <CircleFadingArrowUp />
-        {:else if status == "Done"}
-          <CircleCheck />
-        {/if}
-        <div class="text-sm">{status}</div>
+        <TaskStatus {status} />
       </div>
     </button>
   {/each}

@@ -2,7 +2,8 @@
   import type { User } from "$lib/auth";
   import type { Koso } from "$lib/koso";
   import UserSelect from "$lib/user-select.svelte";
-  import StatusSelect from "$lib/status-select.svelte";
+  import TaskStatusSelect from "$lib/task-status-select.svelte";
+  import TaskStatus from "$lib/task-status.svelte";
   import { cn } from "$lib/utils";
   import { A, Avatar, Dropdown, Input, Tooltip } from "flowbite-svelte";
   import {
@@ -460,17 +461,10 @@
   </td>
   <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
     <button class="flex gap-1">
-      {#if task.status == null || task.status === "Not Started"}
-        <Circle />
-      {:else if task.status == "In Progress"}
-        <CircleFadingArrowUp />
-      {:else if task.status == "Done"}
-        <CircleCheck />
-      {/if}
-      <div class="max-md:hidden">{task.status || "Not Started"}</div>
+      <TaskStatus status={task.status || "Not Started"} />
     </button>
     <Dropdown bind:open={statusSelectorOpen}>
-      <StatusSelect
+      <TaskStatusSelect
         on:select={(event) => {
           koso.editTaskStatus(task.id, event.detail);
           statusSelectorOpen = false;

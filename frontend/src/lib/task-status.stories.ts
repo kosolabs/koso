@@ -1,15 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/svelte";
-import StatusSelect from "./status-select.svelte";
+import TaskStatustar from "./task-status.svelte";
 
 const meta = {
-  title: "Koso/StatusSelect",
-  component: StatusSelect,
+  title: "Koso/TaskStatustar",
+  component: TaskStatustar,
   tags: ["autodocs"],
-} satisfies Meta<StatusSelect>;
+} satisfies Meta<TaskStatustar>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Main: Story = {
-  args: {},
+  args: {
+    status: "In Progress",
+  },
 };
