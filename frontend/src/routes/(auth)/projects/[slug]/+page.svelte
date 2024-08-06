@@ -1,16 +1,11 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { logout as auth_logout, token, user } from "$lib/auth";
+  import { logout as auth_logout, token, user, type User } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
   import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
-  import {
-    fetchProjects,
-    type Project,
-    type ProjectUsers,
-    updateProject,
-  } from "$lib/projects";
+  import { fetchProjects, type Project, updateProject } from "$lib/projects";
   import { A, Button, Input } from "flowbite-svelte";
   import { UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
@@ -19,7 +14,7 @@
   const projectId = $page.params.slug;
   const koso = new Koso(projectId, new Y.Doc());
 
-  let projectUsers: ProjectUsers = {};
+  let users: User[] = [];
   let project: Project | null = null;
 
   async function logout() {
@@ -27,7 +22,7 @@
     auth_logout();
   }
 
-  async function updateProjectUsers() {
+  async function loadUsers() {
     if (!$user || !$token) throw new Error("User is unauthorized");
 
     let resp = await fetch(`/api/projects/${projectId}/users`, {
@@ -39,11 +34,7 @@
       );
     }
 
-    const projectUsers: ProjectUsers = {};
-    for (const user of await resp.json()) {
-      projectUsers[user.email] = user;
-    }
-    return projectUsers;
+    return await resp.json();
   }
 
   async function loadProject() {
@@ -117,10 +108,7 @@
       return;
     }
 
-    [projectUsers, project] = await Promise.all([
-      updateProjectUsers(),
-      loadProject(),
-    ]);
+    [users, project] = await Promise.all([loadUsers(), loadProject()]);
 
     const host = location.origin.replace(/^http/, "ws");
     const wsUrl = `${host}/api/ws/projects/${projectId}`;
@@ -183,4 +171,4 @@
   </svelte:fragment>
 </Navbar>
 
-<DagTable {koso} {projectUsers} />
+<DagTable {koso} {users} />

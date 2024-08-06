@@ -1,8 +1,9 @@
 <script lang="ts">
+  import type { User } from "$lib/auth";
   import type { Koso } from "$lib/koso";
-  import type { ProjectUsers } from "$lib/projects";
+  import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
-  import { A, Avatar, Input, Tooltip } from "flowbite-svelte";
+  import { A, Avatar, Dropdown, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
   import type { Node } from "../koso";
@@ -18,19 +19,32 @@
   export let index: number;
   export let node: Node;
   export let isGhost: boolean = false;
-  export let projectUsers: ProjectUsers;
+  export let users: User[];
+  export let rowCallback: (el: HTMLDivElement) => void = () => {};
 
+  let assigneeSelectorOpen: boolean = false;
+  let reporterSelectorOpen: boolean = false;
   let element: HTMLDivElement | undefined;
   let ghostNode: Node | null = null;
   let ghostOffset: number;
 
   function row(el: HTMLDivElement) {
     element = el;
+    rowCallback(el);
+  }
+
+  function getUser(users: User[], email: string | null): User | null {
+    for (const user of users) {
+      if (user.email === email) {
+        return user;
+      }
+    }
+    return null;
   }
 
   $: task = koso.getTask(node.name);
-  $: reporter = projectUsers[task.reporter] || null;
-  $: assignee = (task.assignee ? projectUsers[task.assignee] : null) || null;
+  $: reporter = getUser(users, task.reporter);
+  $: assignee = getUser(users, task.assignee);
 
   const koso = getContext<Koso>("koso");
 
@@ -203,10 +217,6 @@
     $selected = node;
   }
 
-  $: if (element && $selected === node) {
-    element.focus();
-  }
-
   function handleRowClick(event: MouseEvent) {
     event.preventDefault();
     $selected = node;
@@ -315,7 +325,7 @@
   id="row-{node.id}"
   tabindex="0"
   class={cn(
-    "rounded border",
+    "rounded border outline-none",
     index % 2 === 0 ? "bg-slate-50" : "bg-white",
     isMoving ? "bg-red-200 opacity-50" : "",
     isGhost ? "bg-green-200 opacity-70" : "",
@@ -406,10 +416,19 @@
     {/if}
   </td>
   <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
-    <div class="flex gap-1">
+    <button class="flex gap-1">
       <Avatar src={assignee?.picture || ""} rounded size="xs" />
       <div class="max-md:hidden">{assignee?.name || "Unassigned"}</div>
-    </div>
+    </button>
+    <Dropdown bind:open={assigneeSelectorOpen}>
+      <UserSelect
+        {users}
+        on:select={(event) => {
+          koso.setAssignee(task.id, event.detail);
+          assigneeSelectorOpen = false;
+        }}
+      />
+    </Dropdown>
   </td>
   <td
     class={cn(
@@ -417,18 +436,22 @@
       isSelected ? "border-transparent" : "",
     )}
   >
-    <div class="flex gap-1">
+    <button class="flex gap-1">
       <Avatar src={reporter?.picture || ""} rounded size="xs" />
-      {reporter?.name || "Unknown"}
-    </div>
+      <div>{reporter?.name || "Unknown"}</div>
+    </button>
+    <Dropdown bind:open={reporterSelectorOpen}>
+      <UserSelect
+        {users}
+        on:select={(event) => {
+          koso.setReporter(task.id, event.detail);
+          reporterSelectorOpen = false;
+        }}
+      />
+    </Dropdown>
   </td>
 </tr>
 
 {#if ghostNode}
-  <svelte:self
-    index={index + 1}
-    node={ghostNode}
-    {projectUsers}
-    isGhost={true}
-  />
+  <svelte:self index={index + 1} node={ghostNode} {users} isGhost={true} />
 {/if}

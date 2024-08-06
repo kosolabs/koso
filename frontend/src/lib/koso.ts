@@ -1,9 +1,9 @@
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
+import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
-import { v4 as uuidv4 } from "uuid";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -61,7 +61,7 @@ export type Task = {
 
 export class Koso {
   yDoc: Y.Doc;
-  yGraph: Y.Map<Y.Map<string | Y.Array<string>>>;
+  yGraph: Y.Map<Y.Map<Y.Array<string> | string | null>>;
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
 
@@ -205,7 +205,7 @@ export class Koso {
     this.yDoc.transact(() => {
       this.yGraph.set(
         task.id,
-        new Y.Map<string | Y.Array<string>>([
+        new Y.Map<Y.Array<string> | string | null>([
           ["id", task.id],
           ["num", task.num],
           ["name", task.name],
@@ -305,6 +305,30 @@ export class Koso {
       if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
       if (yNode.get("name") !== newName) {
         yNode.set("name", newName);
+      }
+    });
+  }
+
+  setAssignee(taskId: string, assignee: User | null) {
+    this.yDoc.transact(() => {
+      const yNode = this.yGraph.get(taskId);
+      if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
+      if (assignee === null && yNode.get("assignee") !== null) {
+        yNode.set("assignee", null);
+      } else if (assignee && assignee.email !== yNode.get("assignee")) {
+        yNode.set("assignee", assignee.email);
+      }
+    });
+  }
+
+  setReporter(taskId: string, reporter: User | null) {
+    this.yDoc.transact(() => {
+      const yNode = this.yGraph.get(taskId);
+      if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
+      if (reporter === null && yNode.get("reporter") !== null) {
+        yNode.set("reporter", null);
+      } else if (reporter && reporter.email !== yNode.get("reporter")) {
+        yNode.set("reporter", reporter.email);
       }
     });
   }
