@@ -455,7 +455,12 @@
       />
     </Dropdown>
   </td>
-  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
+  <td
+    class={cn(
+      "whitespace-nowrap border p-2",
+      isSelected ? "border-transparent" : "",
+    )}
+  >
     <button class="flex gap-1">
       <TaskStatus status={task.status || "Not Started"} />
     </button>
