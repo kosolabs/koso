@@ -1,6 +1,5 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import { Circle, CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
   import TaskStatus from "./task-status.svelte";
 
   const dispatch = createEventDispatcher<{ select: string }>();
