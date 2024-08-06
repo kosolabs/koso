@@ -16,6 +16,7 @@ function addItem(
     children,
     reporter: "t@koso.app",
     assignee: null,
+    status: null,
   });
 }
 

@@ -57,6 +57,7 @@ export type Task = {
   children: string[];
   assignee: string | null;
   reporter: string;
+  status: string | null;
 };
 
 export class Koso {
@@ -227,6 +228,7 @@ export class Koso {
         children: [],
         reporter: user.email,
         assignee: null,
+        status: null,
       });
     });
     return nodeId;
@@ -291,6 +293,7 @@ export class Koso {
         children: [],
         reporter: user.email,
         assignee: null,
+        status: null,
       });
       const yParent = this.yGraph.get(parentId)!;
       const yChildren = yParent.get("children") as Y.Array<string>;
@@ -329,6 +332,16 @@ export class Koso {
         yNode.set("reporter", null);
       } else if (reporter && reporter.email !== yNode.get("reporter")) {
         yNode.set("reporter", reporter.email);
+      }
+    });
+  }
+
+  editTaskStatus(taskId: string, newStatus: string) {
+    this.yDoc.transact(() => {
+      const yNode = this.yGraph.get(taskId);
+      if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
+      if (yNode.get("status") !== newStatus) {
+        yNode.set("status", newStatus);
       }
     });
   }

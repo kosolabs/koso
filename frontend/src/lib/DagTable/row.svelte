@@ -2,6 +2,8 @@
   import type { User } from "$lib/auth";
   import type { Koso } from "$lib/koso";
   import UserSelect from "$lib/user-select.svelte";
+  import TaskStatusSelect from "$lib/task-status-select.svelte";
+  import TaskStatus from "$lib/task-status.svelte";
   import { cn } from "$lib/utils";
   import { A, Avatar, Dropdown, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
@@ -24,6 +26,7 @@
 
   let assigneeSelectorOpen: boolean = false;
   let reporterSelectorOpen: boolean = false;
+  let statusSelectorOpen: boolean = false;
   let element: HTMLDivElement | undefined;
   let ghostNode: Node | null = null;
   let ghostOffset: number;
@@ -446,6 +449,19 @@
         on:select={(event) => {
           koso.setReporter(task.id, event.detail);
           reporterSelectorOpen = false;
+        }}
+      />
+    </Dropdown>
+  </td>
+  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
+    <button class="flex gap-1">
+      <TaskStatus status={task.status || "Not Started"} />
+    </button>
+    <Dropdown bind:open={statusSelectorOpen}>
+      <TaskStatusSelect
+        on:select={(event) => {
+          koso.editTaskStatus(task.id, event.detail);
+          statusSelectorOpen = false;
         }}
       />
     </Dropdown>
