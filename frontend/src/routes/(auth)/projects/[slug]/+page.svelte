@@ -8,7 +8,7 @@
   import { fetchProjects, type Project, updateProject } from "$lib/projects";
   import { A, Button, Input } from "flowbite-svelte";
   import { UserPlus } from "lucide-svelte";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import * as Y from "yjs";
 
   const projectId = $page.params.slug;
@@ -103,6 +103,8 @@
     }
   }
 
+  let socket: WebSocket | null = null;
+
   onMount(async () => {
     if (!$user || !$token) {
       return;
@@ -112,12 +114,14 @@
 
     const host = location.origin.replace(/^http/, "ws");
     const wsUrl = `${host}/api/ws/projects/${projectId}`;
-    const socket = new WebSocket(wsUrl, ["bearer", $token]);
+    socket = new WebSocket(wsUrl, ["bearer", $token]);
     socket.binaryType = "arraybuffer";
 
     socket.onopen = () => {
       koso.handleClientMessage((update) => {
-        socket.send(update);
+        if (socket) {
+          socket.send(update);
+        }
       });
       $lastVisitedProjectId = $page.params.slug;
     };
@@ -129,15 +133,23 @@
         console.log("Received text frame from server:", event.data);
       }
     };
-    socket.onerror = (event) => {
-      console.log(event);
+    socket.onerror = () => {
       // Error type is not available, so assume unauthorized and logout
       $lastVisitedProjectId = null;
       logout();
     };
+    socket.onclose = () => {
+      socket = null;
+    };
 
     while (socket.readyState !== WebSocket.OPEN) {
       await new Promise((r) => setTimeout(r, 100));
+    }
+  });
+
+  onDestroy(() => {
+    if (socket) {
+      socket.close();
     }
   });
 </script>
