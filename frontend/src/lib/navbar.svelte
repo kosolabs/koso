@@ -10,7 +10,7 @@
     Navbar,
   } from "flowbite-svelte";
   import NavContainer from "flowbite-svelte/NavContainer.svelte";
-  import User from "./user.svelte";
+  import UserAvatar from "./user-avatar.svelte";
 </script>
 
 <Navbar color="primary" class="mb-4" fluid={true}>
@@ -35,7 +35,7 @@
         </Button>
         <Dropdown triggeredBy="#profile-menu">
           <DropdownHeader>
-            <User user={$user} />
+            <UserAvatar user={$user} />
           </DropdownHeader>
           <DropdownItem href="/projects">Projects</DropdownItem>
           <DropdownItem on:click={() => logout()}>Logout</DropdownItem>

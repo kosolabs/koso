@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { user } from "$lib/auth";
+  import { user, type User } from "$lib/auth";
   import type { Koso } from "$lib/koso";
-  import type { ProjectUsers } from "$lib/projects";
   import { Button } from "flowbite-svelte";
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
   import { setContext } from "svelte";
@@ -12,7 +11,8 @@
   import { receive, send } from "./transition";
 
   export let koso: Koso;
-  export let projectUsers: ProjectUsers;
+  export let users: User[];
+  let rows: { [key: string]: HTMLDivElement } = {};
 
   $nodes = koso.toNodes();
   koso.observe(() => {
@@ -35,6 +35,9 @@
           }
         }
       }
+      if ($selected !== null) {
+        rows[$selected.id].focus();
+      }
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -54,6 +57,9 @@
             }
           }
         }
+      }
+      if ($selected !== null) {
+        rows[$selected.id].focus();
       }
       event.preventDefault();
       event.stopPropagation();
@@ -145,7 +151,13 @@
       out:send={{ key: node.id }}
       animate:flip={{ duration: 250 }}
     >
-      <Row {index} {node} {projectUsers} isGhost={false} />
+      <Row
+        {index}
+        {node}
+        {users}
+        isGhost={false}
+        rowCallback={(el) => (rows[node.id] = el)}
+      />
     </tbody>
   {/each}
 </table>
