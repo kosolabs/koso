@@ -6,13 +6,7 @@
   import TaskStatus from "$lib/task-status.svelte";
   import { cn } from "$lib/utils";
   import { A, Avatar, Dropdown, Input, Tooltip } from "flowbite-svelte";
-  import {
-    ChevronRight,
-    GripVertical,
-    Circle,
-    CircleCheck,
-    CircleFadingArrowUp,
-  } from "lucide-svelte";
+  import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
   import type { Node } from "../koso";
   import {
