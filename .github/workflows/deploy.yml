@@ -13,6 +13,10 @@ jobs:
           username: root
           key: ${{ secrets.KEY }}
           script: |
+            set -e
             cd /root/koso
+            git reset --hard
+            git clean -f -d
+            git checkout main
             git pull
             ./deploy.sh
