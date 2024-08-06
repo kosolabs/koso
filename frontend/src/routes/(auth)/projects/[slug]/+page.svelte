@@ -6,7 +6,7 @@
   import { disableRedirectOnLogOut, lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
   import { fetchProjects, type Project, updateProject } from "$lib/projects";
-  import { A, Button, Input } from "flowbite-svelte";
+  import { A, Button, Input, Label, Modal } from "flowbite-svelte";
   import { UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
   import * as Y from "yjs";
@@ -16,6 +16,8 @@
 
   let users: User[] = [];
   let project: Project | null = null;
+
+  let shareModal = false;
 
   async function logout() {
     disableRedirectOnLogOut();
@@ -110,6 +112,28 @@
 
     [users, project] = await Promise.all([loadUsers(), loadProject()]);
 
+    // const response = await fetch(`/api/projects/${projectId}/permissions`, {
+    //   method: "PATCH",
+    //   headers: {
+    //     Authorization: `Bearer ${$token}`,
+    //     "Content-Type": "application/json",
+    //   },
+    //   body: JSON.stringify({
+    //     project_id: projectId,
+    //     add_emails: [
+    //       "examplee@gmail.com",
+    //       "example1@gmail.com",
+    //       "example2@gmail.com",
+    //     ],
+    //     remove_emails: ["shadanan@gmail.com", "leonhard.kyle@gmail.com"],
+    //   }),
+    // });
+    // if (!response.ok) {
+    //   throw new Error(
+    //     `Failed to update project name: ${response.statusText} (${response.status})`,
+    //   );
+    // }
+
     const host = location.origin.replace(/^http/, "ws");
     const wsUrl = `${host}/api/ws/projects/${projectId}`;
     const socket = new WebSocket(wsUrl, ["bearer", $token]);
@@ -167,8 +191,39 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="right-items">
-    <Button size="xs" title="Share Project"><UserPlus /></Button>
+    <Button
+      size="xs"
+      title="Share Project"
+      on:click={() => (shareModal = true)}
+    >
+      <UserPlus />
+    </Button>
   </svelte:fragment>
 </Navbar>
 
 <DagTable {koso} {users} />
+
+<Modal
+  title="Share your project"
+  bind:open={shareModal}
+  autoclose
+  outsideclose
+>
+  <form class="flex flex-col space-y-6" action="#">
+    <Label class="space-y-2">
+      <span>Collaborators</span>
+      <Input
+        type="email"
+        name="email"
+        placeholder="name@company.com"
+        required
+      />
+    </Label>
+
+    {#each users as user}
+      {user.name} -- {user.email}
+    {/each}
+
+    <Button type="submit" class="w-full1">Share</Button>
+  </form>
+</Modal>
