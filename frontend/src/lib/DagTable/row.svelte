@@ -418,7 +418,9 @@
   <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
     <button class="flex gap-1">
       <Avatar src={assignee?.picture || ""} rounded size="xs" />
-      <div class="max-md:hidden">{assignee?.name || "Unassigned"}</div>
+      <div class="whitespace-nowrap max-md:hidden">
+        {assignee?.name || "Unassigned"}
+      </div>
     </button>
     <Dropdown bind:open={assigneeSelectorOpen}>
       <UserSelect
@@ -438,7 +440,7 @@
   >
     <button class="flex gap-1">
       <Avatar src={reporter?.picture || ""} rounded size="xs" />
-      <div>{reporter?.name || "Unknown"}</div>
+      <div class="whitespace-nowrap">{reporter?.name || "Unknown"}</div>
     </button>
     <Dropdown bind:open={reporterSelectorOpen}>
       <UserSelect
