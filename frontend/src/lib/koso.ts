@@ -336,7 +336,7 @@ export class Koso {
     });
   }
 
-  editTaskStatus(taskId: string, newStatus: string | null) {
+  editTaskStatus(taskId: string, newStatus: string) {
     this.yDoc.transact(() => {
       const yNode = this.yGraph.get(taskId);
       if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);

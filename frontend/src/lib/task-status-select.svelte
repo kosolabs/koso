@@ -3,11 +3,11 @@
   import { Circle, CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
   import TaskStatus from "./task-status.svelte";
 
-  const dispatch = createEventDispatcher<{ select: string | null }>();
+  const dispatch = createEventDispatcher<{ select: string }>();
 
   const statuses: string[] = ["Not Started", "In Progress", "Done"];
 
-  function select(status: string | null) {
+  function select(status: string) {
     dispatch("select", status);
   }
 </script>
