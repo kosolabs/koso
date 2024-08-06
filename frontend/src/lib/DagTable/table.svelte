@@ -142,6 +142,7 @@
       <th class="border p-2">Name</th>
       <th class="border p-2">Assignee</th>
       <th class="border p-2 max-md:hidden">Reporter</th>
+      <th class="border p-2">Status</th>
     </tr>
   </thead>
 

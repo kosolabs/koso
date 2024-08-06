@@ -2,9 +2,16 @@
   import type { User } from "$lib/auth";
   import type { Koso } from "$lib/koso";
   import UserSelect from "$lib/user-select.svelte";
+  import StatusSelect from "$lib/status-select.svelte";
   import { cn } from "$lib/utils";
   import { A, Avatar, Dropdown, Input, Tooltip } from "flowbite-svelte";
-  import { ChevronRight, GripVertical } from "lucide-svelte";
+  import {
+    ChevronRight,
+    GripVertical,
+    Circle,
+    CircleCheck,
+    CircleFadingArrowUp,
+  } from "lucide-svelte";
   import { getContext } from "svelte";
   import type { Node } from "../koso";
   import {
@@ -24,6 +31,7 @@
 
   let assigneeSelectorOpen: boolean = false;
   let reporterSelectorOpen: boolean = false;
+  let statusSelectorOpen: boolean = false;
   let element: HTMLDivElement | undefined;
   let ghostNode: Node | null = null;
   let ghostOffset: number;
@@ -446,6 +454,26 @@
         on:select={(event) => {
           koso.setReporter(task.id, event.detail);
           reporterSelectorOpen = false;
+        }}
+      />
+    </Dropdown>
+  </td>
+  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
+    <button class="flex gap-1">
+      {#if task.status == null || task.status === "Not Started"}
+        <Circle />
+      {:else if task.status == "In Progress"}
+        <CircleFadingArrowUp />
+      {:else if task.status == "Done"}
+        <CircleCheck />
+      {/if}
+      <div class="max-md:hidden">{task.status || "Not Started"}</div>
+    </button>
+    <Dropdown bind:open={statusSelectorOpen}>
+      <StatusSelect
+        on:select={(event) => {
+          koso.editTaskStatus(task.id, event.detail);
+          statusSelectorOpen = false;
         }}
       />
     </Dropdown>
