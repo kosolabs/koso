@@ -299,9 +299,14 @@ impl Notifier {
                 } else {
                     "Client closed connection: code:'NONE', detail:'No CloseFrame'".to_string()
                 };
-                let _ = self
+                if let Some(mut client) = self
                     .remove_client(&receiver.project_id, &receiver.who, &reason)
-                    .await;
+                    .await
+                {
+                    client
+                        .close(CLOSE_NORMAL, "Client closed connection.")
+                        .await;
+                }
                 ControlFlow::Break(())
             }
             Err(e) => {
@@ -650,7 +655,7 @@ impl DocBox {
 
 // https://www.rfc-editor.org/rfc/rfc6455.html#section-7.4.1
 // https://www.iana.org/assignments/websocket/websocket.xhtml#close-code-number
-// const CLOSE_NORMAL: u16 = 1000;
+const CLOSE_NORMAL: u16 = 1000;
 const CLOSE_ERROR: u16 = 1011;
 const CLOSE_RESTART: u16 = 1012;
 const CLOSE_UNAUTHORIZED: u16 = 3000;
