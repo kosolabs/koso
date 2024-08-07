@@ -133,23 +133,29 @@
         console.log("Received text frame from server:", event.data);
       }
     };
-    socket.onerror = () => {
+    socket.onerror = (event) => {
+      console.log("WebSocket errored", event);
       // Error type is not available, so assume unauthorized and logout
       $lastVisitedProjectId = null;
       logout();
     };
-    socket.onclose = () => {
+    socket.onclose = (event) => {
+      console.log(
+        `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}''`,
+        event,
+      );
       socket = null;
     };
 
-    while (socket.readyState !== WebSocket.OPEN) {
+    while (socket && socket.readyState == WebSocket.CONNECTING) {
       await new Promise((r) => setTimeout(r, 100));
     }
   });
 
   onDestroy(() => {
     if (socket) {
-      socket.close();
+      const GOING_AWAY = 1001;
+      socket.close(GOING_AWAY, "Closed in onDestroy.");
     }
   });
 </script>

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Error, Result};
 use axum::{
     body::Body,
     http::StatusCode,
@@ -8,7 +8,6 @@ use axum::{
 use google::User;
 use model::{ProjectId, ProjectPermission};
 use sqlx::postgres::PgPool;
-use std::error::Error;
 
 pub mod auth;
 pub mod google;
@@ -103,6 +102,11 @@ pub struct ErrorResponse {
     msg: String,
 }
 
+impl ErrorResponse {
+    fn as_err(&self) -> Error {
+        anyhow!("{} ({})", self.msg, self.code)
+    }
+}
 /// Converts from ErrorResponse to Response.
 impl IntoResponse for ErrorResponse {
     fn into_response(self) -> Response {
@@ -122,7 +126,7 @@ impl IntoResponse for ErrorResponse {
 /// Converts from boxed Error to ErrorResponse and logs the error.
 impl<E> From<E> for ErrorResponse
 where
-    E: Into<Box<dyn Error>>,
+    E: Into<Box<dyn std::error::Error>>,
 {
     fn from(err: E) -> Self {
         let err = err.into();

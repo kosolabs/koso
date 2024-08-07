@@ -1,8 +1,9 @@
-use crate::{api::model::ProjectId, postgres::compact};
+use crate::api;
+use crate::{api::google::User, api::model::ProjectId, postgres::compact};
 use anyhow::anyhow;
 use anyhow::Error;
 use anyhow::Result;
-use axum::extract::ws::{Message, WebSocket};
+use axum::extract::ws::{CloseCode, CloseFrame, Message, WebSocket};
 use dashmap::DashMap;
 use futures::SinkExt;
 use sqlx::PgPool;
@@ -127,12 +128,13 @@ pub struct Notifier {
 // and broadcast it to other clients.
 // When the last client disconnects, consider destroying the graph.
 impl Notifier {
-    #[tracing::instrument(skip(self, socket, who), fields(who))]
+    #[tracing::instrument(skip(self, socket, who, user), fields(who))]
     pub async fn register_client(
         self,
         socket: WebSocket,
         who: SocketAddr,
         project_id: ProjectId,
+        user: User,
     ) -> Result<()> {
         let who = who.to_string() + ":" + &Uuid::new_v4().to_string();
         tracing::Span::current().record("who", &who);
@@ -151,11 +153,23 @@ impl Notifier {
             project_id: project_id.clone(),
         };
 
+        // Before doing anything else, make sure the user has access to the project.
+        if let Err(e) = api::verify_access(self.pool, user, &project_id).await {
+            let _ = sender.close(CLOSE_UNAUTHORIZED, "Unauthorized.").await;
+            return Err(e.as_err());
+        }
+
         // Get of insert the project state.
         let project = self.state.get_or_insert(&project_id);
 
         // Init the doc_box, if necessary and grab the state vector.
-        let sv = self.init_doc_box(&project).await?;
+        let sv = match self.init_doc_box(&project).await {
+            Ok(sv) => sv,
+            Err(e) => {
+                let _ = sender.close(CLOSE_ERROR, "Failed to init doc.").await;
+                return Err(e);
+            }
+        };
 
         // Send the entire state vector to the client.
         tracing::debug!("Sending sync_request message to client");
@@ -167,12 +181,19 @@ impl Notifier {
             encoder.to_vec()
         };
         if let Err(e) = sender.send(sync_request_msg).await {
-            return Err(anyhow!("Failed to send state vector to client: {e}"));
+            let _ = sender
+                .close(CLOSE_ERROR, "Failed to send sync message.")
+                .await;
+            return Err(anyhow!("Failed to send sync message to client: {e}"));
         }
 
         // Store the sender side of the socket in the list of clients.
-        if let Some(existing) = project.add_client(sender).await {
-            return Err(anyhow!("Unexpectedly, client already exists: {existing:?}"));
+        if let Some(mut existing) = project.add_client(sender).await {
+            let _ = existing
+                .close(CLOSE_ERROR, "Unexpected duplicate connection.")
+                .await;
+            tracing::error!("Unexpectedly, client already exists: {existing:?}");
+            // Intentionally fall through below and start listening for messages on the new sender.
         };
 
         // Listen for messages on the read side of the socket.
@@ -271,18 +292,35 @@ impl Notifier {
             }
             Ok(Message::Close(c)) => {
                 let reason = if let Some(cf) = &c {
-                    format!("code:'{}', detail:'{}'", cf.code, cf.reason)
+                    format!(
+                        "Client closed connection: code:'{}', detail:'{}'",
+                        cf.code, cf.reason
+                    )
                 } else {
-                    "code:'NONE', detail:'No CloseFrame'".to_string()
+                    "Client closed connection: code:'NONE', detail:'No CloseFrame'".to_string()
                 };
-                self.close_client(&receiver.project_id, &receiver.who, &reason)
+                let _ = self
+                    .remove_client(&receiver.project_id, &receiver.who, &reason)
                     .await;
                 ControlFlow::Break(())
             }
             Err(e) => {
                 tracing::warn!("Got error reading from client socket. Will close socket. {e}");
-                self.close_client(&receiver.project_id, &receiver.who, &format!("Error: {e}"))
-                    .await;
+                if let Some(mut client) = self
+                    .remove_client(
+                        &receiver.project_id,
+                        &receiver.who,
+                        &format!("Failed to read from client socket: {e}"),
+                    )
+                    .await
+                {
+                    if let Err(e) = client
+                        .close(CLOSE_ERROR, "Failed to read from client socket.")
+                        .await
+                    {
+                        tracing::debug!("Failed to close client: {e}");
+                    }
+                }
                 ControlFlow::Break(())
             }
             Ok(_) => {
@@ -292,10 +330,15 @@ impl Notifier {
         }
     }
 
-    async fn close_client(&self, project_id: &ProjectId, who: &String, reason: &String) {
+    async fn remove_client(
+        &self,
+        project_id: &ProjectId,
+        who: &String,
+        reason: &String,
+    ) -> Option<ClientSender> {
         let Some(project) = self.state.get(project_id) else {
             tracing::error!("Unexpectedly, received close for client but the project is missing.");
-            return;
+            return None;
         };
 
         let (client, remaining_clients) = project.remove_client(who, reason).await;
@@ -307,19 +350,12 @@ impl Notifier {
                 tracing::debug!("Skipping compacting, only {updates} updates exist")
             }
         }
-
-        match client {
-            Some(mut client) => {
-                if let Err(e) = client.close().await {
-                    tracing::debug!("Failed to close client: {e}");
-                }
-            }
-            None => {
-                tracing::error!(
-                    "Unexpectedly, received close for client while no client was registered."
-                )
-            }
+        if client.is_none() {
+            tracing::error!(
+                "Unexpectedly, received close for client while no client was registered."
+            )
         }
+        client
     }
 
     #[tracing::instrument(skip(self, process_rx))]
@@ -596,7 +632,9 @@ impl ProjectState {
         // Close all clients.
         let mut clients = self.clients.lock().await;
         for client in clients.values_mut() {
-            let _ = client.close().await;
+            let _ = client
+                .close(CLOSE_RESTART, "The server is shutting down.")
+                .await;
         }
         clients.clear();
         // Drop the doc box to stop observing changes.
@@ -613,13 +651,31 @@ impl DocBox {
     }
 }
 
+// https://www.rfc-editor.org/rfc/rfc6455.html#section-7.4.1
+// https://www.iana.org/assignments/websocket/websocket.xhtml#close-code-number
+// const CLOSE_NORMAL: u16 = 1000;
+const CLOSE_ERROR: u16 = 1011;
+const CLOSE_RESTART: u16 = 1012;
+const CLOSE_UNAUTHORIZED: u16 = 3000;
+
 impl ClientSender {
     async fn send(&mut self, data: Vec<u8>) -> Result<(), axum::Error> {
         self.ws_sender.send(Message::Binary(data)).await
     }
 
-    async fn close(&mut self) -> Result<(), axum::Error> {
-        self.ws_sender.close().await
+    async fn close(&mut self, code: CloseCode, reason: &'static str) -> Result<(), axum::Error> {
+        let send_res = self
+            .ws_sender
+            .send(Message::Close(Some(CloseFrame {
+                code,
+                reason: reason.into(),
+            })))
+            .await;
+        let close_res = self.ws_sender.close().await;
+        match send_res {
+            Ok(_) => close_res,
+            Err(e) => Err(e),
+        }
     }
 }
 

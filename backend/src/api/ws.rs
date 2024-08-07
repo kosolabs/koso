@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use crate::{
     api::google::User,
-    api::{self, notify::Notifier, ApiResult},
+    api::{notify::Notifier, ApiResult},
 };
 use axum::{
     body::Body,
@@ -12,8 +12,6 @@ use axum::{
     Extension, Router,
 };
 use axum_extra::{headers, TypedHeader};
-use futures::FutureExt as _;
-use sqlx::PgPool;
 use tracing::Instrument as _;
 
 pub fn ws_router() -> Router {
@@ -24,7 +22,7 @@ pub fn ws_router() -> Router {
 /// websocket protocol will occur.
 /// This is the last point where we can extract TCP/IP metadata such as IP address of the client
 /// as well as things from HTTP headers such as user-agent of the browser etc.
-#[tracing::instrument(skip(ws, _user_agent, addr, user, notifier, pool))]
+#[tracing::instrument(skip(ws, _user_agent, addr, user, notifier))]
 async fn ws_handler(
     ws: WebSocketUpgrade,
     Path(project_id): Path<String>,
@@ -32,21 +30,22 @@ async fn ws_handler(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(user): Extension<User>,
     Extension(notifier): Extension<Notifier>,
-    Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Response<Body>> {
-    api::verify_access(pool, user, &project_id).await?;
-
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
-    let cs = tracing::Span::current();
-    Ok(ws.protocols(["bearer"]).on_upgrade(move |socket| {
-        notifier
-            .register_client(socket, addr, project_id)
-            .map(move |res| {
-                if let Err(e) = res {
-                    tracing::warn!("Failed to register destination for {addr}: {e}");
+    let cs: tracing::Span = tracing::Span::current();
+    Ok(ws
+        .protocols(["bearer"])
+        .on_failed_upgrade(|e| tracing::warn!("Failed to upgrade socket: {e}"))
+        .on_upgrade(move |socket: axum::extract::ws::WebSocket| {
+            async move {
+                if let Err(e) = notifier
+                    .register_client(socket, addr, project_id, user)
+                    .await
+                {
+                    tracing::warn!("Failed to register client at {addr}: {e}");
                 }
-            })
+            }
             .instrument(cs)
-    }))
+        }))
 }
