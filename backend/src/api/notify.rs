@@ -155,7 +155,7 @@ impl Notifier {
 
         // Before doing anything else, make sure the user has access to the project.
         if let Err(e) = api::verify_access(self.pool, user, &project_id).await {
-            let _ = sender.close(CLOSE_UNAUTHORIZED, "Unauthorized.").await;
+            sender.close(CLOSE_UNAUTHORIZED, "Unauthorized.").await;
             return Err(e.as_err());
         }
 
@@ -166,7 +166,7 @@ impl Notifier {
         let sv = match self.init_doc_box(&project).await {
             Ok(sv) => sv,
             Err(e) => {
-                let _ = sender.close(CLOSE_ERROR, "Failed to init doc.").await;
+                sender.close(CLOSE_ERROR, "Failed to init doc.").await;
                 return Err(e);
             }
         };
@@ -181,7 +181,7 @@ impl Notifier {
             encoder.to_vec()
         };
         if let Err(e) = sender.send(sync_request_msg).await {
-            let _ = sender
+            sender
                 .close(CLOSE_ERROR, "Failed to send sync message.")
                 .await;
             return Err(anyhow!("Failed to send sync message to client: {e}"));
@@ -189,7 +189,7 @@ impl Notifier {
 
         // Store the sender side of the socket in the list of clients.
         if let Some(mut existing) = project.add_client(sender).await {
-            let _ = existing
+            existing
                 .close(CLOSE_ERROR, "Unexpected duplicate connection.")
                 .await;
             tracing::error!("Unexpectedly, client already exists: {existing:?}");
@@ -314,12 +314,9 @@ impl Notifier {
                     )
                     .await
                 {
-                    if let Err(e) = client
+                    client
                         .close(CLOSE_ERROR, "Failed to read from client socket.")
-                        .await
-                    {
-                        tracing::debug!("Failed to close client: {e}");
-                    }
+                        .await;
                 }
                 ControlFlow::Break(())
             }
@@ -632,7 +629,7 @@ impl ProjectState {
         // Close all clients.
         let mut clients = self.clients.lock().await;
         for client in clients.values_mut() {
-            let _ = client
+            client
                 .close(CLOSE_RESTART, "The server is shutting down.")
                 .await;
         }
@@ -663,19 +660,15 @@ impl ClientSender {
         self.ws_sender.send(Message::Binary(data)).await
     }
 
-    async fn close(&mut self, code: CloseCode, reason: &'static str) -> Result<(), axum::Error> {
-        let send_res = self
+    async fn close(&mut self, code: CloseCode, reason: &'static str) {
+        let _ = self
             .ws_sender
             .send(Message::Close(Some(CloseFrame {
                 code,
                 reason: reason.into(),
             })))
             .await;
-        let close_res = self.ws_sender.close().await;
-        match send_res {
-            Ok(_) => close_res,
-            Err(e) => Err(e),
-        }
+        let _ = self.ws_sender.close().await;
     }
 }
 
