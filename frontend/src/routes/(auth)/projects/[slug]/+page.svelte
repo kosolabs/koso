@@ -154,8 +154,7 @@
 
   onDestroy(() => {
     if (socket) {
-      const GOING_AWAY = 1001;
-      socket.close(GOING_AWAY, "Closed in onDestroy.");
+      socket.close(1000, "Closed in onDestroy.");
     }
   });
 </script>
