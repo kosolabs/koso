@@ -11,4 +11,4 @@
 {:else if status == "Done"}
   <CircleCheck />
 {/if}
-<div class="text-sm">{status}</div>
+<div class="text-sm max-md:hidden">{status}</div>
