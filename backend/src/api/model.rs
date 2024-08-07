@@ -14,6 +14,12 @@ pub struct ProjectPermission {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
+pub struct UpdateProjectPermissions {
+    pub project_id: ProjectId,
+    pub add_emails: Vec<String>,
+    pub remove_emails: Vec<String>,
+}
+#[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
 pub struct ProjectUser {
     pub project_id: ProjectId,
     pub email: String,
