@@ -22,10 +22,14 @@ export class Node {
 
   constructor(path: string[]) {
     this.path = path;
-    this.id = this.path.join("-");
     const maybeName = this.path.at(-1);
-    if (!maybeName) throw new Error("path should not be empty");
-    this.name = maybeName;
+    if (!maybeName) {
+      this.id = "root";
+      this.name = "root";
+    } else {
+      this.id = this.path.join("-");
+      this.name = maybeName;
+    }
     this.length = this.path.length;
   }
 
@@ -35,7 +39,7 @@ export class Node {
   }
 
   isRoot(): boolean {
-    return this.path.length === 1;
+    return this.path.length === 0;
   }
 
   concat(nodeId: string) {
@@ -50,13 +54,17 @@ export class Node {
   }
 }
 
+export type Parents = {
+  [id: string]: string[];
+};
+
 export type Task = {
   id: string;
   num: string;
   name: string;
   children: string[];
   assignee: string | null;
-  reporter: string;
+  reporter: string | null;
   status: string | null;
 };
 
@@ -137,18 +145,8 @@ export class Koso {
     this.clientMessageHandler(encoding.toUint8Array(encoder));
   }
 
-  getRoots(): Set<string> {
-    const allChildTaskIds = new Set<string>();
-    for (const task of this.yGraph.values()) {
-      for (const childTaskId of task.get("children") as Y.Array<string>) {
-        allChildTaskIds.add(childTaskId);
-      }
-    }
-    const allTaskIds = new Set<string>();
-    for (const taskId of this.yGraph.keys()) {
-      allTaskIds.add(taskId);
-    }
-    return allTaskIds.difference(allChildTaskIds);
+  toJSON() {
+    return this.yGraph.toJSON();
   }
 
   getTask(taskId: string): Task {
@@ -171,19 +169,63 @@ export class Koso {
   }
 
   #flatten(node: Node, nodes: Node[]) {
-    nodes.push(node);
-    for (const child of this.getChildren(node.name)) {
-      this.#flatten(node.concat(child), nodes);
+    for (const childName of this.getChildren(node.name)) {
+      const child = node.concat(childName);
+      nodes.push(child);
+      this.#flatten(child, nodes);
     }
   }
 
   toNodes(): Node[] {
-    const roots = this.getRoots();
     const nodes: Node[] = [];
-    for (const root of roots) {
-      this.#flatten(new Node([root]), nodes);
+    if (this.yGraph.size > 0 || this.yGraph.has("root")) {
+      this.migrateToSingleRoot();
+      this.#flatten(new Node([]), nodes);
     }
     return nodes;
+  }
+
+  toParents(): Parents {
+    const parents: Parents = {};
+    for (const [parentId, task] of this.yGraph.entries()) {
+      for (const childId of task.get("children") as Y.Array<string>) {
+        if (!(childId in parents)) {
+          parents[childId] = [];
+        }
+        parents[childId].push(parentId);
+      }
+    }
+    return parents;
+  }
+
+  migrateToSingleRoot() {
+    if (this.yGraph.size > 0 && !this.yGraph.has("root")) {
+      console.log("Migrating to single root yGraph");
+
+      const allChildTaskIds = new Set<string>();
+      for (const task of this.yGraph.values()) {
+        for (const childTaskId of task.get("children") as Y.Array<string>) {
+          allChildTaskIds.add(childTaskId);
+        }
+      }
+      const allTaskIds = new Set<string>();
+      for (const taskId of this.yGraph.keys()) {
+        allTaskIds.add(taskId);
+      }
+      const roots = Array.from(allTaskIds.difference(allChildTaskIds));
+
+      this.yDoc.transact(() => {
+        this.upsert({
+          id: "root",
+          num: "0",
+          name: "Root",
+          children: roots,
+          reporter: null,
+          assignee: null,
+          status: null,
+        });
+      });
+    }
   }
 
   newId(): string {
@@ -213,25 +255,10 @@ export class Koso {
           ["children", Y.Array.from(task.children)],
           ["reporter", task.reporter],
           ["assignee", task.assignee],
+          ["status", task.status],
         ]),
       );
     });
-  }
-
-  addRoot(user: User): string {
-    const nodeId = this.newId();
-    this.yDoc.transact(() => {
-      this.upsert({
-        id: nodeId,
-        num: this.newNum(),
-        name: "Untitled",
-        children: [],
-        reporter: user.email,
-        assignee: null,
-        status: null,
-      });
-    });
-    return nodeId;
   }
 
   addNode(nodeId: string, parentId: string, offset: number) {
@@ -243,18 +270,35 @@ export class Koso {
     });
   }
 
-  removeNode(nodeId: string, parentId: string) {
+  #unlinkNode(node: Node) {
+    const nodeId = node.name;
+    const parentId = node.parent().name;
+    const yParent = this.yGraph.get(parentId);
+    if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
+    const yParentsChildren = yParent.get("children") as Y.Array<string>;
+    const yParentsChildrenArr = yParentsChildren.toArray();
+    yParentsChildren.delete(yParentsChildrenArr.indexOf(nodeId));
+
+    const yNode = this.yGraph.get(nodeId);
+    if (!yNode) throw new Error(`Task ${nodeId} is not in the graph`);
+    const yChildren = yNode.get("children") as Y.Array<string>;
+    for (const child of yChildren) {
+      if (!yParentsChildrenArr.includes(child)) {
+        yParentsChildren.push([child]);
+      }
+    }
+  }
+
+  removeNode(node: Node) {
     this.yDoc.transact(() => {
-      const yParent = this.yGraph.get(parentId);
-      if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
-      const yChildren = yParent.get("children") as Y.Array<string>;
-      yChildren.delete(yChildren.toArray().indexOf(nodeId));
+      this.#unlinkNode(node);
     });
   }
 
-  deleteNode(nodeId: string) {
+  deleteNode(node: Node) {
     this.yDoc.transact(() => {
-      this.yGraph.delete(nodeId);
+      this.#unlinkNode(node);
+      this.yGraph.delete(node.name);
     });
   }
 

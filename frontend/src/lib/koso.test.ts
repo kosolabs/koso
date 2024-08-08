@@ -27,29 +27,6 @@ describe("Koso tests", () => {
     koso.handleClientMessage(() => {});
   });
 
-  describe("getRoots", () => {
-    it("empty graph returns empty set", () => {
-      expect(koso.getRoots()).toStrictEqual(new Set([]));
-    });
-
-    it("graph with one task returns one root", () => {
-      addItem(koso, "id1", "1", "Task 1", []);
-      expect(koso.getRoots()).toStrictEqual(new Set(["id1"]));
-    });
-
-    it("graph with two tasks and one root returns one root", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      expect(koso.getRoots()).toStrictEqual(new Set(["id1"]));
-    });
-
-    it("graph with two roots returns two roots", () => {
-      addItem(koso, "id1", "1", "Task 1", []);
-      addItem(koso, "id2", "2", "Task 2", []);
-      expect(koso.getRoots()).toStrictEqual(new Set(["id1", "id2"]));
-    });
-  });
-
   describe("getTask", () => {
     it("retrieves task 2", () => {
       addItem(koso, "id1", "1", "Task 1", ["id2"]);
@@ -61,6 +38,7 @@ describe("Koso tests", () => {
         children: [],
         reporter: "t@koso.app",
         assignee: null,
+        status: null,
       });
     });
 
@@ -126,6 +104,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
@@ -141,6 +120,7 @@ describe("Koso tests", () => {
           children: ["id2"],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id2: {
           id: "id2",
@@ -149,6 +129,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
@@ -167,6 +148,7 @@ describe("Koso tests", () => {
           children: ["id2"],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id2: {
           id: "id2",
@@ -175,6 +157,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
@@ -193,6 +176,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id2: {
           id: "id2",
@@ -201,6 +185,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
@@ -220,6 +205,7 @@ describe("Koso tests", () => {
           children: ["id2", "id3"],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id2: {
           id: "id2",
@@ -228,6 +214,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id3: {
           id: "id3",
@@ -236,6 +223,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
@@ -255,6 +243,7 @@ describe("Koso tests", () => {
           children: ["id3", "id2"],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id2: {
           id: "id2",
@@ -263,6 +252,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id3: {
           id: "id3",
@@ -271,6 +261,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
@@ -289,6 +280,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id2: {
           id: "id2",
@@ -297,6 +289,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
@@ -317,6 +310,7 @@ describe("Koso tests", () => {
           children: ["id2", "id3"],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id2: {
           id: "id2",
@@ -325,6 +319,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id3: {
           id: "id3",
@@ -333,6 +328,7 @@ describe("Koso tests", () => {
           children: ["id4"],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id4: {
           id: "id4",
@@ -341,6 +337,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
@@ -361,6 +358,7 @@ describe("Koso tests", () => {
           children: ["id2", "id4", "id3"],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id2: {
           id: "id2",
@@ -369,6 +367,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id3: {
           id: "id3",
@@ -377,6 +376,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id4: {
           id: "id4",
@@ -385,6 +385,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
@@ -405,6 +406,7 @@ describe("Koso tests", () => {
           children: ["id2", "id4", "id3"],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id2: {
           id: "id2",
@@ -413,6 +415,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id3: {
           id: "id3",
@@ -421,6 +424,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
         id4: {
           id: "id4",
@@ -429,6 +433,7 @@ describe("Koso tests", () => {
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
@@ -458,6 +463,7 @@ describe("Koso tests", () => {
             children: ["idB", "id3", idMatching],
             reporter: "t@koso.app",
             assignee: null,
+            status: null,
           },
           idB: {
             id: "idB",
@@ -466,6 +472,7 @@ describe("Koso tests", () => {
             children: [],
             reporter: "t@koso.app",
             assignee: null,
+            status: null,
           },
           id3: {
             id: "id3",
@@ -474,6 +481,7 @@ describe("Koso tests", () => {
             children: [],
             reporter: "t@koso.app",
             assignee: null,
+            status: null,
           },
         }),
       );
@@ -487,8 +495,9 @@ describe("Koso tests", () => {
         num: "4",
         name: "Untitled",
         children: [],
-        assignee: null,
         reporter: "test@koso.app",
+        assignee: null,
+        status: null,
       });
     });
   });

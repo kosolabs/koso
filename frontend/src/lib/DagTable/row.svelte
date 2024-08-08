@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { User } from "$lib/auth";
   import type { Koso } from "$lib/koso";
-  import UserSelect from "$lib/user-select.svelte";
   import TaskStatusSelect from "$lib/task-status-select.svelte";
   import TaskStatus from "$lib/task-status.svelte";
+  import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
   import { A, Avatar, Dropdown, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
