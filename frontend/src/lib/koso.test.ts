@@ -9,7 +9,7 @@ function addItem(
   name: string,
   children: string[],
 ) {
-  koso.upsert({
+  koso.#upsert({
     id,
     num,
     name,
@@ -138,7 +138,7 @@ describe("Koso tests", () => {
       addItem(koso, "id1", "1", "Task 1", []);
       addItem(koso, "id2", "2", "Task 2", []);
 
-      koso.addNode("id2", "id1", 0);
+      koso.linkNode("id2", "id1", 0);
 
       expect(koso.yGraph.toJSON()).toStrictEqual({
         id1: {
@@ -166,7 +166,7 @@ describe("Koso tests", () => {
       addItem(koso, "id1", "1", "Task 1", ["id2"]);
       addItem(koso, "id2", "2", "Task 2", []);
 
-      koso.removeNode("id2", "id1");
+      koso.unlinkNode("id2", "id1");
 
       expect(koso.yGraph.toJSON()).toStrictEqual({
         id1: {
@@ -195,7 +195,7 @@ describe("Koso tests", () => {
       addItem(koso, "id2", "2", "Task 2", []);
       addItem(koso, "id3", "3", "Task 3", []);
 
-      koso.addNode("id3", "id1", 1);
+      koso.linkNode("id3", "id1", 1);
 
       expect(koso.yGraph.toJSON()).toStrictEqual({
         id1: {
@@ -233,7 +233,7 @@ describe("Koso tests", () => {
       addItem(koso, "id2", "2", "Task 2", []);
       addItem(koso, "id3", "3", "Task 3", []);
 
-      koso.addNode("id3", "id1", 0);
+      koso.linkNode("id3", "id1", 0);
 
       expect(koso.yGraph.toJSON()).toStrictEqual({
         id1: {

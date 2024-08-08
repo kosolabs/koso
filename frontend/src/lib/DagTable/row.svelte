@@ -148,7 +148,7 @@
         ghostOffset,
       );
     } else {
-      koso.addNode($dragged.name, ghostNode.parent().name, ghostOffset);
+      koso.linkNode($dragged.name, ghostNode.parent().name, ghostOffset);
     }
     $dragged = null;
     ghostNode = null;

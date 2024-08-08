@@ -118,10 +118,13 @@ export class Koso {
           Y.encodeStateAsUpdateV2(this.yDoc, encodedStateVector),
         );
         this.clientMessageHandler(encoding.toUint8Array(encoder));
-      } else if (
-        syncType === MSG_SYNC_RESPONSE ||
-        syncType === MSG_SYNC_UPDATE
-      ) {
+      } else if (syncType === MSG_SYNC_RESPONSE) {
+        const message = decoding.readVarUint8Array(decoder);
+        Y.applyUpdateV2(this.yDoc, message);
+        if (this.yGraph.size === 0) {
+          this.#upsertRoot([]);
+        }
+      } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdateV2(this.yDoc, message);
       } else {
@@ -215,15 +218,7 @@ export class Koso {
       const roots = Array.from(allTaskIds.difference(allChildTaskIds));
 
       this.yDoc.transact(() => {
-        this.upsert({
-          id: "root",
-          num: "0",
-          name: "Root",
-          children: roots,
-          reporter: null,
-          assignee: null,
-          status: null,
-        });
+        this.#upsertRoot(roots);
       });
     }
   }
@@ -244,24 +239,35 @@ export class Koso {
     return `${max + 1}`;
   }
 
-  upsert(task: Task) {
-    this.yDoc.transact(() => {
-      this.yGraph.set(
-        task.id,
-        new Y.Map<Y.Array<string> | string | null>([
-          ["id", task.id],
-          ["num", task.num],
-          ["name", task.name],
-          ["children", Y.Array.from(task.children)],
-          ["reporter", task.reporter],
-          ["assignee", task.assignee],
-          ["status", task.status],
-        ]),
-      );
+  #upsertRoot(children: string[]) {
+    console.log("Upserting a new root with children", children);
+    this.#upsert({
+      id: "root",
+      num: "0",
+      name: "Root",
+      children: children,
+      reporter: null,
+      assignee: null,
+      status: null,
     });
   }
 
-  addNode(nodeId: string, parentId: string, offset: number) {
+  #upsert(task: Task) {
+    this.yGraph.set(
+      task.id,
+      new Y.Map<Y.Array<string> | string | null>([
+        ["id", task.id],
+        ["num", task.num],
+        ["name", task.name],
+        ["children", Y.Array.from(task.children)],
+        ["reporter", task.reporter],
+        ["assignee", task.assignee],
+        ["status", task.status],
+      ]),
+    );
+  }
+
+  linkNode(nodeId: string, parentId: string, offset: number) {
     this.yDoc.transact(() => {
       const yParent = this.yGraph.get(parentId);
       if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
@@ -289,16 +295,20 @@ export class Koso {
     }
   }
 
-  removeNode(node: Node) {
+  unlinkNode(node: Node) {
     this.yDoc.transact(() => {
       this.#unlinkNode(node);
     });
   }
 
+  #deleteNode(node: Node) {
+    this.yGraph.delete(node.name);
+  }
+
   deleteNode(node: Node) {
     this.yDoc.transact(() => {
       this.#unlinkNode(node);
-      this.yGraph.delete(node.name);
+      this.#deleteNode(node);
     });
   }
 
@@ -330,7 +340,7 @@ export class Koso {
   insertNode(parentId: string, offset: number, user: User): string {
     const nodeId = this.newId();
     this.yDoc.transact(() => {
-      this.upsert({
+      this.#upsert({
         id: nodeId,
         num: this.newNum(),
         name: "Untitled",

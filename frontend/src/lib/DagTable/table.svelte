@@ -94,7 +94,7 @@
 
   function unlink() {
     if (!$selected) return;
-    koso.removeNode($selected);
+    koso.unlinkNode($selected);
     $selected = null;
   }
 
