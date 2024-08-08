@@ -177,9 +177,7 @@
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let _socket: void;
-    [users, project, _socket] = await Promise.all([
+    [users, project] = await Promise.all([
       loadUsers(),
       loadProject(),
       openWebSocket(),
@@ -233,7 +231,7 @@
 
 <Modal title="Unauthorized" bind:open={showUnauthorizedModal}>
   <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
-    You do not have access to this project or the project does not exist.
+    You do not have access to the project or the project does not exist.
   </p>
   <svelte:fragment slot="footer">
     <Button on:click={() => goto("/projects")}>Take me home</Button>
