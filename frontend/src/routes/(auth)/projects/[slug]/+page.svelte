@@ -100,7 +100,7 @@
   }
 
   let socket: WebSocket | null = null;
-  let showSocketOfflineMessage: boolean = false;
+  let showSocketOfflineAlert: boolean = false;
   let showUnauthorizedModal: boolean = false;
 
   async function openWebSocket(backoffMs = 1000) {
@@ -113,7 +113,7 @@
 
     socket.onopen = (event) => {
       console.log("WebSocket opened", event);
-      showSocketOfflineMessage = false;
+      showSocketOfflineAlert = false;
       koso.handleClientMessage((update) => {
         if (socket) {
           socket.send(update);
@@ -159,7 +159,7 @@
         `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
         event,
       );
-      showSocketOfflineMessage = true;
+      showSocketOfflineAlert = true;
       setTimeout(async () => {
         if (socket !== null) {
           await openWebSocket(Math.min(backoffMs * 2, 60000));
@@ -187,9 +187,10 @@
 
   onDestroy(() => {
     if (socket) {
-      let s = socket;
+      if (socket) {
+        socket.close(1000, "Closed in onDestroy.");
+      }
       socket = null;
-      s.close(1000, "Closed in onDestroy.");
     }
   });
 </script>
@@ -223,7 +224,7 @@
   </svelte:fragment>
 </Navbar>
 
-{#if showSocketOfflineMessage}
+{#if showSocketOfflineAlert}
   <div class="mt-4">
     <Alert class="border">Connection to server lost. Working offline.</Alert>
   </div>
