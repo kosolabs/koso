@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
-  import { logout as auth_logout, token, user, type User } from "$lib/auth";
+  import { token, user, type User } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
   import { lastVisitedProjectId } from "$lib/nav";
@@ -177,6 +177,7 @@
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let _socket: void;
     [users, project, _socket] = await Promise.all([
       loadUsers(),
