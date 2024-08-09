@@ -70,7 +70,7 @@
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
-    koso.insertNode("root", 0, $user);
+    koso.insertNode("root", 0, "Untitled", $user);
   }
 
   function addPeer() {
@@ -80,6 +80,7 @@
     const newNodeId = koso.insertNode(
       parent.name,
       koso.getOffset($selected) + 1,
+      "Untitled",
       $user,
     );
     $selected = parent.concat(newNodeId);
@@ -88,7 +89,7 @@
   function addChild() {
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    const newNodeId = koso.insertNode($selected.name, 0, $user);
+    const newNodeId = koso.insertNode($selected.name, 0, "Untitled", $user);
     $selected = $selected.concat(newNodeId);
   }
 

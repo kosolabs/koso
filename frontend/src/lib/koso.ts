@@ -58,6 +58,8 @@ export type Parents = {
   [id: string]: string[];
 };
 
+export type Status = "Not Started" | "In Progress" | "Done";
+
 export type Task = {
   id: string;
   num: string;
@@ -65,7 +67,7 @@ export type Task = {
   children: string[];
   assignee: string | null;
   reporter: string | null;
-  status: string | null;
+  status: Status | null;
 };
 
 export class Koso {
@@ -240,7 +242,6 @@ export class Koso {
   }
 
   #upsertRoot(children: string[]) {
-    console.log("Upserting a new root with children", children);
     this.#upsert({
       id: "root",
       num: "0",
@@ -337,13 +338,18 @@ export class Koso {
     });
   }
 
-  insertNode(parentId: string, offset: number, user: User): string {
-    const nodeId = this.newId();
+  insertNode(
+    parentId: string,
+    offset: number,
+    name: string,
+    user: User,
+  ): string {
+    const taskId = this.newId();
     this.yDoc.transact(() => {
       this.#upsert({
-        id: nodeId,
+        id: taskId,
         num: this.newNum(),
-        name: "Untitled",
+        name: name,
         children: [],
         reporter: user.email,
         assignee: null,
@@ -351,12 +357,12 @@ export class Koso {
       });
       const yParent = this.yGraph.get(parentId)!;
       const yChildren = yParent.get("children") as Y.Array<string>;
-      yChildren.insert(offset, [nodeId]);
+      yChildren.insert(offset, [taskId]);
     });
-    return nodeId;
+    return taskId;
   }
 
-  editTaskName(taskId: string, newName: string) {
+  setTaskName(taskId: string, newName: string) {
     this.yDoc.transact(() => {
       const yNode = this.yGraph.get(taskId);
       if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
@@ -390,12 +396,12 @@ export class Koso {
     });
   }
 
-  editTaskStatus(taskId: string, newStatus: string) {
+  setTaskStatus(taskId: string, status: Status | null) {
     this.yDoc.transact(() => {
       const yNode = this.yGraph.get(taskId);
       if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
-      if (yNode.get("status") !== newStatus) {
-        yNode.set("status", newStatus);
+      if (yNode.get("status") !== status) {
+        yNode.set("status", status);
       }
     });
   }

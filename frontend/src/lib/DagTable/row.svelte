@@ -79,7 +79,7 @@
     if (editedTaskName === null) {
       return;
     }
-    koso.editTaskName(node.name, editedTaskName);
+    koso.setTaskName(node.name, editedTaskName);
     editedTaskName = null;
   }
 
@@ -467,7 +467,7 @@
     <Dropdown bind:open={statusSelectorOpen}>
       <TaskStatusSelect
         on:select={(event) => {
-          koso.editTaskStatus(task.id, event.detail);
+          koso.setTaskStatus(task.id, event.detail);
           statusSelectorOpen = false;
         }}
       />
