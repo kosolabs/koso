@@ -1,494 +1,376 @@
+import * as encoding from "lib0/encoding";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
+import type { User } from "./auth";
 import { Koso, Node } from "./koso";
 
-function addItem(
-  koso: Koso,
-  id: string,
-  num: string,
-  name: string,
-  children: string[],
-) {
-  koso.upsert({
-    id,
-    num,
-    name,
-    children,
-    reporter: "t@koso.app",
-    assignee: null,
-    status: null,
-  });
-}
+const USER: User = {
+  email: "t@koso.app",
+  name: "Test User",
+  picture: "",
+  exp: 0,
+};
+
+const EMPTY_SYNC_RESPONSE = (() => {
+  const encoder = encoding.createEncoder();
+  encoding.writeVarUint(encoder, 0);
+  encoding.writeVarUint(encoder, 1);
+  encoding.writeVarUint8Array(encoder, Y.encodeStateAsUpdateV2(new Y.Doc()));
+  return encoding.toUint8Array(encoder);
+})();
 
 describe("Koso tests", () => {
   let koso: Koso;
   beforeEach(() => {
     koso = new Koso("project-id", new Y.Doc());
     koso.handleClientMessage(() => {});
-  });
-
-  describe("getRoots", () => {
-    it("empty graph returns empty set", () => {
-      expect(koso.getRoots()).toStrictEqual(new Set([]));
-    });
-
-    it("graph with one task returns one root", () => {
-      addItem(koso, "id1", "1", "Task 1", []);
-      expect(koso.getRoots()).toStrictEqual(new Set(["id1"]));
-    });
-
-    it("graph with two tasks and one root returns one root", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      expect(koso.getRoots()).toStrictEqual(new Set(["id1"]));
-    });
-
-    it("graph with two roots returns two roots", () => {
-      addItem(koso, "id1", "1", "Task 1", []);
-      addItem(koso, "id2", "2", "Task 2", []);
-      expect(koso.getRoots()).toStrictEqual(new Set(["id1", "id2"]));
-    });
+    koso.handleServerMessage(EMPTY_SYNC_RESPONSE);
   });
 
   describe("getTask", () => {
     it("retrieves task 2", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      expect(koso.getTask("id2")).toStrictEqual({
-        id: "id2",
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode(id1, 0, "Task 2", USER);
+      expect(koso.getTask(id2)).toStrictEqual({
+        id: id2,
         num: "2",
         name: "Task 2",
         children: [],
         reporter: "t@koso.app",
         assignee: null,
+        status: null,
       });
     });
 
     it("invalid task id throws an exception", () => {
-      addItem(koso, "id1", "1", "Task 1", []);
-      addItem(koso, "id2", "2", "Task 2", []);
+      koso.insertNode("root", 0, "Task 1", USER);
+      koso.insertNode("root", 1, "Task 2", USER);
       expect(() => koso.getTask("id3")).toThrow();
     });
   });
 
   describe("getChildren", () => {
     it("retrieves task 1's children", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      expect(koso.getChildren("id1")).toStrictEqual(["id2"]);
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode(id1, 0, "Task 2", USER);
+      expect(koso.getChildren(id1)).toStrictEqual([id2]);
     });
 
     it("retrieves empty list of children for leaf task", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      expect(koso.getChildren("id2")).toStrictEqual([]);
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode(id1, 0, "Task 2", USER);
+      expect(koso.getChildren(id2)).toStrictEqual([]);
     });
 
     it("invalid task id throws an exception", () => {
-      addItem(koso, "id1", "1", "Task 1", []);
-      addItem(koso, "id2", "2", "Task 2", []);
+      koso.insertNode("root", 0, "Task 1", USER);
+      koso.insertNode("root", 1, "Task 2", USER);
       expect(() => koso.getChildren("id3")).toThrow();
     });
   });
 
+  describe("getOffset", () => {
+    it("offset of root is 0", () => {
+      expect(koso.getOffset(new Node([]))).toBe(0);
+    });
+
+    it("offset of first node is 0", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      koso.insertNode("root", 1, "Task 2", USER);
+      expect(koso.getOffset(new Node([id1]))).toBe(0);
+    });
+
+    it("offset of first node is 0", () => {
+      koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      expect(koso.getOffset(new Node([id2]))).toBe(1);
+    });
+  });
+
   describe("toNodes", () => {
-    it("empty graph renders successfully", () => {
+    it("empty doc has no nodes", () => {
       expect(koso.toNodes()).toStrictEqual([]);
     });
 
-    it("graph with one root node renders successfully", () => {
-      addItem(koso, "id1", "1", "Task 1", []);
-      expect(koso.toNodes()).toStrictEqual([new Node(["id1"])]);
+    it("doc with one task has one node", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      expect(koso.toNodes()).toStrictEqual([new Node([id1])]);
     });
 
-    it("populated graph renders successfully", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2"]);
-      addItem(koso, "id2", "2", "Task 2", []);
+    it("doc with two tasks has two nodes", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      expect(koso.toNodes()).toStrictEqual([new Node([id1]), new Node([id2])]);
+    });
+
+    it("doc with a multi-linked task has three nodes", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      koso.linkNode(id2, id1, 0);
       expect(koso.toNodes()).toStrictEqual([
-        new Node(["id1"]),
-        new Node(["id1", "id2"]),
+        new Node([id1]),
+        new Node([id1, id2]),
+        new Node([id2]),
       ]);
+    });
+  });
+
+  describe("toParents", () => {
+    it("empty doc has no parents", () => {
+      expect(koso.toParents()).toStrictEqual({});
+    });
+
+    it("doc with one task has root parent", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      expect(koso.toParents()).toStrictEqual({
+        [id1]: ["root"],
+      });
+    });
+
+    it("doc with two tasks has root as parent for both", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      expect(koso.toParents()).toStrictEqual({
+        [id1]: ["root"],
+        [id2]: ["root"],
+      });
+    });
+
+    it("doc with a task with two parents", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      koso.linkNode(id2, id1, 0);
+
+      expect(koso.toParents()).toStrictEqual({
+        [id1]: ["root"],
+        [id2]: ["root", id1],
+      });
     });
   });
 
   describe("graph", () => {
     it("empty graph renders successfully", () => {
-      expect(koso.yGraph.toJSON()).toStrictEqual({});
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: {
+          num: "0",
+          name: "Root",
+          children: [],
+          reporter: null,
+          assignee: null,
+          status: null,
+        },
+      });
     });
 
     it("graph with one root node renders to json successfully", () => {
-      addItem(koso, "id1", "1", "Task 1", []);
-      expect(koso.yGraph.toJSON()).toStrictEqual({
-        id1: {
-          id: "id1",
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { id: "root", num: "0", name: "Root", children: [id1] },
+        [id1]: {
+          id: id1,
           num: "1",
           name: "Task 1",
           children: [],
           reporter: "t@koso.app",
           assignee: null,
+          status: null,
         },
       });
     });
 
     it("populated graph renders to json successfully", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      expect(koso.yGraph.toJSON()).toStrictEqual({
-        id1: {
-          id: "id1",
-          num: "1",
-          name: "Task 1",
-          children: ["id2"],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id2: {
-          id: "id2",
-          num: "2",
-          name: "Task 2",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode(id1, 0, "Task 2", USER);
+
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { id: "root", num: "0", name: "Root", children: [id1] },
+        [id1]: { id: id1, num: "1", name: "Task 1", children: [id2] },
+        [id2]: { id: id2, num: "2", name: "Task 2", children: [] },
       });
     });
 
-    it("reparent root node 2 to root node 1 succeeds", () => {
-      addItem(koso, "id1", "1", "Task 1", []);
-      addItem(koso, "id2", "2", "Task 2", []);
+    it("link node 2 to node 1 succeeds", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
 
-      koso.addNode("id2", "id1", 0);
+      koso.linkNode(id2, id1, 0);
 
-      expect(koso.yGraph.toJSON()).toStrictEqual({
-        id1: {
-          id: "id1",
-          num: "1",
-          name: "Task 1",
-          children: ["id2"],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id2: {
-          id: "id2",
-          num: "2",
-          name: "Task 2",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { children: [id1, id2] },
+        [id1]: { id: id1, children: [id2] },
+        [id2]: { id: id2, children: [] },
       });
     });
 
-    it("unparent node 2 from node 1 succeeds", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2"]);
-      addItem(koso, "id2", "2", "Task 2", []);
+    it("unlink node 2 from node 1 succeeds", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      koso.linkNode(id2, id1, 0);
 
-      koso.removeNode("id2", "id1");
+      koso.unlinkNode(new Node([id1, id2]));
 
-      expect(koso.yGraph.toJSON()).toStrictEqual({
-        id1: {
-          id: "id1",
-          num: "1",
-          name: "Task 1",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id2: {
-          id: "id2",
-          num: "2",
-          name: "Task 2",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { children: [id1, id2] },
+        [id1]: { id: id1, children: [] },
+        [id2]: { id: id2, children: [] },
       });
     });
 
-    it("reparent root node 3 to node 1 as a peer of node 2 succeeds", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      addItem(koso, "id3", "3", "Task 3", []);
+    it("delete node 2 succeeds", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode(id1, 0, "Task 2", USER);
 
-      koso.addNode("id3", "id1", 1);
+      koso.deleteNode(new Node([id1, id2]));
 
-      expect(koso.yGraph.toJSON()).toStrictEqual({
-        id1: {
-          id: "id1",
-          num: "1",
-          name: "Task 1",
-          children: ["id2", "id3"],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id2: {
-          id: "id2",
-          num: "2",
-          name: "Task 2",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id3: {
-          id: "id3",
-          num: "3",
-          name: "Task 3",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
+      expect(koso.yGraph.toJSON()).toHaveProperty("root");
+      expect(koso.yGraph.toJSON()).toHaveProperty(id1);
+      expect(koso.yGraph.toJSON()).not.toHaveProperty(id2);
+    });
+
+    it("move node 3 to child of node 1 as a peer of node 2 succeeds", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode(id1, 0, "Task 2", USER);
+      const id3 = koso.insertNode("root", 1, "Task 3", USER);
+
+      koso.moveNode(id3, "root", 1, id1, 1);
+
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { children: [id1] },
+        [id1]: { children: [id2, id3] },
+        [id2]: { children: [] },
+        [id3]: { children: [] },
       });
     });
 
-    it("reparent root node 3 to node 1 as the immediate child succeeds", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      addItem(koso, "id3", "3", "Task 3", []);
+    it("move node 3 to immediate child of node 1 succeeds", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode(id1, 0, "Task 2", USER);
+      const id3 = koso.insertNode("root", 1, "Task 3", USER);
 
-      koso.addNode("id3", "id1", 0);
+      koso.moveNode(id3, "root", 1, id1, 0);
 
-      expect(koso.yGraph.toJSON()).toStrictEqual({
-        id1: {
-          id: "id1",
-          num: "1",
-          name: "Task 1",
-          children: ["id3", "id2"],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id2: {
-          id: "id2",
-          num: "2",
-          name: "Task 2",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id3: {
-          id: "id3",
-          num: "3",
-          name: "Task 3",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { children: [id1] },
+        [id1]: { children: [id3, id2] },
+        [id2]: { children: [] },
+        [id3]: { children: [] },
       });
     });
 
-    it("editing node 2's name succeeds", () => {
-      addItem(koso, "id1", "1", "Task 1", []);
-      addItem(koso, "id2", "2", "Task 2", []);
+    it("move node 4 to be a child of node 3 succeeds", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode(id1, 0, "Task 2", USER);
+      const id3 = koso.insertNode(id1, 1, "Task 3", USER);
+      const id4 = koso.insertNode(id1, 2, "Task 4", USER);
 
-      koso.editTaskName("id2", "Edited Task 2");
+      koso.moveNode(id4, id1, 2, id3, 0);
 
-      expect(koso.yGraph.toJSON()).toStrictEqual({
-        id1: {
-          id: "id1",
-          num: "1",
-          name: "Task 1",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id2: {
-          id: "id2",
-          num: "2",
-          name: "Edited Task 2",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-      });
-    });
-
-    it("move node 4 to be a child of node 3 removes it as a child from node 1", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2", "id3", "id4"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      addItem(koso, "id3", "3", "Task 3", []);
-      addItem(koso, "id4", "4", "Task 4", []);
-
-      koso.moveNode("id4", "id1", 2, "id3", 0);
-
-      expect(koso.yGraph.toJSON()).toStrictEqual({
-        id1: {
-          id: "id1",
-          num: "1",
-          name: "Task 1",
-          children: ["id2", "id3"],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id2: {
-          id: "id2",
-          num: "2",
-          name: "Task 2",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id3: {
-          id: "id3",
-          num: "3",
-          name: "Task 3",
-          children: ["id4"],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id4: {
-          id: "id4",
-          num: "4",
-          name: "Task 4",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { children: [id1] },
+        [id1]: { children: [id2, id3] },
+        [id2]: { children: [] },
+        [id3]: { children: [id4] },
+        [id4]: { children: [] },
       });
     });
 
     it("move node 4 to be the peer of node 2 succeeds", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2", "id3", "id4"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      addItem(koso, "id3", "3", "Task 3", []);
-      addItem(koso, "id4", "4", "Task 4", []);
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode(id1, 0, "Task 2", USER);
+      const id3 = koso.insertNode(id1, 1, "Task 3", USER);
+      const id4 = koso.insertNode(id1, 2, "Task 4", USER);
 
-      koso.moveNode("id4", "id1", 2, "id1", 1);
+      koso.moveNode(id4, id1, 2, id1, 1);
 
-      expect(koso.yGraph.toJSON()).toStrictEqual({
-        id1: {
-          id: "id1",
-          num: "1",
-          name: "Task 1",
-          children: ["id2", "id4", "id3"],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id2: {
-          id: "id2",
-          num: "2",
-          name: "Task 2",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id3: {
-          id: "id3",
-          num: "3",
-          name: "Task 3",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id4: {
-          id: "id4",
-          num: "4",
-          name: "Task 4",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { children: [id1] },
+        [id1]: { children: [id2, id4, id3] },
+        [id2]: { children: [] },
+        [id3]: { children: [] },
+        [id4]: { children: [] },
       });
     });
 
     it("move node 3 to be the peer of node 4 succeeds", () => {
-      addItem(koso, "id1", "1", "Task 1", ["id2", "id3", "id4"]);
-      addItem(koso, "id2", "2", "Task 2", []);
-      addItem(koso, "id3", "3", "Task 3", []);
-      addItem(koso, "id4", "4", "Task 4", []);
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode(id1, 0, "Task 2", USER);
+      const id3 = koso.insertNode(id1, 1, "Task 3", USER);
+      const id4 = koso.insertNode(id1, 2, "Task 4", USER);
 
-      koso.moveNode("id3", "id1", 1, "id1", 3);
+      koso.moveNode(id3, id1, 1, id1, 3);
 
-      expect(koso.yGraph.toJSON()).toStrictEqual({
-        id1: {
-          id: "id1",
-          num: "1",
-          name: "Task 1",
-          children: ["id2", "id4", "id3"],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id2: {
-          id: "id2",
-          num: "2",
-          name: "Task 2",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id3: {
-          id: "id3",
-          num: "3",
-          name: "Task 3",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
-        id4: {
-          id: "id4",
-          num: "4",
-          name: "Task 4",
-          children: [],
-          reporter: "t@koso.app",
-          assignee: null,
-        },
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { children: [id1] },
+        [id1]: { children: [id2, id4, id3] },
+        [id2]: { children: [] },
+        [id3]: { children: [] },
+        [id4]: { children: [] },
       });
     });
+  });
 
-    it("insert node creates a new untitled task", () => {
-      addItem(koso, "id1", "1", "Task 1", ["idB", "id3"]);
-      addItem(koso, "idB", "2", "Task B", []);
-      addItem(koso, "id3", "3", "Task 3", []);
+  describe("setTaskName", () => {
+    it("set node 2's name succeeds", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 0, "Task 2", USER);
 
-      koso.insertNode("id1", 2, {
-        email: "test@koso.app",
-        exp: 0,
-        name: "Test",
+      koso.setTaskName(id2, "Edited Task 2");
+
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { name: "Root" },
+        [id1]: { name: "Task 1" },
+        [id2]: { name: "Edited Task 2" },
+      });
+    });
+  });
+
+  describe("setAssignee", () => {
+    it("set node 2's assignee succeeds", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 0, "Task 2", USER);
+
+      koso.setAssignee(id2, USER);
+
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { assignee: null },
+        [id1]: { assignee: null },
+        [id2]: { assignee: "t@koso.app" },
+      });
+    });
+  });
+
+  describe("setReporter", () => {
+    it("set node 2's reporter succeeds", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 0, "Task 2", USER);
+
+      koso.setReporter(id2, {
+        email: "new@koso.app",
+        name: "New Test User",
         picture: "",
+        exp: 0,
       });
 
-      const graph = koso.yGraph.toJSON();
-      expect(Object.keys(graph)).toHaveLength(4);
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { reporter: null },
+        [id1]: { reporter: "t@koso.app" },
+        [id2]: { reporter: "new@koso.app" },
+      });
+    });
+  });
 
-      const idMatching = expect.stringMatching(/[0-9a-f-]{36}/);
-      expect(graph).toStrictEqual(
-        expect.objectContaining({
-          id1: {
-            id: "id1",
-            num: "1",
-            name: "Task 1",
-            children: ["idB", "id3", idMatching],
-            reporter: "t@koso.app",
-            assignee: null,
-          },
-          idB: {
-            id: "idB",
-            num: "2",
-            name: "Task B",
-            children: [],
-            reporter: "t@koso.app",
-            assignee: null,
-          },
-          id3: {
-            id: "id3",
-            num: "3",
-            name: "Task 3",
-            children: [],
-            reporter: "t@koso.app",
-            assignee: null,
-          },
-        }),
-      );
+  describe("setTaskStatus", () => {
+    it("set node 2's reporter succeeds", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 0, "Task 2", USER);
 
-      // Also verify the inserted task, a child of task id1
-      const insertedTaskid = graph.id1.children[2];
-      const insertedTask = graph[insertedTaskid];
-      expect(insertedTask.id).toStrictEqual(insertedTaskid);
-      expect(graph[insertedTaskid]).toStrictEqual({
-        id: idMatching,
-        num: "4",
-        name: "Untitled",
-        children: [],
-        assignee: null,
-        reporter: "test@koso.app",
+      koso.setTaskStatus(id2, "Done");
+
+      expect(koso.yGraph.toJSON()).toMatchObject({
+        root: { status: null },
+        [id1]: { status: null },
+        [id2]: { status: "Done" },
       });
     });
   });

@@ -1,12 +1,13 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import type { Status } from "./koso";
   import TaskStatus from "./task-status.svelte";
 
-  const dispatch = createEventDispatcher<{ select: string }>();
+  const dispatch = createEventDispatcher<{ select: Status }>();
 
-  const statuses: string[] = ["Not Started", "In Progress", "Done"];
+  const statuses: Status[] = ["Not Started", "In Progress", "Done"];
 
-  function select(status: string) {
+  function select(status: Status) {
     dispatch("select", status);
   }
 </script>

@@ -5,9 +5,8 @@
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
   import { setContext } from "svelte";
   import { flip } from "svelte/animate";
-  import { Node } from "../koso";
   import Row from "./row.svelte";
-  import { hidden, nodes, selected } from "./state";
+  import { hidden, nodes, parents, selected } from "./state";
   import { receive, send } from "./transition";
 
   export let koso: Koso;
@@ -15,8 +14,10 @@
   let rows: { [key: string]: HTMLDivElement } = {};
 
   $nodes = koso.toNodes();
+  $parents = koso.toParents();
   koso.observe(() => {
     $nodes = koso.toNodes();
+    $parents = koso.toParents();
   });
 
   document.onkeydown = (event: KeyboardEvent) => {
@@ -69,49 +70,45 @@
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
-    koso.addRoot($user);
+    koso.insertNode("root", 0, "Untitled", $user);
   }
 
   function addPeer() {
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    if ($selected.isRoot()) {
-      const newNodeId = koso.addRoot($user);
-      $selected = new Node([newNodeId]);
-    } else {
-      const parent = $selected.parent();
-      const newNodeId = koso.insertNode(
-        parent.name,
-        koso.getOffset($selected) + 1,
-        $user,
-      );
-      $selected = parent.concat(newNodeId);
-    }
+    const parent = $selected.parent();
+    const newNodeId = koso.insertNode(
+      parent.name,
+      koso.getOffset($selected) + 1,
+      "Untitled",
+      $user,
+    );
+    $selected = parent.concat(newNodeId);
   }
 
   function addChild() {
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    const newNodeId = koso.insertNode($selected.name, 0, $user);
+    const newNodeId = koso.insertNode($selected.name, 0, "Untitled", $user);
     $selected = $selected.concat(newNodeId);
   }
 
   function unlink() {
     if (!$selected) return;
-    koso.removeNode($selected.name, $selected.parent().name);
+    koso.unlinkNode($selected);
     $selected = null;
   }
 
   function remove() {
     if (!$selected) return;
-    koso.deleteNode($selected.name);
+    koso.deleteNode($selected);
     $selected = null;
   }
 
   setContext<Koso>("koso", koso);
 </script>
 
-<div class="sticky top-4 z-50 flex gap-2 bg-white py-2">
+<div class="my-2 flex gap-2">
   {#if $selected}
     <Button size="xs" on:click={addPeer}>
       <List class="me-2 w-4" />Add Peer
@@ -119,7 +116,7 @@
     <Button size="xs" on:click={addChild}>
       <ListTree class="me-2 w-4" />Add Child
     </Button>
-    {#if $selected.isRoot()}
+    {#if $parents[$selected.name].length === 1}
       <Button size="xs" on:click={remove}>
         <Trash class="me-2 w-4" />Delete
       </Button>
@@ -136,9 +133,7 @@
 </div>
 
 <table class="w-full border">
-  <thead
-    class="sticky top-[4.4rem] z-50 bg-white text-left text-xs font-bold uppercase"
-  >
+  <thead class="text-left text-xs font-bold uppercase">
     <tr>
       <th class="w-32 border p-2">ID</th>
       <th class="border p-2">Name</th>

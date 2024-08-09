@@ -1,7 +1,8 @@
 import { derived, writable } from "svelte/store";
-import type { Node } from "../koso";
+import type { Node, Parents } from "../koso";
 
 export const nodes = writable<Node[]>([]);
+export const parents = writable<Parents>({});
 export const selected = writable<Node | null>(null);
 export const highlighted = writable<Node | null>(null);
 export const dropEffect = writable<"link" | "move" | "none">("none");
