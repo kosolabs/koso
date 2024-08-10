@@ -8,6 +8,7 @@
   import { A, Avatar, Dropdown, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
+  import { Confetti } from "svelte-confetti";
   import type { Node } from "../koso";
   import {
     collapsed,
@@ -27,6 +28,7 @@
   let assigneeSelectorOpen: boolean = false;
   let reporterSelectorOpen: boolean = false;
   let statusSelectorOpen: boolean = false;
+  let showConfetti: boolean = false;
   let element: HTMLDivElement | undefined;
   let ghostNode: Node | null = null;
   let ghostOffset: number;
@@ -469,9 +471,13 @@
         on:select={(event) => {
           koso.setTaskStatus(task.id, event.detail);
           statusSelectorOpen = false;
+          showConfetti = event.detail === "Done";
         }}
       />
     </Dropdown>
+    {#if showConfetti}
+      <Confetti />
+    {/if}
   </td>
 </tr>
 
