@@ -24,6 +24,8 @@ pub fn from_origin(origin: Option<&Origin>) -> Result<YOrigin> {
         .unwrap_or_else(|| Err(anyhow!("Missing origin")))
 }
 
-pub fn as_origin(who: &str, id: &str) -> Origin {
-    format!("{who}@@{id}").into()
+impl YOrigin {
+    pub fn as_origin(&self) -> Origin {
+        format!("{}@@{}", self.who, self.id).into()
+    }
 }

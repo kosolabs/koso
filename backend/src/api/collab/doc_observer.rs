@@ -28,6 +28,8 @@ impl DocObserver {
             }
         };
         let Some(project) = self.project.upgrade() else {
+            // This will never happen because the observer is invoked syncronously in
+            // ProjectState.apply_update while holding a strong reference to the project.
             tracing::error!("handle_doc_update_v2_event but weak project reference was destroyed");
             return;
         };

@@ -1,6 +1,7 @@
 use super::{
     client::{ClientClosure, ClientSender, CLOSE_RESTART},
     doc_observer::YrsUpdate,
+    txn_origin::YOrigin,
 };
 use crate::{
     api::{
@@ -20,7 +21,7 @@ use std::{
     },
 };
 use tokio::sync::{mpsc::Sender, Mutex};
-use yrs::{Doc, ReadTxn as _, StateVector, Transact as _};
+use yrs::{Doc, ReadTxn as _, StateVector, Transact as _, Update};
 
 pub struct ProjectsState {
     pub projects: DashMap<ProjectId, Weak<ProjectState>>,
@@ -78,12 +79,12 @@ impl ProjectsState {
 
 pub struct ProjectState {
     pub project_id: ProjectId,
-    pub clients: Mutex<HashMap<String, ClientSender>>,
-    pub doc_box: Mutex<Option<DocBox>>,
-    pub updates: atomic::AtomicUsize,
-    pub doc_update_tx: Sender<YrsUpdate>,
-    pub pool: &'static PgPool,
-    pub tracker: tokio_util::task::TaskTracker,
+    clients: Mutex<HashMap<String, ClientSender>>,
+    doc_box: Mutex<Option<DocBox>>,
+    updates: atomic::AtomicUsize,
+    doc_update_tx: Sender<YrsUpdate>,
+    pool: &'static PgPool,
+    tracker: tokio_util::task::TaskTracker,
 }
 
 impl ProjectState {
@@ -122,6 +123,20 @@ impl ProjectState {
         Ok(sv)
     }
 
+    pub async fn encode_state_as_update(&self, sv: &StateVector) -> Result<Vec<u8>> {
+        let update = DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
+            .doc
+            .transact()
+            .encode_state_as_update_v2(sv);
+        Ok(update)
+    }
+    pub async fn apply_doc_update(&self, origin: YOrigin, update: Update) -> Result<()> {
+        DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
+            .doc
+            .transact_mut_with(origin.as_origin())
+            .apply_update(update);
+        Ok(())
+    }
     pub async fn broadcast_msg(&self, from_who: &String, data: Vec<u8>) {
         let mut clients = self.clients.lock().await;
 

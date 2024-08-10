@@ -1,15 +1,14 @@
 use super::client_message_handler::YrsMessage;
 use crate::api::collab::{
     msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
-    projects_state::DocBox,
-    txn_origin::as_origin,
+    txn_origin::YOrigin,
 };
 use anyhow::{anyhow, Result};
 use tokio::sync::mpsc::Receiver;
 use yrs::{
     encoding::read::Read as _,
     updates::decoder::{Decode as _, DecoderV1},
-    ReadTxn as _, StateVector, Transact as _, Update,
+    StateVector, Update,
 };
 
 pub struct YrsMessageProcessor {
@@ -41,10 +40,7 @@ impl YrsMessageProcessor {
                         tracing::debug!("Handling sync_request message");
                         let update = {
                             let sv: StateVector = StateVector::decode_v1(decoder.read_buf()?)?;
-                            DocBox::doc_or_error(msg.project.doc_box.lock().await.as_ref())?
-                                .doc
-                                .transact()
-                                .encode_state_as_update_v2(&sv)
+                            msg.project.encode_state_as_update(&sv).await?
                         };
 
                         // Respond to the client with a sync_response message containing
@@ -62,10 +58,15 @@ impl YrsMessageProcessor {
                         let update = decoder.read_buf()?.to_vec();
                         {
                             let update = Update::decode_v2(&update)?;
-                            DocBox::doc_or_error(msg.project.doc_box.lock().await.as_ref())?
-                                .doc
-                                .transact_mut_with(as_origin(&msg.who, &msg.id))
-                                .apply_update(update);
+                            msg.project
+                                .apply_doc_update(
+                                    YOrigin {
+                                        who: msg.who.clone(),
+                                        id: msg.id.clone(),
+                                    },
+                                    update,
+                                )
+                                .await?;
                         }
 
                         Ok(())
