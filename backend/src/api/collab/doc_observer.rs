@@ -2,15 +2,11 @@ use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
 
 use crate::api::collab::txn_origin::from_origin;
-use std::{
-    fmt,
-    sync::{Arc, Weak},
-};
+use std::{fmt, sync::Arc};
 
 use super::projects_state::ProjectState;
 
 pub(super) struct DocObserver {
-    pub(super) project: Weak<ProjectState>,
     pub(super) doc_update_tx: Sender<YrsUpdate>,
     pub(super) tracker: TaskTracker,
 }
@@ -21,6 +17,7 @@ impl DocObserver {
     /// and any async operations, including sendin to a channel, to occur in a spawned task.
     pub(super) fn handle_doc_update_v2_event(
         &self,
+        project: Arc<ProjectState>,
         txn: &yrs::TransactionMut,
         event: &yrs::UpdateEvent,
     ) {
@@ -30,12 +27,6 @@ impl DocObserver {
                 tracing::error!("Failed to parse origin: {e}");
                 return;
             }
-        };
-        let Some(project) = self.project.upgrade() else {
-            // This will never happen because the observer is invoked syncronously in
-            // ProjectState.apply_update while holding a strong reference to the project.
-            tracing::error!("handle_doc_update_v2_event but weak project reference was destroyed");
-            return;
         };
         let update = YrsUpdate {
             who: origin.who,

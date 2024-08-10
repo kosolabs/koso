@@ -14,7 +14,6 @@ use super::collab::doc_update_processor::DocUpdateProcessor;
 use super::collab::projects_state::ProjectsState;
 use super::collab::yrs_message_processor::YrsMessageProcessor;
 use crate::api::collab::client_message_handler::ClientMessageHandler;
-use crate::api::collab::projects_state::ProjectState;
 use crate::api::{
     self,
     collab::{
@@ -107,35 +106,21 @@ impl Collab {
         }
 
         // Get of insert the project state.
-        let project = self.state.get_or_insert(&project_id);
+        let (project, sv) = match self.state.get_or_init(&project_id).await {
+            Ok(r) => r,
+            Err(e) => {
+                sender.close(CLOSE_ERROR, "Failed to init project.").await;
+                return Err(e);
+            }
+        };
 
         // Store the sender side of the socket in the list of clients.
-        // It's important to add the client before calling init_doc_box to avoid
-        // races with remove_and_close_client. e.g. a client present without an initialized doc box.
         if let Some(mut existing) = project.add_client(sender).await {
             existing
                 .close(CLOSE_ERROR, "Unexpected duplicate connection.")
                 .await;
             tracing::error!("Unexpectedly, client already exists: {existing:?}");
             // Intentionally fall through below and start listening for messages on the new sender.
-        };
-
-        // Init the doc_box, if necessary and grab the state vector.
-        let sv = match ProjectState::init_doc_box(&project).await {
-            Ok(sv) => sv,
-            Err(e) => {
-                project
-                    .remove_and_close_client(
-                        &who,
-                        ClientClosure {
-                            code: CLOSE_ERROR,
-                            reason: "Failed to init doc.",
-                            details: format!("Failed to init doc: {e}"),
-                        },
-                    )
-                    .await;
-                return Err(anyhow!("Failed to init doc: {e}"));
-            }
         };
 
         // Send the entire state vector to the client.

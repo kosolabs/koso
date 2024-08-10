@@ -31,15 +31,15 @@ pub(super) struct ProjectsState {
 }
 
 impl ProjectsState {
-    pub(super) fn get_or_insert(&self, project_id: &ProjectId) -> Arc<ProjectState> {
-        let entry = self.projects.entry(project_id.to_string());
-
-        let project;
-        match entry {
+    pub(super) async fn get_or_init(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<(Arc<ProjectState>, StateVector)> {
+        let project = match self.projects.entry(project_id.to_string()) {
             dashmap::Entry::Occupied(mut o) => match o.get().upgrade() {
-                Some(p) => project = p,
+                Some(p) => p,
                 None => {
-                    project = Arc::new(ProjectState {
+                    let project = Arc::new(ProjectState {
                         project_id: project_id.to_string(),
                         clients: Mutex::new(HashMap::new()),
                         doc_box: Mutex::new(None),
@@ -49,10 +49,11 @@ impl ProjectsState {
                         tracker: self.tracker.clone(),
                     });
                     o.insert(Arc::downgrade(&project));
+                    project
                 }
             },
             dashmap::Entry::Vacant(v) => {
-                project = Arc::new(ProjectState {
+                let project = Arc::new(ProjectState {
                     project_id: project_id.to_string(),
                     clients: Mutex::new(HashMap::new()),
                     doc_box: Mutex::new(None),
@@ -62,9 +63,13 @@ impl ProjectsState {
                     tracker: self.tracker.clone(),
                 });
                 v.insert(Arc::downgrade(&project));
+                project
             }
-        }
-        project
+        };
+
+        // Init the doc_box, if necessary and grab the state vector.
+        let sv = ProjectState::init_doc_box(&project).await?;
+        Ok((project, sv))
     }
 
     pub(super) async fn close(&self) {
@@ -91,7 +96,7 @@ impl ProjectState {
     pub(super) async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
         self.clients.lock().await.insert(sender.who.clone(), sender)
     }
-    pub(super) async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {
+    async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {
         let mut doc_box = project.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
             return Ok(doc_box.doc.transact().state_vector());
@@ -105,12 +110,21 @@ impl ProjectState {
 
         // Persist and broadcast update events by subscribing to the callback.
         let observer = DocObserver {
-            project: Arc::downgrade(project),
             doc_update_tx: project.doc_update_tx.clone(),
             tracker: project.tracker.clone(),
         };
+        let observer_project = Arc::downgrade(project);
         let res = doc.observe_update_v2(move |txn, update| {
-            observer.handle_doc_update_v2_event(txn, update);
+            let Some(project) = observer_project.upgrade() else {
+                // This will never happen because the observer is invoked syncronously in
+                // ProjectState.apply_update while holding a strong reference to the project.
+                tracing::error!(
+                    "handle_doc_update_v2_event but weak project reference was destroyed"
+                );
+                return;
+            };
+            project.updates.fetch_add(1, Relaxed);
+            observer.handle_doc_update_v2_event(project, txn, update);
         });
         let sub = match res {
             Ok(sub) => Box::new(sub),
@@ -163,33 +177,29 @@ impl ProjectState {
     }
 
     pub(super) async fn remove_and_close_client(&self, who: &String, closure: ClientClosure) {
-        let client = {
+        let (client, remaining_clients) = {
             let clients = &mut self.clients.lock().await;
-            let client = clients.remove(who);
-
-            let remaining_clients = clients.len();
-            tracing::debug!(
-                "Removed client. {} clients remain. Reason: {}",
-                remaining_clients,
-                closure.details,
-            );
-
-            if remaining_clients == 0 && client.is_some() {
-                tracing::debug!("Last client disconnected, destroying YGraph");
-                // Set updates back to 0 while holding the doc_box mutex to avoid
-                // interleaving with load_graph.
-                let updates = self.updates.load(Relaxed);
-                if updates > 10 {
-                    self.tracker
-                        .spawn(compact(self.pool, self.project_id.clone()));
-                } else {
-                    tracing::debug!("Skipping compacting, only {updates} updates exist")
-                }
-            }
-            client
+            (clients.remove(who), clients.len())
         };
+        tracing::debug!(
+            "Removed client. {} clients remain. Reason: {}",
+            remaining_clients,
+            closure.details,
+        );
 
-        // Close the client after releasing locks.
+        if remaining_clients == 0 && client.is_some() {
+            tracing::debug!("Last client disconnected, destroying YGraph");
+            // Set updates back to 0 while holding the doc_box mutex to avoid
+            // interleaving with load_graph.
+            let updates = self.updates.load(Relaxed);
+            if updates > 10 {
+                self.tracker
+                    .spawn(compact(self.pool, self.project_id.clone()));
+            } else {
+                tracing::debug!("Skipping compacting, only {updates} updates exist")
+            }
+        }
+
         match client {
             Some(mut client) => {
                 client.close(closure.code, closure.reason).await;

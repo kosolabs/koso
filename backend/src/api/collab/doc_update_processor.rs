@@ -3,14 +3,14 @@ use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use tokio::sync::mpsc::Receiver;
 
-pub(super)struct DocUpdateProcessor {
-    pub(super)pool: &'static PgPool,
-    pub(super)doc_update_rx: Receiver<YrsUpdate>,
+pub(super) struct DocUpdateProcessor {
+    pub(super) pool: &'static PgPool,
+    pub(super) doc_update_rx: Receiver<YrsUpdate>,
 }
 
 impl DocUpdateProcessor {
     #[tracing::instrument(skip(self))]
-    pub(super)async fn process_doc_updates(mut self) {
+    pub(super) async fn process_doc_updates(mut self) {
         loop {
             let update = self.doc_update_rx.recv().await;
             let Some(update) = update else {
