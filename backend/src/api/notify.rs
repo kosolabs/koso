@@ -3,8 +3,8 @@ use crate::{
         self,
         collab::{
             client::{
-                ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL, CLOSE_RESTART,
-                CLOSE_UNAUTHORIZED,
+                from_socket, ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL,
+                CLOSE_RESTART, CLOSE_UNAUTHORIZED,
             },
             msg_sync::{
                 sync_request, sync_response, sync_update, MSG_SYNC, MSG_SYNC_REQUEST,
@@ -134,18 +134,7 @@ impl Notifier {
         tracing::Span::current().record("who", &who);
         tracing::debug!("Registering client");
 
-        use futures::stream::StreamExt;
-        let (ws_sender, ws_receiver) = socket.split();
-        let mut sender = ClientSender {
-            ws_sender,
-            who: who.clone(),
-            project_id: project_id.clone(),
-        };
-        let receiver = ClientReceiver {
-            ws_receiver,
-            who: who.clone(),
-            project_id: project_id.clone(),
-        };
+        let (mut sender, receiver) = from_socket(socket, &who, &project_id);
 
         // Before doing anything else, make sure the user has access to the project.
         if let Err(e) = api::verify_access(self.pool, user, &project_id).await {

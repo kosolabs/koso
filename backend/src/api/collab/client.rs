@@ -1,9 +1,28 @@
-use std::fmt;
-
+use crate::api::model::ProjectId;
 use axum::extract::ws::{CloseCode, CloseFrame, Message, WebSocket};
 use futures::SinkExt as _;
+use std::fmt;
 
-use crate::api::model::ProjectId;
+pub fn from_socket(
+    socket: WebSocket,
+    who: &str,
+    project_id: &ProjectId,
+) -> (ClientSender, ClientReceiver) {
+    use futures::stream::StreamExt;
+    let (ws_sender, ws_receiver) = socket.split();
+    (
+        ClientSender {
+            ws_sender,
+            who: who.to_owned(),
+            project_id: project_id.clone(),
+        },
+        ClientReceiver {
+            ws_receiver,
+            who: who.to_owned(),
+            project_id: project_id.clone(),
+        },
+    )
+}
 
 // https://www.rfc-editor.org/rfc/rfc6455.html#section-7.4.1
 // https://www.iana.org/assignments/websocket/websocket.xhtml#close-code-number
