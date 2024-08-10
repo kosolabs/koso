@@ -174,7 +174,7 @@ impl ProjectState {
                 closure.details,
             );
 
-            if remaining_clients == 0 {
+            if remaining_clients == 0 && client.is_some() {
                 tracing::debug!("Last client disconnected, destroying YGraph");
                 // Set updates back to 0 while holding the doc_box mutex to avoid
                 // interleaving with load_graph.
@@ -190,20 +190,29 @@ impl ProjectState {
         };
 
         // Close the client after releasing locks.
-        if let Some(mut client) = client {
-            client.close(closure.code, closure.reason).await;
+        match client {
+            Some(mut client) => {
+                client.close(closure.code, closure.reason).await;
+            }
+            None => tracing::warn!(
+                "Tried to remove client ({who}) in project {}, but it was already gone.",
+                self.project_id
+            ),
         }
     }
 
     pub(super) async fn close_all(&self) {
-        // Close all clients.
         let mut clients = self.clients.lock().await;
+        tracing::debug!(
+            "Closing {} clients in project {}",
+            clients.len(),
+            self.project_id
+        );
         for client in clients.values_mut() {
             client
                 .close(CLOSE_RESTART, "The server is shutting down.")
                 .await;
         }
-        clients.clear();
     }
 }
 
