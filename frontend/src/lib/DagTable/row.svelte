@@ -5,7 +5,7 @@
   import TaskStatus from "$lib/task-status.svelte";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
-  import { A, Avatar, Dropdown, Input, Tooltip } from "flowbite-svelte";
+  import { A, Dropdown, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
   import { Confetti } from "svelte-confetti";
@@ -25,8 +25,6 @@
   export let users: User[];
   export let rowCallback: (el: HTMLDivElement) => void = () => {};
 
-  let assigneeSelectorOpen: boolean = false;
-  let reporterSelectorOpen: boolean = false;
   let statusSelectorOpen: boolean = false;
   let showConfetti: boolean = false;
   let element: HTMLDivElement | undefined;
@@ -421,21 +419,13 @@
     {/if}
   </td>
   <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
-    <button class="flex gap-1">
-      <Avatar src={assignee?.picture || ""} rounded size="xs" />
-      <div class="whitespace-nowrap max-md:hidden">
-        {assignee?.name || "Unassigned"}
-      </div>
-    </button>
-    <Dropdown bind:open={assigneeSelectorOpen}>
-      <UserSelect
-        {users}
-        on:select={(event) => {
-          koso.setAssignee(task.id, event.detail);
-          assigneeSelectorOpen = false;
-        }}
-      />
-    </Dropdown>
+    <UserSelect
+      {users}
+      value={assignee}
+      on:select={(event) => {
+        koso.setAssignee(task.id, event.detail);
+      }}
+    />
   </td>
   <td
     class={cn(
@@ -443,19 +433,13 @@
       isSelected ? "border-transparent" : "",
     )}
   >
-    <button class="flex gap-1">
-      <Avatar src={reporter?.picture || ""} rounded size="xs" />
-      <div class="whitespace-nowrap">{reporter?.name || "Unknown"}</div>
-    </button>
-    <Dropdown bind:open={reporterSelectorOpen}>
-      <UserSelect
-        {users}
-        on:select={(event) => {
-          koso.setReporter(task.id, event.detail);
-          reporterSelectorOpen = false;
-        }}
-      />
-    </Dropdown>
+    <UserSelect
+      {users}
+      value={reporter}
+      on:select={(event) => {
+        koso.setReporter(task.id, event.detail);
+      }}
+    />
   </td>
   <td
     class={cn(
