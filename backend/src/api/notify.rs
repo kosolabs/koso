@@ -1,3 +1,5 @@
+use super::collab::doc_update_processor::DocUpdateProcessor;
+use super::collab::{client::ClientSender, storage};
 use crate::{
     api::{
         self,
@@ -6,9 +8,10 @@ use crate::{
                 from_socket, ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL,
                 CLOSE_RESTART, CLOSE_UNAUTHORIZED,
             },
+            doc_observer::DocObserver,
             msg_sync::{
-                sync_request, sync_response, sync_update, MSG_SYNC, MSG_SYNC_REQUEST,
-                MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE,
+                sync_request, sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE,
+                MSG_SYNC_UPDATE,
             },
             txn_origin::as_origin,
         },
@@ -47,9 +50,6 @@ use yrs::{
     Doc, ReadTxn, StateVector, Transact, Update,
 };
 
-use super::collab::txn_origin::from_origin;
-use super::collab::{client::ClientSender, storage};
-
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
     let (doc_update_tx, doc_update_rx) = mpsc::channel::<YrsUpdate>(50);
@@ -63,9 +63,16 @@ pub fn start(pool: &'static PgPool) -> Notifier {
         cancel: CancellationToken::new(),
         tracker: tokio_util::task::TaskTracker::new(),
     };
+
+    let doc_update_processor = DocUpdateProcessor {
+        state: Arc::clone(&notifier.state),
+        pool,
+        doc_update_rx,
+        cancel: notifier.cancel.clone(),
+    };
     notifier
         .tracker
-        .spawn(notifier.clone().receive_doc_updates(doc_update_rx));
+        .spawn(doc_update_processor.process_doc_updates());
     notifier
         .tracker
         .spawn(notifier.clone().process_messages(process_rx));
@@ -73,12 +80,12 @@ pub fn start(pool: &'static PgPool) -> Notifier {
     notifier
 }
 
-struct ProjectsState {
+pub struct ProjectsState {
     projects: DashMap<ProjectId, Arc<ProjectState>>,
 }
 
-struct ProjectState {
-    project_id: ProjectId,
+pub struct ProjectState {
+    pub project_id: ProjectId,
     clients: Mutex<HashMap<String, ClientSender>>,
     doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
@@ -98,11 +105,11 @@ struct YrsMessage {
     data: Vec<u8>,
 }
 
-struct YrsUpdate {
-    who: String,
-    project_id: ProjectId,
-    id: String,
-    data: Vec<u8>,
+pub struct YrsUpdate {
+    pub who: String,
+    pub project_id: ProjectId,
+    pub id: String,
+    pub data: Vec<u8>,
 }
 
 #[derive(Clone)]
@@ -212,10 +219,13 @@ impl Notifier {
         project.updates.store(update_count, Relaxed);
 
         // Persist and broadcast update events by subscribing to the callback.
-        let observer_notifier = self.clone();
-        let observer_project = Arc::clone(project);
+        let observer = DocObserver {
+            project: Arc::clone(project),
+            tracker: self.tracker.clone(),
+            doc_update_tx: self.doc_update_tx.clone(),
+        };
         let res = doc.observe_update_v2(move |txn, update| {
-            observer_notifier.handle_doc_update_v2_event(&observer_project, txn, update);
+            observer.handle_doc_update_v2_event(txn, update);
         });
         let sub = match res {
             Ok(sub) => Box::new(sub),
@@ -433,77 +443,6 @@ impl Notifier {
         }
     }
 
-    /// Callback invoked on update_v2 doc events, triggered by calls to "apply_update" in process_message_internal.
-    /// observe_update_v2 only accepts synchronous callbacks thus requiring this function be synchronous
-    /// and any async operations, including sendin to a channel, to occur in a spawned task.
-    fn handle_doc_update_v2_event(
-        &self,
-        observer_project: &ProjectState,
-        txn: &yrs::TransactionMut,
-        event: &yrs::UpdateEvent,
-    ) {
-        let origin = match from_origin(txn.origin()) {
-            Ok(o) => o,
-            Err(e) => {
-                tracing::error!("Failed to parse origin: {e}");
-                return;
-            }
-        };
-        let update = YrsUpdate {
-            who: origin.who,
-            project_id: observer_project.project_id.clone(),
-            id: origin.id,
-            data: event.update.clone(),
-        };
-        let nn = self.clone();
-        self.tracker.spawn(async move {
-            if let Err(e) = nn.doc_update_tx.send(update).await {
-                tracing::error!("failed to send to broadcast channel: {e}");
-            }
-        });
-    }
-
-    #[tracing::instrument(skip(self, doc_update_rx))]
-    async fn receive_doc_updates(self, mut doc_update_rx: Receiver<YrsUpdate>) {
-        loop {
-            tokio::select! {
-                _ = self.cancel.cancelled() => { break; }
-                msg = doc_update_rx.recv() => {
-                    let Some(msg) = msg else {
-                        break;
-                    };
-                    self.process_doc_update(msg).await;
-                }
-            }
-        }
-        tracing::info!("Stopped processing doc updates");
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn process_doc_update(&self, update: YrsUpdate) {
-        if let Err(e) = self.process_doc_update_internal(update).await {
-            tracing::warn!("Failed to process doc update: {e}");
-        }
-    }
-
-    async fn process_doc_update_internal(&self, update: YrsUpdate) -> Result<()> {
-        let Some(project) = self.state.get(&update.project_id) else {
-            return Err(anyhow!(
-                "Unexpectedly, received close for client but the project is missing."
-            ));
-        };
-
-        if let Err(e) = storage::persist_update(&project.project_id, &update.data, self.pool).await
-        {
-            return Err(anyhow!("Failed to persist update: {e}"));
-        }
-        project
-            .broadcast_msg(&update.who, sync_update(update.data))
-            .await;
-
-        Ok(())
-    }
-
     #[tracing::instrument(skip(self))]
     pub async fn stop(&self) {
         // Cancel background tasks and wait for them to complete.
@@ -549,7 +488,7 @@ impl ProjectsState {
             .clone()
     }
 
-    fn get(&self, project_id: &ProjectId) -> Option<Arc<ProjectState>> {
+    pub fn get(&self, project_id: &ProjectId) -> Option<Arc<ProjectState>> {
         self.projects.get(project_id).map(|p| p.clone())
     }
 
@@ -566,7 +505,7 @@ impl ProjectState {
         self.clients.lock().await.insert(sender.who.clone(), sender)
     }
 
-    async fn broadcast_msg(&self, from_who: &String, data: Vec<u8>) {
+    pub async fn broadcast_msg(&self, from_who: &String, data: Vec<u8>) {
         let mut clients = self.clients.lock().await;
 
         tracing::debug!("Broadcasting to {} clients", clients.len());
