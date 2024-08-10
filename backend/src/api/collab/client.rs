@@ -3,7 +3,7 @@ use axum::extract::ws::{CloseCode, CloseFrame, Message, WebSocket};
 use futures::SinkExt as _;
 use std::fmt;
 
-pub fn from_socket(
+pub(super) fn from_socket(
     socket: WebSocket,
     who: &str,
     project_id: &ProjectId,
@@ -26,32 +26,32 @@ pub fn from_socket(
 
 // https://www.rfc-editor.org/rfc/rfc6455.html#section-7.4.1
 // https://www.iana.org/assignments/websocket/websocket.xhtml#close-code-number
-pub const CLOSE_NORMAL: u16 = 1000;
-pub const CLOSE_ERROR: u16 = 1011;
-pub const CLOSE_RESTART: u16 = 1012;
-pub const CLOSE_UNAUTHORIZED: u16 = 3000;
+pub(super) const CLOSE_NORMAL: u16 = 1000;
+pub(super) const CLOSE_ERROR: u16 = 1011;
+pub(super) const CLOSE_RESTART: u16 = 1012;
+pub(super) const CLOSE_UNAUTHORIZED: u16 = 3000;
 
-pub struct ClientClosure {
-    pub code: CloseCode,
+pub(super) struct ClientClosure {
+    pub(super) code: CloseCode,
     /// Reason sent to the client.
     /// Must not contain anything sensitive.
-    pub reason: &'static str,
+    pub(super) reason: &'static str,
     /// Additional details for internal logging.
-    pub details: String,
+    pub(super) details: String,
 }
 
-pub struct ClientSender {
-    pub ws_sender: futures::stream::SplitSink<WebSocket, Message>,
-    pub who: String,
-    pub project_id: ProjectId,
+pub(super) struct ClientSender {
+    pub(super) ws_sender: futures::stream::SplitSink<WebSocket, Message>,
+    pub(super) who: String,
+    pub(super) project_id: ProjectId,
 }
 
 impl ClientSender {
-    pub async fn send(&mut self, data: Vec<u8>) -> Result<(), axum::Error> {
+    pub(super) async fn send(&mut self, data: Vec<u8>) -> Result<(), axum::Error> {
         self.ws_sender.send(Message::Binary(data)).await
     }
 
-    pub async fn close(&mut self, code: CloseCode, reason: &'static str) {
+    pub(super) async fn close(&mut self, code: CloseCode, reason: &'static str) {
         let _ = self
             .ws_sender
             .send(Message::Close(Some(CloseFrame {
@@ -72,14 +72,14 @@ impl fmt::Debug for ClientSender {
     }
 }
 
-pub struct ClientReceiver {
-    pub ws_receiver: futures::stream::SplitStream<WebSocket>,
-    pub who: String,
-    pub project_id: ProjectId,
+pub(super) struct ClientReceiver {
+    pub(super) ws_receiver: futures::stream::SplitStream<WebSocket>,
+    pub(super) who: String,
+    pub(super) project_id: ProjectId,
 }
 
 impl ClientReceiver {
-    pub async fn next(&mut self) -> Option<Result<Message, axum::Error>> {
+    pub(super) async fn next(&mut self) -> Option<Result<Message, axum::Error>> {
         use futures::stream::StreamExt;
         self.ws_receiver.next().await
     }

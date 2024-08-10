@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
 use yrs::Origin;
 
-pub struct YOrigin {
-    pub who: String,
-    pub id: String,
+pub(super) struct YOrigin {
+    pub(super) who: String,
+    pub(super) id: String,
 }
 
-pub fn from_origin(origin: Option<&Origin>) -> Result<YOrigin> {
+pub(super) fn from_origin(origin: Option<&Origin>) -> Result<YOrigin> {
     origin
         .map(|o| match String::from_utf8(o.as_ref().to_vec()) {
             Ok(v) => {
@@ -25,7 +25,7 @@ pub fn from_origin(origin: Option<&Origin>) -> Result<YOrigin> {
 }
 
 impl YOrigin {
-    pub fn as_origin(&self) -> Origin {
+    pub(super) fn as_origin(&self) -> Origin {
         format!("{}@@{}", self.who, self.id).into()
     }
 }

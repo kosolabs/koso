@@ -15,7 +15,7 @@ struct Key {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Certs {
+pub(crate) struct Certs {
     keys: Vec<Key>,
 }
 
@@ -35,7 +35,7 @@ fn parse(json: &str) -> Result<Certs, Box<dyn Error>> {
     Ok(certs)
 }
 
-pub async fn fetch() -> Result<Certs, Box<dyn Error>> {
+pub(crate) async fn fetch() -> Result<Certs, Box<dyn Error>> {
     let client = reqwest::Client::new();
     let resp = client
         .get("https://www.googleapis.com/oauth2/v3/certs")
@@ -48,7 +48,7 @@ pub async fn fetch() -> Result<Certs, Box<dyn Error>> {
 }
 
 #[tracing::instrument(skip(request, next), fields(email))]
-pub async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Body>> {
+pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Body>> {
     let certs = request.extensions().get::<Certs>().unwrap();
     let headers = request.headers();
 
@@ -124,11 +124,11 @@ pub async fn authenticate(mut request: Request, next: Next) -> ApiResult<Respons
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct User {
-    pub email: String,
-    pub name: String,
-    pub picture: String,
-    pub exp: usize,
+pub(crate) struct User {
+    pub(crate) email: String,
+    pub(crate) name: String,
+    pub(crate) picture: String,
+    pub(crate) exp: usize,
 }
 
 #[cfg(test)]

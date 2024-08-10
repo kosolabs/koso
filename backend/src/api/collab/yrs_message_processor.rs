@@ -11,13 +11,13 @@ use yrs::{
     StateVector, Update,
 };
 
-pub struct YrsMessageProcessor {
-    pub process_rx: Receiver<YrsMessage>,
+pub(super) struct YrsMessageProcessor {
+    pub(super) process_rx: Receiver<YrsMessage>,
 }
 
 impl YrsMessageProcessor {
     #[tracing::instrument(skip(self))]
-    pub async fn process_messages(mut self) {
+    pub(super) async fn process_messages(mut self) {
         loop {
             let msg = self.process_rx.recv().await;
             let Some(msg) = msg else {

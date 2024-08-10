@@ -1,12 +1,12 @@
-pub mod client;
-pub mod client_message_handler;
-pub mod doc_observer;
-pub mod doc_update_processor;
-pub mod msg_sync;
-pub mod projects_state;
-pub mod storage;
-pub mod txn_origin;
-pub mod yrs_message_processor;
+pub(crate) mod client;
+pub(crate) mod client_message_handler;
+pub(crate) mod doc_observer;
+pub(crate) mod doc_update_processor;
+pub(crate) mod msg_sync;
+pub(crate) mod projects_state;
+pub(crate) mod storage;
+pub(crate) mod txn_origin;
+pub(crate) mod yrs_message_processor;
 
 use super::collab::client_message_handler::YrsMessage;
 use super::collab::doc_observer::YrsUpdate;
@@ -39,7 +39,7 @@ use uuid::Uuid;
 use yrs::types::ToJson;
 use yrs::{ReadTxn, Transact};
 
-pub fn start(pool: &'static PgPool) -> Collab {
+pub(crate) fn start(pool: &'static PgPool) -> Collab {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
     let (doc_update_tx, doc_update_rx) = mpsc::channel::<YrsUpdate>(50);
     let tracker = tokio_util::task::TaskTracker::new();
@@ -72,7 +72,7 @@ pub fn start(pool: &'static PgPool) -> Collab {
 }
 
 #[derive(Clone)]
-pub struct Collab {
+pub(crate) struct Collab {
     state: Arc<ProjectsState>,
     pool: &'static PgPool,
     process_tx: Sender<YrsMessage>,
@@ -87,7 +87,7 @@ pub struct Collab {
 // When the last client disconnects, consider destroying the graph.
 impl Collab {
     #[tracing::instrument(skip(self, socket, who, user), fields(who))]
-    pub async fn register_client(
+    pub(super) async fn register_client(
         self,
         socket: WebSocket,
         who: SocketAddr,
@@ -169,7 +169,7 @@ impl Collab {
 
     #[allow(clippy::async_yields_async)]
     #[tracing::instrument(skip(self))]
-    pub async fn stop(self) -> Pin<Box<dyn Future<Output = ()>>> {
+    pub(crate) async fn stop(self) -> Pin<Box<dyn Future<Output = ()>>> {
         tracing::debug!("Closing all clients...");
         // Close all client connections.
         self.state.close().await;
@@ -200,7 +200,7 @@ impl Collab {
         });
     }
 
-    pub async fn get_doc(&self, project_id: &ProjectId) -> Result<yrs::Any, Error> {
+    pub(super) async fn get_doc(&self, project_id: &ProjectId) -> Result<yrs::Any, Error> {
         let (doc, _) = storage::load_doc(project_id, self.pool).await?;
         let txn = doc.transact();
         let Some(graph) = txn.get_map("graph") else {

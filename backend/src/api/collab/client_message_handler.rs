@@ -8,16 +8,16 @@ use std::{fmt, ops::ControlFlow, sync::Arc};
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
-pub struct ClientMessageHandler {
-    pub project: Arc<ProjectState>,
-    pub process_tx: Sender<YrsMessage>,
-    pub receiver: ClientReceiver,
+pub(super) struct ClientMessageHandler {
+    pub(super) project: Arc<ProjectState>,
+    pub(super) process_tx: Sender<YrsMessage>,
+    pub(super) receiver: ClientReceiver,
 }
 
 impl ClientMessageHandler {
     /// Listen for update or close messages sent by a client.
     #[tracing::instrument(skip(self), fields(?receiver=self.receiver))]
-    pub async fn receive_messages_from_client(mut self) {
+    pub(super) async fn receive_messages_from_client(mut self) {
         loop {
             let msg = self.receiver.next().await;
             let Some(msg) = msg else {
@@ -93,11 +93,11 @@ impl ClientMessageHandler {
     }
 }
 
-pub struct YrsMessage {
-    pub who: String,
-    pub project: Arc<ProjectState>,
-    pub id: String,
-    pub data: Vec<u8>,
+pub(super) struct YrsMessage {
+    pub(super) who: String,
+    pub(super) project: Arc<ProjectState>,
+    pub(super) id: String,
+    pub(super) data: Vec<u8>,
 }
 
 impl fmt::Debug for YrsMessage {

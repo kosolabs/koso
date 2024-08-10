@@ -23,15 +23,15 @@ use std::{
 use tokio::sync::{mpsc::Sender, Mutex};
 use yrs::{Doc, ReadTxn as _, StateVector, Transact as _, Update};
 
-pub struct ProjectsState {
-    pub projects: DashMap<ProjectId, Weak<ProjectState>>,
-    pub doc_update_tx: Sender<YrsUpdate>,
-    pub pool: &'static PgPool,
-    pub tracker: tokio_util::task::TaskTracker,
+pub(super) struct ProjectsState {
+    pub(super) projects: DashMap<ProjectId, Weak<ProjectState>>,
+    pub(super) doc_update_tx: Sender<YrsUpdate>,
+    pub(super) pool: &'static PgPool,
+    pub(super) tracker: tokio_util::task::TaskTracker,
 }
 
 impl ProjectsState {
-    pub fn get_or_insert(&self, project_id: &ProjectId) -> Arc<ProjectState> {
+    pub(super) fn get_or_insert(&self, project_id: &ProjectId) -> Arc<ProjectState> {
         let entry = self.projects.entry(project_id.to_string());
 
         let project;
@@ -67,7 +67,7 @@ impl ProjectsState {
         project
     }
 
-    pub async fn close(&self) {
+    pub(super) async fn close(&self) {
         for project in self.projects.iter() {
             if let Some(project) = project.upgrade() {
                 project.close_all().await;
@@ -77,8 +77,8 @@ impl ProjectsState {
     }
 }
 
-pub struct ProjectState {
-    pub project_id: ProjectId,
+pub(super) struct ProjectState {
+    pub(super) project_id: ProjectId,
     clients: Mutex<HashMap<String, ClientSender>>,
     doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
@@ -88,10 +88,10 @@ pub struct ProjectState {
 }
 
 impl ProjectState {
-    pub async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
+    pub(super) async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
         self.clients.lock().await.insert(sender.who.clone(), sender)
     }
-    pub async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {
+    pub(super) async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {
         let mut doc_box = project.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
             return Ok(doc_box.doc.transact().state_vector());
@@ -123,21 +123,21 @@ impl ProjectState {
         Ok(sv)
     }
 
-    pub async fn encode_state_as_update(&self, sv: &StateVector) -> Result<Vec<u8>> {
+    pub(super) async fn encode_state_as_update(&self, sv: &StateVector) -> Result<Vec<u8>> {
         let update = DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
             .doc
             .transact()
             .encode_state_as_update_v2(sv);
         Ok(update)
     }
-    pub async fn apply_doc_update(&self, origin: YOrigin, update: Update) -> Result<()> {
+    pub(super) async fn apply_doc_update(&self, origin: YOrigin, update: Update) -> Result<()> {
         DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
             .doc
             .transact_mut_with(origin.as_origin())
             .apply_update(update);
         Ok(())
     }
-    pub async fn broadcast_msg(&self, from_who: &String, data: Vec<u8>) {
+    pub(super) async fn broadcast_msg(&self, from_who: &String, data: Vec<u8>) {
         let mut clients = self.clients.lock().await;
 
         tracing::debug!("Broadcasting to {} clients", clients.len());
@@ -151,7 +151,7 @@ impl ProjectState {
         tracing::debug!("Finished broadcasting: {res:?}");
     }
 
-    pub async fn send_msg(&self, to_who: &String, data: Vec<u8>) -> Result<()> {
+    pub(super) async fn send_msg(&self, to_who: &String, data: Vec<u8>) -> Result<()> {
         let mut clients = self.clients.lock().await;
         let Some(client) = clients.get_mut(to_who) else {
             return Err(anyhow!("Unexpectedly found no client to send to"));
@@ -162,7 +162,7 @@ impl ProjectState {
         Ok(())
     }
 
-    pub async fn remove_and_close_client(&self, who: &String, closure: ClientClosure) {
+    pub(super) async fn remove_and_close_client(&self, who: &String, closure: ClientClosure) {
         let client = {
             let clients = &mut self.clients.lock().await;
             let client = clients.remove(who);
@@ -195,7 +195,7 @@ impl ProjectState {
         }
     }
 
-    pub async fn close_all(&self) {
+    pub(super) async fn close_all(&self) {
         // Close all clients.
         let mut clients = self.clients.lock().await;
         for client in clients.values_mut() {
@@ -213,15 +213,15 @@ impl Drop for ProjectState {
     }
 }
 
-pub struct DocBox {
-    pub doc: Doc,
+pub(super) struct DocBox {
+    pub(super) doc: Doc,
     /// Subscription to observe changes to doc.
     #[allow(dead_code)]
-    pub sub: Box<dyn Send>,
+    pub(super) sub: Box<dyn Send>,
 }
 
 impl DocBox {
-    pub fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox> {
+    pub(super) fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox> {
         match doc_box {
             Some(db) => Ok(db),
             None => Err(anyhow!("DocBox is absent")),

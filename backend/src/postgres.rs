@@ -8,7 +8,7 @@ use yrs::{
 };
 
 #[tracing::instrument(skip(pool))]
-pub async fn compact(pool: &PgPool, project_id: ProjectId) {
+pub(crate) async fn compact(pool: &PgPool, project_id: ProjectId) {
     if let Err(e) = _compact(pool, project_id).await {
         tracing::warn!("Failed to compact: {e}");
     }
@@ -84,7 +84,10 @@ async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<()> {
     Ok(())
 }
 
-pub async fn list_project_users(pool: &PgPool, project_id: &ProjectId) -> Result<Vec<ProjectUser>> {
+pub(crate) async fn list_project_users(
+    pool: &PgPool,
+    project_id: &ProjectId,
+) -> Result<Vec<ProjectUser>> {
     let mut txn = pool.begin().await?;
 
     let users: Vec<ProjectUser> = sqlx::query_as(
