@@ -1,5 +1,8 @@
-use super::client::{ClientClosure, ClientReceiver, CLOSE_NORMAL};
-use crate::api::{collab::client::CLOSE_ERROR, model::ProjectId, notify::ProjectState};
+use super::{
+    client::{ClientClosure, ClientReceiver, CLOSE_NORMAL},
+    projects_state::ProjectState,
+};
+use crate::api::{collab::client::CLOSE_ERROR, model::ProjectId};
 use axum::extract::ws::Message;
 use std::{fmt, ops::ControlFlow, sync::Arc};
 use tokio::sync::mpsc::Sender;

@@ -3,6 +3,7 @@ pub mod client_message_handler;
 pub mod doc_observer;
 pub mod doc_update_processor;
 pub mod msg_sync;
+pub mod projects_state;
 pub mod storage;
 pub mod txn_origin;
 pub mod yrs_message_processor;

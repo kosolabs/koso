@@ -1,10 +1,8 @@
-use super::client_message_handler::YrsMessage;
-use crate::api::{
-    collab::{
-        msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
-        txn_origin::as_origin,
-    },
-    notify::{DocBox, ProjectsState},
+use super::{client_message_handler::YrsMessage, projects_state::ProjectsState};
+use crate::api::collab::{
+    msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
+    projects_state::DocBox,
+    txn_origin::as_origin,
 };
 use anyhow::{anyhow, Result};
 use std::sync::Arc;

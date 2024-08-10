@@ -1,4 +1,5 @@
-use crate::api::{collab::txn_origin::from_origin, model::ProjectId, notify::ProjectState};
+use super::projects_state::ProjectState;
+use crate::api::{collab::txn_origin::from_origin, model::ProjectId};
 use std::{fmt, sync::Arc};
 use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;

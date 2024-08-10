@@ -1,12 +1,11 @@
-use std::sync::Arc;
-
-use crate::api::notify::ProjectsState;
+use super::{
+    doc_observer::YrsUpdate, msg_sync::sync_update, projects_state::ProjectsState, storage,
+};
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
+use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 use tokio_util::sync::CancellationToken;
-
-use super::{doc_observer::YrsUpdate, msg_sync::sync_update, storage};
 
 pub struct DocUpdateProcessor {
     pub state: Arc<ProjectsState>,
