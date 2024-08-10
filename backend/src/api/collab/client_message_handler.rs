@@ -1,16 +1,10 @@
-use std::{ops::ControlFlow, sync::Arc};
-
+use super::client::{ClientClosure, ClientReceiver, CLOSE_NORMAL};
+use crate::api::{collab::client::CLOSE_ERROR, model::ProjectId, notify::ProjectState};
 use axum::extract::ws::Message;
+use std::{fmt, ops::ControlFlow, sync::Arc};
 use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
-
-use crate::api::{
-    collab::client::CLOSE_ERROR,
-    notify::{ProjectState, YrsMessage},
-};
-
-use super::client::{ClientClosure, ClientReceiver, CLOSE_NORMAL};
 
 pub struct ClientMessageHandler {
     pub project: Arc<ProjectState>,
@@ -99,5 +93,23 @@ impl ClientMessageHandler {
                 ControlFlow::Continue(())
             }
         }
+    }
+}
+
+pub struct YrsMessage {
+    pub who: String,
+    pub project_id: ProjectId,
+    pub id: String,
+    pub data: Vec<u8>,
+}
+
+impl fmt::Debug for YrsMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("YrsMessage")
+            .field("project_id", &self.project_id)
+            .field("who", &self.who)
+            .field("id", &self.id)
+            .field("data.len()", &self.data.len())
+            .finish()
     }
 }

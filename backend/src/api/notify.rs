@@ -1,3 +1,5 @@
+use super::collab::client_message_handler::YrsMessage;
+use super::collab::doc_observer::YrsUpdate;
 use super::collab::doc_update_processor::DocUpdateProcessor;
 use super::collab::yrs_message_processor::YrsMessageProcessor;
 use super::collab::{client::ClientSender, storage};
@@ -23,7 +25,6 @@ use dashmap::DashMap;
 use sqlx::PgPool;
 use std::{
     collections::HashMap,
-    fmt,
     net::SocketAddr,
     sync::{
         atomic::{self, Ordering::Relaxed},
@@ -99,20 +100,6 @@ pub struct DocBox {
     /// Subscription to observe changes to doc.
     #[allow(dead_code)]
     sub: Box<dyn Send>,
-}
-
-pub struct YrsMessage {
-    pub who: String,
-    pub project_id: ProjectId,
-    pub id: String,
-    pub data: Vec<u8>,
-}
-
-pub struct YrsUpdate {
-    pub who: String,
-    pub project_id: ProjectId,
-    pub id: String,
-    pub data: Vec<u8>,
 }
 
 #[derive(Clone)]
@@ -398,27 +385,5 @@ impl DocBox {
             Some(db) => Ok(db),
             None => Err(anyhow!("DocBox is absent")),
         }
-    }
-}
-
-impl fmt::Debug for YrsMessage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("YrsMessage")
-            .field("project_id", &self.project_id)
-            .field("who", &self.who)
-            .field("id", &self.id)
-            .field("data.len()", &self.data.len())
-            .finish()
-    }
-}
-
-impl fmt::Debug for YrsUpdate {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("YrsUpdate")
-            .field("project_id", &self.project_id)
-            .field("who", &self.who)
-            .field("id", &self.id)
-            .field("data.len()", &self.data.len())
-            .finish()
     }
 }

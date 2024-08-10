@@ -1,8 +1,5 @@
-use crate::api::{
-    collab::txn_origin::from_origin,
-    notify::{ProjectState, YrsUpdate},
-};
-use std::sync::Arc;
+use crate::api::{collab::txn_origin::from_origin, model::ProjectId, notify::ProjectState};
+use std::{fmt, sync::Arc};
 use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
 
@@ -37,5 +34,23 @@ impl DocObserver {
                 tracing::error!("failed to send to broadcast channel: {e}");
             }
         });
+    }
+}
+
+pub struct YrsUpdate {
+    pub who: String,
+    pub project_id: ProjectId,
+    pub id: String,
+    pub data: Vec<u8>,
+}
+
+impl fmt::Debug for YrsUpdate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("YrsUpdate")
+            .field("project_id", &self.project_id)
+            .field("who", &self.who)
+            .field("id", &self.id)
+            .field("data.len()", &self.data.len())
+            .finish()
     }
 }

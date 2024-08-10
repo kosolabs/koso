@@ -1,13 +1,13 @@
-use std::sync::Arc;
-
+use super::client_message_handler::YrsMessage;
 use crate::api::{
     collab::{
         msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
         txn_origin::as_origin,
     },
-    notify::{DocBox, ProjectsState, YrsMessage},
+    notify::{DocBox, ProjectsState},
 };
 use anyhow::{anyhow, Result};
+use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 use tokio_util::sync::CancellationToken;
 use yrs::{
