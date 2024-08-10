@@ -1,11 +1,16 @@
 use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
 
-use crate::api::{collab::txn_origin::from_origin, model::ProjectId};
-use std::fmt;
+use crate::api::collab::txn_origin::from_origin;
+use std::{
+    fmt,
+    sync::{Arc, Weak},
+};
+
+use super::projects_state::ProjectState;
 
 pub struct DocObserver {
-    pub project_id: ProjectId,
+    pub project: Weak<ProjectState>,
     pub doc_update_tx: Sender<YrsUpdate>,
     pub tracker: TaskTracker,
 }
@@ -22,9 +27,13 @@ impl DocObserver {
                 return;
             }
         };
+        let Some(project) = self.project.upgrade() else {
+            tracing::error!("handle_doc_update_v2_event but weak project reference was destroyed");
+            return;
+        };
         let update = YrsUpdate {
             who: origin.who,
-            project_id: self.project_id.clone(),
+            project,
             id: origin.id,
             data: event.update.clone(),
         };
@@ -40,7 +49,7 @@ impl DocObserver {
 
 pub struct YrsUpdate {
     pub who: String,
-    pub project_id: ProjectId,
+    pub project: Arc<ProjectState>,
     pub id: String,
     pub data: Vec<u8>,
 }
@@ -48,7 +57,7 @@ pub struct YrsUpdate {
 impl fmt::Debug for YrsUpdate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("YrsUpdate")
-            .field("project_id", &self.project_id)
+            .field("project_id", &self.project.project_id)
             .field("who", &self.who)
             .field("id", &self.id)
             .field("data.len()", &self.data.len())

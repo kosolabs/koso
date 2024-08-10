@@ -1,11 +1,10 @@
-use super::{client_message_handler::YrsMessage, projects_state::ProjectsState};
+use super::client_message_handler::YrsMessage;
 use crate::api::collab::{
     msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
     projects_state::DocBox,
     txn_origin::as_origin,
 };
 use anyhow::{anyhow, Result};
-use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 use tokio_util::sync::CancellationToken;
 use yrs::{
@@ -16,7 +15,6 @@ use yrs::{
 
 pub struct YrsMessageProcessor {
     pub process_rx: Receiver<YrsMessage>,
-    pub state: Arc<ProjectsState>,
     pub cancel: CancellationToken,
 }
 
@@ -45,10 +43,6 @@ impl YrsMessageProcessor {
     }
 
     async fn process_message_internal(&self, msg: YrsMessage) -> Result<()> {
-        let Some(project) = self.state.get(&msg.project_id) else {
-            return Err(anyhow!("Tried to handle message but project was None."));
-        };
-
         let mut decoder = DecoderV1::from(msg.data.as_slice());
         match decoder.read_var()? {
             MSG_SYNC => {
@@ -57,7 +51,7 @@ impl YrsMessageProcessor {
                         tracing::debug!("Handling sync_request message");
                         let update = {
                             let sv: StateVector = StateVector::decode_v1(decoder.read_buf()?)?;
-                            DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
+                            DocBox::doc_or_error(msg.project.doc_box.lock().await.as_ref())?
                                 .doc
                                 .transact()
                                 .encode_state_as_update_v2(&sv)
@@ -67,7 +61,9 @@ impl YrsMessageProcessor {
                         // changes known to the server but not the client.
                         // There's no need to broadcast such updates to others or perist them.
                         tracing::debug!("Sending synce_response message to client.");
-                        project.send_msg(&msg.who, sync_response(update)).await?;
+                        msg.project
+                            .send_msg(&msg.who, sync_response(update))
+                            .await?;
 
                         Ok(())
                     }
@@ -76,7 +72,7 @@ impl YrsMessageProcessor {
                         let update = decoder.read_buf()?.to_vec();
                         {
                             let update = Update::decode_v2(&update)?;
-                            DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
+                            DocBox::doc_or_error(msg.project.doc_box.lock().await.as_ref())?
                                 .doc
                                 .transact_mut_with(as_origin(&msg.who, &msg.id))
                                 .apply_update(update);

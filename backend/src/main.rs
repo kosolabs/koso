@@ -115,7 +115,7 @@ async fn start_main_server() {
     .unwrap();
 
     // Now that the server is shutdown, it's safe to clean things up.
-    notifier.stop().await;
+    notifier.stop().await.await;
     tracing::debug!("Closing database pool...");
     pool.close().await;
 }

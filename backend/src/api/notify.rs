@@ -5,6 +5,7 @@ use super::collab::projects_state::ProjectsState;
 use super::collab::storage;
 use super::collab::yrs_message_processor::YrsMessageProcessor;
 use crate::api::collab::client_message_handler::ClientMessageHandler;
+use crate::api::collab::projects_state::ProjectState;
 use crate::api::{
     self,
     collab::{
@@ -20,8 +21,11 @@ use anyhow::Result;
 use axum::extract::ws::WebSocket;
 use dashmap::DashMap;
 use sqlx::PgPool;
+use std::future::Future;
+use std::pin::Pin;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::mpsc::{self, Sender};
+use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 use yrs::types::ToJson;
@@ -45,7 +49,6 @@ pub fn start(pool: &'static PgPool) -> Notifier {
     };
 
     let doc_update_processor = DocUpdateProcessor {
-        state: Arc::clone(&notifier.state),
         pool,
         doc_update_rx,
         cancel: notifier.cancel.clone(),
@@ -56,7 +59,6 @@ pub fn start(pool: &'static PgPool) -> Notifier {
 
     let yrs_message_processor = YrsMessageProcessor {
         process_rx,
-        state: Arc::clone(&notifier.state),
         cancel: notifier.cancel.clone(),
     };
     notifier
@@ -117,7 +119,7 @@ impl Notifier {
         };
 
         // Init the doc_box, if necessary and grab the state vector.
-        let sv = match project.init_doc_box().await {
+        let sv = match ProjectState::init_doc_box(&project).await {
             Ok(sv) => sv,
             Err(e) => {
                 project
@@ -164,24 +166,37 @@ impl Notifier {
         Ok(())
     }
 
+    #[allow(clippy::async_yields_async)]
     #[tracing::instrument(skip(self))]
-    pub async fn stop(&self) {
-        // Cancel background tasks and wait for them to complete.
-        tracing::info!(
-            "Waiting for {} outstanding task(s) to finish..",
-            self.tracker.len()
-        );
-        self.cancel.cancel();
-        self.tracker.close();
-        if let Err(e) = tokio::time::timeout(Duration::from_secs(15), self.tracker.wait()).await {
-            tracing::warn!(
-                "Timed out waiting for tasks. {} remain: {e}",
-                self.tracker.len()
-            );
-        }
-
-        // Close all the project state, including client connections.
+    pub async fn stop(self) -> Pin<Box<dyn Future<Output = ()>>> {
+        tracing::debug!("Closing all clients...");
+        // Close all client connections.
         self.state.close().await;
+
+        let tracker = self.tracker.clone();
+        return Box::pin(async move {
+            // Cancel background tasks and wait for them to complete.
+            tracing::info!(
+                "Waiting for {} outstanding task(s) to finish..",
+                tracker.len()
+            );
+
+            if let Err(e) = tokio::time::timeout(Duration::from_secs(60), async {
+                loop {
+                    if tracker.is_empty() {
+                        break;
+                    }
+                    sleep(Duration::from_millis(100)).await;
+                }
+            })
+            .await
+            {
+                tracing::warn!(
+                    "Timed out waiting for tasks. {} remain: {e}",
+                    self.tracker.len()
+                );
+            }
+        });
     }
 
     pub async fn get_doc(&self, project_id: &ProjectId) -> Result<yrs::Any, Error> {

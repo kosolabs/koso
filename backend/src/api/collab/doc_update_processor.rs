@@ -1,14 +1,10 @@
-use super::{
-    doc_observer::YrsUpdate, msg_sync::sync_update, projects_state::ProjectsState, storage,
-};
+use super::{doc_observer::YrsUpdate, msg_sync::sync_update, storage};
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
-use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 use tokio_util::sync::CancellationToken;
 
 pub struct DocUpdateProcessor {
-    pub state: Arc<ProjectsState>,
     pub pool: &'static PgPool,
     pub doc_update_rx: Receiver<YrsUpdate>,
     pub cancel: CancellationToken,
@@ -39,17 +35,13 @@ impl DocUpdateProcessor {
     }
 
     async fn process_doc_update_internal(&self, update: YrsUpdate) -> Result<()> {
-        let Some(project) = self.state.get(&update.project_id) else {
-            return Err(anyhow!(
-                "Unexpectedly, received close for client but the project is missing."
-            ));
-        };
-
-        if let Err(e) = storage::persist_update(&project.project_id, &update.data, self.pool).await
+        if let Err(e) =
+            storage::persist_update(&update.project.project_id, &update.data, self.pool).await
         {
             return Err(anyhow!("Failed to persist update: {e}"));
         }
-        project
+        update
+            .project
             .broadcast_msg(&update.who, sync_update(update.data))
             .await;
 

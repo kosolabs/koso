@@ -2,7 +2,7 @@ use super::{
     client::{ClientClosure, ClientReceiver, CLOSE_NORMAL},
     projects_state::ProjectState,
 };
-use crate::api::{collab::client::CLOSE_ERROR, model::ProjectId};
+use crate::api::collab::client::CLOSE_ERROR;
 use axum::extract::ws::Message;
 use std::{fmt, ops::ControlFlow, sync::Arc};
 use tokio::sync::mpsc::Sender;
@@ -18,7 +18,7 @@ pub struct ClientMessageHandler {
 
 impl ClientMessageHandler {
     /// Listen for update or close messages sent by a client.
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(?receiver=self.receiver))]
     pub async fn receive_messages_from_client(mut self) {
         loop {
             tokio::select! {
@@ -46,7 +46,7 @@ impl ClientMessageHandler {
                     .process_tx
                     .send(YrsMessage {
                         who: self.receiver.who.clone(),
-                        project_id: self.receiver.project_id.clone(),
+                        project: Arc::clone(&self.project),
                         id: Uuid::new_v4().to_string(),
                         data,
                     })
@@ -101,7 +101,7 @@ impl ClientMessageHandler {
 
 pub struct YrsMessage {
     pub who: String,
-    pub project_id: ProjectId,
+    pub project: Arc<ProjectState>,
     pub id: String,
     pub data: Vec<u8>,
 }
@@ -109,7 +109,7 @@ pub struct YrsMessage {
 impl fmt::Debug for YrsMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("YrsMessage")
-            .field("project_id", &self.project_id)
+            .field("project_id", &self.project.project_id)
             .field("who", &self.who)
             .field("id", &self.id)
             .field("data.len()", &self.data.len())

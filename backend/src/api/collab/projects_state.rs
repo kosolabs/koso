@@ -66,12 +66,6 @@ impl ProjectsState {
         project
     }
 
-    pub fn get(&self, project_id: &ProjectId) -> Option<Arc<ProjectState>> {
-        self.projects
-            .get(project_id)
-            .and_then(|p| p.clone().upgrade())
-    }
-
     pub async fn close(&self) {
         for project in self.projects.iter() {
             if let Some(project) = project.upgrade() {
@@ -96,23 +90,23 @@ impl ProjectState {
     pub async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
         self.clients.lock().await.insert(sender.who.clone(), sender)
     }
-    pub async fn init_doc_box(&self) -> Result<StateVector> {
-        let mut doc_box = self.doc_box.lock().await;
+    pub async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {
+        let mut doc_box = project.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
             return Ok(doc_box.doc.transact().state_vector());
         }
 
         // Load the doc if it wasn't already loaded by another client.
         tracing::debug!("Initializing new YDoc");
-        let (doc, update_count) = storage::load_doc(&self.project_id, self.pool).await?;
+        let (doc, update_count) = storage::load_doc(&project.project_id, project.pool).await?;
         tracing::debug!("Initialized new YDoc with {update_count} updates");
-        self.updates.store(update_count, Relaxed);
+        project.updates.store(update_count, Relaxed);
 
         // Persist and broadcast update events by subscribing to the callback.
         let observer = DocObserver {
-            project_id: self.project_id.clone(),
-            doc_update_tx: self.doc_update_tx.clone(),
-            tracker: self.tracker.clone(),
+            project: Arc::downgrade(project),
+            doc_update_tx: project.doc_update_tx.clone(),
+            tracker: project.tracker.clone(),
         };
         let res = doc.observe_update_v2(move |txn, update| {
             observer.handle_doc_update_v2_event(txn, update);
@@ -181,15 +175,8 @@ impl ProjectState {
         };
 
         // Close the client after releasing locks.
-        match client {
-            Some(mut client) => {
-                client.close(closure.code, closure.reason).await;
-            }
-            None => {
-                tracing::error!(
-                    "Unexpectedly, received close for client while no client was registered."
-                );
-            }
+        if let Some(mut client) = client {
+            client.close(closure.code, closure.reason).await;
         }
     }
 
