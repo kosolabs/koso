@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Input } from "flowbite-svelte";
+  import { Avatar, Dropdown, Input } from "flowbite-svelte";
   import { createEventDispatcher } from "svelte";
   import type { User } from "./auth";
   import UserAvatar from "./user-avatar.svelte";
@@ -7,11 +7,15 @@
   const dispatch = createEventDispatcher<{ select: User | null }>();
 
   export let users: User[];
-  export let selectedUser: User | null = null;
+  export let value: User | null = null;
+  export let unassigned: string = "Unassigned";
+
+  let open: boolean = false;
   let filter: string = "";
 
   function select(user: User | null) {
-    selectedUser = user;
+    value = user;
+    open = false;
     dispatch("select", user);
   }
 
@@ -22,18 +26,34 @@
   );
 </script>
 
-<div class="flex flex-col gap-2 p-2">
-  <div>
-    <Input placeholder="Filter users" bind:value={filter} />
+<button class="flex gap-1">
+  <Avatar src={value?.picture || ""} rounded size="xs" />
+  <div class="whitespace-nowrap max-md:hidden">
+    {value?.name || unassigned}
   </div>
+</button>
+<Dropdown bind:open>
+  <div class="flex flex-col gap-2 p-2">
+    <div>
+      <Input placeholder="Filter users" bind:value={filter} />
+    </div>
 
-  <button on:click={() => select(null)}>
-    <UserAvatar user={{ name: "Unassigned", email: "", picture: "", exp: 0 }} />
-  </button>
-
-  {#each filteredUsers as user}
-    <button on:click={() => select(user)}>
-      <UserAvatar {user} />
+    <button on:click={() => select(null)}>
+      <UserAvatar
+        user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
+      />
     </button>
-  {/each}
-</div>
+
+    {#each filteredUsers as user}
+      <button
+        on:click={() => {
+          value = user;
+          open = false;
+          dispatch("select", user);
+        }}
+      >
+        <UserAvatar {user} />
+      </button>
+    {/each}
+  </div>
+</Dropdown>
