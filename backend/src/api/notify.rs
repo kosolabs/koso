@@ -1,7 +1,7 @@
 use super::collab::client_message_handler::YrsMessage;
 use super::collab::doc_observer::YrsUpdate;
 use super::collab::doc_update_processor::DocUpdateProcessor;
-use super::collab::projects_state::{ProjectState, ProjectsState};
+use super::collab::projects_state::ProjectsState;
 use super::collab::storage;
 use super::collab::yrs_message_processor::YrsMessageProcessor;
 use crate::api::collab::client_message_handler::ClientMessageHandler;
@@ -117,7 +117,7 @@ impl Notifier {
         };
 
         // Init the doc_box, if necessary and grab the state vector.
-        let sv = match ProjectState::init_doc_box(&project).await {
+        let sv = match project.init_doc_box().await {
             Ok(sv) => sv,
             Err(e) => {
                 project

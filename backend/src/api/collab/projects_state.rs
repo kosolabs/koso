@@ -16,14 +16,14 @@ use std::{
     collections::HashMap,
     sync::{
         atomic::{self, Ordering::Relaxed},
-        Arc,
+        Arc, Weak,
     },
 };
 use tokio::sync::{mpsc::Sender, Mutex};
 use yrs::{Doc, ReadTxn as _, StateVector, Transact as _};
 
 pub struct ProjectsState {
-    pub projects: DashMap<ProjectId, Arc<ProjectState>>,
+    pub projects: DashMap<ProjectId, Weak<ProjectState>>,
     pub doc_update_tx: Sender<YrsUpdate>,
     pub pool: &'static PgPool,
     pub tracker: tokio_util::task::TaskTracker,
@@ -31,29 +31,52 @@ pub struct ProjectsState {
 
 impl ProjectsState {
     pub fn get_or_insert(&self, project_id: &ProjectId) -> Arc<ProjectState> {
-        self.projects
-            .entry(project_id.to_string())
-            .or_insert_with(|| {
-                Arc::new(ProjectState {
+        let entry = self.projects.entry(project_id.to_string());
+
+        let project;
+        match entry {
+            dashmap::Entry::Occupied(mut o) => match o.get().upgrade() {
+                Some(p) => project = p,
+                None => {
+                    project = Arc::new(ProjectState {
+                        project_id: project_id.to_string(),
+                        clients: Mutex::new(HashMap::new()),
+                        doc_box: Mutex::new(None),
+                        doc_update_tx: self.doc_update_tx.clone(),
+                        updates: atomic::AtomicUsize::new(0),
+                        pool: self.pool,
+                        tracker: self.tracker.clone(),
+                    });
+                    o.insert(Arc::downgrade(&project));
+                }
+            },
+            dashmap::Entry::Vacant(v) => {
+                project = Arc::new(ProjectState {
                     project_id: project_id.to_string(),
                     clients: Mutex::new(HashMap::new()),
                     doc_box: Mutex::new(None),
-                    updates: atomic::AtomicUsize::new(0),
                     doc_update_tx: self.doc_update_tx.clone(),
+                    updates: atomic::AtomicUsize::new(0),
                     pool: self.pool,
                     tracker: self.tracker.clone(),
-                })
-            })
-            .clone()
+                });
+                v.insert(Arc::downgrade(&project));
+            }
+        }
+        project
     }
 
     pub fn get(&self, project_id: &ProjectId) -> Option<Arc<ProjectState>> {
-        self.projects.get(project_id).map(|p| p.clone())
+        self.projects
+            .get(project_id)
+            .and_then(|p| p.clone().upgrade())
     }
 
     pub async fn close(&self) {
         for project in self.projects.iter() {
-            project.close_all().await;
+            if let Some(project) = project.upgrade() {
+                project.close_all().await;
+            }
         }
         self.projects.clear();
     }
@@ -73,22 +96,23 @@ impl ProjectState {
     pub async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
         self.clients.lock().await.insert(sender.who.clone(), sender)
     }
-
-    pub async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {
-        let mut doc_box = project.doc_box.lock().await;
+    pub async fn init_doc_box(&self) -> Result<StateVector> {
+        let mut doc_box = self.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
             return Ok(doc_box.doc.transact().state_vector());
         }
 
         // Load the doc if it wasn't already loaded by another client.
         tracing::debug!("Initializing new YDoc");
-        let (doc, update_count) = storage::load_doc(&project.project_id, project.pool).await?;
+        let (doc, update_count) = storage::load_doc(&self.project_id, self.pool).await?;
         tracing::debug!("Initialized new YDoc with {update_count} updates");
-        project.updates.store(update_count, Relaxed);
+        self.updates.store(update_count, Relaxed);
 
         // Persist and broadcast update events by subscribing to the callback.
         let observer = DocObserver {
-            project: Arc::clone(project),
+            project_id: self.project_id.clone(),
+            doc_update_tx: self.doc_update_tx.clone(),
+            tracker: self.tracker.clone(),
         };
         let res = doc.observe_update_v2(move |txn, update| {
             observer.handle_doc_update_v2_event(txn, update);
@@ -143,12 +167,9 @@ impl ProjectState {
 
             if remaining_clients == 0 {
                 tracing::debug!("Last client disconnected, destroying YGraph");
-                let mut doc_box = self.doc_box.lock().await;
-                *doc_box = None;
-
                 // Set updates back to 0 while holding the doc_box mutex to avoid
                 // interleaving with load_graph.
-                let updates = self.updates.swap(0, Relaxed);
+                let updates = self.updates.load(Relaxed);
                 if updates > 10 {
                     self.tracker
                         .spawn(compact(self.pool, self.project_id.clone()));
@@ -181,8 +202,12 @@ impl ProjectState {
                 .await;
         }
         clients.clear();
-        // Drop the doc box to stop observing changes.
-        *self.doc_box.lock().await = None;
+    }
+}
+
+impl Drop for ProjectState {
+    fn drop(&mut self) {
+        tracing::debug!("Destroying project state: {}", self.project_id);
     }
 }
 
