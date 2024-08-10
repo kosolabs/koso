@@ -78,6 +78,15 @@ struct ClientSender {
     project_id: ProjectId,
 }
 
+struct ClientClosure {
+    code: CloseCode,
+    /// Reason sent to the client.
+    /// Must not contain anything sensitive.
+    reason: &'static str,
+    /// Additional details for internal logging.
+    details: String,
+}
+
 struct ClientReceiver {
     ws_receiver: futures::stream::SplitStream<WebSocket>,
     who: String,
@@ -156,25 +165,9 @@ impl Notifier {
         // Get of insert the project state.
         let project = self.state.get_or_insert(&project_id);
 
-        // Init the doc_box, if necessary and grab the state vector.
-        let sv = match self.init_doc_box(&project).await {
-            Ok(sv) => sv,
-            Err(e) => {
-                sender.close(CLOSE_ERROR, "Failed to init doc.").await;
-                return Err(e);
-            }
-        };
-
-        // Send the entire state vector to the client.
-        tracing::debug!("Sending sync_request message to client");
-        if let Err(e) = sender.send(sync_request(sv)).await {
-            sender
-                .close(CLOSE_ERROR, "Failed to send sync message.")
-                .await;
-            return Err(anyhow!("Failed to send sync message to client: {e}"));
-        }
-
         // Store the sender side of the socket in the list of clients.
+        // It's important to add the client before calling init_doc_box to avoid
+        // races with remove_and_close_client. e.g. a client present without an initialized doc box.
         if let Some(mut existing) = project.add_client(sender).await {
             existing
                 .close(CLOSE_ERROR, "Unexpected duplicate connection.")
@@ -182,6 +175,42 @@ impl Notifier {
             tracing::error!("Unexpectedly, client already exists: {existing:?}");
             // Intentionally fall through below and start listening for messages on the new sender.
         };
+
+        // Init the doc_box, if necessary and grab the state vector.
+        let sv = match self.init_doc_box(&project).await {
+            Ok(sv) => sv,
+            Err(e) => {
+                self.remove_and_close_client(
+                    &project_id,
+                    &who,
+                    ClientClosure {
+                        code: CLOSE_ERROR,
+                        reason: "Failed to init doc.",
+                        details: format!("Failed to init doc: {e}"),
+                    },
+                )
+                .await;
+                return Err(anyhow!("Failed to init doc: {e}"));
+            }
+        };
+
+        // Send the entire state vector to the client.
+        tracing::debug!("Sending sync_request message to client");
+        if let Err(e) = project.send_msg(&who, sync_request(sv)).await {
+            self.remove_and_close_client(
+                &project_id,
+                &who,
+                ClientClosure {
+                    code: CLOSE_ERROR,
+                    reason: "Failed to send sync request message.",
+                    details: format!("Failed to send sync request message: {e}"),
+                },
+            )
+            .await;
+            return Err(anyhow!(
+                "Failed to send sync request message to client: {e}"
+            ));
+        }
 
         // Listen for messages on the read side of the socket.
         self.tracker
@@ -260,7 +289,7 @@ impl Notifier {
                 ControlFlow::Continue(())
             }
             Ok(Message::Close(c)) => {
-                let reason = if let Some(cf) = &c {
+                let details = if let Some(cf) = &c {
                     format!(
                         "Client closed connection: code:'{}', detail:'{}'",
                         cf.code, cf.reason
@@ -268,30 +297,30 @@ impl Notifier {
                 } else {
                     "Client closed connection: code:'NONE', detail:'No CloseFrame'".to_string()
                 };
-                if let Some(mut client) = self
-                    .remove_client(&receiver.project_id, &receiver.who, &reason)
-                    .await
-                {
-                    client
-                        .close(CLOSE_NORMAL, "Client closed connection.")
-                        .await;
-                }
+                self.remove_and_close_client(
+                    &receiver.project_id,
+                    &receiver.who,
+                    ClientClosure {
+                        code: CLOSE_NORMAL,
+                        reason: "Client closed connection.",
+                        details,
+                    },
+                )
+                .await;
                 ControlFlow::Break(())
             }
             Err(e) => {
                 tracing::warn!("Got error reading from client socket. Will close socket. {e}");
-                if let Some(mut client) = self
-                    .remove_client(
-                        &receiver.project_id,
-                        &receiver.who,
-                        &format!("Failed to read from client socket: {e}"),
-                    )
-                    .await
-                {
-                    client
-                        .close(CLOSE_ERROR, "Failed to read from client socket.")
-                        .await;
-                }
+                self.remove_and_close_client(
+                    &receiver.project_id,
+                    &receiver.who,
+                    ClientClosure {
+                        code: CLOSE_ERROR,
+                        reason: "Failed to read from client socket.",
+                        details: format!("Failed to read from client socket: {e}"),
+                    },
+                )
+                .await;
                 ControlFlow::Break(())
             }
             Ok(_) => {
@@ -301,32 +330,57 @@ impl Notifier {
         }
     }
 
-    async fn remove_client(
+    async fn remove_and_close_client(
         &self,
         project_id: &ProjectId,
         who: &String,
-        reason: &String,
-    ) -> Option<ClientSender> {
+        closure: ClientClosure,
+    ) {
         let Some(project) = self.state.get(project_id) else {
-            tracing::error!("Unexpectedly, received close for client but the project is missing.");
-            return None;
+            tracing::warn!("Tried to remove client but project was None.");
+            return;
         };
 
-        let (client, remaining_clients) = project.remove_client(who, reason).await;
-        if remaining_clients == 0 {
-            let updates = project.updates.swap(0, Relaxed);
-            if updates > 10 {
-                self.tracker.spawn(compact(self.pool, project_id.clone()));
-            } else {
-                tracing::debug!("Skipping compacting, only {updates} updates exist")
+        let client = {
+            let clients = &mut project.clients.lock().await;
+            let client = clients.remove(who);
+
+            let remaining_clients = clients.len();
+            tracing::debug!(
+                "Removed client. {} clients remain. Reason: {}",
+                remaining_clients,
+                closure.details,
+            );
+
+            if remaining_clients == 0 {
+                tracing::debug!("Last client disconnected, destroying YGraph");
+                let mut doc_box = project.doc_box.lock().await;
+                *doc_box = None;
+
+                // Set updates back to 0 while holding the doc_box mutex to avoid
+                // interleaving with load_graph.
+                let updates = project.updates.swap(0, Relaxed);
+                if updates > 10 {
+                    self.tracker
+                        .spawn(compact(self.pool, project.project_id.clone()));
+                } else {
+                    tracing::debug!("Skipping compacting, only {updates} updates exist")
+                }
+            }
+            client
+        };
+
+        // Close the client after releasing locks.
+        match client {
+            Some(mut client) => {
+                client.close(closure.code, closure.reason).await;
+            }
+            None => {
+                tracing::error!(
+                    "Unexpectedly, received close for client while no client was registered."
+                );
             }
         }
-        if client.is_none() {
-            tracing::error!(
-                "Unexpectedly, received close for client while no client was registered."
-            )
-        }
-        client
     }
 
     #[tracing::instrument(skip(self, process_rx))]
@@ -530,24 +584,6 @@ impl ProjectsState {
 impl ProjectState {
     async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
         self.clients.lock().await.insert(sender.who.clone(), sender)
-    }
-
-    async fn remove_client(&self, who: &String, reason: &String) -> (Option<ClientSender>, usize) {
-        let clients = &mut self.clients.lock().await;
-        let client = clients.remove(who);
-
-        let remaining_clients = clients.len();
-        tracing::debug!(
-            "Removing closed client. {} clients remain. Reason: {}",
-            remaining_clients,
-            reason
-        );
-
-        if remaining_clients == 0 {
-            tracing::debug!("Last client disconnected, destroying YGraph");
-            *self.doc_box.lock().await = None;
-        }
-        (client, remaining_clients)
     }
 
     async fn broadcast_msg(&self, from_who: &String, data: Vec<u8>) {
