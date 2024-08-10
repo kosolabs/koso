@@ -13,7 +13,6 @@ pub mod auth;
 pub mod collab;
 pub mod google;
 pub mod model;
-pub mod notify;
 pub mod projects;
 pub mod ws;
 
