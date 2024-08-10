@@ -1,4 +1,8 @@
 use crate::api;
+use crate::api::collab::msg_sync::{
+    sync_request, sync_response, sync_update, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE,
+    MSG_SYNC_UPDATE,
+};
 use crate::{api::google::User, api::model::ProjectId, postgres::compact};
 use anyhow::anyhow;
 use anyhow::Error;
@@ -27,13 +31,12 @@ use uuid::Uuid;
 use yrs::types::ToJson;
 use yrs::Origin;
 use yrs::{
-    encoding::{read::Read as _, write::Write as _},
-    updates::{
-        decoder::{Decode, DecoderV1},
-        encoder::{Encode, Encoder as _, EncoderV1},
-    },
+    encoding::read::Read as _,
+    updates::decoder::{Decode, DecoderV1},
     Doc, ReadTxn, StateVector, Transact, Update,
 };
+
+use super::collab::storage;
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
@@ -57,15 +60,6 @@ pub fn start(pool: &'static PgPool) -> Notifier {
 
     notifier
 }
-
-const MSG_SYNC: u8 = 0;
-// const MSG_AWARENESS: u8 = 1;
-// const MSG_AUTH: u8 = 2;
-// const MSG_QUERY_AWARENESS: u8 = 3;
-
-const MSG_SYNC_REQUEST: u8 = 0;
-const MSG_SYNC_RESPONSE: u8 = 1;
-const MSG_SYNC_UPDATE: u8 = 2;
 
 struct ProjectsState {
     projects: DashMap<ProjectId, Arc<ProjectState>>,
@@ -173,14 +167,7 @@ impl Notifier {
 
         // Send the entire state vector to the client.
         tracing::debug!("Sending sync_request message to client");
-        let sync_request_msg = {
-            let mut encoder = EncoderV1::new();
-            encoder.write_var(MSG_SYNC);
-            encoder.write_var(MSG_SYNC_REQUEST);
-            encoder.write_buf(sv.encode_v1());
-            encoder.to_vec()
-        };
-        if let Err(e) = sender.send(sync_request_msg).await {
+        if let Err(e) = sender.send(sync_request(sv)).await {
             sender
                 .close(CLOSE_ERROR, "Failed to send sync message.")
                 .await;
@@ -210,7 +197,10 @@ impl Notifier {
         }
 
         // Load the doc if it wasn't already loaded by another client.
-        let doc = self.load_graph(project).await?;
+        tracing::debug!("Initializing new YDoc");
+        let (doc, update_count) = storage::load_doc(&project.project_id, self.pool).await?;
+        tracing::debug!("Initialized new YDoc with {update_count} updates");
+        project.updates.store(update_count, Relaxed);
 
         // Persist and broadcast update events by subscribing to the callback.
         let observer_notifier = self.clone();
@@ -227,27 +217,6 @@ impl Notifier {
         let sv = db.doc.transact().state_vector();
         *doc_box = Some(db);
         Ok(sv)
-    }
-
-    async fn load_graph(&self, project: &ProjectState) -> Result<Doc> {
-        tracing::debug!("Initializing new YDoc");
-        let updates: Vec<(Vec<u8>,)> =
-            sqlx::query_as("SELECT update_v2 FROM yupdates WHERE project_id=$1")
-                .bind(&project.project_id)
-                .fetch_all(self.pool)
-                .await?;
-        let update_count = updates.len();
-        project.updates.store(update_count, Relaxed);
-
-        let doc = Doc::new();
-        {
-            let mut txn = doc.transact_mut();
-            for (update,) in updates {
-                txn.apply_update(Update::decode_v2(&update)?);
-            }
-        }
-        tracing::debug!("Initialized new YDoc with {update_count} updates");
-        Result::Ok(doc)
     }
 
     /// Listen for update or close messages sent by a client.
@@ -406,22 +375,7 @@ impl Notifier {
                         // changes known to the server but not the client.
                         // There's no need to broadcast such updates to others or perist them.
                         tracing::debug!("Sending synce_response message to client.");
-                        let sync_response_msg = {
-                            let mut encoder = EncoderV1::new();
-                            encoder.write_var(MSG_SYNC);
-                            encoder.write_var(MSG_SYNC_RESPONSE);
-                            encoder.write_buf(update);
-                            encoder.to_vec()
-                        };
-                        {
-                            let mut clients = project.clients.lock().await;
-                            let Some(client) = clients.get_mut(&msg.who) else {
-                                return Err(anyhow!("Unexpectedly found no client to reply to"));
-                            };
-                            if let Err(e) = client.send(sync_response_msg).await {
-                                return Err(anyhow!("Failed to send sync_response to client: {e}"));
-                            };
-                        }
+                        project.send_msg(&msg.who, sync_response(update)).await?;
 
                         Ok(())
                     }
@@ -505,32 +459,14 @@ impl Notifier {
             ));
         };
 
-        if let Err(e) = self.persist_update(&project, &update.data).await {
+        if let Err(e) = storage::persist_update(&project.project_id, &update.data, self.pool).await
+        {
             return Err(anyhow!("Failed to persist update: {e}"));
         }
-        let sync_update_msg = {
-            let mut encoder = EncoderV1::new();
-            encoder.write_var(MSG_SYNC);
-            encoder.write_var(MSG_SYNC_UPDATE);
-            encoder.write_buf(update.data);
-            encoder.to_vec()
-        };
-        project.broadcast_msg(&update.who, sync_update_msg).await;
+        project
+            .broadcast_msg(&update.who, sync_update(update.data))
+            .await;
 
-        Ok(())
-    }
-
-    async fn persist_update(&self, project: &ProjectState, data: &Vec<u8>) -> Result<()> {
-        sqlx::query(
-            "
-            INSERT INTO yupdates (project_id, seq, update_v2)
-            VALUES ($1, DEFAULT, $2)",
-        )
-        .bind(&project.project_id)
-        .bind(data)
-        .execute(self.pool)
-        .await?;
-        project.updates.fetch_add(1, Relaxed);
         Ok(())
     }
 
@@ -555,9 +491,7 @@ impl Notifier {
     }
 
     pub async fn get_doc(&self, project_id: &ProjectId) -> Result<yrs::Any, Error> {
-        let doc = self
-            .load_graph(&self.state.get_or_insert(project_id))
-            .await?;
+        let (doc, _) = storage::load_doc(project_id, self.pool).await?;
         let txn = doc.transact();
         let Some(graph) = txn.get_map("graph") else {
             return Err(anyhow!("No graph present in doc"));
@@ -616,13 +550,13 @@ impl ProjectState {
         (client, remaining_clients)
     }
 
-    async fn broadcast_msg(&self, who: &String, data: Vec<u8>) {
+    async fn broadcast_msg(&self, from_who: &String, data: Vec<u8>) {
         let mut clients = self.clients.lock().await;
 
         tracing::debug!("Broadcasting to {} clients", clients.len());
         let mut results = Vec::new();
         for client in clients.values_mut() {
-            if client.who != *who {
+            if client.who != *from_who {
                 results.push(client.send(data.to_owned()));
             }
         }
@@ -630,6 +564,16 @@ impl ProjectState {
         tracing::debug!("Finished broadcasting: {res:?}");
     }
 
+    async fn send_msg(&self, to_who: &String, data: Vec<u8>) -> Result<()> {
+        let mut clients = self.clients.lock().await;
+        let Some(client) = clients.get_mut(to_who) else {
+            return Err(anyhow!("Unexpectedly found no client to send to"));
+        };
+        if let Err(e) = client.send(data).await {
+            return Err(anyhow!("Failed to send to client: {e}"));
+        };
+        Ok(())
+    }
     async fn close_all(&self) {
         // Close all clients.
         let mut clients = self.clients.lock().await;

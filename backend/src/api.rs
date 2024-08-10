@@ -10,6 +10,7 @@ use model::{ProjectId, ProjectPermission};
 use sqlx::postgres::PgPool;
 
 pub mod auth;
+pub mod collab;
 pub mod google;
 pub mod model;
 pub mod notify;
