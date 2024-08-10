@@ -1,13 +1,9 @@
 use super::projects_state::ProjectState;
 use crate::api::{collab::txn_origin::from_origin, model::ProjectId};
 use std::{fmt, sync::Arc};
-use tokio::sync::mpsc::Sender;
-use tokio_util::task::TaskTracker;
 
 pub struct DocObserver {
     pub project: Arc<ProjectState>,
-    pub tracker: TaskTracker,
-    pub doc_update_tx: Sender<YrsUpdate>,
 }
 
 impl DocObserver {
@@ -29,8 +25,8 @@ impl DocObserver {
             data: event.update.clone(),
         };
 
-        let doc_update_tx = self.doc_update_tx.clone();
-        self.tracker.spawn(async move {
+        let doc_update_tx = self.project.doc_update_tx.clone();
+        self.project.tracker.spawn(async move {
             if let Err(e) = doc_update_tx.send(update).await {
                 tracing::error!("failed to send to broadcast channel: {e}");
             }

@@ -5,12 +5,10 @@ use super::collab::projects_state::{ProjectState, ProjectsState};
 use super::collab::storage;
 use super::collab::yrs_message_processor::YrsMessageProcessor;
 use crate::api::collab::client_message_handler::ClientMessageHandler;
-use crate::api::collab::projects_state::DocBox;
 use crate::api::{
     self,
     collab::{
         client::{from_socket, ClientClosure, CLOSE_ERROR, CLOSE_UNAUTHORIZED},
-        doc_observer::DocObserver,
         msg_sync::sync_request,
     },
     google::User,
@@ -22,16 +20,12 @@ use anyhow::Result;
 use axum::extract::ws::WebSocket;
 use dashmap::DashMap;
 use sqlx::PgPool;
-use std::{
-    net::SocketAddr,
-    sync::{atomic::Ordering::Relaxed, Arc},
-    time::Duration,
-};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::mpsc::{self, Sender};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 use yrs::types::ToJson;
-use yrs::{ReadTxn, StateVector, Transact};
+use yrs::{ReadTxn, Transact};
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
@@ -40,12 +34,12 @@ pub fn start(pool: &'static PgPool) -> Notifier {
     let notifier = Notifier {
         state: Arc::new(ProjectsState {
             projects: DashMap::new(),
+            doc_update_tx,
             pool,
             tracker: tracker.clone(),
         }),
         pool,
         process_tx,
-        doc_update_tx,
         cancel: CancellationToken::new(),
         tracker,
     };
@@ -77,7 +71,6 @@ pub struct Notifier {
     state: Arc<ProjectsState>,
     pool: &'static PgPool,
     process_tx: Sender<YrsMessage>,
-    doc_update_tx: Sender<YrsUpdate>,
     cancel: CancellationToken,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -124,7 +117,7 @@ impl Notifier {
         };
 
         // Init the doc_box, if necessary and grab the state vector.
-        let sv = match self.init_doc_box(&project).await {
+        let sv = match ProjectState::init_doc_box(&project).await {
             Ok(sv) => sv,
             Err(e) => {
                 project
@@ -169,38 +162,6 @@ impl Notifier {
         self.tracker.spawn(handler.receive_messages_from_client());
 
         Ok(())
-    }
-
-    async fn init_doc_box(&self, project: &Arc<ProjectState>) -> Result<StateVector> {
-        let mut doc_box = project.doc_box.lock().await;
-        if let Some(doc_box) = doc_box.as_ref() {
-            return Ok(doc_box.doc.transact().state_vector());
-        }
-
-        // Load the doc if it wasn't already loaded by another client.
-        tracing::debug!("Initializing new YDoc");
-        let (doc, update_count) = storage::load_doc(&project.project_id, self.pool).await?;
-        tracing::debug!("Initialized new YDoc with {update_count} updates");
-        project.updates.store(update_count, Relaxed);
-
-        // Persist and broadcast update events by subscribing to the callback.
-        let observer = DocObserver {
-            project: Arc::clone(project),
-            tracker: self.tracker.clone(),
-            doc_update_tx: self.doc_update_tx.clone(),
-        };
-        let res = doc.observe_update_v2(move |txn, update| {
-            observer.handle_doc_update_v2_event(txn, update);
-        });
-        let sub = match res {
-            Ok(sub) => Box::new(sub),
-            Err(e) => return Err(anyhow!("Failed to create observer: {e}")),
-        };
-
-        let db = DocBox { doc, sub };
-        let sv = db.doc.transact().state_vector();
-        *doc_box = Some(db);
-        Ok(sv)
     }
 
     #[tracing::instrument(skip(self))]

@@ -1,5 +1,14 @@
-use super::client::{ClientClosure, ClientSender, CLOSE_RESTART};
-use crate::{api::model::ProjectId, postgres::compact};
+use super::{
+    client::{ClientClosure, ClientSender, CLOSE_RESTART},
+    doc_observer::YrsUpdate,
+};
+use crate::{
+    api::{
+        collab::{doc_observer::DocObserver, storage},
+        model::ProjectId,
+    },
+    postgres::compact,
+};
 use anyhow::{anyhow, Result};
 use dashmap::DashMap;
 use sqlx::PgPool;
@@ -10,11 +19,12 @@ use std::{
         Arc,
     },
 };
-use tokio::sync::Mutex;
-use yrs::Doc;
+use tokio::sync::{mpsc::Sender, Mutex};
+use yrs::{Doc, ReadTxn as _, StateVector, Transact as _};
 
 pub struct ProjectsState {
     pub projects: DashMap<ProjectId, Arc<ProjectState>>,
+    pub doc_update_tx: Sender<YrsUpdate>,
     pub pool: &'static PgPool,
     pub tracker: tokio_util::task::TaskTracker,
 }
@@ -29,6 +39,7 @@ impl ProjectsState {
                     clients: Mutex::new(HashMap::new()),
                     doc_box: Mutex::new(None),
                     updates: atomic::AtomicUsize::new(0),
+                    doc_update_tx: self.doc_update_tx.clone(),
                     pool: self.pool,
                     tracker: self.tracker.clone(),
                 })
@@ -53,6 +64,7 @@ pub struct ProjectState {
     pub clients: Mutex<HashMap<String, ClientSender>>,
     pub doc_box: Mutex<Option<DocBox>>,
     pub updates: atomic::AtomicUsize,
+    pub doc_update_tx: Sender<YrsUpdate>,
     pub pool: &'static PgPool,
     pub tracker: tokio_util::task::TaskTracker,
 }
@@ -60,6 +72,36 @@ pub struct ProjectState {
 impl ProjectState {
     pub async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
         self.clients.lock().await.insert(sender.who.clone(), sender)
+    }
+
+    pub async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {
+        let mut doc_box = project.doc_box.lock().await;
+        if let Some(doc_box) = doc_box.as_ref() {
+            return Ok(doc_box.doc.transact().state_vector());
+        }
+
+        // Load the doc if it wasn't already loaded by another client.
+        tracing::debug!("Initializing new YDoc");
+        let (doc, update_count) = storage::load_doc(&project.project_id, project.pool).await?;
+        tracing::debug!("Initialized new YDoc with {update_count} updates");
+        project.updates.store(update_count, Relaxed);
+
+        // Persist and broadcast update events by subscribing to the callback.
+        let observer = DocObserver {
+            project: Arc::clone(project),
+        };
+        let res = doc.observe_update_v2(move |txn, update| {
+            observer.handle_doc_update_v2_event(txn, update);
+        });
+        let sub = match res {
+            Ok(sub) => Box::new(sub),
+            Err(e) => return Err(anyhow!("Failed to create observer: {e}")),
+        };
+
+        let db = DocBox { doc, sub };
+        let sv = db.doc.transact().state_vector();
+        *doc_box = Some(db);
+        Ok(sv)
     }
 
     pub async fn broadcast_msg(&self, from_who: &String, data: Vec<u8>) {
