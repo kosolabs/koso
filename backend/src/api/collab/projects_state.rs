@@ -187,19 +187,6 @@ impl ProjectState {
             closure.details,
         );
 
-        if remaining_clients == 0 && client.is_some() {
-            tracing::debug!("Last client disconnected, destroying YGraph");
-            // Set updates back to 0 while holding the doc_box mutex to avoid
-            // interleaving with load_graph.
-            let updates = self.updates.load(Relaxed);
-            if updates > 10 {
-                self.tracker
-                    .spawn(compact(self.pool, self.project_id.clone()));
-            } else {
-                tracing::debug!("Skipping compacting, only {updates} updates exist")
-            }
-        }
-
         match client {
             Some(mut client) => {
                 client.close(closure.code, closure.reason).await;
@@ -228,7 +215,19 @@ impl ProjectState {
 
 impl Drop for ProjectState {
     fn drop(&mut self) {
-        tracing::debug!("Destroying project state: {}", self.project_id);
+        tracing::debug!(
+            "Last client disconnected, destroying project state: {}",
+            self.project_id
+        );
+        // Set updates back to 0 while holding the doc_box mutex to avoid
+        // interleaving with load_graph.
+        let updates = self.updates.load(Relaxed);
+        if updates > 10 {
+            self.tracker
+                .spawn(compact(self.pool, self.project_id.clone()));
+        } else {
+            tracing::debug!("Skipping compacting, only {updates} updates exist")
+        }
     }
 }
 
