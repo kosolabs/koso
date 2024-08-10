@@ -1,9 +1,18 @@
-use crate::api;
-use crate::api::collab::msg_sync::{
-    sync_request, sync_response, sync_update, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE,
-    MSG_SYNC_UPDATE,
+use crate::{
+    api::{
+        self,
+        collab::{
+            msg_sync::{
+                sync_request, sync_response, sync_update, MSG_SYNC, MSG_SYNC_REQUEST,
+                MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE,
+            },
+            txn_origin::as_origin,
+        },
+        google::User,
+        model::ProjectId,
+    },
+    postgres::compact,
 };
-use crate::{api::google::User, api::model::ProjectId, postgres::compact};
 use anyhow::anyhow;
 use anyhow::Error;
 use anyhow::Result;
@@ -37,6 +46,7 @@ use yrs::{
 };
 
 use super::collab::storage;
+use super::collab::txn_origin::from_origin;
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
@@ -702,31 +712,4 @@ impl fmt::Debug for YrsUpdate {
             .field("data.len()", &self.data.len())
             .finish()
     }
-}
-
-struct YOrigin {
-    who: String,
-    id: String,
-}
-
-fn from_origin(origin: Option<&Origin>) -> Result<YOrigin> {
-    origin
-        .map(|o| match String::from_utf8(o.as_ref().to_vec()) {
-            Ok(v) => {
-                let mut parts = v.split("@@");
-                let (Some(who), Some(id)) = (parts.next(), parts.next()) else {
-                    return Err(anyhow!("Could not split origin into parts: {v}"));
-                };
-                Ok(YOrigin {
-                    who: who.to_string(),
-                    id: id.to_string(),
-                })
-            }
-            Err(e) => Err(anyhow!("Failed to parse origin bytes to string: {o}: {e}")),
-        })
-        .unwrap_or_else(|| Err(anyhow!("Missing origin")))
-}
-
-fn as_origin(who: &str, id: &str) -> Origin {
-    format!("{who}@@{id}").into()
 }
