@@ -6,13 +6,11 @@ use crate::api::collab::client::CLOSE_ERROR;
 use axum::extract::ws::Message;
 use std::{fmt, ops::ControlFlow, sync::Arc};
 use tokio::sync::mpsc::Sender;
-use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub struct ClientMessageHandler {
     pub project: Arc<ProjectState>,
     pub process_tx: Sender<YrsMessage>,
-    pub cancel: CancellationToken,
     pub receiver: ClientReceiver,
 }
 
@@ -21,16 +19,12 @@ impl ClientMessageHandler {
     #[tracing::instrument(skip(self), fields(?receiver=self.receiver))]
     pub async fn receive_messages_from_client(mut self) {
         loop {
-            tokio::select! {
-                _ = self.cancel.cancelled() => { break; }
-                msg = self.receiver.next() => {
-                    let Some(msg) = msg else {
-                        break;
-                    };
-                    if let ControlFlow::Break(_) = self.receive_message_from_client(msg).await {
-                        break;
-                    }
-                }
+            let msg = self.receiver.next().await;
+            let Some(msg) = msg else {
+                break;
+            };
+            if let ControlFlow::Break(_) = self.receive_message_from_client(msg).await {
+                break;
             }
         }
         tracing::debug!("Stopped receiving messages from client");

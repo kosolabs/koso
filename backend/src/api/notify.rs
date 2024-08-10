@@ -26,7 +26,6 @@ use std::pin::Pin;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::mpsc::{self, Sender};
 use tokio::time::sleep;
-use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 use yrs::types::ToJson;
 use yrs::{ReadTxn, Transact};
@@ -44,23 +43,18 @@ pub fn start(pool: &'static PgPool) -> Notifier {
         }),
         pool,
         process_tx,
-        cancel: CancellationToken::new(),
         tracker,
     };
 
     let doc_update_processor = DocUpdateProcessor {
         pool,
         doc_update_rx,
-        cancel: notifier.cancel.clone(),
     };
     notifier
         .tracker
         .spawn(doc_update_processor.process_doc_updates());
 
-    let yrs_message_processor = YrsMessageProcessor {
-        process_rx,
-        cancel: notifier.cancel.clone(),
-    };
+    let yrs_message_processor = YrsMessageProcessor { process_rx };
     notifier
         .tracker
         .spawn(yrs_message_processor.process_messages());
@@ -73,7 +67,6 @@ pub struct Notifier {
     state: Arc<ProjectsState>,
     pool: &'static PgPool,
     process_tx: Sender<YrsMessage>,
-    cancel: CancellationToken,
     tracker: tokio_util::task::TaskTracker,
 }
 
@@ -158,7 +151,6 @@ impl Notifier {
         let handler = ClientMessageHandler {
             project: Arc::clone(&project),
             process_tx: self.process_tx.clone(),
-            cancel: self.cancel.clone(),
             receiver,
         };
         self.tracker.spawn(handler.receive_messages_from_client());
@@ -175,7 +167,7 @@ impl Notifier {
 
         let tracker = self.tracker.clone();
         return Box::pin(async move {
-            // Cancel background tasks and wait for them to complete.
+            // Wait for background processing tasks to complete.
             tracing::info!(
                 "Waiting for {} outstanding task(s) to finish..",
                 tracker.len()

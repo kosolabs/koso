@@ -6,7 +6,6 @@ use crate::api::collab::{
 };
 use anyhow::{anyhow, Result};
 use tokio::sync::mpsc::Receiver;
-use tokio_util::sync::CancellationToken;
 use yrs::{
     encoding::read::Read as _,
     updates::decoder::{Decode as _, DecoderV1},
@@ -15,34 +14,25 @@ use yrs::{
 
 pub struct YrsMessageProcessor {
     pub process_rx: Receiver<YrsMessage>,
-    pub cancel: CancellationToken,
 }
 
 impl YrsMessageProcessor {
     #[tracing::instrument(skip(self))]
     pub async fn process_messages(mut self) {
         loop {
-            tokio::select! {
-                _ = self.cancel.cancelled() => { break; }
-                msg = self.process_rx.recv() => {
-                    let Some(msg) = msg else {
-                        break;
-                    };
-                    self.process_message(msg).await;
-                }
+            let msg = self.process_rx.recv().await;
+            let Some(msg) = msg else {
+                break;
+            };
+            if let Err(e) = self.process_message(msg).await {
+                tracing::warn!("Failed to process message: {e}");
             }
         }
         tracing::info!("Stopped processing messages");
     }
 
     #[tracing::instrument(skip(self))]
-    async fn process_message(&self, msg: YrsMessage) {
-        if let Err(e) = self.process_message_internal(msg).await {
-            tracing::warn!("Failed to process message: {e}");
-        }
-    }
-
-    async fn process_message_internal(&self, msg: YrsMessage) -> Result<()> {
+    async fn process_message(&self, msg: YrsMessage) -> Result<()> {
         let mut decoder = DecoderV1::from(msg.data.as_slice());
         match decoder.read_var()? {
             MSG_SYNC => {
