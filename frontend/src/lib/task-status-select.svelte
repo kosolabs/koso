@@ -34,7 +34,7 @@
     {#each statuses as status}
       <button on:click={() => select(status)}>
         <div
-          class="hover:bg-primary-100 flex items-center gap-2 rounded p-2 text-left"
+          class="flex items-center gap-2 rounded p-2 text-left hover:bg-primary-100"
         >
           <TaskStatusIcon {status} />
           <div class="whitespace-nowrap text-sm">{status}</div>
