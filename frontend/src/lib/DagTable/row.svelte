@@ -2,13 +2,11 @@
   import type { User } from "$lib/auth";
   import type { Koso } from "$lib/koso";
   import TaskStatusSelect from "$lib/task-status-select.svelte";
-  import TaskStatus from "$lib/task-status.svelte";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
-  import { A, Dropdown, Input, Tooltip } from "flowbite-svelte";
+  import { A, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
-  import { Confetti } from "svelte-confetti";
   import type { Node } from "../koso";
   import {
     collapsed,
@@ -25,8 +23,6 @@
   export let users: User[];
   export let rowCallback: (el: HTMLDivElement) => void = () => {};
 
-  let statusSelectorOpen: boolean = false;
-  let showConfetti: boolean = false;
   let element: HTMLDivElement | undefined;
   let ghostNode: Node | null = null;
   let ghostOffset: number;
@@ -441,27 +437,13 @@
       }}
     />
   </td>
-  <td
-    class={cn(
-      "whitespace-nowrap border p-2",
-      isSelected ? "border-transparent" : "",
-    )}
-  >
-    <button class="flex gap-1">
-      <TaskStatus status={task.status || "Not Started"} />
-    </button>
-    <Dropdown bind:open={statusSelectorOpen}>
-      <TaskStatusSelect
-        on:select={(event) => {
-          koso.setTaskStatus(task.id, event.detail);
-          statusSelectorOpen = false;
-          showConfetti = event.detail === "Done";
-        }}
-      />
-    </Dropdown>
-    {#if showConfetti}
-      <Confetti />
-    {/if}
+  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
+    <TaskStatusSelect
+      value={task.status}
+      on:select={(event) => {
+        koso.setTaskStatus(task.id, event.detail);
+      }}
+    />
   </td>
 </tr>
 

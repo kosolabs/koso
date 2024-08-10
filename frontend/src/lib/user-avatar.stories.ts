@@ -5,6 +5,9 @@ const meta = {
   title: "Koso/UserAvatar",
   component: UserAvatar,
   tags: ["autodocs"],
+  parameters: {
+    layout: "centered",
+  },
 } satisfies Meta<UserAvatar>;
 
 export default meta;

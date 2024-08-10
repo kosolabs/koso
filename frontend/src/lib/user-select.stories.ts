@@ -5,6 +5,9 @@ const meta = {
   title: "Koso/UserSelect",
   component: UserSelect,
   tags: ["autodocs"],
+  parameters: {
+    layout: "centered",
+  },
 } satisfies Meta<UserSelect>;
 
 export default meta;
