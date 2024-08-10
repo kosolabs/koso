@@ -1,4 +1,5 @@
 pub mod client;
+pub mod client_message_handler;
 pub mod doc_observer;
 pub mod doc_update_processor;
 pub mod msg_sync;

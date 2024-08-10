@@ -1,14 +1,12 @@
 use super::collab::doc_update_processor::DocUpdateProcessor;
 use super::collab::yrs_message_processor::YrsMessageProcessor;
 use super::collab::{client::ClientSender, storage};
+use crate::api::collab::client_message_handler::ClientMessageHandler;
 use crate::{
     api::{
         self,
         collab::{
-            client::{
-                from_socket, ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL,
-                CLOSE_RESTART, CLOSE_UNAUTHORIZED,
-            },
+            client::{from_socket, ClientClosure, CLOSE_ERROR, CLOSE_RESTART, CLOSE_UNAUTHORIZED},
             doc_observer::DocObserver,
             msg_sync::sync_request,
         },
@@ -20,14 +18,13 @@ use crate::{
 use anyhow::anyhow;
 use anyhow::Error;
 use anyhow::Result;
-use axum::extract::ws::{Message, WebSocket};
+use axum::extract::ws::WebSocket;
 use dashmap::DashMap;
 use sqlx::PgPool;
 use std::{
     collections::HashMap,
     fmt,
     net::SocketAddr,
-    ops::ControlFlow,
     sync::{
         atomic::{self, Ordering::Relaxed},
         Arc,
@@ -46,15 +43,18 @@ use yrs::{Doc, ReadTxn, StateVector, Transact};
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
     let (doc_update_tx, doc_update_rx) = mpsc::channel::<YrsUpdate>(50);
+    let tracker = tokio_util::task::TaskTracker::new();
     let notifier = Notifier {
         state: Arc::new(ProjectsState {
             projects: DashMap::new(),
+            pool,
+            tracker: tracker.clone(),
         }),
         pool,
         process_tx,
         doc_update_tx,
         cancel: CancellationToken::new(),
-        tracker: tokio_util::task::TaskTracker::new(),
+        tracker,
     };
 
     let doc_update_processor = DocUpdateProcessor {
@@ -81,6 +81,8 @@ pub fn start(pool: &'static PgPool) -> Notifier {
 
 pub struct ProjectsState {
     projects: DashMap<ProjectId, Arc<ProjectState>>,
+    pool: &'static PgPool,
+    tracker: tokio_util::task::TaskTracker,
 }
 
 pub struct ProjectState {
@@ -88,6 +90,8 @@ pub struct ProjectState {
     pub clients: Mutex<HashMap<String, ClientSender>>,
     pub doc_box: Mutex<Option<DocBox>>,
     pub updates: atomic::AtomicUsize,
+    pool: &'static PgPool,
+    tracker: tokio_util::task::TaskTracker,
 }
 
 pub struct DocBox {
@@ -166,16 +170,16 @@ impl Notifier {
         let sv = match self.init_doc_box(&project).await {
             Ok(sv) => sv,
             Err(e) => {
-                self.remove_and_close_client(
-                    &project_id,
-                    &who,
-                    ClientClosure {
-                        code: CLOSE_ERROR,
-                        reason: "Failed to init doc.",
-                        details: format!("Failed to init doc: {e}"),
-                    },
-                )
-                .await;
+                project
+                    .remove_and_close_client(
+                        &who,
+                        ClientClosure {
+                            code: CLOSE_ERROR,
+                            reason: "Failed to init doc.",
+                            details: format!("Failed to init doc: {e}"),
+                        },
+                    )
+                    .await;
                 return Err(anyhow!("Failed to init doc: {e}"));
             }
         };
@@ -183,24 +187,29 @@ impl Notifier {
         // Send the entire state vector to the client.
         tracing::debug!("Sending sync_request message to client");
         if let Err(e) = project.send_msg(&who, sync_request(sv)).await {
-            self.remove_and_close_client(
-                &project_id,
-                &who,
-                ClientClosure {
-                    code: CLOSE_ERROR,
-                    reason: "Failed to send sync request message.",
-                    details: format!("Failed to send sync request message: {e}"),
-                },
-            )
-            .await;
+            project
+                .remove_and_close_client(
+                    &who,
+                    ClientClosure {
+                        code: CLOSE_ERROR,
+                        reason: "Failed to send sync request message.",
+                        details: format!("Failed to send sync request message: {e}"),
+                    },
+                )
+                .await;
             return Err(anyhow!(
                 "Failed to send sync request message to client: {e}"
             ));
         }
 
         // Listen for messages on the read side of the socket.
-        self.tracker
-            .spawn(self.clone().receive_messages_from_client(receiver));
+        let handler = ClientMessageHandler {
+            project: Arc::clone(&project),
+            process_tx: self.process_tx.clone(),
+            cancel: self.cancel.clone(),
+            receiver,
+        };
+        self.tracker.spawn(handler.receive_messages_from_client());
 
         Ok(())
     }
@@ -235,141 +244,6 @@ impl Notifier {
         let sv = db.doc.transact().state_vector();
         *doc_box = Some(db);
         Ok(sv)
-    }
-
-    /// Listen for update or close messages sent by a client.
-    #[tracing::instrument(skip(self))]
-    async fn receive_messages_from_client(self, mut receiver: ClientReceiver) {
-        loop {
-            tokio::select! {
-                _ = self.cancel.cancelled() => { break; }
-                msg = receiver.next() => {
-                    let Some(msg) = msg else {
-                        break;
-                    };
-                    if let ControlFlow::Break(_) = self.receive_message_from_client(&receiver, msg).await {
-                        break;
-                    }
-                }
-            }
-        }
-        tracing::debug!("Stopped receiving messages from client");
-    }
-
-    async fn receive_message_from_client(
-        &self,
-        receiver: &ClientReceiver,
-        msg: Result<Message, axum::Error>,
-    ) -> ControlFlow<()> {
-        match msg {
-            Ok(Message::Binary(data)) => {
-                if let Err(e) = self
-                    .process_tx
-                    .send(YrsMessage {
-                        who: receiver.who.clone(),
-                        project_id: receiver.project_id.clone(),
-                        id: Uuid::new_v4().to_string(),
-                        data,
-                    })
-                    .await
-                {
-                    tracing::error!("Error sending message to process channel: {e}");
-                };
-                ControlFlow::Continue(())
-            }
-            Ok(Message::Close(c)) => {
-                let details = if let Some(cf) = &c {
-                    format!(
-                        "Client closed connection: code:'{}', detail:'{}'",
-                        cf.code, cf.reason
-                    )
-                } else {
-                    "Client closed connection: code:'NONE', detail:'No CloseFrame'".to_string()
-                };
-                self.remove_and_close_client(
-                    &receiver.project_id,
-                    &receiver.who,
-                    ClientClosure {
-                        code: CLOSE_NORMAL,
-                        reason: "Client closed connection.",
-                        details,
-                    },
-                )
-                .await;
-                ControlFlow::Break(())
-            }
-            Err(e) => {
-                tracing::warn!("Got error reading from client socket. Will close socket. {e}");
-                self.remove_and_close_client(
-                    &receiver.project_id,
-                    &receiver.who,
-                    ClientClosure {
-                        code: CLOSE_ERROR,
-                        reason: "Failed to read from client socket.",
-                        details: format!("Failed to read from client socket: {e}"),
-                    },
-                )
-                .await;
-                ControlFlow::Break(())
-            }
-            Ok(_) => {
-                tracing::warn!("Discarding unsolicited message: {msg:?}");
-                ControlFlow::Continue(())
-            }
-        }
-    }
-
-    async fn remove_and_close_client(
-        &self,
-        project_id: &ProjectId,
-        who: &String,
-        closure: ClientClosure,
-    ) {
-        let Some(project) = self.state.get(project_id) else {
-            tracing::warn!("Tried to remove client but project was None.");
-            return;
-        };
-
-        let client = {
-            let clients = &mut project.clients.lock().await;
-            let client = clients.remove(who);
-
-            let remaining_clients = clients.len();
-            tracing::debug!(
-                "Removed client. {} clients remain. Reason: {}",
-                remaining_clients,
-                closure.details,
-            );
-
-            if remaining_clients == 0 {
-                tracing::debug!("Last client disconnected, destroying YGraph");
-                let mut doc_box = project.doc_box.lock().await;
-                *doc_box = None;
-
-                // Set updates back to 0 while holding the doc_box mutex to avoid
-                // interleaving with load_graph.
-                let updates = project.updates.swap(0, Relaxed);
-                if updates > 10 {
-                    self.tracker
-                        .spawn(compact(self.pool, project.project_id.clone()));
-                } else {
-                    tracing::debug!("Skipping compacting, only {updates} updates exist")
-                }
-            }
-            client
-        };
-
-        // Close the client after releasing locks.
-        match client {
-            Some(mut client) => {
-                client.close(closure.code, closure.reason).await;
-            }
-            None => {
-                tracing::error!(
-                    "Unexpectedly, received close for client while no client was registered."
-                );
-            }
-        }
     }
 
     #[tracing::instrument(skip(self))]
@@ -412,6 +286,8 @@ impl ProjectsState {
                     clients: Mutex::new(HashMap::new()),
                     doc_box: Mutex::new(None),
                     updates: atomic::AtomicUsize::new(0),
+                    pool: self.pool,
+                    tracker: self.tracker.clone(),
                 })
             })
             .clone()
@@ -458,6 +334,50 @@ impl ProjectState {
         };
         Ok(())
     }
+
+    pub async fn remove_and_close_client(&self, who: &String, closure: ClientClosure) {
+        let client = {
+            let clients = &mut self.clients.lock().await;
+            let client = clients.remove(who);
+
+            let remaining_clients = clients.len();
+            tracing::debug!(
+                "Removed client. {} clients remain. Reason: {}",
+                remaining_clients,
+                closure.details,
+            );
+
+            if remaining_clients == 0 {
+                tracing::debug!("Last client disconnected, destroying YGraph");
+                let mut doc_box = self.doc_box.lock().await;
+                *doc_box = None;
+
+                // Set updates back to 0 while holding the doc_box mutex to avoid
+                // interleaving with load_graph.
+                let updates = self.updates.swap(0, Relaxed);
+                if updates > 10 {
+                    self.tracker
+                        .spawn(compact(self.pool, self.project_id.clone()));
+                } else {
+                    tracing::debug!("Skipping compacting, only {updates} updates exist")
+                }
+            }
+            client
+        };
+
+        // Close the client after releasing locks.
+        match client {
+            Some(mut client) => {
+                client.close(closure.code, closure.reason).await;
+            }
+            None => {
+                tracing::error!(
+                    "Unexpectedly, received close for client while no client was registered."
+                );
+            }
+        }
+    }
+
     async fn close_all(&self) {
         // Close all clients.
         let mut clients = self.clients.lock().await;
