@@ -2,6 +2,10 @@ use crate::{
     api::{
         self,
         collab::{
+            client::{
+                ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL, CLOSE_RESTART,
+                CLOSE_UNAUTHORIZED,
+            },
             msg_sync::{
                 sync_request, sync_response, sync_update, MSG_SYNC, MSG_SYNC_REQUEST,
                 MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE,
@@ -16,9 +20,8 @@ use crate::{
 use anyhow::anyhow;
 use anyhow::Error;
 use anyhow::Result;
-use axum::extract::ws::{CloseCode, CloseFrame, Message, WebSocket};
+use axum::extract::ws::{Message, WebSocket};
 use dashmap::DashMap;
-use futures::SinkExt;
 use sqlx::PgPool;
 use std::{
     collections::HashMap,
@@ -38,15 +41,14 @@ use tokio::sync::{
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 use yrs::types::ToJson;
-use yrs::Origin;
 use yrs::{
     encoding::read::Read as _,
     updates::decoder::{Decode, DecoderV1},
     Doc, ReadTxn, StateVector, Transact, Update,
 };
 
-use super::collab::storage;
 use super::collab::txn_origin::from_origin;
+use super::collab::{client::ClientSender, storage};
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
@@ -80,27 +82,6 @@ struct ProjectState {
     clients: Mutex<HashMap<String, ClientSender>>,
     doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
-}
-
-struct ClientSender {
-    ws_sender: futures::stream::SplitSink<WebSocket, Message>,
-    who: String,
-    project_id: ProjectId,
-}
-
-struct ClientClosure {
-    code: CloseCode,
-    /// Reason sent to the client.
-    /// Must not contain anything sensitive.
-    reason: &'static str,
-    /// Additional details for internal logging.
-    details: String,
-}
-
-struct ClientReceiver {
-    ws_receiver: futures::stream::SplitStream<WebSocket>,
-    who: String,
-    project_id: ProjectId,
 }
 
 struct DocBox {
@@ -640,55 +621,6 @@ impl DocBox {
             Some(db) => Ok(db),
             None => Err(anyhow!("DocBox is absent")),
         }
-    }
-}
-
-// https://www.rfc-editor.org/rfc/rfc6455.html#section-7.4.1
-// https://www.iana.org/assignments/websocket/websocket.xhtml#close-code-number
-const CLOSE_NORMAL: u16 = 1000;
-const CLOSE_ERROR: u16 = 1011;
-const CLOSE_RESTART: u16 = 1012;
-const CLOSE_UNAUTHORIZED: u16 = 3000;
-
-impl ClientSender {
-    async fn send(&mut self, data: Vec<u8>) -> Result<(), axum::Error> {
-        self.ws_sender.send(Message::Binary(data)).await
-    }
-
-    async fn close(&mut self, code: CloseCode, reason: &'static str) {
-        let _ = self
-            .ws_sender
-            .send(Message::Close(Some(CloseFrame {
-                code,
-                reason: reason.into(),
-            })))
-            .await;
-        let _ = self.ws_sender.close().await;
-    }
-}
-
-impl fmt::Debug for ClientSender {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ClientSender")
-            .field("who", &self.who)
-            .field("project_id", &self.project_id)
-            .finish()
-    }
-}
-
-impl ClientReceiver {
-    async fn next(&mut self) -> Option<Result<Message, axum::Error>> {
-        use futures::stream::StreamExt;
-        self.ws_receiver.next().await
-    }
-}
-
-impl fmt::Debug for ClientReceiver {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ClientReceiver")
-            .field("who", &self.who)
-            .field("project_id", &self.project_id)
-            .finish()
     }
 }
 
