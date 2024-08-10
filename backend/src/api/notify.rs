@@ -1,4 +1,5 @@
 use super::collab::doc_update_processor::DocUpdateProcessor;
+use super::collab::yrs_message_processor::YrsMessageProcessor;
 use super::collab::{client::ClientSender, storage};
 use crate::{
     api::{
@@ -9,11 +10,7 @@ use crate::{
                 CLOSE_RESTART, CLOSE_UNAUTHORIZED,
             },
             doc_observer::DocObserver,
-            msg_sync::{
-                sync_request, sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE,
-                MSG_SYNC_UPDATE,
-            },
-            txn_origin::as_origin,
+            msg_sync::sync_request,
         },
         google::User,
         model::ProjectId,
@@ -38,17 +35,13 @@ use std::{
     time::Duration,
 };
 use tokio::sync::{
-    mpsc::{self, Receiver, Sender},
+    mpsc::{self, Sender},
     Mutex,
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 use yrs::types::ToJson;
-use yrs::{
-    encoding::read::Read as _,
-    updates::decoder::{Decode, DecoderV1},
-    Doc, ReadTxn, StateVector, Transact, Update,
-};
+use yrs::{Doc, ReadTxn, StateVector, Transact};
 
 pub fn start(pool: &'static PgPool) -> Notifier {
     let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
@@ -73,9 +66,15 @@ pub fn start(pool: &'static PgPool) -> Notifier {
     notifier
         .tracker
         .spawn(doc_update_processor.process_doc_updates());
+
+    let yrs_message_processor = YrsMessageProcessor {
+        process_rx,
+        state: Arc::clone(&notifier.state),
+        cancel: notifier.cancel.clone(),
+    };
     notifier
         .tracker
-        .spawn(notifier.clone().process_messages(process_rx));
+        .spawn(yrs_message_processor.process_messages());
 
     notifier
 }
@@ -86,23 +85,23 @@ pub struct ProjectsState {
 
 pub struct ProjectState {
     pub project_id: ProjectId,
-    clients: Mutex<HashMap<String, ClientSender>>,
-    doc_box: Mutex<Option<DocBox>>,
-    updates: atomic::AtomicUsize,
+    pub clients: Mutex<HashMap<String, ClientSender>>,
+    pub doc_box: Mutex<Option<DocBox>>,
+    pub updates: atomic::AtomicUsize,
 }
 
-struct DocBox {
-    doc: Doc,
+pub struct DocBox {
+    pub doc: Doc,
     /// Subscription to observe changes to doc.
     #[allow(dead_code)]
     sub: Box<dyn Send>,
 }
 
-struct YrsMessage {
-    who: String,
-    project_id: ProjectId,
-    id: String,
-    data: Vec<u8>,
+pub struct YrsMessage {
+    pub who: String,
+    pub project_id: ProjectId,
+    pub id: String,
+    pub data: Vec<u8>,
 }
 
 pub struct YrsUpdate {
@@ -373,76 +372,6 @@ impl Notifier {
         }
     }
 
-    #[tracing::instrument(skip(self, process_rx))]
-    async fn process_messages(self, mut process_rx: Receiver<YrsMessage>) {
-        loop {
-            tokio::select! {
-                _ = self.cancel.cancelled() => { break; }
-                msg = process_rx.recv() => {
-                    let Some(msg) = msg else {
-                        break;
-                    };
-                    self.process_message(msg).await;
-                }
-            }
-        }
-        tracing::info!("Stopped processing messages");
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn process_message(&self, msg: YrsMessage) {
-        if let Err(e) = self.process_message_internal(msg).await {
-            tracing::warn!("Failed to process message: {e}");
-        }
-    }
-
-    async fn process_message_internal(&self, msg: YrsMessage) -> Result<()> {
-        let Some(project) = self.state.get(&msg.project_id) else {
-            return Err(anyhow!("Tried to handle message but project was None."));
-        };
-
-        let mut decoder = DecoderV1::from(msg.data.as_slice());
-        match decoder.read_var()? {
-            MSG_SYNC => {
-                match decoder.read_var()? {
-                    MSG_SYNC_REQUEST => {
-                        tracing::debug!("Handling sync_request message");
-                        let update = {
-                            let sv: StateVector = StateVector::decode_v1(decoder.read_buf()?)?;
-                            DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
-                                .doc
-                                .transact()
-                                .encode_state_as_update_v2(&sv)
-                        };
-
-                        // Respond to the client with a sync_response message containing
-                        // changes known to the server but not the client.
-                        // There's no need to broadcast such updates to others or perist them.
-                        tracing::debug!("Sending synce_response message to client.");
-                        project.send_msg(&msg.who, sync_response(update)).await?;
-
-                        Ok(())
-                    }
-                    MSG_SYNC_RESPONSE | MSG_SYNC_UPDATE => {
-                        tracing::debug!("Handling sync_update|sync_response message");
-                        let update = decoder.read_buf()?.to_vec();
-                        {
-                            let update = Update::decode_v2(&update)?;
-                            DocBox::doc_or_error(project.doc_box.lock().await.as_ref())?
-                                .doc
-                                .transact_mut_with(as_origin(&msg.who, &msg.id))
-                                .apply_update(update);
-                        }
-
-                        Ok(())
-                    }
-                    invalid_type => Err(anyhow!("Invalid sync type: {invalid_type}")),
-                }
-            }
-            invalid_type => Err(anyhow!("Invalid message protocol type: {invalid_type}")),
-        }
-    }
-
     #[tracing::instrument(skip(self))]
     pub async fn stop(&self) {
         // Cancel background tasks and wait for them to complete.
@@ -519,7 +448,7 @@ impl ProjectState {
         tracing::debug!("Finished broadcasting: {res:?}");
     }
 
-    async fn send_msg(&self, to_who: &String, data: Vec<u8>) -> Result<()> {
+    pub async fn send_msg(&self, to_who: &String, data: Vec<u8>) -> Result<()> {
         let mut clients = self.clients.lock().await;
         let Some(client) = clients.get_mut(to_who) else {
             return Err(anyhow!("Unexpectedly found no client to send to"));
@@ -544,7 +473,7 @@ impl ProjectState {
 }
 
 impl DocBox {
-    fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox> {
+    pub fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox> {
         match doc_box {
             Some(db) => Ok(db),
             None => Err(anyhow!("DocBox is absent")),
