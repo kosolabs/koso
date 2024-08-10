@@ -5,11 +5,16 @@ const meta = {
   title: "Koso/TaskStatusSelect",
   component: TaskStatusSelect,
   tags: ["autodocs"],
+  parameters: {
+    layout: "centered",
+  },
 } satisfies Meta<TaskStatusSelect>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Main: Story = {
-  args: {},
+  args: {
+    value: "Not Started",
+  },
 };
