@@ -29,7 +29,7 @@ use yrs::{Doc, ReadTxn as _, StateVector, Transact as _, Update};
 
 pub(super) struct ProjectsState {
     pub(super) projects: DashMap<ProjectId, Weak<ProjectState>>,
-    pub(super) process_tx: Sender<YrsMessage>,
+    pub(super) process_msg_tx: Sender<YrsMessage>,
     pub(super) doc_update_tx: Sender<YrsUpdate>,
     pub(super) pool: &'static PgPool,
     pub(super) tracker: tokio_util::task::TaskTracker,
@@ -38,12 +38,12 @@ pub(super) struct ProjectsState {
 impl ProjectsState {
     pub(super) async fn add_client(
         &self,
-        project_id: ProjectId,
+        project_id: &ProjectId,
         mut sender: ClientSender,
         receiver: ClientReceiver,
     ) -> Result<()> {
         // Get of insert the project state.
-        let (project, sv) = match self.get_or_init(&project_id).await {
+        let (project, sv) = match self.get_or_init(project_id).await {
             Ok(r) => r,
             Err(e) => {
                 sender.close(CLOSE_ERROR, "Failed to init project.").await;
@@ -62,7 +62,7 @@ impl ProjectsState {
 
         // Send the entire state vector to the client.
         tracing::debug!("Sending sync_request message to client");
-        if let Err(e) = project.send_msg(&receiver.who, sync_request(sv)).await {
+        if let Err(e) = project.send_msg(&receiver.who, sync_request(&sv)).await {
             project
                 .remove_and_close_client(
                     &receiver.who,
@@ -81,7 +81,7 @@ impl ProjectsState {
         // Listen for messages on the read side of the socket.
         let handler = ClientMessageHandler {
             project: Arc::clone(&project),
-            process_tx: self.process_tx.clone(),
+            process_msg_tx: self.process_msg_tx.clone(),
             receiver,
         };
         self.tracker.spawn(handler.receive_messages_from_client());

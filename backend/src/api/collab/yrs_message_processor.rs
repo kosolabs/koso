@@ -12,14 +12,14 @@ use yrs::{
 };
 
 pub(super) struct YrsMessageProcessor {
-    pub(super) process_rx: Receiver<YrsMessage>,
+    pub(super) process_msg_rx: Receiver<YrsMessage>,
 }
 
 impl YrsMessageProcessor {
     #[tracing::instrument(skip(self))]
     pub(super) async fn process_messages(mut self) {
         loop {
-            let Some(msg) = self.process_rx.recv().await else {
+            let Some(msg) = self.process_msg_rx.recv().await else {
                 break;
             };
             if let Err(e) = self.process_message(msg).await {
@@ -37,36 +37,33 @@ impl YrsMessageProcessor {
                 match decoder.read_var()? {
                     MSG_SYNC_REQUEST => {
                         tracing::debug!("Handling sync_request message");
-                        let update = {
-                            let sv: StateVector = StateVector::decode_v1(decoder.read_buf()?)?;
-                            msg.project.encode_state_as_update(&sv).await?
-                        };
+                        let update = msg
+                            .project
+                            .encode_state_as_update(&StateVector::decode_v1(decoder.read_buf()?)?)
+                            .await?;
 
                         // Respond to the client with a sync_response message containing
                         // changes known to the server but not the client.
                         // There's no need to broadcast such updates to others or perist them.
                         tracing::debug!("Sending synce_response message to client.");
                         msg.project
-                            .send_msg(&msg.who, sync_response(update))
+                            .send_msg(&msg.who, sync_response(&update))
                             .await?;
 
                         Ok(())
                     }
                     MSG_SYNC_RESPONSE | MSG_SYNC_UPDATE => {
                         tracing::debug!("Handling sync_update|sync_response message");
-                        let update = decoder.read_buf()?.to_vec();
-                        {
-                            let update = Update::decode_v2(&update)?;
-                            msg.project
-                                .apply_doc_update(
-                                    YOrigin {
-                                        who: msg.who.clone(),
-                                        id: msg.id.clone(),
-                                    },
-                                    update,
-                                )
-                                .await?;
-                        }
+                        let update = Update::decode_v2(decoder.read_buf()?)?;
+                        msg.project
+                            .apply_doc_update(
+                                YOrigin {
+                                    who: msg.who,
+                                    id: msg.id,
+                                },
+                                update,
+                            )
+                            .await?;
 
                         Ok(())
                     }

@@ -41,7 +41,7 @@ pub(super) struct ClientClosure {
 }
 
 pub(super) struct ClientSender {
-    pub(super) ws_sender: futures::stream::SplitSink<WebSocket, Message>,
+    ws_sender: futures::stream::SplitSink<WebSocket, Message>,
     pub(super) who: String,
     pub(super) project_id: ProjectId,
 }
@@ -73,7 +73,7 @@ impl fmt::Debug for ClientSender {
 }
 
 pub(super) struct ClientReceiver {
-    pub(super) ws_receiver: futures::stream::SplitStream<WebSocket>,
+    ws_receiver: futures::stream::SplitStream<WebSocket>,
     pub(super) who: String,
     pub(super) project_id: ProjectId,
 }

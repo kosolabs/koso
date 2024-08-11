@@ -8,7 +8,7 @@ pub(super) struct YOrigin {
 
 pub(super) fn from_origin(origin: Option<&Origin>) -> Result<YOrigin> {
     origin
-        .map(|o| match String::from_utf8(o.as_ref().to_vec()) {
+        .map(|o| match core::str::from_utf8(o.as_ref()) {
             Ok(v) => {
                 let mut parts = v.split("@@");
                 let (Some(who), Some(id)) = (parts.next(), parts.next()) else {

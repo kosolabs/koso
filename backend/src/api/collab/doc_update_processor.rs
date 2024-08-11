@@ -31,7 +31,7 @@ impl DocUpdateProcessor {
         }
         update
             .project
-            .broadcast_msg(&update.who, sync_update(update.data))
+            .broadcast_msg(&update.who, sync_update(&update.data))
             .await;
 
         Ok(())

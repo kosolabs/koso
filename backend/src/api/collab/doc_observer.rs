@@ -38,7 +38,7 @@ impl DocObserver {
         let doc_update_tx = self.doc_update_tx.clone();
         self.tracker.spawn(async move {
             if let Err(e) = doc_update_tx.send(update).await {
-                tracing::error!("failed to send to broadcast channel: {e}");
+                tracing::error!("Failed to send to doc_update channel: {e}");
             }
         });
     }

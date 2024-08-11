@@ -34,14 +34,14 @@ use yrs::types::ToJson;
 use yrs::{ReadTxn, Transact};
 
 pub(crate) fn start(pool: &'static PgPool) -> Collab {
-    let (process_tx, process_rx) = mpsc::channel::<YrsMessage>(1);
+    let (process_msg_tx, process_msg_rx) = mpsc::channel::<YrsMessage>(1);
     let (doc_update_tx, doc_update_rx) = mpsc::channel::<YrsUpdate>(50);
     let tracker = tokio_util::task::TaskTracker::new();
     let collab = Collab {
         inner: Arc::new(Inner {
             state: ProjectsState {
                 projects: DashMap::new(),
-                process_tx,
+                process_msg_tx,
                 doc_update_tx,
                 pool,
                 tracker: tracker.clone(),
@@ -60,7 +60,7 @@ pub(crate) fn start(pool: &'static PgPool) -> Collab {
         .tracker
         .spawn(doc_update_processor.process_doc_updates());
 
-    let yrs_message_processor = YrsMessageProcessor { process_rx };
+    let yrs_message_processor = YrsMessageProcessor { process_msg_rx };
     collab
         .inner
         .tracker
@@ -109,7 +109,7 @@ impl Collab {
 
         self.inner
             .state
-            .add_client(project_id, sender, receiver)
+            .add_client(&project_id, sender, receiver)
             .await?;
 
         Ok(())

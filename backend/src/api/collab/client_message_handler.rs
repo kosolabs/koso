@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 pub(super) struct ClientMessageHandler {
     pub(super) project: Arc<ProjectState>,
-    pub(super) process_tx: Sender<YrsMessage>,
+    pub(super) process_msg_tx: Sender<YrsMessage>,
     pub(super) receiver: ClientReceiver,
 }
 
@@ -39,7 +39,7 @@ impl ClientMessageHandler {
         match msg {
             Ok(Message::Binary(data)) => {
                 if let Err(e) = self
-                    .process_tx
+                    .process_msg_tx
                     .send(YrsMessage {
                         who: self.receiver.who.clone(),
                         project: Arc::clone(&self.project),
@@ -48,7 +48,7 @@ impl ClientMessageHandler {
                     })
                     .await
                 {
-                    tracing::error!("Error sending message to process channel: {e}");
+                    tracing::error!("Error sending message to process_msg channel: {e}");
                 };
                 ControlFlow::Continue(())
             }
