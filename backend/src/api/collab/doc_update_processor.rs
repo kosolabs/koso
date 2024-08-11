@@ -1,4 +1,4 @@
-use super::{doc_observer::YrsUpdate, msg_sync::sync_update, storage};
+use crate::api::collab::{doc_observer::YrsUpdate, msg_sync::sync_update, storage};
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use tokio::sync::mpsc::Receiver;

@@ -8,14 +8,16 @@ pub(crate) mod storage;
 pub(crate) mod txn_origin;
 pub(crate) mod yrs_message_processor;
 
-use super::collab::client_message_handler::YrsMessage;
-use super::collab::doc_observer::YrsUpdate;
-use super::collab::doc_update_processor::DocUpdateProcessor;
-use super::collab::projects_state::ProjectsState;
-use super::collab::yrs_message_processor::YrsMessageProcessor;
 use crate::api::{
     self,
-    collab::client::{from_socket, CLOSE_UNAUTHORIZED},
+    collab::{
+        client::{from_socket, CLOSE_UNAUTHORIZED},
+        client_message_handler::YrsMessage,
+        doc_observer::YrsUpdate,
+        doc_update_processor::DocUpdateProcessor,
+        projects_state::ProjectsState,
+        yrs_message_processor::YrsMessageProcessor,
+    },
     google::User,
     model::ProjectId,
 };

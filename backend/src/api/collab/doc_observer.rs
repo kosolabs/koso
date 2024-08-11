@@ -1,10 +1,7 @@
+use crate::api::collab::{projects_state::ProjectState, txn_origin::from_origin};
+use std::{fmt, sync::Arc};
 use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
-
-use crate::api::collab::txn_origin::from_origin;
-use std::{fmt, sync::Arc};
-
-use super::projects_state::ProjectState;
 
 pub(super) struct DocObserver {
     pub(super) doc_update_tx: Sender<YrsUpdate>,

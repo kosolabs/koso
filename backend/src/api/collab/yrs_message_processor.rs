@@ -1,5 +1,5 @@
-use super::client_message_handler::YrsMessage;
 use crate::api::collab::{
+    client_message_handler::YrsMessage,
     msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
     txn_origin::YOrigin,
 };

@@ -1,14 +1,12 @@
-use super::{
-    client::{ClientClosure, ClientReceiver, ClientSender, CLOSE_RESTART},
-    client_message_handler::YrsMessage,
-    doc_observer::YrsUpdate,
-    txn_origin::YOrigin,
-};
 use crate::{
     api::{
         collab::{
-            client::CLOSE_ERROR, client_message_handler::ClientMessageHandler,
-            doc_observer::DocObserver, msg_sync::sync_request, storage,
+            client::{ClientClosure, ClientReceiver, ClientSender, CLOSE_ERROR, CLOSE_RESTART},
+            client_message_handler::{ClientMessageHandler, YrsMessage},
+            doc_observer::{DocObserver, YrsUpdate},
+            msg_sync::sync_request,
+            storage,
+            txn_origin::YOrigin,
         },
         model::ProjectId,
     },
