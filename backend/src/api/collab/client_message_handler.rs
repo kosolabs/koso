@@ -19,11 +19,13 @@ impl ClientMessageHandler {
     #[tracing::instrument(skip(self), fields(?receiver=self.receiver))]
     pub(super) async fn receive_messages_from_client(mut self) {
         loop {
-            let msg = self.receiver.next().await;
-            let Some(msg) = msg else {
+            let Some(msg) = self.receiver.next().await else {
                 break;
             };
-            if let ControlFlow::Break(_) = self.receive_message_from_client(msg).await {
+            if let ControlFlow::Break(closure) = self.receive_message_from_client(msg).await {
+                self.project
+                    .remove_and_close_client(&self.receiver.who, closure)
+                    .await;
                 break;
             }
         }
@@ -33,7 +35,7 @@ impl ClientMessageHandler {
     async fn receive_message_from_client(
         &self,
         msg: Result<Message, axum::Error>,
-    ) -> ControlFlow<()> {
+    ) -> ControlFlow<ClientClosure> {
         match msg {
             Ok(Message::Binary(data)) => {
                 if let Err(e) = self
@@ -59,31 +61,19 @@ impl ClientMessageHandler {
                 } else {
                     "Client closed connection: code:'NONE', detail:'No CloseFrame'".to_string()
                 };
-                self.project
-                    .remove_and_close_client(
-                        &self.receiver.who,
-                        ClientClosure {
-                            code: CLOSE_NORMAL,
-                            reason: "Client closed connection.",
-                            details,
-                        },
-                    )
-                    .await;
-                ControlFlow::Break(())
+                ControlFlow::Break(ClientClosure {
+                    code: CLOSE_NORMAL,
+                    reason: "Client closed connection.",
+                    details,
+                })
             }
             Err(e) => {
                 tracing::warn!("Got error reading from client socket. Will close socket. {e}");
-                self.project
-                    .remove_and_close_client(
-                        &self.receiver.who,
-                        ClientClosure {
-                            code: CLOSE_ERROR,
-                            reason: "Failed to read from client socket.",
-                            details: format!("Failed to read from client socket: {e}"),
-                        },
-                    )
-                    .await;
-                ControlFlow::Break(())
+                ControlFlow::Break(ClientClosure {
+                    code: CLOSE_ERROR,
+                    reason: "Failed to read from client socket.",
+                    details: format!("Failed to read from client socket: {e}"),
+                })
             }
             Ok(_) => {
                 tracing::warn!("Discarding unsolicited message: {msg:?}");

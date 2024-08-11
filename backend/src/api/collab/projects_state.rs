@@ -1,11 +1,15 @@
 use super::{
-    client::{ClientClosure, ClientSender, CLOSE_RESTART},
+    client::{ClientClosure, ClientReceiver, ClientSender, CLOSE_RESTART},
+    client_message_handler::YrsMessage,
     doc_observer::YrsUpdate,
     txn_origin::YOrigin,
 };
 use crate::{
     api::{
-        collab::{doc_observer::DocObserver, storage},
+        collab::{
+            client::CLOSE_ERROR, client_message_handler::ClientMessageHandler,
+            doc_observer::DocObserver, msg_sync::sync_request, storage,
+        },
         model::ProjectId,
     },
     postgres::compact,
@@ -25,13 +29,67 @@ use yrs::{Doc, ReadTxn as _, StateVector, Transact as _, Update};
 
 pub(super) struct ProjectsState {
     pub(super) projects: DashMap<ProjectId, Weak<ProjectState>>,
+    pub(super) process_tx: Sender<YrsMessage>,
     pub(super) doc_update_tx: Sender<YrsUpdate>,
     pub(super) pool: &'static PgPool,
     pub(super) tracker: tokio_util::task::TaskTracker,
 }
 
 impl ProjectsState {
-    pub(super) async fn get_or_init(
+    pub(super) async fn add_client(
+        &self,
+        project_id: ProjectId,
+        mut sender: ClientSender,
+        receiver: ClientReceiver,
+    ) -> Result<()> {
+        // Get of insert the project state.
+        let (project, sv) = match self.get_or_init(&project_id).await {
+            Ok(r) => r,
+            Err(e) => {
+                sender.close(CLOSE_ERROR, "Failed to init project.").await;
+                return Err(e);
+            }
+        };
+
+        // Store the sender side of the socket in the list of clients.
+        if let Some(mut existing) = project.add_client(sender).await {
+            existing
+                .close(CLOSE_ERROR, "Unexpected duplicate connection.")
+                .await;
+            tracing::error!("Unexpectedly, client already exists: {existing:?}");
+            // Intentionally fall through below and start listening for messages on the new sender.
+        };
+
+        // Send the entire state vector to the client.
+        tracing::debug!("Sending sync_request message to client");
+        if let Err(e) = project.send_msg(&receiver.who, sync_request(sv)).await {
+            project
+                .remove_and_close_client(
+                    &receiver.who,
+                    ClientClosure {
+                        code: CLOSE_ERROR,
+                        reason: "Failed to send sync request message.",
+                        details: format!("Failed to send sync request message: {e}"),
+                    },
+                )
+                .await;
+            return Err(anyhow!(
+                "Failed to send sync request message to client: {e}"
+            ));
+        }
+
+        // Listen for messages on the read side of the socket.
+        let handler = ClientMessageHandler {
+            project: Arc::clone(&project),
+            process_tx: self.process_tx.clone(),
+            receiver,
+        };
+        self.tracker.spawn(handler.receive_messages_from_client());
+
+        Ok(())
+    }
+
+    async fn get_or_init(
         &self,
         project_id: &ProjectId,
     ) -> Result<(Arc<ProjectState>, StateVector)> {
@@ -73,12 +131,14 @@ impl ProjectsState {
     }
 
     pub(super) async fn close(&self) {
-        for project in self.projects.iter() {
+        let iter = self.projects.iter();
+        let mut res = Vec::new();
+        for project in iter {
             if let Some(project) = project.upgrade() {
-                project.close_all().await;
+                res.push(ProjectState::close_all(project));
             }
         }
-        self.projects.clear();
+        futures::future::join_all(res).await;
     }
 }
 
@@ -93,9 +153,10 @@ pub(super) struct ProjectState {
 }
 
 impl ProjectState {
-    pub(super) async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
+    async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
         self.clients.lock().await.insert(sender.who.clone(), sender)
     }
+
     async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {
         let mut doc_box = project.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
@@ -198,18 +259,18 @@ impl ProjectState {
         }
     }
 
-    pub(super) async fn close_all(&self) {
-        let mut clients = self.clients.lock().await;
+    async fn close_all(project: Arc<ProjectState>) {
+        let mut clients = project.clients.lock().await;
         tracing::debug!(
             "Closing {} clients in project {}",
             clients.len(),
-            self.project_id
+            project.project_id
         );
+        let mut res = Vec::new();
         for client in clients.values_mut() {
-            client
-                .close(CLOSE_RESTART, "The server is shutting down.")
-                .await;
+            res.push(client.close(CLOSE_RESTART, "The server is shutting down."));
         }
+        futures::future::join_all(res).await;
     }
 }
 
@@ -231,15 +292,15 @@ impl Drop for ProjectState {
     }
 }
 
-pub(super) struct DocBox {
-    pub(super) doc: Doc,
+struct DocBox {
+    doc: Doc,
     /// Subscription to observe changes to doc.
     #[allow(dead_code)]
-    pub(super) sub: Box<dyn Send>,
+    sub: Box<dyn Send>,
 }
 
 impl DocBox {
-    pub(super) fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox> {
+    fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox> {
         match doc_box {
             Some(db) => Ok(db),
             None => Err(anyhow!("DocBox is absent")),

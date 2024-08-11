@@ -12,8 +12,7 @@ impl DocUpdateProcessor {
     #[tracing::instrument(skip(self))]
     pub(super) async fn process_doc_updates(mut self) {
         loop {
-            let update = self.doc_update_rx.recv().await;
-            let Some(update) = update else {
+            let Some(update) = self.doc_update_rx.recv().await else {
                 break;
             };
             if let Err(e) = self.process_doc_update(update).await {

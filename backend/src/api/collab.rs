@@ -13,13 +13,9 @@ use super::collab::doc_observer::YrsUpdate;
 use super::collab::doc_update_processor::DocUpdateProcessor;
 use super::collab::projects_state::ProjectsState;
 use super::collab::yrs_message_processor::YrsMessageProcessor;
-use crate::api::collab::client_message_handler::ClientMessageHandler;
 use crate::api::{
     self,
-    collab::{
-        client::{from_socket, ClientClosure, CLOSE_ERROR, CLOSE_UNAUTHORIZED},
-        msg_sync::sync_request,
-    },
+    collab::client::{from_socket, CLOSE_UNAUTHORIZED},
     google::User,
     model::ProjectId,
 };
@@ -32,7 +28,7 @@ use sqlx::PgPool;
 use std::future::Future;
 use std::pin::Pin;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
-use tokio::sync::mpsc::{self, Sender};
+use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
 use uuid::Uuid;
 use yrs::types::ToJson;
@@ -43,15 +39,17 @@ pub(crate) fn start(pool: &'static PgPool) -> Collab {
     let (doc_update_tx, doc_update_rx) = mpsc::channel::<YrsUpdate>(50);
     let tracker = tokio_util::task::TaskTracker::new();
     let collab = Collab {
-        state: Arc::new(ProjectsState {
-            projects: DashMap::new(),
-            doc_update_tx,
+        inner: Arc::new(Inner {
+            state: ProjectsState {
+                projects: DashMap::new(),
+                process_tx,
+                doc_update_tx,
+                pool,
+                tracker: tracker.clone(),
+            },
             pool,
-            tracker: tracker.clone(),
+            tracker,
         }),
-        pool,
-        process_tx,
-        tracker,
     };
 
     let doc_update_processor = DocUpdateProcessor {
@@ -59,11 +57,13 @@ pub(crate) fn start(pool: &'static PgPool) -> Collab {
         doc_update_rx,
     };
     collab
+        .inner
         .tracker
         .spawn(doc_update_processor.process_doc_updates());
 
     let yrs_message_processor = YrsMessageProcessor { process_rx };
     collab
+        .inner
         .tracker
         .spawn(yrs_message_processor.process_messages());
 
@@ -72,9 +72,12 @@ pub(crate) fn start(pool: &'static PgPool) -> Collab {
 
 #[derive(Clone)]
 pub(crate) struct Collab {
-    state: Arc<ProjectsState>,
+    inner: Arc<Inner>,
+}
+
+struct Inner {
+    state: ProjectsState,
     pool: &'static PgPool,
-    process_tx: Sender<YrsMessage>,
     tracker: tokio_util::task::TaskTracker,
 }
 
@@ -100,54 +103,15 @@ impl Collab {
         let (mut sender, receiver) = from_socket(socket, &who, &project_id);
 
         // Before doing anything else, make sure the user has access to the project.
-        if let Err(e) = api::verify_access(self.pool, user, &project_id).await {
+        if let Err(e) = api::verify_access(self.inner.pool, user, &project_id).await {
             sender.close(CLOSE_UNAUTHORIZED, "Unauthorized.").await;
             return Err(e.as_err());
         }
 
-        // Get of insert the project state.
-        let (project, sv) = match self.state.get_or_init(&project_id).await {
-            Ok(r) => r,
-            Err(e) => {
-                sender.close(CLOSE_ERROR, "Failed to init project.").await;
-                return Err(e);
-            }
-        };
-
-        // Store the sender side of the socket in the list of clients.
-        if let Some(mut existing) = project.add_client(sender).await {
-            existing
-                .close(CLOSE_ERROR, "Unexpected duplicate connection.")
-                .await;
-            tracing::error!("Unexpectedly, client already exists: {existing:?}");
-            // Intentionally fall through below and start listening for messages on the new sender.
-        };
-
-        // Send the entire state vector to the client.
-        tracing::debug!("Sending sync_request message to client");
-        if let Err(e) = project.send_msg(&who, sync_request(sv)).await {
-            project
-                .remove_and_close_client(
-                    &who,
-                    ClientClosure {
-                        code: CLOSE_ERROR,
-                        reason: "Failed to send sync request message.",
-                        details: format!("Failed to send sync request message: {e}"),
-                    },
-                )
-                .await;
-            return Err(anyhow!(
-                "Failed to send sync request message to client: {e}"
-            ));
-        }
-
-        // Listen for messages on the read side of the socket.
-        let handler = ClientMessageHandler {
-            project: Arc::clone(&project),
-            process_tx: self.process_tx.clone(),
-            receiver,
-        };
-        self.tracker.spawn(handler.receive_messages_from_client());
+        self.inner
+            .state
+            .add_client(project_id, sender, receiver)
+            .await?;
 
         Ok(())
     }
@@ -157,9 +121,9 @@ impl Collab {
     pub(crate) async fn stop(self) -> Pin<Box<dyn Future<Output = ()>>> {
         tracing::debug!("Closing all clients...");
         // Close all client connections.
-        self.state.close().await;
+        self.inner.state.close().await;
 
-        let tracker = self.tracker.clone();
+        let tracker = self.inner.tracker.clone();
         return Box::pin(async move {
             // Wait for background processing tasks to complete.
             tracing::info!(
@@ -177,16 +141,13 @@ impl Collab {
             })
             .await
             {
-                tracing::warn!(
-                    "Timed out waiting for tasks. {} remain: {e}",
-                    self.tracker.len()
-                );
+                tracing::warn!("Timed out waiting for tasks. {} remain: {e}", tracker.len());
             }
         });
     }
 
     pub(super) async fn get_doc(&self, project_id: &ProjectId) -> Result<yrs::Any, Error> {
-        let (doc, _) = storage::load_doc(project_id, self.pool).await?;
+        let (doc, _) = storage::load_doc(project_id, self.inner.pool).await?;
         let txn = doc.transact();
         let Some(graph) = txn.get_map("graph") else {
             return Err(anyhow!("No graph present in doc"));

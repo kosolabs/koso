@@ -19,8 +19,7 @@ impl YrsMessageProcessor {
     #[tracing::instrument(skip(self))]
     pub(super) async fn process_messages(mut self) {
         loop {
-            let msg = self.process_rx.recv().await;
-            let Some(msg) = msg else {
+            let Some(msg) = self.process_rx.recv().await else {
                 break;
             };
             if let Err(e) = self.process_message(msg).await {
