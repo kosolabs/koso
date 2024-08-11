@@ -115,7 +115,7 @@ async fn start_main_server() {
     .unwrap();
 
     // Now that the server is shutdown, it's safe to clean things up.
-    collab.stop().await.await;
+    collab.stop().await;
     tracing::debug!("Closing database pool...");
     pool.close().await;
 }

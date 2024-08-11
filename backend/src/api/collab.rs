@@ -25,11 +25,10 @@ use anyhow::Result;
 use axum::extract::ws::WebSocket;
 use dashmap::DashMap;
 use sqlx::PgPool;
-use std::future::Future;
-use std::pin::Pin;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
+use tokio_util::task::TaskTracker;
 use uuid::Uuid;
 use yrs::types::ToJson;
 use yrs::{ReadTxn, Transact};
@@ -116,34 +115,39 @@ impl Collab {
         Ok(())
     }
 
-    #[allow(clippy::async_yields_async)]
     #[tracing::instrument(skip(self))]
-    pub(crate) async fn stop(self) -> Pin<Box<dyn Future<Output = ()>>> {
+    pub(crate) async fn stop(self) {
         tracing::debug!("Closing all clients...");
         // Close all client connections.
         self.inner.state.close().await;
 
         let tracker = self.inner.tracker.clone();
-        return Box::pin(async move {
-            // Wait for background processing tasks to complete.
-            tracing::info!(
-                "Waiting for {} outstanding task(s) to finish..",
-                tracker.len()
-            );
+        // Drop the Collab instance to release inner.state which
+        // holds the sender sides of our processing channels.
+        // Receivers will abort when all senders are gone.
+        drop(self);
+        return Collab::wait_for_tasks(tracker).await;
+    }
 
-            if let Err(e) = tokio::time::timeout(Duration::from_secs(60), async {
-                loop {
-                    if tracker.is_empty() {
-                        break;
-                    }
-                    sleep(Duration::from_millis(100)).await;
+    async fn wait_for_tasks(tracker: TaskTracker) {
+        // Wait for background processing tasks to complete.
+        tracing::info!(
+            "Waiting for {} outstanding task(s) to finish..",
+            tracker.len()
+        );
+
+        if let Err(e) = tokio::time::timeout(Duration::from_secs(60), async {
+            loop {
+                if tracker.is_empty() {
+                    break;
                 }
-            })
-            .await
-            {
-                tracing::warn!("Timed out waiting for tasks. {} remain: {e}", tracker.len());
+                sleep(Duration::from_millis(100)).await;
             }
-        });
+        })
+        .await
+        {
+            tracing::warn!("Timed out waiting for tasks. {} remain: {e}", tracker.len());
+        }
     }
 
     pub(super) async fn get_doc(&self, project_id: &ProjectId) -> Result<yrs::Any, Error> {
