@@ -278,8 +278,7 @@ impl Drop for ProjectState {
             "Last client disconnected, destroying project state: {}",
             self.project_id
         );
-        // Set updates back to 0 while holding the doc_box mutex to avoid
-        // interleaving with load_graph.
+
         let updates = self.updates.load(Relaxed);
         if updates > 10 {
             self.tracker
