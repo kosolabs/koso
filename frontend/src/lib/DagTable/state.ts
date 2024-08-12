@@ -1,5 +1,5 @@
 import { derived, writable } from "svelte/store";
-import type { Node, Parents } from "../koso";
+import { Node, type Parents } from "../koso";
 
 export const nodes = writable<Node[]>([]);
 export const parents = writable<Parents>({});
@@ -17,7 +17,7 @@ export const hidden = derived(
         .map((node) => node.id)
         .filter((node) => {
           for (const c of $collapsed) {
-            if (node.startsWith(c + "-")) {
+            if (node.startsWith(c + Node.separator)) {
               return true;
             }
           }
