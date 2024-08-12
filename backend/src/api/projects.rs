@@ -1,9 +1,9 @@
 use crate::{
     api::{
         bad_request_error,
+        collab::Collab,
         google::User,
         model::{Project, ProjectPermission, ProjectUser},
-        notify::Notifier,
         verify_access, ApiResult,
     },
     postgres::list_project_users,
@@ -18,7 +18,7 @@ use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
 
-pub fn projects_router() -> Router {
+pub(super) fn projects_router() -> Router {
     Router::new()
         .route("/", get(list_projects_handler))
         .route("/", post(create_project_handler))
@@ -162,14 +162,14 @@ async fn add_project_permission_handler(
     Ok(())
 }
 
-#[tracing::instrument(skip(user, pool, notifier))]
+#[tracing::instrument(skip(user, pool, collab))]
 async fn get_project_doc_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
-    Extension(notifier): Extension<Notifier>,
+    Extension(collab): Extension<Collab>,
     Path(project_id): Path<String>,
 ) -> ApiResult<Json<yrs::Any>> {
     verify_access(pool, user, &project_id).await?;
 
-    Ok(Json(notifier.get_doc(&project_id).await?))
+    Ok(Json(collab.get_doc(&project_id).await?))
 }

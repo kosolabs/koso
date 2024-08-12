@@ -9,23 +9,23 @@ use google::User;
 use model::{ProjectId, ProjectPermission};
 use sqlx::postgres::PgPool;
 
-pub mod auth;
-pub mod google;
-pub mod model;
-pub mod notify;
-pub mod projects;
-pub mod ws;
+pub(crate) mod auth;
+pub(crate) mod collab;
+pub(crate) mod google;
+pub(crate) mod model;
+pub(crate) mod projects;
+pub(crate) mod ws;
 
-pub type ApiResult<T> = Result<T, ErrorResponse>;
+pub(crate) type ApiResult<T> = Result<T, ErrorResponse>;
 
-pub fn api_router() -> Router {
+pub(crate) fn api_router() -> Router {
     Router::new()
         .nest("/projects", projects::projects_router())
         .nest("/auth", auth::auth_router())
         .nest("/ws", ws::ws_router())
 }
 
-pub async fn verify_access(
+pub(crate) async fn verify_access(
     pool: &PgPool,
     user: User,
     project_id: &ProjectId,
@@ -73,23 +73,23 @@ pub async fn verify_access(
     }
 }
 
-pub async fn handler_404() -> impl IntoResponse {
+pub(crate) async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
 
-pub fn internal_error(msg: &str) -> ErrorResponse {
+pub(crate) fn internal_error(msg: &str) -> ErrorResponse {
     error_response(StatusCode::INTERNAL_SERVER_ERROR, msg)
 }
 
-pub fn unauthorized_error(msg: &str) -> ErrorResponse {
+pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
     error_response(StatusCode::UNAUTHORIZED, msg)
 }
 
-pub fn bad_request_error(msg: &str) -> ErrorResponse {
+pub(crate) fn bad_request_error(msg: &str) -> ErrorResponse {
     error_response(StatusCode::BAD_REQUEST, msg)
 }
 
-pub fn error_response(code: StatusCode, msg: &str) -> ErrorResponse {
+pub(crate) fn error_response(code: StatusCode, msg: &str) -> ErrorResponse {
     tracing::error!("Failed: {}: {}", code, msg);
     ErrorResponse {
         code,
@@ -97,7 +97,7 @@ pub fn error_response(code: StatusCode, msg: &str) -> ErrorResponse {
     }
 }
 
-pub struct ErrorResponse {
+pub(crate) struct ErrorResponse {
     code: StatusCode,
     msg: String,
 }

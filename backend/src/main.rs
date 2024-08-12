@@ -1,4 +1,4 @@
-use api::{google, notify};
+use api::{collab::Collab, google};
 use axum::{
     extract::{MatchedPath, Request},
     http::HeaderName,
@@ -69,7 +69,7 @@ async fn start_main_server() {
             .expect("can't connect to database"),
     ));
 
-    let notifier = notify::start(pool);
+    let collab = Collab::new(pool);
     let certs = google::fetch().await.unwrap();
 
     let app = Router::new()
@@ -84,7 +84,7 @@ async fn start_main_server() {
             // requests don't hang forever.
             TimeoutLayer::new(Duration::from_secs(10)),
             Extension(pool),
-            Extension(notifier.clone()),
+            Extension(collab.clone()),
             Extension(certs),
             middleware::from_fn(google::authenticate),
         ))
@@ -115,7 +115,7 @@ async fn start_main_server() {
     .unwrap();
 
     // Now that the server is shutdown, it's safe to clean things up.
-    notifier.stop().await;
+    collab.stop().await;
     tracing::debug!("Closing database pool...");
     pool.close().await;
 }

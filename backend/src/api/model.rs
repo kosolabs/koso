@@ -1,22 +1,22 @@
-pub type ProjectId = String;
+pub(crate) type ProjectId = String;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
-pub struct Project {
+pub(crate) struct Project {
     #[serde(default)]
-    pub project_id: String,
-    pub name: String,
+    pub(crate) project_id: String,
+    pub(crate) name: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
-pub struct ProjectPermission {
-    pub project_id: ProjectId,
-    pub email: String,
+pub(crate) struct ProjectPermission {
+    pub(crate) project_id: ProjectId,
+    pub(crate) email: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
-pub struct ProjectUser {
-    pub project_id: ProjectId,
-    pub email: String,
-    pub name: String,
-    pub picture: String,
+pub(crate) struct ProjectUser {
+    pub(crate) project_id: ProjectId,
+    pub(crate) email: String,
+    pub(crate) name: String,
+    pub(crate) picture: String,
 }

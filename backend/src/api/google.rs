@@ -1,9 +1,8 @@
 use crate::api::{unauthorized_error, ApiResult};
+use anyhow::{anyhow, Result};
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
 use jsonwebtoken::{DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Key {
     kid: String,
@@ -15,27 +14,27 @@ struct Key {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Certs {
+pub(crate) struct Certs {
     keys: Vec<Key>,
 }
 
 impl Certs {
-    fn get(&self, kid: &str) -> Result<DecodingKey, Box<dyn Error>> {
+    fn get(&self, kid: &str) -> Result<DecodingKey> {
         for key in &self.keys {
             if key.kid == *kid {
                 return Ok(DecodingKey::from_rsa_components(&key.n, &key.e)?);
             }
         }
-        Err("missing".into())
+        Err(anyhow!("missing key"))
     }
 }
 
-fn parse(json: &str) -> Result<Certs, Box<dyn Error>> {
+fn parse(json: &str) -> Result<Certs> {
     let certs: Certs = serde_json::from_str(json)?;
     Ok(certs)
 }
 
-pub async fn fetch() -> Result<Certs, Box<dyn Error>> {
+pub(crate) async fn fetch() -> Result<Certs> {
     let client = reqwest::Client::new();
     let resp = client
         .get("https://www.googleapis.com/oauth2/v3/certs")
@@ -48,7 +47,7 @@ pub async fn fetch() -> Result<Certs, Box<dyn Error>> {
 }
 
 #[tracing::instrument(skip(request, next), fields(email))]
-pub async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Body>> {
+pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Body>> {
     let certs = request.extensions().get::<Certs>().unwrap();
     let headers = request.headers();
 
@@ -124,11 +123,11 @@ pub async fn authenticate(mut request: Request, next: Next) -> ApiResult<Respons
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct User {
-    pub email: String,
-    pub name: String,
-    pub picture: String,
-    pub exp: usize,
+pub(crate) struct User {
+    pub(crate) email: String,
+    pub(crate) name: String,
+    pub(crate) picture: String,
+    pub(crate) exp: usize,
 }
 
 #[cfg(test)]

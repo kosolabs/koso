@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 
 use crate::{
     api::google::User,
-    api::{notify::Notifier, ApiResult},
+    api::{collab::Collab, ApiResult},
 };
 use axum::{
     body::Body,
@@ -14,7 +14,7 @@ use axum::{
 use axum_extra::{headers, TypedHeader};
 use tracing::Instrument as _;
 
-pub fn ws_router() -> Router {
+pub(super) fn ws_router() -> Router {
     Router::new().route("/projects/:project_id", get(ws_handler))
 }
 /// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
@@ -22,14 +22,14 @@ pub fn ws_router() -> Router {
 /// websocket protocol will occur.
 /// This is the last point where we can extract TCP/IP metadata such as IP address of the client
 /// as well as things from HTTP headers such as user-agent of the browser etc.
-#[tracing::instrument(skip(ws, _user_agent, addr, user, notifier))]
+#[tracing::instrument(skip(ws, _user_agent, addr, user, collab))]
 async fn ws_handler(
     ws: WebSocketUpgrade,
     Path(project_id): Path<String>,
     _user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(user): Extension<User>,
-    Extension(notifier): Extension<Notifier>,
+    Extension(collab): Extension<Collab>,
 ) -> ApiResult<Response<Body>> {
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
@@ -39,10 +39,7 @@ async fn ws_handler(
         .on_failed_upgrade(|e| tracing::warn!("Failed to upgrade socket: {e}"))
         .on_upgrade(move |socket: axum::extract::ws::WebSocket| {
             async move {
-                if let Err(e) = notifier
-                    .register_client(socket, addr, project_id, user)
-                    .await
-                {
+                if let Err(e) = collab.register_client(socket, addr, project_id, user).await {
                     tracing::warn!("Failed to register client at {addr}: {e}");
                 }
             }
