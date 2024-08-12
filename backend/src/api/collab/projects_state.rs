@@ -34,7 +34,7 @@ pub(super) struct ProjectsState {
 }
 
 impl ProjectsState {
-    pub(super) async fn add_client(
+    pub(super) async fn add_and_init_client(
         &self,
         project_id: &ProjectId,
         mut sender: ClientSender,
@@ -50,7 +50,7 @@ impl ProjectsState {
         };
 
         // Store the sender side of the socket in the list of clients.
-        if let Some(mut existing) = project.add_client(sender).await {
+        if let Some(mut existing) = project.insert_client(sender).await {
             existing
                 .close(CLOSE_ERROR, "Unexpected duplicate connection.")
                 .await;
@@ -128,12 +128,11 @@ impl ProjectsState {
         Ok((project, sv))
     }
 
-    pub(super) async fn close(&self) {
-        let iter = self.projects.iter();
+    pub(super) async fn close_all_project_clients(&self) {
         let mut res = Vec::new();
-        for project in iter {
+        for project in self.projects.iter() {
             if let Some(project) = project.upgrade() {
-                res.push(ProjectState::close_all(project));
+                res.push(ProjectState::close_all_clients(project));
             }
         }
         futures::future::join_all(res).await;
@@ -151,7 +150,7 @@ pub(super) struct ProjectState {
 }
 
 impl ProjectState {
-    async fn add_client(&self, sender: ClientSender) -> Option<ClientSender> {
+    async fn insert_client(&self, sender: ClientSender) -> Option<ClientSender> {
         self.clients.lock().await.insert(sender.who.clone(), sender)
     }
 
@@ -257,7 +256,7 @@ impl ProjectState {
         }
     }
 
-    async fn close_all(project: Arc<ProjectState>) {
+    async fn close_all_clients(project: Arc<ProjectState>) {
         let mut clients = project.clients.lock().await;
         tracing::debug!(
             "Closing {} clients in project {}",

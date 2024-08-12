@@ -82,12 +82,6 @@ struct Inner {
     tracker: tokio_util::task::TaskTracker,
 }
 
-// High Level Design
-// If this is the very first client being registered, load everything from the database, and construct the initial doc.
-// For every client that joins, send the current graph as the initial state vector.
-// When a client sends an update, apply the update to the doc, store it in the database
-// and broadcast it to other clients.
-// When the last client disconnects, consider destroying the graph.
 impl Collab {
     #[tracing::instrument(skip(self, socket, who, user), fields(who))]
     pub(super) async fn register_client(
@@ -111,7 +105,7 @@ impl Collab {
 
         self.inner
             .state
-            .add_client(&project_id, sender, receiver)
+            .add_and_init_client(&project_id, sender, receiver)
             .await?;
 
         Ok(())
@@ -120,8 +114,7 @@ impl Collab {
     #[tracing::instrument(skip(self))]
     pub(crate) async fn stop(self) {
         tracing::debug!("Closing all clients...");
-        // Close all client connections.
-        self.inner.state.close().await;
+        self.inner.state.close_all_project_clients().await;
 
         let tracker = self.inner.tracker.clone();
         // Drop the Collab instance to release inner.state which
