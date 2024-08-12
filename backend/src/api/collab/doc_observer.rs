@@ -3,15 +3,24 @@ use std::{fmt, sync::Arc};
 use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
 
+// Handles updates applied to a project doc and forward them to the doc_update_tx
+// for handling by the `DocUpdateProcessor`.
 pub(super) struct DocObserver {
-    pub(super) doc_update_tx: Sender<YrsUpdate>,
-    pub(super) tracker: TaskTracker,
+    doc_update_tx: Sender<YrsUpdate>,
+    tracker: TaskTracker,
 }
 
 impl DocObserver {
+    pub(super) fn new(doc_update_tx: Sender<YrsUpdate>, tracker: TaskTracker) -> Self {
+        DocObserver {
+            doc_update_tx,
+            tracker,
+        }
+    }
+
     /// Callback invoked on update_v2 doc events, triggered by calls to "apply_update" in process_message_internal.
     /// observe_update_v2 only accepts synchronous callbacks thus requiring this function be synchronous
-    /// and any async operations, including sendin to a channel, to occur in a spawned task.
+    /// and any async operations, including sending to a channel, to occur in a spawned task.
     pub(super) fn handle_doc_update_v2_event(
         &self,
         project: Arc<ProjectState>,

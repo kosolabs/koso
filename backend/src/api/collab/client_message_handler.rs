@@ -7,13 +7,31 @@ use std::{fmt, ops::ControlFlow, sync::Arc};
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
+/// ClientMessageHandler receives messages from clients
+/// about a particular project and forwards the binary ones to
+/// process_msg_tx for handling by `YrsMessageProcessor`.
+///
+/// When clients disconnect, perhaps by closing their browser tab,
+/// we'll recieve a Close message and remove the client.
 pub(super) struct ClientMessageHandler {
-    pub(super) project: Arc<ProjectState>,
-    pub(super) process_msg_tx: Sender<YrsMessage>,
-    pub(super) receiver: ClientReceiver,
+    project: Arc<ProjectState>,
+    process_msg_tx: Sender<YrsMessage>,
+    receiver: ClientReceiver,
 }
 
 impl ClientMessageHandler {
+    pub(super) fn new(
+        project: Arc<ProjectState>,
+        process_msg_tx: Sender<YrsMessage>,
+        receiver: ClientReceiver,
+    ) -> Self {
+        ClientMessageHandler {
+            project,
+            process_msg_tx,
+            receiver,
+        }
+    }
+
     /// Listen for update or close messages sent by a client.
     #[tracing::instrument(skip(self), fields(?receiver=self.receiver))]
     pub(super) async fn receive_messages_from_client(mut self) {

@@ -3,6 +3,7 @@ use axum::extract::ws::{CloseCode, CloseFrame, Message, WebSocket};
 use futures::SinkExt as _;
 use std::fmt;
 
+/// Splits a socket into a read, ClientReceiver, and write, ClientSender, side.
 pub(super) fn from_socket(
     socket: WebSocket,
     who: &str,

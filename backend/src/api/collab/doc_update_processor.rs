@@ -3,12 +3,22 @@ use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use tokio::sync::mpsc::Receiver;
 
+/// DocUpdateProcessor receives doc updates from a channel
+/// and 1) persists them to the DB, and 2) broadcasts them
+/// to other clients connected for the given project.
 pub(super) struct DocUpdateProcessor {
-    pub(super) pool: &'static PgPool,
-    pub(super) doc_update_rx: Receiver<YrsUpdate>,
+    pool: &'static PgPool,
+    doc_update_rx: Receiver<YrsUpdate>,
 }
 
 impl DocUpdateProcessor {
+    pub(super) fn new(pool: &'static PgPool, doc_update_rx: Receiver<YrsUpdate>) -> Self {
+        DocUpdateProcessor {
+            pool,
+            doc_update_rx,
+        }
+    }
+
     #[tracing::instrument(skip(self))]
     pub(super) async fn process_doc_updates(mut self) {
         loop {

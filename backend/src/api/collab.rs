@@ -1,3 +1,11 @@
+//! How each message is handling depends on the protocol and message type.
+//! Today, there's only one protocol: SYNC. The protocol includes three types of
+//! messages:
+//!   - SYNC_REQUEST - sent by clients during the initial
+//!   - SYNC_RESPONSE
+//!   - SYNC_UPDATE -
+//!
+
 pub(crate) mod client;
 pub(crate) mod client_message_handler;
 pub(crate) mod doc_observer;
@@ -25,7 +33,6 @@ use anyhow::anyhow;
 use anyhow::Error;
 use anyhow::Result;
 use axum::extract::ws::WebSocket;
-use dashmap::DashMap;
 use sqlx::PgPool;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::mpsc::{self};
@@ -34,42 +41,6 @@ use tokio_util::task::TaskTracker;
 use uuid::Uuid;
 use yrs::types::ToJson;
 use yrs::{ReadTxn, Transact};
-
-pub(crate) fn start(pool: &'static PgPool) -> Collab {
-    let (process_msg_tx, process_msg_rx) = mpsc::channel::<YrsMessage>(1);
-    let (doc_update_tx, doc_update_rx) = mpsc::channel::<YrsUpdate>(50);
-    let tracker = tokio_util::task::TaskTracker::new();
-    let collab = Collab {
-        inner: Arc::new(Inner {
-            state: ProjectsState {
-                projects: DashMap::new(),
-                process_msg_tx,
-                doc_update_tx,
-                pool,
-                tracker: tracker.clone(),
-            },
-            pool,
-            tracker,
-        }),
-    };
-
-    let doc_update_processor = DocUpdateProcessor {
-        pool,
-        doc_update_rx,
-    };
-    collab
-        .inner
-        .tracker
-        .spawn(doc_update_processor.process_doc_updates());
-
-    let yrs_message_processor = YrsMessageProcessor { process_msg_rx };
-    collab
-        .inner
-        .tracker
-        .spawn(yrs_message_processor.process_messages());
-
-    collab
-}
 
 #[derive(Clone)]
 pub(crate) struct Collab {
@@ -83,6 +54,33 @@ struct Inner {
 }
 
 impl Collab {
+    pub(crate) fn new(pool: &'static PgPool) -> Collab {
+        let (process_msg_tx, process_msg_rx) = mpsc::channel::<YrsMessage>(1);
+        let (doc_update_tx, doc_update_rx) = mpsc::channel::<YrsUpdate>(50);
+        let tracker = tokio_util::task::TaskTracker::new();
+        let collab = Collab {
+            inner: Arc::new(Inner {
+                state: ProjectsState::new(process_msg_tx, doc_update_tx, pool, tracker.clone()),
+                pool,
+                tracker,
+            }),
+        };
+
+        let doc_update_processor = DocUpdateProcessor::new(pool, doc_update_rx);
+        collab
+            .inner
+            .tracker
+            .spawn(doc_update_processor.process_doc_updates());
+
+        let yrs_message_processor = YrsMessageProcessor::new(process_msg_rx);
+        collab
+            .inner
+            .tracker
+            .spawn(yrs_message_processor.process_messages());
+
+        collab
+    }
+
     #[tracing::instrument(skip(self, socket, who, user), fields(who))]
     pub(super) async fn register_client(
         self,
@@ -131,7 +129,7 @@ impl Collab {
             tracker.len()
         );
 
-        if let Err(e) = tokio::time::timeout(Duration::from_secs(60), async {
+        if let Err(e) = tokio::time::timeout(Duration::from_secs(30), async {
             loop {
                 if tracker.is_empty() {
                     break;

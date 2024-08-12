@@ -1,4 +1,4 @@
-use api::{collab, google};
+use api::{collab::Collab, google};
 use axum::{
     extract::{MatchedPath, Request},
     http::HeaderName,
@@ -69,7 +69,7 @@ async fn start_main_server() {
             .expect("can't connect to database"),
     ));
 
-    let collab: collab::Collab = collab::start(pool);
+    let collab = Collab::new(pool);
     let certs = google::fetch().await.unwrap();
 
     let app = Router::new()

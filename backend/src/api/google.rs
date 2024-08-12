@@ -1,9 +1,8 @@
 use crate::api::{unauthorized_error, ApiResult};
+use anyhow::{anyhow, Result};
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
 use jsonwebtoken::{DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct Key {
     kid: String,
@@ -20,22 +19,22 @@ pub(crate) struct Certs {
 }
 
 impl Certs {
-    fn get(&self, kid: &str) -> Result<DecodingKey, Box<dyn Error>> {
+    fn get(&self, kid: &str) -> Result<DecodingKey> {
         for key in &self.keys {
             if key.kid == *kid {
                 return Ok(DecodingKey::from_rsa_components(&key.n, &key.e)?);
             }
         }
-        Err("missing".into())
+        Err(anyhow!("missing key"))
     }
 }
 
-fn parse(json: &str) -> Result<Certs, Box<dyn Error>> {
+fn parse(json: &str) -> Result<Certs> {
     let certs: Certs = serde_json::from_str(json)?;
     Ok(certs)
 }
 
-pub(crate) async fn fetch() -> Result<Certs, Box<dyn Error>> {
+pub(crate) async fn fetch() -> Result<Certs> {
     let client = reqwest::Client::new();
     let resp = client
         .get("https://www.googleapis.com/oauth2/v3/certs")

@@ -26,14 +26,29 @@ use tokio::sync::{mpsc::Sender, Mutex};
 use yrs::{Doc, ReadTxn as _, StateVector, Transact as _, Update};
 
 pub(super) struct ProjectsState {
-    pub(super) projects: DashMap<ProjectId, Weak<ProjectState>>,
-    pub(super) process_msg_tx: Sender<YrsMessage>,
-    pub(super) doc_update_tx: Sender<YrsUpdate>,
-    pub(super) pool: &'static PgPool,
-    pub(super) tracker: tokio_util::task::TaskTracker,
+    projects: DashMap<ProjectId, Weak<ProjectState>>,
+    process_msg_tx: Sender<YrsMessage>,
+    doc_update_tx: Sender<YrsUpdate>,
+    pool: &'static PgPool,
+    tracker: tokio_util::task::TaskTracker,
 }
 
 impl ProjectsState {
+    pub(super) fn new(
+        process_msg_tx: Sender<YrsMessage>,
+        doc_update_tx: Sender<YrsUpdate>,
+        pool: &'static PgPool,
+        tracker: tokio_util::task::TaskTracker,
+    ) -> Self {
+        ProjectsState {
+            projects: DashMap::new(),
+            process_msg_tx,
+            doc_update_tx,
+            pool,
+            tracker,
+        }
+    }
+
     pub(super) async fn add_and_init_client(
         &self,
         project_id: &ProjectId,
@@ -77,11 +92,8 @@ impl ProjectsState {
         }
 
         // Listen for messages on the read side of the socket.
-        let handler = ClientMessageHandler {
-            project: Arc::clone(&project),
-            process_msg_tx: self.process_msg_tx.clone(),
-            receiver,
-        };
+        let handler =
+            ClientMessageHandler::new(Arc::clone(&project), self.process_msg_tx.clone(), receiver);
         self.tracker.spawn(handler.receive_messages_from_client());
 
         Ok(())
@@ -167,10 +179,7 @@ impl ProjectState {
         project.updates.store(update_count, Relaxed);
 
         // Persist and broadcast update events by subscribing to the callback.
-        let observer = DocObserver {
-            doc_update_tx: project.doc_update_tx.clone(),
-            tracker: project.tracker.clone(),
-        };
+        let observer = DocObserver::new(project.doc_update_tx.clone(), project.tracker.clone());
         let observer_project = Arc::downgrade(project);
         let res = doc.observe_update_v2(move |txn, update| {
             let Some(project) = observer_project.upgrade() else {

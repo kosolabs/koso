@@ -11,11 +11,17 @@ use yrs::{
     StateVector, Update,
 };
 
+/// YrsMessageProcessor processes messages sent by ClientMessageHandlers.
+/// See the `api::collab::Collab` documentation for details on the protocol.
 pub(super) struct YrsMessageProcessor {
-    pub(super) process_msg_rx: Receiver<YrsMessage>,
+    process_msg_rx: Receiver<YrsMessage>,
 }
 
 impl YrsMessageProcessor {
+    pub(super) fn new(process_msg_rx: Receiver<YrsMessage>) -> Self {
+        YrsMessageProcessor { process_msg_rx }
+    }
+
     #[tracing::instrument(skip(self))]
     pub(super) async fn process_messages(mut self) {
         loop {

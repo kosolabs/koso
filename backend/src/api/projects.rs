@@ -18,7 +18,7 @@ use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
 
-pub(crate) fn projects_router() -> Router {
+pub(super) fn projects_router() -> Router {
     Router::new()
         .route("/", get(list_projects_handler))
         .route("/", post(create_project_handler))
