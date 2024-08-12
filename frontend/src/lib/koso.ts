@@ -20,6 +20,10 @@ export class Node {
   length: number;
   path: string[];
 
+  static get separator() {
+    return "/";
+  }
+
   constructor(path: string[]) {
     this.path = path;
     const maybeName = this.path.at(-1);
@@ -27,7 +31,7 @@ export class Node {
       this.id = "root";
       this.name = "root";
     } else {
-      this.id = this.path.join("-");
+      this.id = this.path.join(Node.separator);
       this.name = maybeName;
     }
     this.length = this.path.length;

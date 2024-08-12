@@ -10,8 +10,6 @@
 
   export let value: Status | null;
 
-  $: console.log(value);
-
   let open: boolean = false;
   let showConfetti: boolean = false;
 
