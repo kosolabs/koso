@@ -13,7 +13,7 @@
   import UserAvatar from "./user-avatar.svelte";
 </script>
 
-<Navbar color="primary" class="mb-4" fluid={true}>
+<Navbar color="primary" class="mb-0" fluid={true}>
   <NavContainer fluid={true}>
     <div class="flex items-center">
       <a href="/projects">
