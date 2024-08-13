@@ -67,6 +67,7 @@
 
   function handleStartEditingTaskName(event: MouseEvent | CustomEvent) {
     event.stopPropagation();
+    event.preventDefault();
     $selected = node;
     editedTaskName = task.name;
   }
