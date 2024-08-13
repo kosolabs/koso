@@ -100,6 +100,10 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
         }
     };
     let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
+    // Allow the token to last seven days longer than the given expiry.
+    // This number matches the clients's validation in auth.ts.
+    const SEVEN_DAYS_SECS: u64 = 7 * 24 * 60 * 60;
+    validation.leeway = SEVEN_DAYS_SECS;
     validation.set_audience(&[
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
     ]);
