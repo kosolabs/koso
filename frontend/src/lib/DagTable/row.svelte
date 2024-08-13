@@ -341,7 +341,9 @@
   on:keydown={handleRowKeydown}
   use:row
 >
-  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
+  <td
+    class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
+  >
     <div class="flex items-center">
       <div style="width: {(node.length - 1) * 1.25}rem;" />
       {#if task.children.length > 0}
@@ -393,7 +395,9 @@
       <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
     </div>
   </td>
-  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
+  <td
+    class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
+  >
     {#if editedTaskName !== null}
       <Input
         size="sm"
@@ -414,7 +418,9 @@
       </A>
     {/if}
   </td>
-  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
+  <td
+    class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
+  >
     <UserSelect
       {users}
       value={assignee}
@@ -425,7 +431,7 @@
   </td>
   <td
     class={cn(
-      "border p-2 max-md:hidden",
+      "border-r border-t p-2 max-md:hidden",
       isSelected ? "border-transparent" : "",
     )}
   >
@@ -437,7 +443,9 @@
       }}
     />
   </td>
-  <td class={cn("border p-2", isSelected ? "border-transparent" : "")}>
+  <td
+    class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
+  >
     <TaskStatusSelect
       value={task.status}
       on:select={(event) => {
