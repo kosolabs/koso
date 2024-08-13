@@ -1,7 +1,9 @@
 use crate::{
     api::{
         collab::{
-            client::{ClientClosure, ClientReceiver, ClientSender, CLOSE_ERROR, CLOSE_RESTART},
+            client::{
+                ClientClosure, ClientReceiver, ClientSender, CLOSE_ERROR, CLOSE_RESTART, OVERLOADED,
+            },
             client_message_handler::{ClientMessageHandler, YrsMessage},
             doc_observer::{DocObserver, YrsUpdate},
             msg_sync::sync_request,
@@ -12,7 +14,7 @@ use crate::{
     },
     postgres::compact,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Error, Result};
 use dashmap::DashMap;
 use sqlx::PgPool;
 use std::{
@@ -65,12 +67,19 @@ impl ProjectsState {
         };
 
         // Store the sender side of the socket in the list of clients.
-        if let Some(mut existing) = project.insert_client(sender).await {
-            existing
-                .close(CLOSE_ERROR, "Unexpected duplicate connection.")
-                .await;
-            tracing::error!("Unexpectedly, client already exists: {existing:?}");
-            // Intentionally fall through below and start listening for messages on the new sender.
+        match project.insert_client(sender).await {
+            Ok(None) => {}
+            Ok(Some(mut existing)) => {
+                existing
+                    .close(CLOSE_ERROR, "Unexpected duplicate connection.")
+                    .await;
+                tracing::error!("Unexpectedly, client already exists: {existing:?}");
+                // Intentionally fall through below and start listening for messages on the new sender.
+            }
+            Err((mut sender, e)) => {
+                sender.close(OVERLOADED, "Too many active clients.").await;
+                return Err(e);
+            }
         };
 
         // Send the entire state vector to the client.
@@ -162,8 +171,21 @@ pub(super) struct ProjectState {
 }
 
 impl ProjectState {
-    async fn insert_client(&self, sender: ClientSender) -> Option<ClientSender> {
-        self.clients.lock().await.insert(sender.who.clone(), sender)
+    async fn insert_client(
+        &self,
+        sender: ClientSender,
+    ) -> Result<Option<ClientSender>, (ClientSender, Error)> {
+        let mut clients = self.clients.lock().await;
+        if clients.len() >= 300 {
+            return Err((
+                sender,
+                anyhow!(
+                    "Too many ({}) clients are already registered.",
+                    clients.len()
+                ),
+            ));
+        }
+        Ok(clients.insert(sender.who.clone(), sender))
     }
 
     async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {
