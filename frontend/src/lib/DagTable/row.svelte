@@ -398,6 +398,16 @@
   <td
     class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
   >
+    <TaskStatusSelect
+      value={task.status}
+      on:select={(event) => {
+        koso.setTaskStatus(task.id, event.detail);
+      }}
+    />
+  </td>
+  <td
+    class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
+  >
     {#if editedTaskName !== null}
       <Input
         size="sm"
@@ -440,16 +450,6 @@
       value={reporter}
       on:select={(event) => {
         koso.setReporter(task.id, event.detail);
-      }}
-    />
-  </td>
-  <td
-    class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
-  >
-    <TaskStatusSelect
-      value={task.status}
-      on:select={(event) => {
-        koso.setTaskStatus(task.id, event.detail);
       }}
     />
   </td>
