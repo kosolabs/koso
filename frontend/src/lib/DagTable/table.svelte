@@ -138,10 +138,10 @@
   >
     <tr>
       <th class="w-32 border-r border-t p-2">ID</th>
+      <th class="border-r border-t p-2">Status</th>
       <th class="border-r border-t p-2">Name</th>
       <th class="border-r border-t p-2">Assignee</th>
       <th class="border-r border-t p-2 max-md:hidden">Reporter</th>
-      <th class="border-r border-t p-2">Status</th>
     </tr>
   </thead>
 
