@@ -35,9 +35,9 @@ export const user = derived(token, (token) => {
   const user = jwtDecode(token) as User;
   // Allow the token to last seven days longer than the given expiry.
   // This number matches the server's validation in google.rs.
-  const sevenDaysSecs = 7 * 24 * 60 * 60 * 1000;
+  const sevenDaysSecs = 7 * 24 * 60 * 60;
   const realExpiryMillisecs = (user.exp + sevenDaysSecs) * 1000;
-  const remainingLifeMillis = Date.now() - realExpiryMillisecs;
+  const remainingLifeMillis = realExpiryMillisecs - Date.now();
   if (remainingLifeMillis <= 0) {
     return null;
   }
