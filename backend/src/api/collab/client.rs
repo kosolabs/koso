@@ -30,6 +30,7 @@ pub(super) fn from_socket(
 pub(super) const CLOSE_NORMAL: u16 = 1000;
 pub(super) const CLOSE_ERROR: u16 = 1011;
 pub(super) const CLOSE_RESTART: u16 = 1012;
+pub(super) const OVERLOADED: u16 = 1013;
 pub(super) const CLOSE_UNAUTHORIZED: u16 = 3000;
 
 pub(super) struct ClientClosure {

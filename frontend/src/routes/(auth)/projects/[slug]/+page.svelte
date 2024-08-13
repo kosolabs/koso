@@ -156,10 +156,23 @@
         return;
       }
 
-      console.log(
-        `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
-        event,
-      );
+      const OVERLOADED = 1013;
+      if (event.code === OVERLOADED) {
+        // In case of overload, don't retry aggressively.
+        if (backoffMs < 30000) {
+          backoffMs = 30000;
+        }
+        console.log(
+          `Overloaded WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
+          event,
+        );
+      } else {
+        console.log(
+          `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
+          event,
+        );
+      }
+
       showSocketOfflineAlert = true;
       setTimeout(async () => {
         if (socket !== null) {
