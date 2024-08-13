@@ -176,13 +176,11 @@ impl ProjectState {
         sender: ClientSender,
     ) -> Result<Option<ClientSender>, (ClientSender, Error)> {
         let mut clients = self.clients.lock().await;
-        if clients.len() >= 300 {
+        const MAX_PROJECT_CLIENTS: usize = 100;
+        if clients.len() >= MAX_PROJECT_CLIENTS {
             return Err((
                 sender,
-                anyhow!(
-                    "Too many ({}) clients are already registered.",
-                    clients.len()
-                ),
+                anyhow!("Too many ({}) active project clients.", clients.len()),
             ));
         }
         Ok(clients.insert(sender.who.clone(), sender))
