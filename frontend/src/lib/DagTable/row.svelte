@@ -355,7 +355,7 @@
         >
           <ChevronRight class="w-4" />
         </button>
-        <Tooltip class="text-nowrap">
+        <Tooltip class="z-10 text-nowrap">
           {open ? "Collapse" : "Expand"}
         </Tooltip>
       {:else}
