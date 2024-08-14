@@ -87,67 +87,6 @@ describe("Koso tests", () => {
     });
   });
 
-  describe("toNodes", () => {
-    it("empty doc has no nodes", () => {
-      expect(koso.toNodes()).toStrictEqual([]);
-    });
-
-    it("doc with one task has one node", () => {
-      const id1 = koso.insertNode("root", 0, "Task 1", USER);
-      expect(koso.toNodes()).toStrictEqual([new Node([id1])]);
-    });
-
-    it("doc with two tasks has two nodes", () => {
-      const id1 = koso.insertNode("root", 0, "Task 1", USER);
-      const id2 = koso.insertNode("root", 1, "Task 2", USER);
-      expect(koso.toNodes()).toStrictEqual([new Node([id1]), new Node([id2])]);
-    });
-
-    it("doc with a multi-linked task has three nodes", () => {
-      const id1 = koso.insertNode("root", 0, "Task 1", USER);
-      const id2 = koso.insertNode("root", 1, "Task 2", USER);
-      koso.linkNode(id2, id1, 0);
-      expect(koso.toNodes()).toStrictEqual([
-        new Node([id1]),
-        new Node([id1, id2]),
-        new Node([id2]),
-      ]);
-    });
-  });
-
-  describe("toParents", () => {
-    it("empty doc has no parents", () => {
-      expect(koso.toParents()).toStrictEqual({});
-    });
-
-    it("doc with one task has root parent", () => {
-      const id1 = koso.insertNode("root", 0, "Task 1", USER);
-      expect(koso.toParents()).toStrictEqual({
-        [id1]: ["root"],
-      });
-    });
-
-    it("doc with two tasks has root as parent for both", () => {
-      const id1 = koso.insertNode("root", 0, "Task 1", USER);
-      const id2 = koso.insertNode("root", 1, "Task 2", USER);
-      expect(koso.toParents()).toStrictEqual({
-        [id1]: ["root"],
-        [id2]: ["root"],
-      });
-    });
-
-    it("doc with a task with two parents", () => {
-      const id1 = koso.insertNode("root", 0, "Task 1", USER);
-      const id2 = koso.insertNode("root", 1, "Task 2", USER);
-      koso.linkNode(id2, id1, 0);
-
-      expect(koso.toParents()).toStrictEqual({
-        [id1]: ["root"],
-        [id2]: ["root", id1],
-      });
-    });
-  });
-
   describe("graph", () => {
     it("empty graph renders successfully", () => {
       expect(koso.yGraph.toJSON()).toMatchObject({

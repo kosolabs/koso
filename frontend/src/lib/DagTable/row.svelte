@@ -9,10 +9,9 @@
   import { getContext } from "svelte";
   import type { Node } from "../koso";
   import {
-    collapsed,
     dragged,
     dropEffect,
-    hidden,
+    expanded,
     highlighted,
     selected,
   } from "./state";
@@ -47,14 +46,14 @@
 
   const koso = getContext<Koso>("koso");
 
-  $: open = !$collapsed.has(node.id);
+  $: open = $expanded.has(node.id);
 
   function setOpen(open: boolean) {
     if (open) {
-      $collapsed.delete(node.id);
-      $collapsed = $collapsed;
+      $expanded = $expanded.add(node.id);
     } else {
-      $collapsed = $collapsed.add(node.id);
+      $expanded.delete(node.id);
+      $expanded = $expanded;
     }
   }
 
@@ -318,7 +317,6 @@
   $: isMoving = isDragging && $dropEffect === "move";
   $: isHovered = $highlighted?.name === node.name;
   $: isSelected = node.equals($selected);
-  $: isHidden = $hidden.has(node.id);
 </script>
 
 <tr
@@ -332,7 +330,6 @@
     isHovered ? "bg-primary-50" : "",
     isSelected ? "bg-primary-200 outline-primary-400" : "",
     isSelected ? "outline outline-2" : "",
-    isHidden ? "hidden" : "",
   )}
   on:mouseout={handleUnhighlight}
   on:mouseover={handleHighlight}
