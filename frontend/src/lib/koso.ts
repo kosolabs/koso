@@ -38,12 +38,9 @@ export class Node {
   }
 
   parent(): Node {
-    if (this.isRoot()) throw new Error("Cannot get parent of root node");
+    if (this.path.length === 0)
+      throw new Error("Cannot get parent of root node");
     return new Node(this.path.slice(0, -1));
-  }
-
-  isRoot(): boolean {
-    return this.path.length === 0;
   }
 
   concat(nodeId: string) {
@@ -168,7 +165,6 @@ export class Koso {
   }
 
   getOffset(node: Node): number {
-    if (node.isRoot()) return 0;
     const task = this.getTask(node.parent().name);
     return task.children.indexOf(node.name);
   }
