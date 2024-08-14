@@ -3,6 +3,7 @@
   import type { Koso } from "$lib/koso";
   import { Button } from "flowbite-svelte";
   import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
+  import { UserRoundPlus, SquarePen } from "lucide-svelte";
   import { setContext } from "svelte";
   import { flip } from "svelte/animate";
   import Row from "./row.svelte";
@@ -124,9 +125,15 @@
   >
     <tr>
       <th class="w-32 border-r border-t p-2">ID</th>
-      <th class="border-r border-t p-2">Status</th>
+      <th class="border-r border-t p-2">
+        <SquarePen class="h-4 md:hidden" />
+        <div class="max-md:hidden">Status</div></th
+      >
       <th class="border-r border-t p-2">Name</th>
-      <th class="border-r border-t p-2">Assignee</th>
+      <th class="border-r border-t p-2">
+        <UserRoundPlus class="h-4 md:hidden" />
+        <div class="max-md:hidden">Assignee</div>
+      </th>
       <th class="border-r border-t p-2 max-md:hidden">Reporter</th>
     </tr>
   </thead>
