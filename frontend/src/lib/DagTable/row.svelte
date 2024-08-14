@@ -135,7 +135,7 @@
       return;
     }
 
-    if (!$dragged.isRoot() && $dropEffect === "move") {
+    if ($dropEffect === "move") {
       koso.moveNode(
         $dragged.name,
         $dragged.parent().name,
@@ -157,7 +157,7 @@
       return;
     }
 
-    if ($dragged.isRoot() || $dragged.parent().equals(node.parent())) {
+    if ($dragged.parent().equals(node.parent())) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
     } else {
@@ -180,7 +180,7 @@
       return;
     }
 
-    if ($dragged.isRoot() || $dragged.parent().equals(node)) {
+    if ($dragged.parent().equals(node)) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
     } else {
@@ -271,9 +271,6 @@
   }
 
   function hasChild(parent: Node, child: Node): boolean {
-    if (child.isRoot()) {
-      return false;
-    }
     if (parent.equals(child.parent())) {
       return false;
     }
@@ -281,9 +278,6 @@
   }
 
   function isSamePeer(node: Node, dragged: Node): boolean {
-    if (dragged.isRoot()) {
-      return false;
-    }
     if (!node.parent().equals(dragged.parent())) {
       return false;
     }
@@ -291,9 +285,6 @@
   }
 
   function isSameChild(node: Node, dragged: Node): boolean {
-    if (dragged.isRoot()) {
-      return false;
-    }
     if (!node.equals(dragged.parent())) {
       return false;
     }
@@ -303,7 +294,6 @@
   $: isDragging = !isGhost && node.equals($dragged);
   $: canDragDropPeer =
     !isDragging &&
-    !node.isRoot() &&
     $dragged &&
     !isSamePeer(node, $dragged) &&
     !hasChild(node.parent(), $dragged) &&
