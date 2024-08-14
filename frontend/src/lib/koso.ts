@@ -58,10 +58,6 @@ export class Node {
   }
 }
 
-export type Parents = {
-  [id: string]: string[];
-};
-
 export type Status = "Not Started" | "In Progress" | "Done";
 
 export type Task = {
@@ -177,56 +173,20 @@ export class Koso {
     return task.children.indexOf(node.name);
   }
 
-  #flatten(node: Node, nodes: Node[]) {
-    for (const childName of this.getChildren(node.name)) {
-      const child = node.concat(childName);
-      nodes.push(child);
-      this.#flatten(child, nodes);
-    }
-  }
-
-  toNodes(): Node[] {
-    const nodes: Node[] = [];
-    if (this.yGraph.size > 0 || this.yGraph.has("root")) {
-      this.migrateToSingleRoot();
-      this.#flatten(new Node([]), nodes);
-    }
-    return nodes;
-  }
-
-  toParents(): Parents {
-    const parents: Parents = {};
-    for (const [parentId, task] of this.yGraph.entries()) {
-      for (const childId of task.get("children") as Y.Array<string>) {
-        if (!(childId in parents)) {
-          parents[childId] = [];
-        }
-        parents[childId].push(parentId);
+  getOrphanedTaskIds() {
+    const allChildTaskIds = new Set<string>();
+    for (const task of this.yGraph.values()) {
+      for (const childTaskId of task.get("children") as Y.Array<string>) {
+        allChildTaskIds.add(childTaskId);
       }
     }
-    return parents;
-  }
 
-  migrateToSingleRoot() {
-    if (this.yGraph.size > 0 && !this.yGraph.has("root")) {
-      console.log("Migrating to single root yGraph");
-
-      const allChildTaskIds = new Set<string>();
-      for (const task of this.yGraph.values()) {
-        for (const childTaskId of task.get("children") as Y.Array<string>) {
-          allChildTaskIds.add(childTaskId);
-        }
-      }
-      const allTaskIds = new Set<string>();
-      for (const taskId of this.yGraph.keys()) {
-        allTaskIds.add(taskId);
-      }
-      const roots = Array.from(allTaskIds.difference(allChildTaskIds));
-
-      this.yDoc.transact(() => {
-        this.#upsertRoot(roots);
-      });
+    const allTaskIds = new Set<string>();
+    for (const taskId of this.yGraph.keys()) {
+      allTaskIds.add(taskId);
     }
+
+    return Array.from(allTaskIds.difference(allChildTaskIds));
   }
 
   newId(): string {

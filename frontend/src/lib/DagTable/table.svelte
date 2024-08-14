@@ -6,18 +6,14 @@
   import { setContext } from "svelte";
   import { flip } from "svelte/animate";
   import Row from "./row.svelte";
-  import { hidden, nodes, parents, selected } from "./state";
-  import { receive, send } from "./transition";
+  import { graph, nodes, parents, selected } from "./state";
 
   export let koso: Koso;
   export let users: User[];
   let rows: { [key: string]: HTMLDivElement } = {};
 
-  $nodes = koso.toNodes();
-  $parents = koso.toParents();
   koso.observe(() => {
-    $nodes = koso.toNodes();
-    $parents = koso.toParents();
+    $graph = koso.toJSON();
   });
 
   document.onkeydown = (event: KeyboardEvent) => {
@@ -28,12 +24,7 @@
         if (selectedIndex === -1) {
           $selected = $nodes[0];
         } else {
-          for (let i = selectedIndex + 1; i < paths.length; i++) {
-            if (!$hidden.has($nodes[i].id)) {
-              $selected = $nodes[i];
-              break;
-            }
-          }
+          $selected = $nodes[Math.min(selectedIndex + 1, paths.length - 1)];
         }
       }
       if ($selected !== null) {
@@ -51,12 +42,7 @@
         if (selectedIndex === -1) {
           $selected = $nodes[$nodes.length - 1];
         } else {
-          for (let i = selectedIndex - 1; i >= 0; i--) {
-            if (!$hidden.has($nodes[i].id)) {
-              $selected = $nodes[i];
-              break;
-            }
-          }
+          $selected = $nodes[Math.max(selectedIndex - 1, 0)];
         }
       }
       if ($selected !== null) {
@@ -146,11 +132,7 @@
   </thead>
 
   {#each $nodes as node, index (node.id)}
-    <tbody
-      in:receive={{ key: node.id }}
-      out:send={{ key: node.id }}
-      animate:flip={{ duration: 250 }}
-    >
+    <tbody animate:flip={{ duration: 250 }}>
       <Row
         {index}
         {node}
