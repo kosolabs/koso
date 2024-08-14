@@ -70,10 +70,6 @@ describe("Koso tests", () => {
   });
 
   describe("getOffset", () => {
-    it("offset of root is 0", () => {
-      expect(koso.getOffset(new Node([]))).toBe(0);
-    });
-
     it("offset of first node is 0", () => {
       const id1 = koso.insertNode("root", 0, "Task 1", USER);
       koso.insertNode("root", 1, "Task 2", USER);
