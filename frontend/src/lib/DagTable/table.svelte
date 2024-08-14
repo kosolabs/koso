@@ -8,7 +8,6 @@
   import { flip } from "svelte/animate";
   import Row from "./row.svelte";
   import { graph, nodes, parents, selected } from "./state";
-  import { cn } from "$lib/utils";
 
   export let koso: Koso;
   export let users: User[];
