@@ -8,7 +8,8 @@
 
   export let users: User[];
   export let value: User | null = null;
-  export let unassigned: string = "Unassigned";
+  export let defaultLabel: string = "Unassigned";
+  export let showUnassigned: boolean = true;
 
   let open: boolean = false;
   let filter: string = "";
@@ -29,7 +30,7 @@
 <button class="flex gap-1">
   <Avatar src={value?.picture || ""} rounded size="xs" />
   <div class="whitespace-nowrap max-md:hidden">
-    {value?.name || unassigned}
+    {value?.name || defaultLabel}
   </div>
 </button>
 <Dropdown bind:open>
@@ -38,11 +39,13 @@
       <Input placeholder="Filter users" bind:value={filter} />
     </div>
 
-    <button on:click={() => select(null)}>
-      <UserAvatar
-        user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
-      />
-    </button>
+    {#if showUnassigned}
+      <button on:click={() => select(null)}>
+        <UserAvatar
+          user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
+        />
+      </button>
+    {/if}
 
     {#each filteredUsers as user}
       <button

@@ -14,6 +14,7 @@ pub(crate) mod collab;
 pub(crate) mod google;
 pub(crate) mod model;
 pub(crate) mod projects;
+pub(crate) mod users;
 pub(crate) mod ws;
 
 pub(crate) type ApiResult<T> = Result<T, ErrorResponse>;
@@ -23,6 +24,7 @@ pub(crate) fn api_router() -> Router {
         .nest("/projects", projects::projects_router())
         .nest("/auth", auth::auth_router())
         .nest("/ws", ws::ws_router())
+        .nest("/users", users::users_router())
 }
 
 pub(crate) async fn verify_access(
@@ -90,7 +92,12 @@ pub(crate) fn bad_request_error(msg: &str) -> ErrorResponse {
 }
 
 pub(crate) fn error_response(code: StatusCode, msg: &str) -> ErrorResponse {
-    tracing::error!("Failed: {}: {}", code, msg);
+    match code {
+        StatusCode::INTERNAL_SERVER_ERROR => {
+            tracing::error!("Failed: {}: {}", code, msg)
+        }
+        _ => tracing::warn!("Failed: {}: {}", code, msg),
+    }
     ErrorResponse {
         code,
         msg: msg.to_string(),

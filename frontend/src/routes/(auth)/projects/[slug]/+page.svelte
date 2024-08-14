@@ -6,32 +6,37 @@
   import { Koso } from "$lib/koso";
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
-  import { fetchProjects, type Project, updateProject } from "$lib/projects";
-  import { A, Alert, Button, Input, Modal } from "flowbite-svelte";
-  import { UserPlus } from "lucide-svelte";
-  import { onDestroy, onMount } from "svelte";
+  import {
+    fetchProjects,
+    type Project,
+    updateProject,
+    updateProjectPermissions,
+    fetchProjectUsers,
+  } from "$lib/projects";
+  import UserSelect from "$lib/user-select.svelte";
+  import UserAvatar from "$lib/user-avatar.svelte";
+
+  import { A, Alert, Button, Input, Label, Modal } from "flowbite-svelte";
+  import { UserPlus, CircleMinus, TriangleAlert } from "lucide-svelte";
+  import { createEventDispatcher, onDestroy, onMount } from "svelte";
   import * as Y from "yjs";
 
   const projectId = $page.params.slug;
   const koso = new Koso(projectId, new Y.Doc());
   window.koso = koso;
 
-  let users: User[] = [];
+  let projectUsers: User[] = [];
+  let allUsers: User[] = [];
   let project: Project | null = null;
+  let emptyUser: User | null = null;
 
-  async function loadUsers() {
+  let shareModal = true;
+  let showWarnSelfRemovalModal = false;
+  const confirmSelfRemovalDispatch = createEventDispatcher();
+
+  async function loadProjectUsers() {
     if (!$user || !$token) throw new Error("User is unauthorized");
-
-    let resp = await fetch(`/api/projects/${projectId}/users`, {
-      headers: { Authorization: "Bearer " + $token },
-    });
-    if (!resp.ok) {
-      throw new Error(
-        `Failed to fetch project users: ${resp.statusText} (${resp.status})`,
-      );
-    }
-
-    return await resp.json();
+    return await fetchProjectUsers($token, projectId);
   }
 
   async function loadProject() {
@@ -191,9 +196,10 @@
       return;
     }
 
-    [users, project] = await Promise.all([
-      loadUsers(),
+    [projectUsers, project, allUsers] = await Promise.all([
+      loadProjectUsers(),
       loadProject(),
+      loadAllUsers(),
       openWebSocket(),
     ]);
   });
@@ -233,7 +239,13 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="right-items">
-    <Button size="xs" title="Share Project"><UserPlus /></Button>
+    <Button
+      size="xs"
+      title="Share Project"
+      on:click={() => (shareModal = true)}
+    >
+      <UserPlus />
+    </Button>
   </svelte:fragment>
 </Navbar>
 
@@ -252,4 +264,4 @@
   </svelte:fragment>
 </Modal>
 
-<DagTable {koso} {users} />
+<DagTable {koso} users={projectUsers} />
