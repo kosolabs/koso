@@ -188,14 +188,11 @@
       return;
     }
 
-    let [projectUsersT, projectT] = await Promise.all([
+    [projectUsers, project] = await Promise.all([
       loadProjectUsers(),
       loadProject(),
       openWebSocket(),
     ]);
-    projectUsers.push(...projectUsersT);
-    projectUsers = projectUsers;
-    project = projectT;
   });
 
   onDestroy(() => {
