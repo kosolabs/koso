@@ -27,13 +27,8 @@
   window.koso = koso;
 
   let project: Project | null = null;
-
-  let shareModalState: ShareState = {
-    open: false,
-    projectId: projectId,
-    projectUsers: writable<User[]>([]),
-  };
-  $: projectUsers = shareModalState.projectUsers;
+  let projectUsers: User[] = [];
+  let openShareModal = false;
 
   async function loadProjectUsers() {
     if (!$user || !$token) throw new Error("User is unauthorized");
@@ -202,11 +197,8 @@
       loadProject(),
       openWebSocket(),
     ]);
-    shareModalState.projectUsers.update((pu) => {
-      pu.push(...projectUsersT);
-      return pu;
-    });
-    shareModalState.projectUsers = shareModalState.projectUsers;
+    projectUsers.push(...projectUsersT);
+    projectUsers = projectUsers;
     project = projectT;
   });
 
@@ -249,7 +241,7 @@
       size="xs"
       title="Share Project"
       on:click={() => {
-        shareModalState.open = true;
+        openShareModal = true;
       }}
     >
       <UserPlus />
@@ -272,7 +264,6 @@
   </svelte:fragment>
 </Modal>
 
-<DagTable {koso} users={$projectUsers} />
+<DagTable {koso} users={projectUsers} />
 
-<!-- TODO: Figure out how to modify projectUsers passed to dag table on add/remove. -->
-<ProjectShare state={shareModalState} />
+<ProjectShare bind:open={openShareModal} bind:projectUsers {projectId} />

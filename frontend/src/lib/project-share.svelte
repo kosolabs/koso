@@ -2,14 +2,12 @@
   export type ShareState = {
     open: boolean;
     projectId: string;
-    projectUsers: Writable<User[]>;
+    projectUsers: User[];
   };
 </script>
 
 <script lang="ts">
   import UserAvatar from "./user-avatar.svelte";
-  import { writable, type Writable } from "svelte/store";
-  import { get } from "svelte/store";
   import { goto } from "$app/navigation";
   import { token, user, type User } from "$lib/auth";
   import { updateProjectPermissions } from "$lib/projects";
@@ -17,7 +15,9 @@
   import { A, Button, Modal } from "flowbite-svelte";
   import { UserPlus, CircleMinus, TriangleAlert } from "lucide-svelte";
 
-  export let state: ShareState;
+  export let open: boolean;
+  export let projectId: string;
+  export let projectUsers: User[];
 
   let emptyUser: User | null = null;
   let openWarnSelfRemovalModal = false;
@@ -51,16 +51,13 @@
     emptyUser = null;
 
     await updateProjectPermissions($token, {
-      project_id: state.projectId,
+      project_id: projectId,
       add_emails: [user.email],
       remove_emails: [],
     });
-    state.projectUsers.update((pu) => {
-      pu.push(user);
-      pu.sort(COMPARE_USER_BY_NAME);
-      return pu;
-    });
-    state.projectUsers = state.projectUsers;
+    projectUsers.push(user);
+    projectUsers.sort(COMPARE_USER_BY_NAME);
+    projectUsers = projectUsers;
   }
 
   async function removeUser(user: User, forceRemoveSelf: boolean) {
@@ -72,39 +69,26 @@
     }
 
     await updateProjectPermissions($token, {
-      project_id: state.projectId,
+      project_id: projectId,
       add_emails: [],
       remove_emails: [user.email],
     });
 
-    state.projectUsers.update((pu) => {
-      let i = get(state.projectUsers).findIndex((u) => u.email === user.email);
-      if (i == -1) throw new Error("Could not find user");
+    let i = projectUsers.findIndex((u) => u.email === user.email);
+    if (i == -1) throw new Error("Could not find user");
 
-      pu.splice(i, 1);
-      pu.sort(COMPARE_USER_BY_NAME);
-      return pu;
-    });
-    state.projectUsers = state.projectUsers;
+    projectUsers.splice(i, 1);
+    projectUsers.sort(COMPARE_USER_BY_NAME);
+    projectUsers = projectUsers;
   }
 </script>
 
-<Modal
-  title="Share your project"
-  bind:open={state.open}
-  autoclose
-  outsideclose
-  on:close={() => {
-    state.open = false;
-    state = state;
-    state.projectUsers = state.projectUsers;
-    console.log("Closingggg");
-  }}
->
+<!-- TODO: Figure out how to keep focus on the modal after adding a user so ESC works. -->
+<Modal title="Share your project" bind:open autoclose outsideclose>
   {#await loadAllUsers() then allUsers}
     <UserSelect
       users={allUsers.filter(
-        (u) => !get(state.projectUsers).some((pu) => pu.email === u.email),
+        (u) => !projectUsers.some((pu) => pu.email === u.email),
       )}
       showUnassigned={false}
       value={emptyUser}
@@ -123,7 +107,7 @@
   {/await}
 
   <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50">
-    {#each get(state.projectUsers) as projectUser, i}
+    {#each projectUsers as projectUser, i}
       <div class="flex flex-row rounded border p-2">
         <A
           size="xs"
