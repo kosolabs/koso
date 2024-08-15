@@ -1,20 +1,21 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
+  import { writable } from "svelte/store";
   import { token, user, type User } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
+  import ProjectShare from "$lib/project-share.svelte";
+  import { type ShareState } from "$lib/project-share.svelte";
+  import { get } from "svelte/store";
   import {
     fetchProjects,
     type Project,
     updateProject,
-    updateProjectPermissions,
     fetchProjectUsers,
   } from "$lib/projects";
-  import UserSelect from "$lib/user-select.svelte";
-  import UserAvatar from "$lib/user-avatar.svelte";
 
   import { A, Alert, Button, Input, Label, Modal } from "flowbite-svelte";
   import { UserPlus, CircleMinus, TriangleAlert } from "lucide-svelte";
@@ -25,14 +26,14 @@
   const koso = new Koso(projectId, new Y.Doc());
   window.koso = koso;
 
-  let projectUsers: User[] = [];
-  let allUsers: User[] = [];
   let project: Project | null = null;
-  let emptyUser: User | null = null;
 
-  let shareModal = true;
-  let showWarnSelfRemovalModal = false;
-  const confirmSelfRemovalDispatch = createEventDispatcher();
+  let shareModalState: ShareState = {
+    open: false,
+    projectId: projectId,
+    projectUsers: writable<User[]>([]),
+  };
+  $: projectUsers = shareModalState.projectUsers;
 
   async function loadProjectUsers() {
     if (!$user || !$token) throw new Error("User is unauthorized");
@@ -196,12 +197,17 @@
       return;
     }
 
-    [projectUsers, project, allUsers] = await Promise.all([
+    let [projectUsersT, projectT] = await Promise.all([
       loadProjectUsers(),
       loadProject(),
-      loadAllUsers(),
       openWebSocket(),
     ]);
+    shareModalState.projectUsers.update((pu) => {
+      pu.push(...projectUsersT);
+      return pu;
+    });
+    shareModalState.projectUsers = shareModalState.projectUsers;
+    project = projectT;
   });
 
   onDestroy(() => {
@@ -242,7 +248,9 @@
     <Button
       size="xs"
       title="Share Project"
-      on:click={() => (shareModal = true)}
+      on:click={() => {
+        shareModalState.open = true;
+      }}
     >
       <UserPlus />
     </Button>
@@ -264,4 +272,7 @@
   </svelte:fragment>
 </Modal>
 
-<DagTable {koso} users={projectUsers} />
+<DagTable {koso} users={$projectUsers} />
+
+<!-- TODO: Figure out how to modify projectUsers passed to dag table on add/remove. -->
+<ProjectShare state={shareModalState} />

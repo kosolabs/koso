@@ -8,7 +8,7 @@
 
   export let users: User[];
   export let value: User | null = null;
-  export let defaultLabel: string = "Unassigned";
+  export let unassigned: string = "Unassigned";
   export let showUnassigned: boolean = true;
 
   let open: boolean = false;
@@ -27,12 +27,14 @@
   );
 </script>
 
-<button class="flex gap-1">
-  <Avatar src={value?.picture || ""} rounded size="xs" />
-  <div class="whitespace-nowrap max-md:hidden">
-    {value?.name || defaultLabel}
-  </div>
-</button>
+<slot name="button">
+  <button class="flex gap-1">
+    <Avatar src={value?.picture || ""} rounded size="xs" />
+    <div class="whitespace-nowrap max-md:hidden">
+      {value?.name || unassigned}
+    </div>
+  </button>
+</slot>
 <Dropdown bind:open>
   <div class="flex flex-col gap-2 p-2">
     <div>

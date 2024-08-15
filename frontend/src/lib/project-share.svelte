@@ -1,47 +1,33 @@
+<script context="module" lang="ts">
+  export type ShareState = {
+    open: boolean;
+    projectId: string;
+    projectUsers: Writable<User[]>;
+  };
+</script>
+
 <script lang="ts">
-  import kosoLogo from "$lib/assets/koso.svg";
-  import {
-    Avatar,
-    Dropdown,
-    DropdownHeader,
-    DropdownItem,
-    Navbar,
-  } from "flowbite-svelte";
-  import NavContainer from "flowbite-svelte/NavContainer.svelte";
   import UserAvatar from "./user-avatar.svelte";
+  import { writable, type Writable } from "svelte/store";
+  import { get } from "svelte/store";
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
   import { token, user, type User } from "$lib/auth";
-  import { DagTable } from "$lib/DagTable";
-  import { Koso } from "$lib/koso";
-  import { lastVisitedProjectId } from "$lib/nav";
-  import {
-    fetchProjects,
-    type Project,
-    updateProject,
-    updateProjectPermissions,
-    fetchProjectUsers,
-  } from "$lib/projects";
+  import { updateProjectPermissions } from "$lib/projects";
   import UserSelect from "$lib/user-select.svelte";
-
-  import { A, Alert, Button, Input, Label, Modal } from "flowbite-svelte";
+  import { A, Button, Modal } from "flowbite-svelte";
   import { UserPlus, CircleMinus, TriangleAlert } from "lucide-svelte";
-  import { createEventDispatcher, onDestroy, onMount } from "svelte";
-  import * as Y from "yjs";
 
-  export let open = false;
-  export let projectId: string;
-  export let projectUsers: User[];
+  export let state: ShareState;
 
   let emptyUser: User | null = null;
-  let showWarnSelfRemovalModal = false;
+  let openWarnSelfRemovalModal = false;
 
   const COMPARE_USER_BY_NAME = (a: User, b: User) =>
     a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
 
-  let allUsers = loadAllUsers();
-
+  let cachedAllUsers: User[] | null = null;
   export async function loadAllUsers(): Promise<User[]> {
+    if (cachedAllUsers) return cachedAllUsers;
     if (!$user || !$token) throw new Error("User is unauthorized");
 
     const response = await fetch(`/api/users`, {
@@ -54,7 +40,9 @@
     }
     let users: User[] = await response.json();
     users.sort(COMPARE_USER_BY_NAME);
-    return users;
+
+    cachedAllUsers = users;
+    return cachedAllUsers;
   }
 
   async function addUser(user: User) {
@@ -63,57 +51,79 @@
     emptyUser = null;
 
     await updateProjectPermissions($token, {
-      project_id: projectId,
+      project_id: state.projectId,
       add_emails: [user.email],
       remove_emails: [],
     });
-    projectUsers.push(user);
-    projectUsers.sort(COMPARE_USER_BY_NAME);
-    projectUsers = projectUsers;
+    state.projectUsers.update((pu) => {
+      pu.push(user);
+      pu.sort(COMPARE_USER_BY_NAME);
+      return pu;
+    });
+    state.projectUsers = state.projectUsers;
   }
 
   async function removeUser(user: User, forceRemoveSelf: boolean) {
     if (!$user) throw new Error("User is unauthorized");
 
-    if ($user.email === user.email) {
-      showWarnSelfRemovalModal = true;
+    if ($user.email === user.email && !forceRemoveSelf) {
+      openWarnSelfRemovalModal = true;
       return;
     }
 
     await updateProjectPermissions($token, {
-      project_id: projectId,
+      project_id: state.projectId,
       add_emails: [],
       remove_emails: [user.email],
     });
 
-    let i = projectUsers.findIndex((u) => u.email === user.email);
-    if (i == -1) throw new Error("Could not find user");
-    projectUsers.splice(i, 1);
+    state.projectUsers.update((pu) => {
+      let i = get(state.projectUsers).findIndex((u) => u.email === user.email);
+      if (i == -1) throw new Error("Could not find user");
 
-    projectUsers.sort(COMPARE_USER_BY_NAME);
-    projectUsers = projectUsers;
+      pu.splice(i, 1);
+      pu.sort(COMPARE_USER_BY_NAME);
+      return pu;
+    });
+    state.projectUsers = state.projectUsers;
   }
 </script>
 
-<Modal title="Share your project" bind:open autoclose outsideclose>
-  <UserSelect
-    users={(await allUsers).filter(
-      (u) => !projectUsers.some((pu) => pu.email === u.email),
-    )}
-    defaultLabel="Select a user"
-    showUnassigned={false}
-    value={emptyUser}
-    on:select={async (event) => {
-      emptyUser = null;
-      if (!event.detail) {
-        return;
-      }
-      await addUser(event.detail);
-    }}
-  />
+<Modal
+  title="Share your project"
+  bind:open={state.open}
+  autoclose
+  outsideclose
+  on:close={() => {
+    state.open = false;
+    state = state;
+    state.projectUsers = state.projectUsers;
+    console.log("Closingggg");
+  }}
+>
+  {#await loadAllUsers() then allUsers}
+    <UserSelect
+      users={allUsers.filter(
+        (u) => !get(state.projectUsers).some((pu) => pu.email === u.email),
+      )}
+      showUnassigned={false}
+      value={emptyUser}
+      on:select={async (event) => {
+        emptyUser = null;
+        if (!event.detail) {
+          return;
+        }
+        await addUser(event.detail);
+      }}
+    >
+      <button slot="button" class="flex gap-1">
+        <UserPlus />
+      </button>
+    </UserSelect>
+  {/await}
 
   <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50">
-    {#each projectUsers as projectUser, i}
+    {#each get(state.projectUsers) as projectUser, i}
       <div class="flex flex-row rounded border p-2">
         <A
           size="xs"
@@ -133,7 +143,7 @@
   </div>
 </Modal>
 
-<Modal bind:open={showWarnSelfRemovalModal} size="xs" autoclose>
+<Modal bind:open={openWarnSelfRemovalModal} size="xs" autoclose>
   <div class="text-center">
     <TriangleAlert
       class="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-200"
