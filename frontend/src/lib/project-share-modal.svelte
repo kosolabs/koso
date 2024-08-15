@@ -74,44 +74,53 @@
 </script>
 
 <!-- TODO: Figure out how to keep focus on the modal after adding a user so ESC works. -->
-<Modal title="Share your project" bind:open autoclose outsideclose size="xs">
-  {#await loadAllUsers() then allUsers}
-    <UserSelect
-      users={allUsers.filter(
-        (u) => !projectUsers.some((pu) => pu.email === u.email),
-      )}
-      showUnassigned={false}
-      on:select={async (event) => {
-        if (!event.detail) {
-          return;
-        }
-        await addUser(event.detail);
-      }}
-    >
-      <button slot="button" class="flex gap-1">
-        <UserPlus />
-      </button>
-    </UserSelect>
-  {/await}
+<Modal
+  title="Share your project"
+  bind:open
+  autoclose
+  outsideclose
+  size="xs"
+  class="max-h-96"
+>
+  <div class="flex flex-1 flex-col gap-2">
+    {#await loadAllUsers() then allUsers}
+      <UserSelect
+        users={allUsers.filter(
+          (u) => !projectUsers.some((pu) => pu.email === u.email),
+        )}
+        showUnassigned={false}
+        on:select={async (event) => {
+          if (!event.detail) {
+            return;
+          }
+          await addUser(event.detail);
+        }}
+      >
+        <button slot="button" class="ml-auto">
+          <UserPlus />
+        </button>
+      </UserSelect>
+    {/await}
 
-  <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50">
-    {#each projectUsers as projectUser, i}
-      <div class="flex flex-row rounded border p-2">
-        <A
-          size="xs"
-          class="b"
-          title="Remove {projectUser.email}"
-          on:click={async () => {
-            await removeUser(projectUser, false);
-          }}
-        >
-          <CircleMinus />
-        </A>
-        <div class="ml-4">
-          <UserAvatar user={projectUser} />
+    <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50">
+      {#each projectUsers as projectUser, i}
+        <div class="flex flex-row rounded border p-2">
+          <A
+            size="xs"
+            class="b border-r-2 pr-2"
+            title="Remove {projectUser.email}"
+            on:click={async () => {
+              await removeUser(projectUser, false);
+            }}
+          >
+            <CircleMinus />
+          </A>
+          <div>
+            <UserAvatar user={projectUser} />
+          </div>
         </div>
-      </div>
-    {/each}
+      {/each}
+    </div>
   </div>
 </Modal>
 
