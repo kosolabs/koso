@@ -74,7 +74,7 @@
 </script>
 
 <!-- TODO: Figure out how to keep focus on the modal after adding a user so ESC works. -->
-<Modal title="Share your project" bind:open autoclose outsideclose>
+<Modal title="Share your project" bind:open autoclose outsideclose size="xs">
   {#await loadAllUsers() then allUsers}
     <UserSelect
       users={allUsers.filter(
