@@ -95,7 +95,7 @@
   setContext<Koso>("koso", koso);
 </script>
 
-<div class="sticky top-0 z-50 flex gap-2 bg-white py-2">
+<div class="sticky top-0 flex gap-2 bg-white py-2">
   {#if $selected}
     <Button size="xs" on:click={addPeer}>
       <List class="me-2 w-4" />Add Peer

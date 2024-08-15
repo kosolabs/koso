@@ -2,13 +2,13 @@
   import UserAvatar from "./user-avatar.svelte";
   import { goto } from "$app/navigation";
   import { token, user, type User } from "$lib/auth";
-  import { updateProjectPermissions } from "$lib/projects";
-  import UserSelect from "$lib/user-select.svelte";
-  import { A, Button, Modal } from "flowbite-svelte";
+  import { updateProjectPermissions, type Project } from "$lib/projects";
+  import { A, Alert, Button, Dropdown, Input, Modal } from "flowbite-svelte";
   import { UserPlus, CircleMinus, TriangleAlert } from "lucide-svelte";
+  import { fade } from "svelte/transition";
 
   export let open: boolean;
-  export let projectId: string;
+  export let project: Project | null;
   export let projectUsers: User[];
 
   let openWarnSelfRemovalModal = false;
@@ -40,7 +40,7 @@
     if (!$user) throw new Error("User is unauthorized");
 
     await updateProjectPermissions($token, {
-      project_id: projectId,
+      project_id: project?.project_id || "",
       add_emails: [user.email],
       remove_emails: [],
     });
@@ -59,7 +59,7 @@
     }
 
     await updateProjectPermissions($token, {
-      project_id: projectId,
+      project_id: project?.project_id || "",
       add_emails: [],
       remove_emails: [user.email],
     });
@@ -71,37 +71,76 @@
     projectUsers.sort(COMPARE_USER_BY_NAME);
     projectUsers = projectUsers;
   }
+
+  let openDropDown: boolean = false;
+  let nonProjectUsers: User[] = [];
+  let filteredUsers: User[] = [];
+  let filter: string = "";
+  let changeMessage: string | null = null;
+
+  $: loadAllUsers().then(
+    (allUsers) =>
+      (nonProjectUsers = allUsers.filter(
+        (u) => !projectUsers.some((pu) => pu.email === u.email),
+      )),
+  );
+  $: filteredUsers = nonProjectUsers.filter(
+    (user) =>
+      user.name.toLowerCase().includes(filter.toLowerCase()) ||
+      user.email.toLowerCase().includes(filter.toLowerCase()),
+  );
 </script>
 
 <!-- TODO: Figure out how to keep focus on the modal after adding a user so ESC works. -->
+<!-- TODO: Removing users cause tasks to display as unassigned, but adding them back reassigns. -->
+<!-- TODO: Set focus on filter input when the modal opens. -->
 <Modal
-  title="Share your project"
+  title="Share &quot;{project?.name || ''}&quot;"
   bind:open
   autoclose
   outsideclose
   size="xs"
   class="max-h-96"
+  on:close={() => {
+    changeMessage = null;
+    filter = "";
+  }}
 >
   <div class="flex flex-1 flex-col gap-2">
+    {#if changeMessage}
+      <div transition:fade={{ duration: 350 }}>
+        <Alert color="green">
+          <span class="font-medium">{changeMessage}</span>
+        </Alert>
+      </div>
+    {/if}
+    <Input type="text" placeholder="Add a user" bind:value={filter}>
+      <UserPlus slot="left" class="h-4 w-4" />
+    </Input>
+
     {#await loadAllUsers() then allUsers}
-      <UserSelect
-        users={allUsers.filter(
-          (u) => !projectUsers.some((pu) => pu.email === u.email),
-        )}
-        showUnassigned={false}
-        on:select={async (event) => {
-          if (!event.detail) {
-            return;
-          }
-          await addUser(event.detail);
-        }}
+      <Dropdown
+        bind:openDropDown
+        class="max-h-72 w-96 overflow-y-auto"
+        on:select={async (event) => {}}
       >
-        <button slot="button" class="ml-auto">
-          <UserPlus />
-        </button>
-      </UserSelect>
+        <div class="flex flex-col gap-2 p-2">
+          {#each filteredUsers as user}
+            <button
+              on:click={async () => {
+                await addUser(user);
+                changeMessage = `Added ${user.email}`;
+                openDropDown = false;
+              }}
+            >
+              <UserAvatar {user} />
+            </button>
+          {/each}
+        </div>
+      </Dropdown>
     {/await}
 
+    <div class="h3 mt-2">People with access</div>
     <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50">
       {#each projectUsers as projectUser, i}
         <div class="flex flex-row rounded border p-2">
@@ -111,6 +150,7 @@
             title="Remove {projectUser.email}"
             on:click={async () => {
               await removeUser(projectUser, false);
+              changeMessage = `Removed ${projectUser.email}`;
             }}
           >
             <CircleMinus />

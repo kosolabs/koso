@@ -9,7 +9,6 @@
   export let users: User[];
   export let value: User | null = null;
   export let unassigned: string = "Unassigned";
-  export let showUnassigned: boolean = true;
 
   let open: boolean = false;
   let filter: string = "";
@@ -41,13 +40,11 @@
   </div>
 
   <div class="flex flex-col gap-2 p-2">
-    {#if showUnassigned}
-      <button on:click={() => select(null)}>
-        <UserAvatar
-          user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
-        />
-      </button>
-    {/if}
+    <button on:click={() => select(null)}>
+      <UserAvatar
+        user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
+      />
+    </button>
 
     {#each filteredUsers as user}
       <button

@@ -13,7 +13,6 @@
     updateProject,
     fetchProjectUsers,
   } from "$lib/projects";
-
   import { A, Alert, Button, Input, Modal } from "flowbite-svelte";
   import { UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
@@ -25,7 +24,7 @@
 
   let project: Project | null = null;
   let projectUsers: User[] = [];
-  let openShareModal = false;
+  let openShareModal = true;
 
   async function loadProjectUsers() {
     if (!$user || !$token) throw new Error("User is unauthorized");
@@ -261,6 +260,6 @@
   </svelte:fragment>
 </Modal>
 
-<ProjectShareModal bind:open={openShareModal} bind:projectUsers {projectId} />
+<ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
 
 <DagTable {koso} users={projectUsers} />
