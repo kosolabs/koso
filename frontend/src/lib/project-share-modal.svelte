@@ -11,8 +11,6 @@
   export let project: Project | null;
   export let projectUsers: User[];
 
-  let openWarnSelfRemovalModal = false;
-
   const COMPARE_USER_BY_NAME = (a: User, b: User) =>
     a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
 
@@ -76,11 +74,12 @@
   let nonProjectUsers: User[] = [];
   let filteredUsers: User[] = [];
   let filter: string = "";
-  let changeMessage: string | null = null;
+  let openWarnSelfRemovalModal = false;
+  let addedOrRemovedMessage: string | null = null;
 
   $: loadAllUsers().then(
     (allUsers) =>
-      (nonProjectUsers = allUsers.filter(
+      (filteredUsers = allUsers.filter(
         (u) => !projectUsers.some((pu) => pu.email === u.email),
       )),
   );
@@ -102,15 +101,15 @@
   size="xs"
   class="max-h-96"
   on:close={() => {
-    changeMessage = null;
+    addedOrRemovedMessage = null;
     filter = "";
   }}
 >
   <div class="flex flex-1 flex-col gap-2">
-    {#if changeMessage}
+    {#if addedOrRemovedMessage}
       <div transition:fade={{ duration: 350 }}>
         <Alert color="green">
-          <span class="font-medium">{changeMessage}</span>
+          <span class="font-medium">{addedOrRemovedMessage}</span>
         </Alert>
       </div>
     {/if}
@@ -129,7 +128,7 @@
             <button
               on:click={async () => {
                 await addUser(user);
-                changeMessage = `Added ${user.email}`;
+                addedOrRemovedMessage = `Added ${user.email}`;
                 openDropDown = false;
               }}
             >
@@ -150,7 +149,7 @@
             title="Remove {projectUser.email}"
             on:click={async () => {
               await removeUser(projectUser, false);
-              changeMessage = `Removed ${projectUser.email}`;
+              addedOrRemovedMessage = `Removed ${projectUser.email}`;
             }}
           >
             <CircleMinus />
