@@ -1,15 +1,12 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
-  import { writable } from "svelte/store";
   import { token, user, type User } from "$lib/auth";
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
-  import ProjectShare from "$lib/project-share.svelte";
-  import { type ShareState } from "$lib/project-share.svelte";
-  import { get } from "svelte/store";
+  import ProjectShareModal from "$lib/project-share-modal.svelte";
   import {
     fetchProjects,
     type Project,
@@ -17,9 +14,9 @@
     fetchProjectUsers,
   } from "$lib/projects";
 
-  import { A, Alert, Button, Input, Label, Modal } from "flowbite-svelte";
-  import { UserPlus, CircleMinus, TriangleAlert } from "lucide-svelte";
-  import { createEventDispatcher, onDestroy, onMount } from "svelte";
+  import { A, Alert, Button, Input, Modal } from "flowbite-svelte";
+  import { UserPlus } from "lucide-svelte";
+  import { onDestroy, onMount } from "svelte";
   import * as Y from "yjs";
 
   const projectId = $page.params.slug;
@@ -264,6 +261,6 @@
   </svelte:fragment>
 </Modal>
 
-<DagTable {koso} users={projectUsers} />
+<ProjectShareModal bind:open={openShareModal} bind:projectUsers {projectId} />
 
-<ProjectShare bind:open={openShareModal} bind:projectUsers {projectId} />
+<DagTable {koso} users={projectUsers} />

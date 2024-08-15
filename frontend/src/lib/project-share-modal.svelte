@@ -1,11 +1,3 @@
-<script context="module" lang="ts">
-  export type ShareState = {
-    open: boolean;
-    projectId: string;
-    projectUsers: User[];
-  };
-</script>
-
 <script lang="ts">
   import UserAvatar from "./user-avatar.svelte";
   import { goto } from "$app/navigation";
@@ -19,7 +11,6 @@
   export let projectId: string;
   export let projectUsers: User[];
 
-  let emptyUser: User | null = null;
   let openWarnSelfRemovalModal = false;
 
   const COMPARE_USER_BY_NAME = (a: User, b: User) =>
@@ -27,7 +18,7 @@
 
   let cachedAllUsers: User[] | null = null;
   export async function loadAllUsers(): Promise<User[]> {
-    if (cachedAllUsers) return cachedAllUsers;
+    if (cachedAllUsers !== null) return cachedAllUsers;
     if (!$user || !$token) throw new Error("User is unauthorized");
 
     const response = await fetch(`/api/users`, {
@@ -48,13 +39,12 @@
   async function addUser(user: User) {
     if (!$user) throw new Error("User is unauthorized");
 
-    emptyUser = null;
-
     await updateProjectPermissions($token, {
       project_id: projectId,
       add_emails: [user.email],
       remove_emails: [],
     });
+
     projectUsers.push(user);
     projectUsers.sort(COMPARE_USER_BY_NAME);
     projectUsers = projectUsers;
@@ -91,9 +81,7 @@
         (u) => !projectUsers.some((pu) => pu.email === u.email),
       )}
       showUnassigned={false}
-      value={emptyUser}
       on:select={async (event) => {
-        emptyUser = null;
         if (!event.detail) {
           return;
         }
@@ -112,7 +100,7 @@
         <A
           size="xs"
           class="b"
-          title="Remove user {projectUser.email}"
+          title="Remove {projectUser.email}"
           on:click={async () => {
             await removeUser(projectUser, false);
           }}
@@ -133,8 +121,8 @@
       class="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-200"
     />
     <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-      Are you sure? You will immediately lose access if you remove yourself from
-      this project.
+      Are you sure? You will <b>immediately lose access</b> if you remove yourself
+      from this project.
     </h3>
     <Button
       color="red"
