@@ -119,7 +119,7 @@
     </Input>
 
     <Dropdown
-      bind:openDropDown
+      bind:open={openDropDown}
       class="max-h-96 overflow-y-auto"
       style="width: 39.5rem"
     >
