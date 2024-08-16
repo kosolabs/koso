@@ -24,7 +24,7 @@
 
   let project: Project | null = null;
   let projectUsers: User[] = [];
-  let openShareModal = true;
+  let openShareModal = false;
 
   async function loadProjectUsers() {
     if (!$user || !$token) throw new Error("User is unauthorized");

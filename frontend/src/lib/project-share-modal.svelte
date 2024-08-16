@@ -113,7 +113,7 @@
         </Alert>
       </div>
     {/if}
-    <Input type="text" placeholder="Add a user" bind:value={filter}>
+    <Input type="text" placeholder="Add people" bind:value={filter}>
       <UserPlus slot="left" class="h-4 w-4" />
     </Input>
 
