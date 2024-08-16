@@ -1,6 +1,14 @@
+import type { User } from "./auth";
+
 export type Project = {
   project_id: string;
   name: string;
+};
+
+export type UpdateProjectPermissions = {
+  project_id: string;
+  add_emails: string[];
+  remove_emails: string[];
 };
 
 export async function fetchProjects(token: string | null): Promise<Project[]> {
@@ -53,4 +61,43 @@ export async function updateProject(
     );
   }
   return await response.json();
+}
+
+export async function fetchProjectUsers(
+  token: string | null,
+  projectId: string,
+): Promise<User[]> {
+  const response = await fetch(`/api/projects/${projectId}/users`, {
+    headers: { Authorization: "Bearer " + token },
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch project users: ${response.statusText} (${response.status})`,
+    );
+  }
+  const users: User[] = await response.json();
+  users.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  return users;
+}
+
+export async function updateProjectPermissions(
+  token: string | null,
+  update: UpdateProjectPermissions,
+): Promise<void> {
+  const response = await fetch(
+    `/api/projects/${update.project_id}/permissions`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(update),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      `Failed to update project permissions: ${response.statusText} (${response.status})`,
+    );
+  }
 }

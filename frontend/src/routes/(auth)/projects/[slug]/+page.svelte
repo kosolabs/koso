@@ -6,7 +6,13 @@
   import { Koso } from "$lib/koso";
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
-  import { fetchProjects, type Project, updateProject } from "$lib/projects";
+  import ProjectShareModal from "$lib/project-share-modal.svelte";
+  import {
+    fetchProjects,
+    type Project,
+    updateProject,
+    fetchProjectUsers,
+  } from "$lib/projects";
   import { A, Alert, Button, Input, Modal } from "flowbite-svelte";
   import { UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
@@ -16,22 +22,13 @@
   const koso = new Koso(projectId, new Y.Doc());
   window.koso = koso;
 
-  let users: User[] = [];
   let project: Project | null = null;
+  let projectUsers: User[] = [];
+  let openShareModal = false;
 
-  async function loadUsers() {
+  async function loadProjectUsers() {
     if (!$user || !$token) throw new Error("User is unauthorized");
-
-    let resp = await fetch(`/api/projects/${projectId}/users`, {
-      headers: { Authorization: "Bearer " + $token },
-    });
-    if (!resp.ok) {
-      throw new Error(
-        `Failed to fetch project users: ${resp.statusText} (${resp.status})`,
-      );
-    }
-
-    return await resp.json();
+    return await fetchProjectUsers($token, projectId);
   }
 
   async function loadProject() {
@@ -191,8 +188,8 @@
       return;
     }
 
-    [users, project] = await Promise.all([
-      loadUsers(),
+    [projectUsers, project] = await Promise.all([
+      loadProjectUsers(),
       loadProject(),
       openWebSocket(),
     ]);
@@ -233,7 +230,15 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="right-items">
-    <Button size="xs" title="Share Project"><UserPlus /></Button>
+    <Button
+      size="xs"
+      title="Share Project"
+      on:click={() => {
+        openShareModal = true;
+      }}
+    >
+      <UserPlus />
+    </Button>
   </svelte:fragment>
 </Navbar>
 
@@ -252,4 +257,6 @@
   </svelte:fragment>
 </Modal>
 
-<DagTable {koso} {users} />
+<ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
+
+<DagTable {koso} users={projectUsers} />
