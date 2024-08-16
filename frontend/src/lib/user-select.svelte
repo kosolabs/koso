@@ -32,12 +32,12 @@
     {value?.name || unassigned}
   </div>
 </button>
-<Dropdown bind:open>
-  <div class="flex flex-col gap-2 p-2">
-    <div>
-      <Input placeholder="Filter users" bind:value={filter} />
-    </div>
+<Dropdown bind:open class="max-h-72 overflow-y-auto">
+  <div slot="header" class="mb-2 ml-2 mr-2 mt-2 gap-2">
+    <Input placeholder="Filter users" bind:value={filter} />
+  </div>
 
+  <div class="flex flex-col gap-2 p-2">
     <button on:click={() => select(null)}>
       <UserAvatar
         user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
