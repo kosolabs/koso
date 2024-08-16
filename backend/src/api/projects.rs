@@ -111,7 +111,14 @@ async fn list_project_users_handler(
     Path(project_id): Path<String>,
 ) -> ApiResult<Json<Vec<ProjectUser>>> {
     verify_access(pool, user, &project_id).await?;
-    let users = list_project_users(pool, &project_id).await?;
+    let mut users = list_project_users(pool, &project_id).await?;
+    users.sort_by(|a, b| {
+        a.name
+            .partial_cmp(&b.name)
+            .unwrap()
+            .then(a.email.partial_cmp(&b.email).unwrap())
+    });
+
     Ok(Json(users))
 }
 
