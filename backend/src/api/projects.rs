@@ -44,10 +44,10 @@ async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>> {
     let projects: Vec<Project> = sqlx::query_as(
         "
         SELECT
-          project_permissions.project_id,
+          project_id,
           projects.name
         FROM project_permissions 
-        JOIN projects ON (project_permissions.project_id = projects.id)
+        JOIN projects USING(project_id)
         WHERE email = $1",
     )
     .bind(email)
@@ -77,7 +77,7 @@ async fn create_project_handler(
     };
 
     let mut txn = pool.begin().await?;
-    sqlx::query("INSERT INTO projects (id, name) VALUES ($1, $2)")
+    sqlx::query("INSERT INTO projects (project_id, name) VALUES ($1, $2)")
         .bind(&project.project_id)
         .bind(&project.name)
         .execute(&mut *txn)
@@ -129,7 +129,7 @@ async fn update_project_handler(
         return Err(bad_request_error("Project name is empty"));
     }
 
-    sqlx::query("UPDATE projects SET name=$2 WHERE id=$1")
+    sqlx::query("UPDATE projects SET name=$2 WHERE project_id=$1")
         .bind(&project.project_id)
         .bind(&project.name)
         .execute(pool)
