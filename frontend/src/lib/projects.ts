@@ -11,6 +11,9 @@ export type UpdateProjectPermissions = {
   remove_emails: string[];
 };
 
+export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>
+  a.name.localeCompare(b.name) || a.email.localeCompare(b.email);
+
 export async function fetchProjects(token: string | null): Promise<Project[]> {
   const response = await fetch("/api/projects", {
     method: "GET",
@@ -76,7 +79,7 @@ export async function fetchProjectUsers(
     );
   }
   const users: User[] = await response.json();
-  users.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
   return users;
 }
 

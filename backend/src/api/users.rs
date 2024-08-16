@@ -10,9 +10,15 @@ pub(super) fn users_router() -> Router {
 async fn list_users_handler(
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Vec<User>>> {
-    Ok(Json(
-        sqlx::query_as("SELECT email, name, picture FROM users;")
-            .fetch_all(pool)
-            .await?,
-    ))
+    let mut users: Vec<User> = sqlx::query_as("SELECT email, name, picture FROM users;")
+        .fetch_all(pool)
+        .await?;
+    users.sort_by(|a, b| {
+        a.name
+            .partial_cmp(&b.name)
+            .unwrap()
+            .then(a.email.partial_cmp(&b.email).unwrap())
+    });
+
+    Ok(Json(users))
 }

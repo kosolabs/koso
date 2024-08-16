@@ -2,7 +2,11 @@
   import UserAvatar from "./user-avatar.svelte";
   import { goto } from "$app/navigation";
   import { token, user, type User } from "$lib/auth";
-  import { updateProjectPermissions, type Project } from "$lib/projects";
+  import {
+    COMPARE_USERS_BY_NAME_AND_EMAIL,
+    updateProjectPermissions,
+    type Project,
+  } from "$lib/projects";
   import { A, Alert, Button, Dropdown, Input, Modal } from "flowbite-svelte";
   import { UserPlus, CircleMinus, TriangleAlert } from "lucide-svelte";
   import { fade } from "svelte/transition";
@@ -10,9 +14,6 @@
   export let open: boolean;
   export let project: Project | null;
   export let projectUsers: User[];
-
-  const COMPARE_USER_BY_NAME = (a: User, b: User) =>
-    a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
 
   let cachedAllUsers: User[] | null = null;
   export async function loadAllUsers(): Promise<User[]> {
@@ -28,7 +29,7 @@
       );
     }
     let users: User[] = await response.json();
-    users.sort(COMPARE_USER_BY_NAME);
+    users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
 
     cachedAllUsers = users;
     return cachedAllUsers;
@@ -44,7 +45,7 @@
     });
 
     projectUsers.push(add);
-    projectUsers.sort(COMPARE_USER_BY_NAME);
+    projectUsers.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
     projectUsers = projectUsers;
 
     openDropDown = false;
@@ -69,7 +70,7 @@
     });
 
     projectUsers.splice(i, 1);
-    projectUsers.sort(COMPARE_USER_BY_NAME);
+    projectUsers.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
     projectUsers = projectUsers;
 
     addedOrRemovedMessage = `Removed ${remove.email}`;
