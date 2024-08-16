@@ -36,7 +36,13 @@ async fn list_projects_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Vec<Project>>> {
-    let projects = list_projects(&user.email, pool).await?;
+    let mut projects = list_projects(&user.email, pool).await?;
+    projects.sort_by(|a, b| {
+        a.name
+            .partial_cmp(&b.name)
+            .unwrap()
+            .then(a.project_id.partial_cmp(&b.project_id).unwrap())
+    });
     Ok(Json(projects))
 }
 
