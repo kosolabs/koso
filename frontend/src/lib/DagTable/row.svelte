@@ -9,10 +9,12 @@
   import { getContext } from "svelte";
   import type { Node } from "../koso";
   import {
+    collapse,
     dragged,
     dropEffect,
-    expanded,
+    expand,
     highlighted,
+    isExpanded,
     selected,
   } from "./state";
 
@@ -46,14 +48,13 @@
 
   const koso = getContext<Koso>("koso");
 
-  $: open = $expanded.has(node.id);
+  $: open = $isExpanded(node.id);
 
   function setOpen(open: boolean) {
     if (open) {
-      $expanded = $expanded.add(node.id);
+      $expand(node.id);
     } else {
-      $expanded.delete(node.id);
-      $expanded = $expanded;
+      $collapse(node.id);
     }
   }
 

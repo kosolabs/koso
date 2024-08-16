@@ -1,11 +1,21 @@
+import { page } from "$app/stores";
+import { Node, type Task } from "$lib/koso";
+import { storedWritable } from "$lib/stores";
 import { derived, writable } from "svelte/store";
-import { Node, type Task } from "../koso";
 
 type Graph = { [id: string]: Task };
 type Parents = { [id: string]: string[] };
 
+export const project = derived(page, (page) => page.params?.slug);
 export const graph = writable<Graph>({});
-export const expanded = writable<Set<string>>(new Set());
+
+export const expanded = storedWritable<Set<string>>(
+  "expanded-nodes-",
+  project,
+  new Set(),
+  (json: string) => new Set<string>(JSON.parse(json)),
+  (value) => JSON.stringify(Array.from(value)),
+);
 
 export const selected = writable<Node | null>(null);
 export const highlighted = writable<Node | null>(null);
@@ -28,11 +38,9 @@ function flatten(
   return nodes;
 }
 
-export const nodes = derived([graph, expanded], ([graph, expanded]) => {
-  const nodes = flatten(new Node([]), [], graph, expanded);
-  console.log(expanded);
-  return nodes;
-});
+export const nodes = derived([graph, expanded], ([graph, expanded]) =>
+  flatten(new Node([]), [], graph, expanded),
+);
 
 export const parents = derived(graph, (graph) => {
   const parents: Parents = {};
@@ -45,4 +53,19 @@ export const parents = derived(graph, (graph) => {
     }
   }
   return parents;
+});
+
+export const isExpanded = derived(
+  expanded,
+  ($expanded) => (nodeId: string) => $expanded.has(nodeId),
+);
+
+export const expand = derived(expanded, ($expanded) => (nodeId: string) => {
+  $expanded.add(nodeId);
+  expanded.set($expanded);
+});
+
+export const collapse = derived(expanded, ($expanded) => (nodeId: string) => {
+  $expanded.delete(nodeId);
+  expanded.set($expanded);
 });
