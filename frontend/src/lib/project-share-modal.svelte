@@ -90,9 +90,6 @@
   );
 </script>
 
-<!-- TODO: Figure out how to keep focus on the modal after adding a user so ESC works. -->
-<!-- TODO: Removing users cause tasks to display as unassigned, but adding them back reassigns. -->
-<!-- TODO: Set focus on filter input when the modal opens. -->
 <Modal
   title="Share &quot;{project?.name || ''}&quot;"
   bind:open
