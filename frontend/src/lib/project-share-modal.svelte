@@ -46,6 +46,9 @@
     projectUsers.push(add);
     projectUsers.sort(COMPARE_USER_BY_NAME);
     projectUsers = projectUsers;
+
+    openDropDown = false;
+    addedOrRemovedMessage = `Added ${add.email}`;
   }
 
   async function removeUser(remove: User, forceRemoveSelf: boolean) {
@@ -68,6 +71,8 @@
     projectUsers.splice(i, 1);
     projectUsers.sort(COMPARE_USER_BY_NAME);
     projectUsers = projectUsers;
+
+    addedOrRemovedMessage = `Removed ${remove.email}`;
   }
 
   let openDropDown: boolean = false;
@@ -95,8 +100,7 @@
   bind:open
   autoclose
   outsideclose
-  size="xs"
-  class="max-h-96"
+  size="md"
   on:close={() => {
     addedOrRemovedMessage = null;
     filter = "";
@@ -114,25 +118,33 @@
       <UserPlus slot="left" class="h-4 w-4" />
     </Input>
 
-    <Dropdown bind:openDropDown class="max-h-96 w-96 overflow-y-auto">
+    <Dropdown
+      bind:openDropDown
+      class="max-h-96 overflow-y-auto"
+      style="width: 39.5rem"
+    >
       <div class="flex flex-col gap-2 p-2">
-        {#each filteredUsers as user}
-          <button
-            title="Add {user.email}"
-            on:click={async () => {
-              await addUser(user);
-              addedOrRemovedMessage = `Added ${user.email}`;
-              openDropDown = false;
-            }}
-          >
-            <UserAvatar {user} />
-          </button>
-        {/each}
+        {#if filteredUsers.length > 0}
+          {#each filteredUsers as user}
+            <button
+              title="Add {user.email}"
+              on:click={async () => {
+                await addUser(user);
+              }}
+            >
+              <UserAvatar {user} />
+            </button>
+          {/each}
+        {:else}
+          <button disabled>No people found.</button>
+        {/if}
       </div>
     </Dropdown>
 
     <div class="h3 mt-2">People with access</div>
-    <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50">
+    <div
+      class="flex max-h-96 flex-col items-stretch overflow-y-auto [&>*:nth-child(even)]:bg-slate-50"
+    >
       {#each projectUsers as projectUser}
         <div class="flex flex-row rounded border p-2">
           <A
@@ -141,7 +153,6 @@
             title="Remove {projectUser.email}"
             on:click={async () => {
               await removeUser(projectUser, false);
-              addedOrRemovedMessage = `Removed ${projectUser.email}`;
             }}
           >
             <CircleMinus />
