@@ -12,7 +12,8 @@ export const graph = writable<Graph>({});
 export const expanded = storedWritable<Set<string>>(
   "expanded-nodes-",
   project,
-  (json?: string) => (json ? new Set<string>(JSON.parse(json)) : new Set()),
+  new Set(),
+  (json: string) => new Set<string>(JSON.parse(json)),
   (value) => JSON.stringify(Array.from(value)),
 );
 

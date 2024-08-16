@@ -9,10 +9,11 @@ import {
 export function storedWritable<T>(
   prefix: string,
   scope: Readable<string>,
-  init: (data?: string) => T,
-  dump: (value: T) => string,
+  init: T,
+  parse: (data: string) => T = (data) => (data ? JSON.parse(data) : init),
+  serialize: (value: T) => string = (value) => JSON.stringify(value),
 ): Writable<T> {
-  const result = writable<T>(init());
+  const result = writable<T>(init);
   const subscribers = new Set();
 
   function subscribe(run: Subscriber<T>) {
@@ -26,14 +27,14 @@ export function storedWritable<T>(
           if (!scope) return;
           key = `${prefix}${scope}`;
           const data = localStorage.getItem(key);
-          const value = data ? init(data) : init();
+          const value = data ? parse(data) : init;
           result.set(value);
         }),
       );
       unsubscribers.push(
         result.subscribe((value) => {
           if (key !== null) {
-            localStorage.setItem(key, dump(value));
+            localStorage.setItem(key, serialize(value));
           }
         }),
       );
