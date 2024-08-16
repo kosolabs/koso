@@ -34,36 +34,36 @@
     return cachedAllUsers;
   }
 
-  async function addUser(user: User) {
+  async function addUser(add: User) {
     if (!$user) throw new Error("User is unauthorized");
 
     await updateProjectPermissions($token, {
       project_id: project?.project_id || "",
-      add_emails: [user.email],
+      add_emails: [add.email],
       remove_emails: [],
     });
 
-    projectUsers.push(user);
+    projectUsers.push(add);
     projectUsers.sort(COMPARE_USER_BY_NAME);
     projectUsers = projectUsers;
   }
 
-  async function removeUser(user: User, forceRemoveSelf: boolean) {
+  async function removeUser(remove: User, forceRemoveSelf: boolean) {
     if (!$user) throw new Error("User is unauthorized");
 
-    if ($user.email === user.email && !forceRemoveSelf) {
+    if ($user.email === remove.email && !forceRemoveSelf) {
       openWarnSelfRemovalModal = true;
       return;
     }
 
+    let i = projectUsers.findIndex((u) => u.email === remove.email);
+    if (i == -1) throw new Error("Could not find user");
+
     await updateProjectPermissions($token, {
       project_id: project?.project_id || "",
       add_emails: [],
-      remove_emails: [user.email],
+      remove_emails: [remove.email],
     });
-
-    let i = projectUsers.findIndex((u) => u.email === user.email);
-    if (i == -1) throw new Error("Could not find user");
 
     projectUsers.splice(i, 1);
     projectUsers.sort(COMPARE_USER_BY_NAME);
@@ -79,7 +79,7 @@
 
   $: loadAllUsers().then(
     (allUsers) =>
-      (filteredUsers = allUsers.filter(
+      (nonProjectUsers = allUsers.filter(
         (u) => !projectUsers.some((pu) => pu.email === u.email),
       )),
   );
@@ -114,31 +114,25 @@
       <UserPlus slot="left" class="h-4 w-4" />
     </Input>
 
-    {#await loadAllUsers() then allUsers}
-      <Dropdown
-        bind:openDropDown
-        class="max-h-72 w-96 overflow-y-auto"
-        on:select={async (event) => {}}
-      >
-        <div class="flex flex-col gap-2 p-2">
-          {#each filteredUsers as user}
-            <button
-              on:click={async () => {
-                await addUser(user);
-                addedOrRemovedMessage = `Added ${user.email}`;
-                openDropDown = false;
-              }}
-            >
-              <UserAvatar {user} />
-            </button>
-          {/each}
-        </div>
-      </Dropdown>
-    {/await}
+    <Dropdown bind:openDropDown class="max-h-96 w-96 overflow-y-auto">
+      <div class="flex flex-col gap-2 p-2">
+        {#each filteredUsers as user}
+          <button
+            on:click={async () => {
+              await addUser(user);
+              addedOrRemovedMessage = `Added ${user.email}`;
+              openDropDown = false;
+            }}
+          >
+            <UserAvatar {user} />
+          </button>
+        {/each}
+      </div>
+    </Dropdown>
 
     <div class="h3 mt-2">People with access</div>
     <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50">
-      {#each projectUsers as projectUser, i}
+      {#each projectUsers as projectUser}
         <div class="flex flex-row rounded border p-2">
           <A
             size="xs"
