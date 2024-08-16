@@ -118,6 +118,7 @@
       <div class="flex flex-col gap-2 p-2">
         {#each filteredUsers as user}
           <button
+            title="Add {user.email}"
             on:click={async () => {
               await addUser(user);
               addedOrRemovedMessage = `Added ${user.email}`;
