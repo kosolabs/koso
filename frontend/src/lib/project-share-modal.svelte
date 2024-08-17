@@ -8,7 +8,12 @@
     type Project,
   } from "$lib/projects";
   import { A, Alert, Button, Dropdown, Input, Modal } from "flowbite-svelte";
-  import { UserPlus, CircleMinus, TriangleAlert } from "lucide-svelte";
+  import {
+    UserPlus,
+    CircleMinus,
+    TriangleAlert,
+    CircleCheck,
+  } from "lucide-svelte";
   import { fade } from "svelte/transition";
 
   export let open: boolean;
@@ -110,8 +115,9 @@
   <div class="flex flex-1 flex-col gap-2">
     {#if addedOrRemovedMessage}
       <div transition:fade={{ duration: 350 }}>
-        <Alert color="green">
-          <span class="font-medium">{addedOrRemovedMessage}</span>
+        <Alert color="green" class="flex items-center p-2 font-medium">
+          <span><CircleCheck /></span>
+          <span>{addedOrRemovedMessage}</span>
         </Alert>
       </div>
     {/if}
