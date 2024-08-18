@@ -13,12 +13,7 @@ async fn list_users_handler(
     let mut users: Vec<User> = sqlx::query_as("SELECT email, name, picture FROM users;")
         .fetch_all(pool)
         .await?;
-    users.sort_by(|a, b| {
-        a.name
-            .partial_cmp(&b.name)
-            .unwrap()
-            .then(a.email.partial_cmp(&b.email).unwrap())
-    });
+    users.sort_by(|a, b| a.name.cmp(&b.name).then(a.email.cmp(&b.email)));
 
     Ok(Json(users))
 }

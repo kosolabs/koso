@@ -37,12 +37,7 @@ async fn list_projects_handler(
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Vec<Project>>> {
     let mut projects = list_projects(&user.email, pool).await?;
-    projects.sort_by(|a, b| {
-        a.name
-            .partial_cmp(&b.name)
-            .unwrap()
-            .then(a.project_id.partial_cmp(&b.project_id).unwrap())
-    });
+    projects.sort_by(|a, b| a.name.cmp(&b.name).then(a.project_id.cmp(&b.project_id)));
     Ok(Json(projects))
 }
 
@@ -112,12 +107,7 @@ async fn list_project_users_handler(
 ) -> ApiResult<Json<Vec<ProjectUser>>> {
     verify_access(pool, user, &project_id).await?;
     let mut users = list_project_users(pool, &project_id).await?;
-    users.sort_by(|a, b| {
-        a.name
-            .partial_cmp(&b.name)
-            .unwrap()
-            .then(a.email.partial_cmp(&b.email).unwrap())
-    });
+    users.sort_by(|a, b| a.name.cmp(&b.name).then(a.email.cmp(&b.email)));
 
     Ok(Json(users))
 }
