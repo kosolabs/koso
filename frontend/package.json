@@ -70,5 +70,10 @@
     "extends": [
       "plugin:storybook/recommended"
     ]
+  },
+  "dependencies": {
+    "bits-ui": "^0.21.13",
+    "tailwind-merge": "^2.5.2",
+    "tailwind-variants": "^0.2.1"
   }
 }
