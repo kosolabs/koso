@@ -104,24 +104,29 @@
 
 <div class="sticky top-0 z-30 flex gap-2 bg-white py-2">
   {#if $selected}
-    <Button on:click={addPeer}>
-      <List class="me-2 w-4" />Add Peer
+    <Button class="text-xs" on:click={addPeer}>
+      <List class="me-2 w-4" />
+      Add Peer
     </Button>
-    <Button on:click={addChild}>
-      <ListTree class="me-2 w-4" />Add Child
+    <Button class="text-xs" on:click={addChild}>
+      <ListTree class="me-2 w-4" />
+      Add Child
     </Button>
     {#if $parents[$selected.name].length === 1}
-      <Button on:click={remove}>
-        <Trash class="me-2 w-4" />Delete
+      <Button class="text-xs" on:click={remove}>
+        <Trash class="me-2 w-4" />
+        Delete
       </Button>
     {:else}
-      <Button on:click={unlink}>
-        <Unlink class="me-2 w-4" />Unlink
+      <Button class="text-xs" on:click={unlink}>
+        <Unlink class="me-2 w-4" />
+        Unlink
       </Button>
     {/if}
   {:else}
-    <Button on:click={addRoot}>
-      <ListStart class="me-2 w-4" />Add Root
+    <Button class="text-xs" on:click={addRoot}>
+      <ListStart class="me-2 w-4" />
+      Add Root
     </Button>
   {/if}
 </div>
