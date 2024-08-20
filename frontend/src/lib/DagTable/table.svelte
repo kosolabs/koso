@@ -1,9 +1,16 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
+  import { Button } from "$lib/components/ui/button";
   import type { Koso } from "$lib/koso";
-  import { Button } from "flowbite-svelte";
-  import { List, ListStart, ListTree, Trash, Unlink } from "lucide-svelte";
-  import { UserRoundPlus, SquarePen } from "lucide-svelte";
+  import {
+    List,
+    ListStart,
+    ListTree,
+    SquarePen,
+    Trash,
+    Unlink,
+    UserRoundPlus,
+  } from "lucide-svelte";
   import { setContext } from "svelte";
   import { flip } from "svelte/animate";
   import Row from "./row.svelte";
@@ -97,24 +104,29 @@
 
 <div class="sticky top-0 z-30 flex gap-2 bg-white py-2">
   {#if $selected}
-    <Button size="xs" on:click={addPeer}>
-      <List class="me-2 w-4" />Add Peer
+    <Button class="text-xs" on:click={addPeer}>
+      <List class="me-2 w-4" />
+      Add Peer
     </Button>
-    <Button size="xs" on:click={addChild}>
-      <ListTree class="me-2 w-4" />Add Child
+    <Button class="text-xs" on:click={addChild}>
+      <ListTree class="me-2 w-4" />
+      Add Child
     </Button>
     {#if $parents[$selected.name].length === 1}
-      <Button size="xs" on:click={remove}>
-        <Trash class="me-2 w-4" />Delete
+      <Button class="text-xs" on:click={remove}>
+        <Trash class="me-2 w-4" />
+        Delete
       </Button>
     {:else}
-      <Button size="xs" on:click={unlink}>
-        <Unlink class="me-2 w-4" />Unlink
+      <Button class="text-xs" on:click={unlink}>
+        <Unlink class="me-2 w-4" />
+        Unlink
       </Button>
     {/if}
   {:else}
-    <Button size="xs" on:click={addRoot}>
-      <ListStart class="me-2 w-4" />Add Root
+    <Button class="text-xs" on:click={addRoot}>
+      <ListStart class="me-2 w-4" />
+      Add Root
     </Button>
   {/if}
 </div>
