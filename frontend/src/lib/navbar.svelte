@@ -1,9 +1,10 @@
 <script lang="ts">
   import kosoLogo from "$lib/assets/koso.svg";
   import { logout, user } from "$lib/auth";
-  import { Dropdown, DropdownHeader, DropdownItem } from "flowbite-svelte";
-  import { Avatar } from "./components/ui/avatar";
-  import AvatarImage from "./components/ui/avatar/avatar-image.svelte";
+  import { Avatar } from "$lib/components/ui/avatar";
+  import AvatarImage from "$lib/components/ui/avatar/avatar-image.svelte";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { resetMode, setMode } from "mode-watcher";
   import UserAvatar from "./user-avatar.svelte";
 </script>
 
@@ -19,20 +20,38 @@
     <slot name="right-items"></slot>
 
     {#if $user}
-      <button id="profile-menu">
-        <Avatar
-          class="rounded transition-all hover:brightness-110 active:scale-95"
-        >
-          <AvatarImage src={$user.picture}></AvatarImage>
-        </Avatar>
-      </button>
-      <Dropdown triggeredBy="#profile-menu">
-        <DropdownHeader>
-          <UserAvatar user={$user} />
-        </DropdownHeader>
-        <DropdownItem href="/projects">Projects</DropdownItem>
-        <DropdownItem on:click={() => logout()}>Logout</DropdownItem>
-      </Dropdown>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger>
+          <Avatar
+            class="size-9 rounded transition-all hover:brightness-110 active:scale-95"
+          >
+            <AvatarImage src={$user.picture}></AvatarImage>
+          </Avatar>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content>
+          <DropdownMenu.Label>
+            <UserAvatar user={$user} />
+          </DropdownMenu.Label>
+          <DropdownMenu.Separator />
+          <DropdownMenu.Sub>
+            <DropdownMenu.SubTrigger>Theme</DropdownMenu.SubTrigger>
+            <DropdownMenu.SubContent>
+              <DropdownMenu.Item on:click={() => setMode("light")}>
+                Light
+              </DropdownMenu.Item>
+              <DropdownMenu.Item on:click={() => setMode("dark")}>
+                Dark
+              </DropdownMenu.Item>
+              <DropdownMenu.Item on:click={() => resetMode()}>
+                System
+              </DropdownMenu.Item>
+            </DropdownMenu.SubContent>
+          </DropdownMenu.Sub>
+          <DropdownMenu.Item href="/projects">Projects</DropdownMenu.Item>
+          <DropdownMenu.Item on:click={() => logout()}>Logout</DropdownMenu.Item
+          >
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
     {/if}
   </div>
 </nav>
