@@ -17,12 +17,10 @@
   export let value: User | null = null;
   export let unassigned: string = "Unassigned";
 
-  let open: boolean = false;
   let filter: string = "";
 
   function select(user: User | null) {
     value = user;
-    open = false;
     dispatch("select", user);
   }
 
@@ -59,13 +57,7 @@
       />
     </DropdownMenu.Item>
     {#each filteredUsers as user}
-      <DropdownMenu.Item
-        on:click={() => {
-          value = user;
-          open = false;
-          dispatch("select", user);
-        }}
-      >
+      <DropdownMenu.Item on:click={() => select(user)}>
         <UserAvatar {user} />
       </DropdownMenu.Item>
     {/each}
