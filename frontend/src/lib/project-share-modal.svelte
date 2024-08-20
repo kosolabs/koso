@@ -130,36 +130,31 @@
         </div>
       {/if}
       <Input type="text" placeholder="Add people" bind:value={filter}>
-        <UserPlus slot="left" class="h-4 w-4" />
+        <UserPlus class="h-4 w-4" />
       </Input>
 
-      <DropdownMenu.Root>
-                <DropdownMenu.Content>
-                  </DropdownMenu.Content>
-      </DropdownMenu.Root>
-
-      <Dropdown
+      <DropdownMenu.Root
         bind:open={openDropDown}
         class="max-h-96 overflow-y-auto"
         style="width: 39.5rem"
       >
-        <div class="flex flex-col gap-2 p-2">
+        <DropdownMenu.Content>
           {#if filteredUsers.length > 0}
             {#each filteredUsers as user}
-              <button
+              <DropdownMenu.Item
                 title="Add {user.email}"
                 on:click={async () => {
                   await addUser(user);
                 }}
               >
                 <UserAvatar {user} />
-              </button>
+              </DropdownMenu.Item>
             {/each}
           {:else}
-            <button disabled>No people found.</button>
+            <DropdownMenu.Item disabled>No people found.</DropdownMenu.Item>
           {/if}
-        </div>
-      </Dropdown>
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
 
       <div class="h3 mt-2">People with access</div>
       <div
