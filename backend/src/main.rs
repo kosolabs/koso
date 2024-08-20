@@ -70,7 +70,7 @@ async fn start_main_server() {
     ));
 
     let collab = Collab::new(pool);
-    let certs = google::fetch().await.unwrap();
+    let certs = google::KeySet::new().await.unwrap();
 
     let app = Router::new()
         .nest("/api", api::api_router().fallback(api::handler_404))

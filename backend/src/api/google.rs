@@ -1,10 +1,122 @@
 use crate::api::{unauthenticated_error, ApiResult};
 use anyhow::{anyhow, Result};
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
+use dashmap::DashMap;
 use jsonwebtoken::{DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Serialize, Deserialize, Clone)]
+use std::{
+    fmt,
+    sync::Arc,
+    time::{Duration, Instant},
+};
+
+#[derive(Debug, Clone)]
+pub(crate) struct KeySet {
+    keys: Arc<DashMap<String, LoadedKey>>,
+    client: reqwest::Client,
+}
+
+#[derive(Debug)]
+enum LoadedKey {
+    Present { key: Key },
+    Absent { fetch_time: Instant },
+}
+
 struct Key {
+    decoding_key: DecodingKey,
+    raw_key: RawKey,
+}
+
+impl KeySet {
+    pub(crate) async fn new() -> Result<KeySet> {
+        let key_set = KeySet {
+            keys: Arc::new(DashMap::new()),
+            client: reqwest::Client::new(),
+        };
+        // Avoid a cold start by preloading keys initially.
+        key_set.load_keys().await?;
+        Ok(key_set)
+    }
+
+    pub(crate) async fn get(&self, kid: &str) -> Result<DecodingKey> {
+        if let Some(loaded_key) = self.keys.get(kid) {
+            match loaded_key.value() {
+                LoadedKey::Present { key } => {
+                    // This is the happy path. The key is already cached and ready to go.
+                    return Ok(key.decoding_key.clone());
+                }
+                LoadedKey::Absent { fetch_time } => {
+                    const NOT_FOUND_CACHE_DURATION: Duration = Duration::from_secs(360);
+                    if Instant::now() <= *fetch_time + NOT_FOUND_CACHE_DURATION {
+                        return Err(anyhow!("Key {kid} not found (cached at {:?}).", fetch_time));
+                    }
+                }
+            }
+        }
+
+        if let Err(e) = self.load_keys().await {
+            return Err(anyhow!("Failed to load keys: {e}"));
+        }
+
+        match self.keys.entry(kid.to_string().clone()) {
+            dashmap::Entry::Occupied(o) => match &o.get() {
+                LoadedKey::Present { key } => Ok(key.decoding_key.clone()),
+                LoadedKey::Absent { fetch_time } => {
+                    let mut fetch_time = *fetch_time;
+                    if Instant::now() <= fetch_time + Duration::from_secs(60) {
+                        fetch_time = Instant::now();
+                        o.replace_entry(LoadedKey::Absent { fetch_time });
+                    }
+                    Err(anyhow!(
+                        "Key {kid} not found (after load, cached at {:?}).",
+                        fetch_time
+                    ))
+                }
+            },
+            dashmap::Entry::Vacant(v) => {
+                let fetch_time = Instant::now();
+                v.insert(LoadedKey::Absent { fetch_time });
+                Err(anyhow!(
+                    "Key {kid} not found (uncached at {:?}).",
+                    fetch_time
+                ))
+            }
+        }
+    }
+
+    async fn load_keys(&self) -> Result<()> {
+        let certs = parse(
+            &self
+                .client
+                .get("https://www.googleapis.com/oauth2/v3/certs")
+                .send()
+                .await?
+                .text()
+                .await?,
+        )?;
+        for key in certs.keys {
+            self.keys.insert(
+                key.kid.clone(),
+                LoadedKey::Present {
+                    key: Key {
+                        decoding_key: DecodingKey::from_rsa_components(&key.n, &key.e)?,
+                        raw_key: key,
+                    },
+                },
+            );
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for Key {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.raw_key.fmt(f)
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct RawKey {
     kid: String,
     alg: String,
     n: String,
@@ -13,20 +125,9 @@ struct Key {
     r#use: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) struct Certs {
-    keys: Vec<Key>,
-}
-
-impl Certs {
-    fn get(&self, kid: &str) -> Result<DecodingKey> {
-        for key in &self.keys {
-            if key.kid == *kid {
-                return Ok(DecodingKey::from_rsa_components(&key.n, &key.e)?);
-            }
-        }
-        Err(anyhow!("missing key"))
-    }
+#[derive(Debug, Serialize, Deserialize)]
+struct Certs {
+    keys: Vec<RawKey>,
 }
 
 fn parse(json: &str) -> Result<Certs> {
@@ -34,21 +135,9 @@ fn parse(json: &str) -> Result<Certs> {
     Ok(certs)
 }
 
-pub(crate) async fn fetch() -> Result<Certs> {
-    let client = reqwest::Client::new();
-    let resp = client
-        .get("https://www.googleapis.com/oauth2/v3/certs")
-        .send()
-        .await?
-        .text()
-        .await?;
-    let certs: Certs = parse(&resp)?;
-    Ok(certs)
-}
-
 #[tracing::instrument(skip(request, next), fields(email))]
 pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Body>> {
-    let certs = request.extensions().get::<Certs>().unwrap();
+    let key_set = request.extensions().get::<KeySet>().unwrap();
     let headers = request.headers();
 
     let bearer = if let Some(auth_header) = headers.get("Authorization") {
@@ -91,7 +180,7 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
             "header.kid is absent: {header:?}"
         )));
     };
-    let key = match certs.get(&kid) {
+    let key = match key_set.get(&kid).await {
         Ok(key) => key,
         Err(e) => {
             return Err(unauthenticated_error(&format!(
@@ -136,28 +225,11 @@ pub(crate) struct User {
 
 #[cfg(test)]
 mod tests {
-    use crate::api::google::Certs;
-    use crate::api::google::{fetch, parse};
-
-    fn certs() -> Certs {
-        parse(include_str!("../testdata/certs.json")).unwrap()
-    }
+    use crate::api::google::KeySet;
 
     #[tokio::test]
     async fn fetch_succeeds() {
-        let result = fetch();
-        assert!(result.await.is_ok());
-    }
-
-    #[test]
-    fn get_returns_error_if_kid_is_missing() {
-        let certs = certs();
-        assert!(certs.get("missing").is_err())
-    }
-
-    #[test]
-    fn get_returns_key_if_kid_exists() {
-        let certs = certs();
-        assert!(certs.get("1").is_ok())
+        let result: Result<KeySet, anyhow::Error> = KeySet::new().await;
+        assert!(result.is_ok());
     }
 }
