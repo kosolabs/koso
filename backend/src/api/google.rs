@@ -47,6 +47,8 @@ impl KeySet {
             return Ok(key.key.clone());
         }
         // Maybe the key is new, so try reloading from Google.
+        // NOTE: we might also reload keys periodically to better handle key revocation
+        // but this works well enough in practice.
         match self.load_keys(Some(kid)).await? {
             Some(key) => Ok(key),
             None => Err(anyhow!("Key not found")),
