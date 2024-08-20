@@ -61,7 +61,6 @@ impl KeySet {
             return Ok(None);
         }
 
-        tracing::debug!("Fetching google certs");
         let json = self
             .inner
             .client
@@ -112,7 +111,7 @@ impl Certs {
 
 impl fmt::Debug for Key {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Key").field("kid", &self.kid).finish()
+        f.write_str(&self.kid)
     }
 }
 
