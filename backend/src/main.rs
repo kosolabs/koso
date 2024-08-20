@@ -70,7 +70,7 @@ async fn start_main_server() {
     ));
 
     let collab = Collab::new(pool);
-    let certs = google::KeySet::new().await.unwrap();
+    let key_set = google::KeySet::new().await.unwrap();
 
     let app = Router::new()
         .nest("/api", api::api_router().fallback(api::handler_404))
@@ -85,7 +85,7 @@ async fn start_main_server() {
             TimeoutLayer::new(Duration::from_secs(10)),
             Extension(pool),
             Extension(collab.clone()),
-            Extension(certs),
+            Extension(key_set),
             middleware::from_fn(google::authenticate),
         ))
         .fallback_service(ServeDir::new("static").fallback(ServeFile::new("static/index.html")));
