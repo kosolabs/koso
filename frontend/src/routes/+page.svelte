@@ -2,9 +2,9 @@
   import { goto } from "$app/navigation";
   import kosoLogo from "$lib/assets/koso.svg";
   import { token, user } from "$lib/auth";
-  import { fetchProjects } from "$lib/projects";
+  import { Alert } from "$lib/components/ui/alert";
   import { lastVisitedProjectId, popRedirectOnLogin } from "$lib/nav";
-  import { Alert } from "flowbite-svelte";
+  import { fetchProjects } from "$lib/projects";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { onMount } from "svelte";
   import Google from "./google.svelte";
@@ -90,13 +90,13 @@
 
 {#if !$user}
   <div
-    class="m-auto flex flex-col rounded border bg-slate-100 p-10 text-center lg:w-96"
+    class="m-auto flex flex-col gap-8 rounded border bg-slate-100 p-10 text-center lg:w-96"
   >
-    <img class="m-auto mb-8 w-20" alt="Koso Logo" src={kosoLogo} />
-    <h1 class="mb-8 text-4xl text-teal-800">Koso</h1>
+    <img class="m-auto w-20" alt="Koso Logo" src={kosoLogo} />
+    <h1 class="text-4xl text-teal-800">Koso</h1>
     <Google on:click={login} />
     {#if errorMessage}
-      <Alert class="mt-8" border>{errorMessage}</Alert>
+      <Alert variant="destructive">{errorMessage}</Alert>
     {/if}
   </div>
 {/if}

@@ -1,10 +1,11 @@
 <script lang="ts">
   import type { User } from "$lib/auth";
+  import { Button } from "$lib/components/ui/button";
+  import { Input } from "$lib/components/ui/input";
   import type { Koso } from "$lib/koso";
   import TaskStatusSelect from "$lib/task-status-select.svelte";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
-  import { A, Input, Tooltip } from "flowbite-svelte";
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
   import type { Node } from "../koso";
@@ -65,7 +66,7 @@
 
   let editedTaskName: string | null = null;
 
-  function handleStartEditingTaskName(event: MouseEvent | CustomEvent) {
+  function handleStartEditingTaskName(event: MouseEvent | KeyboardEvent) {
     event.stopPropagation();
     event.preventDefault();
     $selected = node;
@@ -339,13 +340,11 @@
         <button
           class="w-4 transition-transform"
           class:rotate-90={open && !isGhost}
+          title={open ? "Collapse" : "Expand"}
           on:click={handleToggleOpen}
         >
           <ChevronRight class="w-4" />
         </button>
-        <Tooltip class="z-10 text-nowrap">
-          {open ? "Collapse" : "Expand"}
-        </Tooltip>
       {:else}
         <div class="w-4" />
       {/if}
@@ -399,8 +398,7 @@
   >
     {#if editedTaskName !== null}
       <Input
-        size="sm"
-        class="p-1"
+        class="h-auto bg-white p-1"
         on:click={(event) => event.stopPropagation()}
         on:blur={handleEditedTaskNameBlur}
         on:keydown={handleEditedTaskNameKeydown}
@@ -408,13 +406,14 @@
         autofocus
       />
     {:else}
-      <A
-        class="hover:no-underline"
+      <Button
+        variant="link"
+        class="h-auto p-0 hover:no-underline"
         on:click={handleStartEditingTaskName}
         on:keydown={handleStartEditingTaskName}
       >
         {task.name}
-      </A>
+      </Button>
     {/if}
   </td>
   <td
