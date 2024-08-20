@@ -83,8 +83,12 @@ pub(crate) fn internal_error(msg: &str) -> ErrorResponse {
     error_response(StatusCode::INTERNAL_SERVER_ERROR, msg)
 }
 
-pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
+pub(crate) fn unauthenticated_error(msg: &str) -> ErrorResponse {
     error_response(StatusCode::UNAUTHORIZED, msg)
+}
+
+pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::FORBIDDEN, msg)
 }
 
 pub(crate) fn bad_request_error(msg: &str) -> ErrorResponse {
