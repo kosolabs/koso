@@ -316,7 +316,9 @@
   tabindex="0"
   class={cn(
     "rounded border outline-none",
-    index % 2 === 0 ? "bg-slate-50" : "bg-white",
+    index % 2 === 0
+      ? "bg-slate-50 dark:bg-slate-950"
+      : "bg-white dark:bg-black",
     isMoving ? "bg-red-200 opacity-50" : "",
     isGhost ? "bg-green-200 opacity-70" : "",
     isHovered ? "bg-primary-50" : "",
@@ -398,7 +400,7 @@
   >
     {#if editedTaskName !== null}
       <Input
-        class="h-auto bg-white p-1"
+        class="h-auto bg-transparent p-1"
         on:click={(event) => event.stopPropagation()}
         on:blur={handleEditedTaskNameBlur}
         on:keydown={handleEditedTaskNameKeydown}

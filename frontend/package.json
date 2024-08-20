@@ -73,6 +73,7 @@
   },
   "dependencies": {
     "bits-ui": "^0.21.13",
+    "mode-watcher": "^0.4.1",
     "svelte-radix": "^1.1.0",
     "tailwind-merge": "^2.5.2",
     "tailwind-variants": "^0.2.1"

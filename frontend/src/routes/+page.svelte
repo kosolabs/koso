@@ -90,10 +90,10 @@
 
 {#if !$user}
   <div
-    class="m-auto flex flex-col gap-8 rounded border bg-slate-100 p-10 text-center lg:w-96"
+    class="m-auto flex flex-col gap-8 rounded border bg-slate-100 p-10 text-center lg:w-96 dark:bg-slate-900"
   >
     <img class="m-auto w-20" alt="Koso Logo" src={kosoLogo} />
-    <h1 class="text-4xl text-teal-800">Koso</h1>
+    <h1 class="text-primary-800 dark:text-primary-200 text-4xl">Koso</h1>
     <Google on:click={login} />
     {#if errorMessage}
       <Alert variant="destructive">{errorMessage}</Alert>

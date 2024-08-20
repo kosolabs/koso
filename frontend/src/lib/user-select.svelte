@@ -1,7 +1,14 @@
 <script lang="ts">
-  import { Avatar, Dropdown, Input } from "flowbite-svelte";
+  import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+  } from "$lib/components/ui/avatar";
+  import { Dropdown } from "flowbite-svelte";
+  import { UserRound } from "lucide-svelte";
   import { createEventDispatcher } from "svelte";
   import type { User } from "./auth";
+  import { Input } from "./components/ui/input";
   import UserAvatar from "./user-avatar.svelte";
 
   const dispatch = createEventDispatcher<{ select: User | null }>();
@@ -26,8 +33,13 @@
   );
 </script>
 
-<button class="flex gap-1">
-  <Avatar src={value?.picture || ""} rounded size="xs" />
+<button class="flex gap-1" title={value?.email || "Unassigned"}>
+  <Avatar class="size-6 rounded">
+    <AvatarImage src={value?.picture || ""} />
+    <AvatarFallback class="rounded">
+      <UserRound />
+    </AvatarFallback>
+  </Avatar>
   <div class="whitespace-nowrap max-md:hidden">
     {value?.name || unassigned}
   </div>
