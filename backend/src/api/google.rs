@@ -25,13 +25,15 @@ impl KeySet {
     const LOAD_DEBOUNCE_DURATION: Duration = Duration::from_secs(306);
 
     pub(crate) async fn new() -> Result<KeySet> {
+        let distant_past =
+            Instant::now() - KeySet::LOAD_DEBOUNCE_DURATION - Duration::from_secs(60 * 60);
         let key_set = KeySet {
             inner: Arc::new(KeySetInner {
                 certs: Mutex::new(Certs {
                     keys: Vec::with_capacity(0),
                 }),
                 client: reqwest::Client::new(),
-                last_load: Mutex::new(Instant::now()),
+                last_load: Mutex::new(distant_past),
             }),
         };
         // Avoid a cold start by preloading keys initially.
@@ -39,7 +41,7 @@ impl KeySet {
         Ok(key_set)
     }
 
-    pub(crate) async fn get(&self, kid: &str) -> Result<DecodingKey> {
+    async fn get(&self, kid: &str) -> Result<DecodingKey> {
         // This is the happy path. The key is already cached and ready to go.
         if let Some(key) = self.inner.certs.lock().await.get(kid) {
             return Ok(key.key.clone());
@@ -60,16 +62,15 @@ impl KeySet {
         }
 
         tracing::debug!("Fetching google certs");
-        let certs = parse(
-            &self
-                .inner
-                .client
-                .get("https://www.googleapis.com/oauth2/v3/certs")
-                .send()
-                .await?
-                .text()
-                .await?,
-        )?;
+        let json = self
+            .inner
+            .client
+            .get("https://www.googleapis.com/oauth2/v3/certs")
+            .send()
+            .await?
+            .text()
+            .await?;
+        let certs = Certs::parse(&json)?;
         tracing::debug!("Fetched google certs: {certs:?}");
 
         let key = kid.and_then(|kid| certs.get(kid).map(|key| key.key.clone()));
@@ -94,6 +95,19 @@ impl Certs {
     fn get(&self, kid: &str) -> Option<&Key> {
         self.keys.iter().find(|&key| key.kid == *kid)
     }
+
+    fn parse(json: &str) -> Result<Certs> {
+        let raw_certs: RawCerts = serde_json::from_str(json)?;
+
+        let mut keys = Vec::with_capacity(raw_certs.keys.len());
+        for key in raw_certs.keys {
+            keys.push(Key {
+                kid: key.kid,
+                key: DecodingKey::from_rsa_components(&key.n, &key.e)?,
+            })
+        }
+        Ok(Certs { keys })
+    }
 }
 
 impl fmt::Debug for Key {
@@ -115,21 +129,6 @@ struct RawKey {
 #[derive(Debug, Serialize, Deserialize)]
 struct RawCerts {
     keys: Vec<RawKey>,
-}
-
-fn parse(json: &str) -> Result<Certs> {
-    let raw_certs: RawCerts = serde_json::from_str(json)?;
-
-    let mut certs = Certs {
-        keys: Vec::with_capacity(raw_certs.keys.len()),
-    };
-    for key in raw_certs.keys {
-        certs.keys.push(Key {
-            kid: key.kid,
-            key: DecodingKey::from_rsa_components(&key.n, &key.e)?,
-        })
-    }
-    Ok(certs)
 }
 
 #[tracing::instrument(skip(request, next), fields(email))]
@@ -222,13 +221,44 @@ pub(crate) struct User {
 
 #[cfg(test)]
 mod tests {
+    use crate::api::google::Certs;
     use crate::api::google::KeySet;
+
+    fn certs() -> Certs {
+        Certs::parse(include_str!("../testdata/certs.json")).unwrap()
+    }
 
     #[tokio::test]
     async fn fetch_succeeds() {
-        let result: Result<KeySet, anyhow::Error> = KeySet::new().await;
-        assert!(result.is_ok());
+        let key_set: Result<KeySet, anyhow::Error> = KeySet::new().await;
+        assert!(key_set.is_ok());
+        let key_set = key_set.unwrap();
 
-        assert!(result.unwrap().get("does_not_exist_kid").await.is_err());
+        assert!(key_set.get("does_not_exist_kid").await.is_err());
+
+        let kid = key_set
+            .inner
+            .certs
+            .lock()
+            .await
+            .keys
+            .first()
+            .unwrap()
+            .kid
+            .clone();
+        assert!(key_set.get(&kid).await.is_ok());
+    }
+
+    #[test]
+    fn get_returns_error_if_kid_is_missing() {
+        let certs = certs();
+        assert!(certs.get("missing").is_none())
+    }
+    #[test]
+    fn get_returns_key_if_kid_exists() {
+        let certs = certs();
+        assert!(certs.get("1").is_some());
+        let key = certs.get("1").unwrap();
+        assert!(key.kid == "1");
     }
 }
