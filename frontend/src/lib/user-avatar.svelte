@@ -8,7 +8,7 @@
 </script>
 
 <div
-  class="hover:bg-primary-100 hover:dark:bg-primary-900 flex items-center gap-2 p-2 text-left"
+  class="flex items-center gap-2 p-2 text-left hover:bg-primary-100 hover:dark:bg-primary-900"
 >
   <Avatar class="rounded">
     <AvatarImage src={user.picture} alt={user.email} />
