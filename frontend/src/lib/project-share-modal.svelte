@@ -7,7 +7,6 @@
     updateProjectPermissions,
     type Project,
   } from "$lib/projects";
-  import { A, Alert, Button, Dropdown, Input, Modal } from "flowbite-svelte";
   import {
     UserPlus,
     CircleMinus,
@@ -17,7 +16,10 @@
   import { fade } from "svelte/transition";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import * as Dialog from "$lib/components/ui/dialog";
-  import { Description } from "./components/ui/alert";
+  import { Alert } from "$lib/components/ui/alert";
+  import { Button } from "$lib/components/ui/button";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { Input } from "$lib/components/ui/input";
 
   export let open: boolean;
   export let project: Project | null;
@@ -104,8 +106,6 @@
   );
 </script>
 
-<Modal autoclose outsideclose size="md"></Modal>
-
 <Dialog.Root
   bind:open
   onOpenChange={(open) => {
@@ -132,6 +132,11 @@
       <Input type="text" placeholder="Add people" bind:value={filter}>
         <UserPlus slot="left" class="h-4 w-4" />
       </Input>
+
+      <DropdownMenu.Root>
+                <DropdownMenu.Content>
+                  </DropdownMenu.Content>
+      </DropdownMenu.Root>
 
       <Dropdown
         bind:open={openDropDown}
@@ -162,8 +167,7 @@
       >
         {#each projectUsers as projectUser}
           <div class="flex flex-row rounded border p-2">
-            <A
-              size="xs"
+            <Button
               class="b border-r-2 pr-2"
               title="Remove {projectUser.email}"
               on:click={async () => {
@@ -171,7 +175,7 @@
               }}
             >
               <CircleMinus />
-            </A>
+            </Button>
             <div>
               <UserAvatar user={projectUser} />
             </div>
@@ -183,9 +187,6 @@
 </Dialog.Root>
 
 <AlertDialog.Root bind:open={openWarnSelfRemovalModal}>
-  <AlertDialog.AlertDialogTrigger asChild>
-    <Button variant="outline">Show Dialog</Button>
-  </AlertDialog.AlertDialogTrigger>
   <AlertDialog.AlertDialogContent>
     <AlertDialog.AlertDialogHeader>
       <AlertDialog.AlertDialogTitle
