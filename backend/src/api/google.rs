@@ -1,4 +1,4 @@
-use crate::api::{unauthorized_error, ApiResult};
+use crate::api::{unauthenticated_error, ApiResult};
 use anyhow::{anyhow, Result};
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
 use jsonwebtoken::{DecodingKey, Validation};
@@ -53,48 +53,48 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
 
     let bearer = if let Some(auth_header) = headers.get("Authorization") {
         let Ok(auth) = auth_header.to_str() else {
-            return Err(unauthorized_error(&format!(
+            return Err(unauthenticated_error(&format!(
                 "Could not convert auth header to string: {auth_header:?}"
             )));
         };
         let parts: Vec<&str> = auth.split(' ').collect();
         if parts.len() != 2 || parts[0] != "Bearer" {
-            return Err(unauthorized_error(&format!(
+            return Err(unauthenticated_error(&format!(
                 "Could not split bearer parts: {parts:?}"
             )));
         }
         parts[1]
     } else if let Some(swp_header) = headers.get("sec-websocket-protocol") {
         let Ok(swp) = swp_header.to_str() else {
-            return Err(unauthorized_error(&format!(
+            return Err(unauthenticated_error(&format!(
                 "sec-websocket-protocol must be only visible ASCII chars: {swp_header:?}"
             )));
         };
         let parts: Vec<&str> = swp.split(", ").collect();
         if parts.len() != 2 || parts[0] != "bearer" {
-            return Err(unauthorized_error(&format!(
+            return Err(unauthenticated_error(&format!(
                 "sec-websocket-protocol must contain a bearer token: {parts:?}"
             )));
         }
         parts[1]
     } else {
-        return Err(unauthorized_error("Authorization header is absent."));
+        return Err(unauthenticated_error("Authorization header is absent."));
     };
 
     let Ok(header) = jsonwebtoken::decode_header(bearer) else {
-        return Err(unauthorized_error(&format!(
+        return Err(unauthenticated_error(&format!(
             "Could not decode header: {bearer:?}"
         )));
     };
     let Some(kid) = header.kid else {
-        return Err(unauthorized_error(&format!(
+        return Err(unauthenticated_error(&format!(
             "header.kid is absent: {header:?}"
         )));
     };
     let key = match certs.get(&kid) {
         Ok(key) => key,
         Err(e) => {
-            return Err(unauthorized_error(&format!(
+            return Err(unauthenticated_error(&format!(
                 "certs is absent for {kid:?}: {e}"
             )));
         }
@@ -111,11 +111,11 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
     let token = match jsonwebtoken::decode::<User>(bearer, &key, &validation) {
         Ok(token) => token,
         Err(e) => {
-            return Err(unauthorized_error(&format!("Failed validation: {e}")));
+            return Err(unauthenticated_error(&format!("Failed validation: {e}")));
         }
     };
     if token.claims.email.is_empty() {
-        return Err(unauthorized_error(&format!(
+        return Err(unauthenticated_error(&format!(
             "Claims email is empty: {token:?}"
         )));
     }
