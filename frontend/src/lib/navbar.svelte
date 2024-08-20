@@ -22,7 +22,7 @@
       <slot name="left-items"></slot>
     </div>
 
-    <div class="flex md:order-2">
+    <div class="flex items-center md:order-2">
       <slot name="right-items"></slot>
 
       {#if $user}

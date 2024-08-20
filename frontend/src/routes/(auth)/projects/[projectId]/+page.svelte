@@ -2,6 +2,10 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { token, user, type User } from "$lib/auth";
+  import { Alert } from "$lib/components/ui/alert";
+  import { Button } from "$lib/components/ui/button";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import { Input } from "$lib/components/ui/input";
   import { DagTable } from "$lib/DagTable";
   import { Koso } from "$lib/koso";
   import { lastVisitedProjectId } from "$lib/nav";
@@ -13,7 +17,6 @@
     type Project,
     updateProject,
   } from "$lib/projects";
-  import { A, Alert, Button, Input, Modal } from "flowbite-svelte";
   import { UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import * as Y from "yjs";
@@ -47,7 +50,7 @@
 
   let editedProjectName: string | null = null;
 
-  function handleStartEditingProjectName(event: MouseEvent | CustomEvent) {
+  function handleStartEditingProjectName(event: MouseEvent | KeyboardEvent) {
     event.stopPropagation();
     editedProjectName = project?.name || "";
   }
@@ -210,8 +213,7 @@
     <div>
       {#if editedProjectName !== null}
         <Input
-          size="lg"
-          class="ml-2 p-1"
+          class="ml-2 p-2"
           on:click={(event) => event.stopPropagation()}
           on:blur={handleEditedProjectNameBlur}
           on:keydown={handleEditedProjectNameKeydown}
@@ -219,19 +221,19 @@
           autofocus
         />
       {:else if project}
-        <A
-          class="ml-2 hover:no-underline"
+        <Button
+          variant="link"
+          class="text-lg"
           on:click={handleStartEditingProjectName}
           on:keydown={handleStartEditingProjectName}
         >
           {project.name}
-        </A>
+        </Button>
       {/if}
     </div>
   </svelte:fragment>
   <svelte:fragment slot="right-items">
     <Button
-      size="xs"
       title="Share Project"
       on:click={() => {
         openShareModal = true;
@@ -244,18 +246,23 @@
 
 {#if showSocketOfflineAlert}
   <div class="mt-4">
-    <Alert class="border">Connection to server lost. Working offline.</Alert>
+    <Alert>Connection to server lost. Working offline.</Alert>
   </div>
 {/if}
 
-<Modal title="Unauthorized" bind:open={showUnauthorizedModal}>
-  <p class="text-base leading-relaxed text-gray-500 dark:text-gray-400">
-    You do not have access to the project or the project does not exist.
-  </p>
-  <svelte:fragment slot="footer">
-    <Button on:click={() => goto("/projects")}>Take me home</Button>
-  </svelte:fragment>
-</Modal>
+<Dialog.Root bind:open={showUnauthorizedModal}>
+  <Dialog.Content>
+    <Dialog.Header>
+      <Dialog.Title>Unauthorized</Dialog.Title>
+      <Dialog.Description>
+        You do not have access to the project or the project does not exist.
+      </Dialog.Description>
+    </Dialog.Header>
+    <Dialog.Footer>
+      <Button on:click={() => goto("/projects")}>Take me home</Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
 
 <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
 
