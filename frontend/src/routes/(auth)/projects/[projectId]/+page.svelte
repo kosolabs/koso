@@ -9,16 +9,16 @@
   import ProjectShareModal from "$lib/project-share-modal.svelte";
   import {
     fetchProjects,
+    fetchProjectUsers,
     type Project,
     updateProject,
-    fetchProjectUsers,
   } from "$lib/projects";
   import { A, Alert, Button, Input, Modal } from "flowbite-svelte";
   import { UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import * as Y from "yjs";
 
-  const projectId = $page.params.slug;
+  const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
   window.koso = koso;
 
@@ -117,7 +117,7 @@
           socket.send(update);
         }
       });
-      $lastVisitedProjectId = $page.params.slug;
+      $lastVisitedProjectId = $page.params.projectId;
     };
 
     socket.onmessage = (event) => {
