@@ -102,7 +102,7 @@
   setContext<Koso>("koso", koso);
 </script>
 
-<div class="sticky top-0 z-30 flex gap-2 bg-white py-2">
+<div class="sticky top-0 z-30 flex gap-2 bg-white py-2 dark:bg-black">
   {#if $selected}
     <Button class="text-xs" on:click={addPeer}>
       <List class="me-2 w-4" />
@@ -133,7 +133,7 @@
 
 <table class="w-full border-separate border-spacing-0 border-b border-l">
   <thead
-    class="sticky top-14 z-10 bg-white text-left text-xs font-bold uppercase"
+    class="sticky top-14 z-10 bg-white text-left text-xs font-bold uppercase dark:bg-black"
   >
     <tr>
       <th class="w-32 border-r border-t p-2">ID</th>

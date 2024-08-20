@@ -59,13 +59,13 @@
     </div>
   {:else}
     <div class="flex flex-col rounded border">
-      <div class="flex flex-col items-end bg-slate-100 p-2">
+      <div class="flex flex-col items-end bg-slate-100 p-2 dark:bg-slate-900">
         <div>
           <Button on:click={() => createProject()}>New project</Button>
         </div>
       </div>
       <div
-        class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50"
+        class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50 [&>*:nth-child(even)]:dark:bg-slate-950"
       >
         {#each projects as project}
           <div class="border-t p-2">
