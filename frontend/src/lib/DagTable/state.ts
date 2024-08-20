@@ -6,7 +6,7 @@ import { derived, writable } from "svelte/store";
 type Graph = { [id: string]: Task };
 type Parents = { [id: string]: string[] };
 
-export const project = derived(page, (page) => page.params?.slug);
+export const project = derived(page, (page) => page.params?.projectId);
 export const graph = writable<Graph>({});
 
 export const expanded = storedWritable<Set<string>>(
