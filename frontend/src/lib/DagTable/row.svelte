@@ -401,7 +401,7 @@
     {:else}
       <Button
         variant="link"
-        class="h-auto p-0 hover:no-underline"
+        class="h-auto text-wrap p-0 text-left hover:no-underline"
         on:click={handleStartEditingTaskName}
         on:keydown={handleStartEditingTaskName}
       >

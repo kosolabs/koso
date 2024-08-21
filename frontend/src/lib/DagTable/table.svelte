@@ -133,7 +133,7 @@
 
 <div class="mx-4 mb-4">
   <table class="w-full border-separate border-spacing-0 border-b border-l">
-    <thead class="top-12 text-left text-xs font-bold uppercase">
+    <thead class="text-left text-xs font-bold uppercase">
       <tr>
         <th class="w-32 border-r border-t p-2">ID</th>
         <th class="border-r border-t p-2">
