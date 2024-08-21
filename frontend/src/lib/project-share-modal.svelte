@@ -152,10 +152,10 @@
 
       <div class="h3 mt-2">People with access</div>
       <div
-        class="flex max-h-96 w-full flex-col items-stretch overflow-y-auto [&>*:nth-child(even)]:bg-slate-50"
+        class="[&>*:nth-child(even)]:bg-row-even [&>*:nth-child(odd)]:bg-row-odd flex max-h-96 w-full flex-col items-stretch overflow-y-auto"
       >
         {#each projectUsers as projectUser}
-          <div class="flex items-center p-2">
+          <div class="flex items-center rounded py-2">
             <UserAvatar user={projectUser} />
             <Button
               class="ml-auto"
