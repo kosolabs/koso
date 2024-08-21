@@ -1,7 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { token, user, type User } from "$lib/auth";
-  import { Alert } from "$lib/components/ui/alert";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
@@ -115,13 +114,14 @@
       <Dialog.Title>Share &quot;{project?.name || ""}&quot;</Dialog.Title>
       <Dialog.Description>Manage access to your project.</Dialog.Description>
     </Dialog.Header>
-    <div class="flex flex-1 flex-col gap-2">
+    <div class="flex flex-col gap-2">
       {#if addedOrRemovedMessage}
-        <div transition:fade={{ duration: 350 }}>
-          <Alert color="green" class="flex items-center p-2 font-medium">
-            <span><CircleCheck /></span>
-            <span>{addedOrRemovedMessage}</span>
-          </Alert>
+        <div
+          class="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm"
+          transition:fade
+        >
+          <CircleCheck />
+          <div>{addedOrRemovedMessage}</div>
         </div>
       {/if}
 
