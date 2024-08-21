@@ -8,10 +8,10 @@
   import UserAvatar from "./user-avatar.svelte";
 </script>
 
-<nav class="mb-2 flex items-center">
+<nav class="mb-2 flex items-center bg-card p-2 shadow">
   <div class="flex items-center">
     <a href="/projects">
-      <img class="w-14" alt="Koso Logo" src={kosoLogo} />
+      <img class="size-10" alt="Koso Logo" src={kosoLogo} />
     </a>
     <slot name="left-items"></slot>
   </div>

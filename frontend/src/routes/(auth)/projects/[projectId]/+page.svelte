@@ -245,7 +245,7 @@
 </Navbar>
 
 {#if showSocketOfflineAlert}
-  <div class="mt-4">
+  <div class="m-4">
     <Alert>Connection to server lost. Working offline.</Alert>
   </div>
 {/if}

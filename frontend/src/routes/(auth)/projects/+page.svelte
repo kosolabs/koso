@@ -45,27 +45,30 @@
 {/if}
 
 {#await projects}
+  <!-- TODO: Make this a Skeleton -->
   <div class="flex flex-col items-center justify-center rounded border p-4">
     <div class="text-xl">Loading...</div>
   </div>
 {:then projects}
   {#if projects.length === 0}
-    <div class="flex flex-col items-center justify-center rounded border p-4">
-      <div class="mb-2"><Layers /></div>
-      <div class="mb-4 text-xl">Create your first Koso project!</div>
+    <div
+      class="m-4 flex flex-col items-center gap-6 rounded border bg-card p-8"
+    >
+      <div><Layers /></div>
+      <div class="text-xl">Create your first Koso project!</div>
       <div>
         <Button on:click={() => createProject()}>New project</Button>
       </div>
     </div>
   {:else}
-    <div class="flex flex-col rounded border">
-      <div class="flex flex-col items-end bg-slate-100 p-2 dark:bg-slate-900">
+    <div class="m-4 flex flex-col rounded border">
+      <div class="flex flex-col items-end p-2">
         <div>
           <Button on:click={() => createProject()}>New project</Button>
         </div>
       </div>
       <div
-        class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-slate-50 [&>*:nth-child(even)]:dark:bg-slate-950"
+        class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-row-even [&>*:nth-child(odd)]:bg-row-odd"
       >
         {#each projects as project}
           <div class="border-t p-2">
