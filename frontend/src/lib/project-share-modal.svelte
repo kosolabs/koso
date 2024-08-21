@@ -1,25 +1,20 @@
 <script lang="ts">
-  import UserAvatar from "./user-avatar.svelte";
   import { goto } from "$app/navigation";
   import { token, user, type User } from "$lib/auth";
+  import { Alert } from "$lib/components/ui/alert";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import { Button } from "$lib/components/ui/button";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import { Input } from "$lib/components/ui/input";
+  import * as Popover from "$lib/components/ui/popover";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectPermissions,
     type Project,
   } from "$lib/projects";
-  import {
-    UserPlus,
-    CircleMinus,
-    TriangleAlert,
-    CircleCheck,
-  } from "lucide-svelte";
+  import { CircleCheck, CircleMinus, TriangleAlert } from "lucide-svelte";
   import { fade } from "svelte/transition";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import * as Dialog from "$lib/components/ui/dialog";
-  import { Alert } from "$lib/components/ui/alert";
-  import { Button } from "$lib/components/ui/button";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { Input } from "$lib/components/ui/input";
+  import UserAvatar from "./user-avatar.svelte";
 
   export let open: boolean;
   export let project: Project | null;
@@ -129,41 +124,42 @@
           </Alert>
         </div>
       {/if}
-      <Input type="text" placeholder="Add people" bind:value={filter}>
-        <UserPlus class="h-4 w-4" />
-      </Input>
 
-      <DropdownMenu.Root
+      <Popover.Root
+        disableFocusTrap={true}
+        openFocus={false}
         bind:open={openDropDown}
-        class="max-h-96 overflow-y-auto"
-        style="width: 39.5rem"
       >
-        <DropdownMenu.Content>
+        <Popover.Trigger>
+          <Input type="text" placeholder="Add people" bind:value={filter} />
+        </Popover.Trigger>
+        <Popover.Content sameWidth={true}>
           {#if filteredUsers.length > 0}
             {#each filteredUsers as user}
-              <DropdownMenu.Item
+              <button
+                class="w-full cursor-pointer rounded p-2 hover:bg-accent"
                 title="Add {user.email}"
-                on:click={async () => {
-                  await addUser(user);
-                }}
+                on:click={() => addUser(user)}
               >
                 <UserAvatar {user} />
-              </DropdownMenu.Item>
+              </button>
             {/each}
           {:else}
-            <DropdownMenu.Item disabled>No people found.</DropdownMenu.Item>
+            <div>No people found.</div>
           {/if}
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
+        </Popover.Content>
+      </Popover.Root>
 
       <div class="h3 mt-2">People with access</div>
       <div
-        class="flex max-h-96 flex-col items-stretch overflow-y-auto [&>*:nth-child(even)]:bg-slate-50"
+        class="flex max-h-96 w-full flex-col items-stretch overflow-y-auto [&>*:nth-child(even)]:bg-slate-50"
       >
         {#each projectUsers as projectUser}
-          <div class="flex flex-row rounded border p-2">
+          <div class="flex items-center p-2">
+            <UserAvatar user={projectUser} />
             <Button
-              class="b border-r-2 pr-2"
+              class="ml-auto"
+              variant="link"
               title="Remove {projectUser.email}"
               on:click={async () => {
                 await removeUser(projectUser, false);
@@ -171,9 +167,6 @@
             >
               <CircleMinus />
             </Button>
-            <div>
-              <UserAvatar user={projectUser} />
-            </div>
           </div>
         {/each}
       </div>
