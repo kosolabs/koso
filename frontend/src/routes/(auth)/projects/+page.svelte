@@ -52,7 +52,7 @@
 {:then projects}
   {#if projects.length === 0}
     <div
-      class="bg-card m-4 flex flex-col items-center gap-6 rounded border p-8"
+      class="m-4 flex flex-col items-center gap-6 rounded border bg-card p-8"
     >
       <div><Layers /></div>
       <div class="text-xl">Create your first Koso project!</div>
@@ -68,7 +68,7 @@
         </div>
       </div>
       <div
-        class="[&>*:nth-child(even)]:bg-row-even [&>*:nth-child(odd)]:bg-row-odd flex flex-col items-stretch"
+        class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-row-even [&>*:nth-child(odd)]:bg-row-odd"
       >
         {#each projects as project}
           <div class="border-t p-2">

@@ -8,7 +8,7 @@
   import UserAvatar from "./user-avatar.svelte";
 </script>
 
-<nav class="bg-card mb-2 flex items-center p-2 shadow">
+<nav class="mb-2 flex items-center bg-card p-2 shadow">
   <div class="flex items-center">
     <a href="/projects">
       <img class="size-10" alt="Koso Logo" src={kosoLogo} />

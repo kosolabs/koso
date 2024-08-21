@@ -320,7 +320,7 @@
     isMoving ? "bg-red-200 opacity-50" : "",
     isGhost ? "bg-green-200 opacity-70" : "",
     isHovered ? "bg-accent" : "",
-    isSelected ? "outline-primary outline outline-2" : "",
+    isSelected ? "outline outline-2 outline-primary" : "",
   )}
   on:mouseout={handleUnhighlight}
   on:mouseover={handleHighlight}
