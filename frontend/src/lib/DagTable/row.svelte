@@ -316,14 +316,11 @@
   tabindex="0"
   class={cn(
     "rounded border outline-none",
-    index % 2 === 0
-      ? "bg-slate-50 dark:bg-slate-950"
-      : "bg-white dark:bg-black",
+    index % 2 === 0 ? "bg-row-even" : "bg-row-odd",
     isMoving ? "bg-red-200 opacity-50" : "",
     isGhost ? "bg-green-200 opacity-70" : "",
-    isHovered ? "bg-primary-50" : "",
-    isSelected ? "bg-primary-200 outline-primary-400" : "",
-    isSelected ? "outline outline-2" : "",
+    isHovered ? "bg-accent" : "",
+    isSelected ? "outline-primary outline outline-2" : "",
   )}
   on:mouseout={handleUnhighlight}
   on:mouseover={handleHighlight}
@@ -333,9 +330,7 @@
   on:keydown={handleRowKeydown}
   use:row
 >
-  <td
-    class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
-  >
+  <td class={cn("border-r border-t p-2")}>
     <div class="flex items-center">
       <div style="width: {(node.length - 1) * 1.25}rem;" />
       {#if task.children.length > 0}
@@ -385,9 +380,7 @@
       <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
     </div>
   </td>
-  <td
-    class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
-  >
+  <td class={cn("border-r border-t p-2")}>
     <TaskStatusSelect
       value={task.status}
       on:select={(event) => {
@@ -395,9 +388,7 @@
       }}
     />
   </td>
-  <td
-    class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
-  >
+  <td class={cn("border-r border-t p-2")}>
     {#if editedTaskName !== null}
       <Input
         class="h-auto bg-transparent p-1"
@@ -418,9 +409,7 @@
       </Button>
     {/if}
   </td>
-  <td
-    class={cn("border-r border-t p-2", isSelected ? "border-transparent" : "")}
-  >
+  <td class={cn("border-r border-t p-2")}>
     <UserSelect
       {users}
       value={assignee}
@@ -429,12 +418,7 @@
       }}
     />
   </td>
-  <td
-    class={cn(
-      "border-r border-t p-2 max-md:hidden",
-      isSelected ? "border-transparent" : "",
-    )}
-  >
+  <td class={cn("border-r border-t p-2 max-md:hidden")}>
     <UserSelect
       {users}
       value={reporter}

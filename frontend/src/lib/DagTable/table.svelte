@@ -102,63 +102,63 @@
   setContext<Koso>("koso", koso);
 </script>
 
-<div class="sticky top-0 z-30 flex gap-2 bg-white py-2 dark:bg-black">
-  {#if $selected}
-    <Button class="text-xs" on:click={addPeer}>
-      <List class="me-2 w-4" />
-      Add Peer
-    </Button>
-    <Button class="text-xs" on:click={addChild}>
-      <ListTree class="me-2 w-4" />
-      Add Child
-    </Button>
-    {#if $parents[$selected.name].length === 1}
-      <Button class="text-xs" on:click={remove}>
-        <Trash class="me-2 w-4" />
-        Delete
+<div class="m-4">
+  <div class="sticky top-2 z-30 flex gap-2 pb-2">
+    {#if $selected}
+      <Button class="text-xs" on:click={addPeer}>
+        <List class="me-2 w-4" />
+        Add Peer
       </Button>
+      <Button class="text-xs" on:click={addChild}>
+        <ListTree class="me-2 w-4" />
+        Add Child
+      </Button>
+      {#if $parents[$selected.name].length === 1}
+        <Button class="text-xs" on:click={remove}>
+          <Trash class="me-2 w-4" />
+          Delete
+        </Button>
+      {:else}
+        <Button class="text-xs" on:click={unlink}>
+          <Unlink class="me-2 w-4" />
+          Unlink
+        </Button>
+      {/if}
     {:else}
-      <Button class="text-xs" on:click={unlink}>
-        <Unlink class="me-2 w-4" />
-        Unlink
+      <Button class="text-xs" on:click={addRoot}>
+        <ListStart class="me-2 w-4" />
+        Add Root
       </Button>
     {/if}
-  {:else}
-    <Button class="text-xs" on:click={addRoot}>
-      <ListStart class="me-2 w-4" />
-      Add Root
-    </Button>
-  {/if}
+  </div>
+
+  <table class="w-full border-separate border-spacing-0 border-b border-l">
+    <thead class="top-12 text-left text-xs font-bold uppercase">
+      <tr>
+        <th class="w-32 border-r border-t p-2">ID</th>
+        <th class="border-r border-t p-2">
+          <SquarePen class="h-4 md:hidden" />
+          <div class="max-md:hidden">Status</div></th
+        >
+        <th class="border-r border-t p-2">Name</th>
+        <th class="border-r border-t p-2">
+          <UserRoundPlus class="h-4 md:hidden" />
+          <div class="max-md:hidden">Assignee</div>
+        </th>
+        <th class="border-r border-t p-2 max-md:hidden">Reporter</th>
+      </tr>
+    </thead>
+
+    {#each $nodes as node, index (node.id)}
+      <tbody animate:flip={{ duration: 250 }}>
+        <Row
+          {index}
+          {node}
+          {users}
+          isGhost={false}
+          rowCallback={(el) => (rows[node.id] = el)}
+        />
+      </tbody>
+    {/each}
+  </table>
 </div>
-
-<table class="w-full border-separate border-spacing-0 border-b border-l">
-  <thead
-    class="sticky top-14 z-10 bg-white text-left text-xs font-bold uppercase dark:bg-black"
-  >
-    <tr>
-      <th class="w-32 border-r border-t p-2">ID</th>
-      <th class="border-r border-t p-2">
-        <SquarePen class="h-4 md:hidden" />
-        <div class="max-md:hidden">Status</div></th
-      >
-      <th class="border-r border-t p-2">Name</th>
-      <th class="border-r border-t p-2">
-        <UserRoundPlus class="h-4 md:hidden" />
-        <div class="max-md:hidden">Assignee</div>
-      </th>
-      <th class="border-r border-t p-2 max-md:hidden">Reporter</th>
-    </tr>
-  </thead>
-
-  {#each $nodes as node, index (node.id)}
-    <tbody animate:flip={{ duration: 250 }}>
-      <Row
-        {index}
-        {node}
-        {users}
-        isGhost={false}
-        rowCallback={(el) => (rows[node.id] = el)}
-      />
-    </tbody>
-  {/each}
-</table>
