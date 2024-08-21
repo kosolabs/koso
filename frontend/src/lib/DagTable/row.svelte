@@ -315,7 +315,7 @@
   id="row-{node.id}"
   tabindex="0"
   class={cn(
-    "rounded border outline-none",
+    "rounded",
     index % 2 === 0 ? "bg-row-even" : "bg-row-odd",
     isMoving ? "bg-red-200 opacity-50" : "",
     isGhost ? "bg-green-200 opacity-70" : "",
