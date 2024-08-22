@@ -6,7 +6,7 @@
   import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
   import { Input } from "$lib/components/ui/input";
-  import { DagTable } from "$lib/DagTable";
+  import { DagTable } from "$lib/dag-table";
   import { Koso } from "$lib/koso";
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
