@@ -162,13 +162,11 @@
 <AlertDialog.Root bind:open={openWarnSelfRemovalModal}>
   <AlertDialog.AlertDialogContent>
     <AlertDialog.AlertDialogHeader>
-      <AlertDialog.AlertDialogTitle
-        >Are you absolutely sure?</AlertDialog.AlertDialogTitle
-      >
+      <AlertDialog.AlertDialogTitle>
+        Are you absolutely sure?
+      </AlertDialog.AlertDialogTitle>
       <AlertDialog.AlertDialogDescription>
-        <TriangleAlert
-          class="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-200"
-        />
+        <TriangleAlert class="mx-auto mb-4 h-12 w-12 text-yellow-300" />
         You will <b>immediately lose access</b> if you remove yourself from this
         project.
       </AlertDialog.AlertDialogDescription>
@@ -176,12 +174,15 @@
     <AlertDialog.AlertDialogFooter>
       <AlertDialog.AlertDialogCancel>Cancel</AlertDialog.AlertDialogCancel>
       <AlertDialog.AlertDialogAction
+        class="bg-destructive text-white"
         on:click={async () => {
           if (!$user) throw new Error("User is unauthorized");
           await removeUser($user, true);
           await goto("/projects");
-        }}>Yes, I'm sure</AlertDialog.AlertDialogAction
+        }}
       >
+        Yes, I'm sure
+      </AlertDialog.AlertDialogAction>
     </AlertDialog.AlertDialogFooter>
   </AlertDialog.AlertDialogContent>
 </AlertDialog.Root>
