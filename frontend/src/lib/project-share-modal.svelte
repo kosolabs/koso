@@ -11,9 +11,9 @@
     updateProjectPermissions,
     type Project,
   } from "$lib/projects";
-  import { CircleCheck, CircleMinus, TriangleAlert } from "lucide-svelte";
+  import { CircleMinus, TriangleAlert } from "lucide-svelte";
+  import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
-  import { fade } from "svelte/transition";
   import UserAvatar from "./user-avatar.svelte";
 
   export let open: boolean;
@@ -54,7 +54,7 @@
     projectUsers = projectUsers;
 
     openDropDown = false;
-    addedOrRemovedMessage = `Added ${add.email}`;
+    toast.success(`Added ${add.email}`);
   }
 
   async function removeUser(remove: User, forceRemoveSelf: boolean) {
@@ -78,7 +78,7 @@
     projectUsers.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
     projectUsers = projectUsers;
 
-    addedOrRemovedMessage = `Removed ${remove.email}`;
+    toast.success(`Removed ${remove.email}`);
   }
 
   let openDropDown: boolean = false;
@@ -86,7 +86,6 @@
   let filteredUsers: User[] = [];
   let filter: string = "";
   let openWarnSelfRemovalModal = false;
-  let addedOrRemovedMessage: string | null = null;
 
   $: loadAllUsers().then(
     (allUsers) =>
@@ -101,31 +100,13 @@
   );
 </script>
 
-<Dialog.Root
-  bind:open
-  onOpenChange={(open) => {
-    if (!open) {
-      addedOrRemovedMessage = null;
-      filter = "";
-    }
-  }}
->
+<Dialog.Root bind:open onOpenChange={() => (filter = "")}>
   <Dialog.Content>
     <Dialog.Header>
       <Dialog.Title>Share &quot;{project?.name || ""}&quot;</Dialog.Title>
       <Dialog.Description>Manage access to your project.</Dialog.Description>
     </Dialog.Header>
     <div class="flex flex-col gap-2">
-      {#if addedOrRemovedMessage}
-        <div
-          class="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm"
-          transition:fade
-        >
-          <CircleCheck />
-          <div>{addedOrRemovedMessage}</div>
-        </div>
-      {/if}
-
       <Popover.Root
         disableFocusTrap={true}
         openFocus={false}
