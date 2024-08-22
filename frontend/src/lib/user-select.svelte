@@ -46,20 +46,22 @@
       {value?.name || unassigned}
     </div>
   </DropdownMenu.Trigger>
-  <DropdownMenu.Content>
+  <DropdownMenu.Content class="min-w-64">
     <DropdownMenu.Label>
       <Input placeholder="Filter users" bind:value={filter} />
     </DropdownMenu.Label>
     <DropdownMenu.Separator />
-    <DropdownMenu.Item on:click={() => select(null)}>
-      <UserAvatar
-        user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
-      />
-    </DropdownMenu.Item>
-    {#each filteredUsers as user}
-      <DropdownMenu.Item on:click={() => select(user)}>
-        <UserAvatar {user} />
+    <DropdownMenu.Group class="max-h-64 overflow-y-auto">
+      <DropdownMenu.Item on:click={() => select(null)}>
+        <UserAvatar
+          user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
+        />
       </DropdownMenu.Item>
-    {/each}
+      {#each filteredUsers as user}
+        <DropdownMenu.Item on:click={() => select(user)}>
+          <UserAvatar {user} />
+        </DropdownMenu.Item>
+      {/each}
+    </DropdownMenu.Group>
   </DropdownMenu.Content>
 </DropdownMenu.Root>
