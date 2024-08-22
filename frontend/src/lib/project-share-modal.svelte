@@ -12,6 +12,7 @@
     type Project,
   } from "$lib/projects";
   import { CircleCheck, CircleMinus, TriangleAlert } from "lucide-svelte";
+  import { flip } from "svelte/animate";
   import { fade } from "svelte/transition";
   import UserAvatar from "./user-avatar.svelte";
 
@@ -152,10 +153,13 @@
 
       <div class="h3 mt-2">People with access</div>
       <div
-        class="[&>*:nth-child(even)]:bg-row-even flex max-h-96 w-full flex-col items-stretch overflow-y-auto"
+        class="[&>*:nth-child(even)]:bg-row-even flex h-64 w-full flex-col items-stretch overflow-y-auto"
       >
-        {#each projectUsers as projectUser}
-          <div class="flex items-center rounded p-2">
+        {#each projectUsers as projectUser (projectUser.email)}
+          <div
+            class="flex items-center rounded p-2"
+            animate:flip={{ duration: 250 }}
+          >
             <UserAvatar user={projectUser} />
             <Button
               class="ml-auto"
