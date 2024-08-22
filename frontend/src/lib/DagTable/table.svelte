@@ -14,15 +14,12 @@
   import { setContext } from "svelte";
   import { flip } from "svelte/animate";
   import Row from "./row.svelte";
-  import { graph, nodes, parents, selected } from "./state";
 
   export let koso: Koso;
   export let users: User[];
-  let rows: { [key: string]: HTMLDivElement } = {};
 
-  koso.observe(() => {
-    $graph = koso.toJSON();
-  });
+  const rows: { [key: string]: HTMLDivElement } = {};
+  const { nodes, parents, selected } = koso;
 
   document.onkeydown = (event: KeyboardEvent) => {
     if (event.key === "ArrowDown") {
@@ -156,7 +153,7 @@
           {node}
           {users}
           isGhost={false}
-          rowCallback={(el) => (rows[node.id] = el)}
+          row={(el) => (rows[node.id] = el)}
         />
       </tbody>
     {/each}
