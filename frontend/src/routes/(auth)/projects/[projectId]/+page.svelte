@@ -100,91 +100,166 @@
     }
   }
 
-  let socket: WebSocket | null = null;
   let showSocketOfflineAlert: boolean = false;
   let showUnauthorizedModal: boolean = false;
 
-  async function openWebSocket(backoffMs = 1000) {
-    if (!$user || !$token) throw new Error("User is unauthorized");
+  export class KosoSocket {
+    socket: WebSocket | null = null;
+    shutdown: boolean = false;
+    socketPingInterval: NodeJS.Timeout | null = null;
+    reconnectBackoffMs: number | null = null;
+    offlineTimeout: NodeJS.Timeout | null = null;
 
-    const host = location.origin.replace(/^http/, "ws");
-    const wsUrl = `${host}/api/ws/projects/${projectId}`;
-    socket = new WebSocket(wsUrl, ["bearer", $token]);
-    socket.binaryType = "arraybuffer";
+    constructor() {
+      this.markOffline();
+      this.socketPingInterval = setInterval(
+        () => {
+          if (this.socket && this.socket.readyState == WebSocket.OPEN) {
+            this.socket.send("");
+          }
+        },
+        40 * 1000 + Math.random() * 10000,
+      );
+    }
 
-    socket.onopen = (event) => {
-      console.log("WebSocket opened", event);
-      showSocketOfflineAlert = false;
-      koso.handleClientMessage((update) => {
-        if (socket) {
+    async openWebSocket() {
+      if (!$user || !$token) throw new Error("User is unauthorized");
+
+      const host = location.origin.replace(/^http/, "ws");
+      const wsUrl = `${host}/api/ws/projects/${projectId}`;
+      const socket = new WebSocket(wsUrl, ["bearer", $token]);
+      this.socket = socket;
+      socket.binaryType = "arraybuffer";
+
+      socket.onopen = (event) => {
+        console.log("WebSocket opened", event);
+        this.markOnline();
+        koso.handleClientMessage((update) => {
           socket.send(update);
-        }
-      });
-      $lastVisitedProjectId = $page.params.projectId;
-    };
+        });
+        $lastVisitedProjectId = $page.params.projectId;
+      };
 
-    socket.onmessage = (event) => {
-      if (event.data instanceof ArrayBuffer) {
-        koso.handleServerMessage(new Uint8Array(event.data));
+      socket.onmessage = (event) => {
+        if (event.data instanceof ArrayBuffer) {
+          koso.handleServerMessage(new Uint8Array(event.data));
+        } else {
+          console.log("Received text frame from server:", event.data);
+        }
+      };
+      socket.onerror = (event) => {
+        console.log("WebSocket errored", event);
+        // Errors also trigger onclose events so handle everything there.
+      };
+      socket.onclose = (event) => {
+        this.markOffline();
+        if (this.shutdown) {
+          console.log(
+            `WebSocket closed in onDestroy. Code: ${event.code}, Reason: '${event.reason}' Will not try to reconnect`,
+            event,
+          );
+          return;
+        }
+
+        const UNAUTHORIZED = 3000;
+        if (event.code === UNAUTHORIZED) {
+          console.log(
+            `Unauthorized, WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. `,
+            event,
+          );
+          // Don't redirect the user back to a project they don't have access too.
+          $lastVisitedProjectId = null;
+          this.destroy();
+          showUnauthorizedModal = true;
+          return;
+        }
+
+        const OVERLOADED = 1013;
+        let backoff;
+        if (event.code === OVERLOADED) {
+          // In case of overload, don't retry aggressively.
+          backoff = this.backoff(30000);
+          console.log(
+            `Overloaded WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoff} ms.`,
+            event,
+          );
+        } else {
+          backoff = this.backoff();
+          console.log(
+            `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoff} ms.`,
+            event,
+          );
+        }
+
+        setTimeout(async () => {
+          if (!this.shutdown) {
+            await this.openWebSocket();
+          }
+        }, backoff);
+      };
+
+      while (socket.readyState == WebSocket.CONNECTING) {
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    }
+
+    close(code: number, reason: string) {
+      const socket = this.socket;
+      this.destroy();
+      if (socket) {
+        socket.close(code, reason);
+      }
+    }
+
+    destroy() {
+      this.shutdown = true;
+      if (this.socketPingInterval) {
+        clearInterval(this.socketPingInterval);
+      }
+      if (this.offlineTimeout) {
+        clearTimeout(this.offlineTimeout);
+      }
+      this.socket = null;
+    }
+
+    markOffline() {
+      if (!this.offlineTimeout && !this.shutdown) {
+        // Delay showing the offline alert for a little bit
+        // to avoid flashing an alert due to transient events.
+        // e.g. server restarts.
+        this.offlineTimeout = setTimeout(() => {
+          if (this.offlineTimeout && !this.shutdown) {
+            showSocketOfflineAlert = true;
+          }
+        }, 14000);
+      }
+    }
+
+    markOnline() {
+      this.reconnectBackoffMs = null;
+      if (this.offlineTimeout) {
+        clearTimeout(this.offlineTimeout);
+        this.offlineTimeout = null;
+      }
+      showSocketOfflineAlert = false;
+    }
+
+    backoff(min: number = 0): number {
+      let base;
+      if (!this.reconnectBackoffMs) {
+        base = 400;
       } else {
-        console.log("Received text frame from server:", event.data);
+        base = this.reconnectBackoffMs * 1.5;
       }
-    };
-    socket.onerror = (event) => {
-      console.log("WebSocket errored", event);
-      // Errors also trigger onclose events so handle everything there.
-    };
-    socket.onclose = (event) => {
-      if (socket === null && event.code === 1000) {
-        console.log(
-          `WebSocket closed in onDestroy. Code: ${event.code}, Reason: '${event.reason}' Will not try to reconnect`,
-          event,
-        );
-        return;
-      }
-
-      const UNAUTHORIZED = 3000;
-      if (event.code === UNAUTHORIZED) {
-        console.log(
-          `Unauthorized, WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. `,
-          event,
-        );
-        // Don't redirect the user back to a project they don't have access too.
-        $lastVisitedProjectId = null;
-        socket = null;
-        showUnauthorizedModal = true;
-        return;
-      }
-
-      const OVERLOADED = 1013;
-      if (event.code === OVERLOADED) {
-        // In case of overload, don't retry aggressively.
-        if (backoffMs < 30000) {
-          backoffMs = 30000;
-        }
-        console.log(
-          `Overloaded WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
-          event,
-        );
-      } else {
-        console.log(
-          `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
-          event,
-        );
-      }
-
-      showSocketOfflineAlert = true;
-      setTimeout(async () => {
-        if (socket !== null) {
-          await openWebSocket(Math.min(backoffMs * 2, 60000));
-        }
-      }, backoffMs);
-    };
-
-    while (socket && socket.readyState == WebSocket.CONNECTING) {
-      await new Promise((r) => setTimeout(r, 100));
+      // Don't let backoff get too big (or too small).
+      base = Math.max(Math.min(60000, base), min);
+      // Add some jitter
+      this.reconnectBackoffMs = base + base * 0.3 * Math.random();
+      return this.reconnectBackoffMs;
     }
   }
+
+  const kosoSocket = new KosoSocket();
 
   onMount(async () => {
     if (!$user || !$token) {
@@ -194,17 +269,12 @@
     [projectUsers, project] = await Promise.all([
       loadProjectUsers(),
       loadProject(),
-      openWebSocket(),
+      kosoSocket.openWebSocket(),
     ]);
   });
 
   onDestroy(() => {
-    if (socket) {
-      if (socket) {
-        socket.close(1000, "Closed in onDestroy.");
-      }
-      socket = null;
-    }
+    kosoSocket.close(1000, "Closed in onDestroy.");
   });
 </script>
 

@@ -92,6 +92,9 @@ impl ClientMessageHandler {
                     details: format!("Failed to read from client socket: {e}"),
                 })
             }
+            // Our clients send heartbeat pings in the form of empty text messages
+            // because, unfortunately, the javascript library doesn't support Ping messages.
+            Ok(Message::Text(msg)) if msg.is_empty() => ControlFlow::Continue(()),
             Ok(_) => {
                 tracing::warn!("Discarding unsolicited message: {msg:?}");
                 ControlFlow::Continue(())
