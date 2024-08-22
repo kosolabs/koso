@@ -1,4 +1,6 @@
 import * as encoding from "lib0/encoding";
+import { tick } from "svelte";
+import { get } from "svelte/store";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import type { User } from "./auth";
@@ -83,9 +85,91 @@ describe("Koso tests", () => {
     });
   });
 
+  describe("toNodes", () => {
+    it("empty doc has no nodes", () => {
+      expect(get(koso.nodes)).toStrictEqual([]);
+    });
+
+    it("doc with one task has one node", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      expect(get(koso.nodes)).toStrictEqual([new Node([id1])]);
+    });
+
+    it("doc with two tasks has two nodes", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      expect(get(koso.nodes)).toStrictEqual([new Node([id1]), new Node([id2])]);
+    });
+
+    it("doc with two tasks and one subtask has two nodes", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      koso.insertNode(id1, 0, "Task 3", USER);
+      expect(get(koso.nodes)).toStrictEqual([new Node([id1]), new Node([id2])]);
+    });
+
+    it("doc with two tasks, one subtask, and parent is expanded has three nodes", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      const id3 = koso.insertNode(id1, 0, "Task 3", USER);
+      koso.expanded.set(new Set([id1]));
+      expect(get(koso.nodes)).toStrictEqual([
+        new Node([id1]),
+        new Node([id1, id3]),
+        new Node([id2]),
+      ]);
+    });
+
+    it("doc with two tasks, one linked subtask, and parent is expanded has three nodes", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      koso.linkNode(id2, id1, 0);
+      koso.expanded.set(new Set([id1]));
+      expect(get(koso.nodes)).toStrictEqual([
+        new Node([id1]),
+        new Node([id1, id2]),
+        new Node([id2]),
+      ]);
+    });
+  });
+
+  describe("toParents", () => {
+    it("empty doc has no parents", () => {
+      expect(get(koso.parents)).toStrictEqual({});
+    });
+
+    it("doc with one task has root parent", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      tick();
+      expect(get(koso.parents)).toStrictEqual({
+        [id1]: ["root"],
+      });
+    });
+
+    it("doc with two tasks has root as parent for both", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      expect(get(koso.parents)).toStrictEqual({
+        [id1]: ["root"],
+        [id2]: ["root"],
+      });
+    });
+
+    it("doc with a task with two parents", () => {
+      const id1 = koso.insertNode("root", 0, "Task 1", USER);
+      const id2 = koso.insertNode("root", 1, "Task 2", USER);
+      koso.linkNode(id2, id1, 0);
+
+      expect(get(koso.parents)).toStrictEqual({
+        [id1]: ["root"],
+        [id2]: ["root", id1],
+      });
+    });
+  });
+
   describe("graph", () => {
     it("empty graph renders successfully", () => {
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: {
           num: "0",
           name: "Root",
@@ -100,7 +184,7 @@ describe("Koso tests", () => {
     it("graph with one root node renders to json successfully", () => {
       const id1 = koso.insertNode("root", 0, "Task 1", USER);
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { id: "root", num: "0", name: "Root", children: [id1] },
         [id1]: {
           id: id1,
@@ -118,7 +202,7 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode("root", 0, "Task 1", USER);
       const id2 = koso.insertNode(id1, 0, "Task 2", USER);
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { id: "root", num: "0", name: "Root", children: [id1] },
         [id1]: { id: id1, num: "1", name: "Task 1", children: [id2] },
         [id2]: { id: id2, num: "2", name: "Task 2", children: [] },
@@ -131,7 +215,7 @@ describe("Koso tests", () => {
 
       koso.linkNode(id2, id1, 0);
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { children: [id1, id2] },
         [id1]: { id: id1, children: [id2] },
         [id2]: { id: id2, children: [] },
@@ -145,7 +229,7 @@ describe("Koso tests", () => {
 
       koso.unlinkNode(new Node([id1, id2]));
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { children: [id1, id2] },
         [id1]: { id: id1, children: [] },
         [id2]: { id: id2, children: [] },
@@ -158,9 +242,9 @@ describe("Koso tests", () => {
 
       koso.deleteNode(new Node([id1, id2]));
 
-      expect(koso.yGraph.toJSON()).toHaveProperty("root");
-      expect(koso.yGraph.toJSON()).toHaveProperty(id1);
-      expect(koso.yGraph.toJSON()).not.toHaveProperty(id2);
+      expect(koso.toJSON()).toHaveProperty("root");
+      expect(koso.toJSON()).toHaveProperty(id1);
+      expect(koso.toJSON()).not.toHaveProperty(id2);
     });
 
     it("move node 3 to child of node 1 as a peer of node 2 succeeds", () => {
@@ -170,7 +254,7 @@ describe("Koso tests", () => {
 
       koso.moveNode(id3, "root", 1, id1, 1);
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { children: [id1] },
         [id1]: { children: [id2, id3] },
         [id2]: { children: [] },
@@ -185,7 +269,7 @@ describe("Koso tests", () => {
 
       koso.moveNode(id3, "root", 1, id1, 0);
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { children: [id1] },
         [id1]: { children: [id3, id2] },
         [id2]: { children: [] },
@@ -201,7 +285,7 @@ describe("Koso tests", () => {
 
       koso.moveNode(id4, id1, 2, id3, 0);
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { children: [id1] },
         [id1]: { children: [id2, id3] },
         [id2]: { children: [] },
@@ -218,7 +302,7 @@ describe("Koso tests", () => {
 
       koso.moveNode(id4, id1, 2, id1, 1);
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { children: [id1] },
         [id1]: { children: [id2, id4, id3] },
         [id2]: { children: [] },
@@ -235,7 +319,7 @@ describe("Koso tests", () => {
 
       koso.moveNode(id3, id1, 1, id1, 3);
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { children: [id1] },
         [id1]: { children: [id2, id4, id3] },
         [id2]: { children: [] },
@@ -252,7 +336,7 @@ describe("Koso tests", () => {
 
       koso.setTaskName(id2, "Edited Task 2");
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { name: "Root" },
         [id1]: { name: "Task 1" },
         [id2]: { name: "Edited Task 2" },
@@ -267,7 +351,7 @@ describe("Koso tests", () => {
 
       koso.setAssignee(id2, USER);
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { assignee: null },
         [id1]: { assignee: null },
         [id2]: { assignee: "t@koso.app" },
@@ -287,7 +371,7 @@ describe("Koso tests", () => {
         exp: 0,
       });
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { reporter: null },
         [id1]: { reporter: "t@koso.app" },
         [id2]: { reporter: "new@koso.app" },
@@ -302,7 +386,7 @@ describe("Koso tests", () => {
 
       koso.setTaskStatus(id2, "Done");
 
-      expect(koso.yGraph.toJSON()).toMatchObject({
+      expect(koso.toJSON()).toMatchObject({
         root: { status: null },
         [id1]: { status: null },
         [id2]: { status: "Done" },

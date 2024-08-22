@@ -1,9 +1,17 @@
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
+import {
+  derived,
+  readable,
+  writable,
+  type Readable,
+  type Writable,
+} from "svelte/store";
 import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
+import { storable } from "./stores";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -67,11 +75,26 @@ export type Task = {
   status: Status | null;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type YEvent = Y.YEvent<any>;
+
+export type Graph = { [id: string]: Task };
+export type Parents = { [id: string]: string[] };
+
 export class Koso {
   yDoc: Y.Doc;
   yGraph: Y.Map<Y.Map<Y.Array<string> | string | null>>;
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
+
+  events: Readable<YEvent[]>;
+  selected: Writable<Node | null>;
+  highlighted: Writable<Node | null>;
+  dropEffect: Writable<"link" | "move" | "none">;
+  dragged: Writable<Node | null>;
+  expanded: Writable<Set<string>>;
+  nodes: Readable<Node[]>;
+  parents: Readable<Parents>;
 
   constructor(projectId: string, yDoc: Y.Doc) {
     this.yDoc = yDoc;
@@ -94,11 +117,39 @@ export class Koso {
         }
       },
     );
+
+    this.events = readable<YEvent[]>([], (set) => {
+      const observer = (events: YEvent[]) => set(events);
+      this.observe(observer);
+      return () => this.unobserve(observer);
+    });
+
+    this.selected = writable<Node | null>(null);
+    this.highlighted = writable<Node | null>(null);
+    this.dropEffect = writable<"link" | "move" | "none">("none");
+    this.dragged = writable<Node | null>(null);
+
+    const expandedLocalStorageKey = `expanded-nodes-${projectId}`;
+    this.expanded = storable<Set<string>>(
+      expandedLocalStorageKey,
+      new Set(),
+      (json: string) => new Set<string>(JSON.parse(json)),
+      (value) => JSON.stringify(Array.from(value)),
+    );
+
+    this.nodes = derived([this.expanded, this.events], ([expanded]) =>
+      this.#flatten(new Node([]), [], expanded),
+    );
+
+    this.parents = derived([this.events], () => this.#toParents());
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  observe(f: (arg0: Array<Y.YEvent<any>>, arg1: Y.Transaction) => void) {
+  observe(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
     this.yGraph.observeDeep(f);
+  }
+
+  unobserve(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
+    this.yGraph.unobserveDeep(f);
   }
 
   handleServerMessage(message: Uint8Array) {
@@ -149,6 +200,31 @@ export class Koso {
 
   toJSON() {
     return this.yGraph.toJSON();
+  }
+
+  #flatten(node: Node, nodes: Node[], expanded: Set<string>): Node[] {
+    const task = this.yGraph.get(node.name);
+    if (task && (node.length < 1 || expanded.has(node.id))) {
+      for (const childName of task.get("children") as Y.Array<string>) {
+        const child = node.concat(childName);
+        nodes.push(child);
+        this.#flatten(child, nodes, expanded);
+      }
+    }
+    return nodes;
+  }
+
+  #toParents(): Parents {
+    const parents: Parents = {};
+    for (const [parentId, task] of this.yGraph.entries()) {
+      for (const childId of task.get("children") as Y.Array<string>) {
+        if (!(childId in parents)) {
+          parents[childId] = [];
+        }
+        parents[childId].push(parentId);
+      }
+    }
+    return parents;
   }
 
   getTask(taskId: string): Task {

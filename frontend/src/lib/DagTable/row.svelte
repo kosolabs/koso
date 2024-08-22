@@ -9,30 +9,16 @@
   import { ChevronRight, GripVertical } from "lucide-svelte";
   import { getContext } from "svelte";
   import type { Node } from "../koso";
-  import {
-    collapse,
-    dragged,
-    dropEffect,
-    expand,
-    highlighted,
-    isExpanded,
-    selected,
-  } from "./state";
 
   export let index: number;
   export let node: Node;
   export let isGhost: boolean = false;
   export let users: User[];
-  export let rowCallback: (el: HTMLDivElement) => void = () => {};
+  export let row: (el: HTMLDivElement) => void = () => {};
 
   let element: HTMLDivElement | undefined;
   let ghostNode: Node | null = null;
   let ghostOffset: number;
-
-  function row(el: HTMLDivElement) {
-    element = el;
-    rowCallback(el);
-  }
 
   function getUser(users: User[], email: string | null): User | null {
     for (const user of users) {
@@ -43,20 +29,22 @@
     return null;
   }
 
+  const koso = getContext<Koso>("koso");
+  const { dragged, dropEffect, expanded, highlighted, selected } = koso;
+
   $: task = koso.getTask(node.name);
   $: reporter = getUser(users, task.reporter);
   $: assignee = getUser(users, task.assignee);
 
-  const koso = getContext<Koso>("koso");
-
-  $: open = $isExpanded(node.id);
+  $: open = $expanded.has(node.id);
 
   function setOpen(open: boolean) {
     if (open) {
-      $expand(node.id);
+      $expanded.add(node.id);
     } else {
-      $collapse(node.id);
+      $expanded.delete(node.id);
     }
+    $expanded = $expanded;
   }
 
   function handleToggleOpen(event: MouseEvent) {
@@ -312,7 +300,7 @@
 </script>
 
 <tr
-  id="row-{node.id}"
+  id="row/{node.id}"
   tabindex="0"
   class={cn(
     "rounded",
@@ -328,6 +316,7 @@
   on:focus={handleFocus}
   on:click={handleRowClick}
   on:keydown={handleRowKeydown}
+  bind:this={element}
   use:row
 >
   <td class={cn("border-r border-t p-2")}>
