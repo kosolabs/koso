@@ -197,10 +197,6 @@
           }
         }, backoff);
       };
-
-      while (socket.readyState == WebSocket.CONNECTING) {
-        await new Promise((r) => setTimeout(r, 100));
-      }
     }
 
     close(code: number, reason: string) {
