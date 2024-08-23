@@ -230,19 +230,29 @@
     dragOverChild = true;
   }
 
+  let closeTimeout: NodeJS.Timeout | undefined;
+
   function handleDragEnterPeer(event: DragEvent) {
     event.preventDefault();
-    setOpen(false);
+    closeTimeout = setTimeout(() => setOpen(false), 500);
   }
+
+  function handleDragLeavePeer(event: DragEvent) {
+    event.preventDefault();
+    clearTimeout(closeTimeout);
+    dragOverPeer = false;
+  }
+
+  let openTimeout: NodeJS.Timeout | undefined;
 
   function handleDragEnterChild(event: DragEvent) {
     event.preventDefault();
-    setOpen(true);
+    openTimeout = setTimeout(() => setOpen(true), 500);
   }
 
-  function handleDragLeave(event: DragEvent) {
+  function handleDragLeaveChild(event: DragEvent) {
     event.preventDefault();
-    dragOverPeer = false;
+    clearTimeout(openTimeout);
     dragOverChild = false;
   }
 
@@ -446,7 +456,7 @@
       role="table"
       on:dragover={handleDragOverPeer}
       on:dragenter={handleDragEnterPeer}
-      on:dragleave={handleDragLeave}
+      on:dragleave={handleDragLeavePeer}
       on:drop={handleDropNodePeer}
     />
   {/if}
@@ -457,7 +467,7 @@
       role="table"
       on:dragover={handleDragOverChild}
       on:dragenter={handleDragEnterChild}
-      on:dragleave={handleDragLeave}
+      on:dragleave={handleDragLeaveChild}
       on:drop={handleDropNodeChild}
     />
   {/if}
