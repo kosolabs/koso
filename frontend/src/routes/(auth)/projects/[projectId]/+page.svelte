@@ -109,9 +109,16 @@
     socketPingInterval: ReturnType<typeof setTimeout> | null = null;
     reconnectBackoffMs: number | null = null;
     offlineTimeout: ReturnType<typeof setTimeout> | null = null;
+    offlineHandler: () => void;
+    onlineHandler: () => Promise<void>;
 
     constructor() {
       this.setOffline();
+
+      this.onlineHandler = this.handleOnline.bind(this);
+      window.addEventListener("online", this.onlineHandler);
+      this.offlineHandler = this.handleOffline.bind(this);
+      window.addEventListener("offline", this.offlineHandler);
       this.socketPingInterval = setInterval(
         () => {
           if (this.socket && this.socket.readyState == WebSocket.OPEN) {
@@ -124,6 +131,17 @@
 
     async openWebSocket() {
       if (!$user || !$token) throw new Error("User is unauthorized");
+      if (
+        this.socket &&
+        (this.socket.readyState == WebSocket.OPEN ||
+          this.socket.readyState == WebSocket.CONNECTING)
+      ) {
+        console.log("Socket already connected");
+        return;
+      }
+      if (this.shutdown) {
+        return;
+      }
 
       const host = location.origin.replace(/^http/, "ws");
       const wsUrl = `${host}/api/ws/projects/${projectId}`;
@@ -200,11 +218,23 @@
 
         // Try to reconnect.
         setTimeout(async () => {
-          if (!this.shutdown) {
-            await this.openWebSocket();
-          }
+          await this.openWebSocket();
         }, backoffMs);
       };
+    }
+
+    async handleOnline() {
+      console.log("Online.");
+      await this.openWebSocket();
+    }
+
+    handleOffline() {
+      console.log("Offline.");
+      this.setOffline(true);
+      if (this.socket) {
+        this.socket.close(1000, "Went offline");
+        this.socket = null;
+      }
     }
 
     closeAndShutdown(code: number, reason: string) {
@@ -223,19 +253,24 @@
       if (this.offlineTimeout) {
         clearTimeout(this.offlineTimeout);
       }
+      window.removeEventListener("online", this.onlineHandler);
+      window.removeEventListener("offline", this.offlineHandler);
       this.socket = null;
     }
 
-    setOffline() {
+    setOffline(immediate = false) {
       if (!this.offlineTimeout && !this.shutdown) {
         // Delay showing the offline alert for a little bit
         // to avoid flashing an alert due to transient events.
         // e.g. server restarts.
-        this.offlineTimeout = setTimeout(() => {
-          if (this.offlineTimeout && !this.shutdown) {
-            showSocketOfflineAlert = true;
-          }
-        }, 14000);
+        this.offlineTimeout = setTimeout(
+          () => {
+            if (this.offlineTimeout && !this.shutdown) {
+              showSocketOfflineAlert = true;
+            }
+          },
+          immediate ? 1 : 14000,
+        );
       }
     }
 
