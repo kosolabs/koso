@@ -148,13 +148,7 @@
 
     {#each $nodes as node, index (node.id)}
       <tbody animate:flip={{ duration: 250 }}>
-        <Row
-          {index}
-          {node}
-          {users}
-          isGhost={false}
-          row={(el) => (rows[node.id] = el)}
-        />
+        <Row {index} {node} {users} row={(el) => (rows[node.id] = el)} />
       </tbody>
     {/each}
   </table>
