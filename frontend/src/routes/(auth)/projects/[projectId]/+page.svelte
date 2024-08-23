@@ -100,91 +100,165 @@
     }
   }
 
-  let socket: WebSocket | null = null;
   let showSocketOfflineAlert: boolean = false;
   let showUnauthorizedModal: boolean = false;
 
-  async function openWebSocket(backoffMs = 1000) {
-    if (!$user || !$token) throw new Error("User is unauthorized");
+  class KosoSocket {
+    socket: WebSocket | null = null;
+    shutdown: boolean = false;
+    socketPingInterval: ReturnType<typeof setTimeout> | null = null;
+    reconnectBackoffMs: number | null = null;
+    offlineTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    const host = location.origin.replace(/^http/, "ws");
-    const wsUrl = `${host}/api/ws/projects/${projectId}`;
-    socket = new WebSocket(wsUrl, ["bearer", $token]);
-    socket.binaryType = "arraybuffer";
+    constructor() {
+      this.setOffline();
+      this.socketPingInterval = setInterval(
+        () => {
+          if (this.socket && this.socket.readyState == WebSocket.OPEN) {
+            this.socket.send("");
+          }
+        },
+        (45 + 20 * Math.random()) * 1000,
+      );
+    }
 
-    socket.onopen = (event) => {
-      console.log("WebSocket opened", event);
+    async openWebSocket() {
+      if (!$user || !$token) throw new Error("User is unauthorized");
+
+      const host = location.origin.replace(/^http/, "ws");
+      const wsUrl = `${host}/api/ws/projects/${projectId}`;
+      const socket = new WebSocket(wsUrl, ["bearer", $token]);
+      this.socket = socket;
+      socket.binaryType = "arraybuffer";
+
+      socket.onopen = (event) => {
+        console.log("WebSocket opened", event);
+        this.setOnline();
+        koso.handleClientMessage((update) => {
+          if (socket.readyState == WebSocket.OPEN) {
+            socket.send(update);
+          } else {
+            console.warn(
+              "Tried to send to terminal socket, discarded message",
+              socket,
+            );
+          }
+        });
+        $lastVisitedProjectId = $page.params.projectId;
+      };
+
+      socket.onmessage = (event) => {
+        if (event.data instanceof ArrayBuffer) {
+          koso.handleServerMessage(new Uint8Array(event.data));
+        } else {
+          console.log("Received text frame from server:", event.data);
+        }
+      };
+      socket.onerror = (event) => {
+        console.log("WebSocket errored", event);
+        // Errors also trigger onclose events so handle everything there.
+      };
+      socket.onclose = (event) => {
+        this.setOffline();
+        if (this.shutdown) {
+          console.log(
+            `WebSocket closed in onDestroy. Code: ${event.code}, Reason: '${event.reason}' Will not try to reconnect`,
+            event,
+          );
+          return;
+        }
+
+        const UNAUTHORIZED = 3000;
+        if (event.code === UNAUTHORIZED) {
+          console.log(
+            `Unauthorized, WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. `,
+            event,
+          );
+          // Don't redirect the user back to a project they don't have access too.
+          $lastVisitedProjectId = null;
+          this.setShutdown();
+          showUnauthorizedModal = true;
+          return;
+        }
+
+        const OVERLOADED = 1013;
+        let backoffMs;
+        if (event.code === OVERLOADED) {
+          // In case of overload, don't retry aggressively.
+          backoffMs = this.backoffOnReconnect(30000);
+          console.log(
+            `Overloaded WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
+            event,
+          );
+        } else {
+          backoffMs = this.backoffOnReconnect();
+          console.log(
+            `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
+            event,
+          );
+        }
+
+        // Try to reconnect.
+        setTimeout(async () => {
+          if (!this.shutdown) {
+            await this.openWebSocket();
+          }
+        }, backoffMs);
+      };
+    }
+
+    closeAndShutdown(code: number, reason: string) {
+      const socket = this.socket;
+      this.setShutdown();
+      if (socket) {
+        socket.close(code, reason);
+      }
+    }
+
+    setShutdown() {
+      this.shutdown = true;
+      if (this.socketPingInterval) {
+        clearInterval(this.socketPingInterval);
+      }
+      if (this.offlineTimeout) {
+        clearTimeout(this.offlineTimeout);
+      }
+      this.socket = null;
+    }
+
+    setOffline() {
+      if (!this.offlineTimeout && !this.shutdown) {
+        // Delay showing the offline alert for a little bit
+        // to avoid flashing an alert due to transient events.
+        // e.g. server restarts.
+        this.offlineTimeout = setTimeout(() => {
+          if (this.offlineTimeout && !this.shutdown) {
+            showSocketOfflineAlert = true;
+          }
+        }, 14000);
+      }
+    }
+
+    setOnline() {
+      this.reconnectBackoffMs = null;
+      if (this.offlineTimeout) {
+        clearTimeout(this.offlineTimeout);
+        this.offlineTimeout = null;
+      }
       showSocketOfflineAlert = false;
-      koso.handleClientMessage((update) => {
-        if (socket) {
-          socket.send(update);
-        }
-      });
-      $lastVisitedProjectId = $page.params.projectId;
-    };
+    }
 
-    socket.onmessage = (event) => {
-      if (event.data instanceof ArrayBuffer) {
-        koso.handleServerMessage(new Uint8Array(event.data));
-      } else {
-        console.log("Received text frame from server:", event.data);
-      }
-    };
-    socket.onerror = (event) => {
-      console.log("WebSocket errored", event);
-      // Errors also trigger onclose events so handle everything there.
-    };
-    socket.onclose = (event) => {
-      if (socket === null && event.code === 1000) {
-        console.log(
-          `WebSocket closed in onDestroy. Code: ${event.code}, Reason: '${event.reason}' Will not try to reconnect`,
-          event,
-        );
-        return;
-      }
-
-      const UNAUTHORIZED = 3000;
-      if (event.code === UNAUTHORIZED) {
-        console.log(
-          `Unauthorized, WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. `,
-          event,
-        );
-        // Don't redirect the user back to a project they don't have access too.
-        $lastVisitedProjectId = null;
-        socket = null;
-        showUnauthorizedModal = true;
-        return;
-      }
-
-      const OVERLOADED = 1013;
-      if (event.code === OVERLOADED) {
-        // In case of overload, don't retry aggressively.
-        if (backoffMs < 30000) {
-          backoffMs = 30000;
-        }
-        console.log(
-          `Overloaded WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
-          event,
-        );
-      } else {
-        console.log(
-          `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
-          event,
-        );
-      }
-
-      showSocketOfflineAlert = true;
-      setTimeout(async () => {
-        if (socket !== null) {
-          await openWebSocket(Math.min(backoffMs * 2, 60000));
-        }
-      }, backoffMs);
-    };
-
-    while (socket && socket.readyState == WebSocket.CONNECTING) {
-      await new Promise((r) => setTimeout(r, 100));
+    backoffOnReconnect(min: number = 0): number {
+      let base = this.reconnectBackoffMs ? this.reconnectBackoffMs * 1.5 : 400;
+      // Don't let backoff get too big (or too small).
+      base = Math.max(Math.min(60000, base), min);
+      // Add some jitter
+      this.reconnectBackoffMs = base + base * 0.3 * Math.random();
+      return this.reconnectBackoffMs;
     }
   }
+
+  const kosoSocket = new KosoSocket();
 
   onMount(async () => {
     if (!$user || !$token) {
@@ -194,17 +268,12 @@
     [projectUsers, project] = await Promise.all([
       loadProjectUsers(),
       loadProject(),
-      openWebSocket(),
+      kosoSocket.openWebSocket(),
     ]);
   });
 
   onDestroy(() => {
-    if (socket) {
-      if (socket) {
-        socket.close(1000, "Closed in onDestroy.");
-      }
-      socket = null;
-    }
+    kosoSocket.closeAndShutdown(1000, "Closed in onDestroy.");
   });
 </script>
 
