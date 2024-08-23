@@ -177,6 +177,13 @@
         // Errors also trigger onclose events so handle everything there.
       };
       socket.onclose = (event) => {
+        // Sometimes onclose events are delayed while, in the meantime,
+        // a new socket was opened.
+        if (this.socket && this.socket != socket) {
+          console.log("Socket already reopened");
+          return;
+        }
+
         this.setOffline();
         if (this.shutdown) {
           console.log(
@@ -236,8 +243,9 @@
       console.log("Offline.", event);
       this.setOffline(1);
       if (this.socket) {
-        this.socket.close(1000, "Went offline");
+        const socket = this.socket;
         this.socket = null;
+        socket.close(1000, "Went offline");
       }
     }
 
