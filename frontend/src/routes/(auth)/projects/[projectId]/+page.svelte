@@ -103,7 +103,7 @@
   let showSocketOfflineAlert: boolean = false;
   let showUnauthorizedModal: boolean = false;
 
-  export class KosoSocket {
+  class KosoSocket {
     socket: WebSocket | null = null;
     shutdown: boolean = false;
     socketPingInterval: ReturnType<typeof setTimeout> | null = null;
