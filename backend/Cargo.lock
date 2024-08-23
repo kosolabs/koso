@@ -989,6 +989,7 @@ dependencies = [
  "listenfd",
  "metrics",
  "metrics-exporter-prometheus",
+ "rand",
  "reqwest",
  "serde",
  "serde_json",

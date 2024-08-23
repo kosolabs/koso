@@ -3,8 +3,9 @@ use crate::api::collab::{
     projects_state::ProjectState,
 };
 use axum::extract::ws::Message;
-use std::{fmt, ops::ControlFlow, sync::Arc};
-use tokio::sync::mpsc::Sender;
+use rand::random;
+use std::{fmt, ops::ControlFlow, sync::Arc, time::Duration};
+use tokio::{sync::mpsc::Sender, time::timeout};
 use uuid::Uuid;
 
 /// ClientMessageHandler receives messages from clients
@@ -35,18 +36,34 @@ impl ClientMessageHandler {
     /// Listen for update or close messages sent by a client.
     #[tracing::instrument(skip(self), fields(?receiver=self.receiver))]
     pub(super) async fn receive_messages_from_client(mut self) {
-        loop {
-            let Some(msg) = self.receiver.next().await else {
-                break;
-            };
-            if let ControlFlow::Break(closure) = self.receive_message_from_client(msg).await {
-                self.project
-                    .remove_and_close_client(&self.receiver.who, closure)
-                    .await;
-                break;
+        // Bound how long a connection can stay open for.
+        // Add [0, 20] minutes of jitter to avoid a thundering heard of reconnects.
+        let timeout_duration = Duration::from_secs(60 * 60)
+            + Duration::from_millis((random::<f32>() * 20.0 * 60.0 * 1000.0) as u64);
+        let closure = match timeout(timeout_duration, async {
+            loop {
+                let msg = self.receiver.next().await?;
+                if let ControlFlow::Break(closure) = self.receive_message_from_client(msg).await {
+                    return Some(closure);
+                }
             }
-        }
+        })
+        .await
+        {
+            Ok(closure) => closure,
+            Err(e) => Some(ClientClosure {
+                code: CLOSE_NORMAL,
+                reason: "Resetting old connection",
+                details: format!("Resetting old connection after {e}"),
+            }),
+        };
+
         tracing::debug!("Stopped receiving messages from client");
+        if let Some(closure) = closure {
+            self.project
+                .remove_and_close_client(&self.receiver.who, closure)
+                .await;
+        }
     }
 
     async fn receive_message_from_client(
