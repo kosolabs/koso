@@ -106,9 +106,9 @@
   export class KosoSocket {
     socket: WebSocket | null = null;
     shutdown: boolean = false;
-    socketPingInterval: NodeJS.Timeout | null = null;
+    socketPingInterval: ReturnType<typeof setTimeout> | null = null;
     reconnectBackoffMs: number | null = null;
-    offlineTimeout: NodeJS.Timeout | null = null;
+    offlineTimeout: ReturnType<typeof setTimeout> | null = null;
 
     constructor() {
       this.setOffline();
