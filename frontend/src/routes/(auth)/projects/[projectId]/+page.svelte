@@ -111,7 +111,7 @@
     offlineTimeout: NodeJS.Timeout | null = null;
 
     constructor() {
-      this.markOffline();
+      this.setOffline();
       this.socketPingInterval = setInterval(
         () => {
           if (this.socket && this.socket.readyState == WebSocket.OPEN) {
@@ -133,9 +133,16 @@
 
       socket.onopen = (event) => {
         console.log("WebSocket opened", event);
-        this.markOnline();
+        this.setOnline();
         koso.handleClientMessage((update) => {
-          socket.send(update);
+          if (socket.readyState == WebSocket.OPEN) {
+            socket.send(update);
+          } else {
+            console.warn(
+              "Tried to send to terminal socket, discarded message",
+              socket,
+            );
+          }
         });
         $lastVisitedProjectId = $page.params.projectId;
       };
@@ -152,7 +159,7 @@
         // Errors also trigger onclose events so handle everything there.
       };
       socket.onclose = (event) => {
-        this.markOffline();
+        this.setOffline();
         if (this.shutdown) {
           console.log(
             `WebSocket closed in onDestroy. Code: ${event.code}, Reason: '${event.reason}' Will not try to reconnect`,
@@ -169,7 +176,7 @@
           );
           // Don't redirect the user back to a project they don't have access too.
           $lastVisitedProjectId = null;
-          this.destroy();
+          this.setShutdown();
           showUnauthorizedModal = true;
           return;
         }
@@ -191,6 +198,7 @@
           );
         }
 
+        // Try to reconnect.
         setTimeout(async () => {
           if (!this.shutdown) {
             await this.openWebSocket();
@@ -199,15 +207,15 @@
       };
     }
 
-    close(code: number, reason: string) {
+    closeAndShutdown(code: number, reason: string) {
       const socket = this.socket;
-      this.destroy();
+      this.setShutdown();
       if (socket) {
         socket.close(code, reason);
       }
     }
 
-    destroy() {
+    setShutdown() {
       this.shutdown = true;
       if (this.socketPingInterval) {
         clearInterval(this.socketPingInterval);
@@ -218,7 +226,7 @@
       this.socket = null;
     }
 
-    markOffline() {
+    setOffline() {
       if (!this.offlineTimeout && !this.shutdown) {
         // Delay showing the offline alert for a little bit
         // to avoid flashing an alert due to transient events.
@@ -231,7 +239,7 @@
       }
     }
 
-    markOnline() {
+    setOnline() {
       this.reconnectBackoffMs = null;
       if (this.offlineTimeout) {
         clearTimeout(this.offlineTimeout);
@@ -241,12 +249,7 @@
     }
 
     backoff(min: number = 0): number {
-      let base;
-      if (!this.reconnectBackoffMs) {
-        base = 400;
-      } else {
-        base = this.reconnectBackoffMs * 1.5;
-      }
+      let base = this.reconnectBackoffMs ? this.reconnectBackoffMs * 1.5 : 400;
       // Don't let backoff get too big (or too small).
       base = Math.max(Math.min(60000, base), min);
       // Add some jitter
@@ -270,7 +273,7 @@
   });
 
   onDestroy(() => {
-    kosoSocket.close(1000, "Closed in onDestroy.");
+    kosoSocket.closeAndShutdown(1000, "Closed in onDestroy.");
   });
 </script>
 
