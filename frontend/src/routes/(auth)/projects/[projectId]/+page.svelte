@@ -234,7 +234,7 @@
 
     handleOffline(event: Event) {
       console.log("Offline.", event);
-      this.setOffline(true);
+      this.setOffline(1);
       if (this.socket) {
         this.socket.close(1000, "Went offline");
         this.socket = null;
@@ -262,19 +262,16 @@
       this.socket = null;
     }
 
-    setOffline(immediate = false) {
+    setOffline(alertDelayMs = 14000) {
       if (!this.offlineTimeout && !this.shutdown) {
         // Delay showing the offline alert for a little bit
         // to avoid flashing an alert due to transient events.
         // e.g. server restarts.
-        this.offlineTimeout = setTimeout(
-          () => {
-            if (this.offlineTimeout && !this.shutdown) {
-              showSocketOfflineAlert = true;
-            }
-          },
-          immediate ? 1 : 14000,
-        );
+        this.offlineTimeout = setTimeout(() => {
+          if (this.offlineTimeout && !this.shutdown) {
+            showSocketOfflineAlert = true;
+          }
+        }, alertDelayMs);
       }
     }
 
