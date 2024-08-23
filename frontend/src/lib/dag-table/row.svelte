@@ -230,11 +230,11 @@
     dragOverChild = true;
   }
 
-  let closeTimeout: NodeJS.Timeout | undefined;
+  let closeTimeout: number | undefined;
 
   function handleDragEnterPeer(event: DragEvent) {
     event.preventDefault();
-    closeTimeout = setTimeout(() => setOpen(false), 500);
+    closeTimeout = window.setTimeout(() => setOpen(false), 500);
   }
 
   function handleDragLeavePeer(event: DragEvent) {
@@ -243,11 +243,11 @@
     dragOverPeer = false;
   }
 
-  let openTimeout: NodeJS.Timeout | undefined;
+  let openTimeout: number | undefined;
 
   function handleDragEnterChild(event: DragEvent) {
     event.preventDefault();
-    openTimeout = setTimeout(() => setOpen(true), 500);
+    openTimeout = window.setTimeout(() => setOpen(true), 500);
   }
 
   function handleDragLeaveChild(event: DragEvent) {
@@ -351,7 +351,7 @@
   id="row/{node.id}"
   tabindex="0"
   class={cn(
-    "bg-opacity-50",
+    "rounded bg-opacity-50",
     index % 2 === 0 ? "bg-row-even" : "bg-row-odd",
     isMoving ? "opacity-50" : "",
     isHovered ? "bg-accent" : "",
