@@ -230,19 +230,29 @@
     dragOverChild = true;
   }
 
+  let closeTimeout: number | undefined;
+
   function handleDragEnterPeer(event: DragEvent) {
     event.preventDefault();
-    setOpen(false);
+    closeTimeout = window.setTimeout(() => setOpen(false), 500);
   }
+
+  function handleDragLeavePeer(event: DragEvent) {
+    event.preventDefault();
+    clearTimeout(closeTimeout);
+    dragOverPeer = false;
+  }
+
+  let openTimeout: number | undefined;
 
   function handleDragEnterChild(event: DragEvent) {
     event.preventDefault();
-    setOpen(true);
+    openTimeout = window.setTimeout(() => setOpen(true), 500);
   }
 
-  function handleDragLeave(event: DragEvent) {
+  function handleDragLeaveChild(event: DragEvent) {
     event.preventDefault();
-    dragOverPeer = false;
+    clearTimeout(openTimeout);
     dragOverChild = false;
   }
 
@@ -341,7 +351,7 @@
   id="row/{node.id}"
   tabindex="0"
   class={cn(
-    "bg-opacity-50",
+    "rounded bg-opacity-50",
     index % 2 === 0 ? "bg-row-even" : "bg-row-odd",
     isMoving ? "opacity-50" : "",
     isHovered ? "bg-accent" : "",
@@ -446,7 +456,7 @@
       role="table"
       on:dragover={handleDragOverPeer}
       on:dragenter={handleDragEnterPeer}
-      on:dragleave={handleDragLeave}
+      on:dragleave={handleDragLeavePeer}
       on:drop={handleDropNodePeer}
     />
   {/if}
@@ -457,7 +467,7 @@
       role="table"
       on:dragover={handleDragOverChild}
       on:dragenter={handleDragEnterChild}
-      on:dragleave={handleDragLeave}
+      on:dragleave={handleDragLeaveChild}
       on:drop={handleDropNodeChild}
     />
   {/if}
