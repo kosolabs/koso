@@ -23,4 +23,4 @@ popd
 systemctl daemon-reload
 systemctl restart koso
 
-telegram "Deployed $(git rev-parse --short HEAD) \\- $(git log --format=%s -n 1 HEAD | telegram_escape)" "✅"
+telegram "$(git log --format='Deployed %h by %an - %s' -n 1 HEAD | telegram_escape)" "✅"

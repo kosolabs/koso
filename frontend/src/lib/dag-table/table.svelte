@@ -129,20 +129,20 @@
 </div>
 
 <div class="mx-4 mb-4">
-  <table class="w-full border-separate border-spacing-0 border-b border-l">
+  <table class="w-full border-separate border-spacing-0 rounded-md border">
     <thead class="text-left text-xs font-bold uppercase">
       <tr>
-        <th class="w-32 border-r border-t p-2">ID</th>
-        <th class="border-r border-t p-2">
+        <th class="w-32 p-2">ID</th>
+        <th class="border-l p-2">
           <SquarePen class="h-4 md:hidden" />
           <div class="max-md:hidden">Status</div></th
         >
-        <th class="border-r border-t p-2">Name</th>
-        <th class="border-r border-t p-2">
+        <th class="border-l p-2">Name</th>
+        <th class="border-l p-2">
           <UserRoundPlus class="h-4 md:hidden" />
           <div class="max-md:hidden">Assignee</div>
         </th>
-        <th class="border-r border-t p-2 max-md:hidden">Reporter</th>
+        <th class="border-l p-2 max-md:hidden">Reporter</th>
       </tr>
     </thead>
 

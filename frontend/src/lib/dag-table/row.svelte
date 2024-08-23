@@ -45,9 +45,6 @@
   $: isMoving = isDragging && $dropEffect === "move";
   $: isHovered = $highlighted?.name === node.name;
   $: isSelected = node.equals($selected);
-  $: cellWidth = idCellElement ? idCellElement.clientWidth : 0;
-  $: rowWidth = rowElement ? rowElement.clientWidth : 0;
-  $: offset = (node.length + 1) * 20;
 
   function getUser(users: User[], email: string | null): User | null {
     for (const user of users) {
@@ -120,7 +117,7 @@
 
   function handleDragStart(event: DragEvent) {
     const dataTransfer = event.dataTransfer;
-    if (!dataTransfer || !idCellElement || !rowElement || !handleElement) {
+    if (!dataTransfer || !rowElement || !handleElement || !idCellElement) {
       return;
     }
     $highlighted = null;
@@ -216,11 +213,6 @@
     dragOverPeer = true;
   }
 
-  function handleDragEnterPeer(event: DragEvent) {
-    event.preventDefault();
-    setOpen(false);
-  }
-
   function handleDragOverChild(event: DragEvent) {
     event.preventDefault();
     const dataTransfer = event.dataTransfer;
@@ -236,6 +228,11 @@
     }
 
     dragOverChild = true;
+  }
+
+  function handleDragEnterPeer(event: DragEvent) {
+    event.preventDefault();
+    setOpen(false);
   }
 
   function handleDragEnterChild(event: DragEvent) {
@@ -344,7 +341,7 @@
   id="row/{node.id}"
   tabindex="0"
   class={cn(
-    "rounded",
+    "bg-opacity-50",
     index % 2 === 0 ? "bg-row-even" : "bg-row-odd",
     isMoving ? "opacity-50" : "",
     isHovered ? "bg-accent" : "",
@@ -359,9 +356,9 @@
   bind:this={rowElement}
   use:row
 >
-  <td class={cn("border-r border-t p-2")} bind:this={idCellElement}>
+  <td class={cn("border-t p-2")} bind:this={idCellElement}>
     <div class="flex items-center">
-      <div style="width: {(node.length - 1) * 1.25}rem;" />
+      <div style="width: {(node.length - 1) * 20}px" />
       {#if task.children.length > 0}
         <button
           class="w-4 transition-transform"
@@ -375,7 +372,7 @@
         <div class="w-4" />
       {/if}
       <button
-        class="relative w-4"
+        class="w-4"
         draggable={true}
         on:dragstart={handleDragStart}
         on:dragend={handleDragEnd}
@@ -387,7 +384,7 @@
       <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
     </div>
   </td>
-  <td class={cn("border-r border-t p-2")}>
+  <td class={cn("border-l border-t p-2")}>
     <TaskStatusSelect
       value={task.status}
       on:select={(event) => {
@@ -395,7 +392,7 @@
       }}
     />
   </td>
-  <td class={cn("border-r border-t p-2")}>
+  <td class={cn("border-l border-t p-2")}>
     {#if editedTaskName !== null}
       <Input
         class="h-auto bg-transparent p-1"
@@ -416,7 +413,7 @@
       </Button>
     {/if}
   </td>
-  <td class={cn("border-r border-t p-2")}>
+  <td class={cn("border-l border-t p-2")}>
     <UserSelect
       {users}
       value={assignee}
@@ -425,7 +422,7 @@
       }}
     />
   </td>
-  <td class={cn("border-r border-t p-2 max-md:hidden")}>
+  <td class={cn("border-l border-t p-2 max-md:hidden")}>
     <UserSelect
       {users}
       value={reporter}
@@ -437,10 +434,15 @@
 </tr>
 
 {#if rowElement && idCellElement}
+  {@const cellWidth = idCellElement.clientWidth}
+  {@const rowWidth = rowElement.clientWidth}
+  {@const peerOffset = node.length * 20}
+  {@const childOffset = (node.length + 1) * 20}
+
   {#if canDragDropPeer}
     <div
       class="absolute z-50 -my-3 h-8"
-      style="width: {offset}px;"
+      style="width: {childOffset}px;"
       role="table"
       on:dragover={handleDragOverPeer}
       on:dragenter={handleDragEnterPeer}
@@ -451,7 +453,7 @@
   {#if canDragDropChild}
     <div
       class="absolute z-50 -my-3 h-8"
-      style="width: {cellWidth - offset}px; margin-left: {offset}px;"
+      style="width: {cellWidth - childOffset}px; margin-left: {childOffset}px;"
       role="table"
       on:dragover={handleDragOverChild}
       on:dragenter={handleDragEnterChild}
@@ -463,13 +465,13 @@
   {#if dragOverPeer}
     <div
       class="absolute -my-[0.125rem] h-1 bg-teal-500"
-      style="width: {rowWidth}px;"
+      style="width: {rowWidth - peerOffset}px; margin-left: {peerOffset}px;"
     />
   {/if}
   {#if dragOverChild}
     <div
       class="absolute -my-[0.125rem] h-1 bg-teal-500"
-      style="width: {rowWidth - offset}px; margin-left: {offset}px;"
+      style="width: {rowWidth - childOffset}px; margin-left: {childOffset}px;"
     />
   {/if}
 {/if}
