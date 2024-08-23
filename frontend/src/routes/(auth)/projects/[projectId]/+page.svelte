@@ -109,8 +109,8 @@
     socketPingInterval: ReturnType<typeof setTimeout> | null = null;
     reconnectBackoffMs: number | null = null;
     offlineTimeout: ReturnType<typeof setTimeout> | null = null;
-    offlineHandler: () => void;
-    onlineHandler: () => Promise<void>;
+    offlineHandler: (event: Event) => void;
+    onlineHandler: (event: Event) => Promise<void>;
 
     constructor() {
       this.setOffline();
@@ -157,7 +157,7 @@
             socket.send(update);
           } else {
             console.warn(
-              "Tried to send to terminal socket, discarded message",
+              "Tried to send to non-open socket, discarded message",
               socket,
             );
           }
@@ -221,15 +221,19 @@
           await this.openWebSocket();
         }, backoffMs);
       };
+
+      while (socket.readyState == WebSocket.CONNECTING) {
+        await new Promise((r) => setTimeout(r, 100));
+      }
     }
 
-    async handleOnline() {
-      console.log("Online.");
+    async handleOnline(event: Event) {
+      console.log("Online.", event);
       await this.openWebSocket();
     }
 
-    handleOffline() {
-      console.log("Offline.");
+    handleOffline(event: Event) {
+      console.log("Offline.", event);
       this.setOffline(true);
       if (this.socket) {
         this.socket.close(1000, "Went offline");
