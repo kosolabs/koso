@@ -12,13 +12,42 @@
 
   export let index: number;
   export let node: Node;
-  export let isGhost: boolean = false;
   export let users: User[];
   export let row: (el: HTMLDivElement) => void = () => {};
 
-  let element: HTMLDivElement | undefined;
-  let ghostNode: Node | null = null;
-  let ghostOffset: number;
+  const koso = getContext<Koso>("koso");
+  const { dragged, dropEffect, expanded, highlighted, selected } = koso;
+
+  let rowElement: HTMLDivElement | undefined;
+  let idCellElement: HTMLTableCellElement | undefined;
+  let handleElement: HTMLButtonElement | undefined;
+
+  let dragOverPeer = false;
+  let dragOverChild = false;
+
+  $: task = koso.getTask(node.name);
+  $: reporter = getUser(users, task.reporter);
+  $: assignee = getUser(users, task.assignee);
+  $: open = $expanded.has(node.id);
+  $: isDragging = node.equals($dragged);
+  $: canDragDropPeer =
+    !isDragging &&
+    $dragged &&
+    !isSamePeer(node, $dragged) &&
+    !hasChild(node.parent(), $dragged) &&
+    !hasCycle(node.parent().name, $dragged.name);
+  $: canDragDropChild =
+    !isDragging &&
+    $dragged &&
+    !isSameChild(node, $dragged) &&
+    !hasChild(node, $dragged) &&
+    !hasCycle(node.name, $dragged.name);
+  $: isMoving = isDragging && $dropEffect === "move";
+  $: isHovered = $highlighted?.name === node.name;
+  $: isSelected = node.equals($selected);
+  $: cellWidth = idCellElement ? idCellElement.clientWidth : 0;
+  $: rowWidth = rowElement ? rowElement.clientWidth : 0;
+  $: offset = (node.length + 1) * 20;
 
   function getUser(users: User[], email: string | null): User | null {
     for (const user of users) {
@@ -28,15 +57,6 @@
     }
     return null;
   }
-
-  const koso = getContext<Koso>("koso");
-  const { dragged, dropEffect, expanded, highlighted, selected } = koso;
-
-  $: task = koso.getTask(node.name);
-  $: reporter = getUser(users, task.reporter);
-  $: assignee = getUser(users, task.assignee);
-
-  $: open = $expanded.has(node.id);
 
   function setOpen(open: boolean) {
     if (open) {
@@ -100,14 +120,24 @@
 
   function handleDragStart(event: DragEvent) {
     const dataTransfer = event.dataTransfer;
-    if (dataTransfer === null) {
+    if (!dataTransfer || !idCellElement || !rowElement || !handleElement) {
       return;
     }
     $highlighted = null;
     $selected = null;
     $dragged = node;
+
     dataTransfer.setData("text/plain", node.id);
     dataTransfer.effectAllowed = "linkMove";
+
+    const rowRect = rowElement.getBoundingClientRect();
+    const handleRect = handleElement.getBoundingClientRect();
+
+    dataTransfer.setDragImage(
+      idCellElement,
+      handleRect.x - rowRect.x + event.offsetX,
+      handleRect.y - rowRect.y + event.offsetY,
+    );
   }
 
   function handleDrag(event: DragEvent) {
@@ -119,25 +149,54 @@
     $dragged = null;
   }
 
-  function handleDropNode(event: DragEvent) {
+  function handleDropNodePeer(event: DragEvent) {
     event.preventDefault();
-    if ($dragged === null || ghostNode === null || $dropEffect === "none") {
+    if ($dragged === null || $dropEffect === "none") {
       return;
     }
+
+    const dragDestNode = node.parent().concat($dragged.name);
+    const dragDestOffset = koso.getOffset(node) + 1;
 
     if ($dropEffect === "move") {
       koso.moveNode(
         $dragged.name,
         $dragged.parent().name,
         koso.getOffset($dragged),
-        ghostNode.parent().name,
-        ghostOffset,
+        dragDestNode.parent().name,
+        dragDestOffset,
       );
     } else {
-      koso.linkNode($dragged.name, ghostNode.parent().name, ghostOffset);
+      koso.linkNode($dragged.name, dragDestNode.parent().name, dragDestOffset);
     }
     $dragged = null;
-    ghostNode = null;
+    dragOverPeer = false;
+    dragOverChild = false;
+  }
+
+  function handleDropNodeChild(event: DragEvent) {
+    event.preventDefault();
+    if ($dragged === null || $dropEffect === "none") {
+      return;
+    }
+
+    const dragDestNode = node.concat($dragged.name);
+    const dragDestOffset = 0;
+
+    if ($dropEffect === "move") {
+      koso.moveNode(
+        $dragged.name,
+        $dragged.parent().name,
+        koso.getOffset($dragged),
+        dragDestNode.parent().name,
+        dragDestOffset,
+      );
+    } else {
+      koso.linkNode($dragged.name, dragDestNode.parent().name, dragDestOffset);
+    }
+    $dragged = null;
+    dragOverPeer = false;
+    dragOverChild = false;
   }
 
   function handleDragOverPeer(event: DragEvent) {
@@ -154,8 +213,7 @@
       $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
     }
 
-    ghostNode = node.parent().concat($dragged.name);
-    ghostOffset = koso.getOffset(node) + 1;
+    dragOverPeer = true;
   }
 
   function handleDragEnterPeer(event: DragEvent) {
@@ -177,8 +235,7 @@
       $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
     }
 
-    ghostNode = node.concat($dragged.name);
-    ghostOffset = 0;
+    dragOverChild = true;
   }
 
   function handleDragEnterChild(event: DragEvent) {
@@ -188,7 +245,8 @@
 
   function handleDragLeave(event: DragEvent) {
     event.preventDefault();
-    ghostNode = null;
+    dragOverPeer = false;
+    dragOverChild = false;
   }
 
   function handleHighlight() {
@@ -212,7 +270,7 @@
   }
 
   function handleRowKeydown(event: KeyboardEvent) {
-    if (!element) throw new Error("Reference to focusable div is undefined");
+    if (!rowElement) throw new Error("Reference to focusable div is undefined");
 
     if (editedTaskName !== null) {
       return;
@@ -227,7 +285,7 @@
 
     if (event.key === "Escape") {
       $selected = null;
-      element.blur();
+      rowElement.blur();
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -280,23 +338,6 @@
     }
     return koso.getOffset(dragged) === 0;
   }
-
-  $: isDragging = !isGhost && node.equals($dragged);
-  $: canDragDropPeer =
-    !isDragging &&
-    $dragged &&
-    !isSamePeer(node, $dragged) &&
-    !hasChild(node.parent(), $dragged) &&
-    !hasCycle(node.parent().name, $dragged.name);
-  $: canDragDropChild =
-    !isDragging &&
-    $dragged &&
-    !isSameChild(node, $dragged) &&
-    !hasChild(node, $dragged) &&
-    !hasCycle(node.name, $dragged.name);
-  $: isMoving = isDragging && $dropEffect === "move";
-  $: isHovered = $highlighted?.name === node.name;
-  $: isSelected = node.equals($selected);
 </script>
 
 <tr
@@ -305,8 +346,7 @@
   class={cn(
     "rounded",
     index % 2 === 0 ? "bg-row-even" : "bg-row-odd",
-    isMoving ? "bg-red-200 opacity-50" : "",
-    isGhost ? "bg-green-200 opacity-70" : "",
+    isMoving ? "opacity-50" : "",
     isHovered ? "bg-accent" : "",
     isSelected ? "outline outline-2 outline-primary" : "",
   )}
@@ -316,16 +356,16 @@
   on:focus={handleFocus}
   on:click={handleRowClick}
   on:keydown={handleRowKeydown}
-  bind:this={element}
+  bind:this={rowElement}
   use:row
 >
-  <td class={cn("border-r border-t p-2")}>
+  <td class={cn("border-r border-t p-2")} bind:this={idCellElement}>
     <div class="flex items-center">
       <div style="width: {(node.length - 1) * 1.25}rem;" />
       {#if task.children.length > 0}
         <button
           class="w-4 transition-transform"
-          class:rotate-90={open && !isGhost}
+          class:rotate-90={open}
           title={open ? "Collapse" : "Expand"}
           on:click={handleToggleOpen}
         >
@@ -340,31 +380,9 @@
         on:dragstart={handleDragStart}
         on:dragend={handleDragEnd}
         on:drag={handleDrag}
+        bind:this={handleElement}
       >
         <GripVertical class="w-4" />
-        {#if canDragDropPeer}
-          <div
-            class="absolute z-50 h-7"
-            style="width: {(node.length + 1) * 1.25}rem; 
-              left: {-node.length * 1.25}rem"
-            role="table"
-            on:dragover={handleDragOverPeer}
-            on:dragenter={handleDragEnterPeer}
-            on:dragleave={handleDragLeave}
-            on:drop={handleDropNode}
-          />
-        {/if}
-        {#if canDragDropChild}
-          <div
-            class="absolute left-5 z-50 h-7"
-            style="width: {10.5 - node.length * 1.25}rem"
-            role="table"
-            on:dragover={handleDragOverChild}
-            on:dragenter={handleDragEnterChild}
-            on:dragleave={handleDragLeave}
-            on:drop={handleDropNode}
-          />
-        {/if}
       </button>
       <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
     </div>
@@ -418,6 +436,40 @@
   </td>
 </tr>
 
-{#if ghostNode}
-  <svelte:self index={index + 1} node={ghostNode} {users} isGhost={true} />
+{#if rowElement && idCellElement}
+  {#if canDragDropPeer}
+    <div
+      class="absolute z-50 -my-3 h-8"
+      style="width: {offset}px;"
+      role="table"
+      on:dragover={handleDragOverPeer}
+      on:dragenter={handleDragEnterPeer}
+      on:dragleave={handleDragLeave}
+      on:drop={handleDropNodePeer}
+    />
+  {/if}
+  {#if canDragDropChild}
+    <div
+      class="absolute z-50 -my-3 h-8"
+      style="width: {cellWidth - offset}px; margin-left: {offset}px;"
+      role="table"
+      on:dragover={handleDragOverChild}
+      on:dragenter={handleDragEnterChild}
+      on:dragleave={handleDragLeave}
+      on:drop={handleDropNodeChild}
+    />
+  {/if}
+
+  {#if dragOverPeer}
+    <div
+      class="absolute -my-[0.125rem] h-1 bg-teal-500"
+      style="width: {rowWidth}px;"
+    />
+  {/if}
+  {#if dragOverChild}
+    <div
+      class="absolute -my-[0.125rem] h-1 bg-teal-500"
+      style="width: {rowWidth - offset}px; margin-left: {offset}px;"
+    />
+  {/if}
 {/if}
