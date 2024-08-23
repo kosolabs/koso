@@ -40,10 +40,14 @@ impl ClientMessageHandler {
         // Add [0, 20] minutes of jitter to avoid a thundering heard of reconnects.
         let timeout_duration = Duration::from_secs(60 * 60)
             + Duration::from_millis((random::<f32>() * 20.0 * 60.0 * 1000.0) as u64);
-        let closure = match timeout(
-            timeout_duration,
-            self.receive_messages_from_client_internal(),
-        )
+        let closure = match timeout(timeout_duration, async {
+            loop {
+                let msg = self.receiver.next().await?;
+                if let ControlFlow::Break(closure) = self.receive_message_from_client(msg).await {
+                    return Some(closure);
+                }
+            }
+        })
         .await
         {
             Ok(closure) => closure,
@@ -59,15 +63,6 @@ impl ClientMessageHandler {
             self.project
                 .remove_and_close_client(&self.receiver.who, closure)
                 .await;
-        }
-    }
-
-    async fn receive_messages_from_client_internal(&mut self) -> Option<ClientClosure> {
-        loop {
-            let msg = self.receiver.next().await?;
-            if let ControlFlow::Break(closure) = self.receive_message_from_client(msg).await {
-                return Some(closure);
-            }
         }
     }
 
