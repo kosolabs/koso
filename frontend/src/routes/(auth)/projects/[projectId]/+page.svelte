@@ -118,7 +118,7 @@
             this.socket.send("");
           }
         },
-        40 * 1000 + Math.random() * 10000,
+        (45 + 20 * Math.random()) * 1000,
       );
     }
 
