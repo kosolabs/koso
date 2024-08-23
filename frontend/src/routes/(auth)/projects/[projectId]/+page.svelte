@@ -182,18 +182,18 @@
         }
 
         const OVERLOADED = 1013;
-        let backoff;
+        let backoffMs;
         if (event.code === OVERLOADED) {
           // In case of overload, don't retry aggressively.
-          backoff = this.backoff(30000);
+          backoffMs = this.backoffOnReconnect(30000);
           console.log(
-            `Overloaded WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoff} ms.`,
+            `Overloaded WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
             event,
           );
         } else {
-          backoff = this.backoff();
+          backoffMs = this.backoffOnReconnect();
           console.log(
-            `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoff} ms.`,
+            `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
             event,
           );
         }
@@ -203,7 +203,7 @@
           if (!this.shutdown) {
             await this.openWebSocket();
           }
-        }, backoff);
+        }, backoffMs);
       };
     }
 
@@ -248,7 +248,7 @@
       showSocketOfflineAlert = false;
     }
 
-    backoff(min: number = 0): number {
+    backoffOnReconnect(min: number = 0): number {
       let base = this.reconnectBackoffMs ? this.reconnectBackoffMs * 1.5 : 400;
       // Don't let backoff get too big (or too small).
       base = Math.max(Math.min(60000, base), min);
