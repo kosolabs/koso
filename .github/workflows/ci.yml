@@ -27,10 +27,14 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - name: Install sqlx-cli
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: sqlx-cli
+          args: --no-default-features --features rustls,postgres
+          version: latest
       - name: Migrate database
-        run: |
-          cargo install sqlx-cli --no-default-features --features rustls,postgres
-          SKIP_DOCKER=true ./scripts/init_db.sh
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
       - run: cargo test
       - run: cargo clippy -- -D warnings
       - run: cargo fmt -- --check
