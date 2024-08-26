@@ -27,6 +27,9 @@ jobs:
         with:
           toolchain: stable
           override: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "backend"
       - name: Install sqlx-cli
         uses: baptiste0928/cargo-install@v3
         with:
