@@ -8,6 +8,7 @@ mod tests {
             .fetch_all(&pool)
             .await
             .unwrap();
+        tracing::info!("test");
         assert_eq!(projects.len(), 1);
         assert_eq!(projects.first().unwrap().0, "koso-staging");
         Ok(())
