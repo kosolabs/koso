@@ -116,29 +116,13 @@ impl ProjectsState {
             dashmap::Entry::Occupied(mut o) => match o.get().upgrade() {
                 Some(p) => p,
                 None => {
-                    let project = Arc::new(ProjectState {
-                        project_id: project_id.to_string(),
-                        clients: Mutex::new(HashMap::new()),
-                        doc_box: Mutex::new(None),
-                        doc_update_tx: self.doc_update_tx.clone(),
-                        updates: atomic::AtomicUsize::new(0),
-                        pool: self.pool,
-                        tracker: self.tracker.clone(),
-                    });
+                    let project = self.new_project(project_id);
                     o.insert(Arc::downgrade(&project));
                     project
                 }
             },
             dashmap::Entry::Vacant(v) => {
-                let project = Arc::new(ProjectState {
-                    project_id: project_id.to_string(),
-                    clients: Mutex::new(HashMap::new()),
-                    doc_box: Mutex::new(None),
-                    doc_update_tx: self.doc_update_tx.clone(),
-                    updates: atomic::AtomicUsize::new(0),
-                    pool: self.pool,
-                    tracker: self.tracker.clone(),
-                });
+                let project = self.new_project(project_id);
                 v.insert(Arc::downgrade(&project));
                 project
             }
@@ -147,6 +131,18 @@ impl ProjectsState {
         // Init the doc_box, if necessary and grab the state vector.
         let sv = ProjectState::init_doc_box(&project).await?;
         Ok((project, sv))
+    }
+
+    fn new_project(&self, project_id: &String) -> Arc<ProjectState> {
+        Arc::new(ProjectState {
+            project_id: project_id.to_string(),
+            clients: Mutex::new(HashMap::new()),
+            doc_box: Mutex::new(None),
+            doc_update_tx: self.doc_update_tx.clone(),
+            updates: atomic::AtomicUsize::new(0),
+            pool: self.pool,
+            tracker: self.tracker.clone(),
+        })
     }
 
     pub(super) async fn close_all_project_clients(&self) {
