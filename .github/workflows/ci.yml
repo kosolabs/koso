@@ -6,12 +6,25 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
+      - name: Migrate database
+        run: |
+          cargo install sqlx-cli --no-default-features --features rustls,postgres
+          SKIP_DOCKER=true ./scripts/init_db.sh
       - run: cargo test
       - run: cargo clippy -- -D warnings
       - run: cargo fmt -- --check
