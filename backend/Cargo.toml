@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.7.5", features = ["http2", "ws", "macros"] }
 axum-extra = { version = "0.9.3", features = ["typed-header"] }
-tokio = { version = "1.39.2", features = ["full"] }
+tokio = { version = "1.39.3", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 uuid = { version = "1.10.0", features = [
@@ -33,10 +33,10 @@ metrics-exporter-prometheus = { version = "0.15", default-features = false }
 futures = "0.3.30"
 tokio-stream = "0.1.15"
 async-stream = "0.3.5"
-yrs = { version = "0.19.1", features = ["sync"] }
+yrs = { version = "0.20.0", features = ["sync"] }
 tokio-util = { version = "0.7.11", features = ["rt"] }
 jsonwebtoken = "9.3.0"
-reqwest = { version = "0.12.5", features = ["blocking"] }
+reqwest = { version = "0.12.7", features = ["blocking"] }
 base64 = "0.22.1"
 dashmap = "6.0.1"
 anyhow = "1.0.86"
