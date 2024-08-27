@@ -44,7 +44,7 @@
     "fake-indexeddb": "^6.0.0",
     "globals": "^15.9.0",
     "google-oauth-gsi": "^4.0.1",
-    "jsdom": "^24.1.1",
+    "jsdom": "^25.0.0",
     "jwt-decode": "^4.0.0",
     "lucide-svelte": "^0.436.0",
     "mode-watcher": "^0.4.1",
