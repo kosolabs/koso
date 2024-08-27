@@ -1,4 +1,5 @@
 import type { User } from "./auth";
+import { logout_on_authentication_error } from "./errors";
 
 export type Project = {
   project_id: string;
@@ -22,6 +23,7 @@ export async function fetchProjects(token: string | null): Promise<Project[]> {
     },
   });
   if (!response.ok) {
+    logout_on_authentication_error(response);
     throw new Error(
       `Failed to fetch projects: ${response.statusText} (${response.status})`,
     );
@@ -39,6 +41,7 @@ export async function createProject(token: string | null): Promise<Project> {
     body: JSON.stringify({ name: "My Project!" }),
   });
   if (!response.ok) {
+    logout_on_authentication_error(response);
     throw new Error(
       `Failed to create project: ${response.statusText} (${response.status})`,
     );
@@ -59,6 +62,7 @@ export async function updateProject(
     body: JSON.stringify(project),
   });
   if (!response.ok) {
+    logout_on_authentication_error(response);
     throw new Error(
       `Failed to update project name: ${response.statusText} (${response.status})`,
     );
@@ -74,6 +78,7 @@ export async function fetchProjectUsers(
     headers: { Authorization: "Bearer " + token },
   });
   if (!response.ok) {
+    logout_on_authentication_error(response);
     throw new Error(
       `Failed to fetch project users: ${response.statusText} (${response.status})`,
     );
@@ -99,6 +104,7 @@ export async function updateProjectPermissions(
     },
   );
   if (!response.ok) {
+    logout_on_authentication_error(response);
     throw new Error(
       `Failed to update project permissions: ${response.statusText} (${response.status})`,
     );

@@ -15,6 +15,7 @@
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
   import UserAvatar from "./user-avatar.svelte";
+  import { logout_on_authentication_error } from "./errors";
 
   export let open: boolean;
   export let project: Project | null;
@@ -29,6 +30,7 @@
       headers: { Authorization: "Bearer " + $token },
     });
     if (!response.ok) {
+      logout_on_authentication_error(response);
       throw new Error(
         `Failed to fetch all users: ${response.statusText} (${response.status})`,
       );
