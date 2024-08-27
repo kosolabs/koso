@@ -228,10 +228,13 @@ impl ProjectState {
         Ok(update)
     }
     pub(super) async fn apply_doc_update(&self, origin: YOrigin, update: Update) -> Result<()> {
-        DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
+        if let Err(e) = DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
             .doc
             .transact_mut_with(origin.as_origin())
-            .apply_update(update);
+            .apply_update(update)
+        {
+            return Err(anyhow!("Failed to apply doc update: {e}"));
+        }
         Ok(())
     }
     pub(super) async fn broadcast_msg(&self, from_who: &String, data: Vec<u8>) {
