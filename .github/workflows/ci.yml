@@ -54,6 +54,11 @@ jobs:
         working-directory: ./frontend
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: Linux-playwright-${{ hashFiles('**/frontend/package-lock.json') }}
+          restore-keys: Linux-playwright-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
