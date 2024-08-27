@@ -33,7 +33,7 @@ metrics-exporter-prometheus = { version = "0.15", default-features = false }
 futures = "0.3.30"
 tokio-stream = "0.1.15"
 async-stream = "0.3.5"
-yrs = { version = "0.20.0", features = ["sync"] }
+yrs = { version = "0.21.0", features = ["sync"] }
 tokio-util = { version = "0.7.11", features = ["rt"] }
 jsonwebtoken = "9.3.0"
 reqwest = { version = "0.12.7", features = ["blocking"] }
