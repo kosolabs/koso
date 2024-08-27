@@ -11,7 +11,7 @@ source /root/.environment
 source /root/.telegram.zsh
 
 pushd frontend
-npm install
+npm ci
 npm run build
 popd
 
