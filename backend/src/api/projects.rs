@@ -1,7 +1,7 @@
 use crate::{
     api::{
         bad_request_error,
-        collab::Collab,
+        collab::{storage, Collab},
         google::User,
         model::{CreateProject, Project, ProjectUser, UpdateProjectPermissions},
         verify_access, ApiResult,
@@ -29,6 +29,7 @@ pub(super) fn projects_router() -> Router {
         )
         .route("/:project_id/users", get(list_project_users_handler))
         .route("/:project_id/doc", get(get_project_doc_handler))
+        .route("/:project_id/updates", get(get_project_doc_updates_handler))
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -212,4 +213,20 @@ async fn get_project_doc_handler(
     verify_access(pool, user, &project_id).await?;
 
     Ok(Json(collab.get_doc(&project_id).await?))
+}
+
+#[tracing::instrument(skip(user, pool))]
+async fn get_project_doc_updates_handler(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+    Path(project_id): Path<String>,
+) -> ApiResult<Json<Vec<String>>> {
+    verify_access(pool, user, &project_id).await?;
+
+    let updates = storage::load_updates(&project_id, pool)
+        .await?
+        .iter()
+        .map(|u| u.to_string())
+        .collect();
+    Ok(Json(updates))
 }
