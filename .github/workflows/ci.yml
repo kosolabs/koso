@@ -54,7 +54,8 @@ jobs:
         working-directory: ./frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - id: playwright-cache
+        uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: Linux-playwright-${{ hashFiles('**/frontend/package-lock.json') }}
@@ -64,6 +65,7 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npx playwright install --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
       - run: npm run build
       - run: npm run check
       - run: npm run lint
