@@ -4,13 +4,13 @@ use yrs::{
     StateVector,
 };
 
-pub(super) const MSG_SYNC: u8 = 0;
+pub(crate) const MSG_SYNC: u8 = 0;
 
-pub(super) const MSG_SYNC_REQUEST: u8 = 0;
-pub(super) const MSG_SYNC_RESPONSE: u8 = 1;
-pub(super) const MSG_SYNC_UPDATE: u8 = 2;
+pub(crate) const MSG_SYNC_REQUEST: u8 = 0;
+pub(crate) const MSG_SYNC_RESPONSE: u8 = 1;
+pub(crate) const MSG_SYNC_UPDATE: u8 = 2;
 
-pub(super) fn sync_request(sv: &StateVector) -> Vec<u8> {
+pub(crate) fn sync_request(sv: &StateVector) -> Vec<u8> {
     let mut encoder = EncoderV1::new();
     encoder.write_var(MSG_SYNC);
     encoder.write_var(MSG_SYNC_REQUEST);
@@ -18,7 +18,7 @@ pub(super) fn sync_request(sv: &StateVector) -> Vec<u8> {
     encoder.to_vec()
 }
 
-pub(super) fn sync_response(update: &[u8]) -> Vec<u8> {
+pub(crate) fn sync_response(update: &[u8]) -> Vec<u8> {
     let mut encoder = EncoderV1::new();
     encoder.write_var(MSG_SYNC);
     encoder.write_var(MSG_SYNC_RESPONSE);
@@ -26,7 +26,7 @@ pub(super) fn sync_response(update: &[u8]) -> Vec<u8> {
     encoder.to_vec()
 }
 
-pub(super) fn sync_update(update: &[u8]) -> Vec<u8> {
+pub(crate) fn sync_update(update: &[u8]) -> Vec<u8> {
     let mut encoder = EncoderV1::new();
     encoder.write_var(MSG_SYNC);
     encoder.write_var(MSG_SYNC_UPDATE);
