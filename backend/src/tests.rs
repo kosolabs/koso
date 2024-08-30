@@ -252,15 +252,74 @@ async fn main_server_test(pool: PgPool) -> sqlx::Result<()> {
         .unwrap();
     assert_eq!(read_sync_response(socket_3).await, Update::default());
 
+    // Send a ping.
+    socket_3.send(Message::Text("".to_string())).await.unwrap();
+    // Send some random text, it's discarded.
+    socket_3
+        .send(Message::Text("DISCARD_ME".to_string()))
+        .await
+        .unwrap();
+
+    // Send some invalid binary
+    // Invalid protocol type.
+    socket_3.send(Message::Binary(vec![5, 4])).await.unwrap();
+    // Invalid sync type.
+    socket_3.send(Message::Binary(vec![0, 5])).await.unwrap();
+    // Invalid content.
+    socket_3.send(Message::Binary(vec![0, 1, 0])).await.unwrap();
+    socket_3.send(Message::Binary(vec![0, 1, 1])).await.unwrap();
+    socket_3
+        .send(Message::Binary(vec![0, 0, 4, 2, 2, 2, 2]))
+        .await
+        .unwrap();
+    socket_3
+        .send(Message::Binary(vec![0, 1, 4, 2, 2, 2, 2]))
+        .await
+        .unwrap();
+
+    // Open up enough sockets to hit the limit.
+    let mut sockets = Vec::new();
+    for _ in 0..97 {
+        let (mut socket, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
+        assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
+        assert_eq!(
+            read_sync_request(&mut socket).await,
+            doc_1.transact().state_vector()
+        );
+        sockets.push(socket)
+    }
+
+    // And then verify the next one is rejected.
+    let (mut socket_4, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
+    assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
+    let close = socket_4.next().await.unwrap().unwrap();
+    let Message::Close(Some(close)) = close else {
+        panic!("Expected overload close, got: {close:?}");
+    };
+    assert_eq!(close.code, CloseCode::Again);
+    assert_eq!(close.reason, "Too many active clients.");
+    futures::SinkExt::close(&mut socket_4).await.unwrap();
+    // Validate the socket is terminated
+    assert!(socket_4.next().await.is_none());
+    assert!(socket_4.is_terminated());
+
     // Close the sockets.
     close_socket(socket).await;
-    close_socket(socket_3).await;
+    close_socket_without_details(socket_3).await;
+    let mut sockets = sockets.iter_mut();
+    for _ in 0..48 {
+        close_socket(sockets.next().unwrap()).await;
+    }
 
     // Initated server shutdown.
     tracing::info!("Sending server shutdown signal...");
     closer.send(()).unwrap();
-    // The server will close the client.
+    // The server will close the client, but we need to respond.
     respond_closed_socket(socket_2).await;
+    for socket in sockets {
+        respond_closed_socket(socket).await;
+    }
+
     // Finally, the server should gracefully stop.
     serve.await.unwrap();
     Ok(())
@@ -336,6 +395,19 @@ async fn close_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
     };
     assert_eq!(close.code, CloseCode::Normal);
     assert_eq!(close.reason, "all done");
+
+    // Validate the socket is terminated
+    assert!(socket.next().await.is_none());
+    assert!(socket.is_terminated());
+}
+
+async fn close_socket_without_details(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
+    socket.close(None).await.unwrap();
+    // Read the final close message.
+    let close = socket.next().await.unwrap().unwrap();
+    let Message::Close(None) = close else {
+        panic!("Expected close frame, got: {close:?}");
+    };
 
     // Validate the socket is terminated
     assert!(socket.next().await.is_none());
