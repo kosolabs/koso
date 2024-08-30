@@ -46,7 +46,7 @@ async fn basic_test(pool: PgPool) -> sqlx::Result<()> {
 type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 #[test_log::test(sqlx::test)]
-async fn main_server_test(pool: PgPool) -> sqlx::Result<()> {
+async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     let (closer, close_signal) = channel::<()>();
     let (addr, serve) = server::start_main_server(Config {
         pool: Some(Box::leak(Box::new(pool))),
@@ -57,7 +57,37 @@ async fn main_server_test(pool: PgPool) -> sqlx::Result<()> {
     .await;
     let client = Client::default();
 
-    // First, try a request without any credentials attached.
+    let token: String = encode_token(&Claims::default(), KID_1, PEM_1).unwrap();
+    // Log in
+    {
+        let res = client
+            .post(&format!("http://{addr}/api/auth/login"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    // Log in a second user
+    const OTHER_USER_EMAIL: &str = "other-user@koso.app";
+    {
+        let claims = Claims {
+            email: OTHER_USER_EMAIL.to_string(),
+            ..Claims::default()
+        };
+
+        let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
+        let res = client
+            .post(&format!("http://{addr}/api/auth/login"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    // Try a request without any credentials attached.
     {
         let res = client
             .get(&format!("http://{addr}/api/projects"))
@@ -67,9 +97,84 @@ async fn main_server_test(pool: PgPool) -> sqlx::Result<()> {
         assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
     }
 
-    // Next, make the same request with a valid token.
+    // Try a WS request without any credentials attached
     {
-        let token = encode_token(&Claims::default(), KID_1, PEM_1).unwrap();
+        let req = format!("ws://{addr}/api/ws/projects/koso-staging")
+            .into_client_request()
+            .unwrap();
+        let err = tokio_tungstenite::connect_async(req).await.unwrap_err();
+        let tokio_tungstenite::tungstenite::error::Error::Http(response) = err else {
+            panic!("Expected http error, got: {err:?}");
+        };
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    // Create a project
+    let project_name = "Test Project1";
+    let project_id = {
+        let res = client
+            .post(&format!("http://{addr}/api/projects"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(format!("{{\"name\":\"{project_name}\"}}"))
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let project: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        let project = project.as_object().unwrap();
+        assert_eq!(project.get("name").unwrap().as_str().unwrap(), project_name);
+        project
+            .get("project_id")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+
+    // Update a project
+    let project_name = {
+        let project_name = "Updated test name 1";
+        let res = client
+            .patch(&format!("http://{addr}/api/projects/{project_id}"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(format!(
+                "{{\"name\":\"{project_name}\", \"project_id\":\"{project_id}\"}}"
+            ))
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let project: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        let project = project.as_object().unwrap();
+        assert_eq!(project.get("name").unwrap().as_str().unwrap(), project_name);
+        assert_eq!(
+            project.get("project_id").unwrap().as_str().unwrap(),
+            project_id
+        );
+        project_name
+    };
+
+    // Update project permissions
+    {
+        let res = client
+            .patch(&format!(
+                "http://{addr}/api/projects/{project_id}/permissions"
+            ))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(format!(
+                "{{\"project_id\":\"{project_id}\", \"add_emails\":[\"{OTHER_USER_EMAIL}\"], \"remove_emails\":[\"does-not-exist@koso.app\"]}}"
+            ))
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+    };
+
+    // List the projects.
+    {
         let res = client
             .get(&format!("http://{addr}/api/projects"))
             .bearer_auth(&token)
@@ -83,29 +188,73 @@ async fn main_server_test(pool: PgPool) -> sqlx::Result<()> {
         let project = projects.first().unwrap().as_object().unwrap();
         assert_eq!(
             project.get("project_id").unwrap().as_str().unwrap(),
-            "koso-staging"
+            project_id
         );
-        assert_eq!(
-            project.get("name").unwrap().as_str().unwrap(),
-            "Koso Staging"
-        );
+        assert_eq!(project.get("name").unwrap().as_str().unwrap(), project_name);
     }
 
-    // Next, validate the websocket endpoint also rejects uauthenticated users.
+    // List the project's users.
     {
-        let req = format!("ws://{addr}/api/ws/projects/koso-staging")
-            .into_client_request()
-            .unwrap();
-        let err = tokio_tungstenite::connect_async(req).await.unwrap_err();
-        let tokio_tungstenite::tungstenite::error::Error::Http(response) = err else {
-            panic!("Expected http error, got: {err:?}");
-        };
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let res = client
+            .get(&format!("http://{addr}/api/projects/{project_id}/users"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let users: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        let users = users.as_array().unwrap();
+        assert_eq!(users.len(), 2);
     }
 
-    // Also, ensure that authenticated but unauthorized users are rejected.
+    // List the  users.
     {
-        let mut req = format!("ws://{addr}/api/ws/projects/koso-staging")
+        let res = client
+            .get(&format!("http://{addr}/api/users"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let users: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        let users = users.as_array().unwrap();
+        assert_eq!(users.len(), 2);
+    }
+
+    // Initated server shutdown.
+    tracing::info!("Sending server shutdown signal...");
+    closer.send(()).unwrap();
+    // Finally, the server should gracefully stop.
+    serve.await.unwrap();
+
+    Ok(())
+}
+
+#[test_log::test(sqlx::test)]
+async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
+    let (closer, close_signal) = channel::<()>();
+    let (addr, serve) = server::start_main_server(Config {
+        pool: Some(Box::leak(Box::new(pool))),
+        port: Some(0),
+        shutdown_signal: Some(close_signal),
+        key_set: Some(testonly_key_set().await.unwrap()),
+    })
+    .await;
+
+    let project_id = "koso-staging";
+    let token: String = encode_token(
+        &Claims {
+            email: "leonhard.kyle@gmail.com".to_string(),
+            ..Default::default()
+        },
+        KID_1,
+        PEM_1,
+    )
+    .unwrap();
+
+    // Test that authenticated but unauthorized users are rejected.
+    {
+        let mut req = format!("ws://{addr}/api/ws/projects/{project_id}")
             .into_client_request()
             .unwrap();
         let claims = Claims {
@@ -132,10 +281,9 @@ async fn main_server_test(pool: PgPool) -> sqlx::Result<()> {
 
     // Test opening and closing sockets.
     {
-        let mut req = format!("ws://{addr}/api/ws/projects/koso-staging")
+        let mut req = format!("ws://{addr}/api/ws/projects/{project_id}")
             .into_client_request()
             .unwrap();
-        let token = encode_token(&Claims::default(), KID_1, PEM_1).unwrap();
         req.headers_mut().insert(
             "authorization",
             HeaderValue::from_str(format!("Bearer {token}").as_str()).unwrap(),
@@ -153,10 +301,9 @@ async fn main_server_test(pool: PgPool) -> sqlx::Result<()> {
     }
 
     // Finally, run through a valid websocket interaction.
-    let mut req = format!("ws://{addr}/api/ws/projects/koso-staging")
+    let mut req = format!("ws://{addr}/api/ws/projects/{project_id}")
         .into_client_request()
         .unwrap();
-    let token = encode_token(&Claims::default(), KID_1, PEM_1).unwrap();
     req.headers_mut().insert(
         "authorization",
         HeaderValue::from_str(format!("Bearer {token}").as_str()).unwrap(),
@@ -252,30 +399,42 @@ async fn main_server_test(pool: PgPool) -> sqlx::Result<()> {
         .unwrap();
     assert_eq!(read_sync_response(socket_3).await, Update::default());
 
-    // Send a ping.
-    socket_3.send(Message::Text("".to_string())).await.unwrap();
-    // Send some random text, it's discarded.
-    socket_3
-        .send(Message::Text("DISCARD_ME".to_string()))
-        .await
-        .unwrap();
+    // Test other valid and invalid message types.
+    {
+        let (mut socket, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
+        let socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>> = &mut socket;
+        assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
+        assert_eq!(
+            read_sync_request(socket).await,
+            doc_1.transact().state_vector()
+        );
 
-    // Send some invalid binary
-    // Invalid protocol type.
-    socket_3.send(Message::Binary(vec![5, 4])).await.unwrap();
-    // Invalid sync type.
-    socket_3.send(Message::Binary(vec![0, 5])).await.unwrap();
-    // Invalid content.
-    socket_3.send(Message::Binary(vec![0, 1, 0])).await.unwrap();
-    socket_3.send(Message::Binary(vec![0, 1, 1])).await.unwrap();
-    socket_3
-        .send(Message::Binary(vec![0, 0, 4, 2, 2, 2, 2]))
-        .await
-        .unwrap();
-    socket_3
-        .send(Message::Binary(vec![0, 1, 4, 2, 2, 2, 2]))
-        .await
-        .unwrap();
+        // Send a ping.
+        socket.send(Message::Text("".to_string())).await.unwrap();
+        // Send some random text, it's discarded.
+        socket
+            .send(Message::Text("DISCARD_ME".to_string()))
+            .await
+            .unwrap();
+        // Send some invalid binary
+        // Invalid protocol type.
+        socket.send(Message::Binary(vec![5, 4])).await.unwrap();
+        // Invalid sync type.
+        socket.send(Message::Binary(vec![0, 5])).await.unwrap();
+        // Invalid content.
+        socket.send(Message::Binary(vec![0, 1, 0])).await.unwrap();
+        socket.send(Message::Binary(vec![0, 1, 1])).await.unwrap();
+        socket
+            .send(Message::Binary(vec![0, 0, 4, 2, 2, 2, 2]))
+            .await
+            .unwrap();
+        socket
+            .send(Message::Binary(vec![0, 1, 4, 2, 2, 2, 2]))
+            .await
+            .unwrap();
+
+        close_socket(socket).await;
+    }
 
     // Open up enough sockets to hit the limit.
     let mut sockets = Vec::new();

@@ -402,9 +402,9 @@ J4Q2mbNL+TM1cM1BbzXn6SBWWTKlyEx7OLgQ2+VlZ1CRLQI/iI1tbHIt
                 aud: "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com"
                     .to_string(),
                 iss: "https://accounts.google.com".to_string(),
-                email: "leonhard.kyle@gmail.com".to_string(),
-                name: "Kyle Leonhard".to_string(),
-                picture: "picture1111".to_string(),
+                email: "valid-user@koso.app".to_string(),
+                name: "Valid User".to_string(),
+                picture: "koso.app/valid-user/pic".to_string(),
                 exp: 2024788014,
             }
         }
