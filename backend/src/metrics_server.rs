@@ -56,17 +56,14 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn metrics_server_test() -> anyhow::Result<()> {
-        let (sender, receiver) = channel::<()>();
-
+        let (closer, close_signal) = channel::<()>();
         let (addr, serve) = metrics_server::start_metrics_server(metrics_server::Config {
             port: Some(0),
-            shutdown_signal: Some(receiver),
+            shutdown_signal: Some(close_signal),
         })
         .await;
 
         let client = Client::default();
-
-        tracing::info!("Using addr: {addr}");
         let res = client
             .get(&format!("http://{addr}/metrics"))
             .send()
@@ -74,7 +71,7 @@ mod tests {
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
 
-        if let Err(e) = sender.send(()) {
+        if let Err(e) = closer.send(()) {
             panic!("Error sending close signal: {e:?}");
         }
         if let Err(e) = serve.await {
