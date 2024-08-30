@@ -1,35 +1,33 @@
-use crate::api::collab::msg_sync::{
-    MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE,
-};
 use crate::{
     api::{
-        collab::msg_sync,
+        collab::msg_sync::{self, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
         google::test_utils::{encode_token, testonly_key_set, Claims, KID_1, PEM_1},
     },
     server::{self, Config},
 };
 use axum::http::HeaderValue;
-use futures::SinkExt;
-use futures::{stream::FusedStream, StreamExt};
+use futures::{stream::FusedStream, SinkExt, StreamExt};
 use reqwest::{Client, StatusCode};
 use serde_json::Value;
 use sqlx::PgPool;
-use tokio::net::TcpStream;
-use tokio::sync::oneshot::channel;
-use tokio_tungstenite::tungstenite::{
-    protocol::{frame::coding::CloseCode, CloseFrame},
-    Message,
+use tokio::{net::TcpStream, sync::oneshot::channel};
+use tokio_tungstenite::{
+    tungstenite::{
+        protocol::{frame::coding::CloseCode, CloseFrame},
+        Message,
+    },
+    MaybeTlsStream, WebSocketStream,
 };
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 use tungstenite::client::IntoClientRequest;
-use yrs::types::ToJson;
-use yrs::updates::encoder::Encode;
 use yrs::{
     encoding::read::Read as _,
-    updates::decoder::{Decode as _, DecoderV1},
-    StateVector,
+    types::ToJson,
+    updates::{
+        decoder::{Decode as _, DecoderV1},
+        encoder::Encode,
+    },
+    Doc, Map, MapPrelim, ReadTxn, StateVector, Transact, Update, WriteTxn,
 };
-use yrs::{Doc, Map, MapPrelim, ReadTxn, Transact, Update, WriteTxn};
 
 #[test_log::test(sqlx::test)]
 async fn basic_test(pool: PgPool) -> sqlx::Result<()> {
@@ -309,8 +307,8 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         HeaderValue::from_str(format!("Bearer {token}").as_str()).unwrap(),
     );
 
-    let (mut socket, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
-    let socket = &mut socket;
+    let (mut socket_1, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
+    let socket_1 = &mut socket_1;
     assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
     let doc_1: Doc = Doc::new();
     doc_1.transact_mut().get_or_insert_map("graph");
@@ -328,18 +326,18 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     }
 
     // Read the initial sync_request.
-    assert_eq!(read_sync_request(socket).await, StateVector::default());
+    assert_eq!(read_sync_request(socket_1).await, StateVector::default());
     // Send our own sync request
-    socket
+    socket_1
         .send(Message::Binary(msg_sync::sync_request(
             &doc_1.transact().state_vector(),
         )))
         .await
         .unwrap();
     // Read the sync_response.
-    assert_eq!(read_sync_response(socket).await, Update::default());
+    assert_eq!(read_sync_response(socket_1).await, Update::default());
     // Send the sync_response.
-    socket
+    socket_1
         .send(Message::Binary(msg_sync::sync_response(
             &Update::default().encode_v2(),
         )))
@@ -359,7 +357,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         .unwrap();
 
     // Read the broadcast update applied by socket_2.
-    let sync_update = read_sync_update(socket).await;
+    let sync_update = read_sync_update(socket_1).await;
     doc_1.transact_mut().apply_update(sync_update).unwrap();
     assert_eq!(
         doc_1.to_json(&doc_1.transact()),
@@ -398,6 +396,36 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         .await
         .unwrap();
     assert_eq!(read_sync_response(socket_3).await, Update::default());
+
+    // Apply enough updates to trigger compaction on shutdown.
+    for i in 0..10 {
+        let mut txn = doc_1.transact_mut();
+        let graph = txn.get_or_insert_map("graph");
+        graph.insert(&mut txn, format!("new_entry_{i}"), "value1");
+        let update = txn.encode_update_v2();
+        socket_1
+            .send(Message::Binary(msg_sync::sync_update(&update)))
+            .await
+            .unwrap();
+    }
+    for _ in 0..10 {
+        doc_2
+            .transact_mut()
+            .apply_update(read_sync_update(socket_2).await)
+            .unwrap();
+        doc_3
+            .transact_mut()
+            .apply_update(read_sync_update(socket_3).await)
+            .unwrap();
+    }
+    assert_eq!(
+        doc_1.to_json(&doc_1.transact()),
+        doc_3.to_json(&doc_3.transact())
+    );
+    assert_eq!(
+        doc_1.to_json(&doc_1.transact()),
+        doc_2.to_json(&doc_2.transact())
+    );
 
     // Test other valid and invalid message types.
     {
@@ -463,7 +491,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     assert!(socket_4.is_terminated());
 
     // Close the sockets.
-    close_socket(socket).await;
+    close_socket(socket_1).await;
     close_socket_without_details(socket_3).await;
     let mut sockets = sockets.iter_mut();
     for _ in 0..48 {
