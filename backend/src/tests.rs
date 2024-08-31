@@ -95,18 +95,6 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
         assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
     }
 
-    // Try a WS request without any credentials attached
-    {
-        let req = format!("ws://{addr}/api/ws/projects/koso-staging")
-            .into_client_request()
-            .unwrap();
-        let err = tokio_tungstenite::connect_async(req).await.unwrap_err();
-        let tokio_tungstenite::tungstenite::error::Error::Http(response) = err else {
-            panic!("Expected http error, got: {err:?}");
-        };
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-    }
-
     // Create a project
     let project_name = "Test Project1";
     let project_id = {
@@ -249,6 +237,18 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         PEM_1,
     )
     .unwrap();
+
+    // Test that unauthenticated users are rejected.
+    {
+        let req = format!("ws://{addr}/api/ws/projects/koso-staging")
+            .into_client_request()
+            .unwrap();
+        let err = tokio_tungstenite::connect_async(req).await.unwrap_err();
+        let tokio_tungstenite::tungstenite::error::Error::Http(response) = err else {
+            panic!("Expected http error, got: {err:?}");
+        };
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
 
     // Test that authenticated but unauthorized users are rejected.
     {
