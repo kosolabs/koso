@@ -107,7 +107,7 @@ export class Koso {
   selectedId: Writable<string | null>;
   highlighted: Writable<Node | null>;
   dropEffect: Writable<"link" | "move" | "none">;
-  dragged: Writable<string | null>;
+  draggedId: Writable<string | null>;
   expanded: Writable<Set<string>>;
   parents: Readable<Parents>;
   nodeIds: string[] = [];
@@ -145,7 +145,7 @@ export class Koso {
     this.selectedId = writable<string | null>(null);
     this.highlighted = writable<Node | null>(null);
     this.dropEffect = writable<"link" | "move" | "none">("none");
-    this.dragged = writable<string | null>(null);
+    this.draggedId = writable<string | null>(null);
 
     const expandedLocalStorageKey = `expanded-nodes-${projectId}`;
     this.expanded = storable<Set<string>>(

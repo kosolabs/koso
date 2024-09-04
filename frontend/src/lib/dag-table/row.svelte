@@ -16,9 +16,7 @@
   export let row: (el: HTMLDivElement) => void = () => {};
 
   const koso = getContext<Koso>("koso");
-  const { dragged, dropEffect, expanded, highlighted, selectedId } = koso;
-
-  $: draggedNode = $dragged ? koso.getNode($dragged) : null;
+  const { draggedId, dropEffect, expanded, highlighted, selectedId } = koso;
 
   let rowElement: HTMLDivElement | undefined;
   let idCellElement: HTMLTableCellElement | undefined;
@@ -31,19 +29,20 @@
   $: reporter = getUser(users, task.reporter);
   $: assignee = getUser(users, task.assignee);
   $: open = $expanded.has(node.id);
-  $: isDragging = node.id == $dragged;
+  $: isDragging = node.id == $draggedId;
+  $: dragged = $draggedId ? koso.getNode($draggedId) : null;
   $: canDragDropPeer =
     !isDragging &&
-    draggedNode &&
-    !isSamePeer(node, draggedNode) &&
-    !hasChild(node.parent(), draggedNode) &&
-    !hasCycle(node.parent().name, draggedNode.name);
+    dragged &&
+    !isSamePeer(node, dragged) &&
+    !hasChild(node.parent(), dragged) &&
+    !hasCycle(node.parent().name, dragged.name);
   $: canDragDropChild =
     !isDragging &&
-    draggedNode &&
-    !isSameChild(node, draggedNode) &&
-    !hasChild(node, draggedNode) &&
-    !hasCycle(node.name, draggedNode.name);
+    dragged &&
+    !isSameChild(node, dragged) &&
+    !hasChild(node, dragged) &&
+    !hasCycle(node.name, dragged.name);
   $: isMoving = isDragging && $dropEffect === "move";
   $: isHovered = $highlighted?.name === node.name;
   $: isSelected = node.id == $selectedId;
@@ -124,7 +123,7 @@
     }
     $highlighted = null;
     $selectedId = null;
-    $dragged = node.id;
+    $draggedId = node.id;
 
     dataTransfer.setData("text/plain", node.id);
     dataTransfer.effectAllowed = "linkMove";
@@ -145,63 +144,55 @@
 
   function handleDragEnd(event: DragEvent) {
     event.preventDefault();
-    $dragged = null;
+    $draggedId = null;
   }
 
   function handleDropNodePeer(event: DragEvent) {
     event.preventDefault();
-    if (draggedNode === null || $dropEffect === "none") {
+    if (dragged === null || $dropEffect === "none") {
       return;
     }
 
-    const dragDestNode = node.parent().concat(draggedNode.name);
+    const dragDestNode = node.parent().concat(dragged.name);
     const dragDestOffset = koso.getOffset(node) + 1;
 
     if ($dropEffect === "move") {
       koso.moveNode(
-        draggedNode.name,
-        draggedNode.parent().name,
-        koso.getOffset(draggedNode),
+        dragged.name,
+        dragged.parent().name,
+        koso.getOffset(dragged),
         dragDestNode.parent().name,
         dragDestOffset,
       );
     } else {
-      koso.linkNode(
-        draggedNode.name,
-        dragDestNode.parent().name,
-        dragDestOffset,
-      );
+      koso.linkNode(dragged.name, dragDestNode.parent().name, dragDestOffset);
     }
-    $dragged = null;
+    $draggedId = null;
     dragOverPeer = false;
     dragOverChild = false;
   }
 
   function handleDropNodeChild(event: DragEvent) {
     event.preventDefault();
-    if (draggedNode === null || $dropEffect === "none") {
+    if (dragged === null || $dropEffect === "none") {
       return;
     }
 
-    const dragDestNode = node.concat(draggedNode.name);
+    const dragDestNode = node.concat(dragged.name);
     const dragDestOffset = 0;
 
     if ($dropEffect === "move") {
       koso.moveNode(
-        draggedNode.name,
-        draggedNode.parent().name,
-        koso.getOffset(draggedNode),
+        dragged.name,
+        dragged.parent().name,
+        koso.getOffset(dragged),
         dragDestNode.parent().name,
         dragDestOffset,
       );
     } else {
-      koso.linkNode(
-        draggedNode.name,
-        dragDestNode.parent().name,
-        dragDestOffset,
-      );
+      koso.linkNode(dragged.name, dragDestNode.parent().name, dragDestOffset);
     }
-    $dragged = null;
+    $draggedId = null;
     dragOverPeer = false;
     dragOverChild = false;
   }
@@ -209,11 +200,11 @@
   function handleDragOverPeer(event: DragEvent) {
     event.preventDefault();
     const dataTransfer = event.dataTransfer;
-    if (draggedNode === null || dataTransfer === null) {
+    if (dragged === null || dataTransfer === null) {
       return;
     }
 
-    if (draggedNode.parent().equals(node.parent())) {
+    if (dragged.parent().equals(node.parent())) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
     } else {
@@ -226,11 +217,11 @@
   function handleDragOverChild(event: DragEvent) {
     event.preventDefault();
     const dataTransfer = event.dataTransfer;
-    if (draggedNode === null || dataTransfer === null) {
+    if (dragged === null || dataTransfer === null) {
       return;
     }
 
-    if (draggedNode.parent().equals(node)) {
+    if (dragged.parent().equals(node)) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
     } else {
@@ -267,12 +258,12 @@
   }
 
   function handleHighlight() {
-    if ($dragged) return;
+    if ($draggedId) return;
     $highlighted = node;
   }
 
   function handleUnhighlight() {
-    if ($dragged) return;
+    if ($draggedId) return;
     $highlighted = null;
   }
 
