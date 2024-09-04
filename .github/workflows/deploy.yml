@@ -20,9 +20,11 @@ jobs:
           key: ${{ secrets.KEY }}
           script: |
             set -e
+            echo "Deploying $GITHUB_SHA"
             cd /root/koso
             git reset --hard
             git clean -f -d
             git checkout main
             git pull
+            git checkout $GITHUB_SHA
             ./deploy.sh
