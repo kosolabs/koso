@@ -3,8 +3,6 @@
   import { Button } from "$lib/components/ui/button";
   import type { Koso } from "$lib/koso";
   import {
-    List,
-    ListStart,
     ListPlus,
     ListTree,
     SquarePen,
