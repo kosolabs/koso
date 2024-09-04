@@ -18,6 +18,7 @@ jobs:
           host: koso.app
           username: root
           key: ${{ secrets.KEY }}
+          envs: GITHUB_SHA
           script: |
             set -e
             echo "Deploying commit ${GITHUB_SHA}"
