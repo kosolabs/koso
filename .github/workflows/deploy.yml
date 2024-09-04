@@ -29,3 +29,4 @@ jobs:
             git pull
             git checkout $GITHUB_SHA
             git status
+            ./deploy.sh
