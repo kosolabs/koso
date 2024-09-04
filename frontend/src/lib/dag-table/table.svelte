@@ -5,6 +5,7 @@
   import {
     List,
     ListStart,
+    ListPlus,
     ListTree,
     SquarePen,
     Trash,
@@ -102,8 +103,8 @@
 <div class="sticky top-0 z-30 flex gap-2 px-4 py-2 pb-2 backdrop-blur">
   {#if $selected}
     <Button class="text-xs" on:click={addPeer}>
-      <List class="me-2 w-4" />
-      Add Peer
+      <ListPlus class="me-2 w-4" />
+      Add Task
     </Button>
     <Button class="text-xs" on:click={addChild}>
       <ListTree class="me-2 w-4" />
@@ -122,8 +123,8 @@
     {/if}
   {:else}
     <Button class="text-xs" on:click={addRoot}>
-      <ListStart class="me-2 w-4" />
-      Add Root
+      <ListPlus class="me-2 w-4" />
+      Add Task
     </Button>
   {/if}
 </div>
