@@ -23,36 +23,52 @@ const MSG_SYNC_RESPONSE = 1;
 const MSG_SYNC_UPDATE = 2;
 
 export class Node {
-  id: string;
-  name: string;
-  length: number;
+  #koso: Koso;
   path: string[];
 
   static get separator() {
     return "/";
   }
 
-  constructor(path: string[]) {
+  static id(path: string[]) {
+    return path.join(Node.separator) || "root";
+  }
+
+  get id() {
+    return Node.id(this.path);
+  }
+
+  static name(path: string[]) {
+    return path.at(-1) ?? "root";
+  }
+
+  get name(): string {
+    return Node.name(this.path);
+  }
+
+  get length(): number {
+    return this.path.length;
+  }
+
+  static concat(path: string[], child: string): string {
+    return Node.id(path.concat(child));
+  }
+
+  constructor(koso: Koso, path: string[]) {
+    this.#koso = koso;
     this.path = path;
-    const maybeName = this.path.at(-1);
-    if (!maybeName) {
-      this.id = "root";
-      this.name = "root";
-    } else {
-      this.id = this.path.join(Node.separator);
-      this.name = maybeName;
-    }
-    this.length = this.path.length;
   }
 
   parent(): Node {
-    if (this.path.length === 0)
-      throw new Error("Cannot get parent of root node");
-    return new Node(this.path.slice(0, -1));
+    return this.#koso.getParent(this);
+  }
+
+  child(name: string): Node {
+    return this.#koso.getChild(this, name);
   }
 
   concat(nodeId: string) {
-    return new Node(this.path.concat(nodeId));
+    return new Node(this.#koso, this.path.concat(nodeId));
   }
 
   equals(other: Node | null): boolean {
@@ -88,13 +104,15 @@ export class Koso {
   clientMessageHandler: (message: Uint8Array) => void;
 
   events: Readable<YEvent[]>;
-  selected: Writable<Node | null>;
+  selectedId: Writable<string | null>;
   highlighted: Writable<Node | null>;
   dropEffect: Writable<"link" | "move" | "none">;
-  dragged: Writable<Node | null>;
+  dragged: Writable<string | null>;
   expanded: Writable<Set<string>>;
-  nodes: Readable<Node[]>;
   parents: Readable<Parents>;
+  nodeIds: string[] = [];
+  nodeIdsStore: Readable<string[]>;
+  nodes: { [id: string]: Node } = {};
 
   constructor(projectId: string, yDoc: Y.Doc) {
     this.yDoc = yDoc;
@@ -124,10 +142,10 @@ export class Koso {
       return () => this.unobserve(observer);
     });
 
-    this.selected = writable<Node | null>(null);
+    this.selectedId = writable<string | null>(null);
     this.highlighted = writable<Node | null>(null);
     this.dropEffect = writable<"link" | "move" | "none">("none");
-    this.dragged = writable<Node | null>(null);
+    this.dragged = writable<string | null>(null);
 
     const expandedLocalStorageKey = `expanded-nodes-${projectId}`;
     this.expanded = storable<Set<string>>(
@@ -137,9 +155,13 @@ export class Koso {
       (value) => JSON.stringify(Array.from(value)),
     );
 
-    this.nodes = derived([this.expanded, this.events], ([expanded]) =>
-      this.#flatten(new Node([]), [], expanded),
+    const nodesAndIds = derived([this.expanded, this.events], ([expanded]) =>
+      this.#flatten(new Node(this, []), [], {}, expanded),
     );
+    this.nodeIdsStore = derived(nodesAndIds, ($nodesAndIds) => {
+      [this.nodeIds, this.nodes] = $nodesAndIds;
+      return this.nodeIds;
+    });
 
     this.parents = derived([this.events], () => this.#toParents());
   }
@@ -202,16 +224,23 @@ export class Koso {
     return this.yGraph.toJSON();
   }
 
-  #flatten(node: Node, nodes: Node[], expanded: Set<string>): Node[] {
+  #flatten(
+    node: Node,
+    nodeIds: string[],
+    nodes: { [id: string]: Node },
+    expanded: Set<string>,
+  ): [string[], { [id: string]: Node }] {
     const task = this.yGraph.get(node.name);
-    if (task && (node.length < 1 || expanded.has(node.id))) {
-      for (const childName of task.get("children") as Y.Array<string>) {
-        const child = node.concat(childName);
-        nodes.push(child);
-        this.#flatten(child, nodes, expanded);
+    if (task) {
+      nodeIds.push(node.id);
+      nodes[node.id] = node;
+      if (node.length < 1 || expanded.has(node.id)) {
+        for (const child of task.get("children") as Y.Array<string>) {
+          this.#flatten(node.concat(child), nodeIds, nodes, expanded);
+        }
       }
     }
-    return nodes;
+    return [nodeIds, nodes];
   }
 
   #toParents(): Parents {
@@ -225,6 +254,26 @@ export class Koso {
       }
     }
     return parents;
+  }
+
+  getNode(key: string | number): Node {
+    if (typeof key === "string") {
+      return this.nodes[key];
+    }
+    if (typeof key === "number") {
+      return this.nodes[this.nodeIds[key]];
+    }
+    throw new Error(`Node ID ${key} not found in nodes`);
+  }
+
+  getParent(node: Node): Node {
+    if (node.path.length === 0)
+      throw new Error("Cannot get parent of root node");
+    return new Node(this, node.path.slice(0, -1));
+  }
+
+  getChild(node: Node, childName: string): Node {
+    return this.nodes[Node.id(node.path.concat(childName))];
   }
 
   getTask(taskId: string): Task {
@@ -241,7 +290,7 @@ export class Koso {
   }
 
   getOffset(node: Node): number {
-    const task = this.getTask(node.parent().name);
+    const task = this.getTask(this.getParent(node).name);
     return task.children.indexOf(node.name);
   }
 
@@ -315,7 +364,7 @@ export class Koso {
 
   #unlinkNode(node: Node) {
     const nodeId = node.name;
-    const parentId = node.parent().name;
+    const parentId = this.getParent(node).name;
     const yParent = this.yGraph.get(parentId);
     if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
     const yParentsChildren = yParent.get("children") as Y.Array<string>;
