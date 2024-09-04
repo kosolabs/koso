@@ -177,6 +177,21 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
             "header.kid is absent: {header:?}"
         )));
     };
+
+    // TODO: Add a flag to enable this only in non-prod.
+    if kid == "koso-integration-test" {
+        let user = User {
+            email: "test@koso.app".into(),
+            name: "Test User".to_string(),
+            picture: "TODO".to_string(),
+            exp: 1925490607,
+        };
+        tracing::Span::current().record("email", user.email.clone());
+        assert!(request.extensions_mut().insert(user).is_none());
+
+        return Ok(next.run(request).await);
+    }
+
     let key = match key_set.get(&kid).await {
         Ok(key) => key,
         Err(e) => {

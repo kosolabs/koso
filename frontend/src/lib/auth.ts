@@ -37,7 +37,10 @@ export const user = derived(token, (token) => {
   // This number matches the server's validation in google.rs.
   const sevenDaysSecs = 7 * 24 * 60 * 60;
   const realExpiryMillisecs = (user.exp + sevenDaysSecs) * 1000;
-  const remainingLifeMillis = realExpiryMillisecs - Date.now();
+  const remainingLifeMillis = Math.min(
+    realExpiryMillisecs - Date.now(),
+    2147483647,
+  );
   if (remainingLifeMillis <= 0) {
     return null;
   }
