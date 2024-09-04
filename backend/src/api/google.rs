@@ -11,11 +11,11 @@ use std::{
 use tokio::sync::Mutex;
 
 #[derive(Clone)]
-pub(crate) struct KeySet {
+pub struct KeySet {
     inner: Arc<KeySetInner>,
 }
 
-pub(crate) struct KeySetInner {
+struct KeySetInner {
     certs: Mutex<Certs>,
     client: reqwest::Client,
     last_load: Mutex<Instant>,
@@ -261,5 +261,162 @@ mod tests {
         assert!(certs.get("1").is_some());
         let key = certs.get("1").unwrap();
         assert!(key.kid == "1");
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+    use super::{Certs, Key, KeySet, KeySetInner};
+    use anyhow::Result;
+    use jsonwebtoken::{DecodingKey, EncodingKey, Header};
+    use rsa::{
+        pkcs1::{DecodeRsaPrivateKey as _, EncodeRsaPublicKey as _},
+        RsaPrivateKey,
+    };
+    use serde::{Deserialize, Serialize};
+    use std::{
+        collections::HashMap,
+        sync::Arc,
+        time::{Duration, Instant},
+    };
+    use tokio::sync::Mutex;
+
+    pub(crate) const KID_1: &str = "kid_1";
+    pub(crate) const PEM_1: &str = "-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEApoqzB090M6ZLQAufcb4JMFCu5WQ0HITPHQcvcrtmv2nBlcXF
+Ml4g08B47b0yL73KhJA20GRY19UVQsuUuSNvaYsIvHfGE0KuN+OWIfrA2TnwLBNH
+0VqbIiar9hAluGt0OOcd4itx0dqqPq4VecO7qwgzjtf6u+3AZCCHxbLqNIEGUPQ1
+HBUuWMnRGgubjGdLxR3fujpmoz3LaeDngOc6NwesAbVU2kXOQDwg6pJOFjpUJ537
+zQaAvHiOz6JmvXvqUZycVngPqpykYG0Qc4qKZN0uRRLS7hX6HRT8pyksEQHscwsf
++UfkOlcpf7QLwc1+3B++7/GU+AiRPizioaneywIDAQABAoIBAAob3SYScpE4BNVM
+X08+I7ylCRivbmJUxWWTrBOgwGnZ94Ap0wBtqjxwMGbt1wAC2yoUvt8DWEkxi+rU
+BKEAP6D+aXdXJdTBdWW7EL/bQp1s4OEsAm34u/Xktwdmj4OUMifKD4xM6sm8Jh1L
+383WTaviAY8oGPYTRlxNhTBA3ep12VozlFjz67tQJUdqNvNyww9DlqXKQXTlBQrG
+zCbIDNczqUACKEVQfg7fGsbq8TWVXH+GPMVORLzd9mG/EHLe6Bt3/D1p88h6s5NO
+rFRBPbrD68BPNGW17RH/G+giQDLTNMj3Mz230foLTPwbsXTkdPxFsinK0k2dGSXM
+9aDUMTECgYEA2vM4JCunine5LaBe9KmKtoZ8OOUposZuBNABt1lLuQb9/vcoqRNv
++Vlidor9mRXslJh70QnI2P+iERnrj3ygQQSU0GC9vDdnV68H3U0+fqygBYf0U9+q
+lskJfubvZmXVfbwA2KDq6B/JzUe2qFnQnJSijG3Up4qMs9nfWdmIwsUCgYEAwrkv
+nEuqN69kQrcZxcw6P+jeyyr79n/al2DdU5OUlCflm9DMPBedXogL4lwftBD/vvy+
+yRpPKB1z0ghAasG8c3oSf4vJ84jtvAZTlxiNjyFJe1q5izmEDLZ+sOWKc1rl7Pdl
+IhbpS8hatjk7tf+9cFNqP8xQZ4sgDA4PypCq9E8CgYEAqBUFKUdWBAeq4er2Wm55
+LWwKmwbZsrsQJKOmXaGwbud+P6hvz3Q7hrlmzEghLM9W4jA5BR200VlVijlSy8FJ
+qQAiWeGaZo5FyFt29x3gdxCAfB6Fo4nWBJFqt8ADUqGkhjS4lZTbIL2ehvehspXY
+fwvfyVxbXw8OutbsDqbfxV0CgYBMRguvNjhDvbERLPWsc/XxKL90Z67wfF5cY3Xu
+keVmL0aSRTRq6XkcGUBGd313pBz5a7kzvtl4xiijAdZxutediBiM223MtjshJn1B
+tz1j7k8BQaViMrJV5Ho1woP78YQU0UdNFhpmM+HMdRi9jqJeyF3bBaYNGQMBldR7
+rTU5owKBgFn8VLurbLwwl474PyRuw367/J3Rrsccz5OR0MB2pazhQO+rVZqi4wcj
+ptl5DBYOjW/AmvCqnAX8BUX1OgBSk3GrR4EBAw3itn0rr8kGek5salD7cyqVQ7pY
+JTE6ixYn3f+aGTuhJ7dIxl1hUvhfulNB2R8w1qQuuzSkegHjQbiM
+-----END RSA PRIVATE KEY-----";
+
+    pub(crate) const KID_2: &str = "kid_2";
+    pub(crate) const PEM_2: &str = "-----BEGIN RSA PRIVATE KEY-----
+MIIEpgIBAAKCAQEAwg7lRJdetSD4rfbu1r5fMl8C0Pp3jtoO6bmrzO/cM55nEzU7
+a5nf5M/kCT9/tZM0cUP92hR9o+vKtd6VO9O+MCG5fPnkbXmi0KJivQDJ3CD42Ukv
+8NYSNJPcN9KBdGjquvJ6OdxveQgcSBMgVpHf8J1E4KapY/+SYYVprfX4JpY9+Aux
+whDM589Iadzl5R+CdOoRNgpW1dvsMXaJ5FQK5ftIcg4M2qpm860KxZe3S7l4/A/H
+0Hni8nPSG7uRtr1V6b1HO8r8XF1jGULNLjv8ktF4RYWY8B7EPnvudfEraDZ5YD9m
+8ySlcX9ig7Rg13gbm7p0ZJMvttr29zTtdMCSKwIDAQABAoIBAQCSg/6UGBl4dgls
+B1lyp09mz5dnwwPLxlWmH/pXg+3kxz8ZoIJZjlceAdwxI1E//YGF1wjtw7TMs7Vc
+NU7FWexpmLzcYCwYf9Lu5PvZqaO+4OIh5AEfO/GI4u5M81GsW56GQZcI4qcDYZ1A
+ybgLxJ2opIUhfJO+HXMe0ETnBCQ0tL8c1nbwYwMHEcXNcQ3Qrklok2HhkeE9DlXp
+x/6ZshFeFFcwTgKM2YTTf6ucLA7o0FfZeaV5vFLf60WBvZbdVZC/1fSHFzCMoVGZ
+jPz7JNgYWLywi8c+QSoW9VY7soCIzCgpbGM77Had/96pcPLCgXUFIt0GchqOQB+L
+pGG2vkexAoGBAM0JtcFcm50lIZhxXCKRdXapTltTeSENxqmA3nbiObxG7cH0Kr9Z
+ym3R6moreIjTBQD6FaJKrEHLdGEJA4nHQQgzOmrJP1JOGEcBlWj7auXlLh2j8Zm8
+cvu6RGs3rW8uNyUqxBINn+i6PyPIEOUKgX3Q1Db8poup/7G7fU7x89tjAoGBAPJK
+jyQCjBKocEAVRlHL4+Xgw7ywTlH9Kt21eSt0n9hhd3H4MXZu7U1kBcFuFGzLamde
+uo06QgOTWufHS888vgOrhMILuY/jWX+EJruQ7reW/Q41fJeWgeExxDnenVJoQc5a
+E+Pv/y+B7vUj/oTfepmZS2UwrHn/HJWWVxjDz/yZAoGBAKcgMglRXfpCKNckF3CJ
+1hAJwrfIG2So4PSK+Uo37c2clvHP/wQHwWuwff1aP55vOpXoQrgNW8kpeEwb18l3
+I3f2obgnH7kLtNgz30A6JpELNIKufiDMrYCn/FrUgEauif5+lGEOv/gnz41v5u16
+mcAe9st3Np2CzMtnQqWVrCp3AoGBAIbL/ljtZdqXhWPRsj6drZvd8WgPunMY43lX
+liMcDjYG+7oXeAVI75MH27/iq1Bf10HNTQJ3b/SnTYL3uPCB/cDy8rg2Z7Vqqgcs
+kZP2rSjMwtrd3QRFAtszodUESghn4nyYVsqQYiufIT+XF+n6ny3HQE/6xWpWCSQb
+8Tbg8dy5AoGBAIklRnELhI9o8R//xaW7xZxEmabD2F2eQpLCh1j8RJABYIkFQ4Y+
+Nh2lZEEmIkksR2hKZ2cnnk0tbqR5QsUPbsuUy6Ad08NwA5YwUkYxMkeMmsEG5yWJ
+J4Q2mbNL+TM1cM1BbzXn6SBWWTKlyEx7OLgQ2+VlZ1CRLQI/iI1tbHIt
+-----END RSA PRIVATE KEY-----";
+
+    pub(crate) async fn testonly_key_set() -> anyhow::Result<KeySet> {
+        let mut keys = HashMap::new();
+
+        let priv_key_1 = RsaPrivateKey::from_pkcs1_pem(PEM_1).unwrap();
+        let pub_key_1 = priv_key_1.to_public_key();
+        let key_1 = DecodingKey::from_rsa_pem(
+            pub_key_1
+                .to_pkcs1_pem(rsa::pkcs8::LineEnding::CR)
+                .unwrap()
+                .as_bytes(),
+        )
+        .unwrap();
+        keys.insert(KID_1.to_string(), key_1);
+
+        let priv_key_2 = RsaPrivateKey::from_pkcs1_pem(PEM_2).unwrap();
+        let pub_key_2 = priv_key_2.to_public_key();
+        let key_2 = DecodingKey::from_rsa_pem(
+            pub_key_2
+                .to_pkcs1_pem(rsa::pkcs8::LineEnding::CR)
+                .unwrap()
+                .as_bytes(),
+        )
+        .unwrap();
+        keys.insert(KID_2.to_string(), key_2);
+
+        new_fake(keys).await
+    }
+
+    pub(crate) async fn new_fake(keys: HashMap<String, DecodingKey>) -> Result<KeySet> {
+        let distant_future = Instant::now() + Duration::from_secs(60 * 60 * 24);
+        let key_set = KeySet {
+            inner: Arc::new(KeySetInner {
+                certs: Mutex::new(Certs {
+                    keys: keys
+                        .into_iter()
+                        .map(|(kid, key)| Key { kid, key })
+                        .collect(),
+                }),
+                client: reqwest::Client::new(),
+                last_load: Mutex::new(distant_future),
+            }),
+        };
+        // Verify load does nothing thanks to the distant last_load time set above.
+        let _ = key_set.load_keys(None).await?;
+        Ok(key_set)
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub(crate) struct Claims {
+        pub(crate) aud: String,
+        pub(crate) iss: String,
+        pub(crate) email: String,
+        pub(crate) name: String,
+        pub(crate) picture: String,
+        pub(crate) exp: u32,
+    }
+
+    impl Default for Claims {
+        fn default() -> Claims {
+            Claims {
+                aud: "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com"
+                    .to_string(),
+                iss: "https://accounts.google.com".to_string(),
+                email: "valid-user@koso.app".to_string(),
+                name: "Valid User".to_string(),
+                picture: "koso.app/valid-user/pic".to_string(),
+                exp: 2024788014,
+            }
+        }
+    }
+
+    pub(crate) fn encode_token(claims: &Claims, kid: &str, pem: &str) -> Result<String> {
+        let mut header = Header::new(jsonwebtoken::Algorithm::RS256);
+        header.kid = Some(kid.to_string());
+        Ok(jsonwebtoken::encode(
+            &header,
+            claims,
+            &EncodingKey::from_rsa_pem(pem.as_bytes())?,
+        )?)
     }
 }

@@ -41,4 +41,9 @@ base64 = "0.22.1"
 dashmap = "6.0.1"
 anyhow = "1.0.86"
 rand = "0.8.5"
+
+[dev-dependencies]
 test-log = { version = "0.2.16", features = ["trace", "color"] }
+tokio-tungstenite = { version = "0.23.1", features = ["url"] }
+tungstenite = "0.24.0"
+rsa = "0.9.6"
