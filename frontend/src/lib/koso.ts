@@ -5,6 +5,7 @@ import {
   readable,
   writable,
   type Readable,
+  type Unsubscriber,
   type Writable,
 } from "svelte/store";
 import { v4 as uuidv4 } from "uuid";
@@ -25,6 +26,7 @@ const MSG_SYNC_UPDATE = 2;
 export class Node {
   #koso: Koso;
   path: string[];
+  offset: number;
 
   static get separator() {
     return "/";
@@ -54,9 +56,10 @@ export class Node {
     return Node.id(path.concat(child));
   }
 
-  constructor(koso: Koso, path: string[]) {
+  constructor(koso: Koso, path: string[], offset: number) {
     this.#koso = koso;
     this.path = path;
+    this.offset = offset;
   }
 
   parent(): Node {
@@ -65,10 +68,6 @@ export class Node {
 
   child(name: string): Node {
     return this.#koso.getChild(this, name);
-  }
-
-  concat(nodeId: string) {
-    return new Node(this.#koso, this.path.concat(nodeId));
   }
 
   equals(other: Node | null): boolean {
@@ -111,8 +110,9 @@ export class Koso {
   expanded: Writable<Set<string>>;
   parents: Readable<Parents>;
   nodeIds: string[] = [];
-  nodeIdsStore: Readable<string[]>;
+  nodesAndIds: Readable<[string[], { [id: string]: Node }]>;
   nodes: { [id: string]: Node } = {};
+  unsubscribe: Unsubscriber;
 
   constructor(projectId: string, yDoc: Y.Doc) {
     this.yDoc = yDoc;
@@ -155,15 +155,14 @@ export class Koso {
       (value) => JSON.stringify(Array.from(value)),
     );
 
-    const nodesAndIds = derived([this.expanded, this.events], ([expanded]) =>
-      this.#flatten(new Node(this, []), [], {}, expanded),
+    this.nodesAndIds = derived([this.expanded, this.events], ([expanded]) =>
+      this.#flatten(new Node(this, [], 0), [], {}, expanded),
     );
-    this.nodeIdsStore = derived(nodesAndIds, ($nodesAndIds) => {
-      [this.nodeIds, this.nodes] = $nodesAndIds;
-      return this.nodeIds;
-    });
-
     this.parents = derived([this.events], () => this.#toParents());
+
+    this.unsubscribe = this.nodesAndIds.subscribe(($nodesAndIds) => {
+      [this.nodeIds, this.nodes] = $nodesAndIds;
+    });
   }
 
   observe(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
@@ -235,9 +234,10 @@ export class Koso {
       nodeIds.push(node.id);
       nodes[node.id] = node;
       if (node.length < 1 || expanded.has(node.id)) {
-        for (const child of task.get("children") as Y.Array<string>) {
-          this.#flatten(node.concat(child), nodeIds, nodes, expanded);
-        }
+        (task.get("children") as Y.Array<string>).forEach((name, offset) => {
+          const child = new Node(this, node.path.concat(name), offset);
+          this.#flatten(child, nodeIds, nodes, expanded);
+        });
       }
     }
     return [nodeIds, nodes];
@@ -258,6 +258,8 @@ export class Koso {
 
   getNode(key: string | number): Node {
     if (typeof key === "string") {
+      if (!this.nodes[key])
+        throw new Error(`Node ID ${key} not found in nodes`);
       return this.nodes[key];
     }
     if (typeof key === "number") {
@@ -269,11 +271,11 @@ export class Koso {
   getParent(node: Node): Node {
     if (node.path.length === 0)
       throw new Error("Cannot get parent of root node");
-    return new Node(this, node.path.slice(0, -1));
+    return this.getNode(Node.id(node.path.slice(0, -1)));
   }
 
   getChild(node: Node, childName: string): Node {
-    return this.nodes[Node.id(node.path.concat(childName))];
+    return this.getNode(Node.id(node.path.concat(childName)));
   }
 
   getTask(taskId: string): Task {
@@ -287,11 +289,6 @@ export class Koso {
     if (!yTask) throw new Error(`Task ID ${taskId} not found in yGraph`);
     const yChildren = yTask.get("children") as Y.Array<string>;
     return yChildren.toArray();
-  }
-
-  getOffset(node: Node): number {
-    const task = this.getTask(this.getParent(node).name);
-    return task.children.indexOf(node.name);
   }
 
   getOrphanedTaskIds() {
@@ -353,12 +350,12 @@ export class Koso {
     );
   }
 
-  linkNode(nodeId: string, parentId: string, offset: number) {
+  linkNode(node: Node, parent: string, offset: number) {
     this.yDoc.transact(() => {
-      const yParent = this.yGraph.get(parentId);
-      if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
+      const yParent = this.yGraph.get(parent);
+      if (!yParent) throw new Error(`Task ${parent} is not in the graph`);
       const yChildren = yParent.get("children") as Y.Array<string>;
-      yChildren.insert(offset, [nodeId]);
+      yChildren.insert(offset, [node.name]);
     });
   }
 
@@ -398,37 +395,27 @@ export class Koso {
     });
   }
 
-  moveNode(
-    nodeId: string,
-    srcParentId: string,
-    srcOffset: number,
-    destParentId: string,
-    destOffset: number,
-  ) {
+  moveNode(node: Node, destParentId: string, destOffset: number) {
     this.yDoc.transact(() => {
+      const srcParentId = node.parent().name;
       const ySrcParent = this.yGraph.get(srcParentId);
       if (!ySrcParent)
         throw new Error(`Task ${srcParentId} is not in the graph`);
       const ySrcChildren = ySrcParent.get("children") as Y.Array<string>;
-      ySrcChildren.delete(srcOffset);
+      ySrcChildren.delete(node.offset);
 
       const yDestParent = this.yGraph.get(destParentId);
       if (!yDestParent)
         throw new Error(`Task ${destParentId} is not in the graph`);
       const yDestChildren = yDestParent.get("children") as Y.Array<string>;
-      if (srcParentId === destParentId && srcOffset < destOffset) {
+      if (srcParentId === destParentId && node.offset < destOffset) {
         destOffset -= 1;
       }
-      yDestChildren.insert(destOffset, [nodeId]);
+      yDestChildren.insert(destOffset, [node.name]);
     });
   }
 
-  insertNode(
-    parentId: string,
-    offset: number,
-    name: string,
-    user: User,
-  ): string {
+  insertNode(parent: Node, offset: number, name: string, user: User): string {
     const taskId = this.newId();
     this.yDoc.transact(() => {
       this.#upsert({
@@ -440,11 +427,11 @@ export class Koso {
         assignee: null,
         status: null,
       });
-      const yParent = this.yGraph.get(parentId)!;
+      const yParent = this.yGraph.get(parent.name)!;
       const yChildren = yParent.get("children") as Y.Array<string>;
       yChildren.insert(offset, [taskId]);
     });
-    return taskId;
+    return Node.id(parent.path.concat(taskId));
   }
 
   setTaskName(taskId: string, newName: string) {

@@ -153,19 +153,13 @@
       return;
     }
 
-    const dragDestNode = node.parent().concat(dragged.name);
-    const dragDestOffset = koso.getOffset(node) + 1;
+    const dragDestParent = node.parent().name;
+    const dragDestOffset = node.offset + 1;
 
     if ($dropEffect === "move") {
-      koso.moveNode(
-        dragged.name,
-        dragged.parent().name,
-        koso.getOffset(dragged),
-        dragDestNode.parent().name,
-        dragDestOffset,
-      );
+      koso.moveNode(dragged, dragDestParent, dragDestOffset);
     } else {
-      koso.linkNode(dragged.name, dragDestNode.parent().name, dragDestOffset);
+      koso.linkNode(dragged, dragDestParent, dragDestOffset);
     }
     $draggedId = null;
     dragOverPeer = false;
@@ -178,19 +172,13 @@
       return;
     }
 
-    const dragDestNode = node.concat(dragged.name);
+    const dragDestParent = node.name;
     const dragDestOffset = 0;
 
     if ($dropEffect === "move") {
-      koso.moveNode(
-        dragged.name,
-        dragged.parent().name,
-        koso.getOffset(dragged),
-        dragDestNode.parent().name,
-        dragDestOffset,
-      );
+      koso.moveNode(dragged, dragDestParent, dragDestOffset);
     } else {
-      koso.linkNode(dragged.name, dragDestNode.parent().name, dragDestOffset);
+      koso.linkNode(dragged, dragDestParent, dragDestOffset);
     }
     $draggedId = null;
     dragOverPeer = false;
@@ -337,14 +325,14 @@
     if (!node.parent().equals(dragged.parent())) {
       return false;
     }
-    return koso.getOffset(node) + 1 === koso.getOffset(dragged);
+    return node.offset + 1 === dragged.offset;
   }
 
   function isSameChild(node: Node, dragged: Node): boolean {
     if (!node.equals(dragged.parent())) {
       return false;
     }
-    return koso.getOffset(dragged) === 0;
+    return dragged.offset === 0;
   }
 </script>
 

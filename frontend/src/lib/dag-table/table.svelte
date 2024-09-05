@@ -1,7 +1,7 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
-  import { Node, type Koso } from "$lib/koso";
+  import { type Koso } from "$lib/koso";
   import {
     ListPlus,
     ListTree,
@@ -18,7 +18,7 @@
   export let users: User[];
 
   const rows: { [key: string]: HTMLDivElement } = {};
-  const { nodeIdsStore, parents, selectedId } = koso;
+  const { nodesAndIds, parents, selectedId } = koso;
 
   $: selected = $selectedId ? koso.getNode($selectedId) : null;
 
@@ -78,27 +78,24 @@
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
-    koso.insertNode("root", 0, "Untitled", $user);
+    koso.insertNode(koso.getNode("root"), 0, "Untitled", $user);
   }
 
   function addPeer() {
     if (!selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    const parent = selected.parent();
-    const newNodeId = koso.insertNode(
-      parent.name,
-      koso.getOffset(selected) + 1,
+    $selectedId = koso.insertNode(
+      selected.parent(),
+      selected.offset + 1,
       "Untitled",
       $user,
     );
-    $selectedId = Node.concat(parent.path, newNodeId);
   }
 
   function addChild() {
     if (!selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    const newNodeId = koso.insertNode(selected.name, 0, "Untitled", $user);
-    $selectedId = Node.concat(selected.path, newNodeId);
+    $selectedId = koso.insertNode(selected, 0, "Untitled", $user);
   }
 
   function unlink() {
@@ -163,7 +160,7 @@
       </tr>
     </thead>
 
-    {#each $nodeIdsStore.slice(1) as nodeId, index (nodeId)}
+    {#each $nodesAndIds[0].slice(1) as nodeId, index (nodeId)}
       {@const node = koso.getNode(nodeId)}
       <tbody animate:flip={{ duration: 250 }}>
         <Row {index} {node} {users} row={(el) => (rows[nodeId] = el)} />
