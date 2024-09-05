@@ -1,7 +1,7 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
-  import { type Koso } from "$lib/koso";
+  import { Node, type Koso } from "$lib/koso";
   import {
     ListPlus,
     ListTree,
@@ -19,8 +19,6 @@
 
   const rows: { [key: string]: HTMLDivElement } = {};
   const { nodesAndIds, parents, selectedId } = koso;
-
-  $: selected = $selectedId ? koso.getNode($selectedId) : null;
 
   document.onkeydown = (event: KeyboardEvent) => {
     if (
@@ -82,8 +80,9 @@
   }
 
   function addPeer() {
-    if (!selected) return;
+    if (!$selectedId) return;
     if (!$user) throw new Error("Unauthenticated");
+    const selected = koso.getNode($selectedId);
     $selectedId = koso.insertNode(
       selected.parent(),
       selected.offset + 1,
@@ -93,19 +92,22 @@
   }
 
   function addChild() {
-    if (!selected) return;
+    if (!$selectedId) return;
     if (!$user) throw new Error("Unauthenticated");
+    const selected = koso.getNode($selectedId);
     $selectedId = koso.insertNode(selected, 0, "Untitled", $user);
   }
 
   function unlink() {
-    if (!selected) return;
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
     koso.unlinkNode(selected);
     $selectedId = null;
   }
 
   function remove() {
-    if (!selected) return;
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
     koso.deleteNode(selected);
     $selectedId = null;
   }
@@ -123,7 +125,7 @@
       <ListTree class="me-2 w-4" />
       Add Child
     </Button>
-    {#if $parents[koso.getNode($selectedId).name].length === 1}
+    {#if $parents[Node.name($selectedId.split(Node.separator))].length === 1}
       <Button class="text-xs" on:click={remove}>
         <Trash class="me-2 w-4" />
         Delete
