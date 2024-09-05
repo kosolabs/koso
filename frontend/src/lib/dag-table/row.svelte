@@ -44,7 +44,7 @@
     !hasChild(node, dragged) &&
     !hasCycle(node.name, dragged.name);
   $: isMoving = isDragging && $dropEffect === "move";
-  $: isHovered = $highlighted?.name === node.name;
+  $: isHovered = $highlighted === node.name;
   $: isSelected = node.id == $selectedId;
 
   function getUser(users: User[], email: string | null): User | null {
@@ -247,7 +247,7 @@
 
   function handleHighlight() {
     if ($draggedId) return;
-    $highlighted = node;
+    $highlighted = node.name;
   }
 
   function handleUnhighlight() {

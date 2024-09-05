@@ -104,13 +104,13 @@ export class Koso {
 
   events: Readable<YEvent[]>;
   selectedId: Writable<string | null>;
-  highlighted: Writable<Node | null>;
+  highlighted: Writable<string | null>;
   dropEffect: Writable<"link" | "move" | "none">;
   draggedId: Writable<string | null>;
   expanded: Writable<Set<string>>;
   parents: Readable<Parents>;
-  nodeIds: string[] = [];
   nodesAndIds: Readable<[string[], { [id: string]: Node }]>;
+  nodeIds: string[] = [];
   nodes: { [id: string]: Node } = {};
   unsubscribe: Unsubscriber;
 
@@ -143,7 +143,7 @@ export class Koso {
     });
 
     this.selectedId = writable<string | null>(null);
-    this.highlighted = writable<Node | null>(null);
+    this.highlighted = writable<string | null>(null);
     this.dropEffect = writable<"link" | "move" | "none">("none");
     this.draggedId = writable<string | null>(null);
 
