@@ -41,9 +41,13 @@ export const user = derived(token, (token) => {
   if (remainingLifeMillis <= 0) {
     return null;
   }
-  setTimeout(() => {
-    console.log("Logging the user out at token expiry");
-    logout();
-  }, remainingLifeMillis - 90000);
+  setTimeout(
+    () => {
+      console.log("Logging the user out at token expiry");
+      logout();
+    },
+    // Avoid exceeding setTimeout's max delay.
+    Math.min(remainingLifeMillis - 90000, 2147483647),
+  );
   return user;
 });
