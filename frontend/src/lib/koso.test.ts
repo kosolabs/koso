@@ -76,44 +76,50 @@ describe("Koso tests", () => {
 
   describe("toNodes", () => {
     function root(): Node {
-      return new Node(koso, [], 0);
+      return new Node(koso, [], 0, 0);
     }
 
-    function node(id: string, offset: number): Node {
-      return new Node(koso, id.split(Node.separator), offset);
+    function node(id: string, offset: number, index: number): Node {
+      return new Node(koso, id.split(Node.separator), offset, index);
     }
 
     it("empty doc has no nodes", () => {
-      expect(koso.nodes).toStrictEqual({ root: root() });
+      expect(get(koso.nodes)).toStrictEqual(new Map([["root", root()]]));
     });
 
     it("doc with one task has one node", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
-      expect(koso.nodes).toStrictEqual({
-        root: root(),
-        [id1]: node(id1, 0),
-      });
+      expect(get(koso.nodes)).toStrictEqual(
+        new Map([
+          ["root", root()],
+          [id1, node(id1, 0, 1)],
+        ]),
+      );
     });
 
     it("doc with two tasks has two nodes", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
       const id2 = koso.insertNode(koso.getNode("root"), 1, "Task 2", USER);
-      expect(koso.nodes).toStrictEqual({
-        root: root(),
-        [id1]: node(id1, 0),
-        [id2]: node(id2, 1),
-      });
+      expect(get(koso.nodes)).toStrictEqual(
+        new Map([
+          ["root", root()],
+          [id1, node(id1, 0, 1)],
+          [id2, node(id2, 1, 2)],
+        ]),
+      );
     });
 
     it("doc with two tasks and one subtask has two nodes", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
       const id2 = koso.insertNode(koso.getNode("root"), 1, "Task 2", USER);
       koso.insertNode(koso.getNode(id1), 0, "Task 3", USER);
-      expect(koso.nodes).toStrictEqual({
-        root: root(),
-        [id1]: node(id1, 0),
-        [id2]: node(id2, 1),
-      });
+      expect(get(koso.nodes)).toStrictEqual(
+        new Map([
+          ["root", root()],
+          [id1, node(id1, 0, 1)],
+          [id2, node(id2, 1, 2)],
+        ]),
+      );
     });
 
     it("doc with two tasks, one subtask, and parent is expanded has three nodes", () => {
@@ -121,12 +127,14 @@ describe("Koso tests", () => {
       const id2 = koso.insertNode(koso.getNode("root"), 1, "Task 2", USER);
       const id3 = koso.insertNode(koso.getNode(id1), 0, "Task 3", USER);
       koso.expanded.set(new Set([id1]));
-      expect(koso.nodes).toStrictEqual({
-        root: root(),
-        [id1]: node(id1, 0),
-        [id2]: node(id2, 1),
-        [id3]: node(id3, 0),
-      });
+      expect(get(koso.nodes)).toStrictEqual(
+        new Map([
+          ["root", root()],
+          [id1, node(id1, 0, 1)],
+          [id3, node(id3, 0, 2)],
+          [id2, node(id2, 1, 3)],
+        ]),
+      );
     });
 
     it("doc with two tasks, one linked subtask, and parent is expanded has three nodes", () => {
@@ -136,12 +144,14 @@ describe("Koso tests", () => {
       const lid = [id1, id2].join(Node.separator);
       koso.linkNode(node2, task(id1), 0);
       koso.expanded.set(new Set([id1]));
-      expect(koso.nodes).toStrictEqual({
-        root: root(),
-        [id1]: node(id1, 0),
-        [lid]: node(lid, 0),
-        [id2]: node(id2, 1),
-      });
+      expect(get(koso.nodes)).toStrictEqual(
+        new Map([
+          ["root", root()],
+          [id1, node(id1, 0, 1)],
+          [lid, node(lid, 0, 2)],
+          [id2, node(id2, 1, 3)],
+        ]),
+      );
     });
   });
 

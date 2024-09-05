@@ -27,6 +27,7 @@ export class Node {
   #koso: Koso;
   path: string[];
   offset: number;
+  index: number;
 
   static get separator() {
     return "/";
@@ -68,10 +69,11 @@ export class Node {
     return Node.id(path.concat(child));
   }
 
-  constructor(koso: Koso, path: string[], offset: number) {
+  constructor(koso: Koso, path: string[], offset: number, index: number = 0) {
     this.#koso = koso;
     this.path = path;
     this.offset = offset;
+    this.index = index;
   }
 
   parent(): Node {
@@ -104,8 +106,8 @@ export type Task = {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type YEvent = Y.YEvent<any>;
-
 export type Graph = { [id: string]: Task };
+export type Nodes = Map<string, Node>;
 export type Parents = { [id: string]: string[] };
 
 export class Koso {
@@ -121,9 +123,9 @@ export class Koso {
   draggedId: Writable<string | null>;
   expanded: Writable<Set<string>>;
   parents: Readable<Parents>;
-  nodesAndIds: Readable<[string[], { [id: string]: Node }]>;
   nodeIds: string[] = [];
-  nodes: { [id: string]: Node } = {};
+  nodes: Readable<Nodes>;
+  #nodes: Nodes = new Map();
   unsubscribe: Unsubscriber;
 
   constructor(projectId: string, yDoc: Y.Doc) {
@@ -167,14 +169,19 @@ export class Koso {
       (value) => JSON.stringify(Array.from(value)),
     );
 
-    this.nodesAndIds = derived([this.expanded, this.events], ([expanded]) =>
-      this.#flatten(new Node(this, [], 0), [], {}, expanded),
+    this.nodes = derived([this.expanded, this.events], ([expanded]) =>
+      this.#flatten(new Node(this, [], 0), expanded),
     );
     this.parents = derived([this.events], () => this.#toParents());
 
-    this.unsubscribe = this.nodesAndIds.subscribe(($nodesAndIds) => {
-      [this.nodeIds, this.nodes] = $nodesAndIds;
+    this.unsubscribe = this.nodes.subscribe(($nodes) => {
+      this.#nodes = $nodes;
+      this.nodeIds = Array.from($nodes.keys());
     });
+  }
+
+  get nodelen(): number {
+    return this.#nodes.size;
   }
 
   observe(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
@@ -243,24 +250,23 @@ export class Koso {
     this.expanded.update(($expanded) => $expanded.difference(new Set([id])));
   }
 
-  #flatten(
-    node: Node,
-    nodeIds: string[],
-    nodes: { [id: string]: Node },
-    expanded: Set<string>,
-  ): [string[], { [id: string]: Node }] {
+  #flatten(node: Node, expanded: Set<string>, nodes: Nodes = new Map()): Nodes {
     const task = this.yGraph.get(node.name);
     if (task) {
-      nodeIds.push(node.id);
-      nodes[node.id] = node;
+      nodes.set(node.id, node);
       if (node.length < 1 || expanded.has(node.id)) {
         (task.get("children") as Y.Array<string>).forEach((name, offset) => {
-          const child = new Node(this, node.path.concat(name), offset);
-          this.#flatten(child, nodeIds, nodes, expanded);
+          const child = new Node(
+            this,
+            node.path.concat(name),
+            offset,
+            nodes.size,
+          );
+          this.#flatten(child, expanded, nodes);
         });
       }
     }
-    return [nodeIds, nodes];
+    return nodes;
   }
 
   #toParents(): Parents {
@@ -276,16 +282,16 @@ export class Koso {
     return parents;
   }
 
-  getNode(key: string | number): Node {
-    if (typeof key === "string") {
-      if (!this.nodes[key])
-        throw new Error(`Node ID ${key} not found in nodes`);
-      return this.nodes[key];
-    }
-    if (typeof key === "number") {
-      return this.nodes[this.nodeIds[key]];
-    }
-    throw new Error(`Node ID ${key} not found in nodes`);
+  getNode(id: string): Node {
+    const result = this.#nodes.get(id);
+    if (!result) throw new Error(`Node ID ${id} not found in nodes`);
+    return result;
+  }
+
+  getNodeId(index: number): string {
+    if (index < 0 || index >= this.nodeIds.length)
+      throw new Error(`Node index ${index} out of bounds`);
+    return this.nodeIds[index];
   }
 
   getParent(node: Node): Node {

@@ -18,20 +18,17 @@
   export let users: User[];
 
   const rows: { [key: string]: HTMLDivElement } = {};
-  const { nodesAndIds, parents, selectedId } = koso;
+  const { nodes, parents, selectedId } = koso;
 
   document.onkeydown = (event: KeyboardEvent) => {
     if (event.key === "ArrowDown") {
-      if (koso.nodeIds.length > 0) {
-        const selectedIndex = $selectedId
-          ? koso.nodeIds.indexOf($selectedId)
-          : -1;
-        if (selectedIndex === -1) {
-          $selectedId = koso.getNode(1).id;
+      if (koso.nodelen > 1) {
+        if ($selectedId) {
+          const selected = koso.getNode($selectedId);
+          const index = Math.min(selected.index + 1, koso.nodelen - 1);
+          $selectedId = koso.getNodeId(index);
         } else {
-          $selectedId = koso.getNode(
-            Math.min(selectedIndex + 1, koso.nodeIds.length - 1),
-          ).id;
+          $selectedId = koso.getNodeId(1);
         }
       }
       if ($selectedId !== null) {
@@ -43,14 +40,13 @@
     }
 
     if (event.key === "ArrowUp") {
-      if (koso.nodeIds.length > 0) {
-        const selectedIndex = $selectedId
-          ? koso.nodeIds.indexOf($selectedId)
-          : -1;
-        if (selectedIndex === -1) {
-          $selectedId = koso.getNode(koso.nodeIds.length - 1).id;
+      if (koso.nodelen > 1) {
+        if ($selectedId) {
+          const selected = koso.getNode($selectedId);
+          const index = Math.max(selected.index - 1, 1);
+          $selectedId = koso.getNodeId(index);
         } else {
-          $selectedId = koso.getNode(Math.max(selectedIndex - 1, 1)).id;
+          $selectedId = koso.getNodeId(koso.nodelen - 1);
         }
       }
       if ($selectedId !== null) {
@@ -150,8 +146,7 @@
       </tr>
     </thead>
 
-    {#each $nodesAndIds[0].slice(1) as nodeId, index (nodeId)}
-      {@const node = koso.getNode(nodeId)}
+    {#each [...$nodes].slice(1) as [nodeId, node], index (nodeId)}
       <tbody animate:flip={{ duration: 250 }}>
         <Row {index} {node} {users} row={(el) => (rows[nodeId] = el)} />
       </tbody>
