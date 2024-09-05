@@ -2,6 +2,7 @@ import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import {
   derived,
+  get,
   readable,
   writable,
   type Readable,
@@ -421,6 +422,40 @@ export class Koso {
     this.yDoc.transact(() => {
       this.#unlinkNode(node);
       this.#deleteNode(node);
+    });
+  }
+
+  deleteSubtree(node: Node) {
+    function collectSubtreeTaskIds(
+      taskId: string,
+      visited: Set<string>,
+      koso: Koso,
+    ) {
+      visited.add(taskId);
+      for (const childTaskId of koso.getChildren(taskId)) {
+        if (!visited.has(childTaskId)) {
+          collectSubtreeTaskIds(childTaskId, visited, koso);
+        }
+      }
+    }
+    const subtreeTaskIds = new Set<string>();
+    collectSubtreeTaskIds(node.name, subtreeTaskIds, this);
+
+    const parents = get(this.parents);
+    this.yDoc.transact(() => {
+      // Unlink all of the target tasks.
+      for (const taskId of subtreeTaskIds) {
+        for (const parentId of parents[taskId]) {
+          const yParent = this.yGraph.get(parentId);
+          if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
+          const yParentsChildren = yParent.get("children") as Y.Array<string>;
+          yParentsChildren.delete(yParentsChildren.toArray().indexOf(taskId));
+        }
+      }
+      // Delete all of the target tasks.
+      for (const taskId of subtreeTaskIds) {
+        this.yGraph.delete(taskId);
+      }
     });
   }
 

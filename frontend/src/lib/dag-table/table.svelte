@@ -97,6 +97,13 @@
     $selectedId = null;
   }
 
+  function removeSubtree() {
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.deleteSubtree(selected);
+    $selectedId = null;
+  }
+
   setContext<Koso>("koso", koso);
 </script>
 
@@ -121,6 +128,10 @@
         Unlink
       </Button>
     {/if}
+    <Button class="text-xs" on:click={removeSubtree}>
+      <Trash class="me-2 w-4" />
+      Delete Subtree
+    </Button>
   {:else}
     <Button class="text-xs" on:click={addRoot}>
       <ListPlus class="me-2 w-4" />
