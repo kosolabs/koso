@@ -80,6 +80,7 @@
     if (!$user) throw new Error("Unauthenticated");
     const selected = koso.getNode($selectedId);
     $selectedId = koso.insertNode(selected, 0, "Untitled", $user);
+    koso.expand(selected.id);
   }
 
   function unlink() {
