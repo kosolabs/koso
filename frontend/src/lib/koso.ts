@@ -227,6 +227,14 @@ export class Koso {
     return this.yGraph.toJSON();
   }
 
+  expand(id: string) {
+    this.expanded.update(($expanded) => $expanded.add(id));
+  }
+
+  collapse(id: string) {
+    this.expanded.update(($expanded) => $expanded.difference(new Set([id])));
+  }
+
   #flatten(
     node: Node,
     nodeIds: string[],

@@ -58,11 +58,10 @@
 
   function setOpen(open: boolean) {
     if (open) {
-      $expanded.add(node.id);
+      koso.expand(node.id);
     } else {
-      $expanded.delete(node.id);
+      koso.collapse(node.id);
     }
-    $expanded = $expanded;
   }
 
   function handleToggleOpen(event: MouseEvent) {
