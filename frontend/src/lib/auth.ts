@@ -37,16 +37,17 @@ export const user = derived(token, (token) => {
   // This number matches the server's validation in google.rs.
   const sevenDaysSecs = 7 * 24 * 60 * 60;
   const realExpiryMillisecs = (user.exp + sevenDaysSecs) * 1000;
-  const remainingLifeMillis = Math.min(
-    realExpiryMillisecs - Date.now(),
-    2147483647,
-  );
+  const remainingLifeMillis = realExpiryMillisecs - Date.now();
   if (remainingLifeMillis <= 0) {
     return null;
   }
-  setTimeout(() => {
-    console.log("Logging the user out at token expiry");
-    logout();
-  }, remainingLifeMillis - 90000);
+  setTimeout(
+    () => {
+      console.log("Logging the user out at token expiry");
+      logout();
+    },
+    // Avoid exceeding setTimeout's max delay.
+    Math.min(remainingLifeMillis - 90000, 2147483647),
+  );
   return user;
 });
