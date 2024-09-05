@@ -19,12 +19,20 @@ struct KeySetInner {
     certs: Mutex<Certs>,
     client: reqwest::Client,
     last_load: Mutex<Instant>,
+    enable_test_creds: bool,
 }
 
 impl KeySet {
     const LOAD_DEBOUNCE_DURATION: Duration = Duration::from_secs(306);
+    const INTEG_TEST_KID: &'static str = "koso-integration-test";
 
     pub(crate) async fn new() -> Result<KeySet> {
+        let enable_test_creds =
+            std::env::var("TESTONLY_ENABLE_TEST_CREDS").map_or(false, |v| v == "true");
+        if enable_test_creds {
+            tracing::info!("Insecure test credentials enabled. Something is WRONG if you see this in production.")
+        }
+
         let distant_past =
             Instant::now() - KeySet::LOAD_DEBOUNCE_DURATION - Duration::from_secs(60 * 60);
         let key_set = KeySet {
@@ -34,6 +42,7 @@ impl KeySet {
                 }),
                 client: reqwest::Client::new(),
                 last_load: Mutex::new(distant_past),
+                enable_test_creds,
             }),
         };
         // Avoid a cold start by preloading keys initially.
@@ -42,6 +51,15 @@ impl KeySet {
     }
 
     async fn get(&self, kid: &str) -> Result<DecodingKey> {
+        if kid == KeySet::INTEG_TEST_KID {
+            if !self.inner.enable_test_creds {
+                return Err(anyhow!(
+                    "Tried to fetch key for test creds ({kid}) but test creds aren't enabled."
+                ));
+            }
+            return Ok(DecodingKey::from_rsa_components("MA", "MA")?);
+        }
+
         // This is the happy path. The key is already cached and ready to go.
         if let Some(key) = self.inner.certs.lock().await.get(kid) {
             return Ok(key.key.clone());
@@ -177,21 +195,6 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
             "header.kid is absent: {header:?}"
         )));
     };
-
-    // TODO: Add a flag to enable this only in non-prod.
-    if kid == "koso-integration-test" {
-        let user = User {
-            email: "test@koso.app".into(),
-            name: "Test User".to_string(),
-            picture: "TODO".to_string(),
-            exp: 1925490607,
-        };
-        tracing::Span::current().record("email", user.email.clone());
-        assert!(request.extensions_mut().insert(user).is_none());
-
-        return Ok(next.run(request).await);
-    }
-
     let key = match key_set.get(&kid).await {
         Ok(key) => key,
         Err(e) => {
@@ -200,6 +203,19 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
             )));
         }
     };
+
+    let user = if kid == KeySet::INTEG_TEST_KID {
+        decode_and_validate_test_token(bearer, &key)?
+    } else {
+        decode_and_validate_token(bearer, &key)?
+    };
+    tracing::Span::current().record("email", user.email.clone());
+    assert!(request.extensions_mut().insert(user).is_none());
+
+    Ok(next.run(request).await)
+}
+
+fn decode_and_validate_token(token: &str, key: &DecodingKey) -> ApiResult<User> {
     let mut validation = Validation::new(jsonwebtoken::Algorithm::RS256);
     // Allow the token to last seven days longer than the given expiry.
     // This number matches the clients's validation in auth.ts.
@@ -209,7 +225,7 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
     ]);
     validation.set_issuer(&["https://accounts.google.com"]);
-    let token = match jsonwebtoken::decode::<User>(bearer, &key, &validation) {
+    let token = match jsonwebtoken::decode::<User>(token, key, &validation) {
         Ok(token) => token,
         Err(e) => {
             return Err(unauthenticated_error(&format!("Failed validation: {e}")));
@@ -220,11 +236,30 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
             "Claims email is empty: {token:?}"
         )));
     }
+    Ok(token.claims)
+}
 
-    tracing::Span::current().record("email", token.claims.email.clone());
-    assert!(request.extensions_mut().insert(token.claims).is_none());
-
-    Ok(next.run(request).await)
+fn decode_and_validate_test_token(token: &str, key: &DecodingKey) -> ApiResult<User> {
+    // Example Jwt:
+    //   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imtvc28taW50ZWdyYXRpb24tdGVzdCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5rb3NvLmFwcCIsIm5hbWUiOiJQb2ludHktSGFpcmVkIEJvc3MiLCJwaWN0dXJlIjoiaHR0cHM6Ly9kcml2ZS5nb29nbGUuY29tL2ZpbGUvZC8xM0xiUFRfT3I1dUFVQnc0b1ZkNi1ja1pidVRxNkQ3Sy0vcHJldmlldyIsImV4cCI6MjAyNDc4ODAxNH0.6xthU8Bv-2BftYts0jKDJIscyy0ZqQ6RzaJ0W_-wvgo
+    let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
+    validation.insecure_disable_signature_validation();
+    let token = match jsonwebtoken::decode::<User>(token, key, &validation) {
+        Ok(t) => t,
+        Err(e) => {
+            return Err(unauthenticated_error(&format!(
+                "Failed to decode test cred token: {e}"
+            )))
+        }
+    };
+    let user = token.claims;
+    if !user.email.ends_with("test@test.koso.app") {
+        return Err(unauthenticated_error(&format!(
+            "Invalid test cred email: {}",
+            user.email
+        )));
+    }
+    Ok(user)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -394,6 +429,7 @@ J4Q2mbNL+TM1cM1BbzXn6SBWWTKlyEx7OLgQ2+VlZ1CRLQI/iI1tbHIt
                 }),
                 client: reqwest::Client::new(),
                 last_load: Mutex::new(distant_future),
+                enable_test_creds: false,
             }),
         };
         // Verify load does nothing thanks to the distant last_load time set above.
