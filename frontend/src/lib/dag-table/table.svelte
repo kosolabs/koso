@@ -125,7 +125,7 @@
       <ListTree class="me-2 w-4" />
       Add Child
     </Button>
-    {#if $parents[Node.name($selectedId.split(Node.separator))].length === 1}
+    {#if $parents[Node.name(Node.parse($selectedId))].length === 1}
       <Button class="text-xs" on:click={remove}>
         <Trash class="me-2 w-4" />
         Delete

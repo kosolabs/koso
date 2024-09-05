@@ -32,6 +32,10 @@ export class Node {
     return "/";
   }
 
+  static parse(id: string): string[] {
+    return id.split(Node.separator);
+  }
+
   static id(path: string[]) {
     return path.join(Node.separator) || "root";
   }
