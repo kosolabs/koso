@@ -1,7 +1,7 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
-  import type { Koso } from "$lib/koso";
+  import { Node, type Koso } from "$lib/koso";
   import {
     ListPlus,
     ListTree,
@@ -18,21 +18,21 @@
   export let users: User[];
 
   const rows: { [key: string]: HTMLDivElement } = {};
-  const { nodes, parents, selected } = koso;
+  const { nodes, parents, selectedId } = koso;
 
   document.onkeydown = (event: KeyboardEvent) => {
     if (event.key === "ArrowDown") {
-      if ($nodes.length > 0) {
-        const paths = $nodes.map((node) => node.id);
-        const selectedIndex = $selected ? paths.indexOf($selected.id) : -1;
-        if (selectedIndex === -1) {
-          $selected = $nodes[0];
+      if (koso.nodelen > 1) {
+        if ($selectedId) {
+          const selected = koso.getNode($selectedId);
+          const index = Math.min(selected.index + 1, koso.nodelen - 1);
+          $selectedId = koso.getNodeId(index);
         } else {
-          $selected = $nodes[Math.min(selectedIndex + 1, paths.length - 1)];
+          $selectedId = koso.getNodeId(1);
         }
       }
-      if ($selected !== null) {
-        rows[$selected.id].focus();
+      if ($selectedId !== null) {
+        rows[$selectedId].focus();
       }
       event.preventDefault();
       event.stopPropagation();
@@ -40,17 +40,17 @@
     }
 
     if (event.key === "ArrowUp") {
-      if ($nodes.length > 0) {
-        const paths = $nodes.map((node) => node.id);
-        const selectedIndex = $selected ? paths.indexOf($selected.id) : -1;
-        if (selectedIndex === -1) {
-          $selected = $nodes[$nodes.length - 1];
+      if (koso.nodelen > 1) {
+        if ($selectedId) {
+          const selected = koso.getNode($selectedId);
+          const index = Math.max(selected.index - 1, 1);
+          $selectedId = koso.getNodeId(index);
         } else {
-          $selected = $nodes[Math.max(selectedIndex - 1, 0)];
+          $selectedId = koso.getNodeId(koso.nodelen - 1);
         }
       }
-      if ($selected !== null) {
-        rows[$selected.id].focus();
+      if ($selectedId !== null) {
+        rows[$selectedId].focus();
       }
       event.preventDefault();
       event.stopPropagation();
@@ -60,46 +60,47 @@
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
-    koso.insertNode("root", 0, "Untitled", $user);
+    koso.insertNode(koso.getNode("root"), 0, "Untitled", $user);
   }
 
   function addPeer() {
-    if (!$selected) return;
+    if (!$selectedId) return;
     if (!$user) throw new Error("Unauthenticated");
-    const parent = $selected.parent();
-    const newNodeId = koso.insertNode(
-      parent.name,
-      koso.getOffset($selected) + 1,
+    const selected = koso.getNode($selectedId);
+    $selectedId = koso.insertNode(
+      selected.parent(),
+      selected.offset + 1,
       "Untitled",
       $user,
     );
-    $selected = parent.concat(newNodeId);
   }
 
   function addChild() {
-    if (!$selected) return;
+    if (!$selectedId) return;
     if (!$user) throw new Error("Unauthenticated");
-    const newNodeId = koso.insertNode($selected.name, 0, "Untitled", $user);
-    $selected = $selected.concat(newNodeId);
+    const selected = koso.getNode($selectedId);
+    $selectedId = koso.insertNode(selected, 0, "Untitled", $user);
   }
 
   function unlink() {
-    if (!$selected) return;
-    koso.unlinkNode($selected);
-    $selected = null;
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.unlinkNode(selected);
+    $selectedId = null;
   }
 
   function remove() {
-    if (!$selected) return;
-    koso.deleteNode($selected);
-    $selected = null;
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.deleteNode(selected);
+    $selectedId = null;
   }
 
   setContext<Koso>("koso", koso);
 </script>
 
 <div class="sticky top-0 z-30 flex gap-2 px-4 py-2 pb-2 backdrop-blur">
-  {#if $selected}
+  {#if $selectedId}
     <Button class="text-xs" on:click={addPeer}>
       <ListPlus class="me-2 w-4" />
       Add Task
@@ -108,7 +109,7 @@
       <ListTree class="me-2 w-4" />
       Add Child
     </Button>
-    {#if $parents[$selected.name].length === 1}
+    {#if $parents[Node.name(Node.parse($selectedId))].length === 1}
       <Button class="text-xs" on:click={remove}>
         <Trash class="me-2 w-4" />
         Delete
@@ -145,9 +146,9 @@
       </tr>
     </thead>
 
-    {#each $nodes as node, index (node.id)}
+    {#each [...$nodes].slice(1) as [nodeId, node], index (nodeId)}
       <tbody animate:flip={{ duration: 250 }}>
-        <Row {index} {node} {users} row={(el) => (rows[node.id] = el)} />
+        <Row {index} {node} {users} row={(el) => (rows[nodeId] = el)} />
       </tbody>
     {/each}
   </table>

@@ -318,6 +318,7 @@
 
   onDestroy(() => {
     kosoSocket.closeAndShutdown(1000, "Closed in onDestroy.");
+    koso.unsubscribe();
   });
 </script>
 

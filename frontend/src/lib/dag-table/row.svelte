@@ -16,7 +16,7 @@
   export let row: (el: HTMLDivElement) => void = () => {};
 
   const koso = getContext<Koso>("koso");
-  const { dragged, dropEffect, expanded, highlighted, selected } = koso;
+  const { draggedId, dropEffect, expanded, highlightedId, selectedId } = koso;
 
   let rowElement: HTMLDivElement | undefined;
   let idCellElement: HTMLTableCellElement | undefined;
@@ -29,22 +29,23 @@
   $: reporter = getUser(users, task.reporter);
   $: assignee = getUser(users, task.assignee);
   $: open = $expanded.has(node.id);
-  $: isDragging = node.equals($dragged);
+  $: isDragging = node.id === $draggedId;
+  $: dragged = $draggedId ? koso.getNode($draggedId) : null;
   $: canDragDropPeer =
     !isDragging &&
-    $dragged &&
-    !isSamePeer(node, $dragged) &&
-    !hasChild(node.parent(), $dragged) &&
-    !hasCycle(node.parent().name, $dragged.name);
+    dragged &&
+    !isSamePeer(node, dragged) &&
+    !hasChild(node.parent(), dragged) &&
+    !hasCycle(node.parentName, dragged.name);
   $: canDragDropChild =
     !isDragging &&
-    $dragged &&
-    !isSameChild(node, $dragged) &&
-    !hasChild(node, $dragged) &&
-    !hasCycle(node.name, $dragged.name);
+    dragged &&
+    !isSameChild(node, dragged) &&
+    !hasChild(node, dragged) &&
+    !hasCycle(node.name, dragged.name);
   $: isMoving = isDragging && $dropEffect === "move";
-  $: isHovered = $highlighted?.name === node.name;
-  $: isSelected = node.equals($selected);
+  $: isHovered = $highlightedId === node.name;
+  $: isSelected = node.id === $selectedId;
 
   function getUser(users: User[], email: string | null): User | null {
     for (const user of users) {
@@ -57,11 +58,10 @@
 
   function setOpen(open: boolean) {
     if (open) {
-      $expanded.add(node.id);
+      koso.expand(node.id);
     } else {
-      $expanded.delete(node.id);
+      koso.collapse(node.id);
     }
-    $expanded = $expanded;
   }
 
   function handleToggleOpen(event: MouseEvent) {
@@ -74,7 +74,7 @@
   function handleStartEditingTaskName(event: MouseEvent | KeyboardEvent) {
     event.stopPropagation();
     event.preventDefault();
-    $selected = node;
+    $selectedId = node.id;
     editedTaskName = task.name;
   }
 
@@ -100,7 +100,7 @@
   function handleEditedTaskNameKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
       revertEditedTaskName();
-      $selected = node;
+      $selectedId = node.id;
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -108,7 +108,7 @@
 
     if (event.key === "Enter") {
       saveEditedTaskName();
-      $selected = node;
+      $selectedId = node.id;
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -120,9 +120,9 @@
     if (!dataTransfer || !rowElement || !handleElement || !idCellElement) {
       return;
     }
-    $highlighted = null;
-    $selected = null;
-    $dragged = node;
+    $highlightedId = null;
+    $selectedId = null;
+    $draggedId = node.id;
 
     dataTransfer.setData("text/plain", node.id);
     dataTransfer.effectAllowed = "linkMove";
@@ -143,55 +143,43 @@
 
   function handleDragEnd(event: DragEvent) {
     event.preventDefault();
-    $dragged = null;
+    $draggedId = null;
   }
 
   function handleDropNodePeer(event: DragEvent) {
     event.preventDefault();
-    if ($dragged === null || $dropEffect === "none") {
+    if (dragged === null || $dropEffect === "none") {
       return;
     }
 
-    const dragDestNode = node.parent().concat($dragged.name);
-    const dragDestOffset = koso.getOffset(node) + 1;
+    const dragDestParent = node.parentName;
+    const dragDestOffset = node.offset + 1;
 
     if ($dropEffect === "move") {
-      koso.moveNode(
-        $dragged.name,
-        $dragged.parent().name,
-        koso.getOffset($dragged),
-        dragDestNode.parent().name,
-        dragDestOffset,
-      );
+      koso.moveNode(dragged, dragDestParent, dragDestOffset);
     } else {
-      koso.linkNode($dragged.name, dragDestNode.parent().name, dragDestOffset);
+      koso.linkNode(dragged, dragDestParent, dragDestOffset);
     }
-    $dragged = null;
+    $draggedId = null;
     dragOverPeer = false;
     dragOverChild = false;
   }
 
   function handleDropNodeChild(event: DragEvent) {
     event.preventDefault();
-    if ($dragged === null || $dropEffect === "none") {
+    if (dragged === null || $dropEffect === "none") {
       return;
     }
 
-    const dragDestNode = node.concat($dragged.name);
+    const dragDestParent = node.name;
     const dragDestOffset = 0;
 
     if ($dropEffect === "move") {
-      koso.moveNode(
-        $dragged.name,
-        $dragged.parent().name,
-        koso.getOffset($dragged),
-        dragDestNode.parent().name,
-        dragDestOffset,
-      );
+      koso.moveNode(dragged, dragDestParent, dragDestOffset);
     } else {
-      koso.linkNode($dragged.name, dragDestNode.parent().name, dragDestOffset);
+      koso.linkNode(dragged, dragDestParent, dragDestOffset);
     }
-    $dragged = null;
+    $draggedId = null;
     dragOverPeer = false;
     dragOverChild = false;
   }
@@ -199,11 +187,11 @@
   function handleDragOverPeer(event: DragEvent) {
     event.preventDefault();
     const dataTransfer = event.dataTransfer;
-    if ($dragged === null || dataTransfer === null) {
+    if (dragged === null || dataTransfer === null) {
       return;
     }
 
-    if ($dragged.parent().equals(node.parent())) {
+    if (dragged.parent().equals(node.parent())) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
     } else {
@@ -216,11 +204,11 @@
   function handleDragOverChild(event: DragEvent) {
     event.preventDefault();
     const dataTransfer = event.dataTransfer;
-    if ($dragged === null || dataTransfer === null) {
+    if (dragged === null || dataTransfer === null) {
       return;
     }
 
-    if ($dragged.parent().equals(node)) {
+    if (dragged.parent().equals(node)) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
     } else {
@@ -257,23 +245,23 @@
   }
 
   function handleHighlight() {
-    if ($dragged) return;
-    $highlighted = node;
+    if ($draggedId) return;
+    $highlightedId = node.name;
   }
 
   function handleUnhighlight() {
-    if ($dragged) return;
-    $highlighted = null;
+    if ($draggedId) return;
+    $highlightedId = null;
   }
 
   function handleFocus(event: FocusEvent) {
     event.preventDefault();
-    $selected = node;
+    $selectedId = node.id;
   }
 
   function handleRowClick(event: MouseEvent) {
     event.preventDefault();
-    $selected = node;
+    $selectedId = node.id;
   }
 
   function handleRowKeydown(event: KeyboardEvent) {
@@ -291,7 +279,7 @@
     }
 
     if (event.key === "Escape") {
-      $selected = null;
+      $selectedId = null;
       rowElement.blur();
       event.preventDefault();
       event.stopPropagation();
@@ -336,14 +324,14 @@
     if (!node.parent().equals(dragged.parent())) {
       return false;
     }
-    return koso.getOffset(node) + 1 === koso.getOffset(dragged);
+    return node.offset + 1 === dragged.offset;
   }
 
   function isSameChild(node: Node, dragged: Node): boolean {
     if (!node.equals(dragged.parent())) {
       return false;
     }
-    return koso.getOffset(dragged) === 0;
+    return dragged.offset === 0;
   }
 </script>
 
