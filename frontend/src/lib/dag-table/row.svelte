@@ -16,7 +16,7 @@
   export let row: (el: HTMLDivElement) => void = () => {};
 
   const koso = getContext<Koso>("koso");
-  const { draggedId, dropEffect, expanded, highlighted, selectedId } = koso;
+  const { draggedId, dropEffect, expanded, highlightedId, selectedId } = koso;
 
   let rowElement: HTMLDivElement | undefined;
   let idCellElement: HTMLTableCellElement | undefined;
@@ -29,14 +29,14 @@
   $: reporter = getUser(users, task.reporter);
   $: assignee = getUser(users, task.assignee);
   $: open = $expanded.has(node.id);
-  $: isDragging = node.id == $draggedId;
+  $: isDragging = node.id === $draggedId;
   $: dragged = $draggedId ? koso.getNode($draggedId) : null;
   $: canDragDropPeer =
     !isDragging &&
     dragged &&
     !isSamePeer(node, dragged) &&
     !hasChild(node.parent(), dragged) &&
-    !hasCycle(node.parent().name, dragged.name);
+    !hasCycle(node.parentName, dragged.name);
   $: canDragDropChild =
     !isDragging &&
     dragged &&
@@ -44,8 +44,8 @@
     !hasChild(node, dragged) &&
     !hasCycle(node.name, dragged.name);
   $: isMoving = isDragging && $dropEffect === "move";
-  $: isHovered = $highlighted === node.name;
-  $: isSelected = node.id == $selectedId;
+  $: isHovered = $highlightedId === node.name;
+  $: isSelected = node.id === $selectedId;
 
   function getUser(users: User[], email: string | null): User | null {
     for (const user of users) {
@@ -120,7 +120,7 @@
     if (!dataTransfer || !rowElement || !handleElement || !idCellElement) {
       return;
     }
-    $highlighted = null;
+    $highlightedId = null;
     $selectedId = null;
     $draggedId = node.id;
 
@@ -152,7 +152,7 @@
       return;
     }
 
-    const dragDestParent = node.parent().name;
+    const dragDestParent = node.parentName;
     const dragDestOffset = node.offset + 1;
 
     if ($dropEffect === "move") {
@@ -246,12 +246,12 @@
 
   function handleHighlight() {
     if ($draggedId) return;
-    $highlighted = node.name;
+    $highlightedId = node.name;
   }
 
   function handleUnhighlight() {
     if ($draggedId) return;
-    $highlighted = null;
+    $highlightedId = null;
   }
 
   function handleFocus(event: FocusEvent) {

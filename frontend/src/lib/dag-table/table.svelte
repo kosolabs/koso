@@ -21,13 +21,7 @@
   const { nodesAndIds, parents, selectedId } = koso;
 
   document.onkeydown = (event: KeyboardEvent) => {
-    if (
-      event.key === "ArrowDown" &&
-      !event.altKey &&
-      !event.ctrlKey &&
-      !event.metaKey &&
-      !event.shiftKey
-    ) {
+    if (event.key === "ArrowDown") {
       if (koso.nodeIds.length > 0) {
         const selectedIndex = $selectedId
           ? koso.nodeIds.indexOf($selectedId)
@@ -48,13 +42,7 @@
       return;
     }
 
-    if (
-      event.key === "ArrowUp" &&
-      !event.altKey &&
-      !event.ctrlKey &&
-      !event.metaKey &&
-      !event.shiftKey
-    ) {
+    if (event.key === "ArrowUp") {
       if (koso.nodeIds.length > 0) {
         const selectedIndex = $selectedId
           ? koso.nodeIds.indexOf($selectedId)

@@ -1,5 +1,4 @@
 import * as encoding from "lib0/encoding";
-import { tick } from "svelte";
 import { get } from "svelte/store";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
@@ -85,13 +84,11 @@ describe("Koso tests", () => {
     }
 
     it("empty doc has no nodes", () => {
-      get(koso.nodesAndIds);
       expect(koso.nodes).toStrictEqual({ root: root() });
     });
 
     it("doc with one task has one node", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
-      get(koso.nodesAndIds);
       expect(koso.nodes).toStrictEqual({
         root: root(),
         [id1]: node(id1, 0),
@@ -101,7 +98,6 @@ describe("Koso tests", () => {
     it("doc with two tasks has two nodes", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
       const id2 = koso.insertNode(koso.getNode("root"), 1, "Task 2", USER);
-      get(koso.nodesAndIds);
       expect(koso.nodes).toStrictEqual({
         root: root(),
         [id1]: node(id1, 0),
@@ -113,7 +109,6 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
       const id2 = koso.insertNode(koso.getNode("root"), 1, "Task 2", USER);
       koso.insertNode(koso.getNode(id1), 0, "Task 3", USER);
-      get(koso.nodesAndIds);
       expect(koso.nodes).toStrictEqual({
         root: root(),
         [id1]: node(id1, 0),
@@ -126,7 +121,6 @@ describe("Koso tests", () => {
       const id2 = koso.insertNode(koso.getNode("root"), 1, "Task 2", USER);
       const id3 = koso.insertNode(koso.getNode(id1), 0, "Task 3", USER);
       koso.expanded.set(new Set([id1]));
-      get(koso.nodesAndIds);
       expect(koso.nodes).toStrictEqual({
         root: root(),
         [id1]: node(id1, 0),
@@ -158,7 +152,6 @@ describe("Koso tests", () => {
 
     it("doc with one task has root parent", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
-      tick();
       expect(get(koso.parents)).toStrictEqual({
         [id1]: ["root"],
       });

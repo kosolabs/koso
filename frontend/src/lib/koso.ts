@@ -52,6 +52,14 @@ export class Node {
     return Node.name(this.path);
   }
 
+  static parentName(path: string[]) {
+    return path.at(-2) ?? "root";
+  }
+
+  get parentName(): string {
+    return Node.parentName(this.path);
+  }
+
   get length(): number {
     return this.path.length;
   }
@@ -108,7 +116,7 @@ export class Koso {
 
   events: Readable<YEvent[]>;
   selectedId: Writable<string | null>;
-  highlighted: Writable<string | null>;
+  highlightedId: Writable<string | null>;
   dropEffect: Writable<"link" | "move" | "none">;
   draggedId: Writable<string | null>;
   expanded: Writable<Set<string>>;
@@ -147,7 +155,7 @@ export class Koso {
     });
 
     this.selectedId = writable<string | null>(null);
-    this.highlighted = writable<string | null>(null);
+    this.highlightedId = writable<string | null>(null);
     this.dropEffect = writable<"link" | "move" | "none">("none");
     this.draggedId = writable<string | null>(null);
 
@@ -409,7 +417,7 @@ export class Koso {
 
   moveNode(node: Node, destParentId: string, destOffset: number) {
     this.yDoc.transact(() => {
-      const srcParentId = node.parent().name;
+      const srcParentId = node.parentName;
       const ySrcParent = this.yGraph.get(srcParentId);
       if (!ySrcParent)
         throw new Error(`Task ${srcParentId} is not in the graph`);
