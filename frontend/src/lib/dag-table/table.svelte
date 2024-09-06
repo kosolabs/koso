@@ -1,13 +1,12 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
-  import { Node, type Koso } from "$lib/koso";
+  import { type Koso } from "$lib/koso";
   import {
     ListPlus,
     ListTree,
     SquarePen,
     Trash,
-    Unlink,
     UserRoundPlus,
   } from "lucide-svelte";
   import { setContext } from "svelte";
