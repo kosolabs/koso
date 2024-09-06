@@ -388,40 +388,77 @@ export class Koso {
     });
   }
 
-  #unlinkNode(node: Node) {
-    const nodeId = node.name;
-    const parentId = this.getParent(node).name;
-    const yParent = this.yGraph.get(parentId);
-    if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
-    const yParentsChildren = yParent.get("children") as Y.Array<string>;
-    const yParentsChildrenArr = yParentsChildren.toArray();
-    yParentsChildren.delete(yParentsChildrenArr.indexOf(nodeId));
+  deleteNode(node: Node) {
+    const subtreeTaskIds = this.#collectSubtreeTaskIds(node.name);
 
-    const yNode = this.yGraph.get(nodeId);
-    if (!yNode) throw new Error(`Task ${nodeId} is not in the graph`);
-    const yChildren = yNode.get("children") as Y.Array<string>;
-    for (const child of yChildren) {
-      if (!yParentsChildrenArr.includes(child)) {
-        yParentsChildren.push([child]);
+    // Find all of the tasks that will become orphans when `node`
+    // is unlinked. In other words, tasks whose only parents are also in the sub-tree
+    // being deleted.
+    const parents = this.#toParents();
+    const orphanTaskIds = new Set<string>();
+    const visited = new Set<string>();
+    const stack = [node.name];
+    while (stack.length > 0) {
+      const taskId = stack.pop();
+      if (!taskId || visited.has(taskId)) {
+        continue;
+      }
+      visited.add(taskId);
+
+      // Don't delete tasks that are linked to outside of the target sub-tree.
+      const linkedElseWhere = parents[taskId].find((parentTaskId) => {
+        const isTargetNode =
+          taskId === node.name && parentTaskId === node.parentName;
+        const parentInSubtree = subtreeTaskIds.has(parentTaskId);
+        return !isTargetNode && !parentInSubtree;
+      });
+      if (linkedElseWhere) {
+        continue;
+      }
+
+      orphanTaskIds.add(taskId);
+      for (const childTaskId of this.getChildren(taskId)) {
+        stack.push(childTaskId);
       }
     }
-  }
 
-  unlinkNode(node: Node) {
     this.yDoc.transact(() => {
-      this.#unlinkNode(node);
+      // Unlink the target node.
+      const yParent = this.yGraph.get(node.parentName);
+      if (!yParent)
+        throw new Error(`Task ${node.parentName} is not in the graph`);
+      const yParentsChildren = yParent.get("children") as Y.Array<string>;
+      const childIndex = yParentsChildren.toArray().indexOf(node.name);
+      if (childIndex < 0)
+        throw new Error(
+          `Task ${node.name} is not in the children of ${node.parentName}`,
+        );
+      yParentsChildren.delete(childIndex);
+
+      // Delete all of the now orphaned tasks.
+      for (const taskId of orphanTaskIds) {
+        this.yGraph.delete(taskId);
+      }
     });
   }
 
-  #deleteNode(node: Node) {
-    this.yGraph.delete(node.name);
-  }
-
-  deleteNode(node: Node) {
-    this.yDoc.transact(() => {
-      this.#unlinkNode(node);
-      this.#deleteNode(node);
-    });
+  // Collect all task IDs in the sub-tree starting at `taskId`.
+  #collectSubtreeTaskIds(taskId: string) {
+    const subtreeTaskIds = new Set<string>();
+    const stack = [taskId];
+    while (stack.length > 0) {
+      const taskId = stack.pop();
+      if (!taskId) {
+        continue;
+      }
+      subtreeTaskIds.add(taskId);
+      for (const childTaskId of this.getChildren(taskId)) {
+        if (!subtreeTaskIds.has(childTaskId)) {
+          stack.push(childTaskId);
+        }
+      }
+    }
+    return subtreeTaskIds;
   }
 
   moveNode(node: Node, destParentId: string, destOffset: number) {

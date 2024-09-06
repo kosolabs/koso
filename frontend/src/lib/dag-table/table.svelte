@@ -1,13 +1,12 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
-  import { Node, type Koso } from "$lib/koso";
+  import { type Koso } from "$lib/koso";
   import {
     ListPlus,
     ListTree,
     SquarePen,
     Trash,
-    Unlink,
     UserRoundPlus,
   } from "lucide-svelte";
   import { setContext } from "svelte";
@@ -18,7 +17,7 @@
   export let users: User[];
 
   const rows: { [key: string]: HTMLDivElement } = {};
-  const { nodes, parents, selectedId } = koso;
+  const { nodes, selectedId } = koso;
 
   document.onkeydown = (event: KeyboardEvent) => {
     if (event.key === "ArrowDown") {
@@ -83,13 +82,6 @@
     koso.expand(selected.id);
   }
 
-  function unlink() {
-    if (!$selectedId) return;
-    const selected = koso.getNode($selectedId);
-    koso.unlinkNode(selected);
-    $selectedId = null;
-  }
-
   function remove() {
     if (!$selectedId) return;
     const selected = koso.getNode($selectedId);
@@ -110,17 +102,10 @@
       <ListTree class="me-2 w-4" />
       Add Child
     </Button>
-    {#if $parents[Node.name(Node.parse($selectedId))].length === 1}
-      <Button class="text-xs" on:click={remove}>
-        <Trash class="me-2 w-4" />
-        Delete
-      </Button>
-    {:else}
-      <Button class="text-xs" on:click={unlink}>
-        <Unlink class="me-2 w-4" />
-        Unlink
-      </Button>
-    {/if}
+    <Button class="text-xs" on:click={remove}>
+      <Trash class="me-2 w-4" />
+      Delete
+    </Button>
   {:else}
     <Button class="text-xs" on:click={addRoot}>
       <ListPlus class="me-2 w-4" />
