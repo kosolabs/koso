@@ -247,7 +247,10 @@ export class Koso {
   }
 
   collapse(id: string) {
-    this.expanded.update(($expanded) => $expanded.difference(new Set([id])));
+    this.expanded.update(($expanded) => {
+      $expanded.delete(id);
+      return $expanded;
+    });
   }
 
   #flatten(node: Node, expanded: Set<string>, nodes: Nodes = new Map()): Nodes {
