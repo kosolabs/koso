@@ -396,7 +396,7 @@ export class Koso {
     // Find all of the tasks that will become orphans when `node`
     // is unlinked. In other words, tasks whose only parents are also in the sub-tree
     // being deleted.
-    const parents = get(this.parents);
+    const parents = this.#toParents();
     const orphanTaskIds = new Set<string>();
     const visited = new Set<string>();
     const stack = [node.name];
