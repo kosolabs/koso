@@ -1,6 +1,7 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
+  import { KeyBinding } from "$lib/key-binding";
   import { type Koso } from "$lib/koso";
   import {
     ListPlus,
@@ -20,7 +21,59 @@
   const { debug, nodes, selectedId } = koso;
 
   document.onkeydown = (event: KeyboardEvent) => {
-    if (event.key === "ArrowDown") {
+    if (KeyBinding.INDENT_NODE.equals(event)) {
+      if (!$selectedId) return;
+      const selected = koso.getNode($selectedId);
+      koso.indentNode(selected);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.UNDENT_NODE.equals(event)) {
+      if (!$selectedId) return;
+      const selected = koso.getNode($selectedId);
+      koso.undentNode(selected);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.MOVE_NODE_UP.equals(event)) {
+      if (!$selectedId) return;
+      const selected = koso.getNode($selectedId);
+      koso.moveNodeUp(selected);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.MOVE_NODE_DOWN.equals(event)) {
+      if (!$selectedId) return;
+      const selected = koso.getNode($selectedId);
+      koso.moveNodeDown(selected);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.COLLAPSE_NODE.equals(event)) {
+      if (!$selectedId) return;
+      koso.collapse($selectedId);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.EXPAND_NODE.equals(event)) {
+      if (!$selectedId) return;
+      koso.expand($selectedId);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.SELECT_NEXT_NODE.equals(event)) {
       if (koso.nodelen > 1) {
         if ($selectedId) {
           const selected = koso.getNode($selectedId);
@@ -38,7 +91,7 @@
       return;
     }
 
-    if (event.key === "ArrowUp") {
+    if (KeyBinding.SELECT_PREV_NODE.equals(event)) {
       if (koso.nodelen > 1) {
         if ($selectedId) {
           const selected = koso.getNode($selectedId);
