@@ -287,8 +287,7 @@ export class Koso {
 
   getNode(id: string): Node {
     const result = this.#nodes.get(id);
-    if (!result)
-      throw new Error(`Node ID ${id} not found in nodes: ${this.#nodes}`);
+    if (!result) throw new Error(`Node ID ${id} not found in nodes`);
     return result;
   }
 
