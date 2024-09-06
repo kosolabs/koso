@@ -392,16 +392,12 @@ export class Koso {
 
   deleteNode(node: Node) {
     const subtreeTaskIds = this.#collectSubtreeTaskIds(node.name);
-    console.log(
-      `Examining subtree starting at ${node.name} under parent ${node.parentName} `,
-      subtreeTaskIds,
-    );
 
     // Find all of the tasks that will become orphans when `node`
     // is unlinked. In other words, tasks whose only parents are also in the sub-tree
     // being deleted.
     const parents = get(this.parents);
-    const toDeleteTaskIds = new Set<string>();
+    const orphanTaskIds = new Set<string>();
     const visited = new Set<string>();
     const stack = [node.name];
     while (stack.length > 0) {
@@ -411,28 +407,18 @@ export class Koso {
       }
       visited.add(taskId);
 
-      let linkedElseWhere = false;
-      let linkedElseWhereParent = "";
-      for (const parentTaskId of parents[taskId]) {
-        if (taskId === node.name && parentTaskId === node.parentName) {
-          continue;
-        }
-
+      // Don't delete tasks that are linked to outside of the target sub-tree.
+      const linkedElseWhere = parents[taskId].find((parentTaskId) => {
+        const isTargetNode =
+          taskId === node.name && parentTaskId === node.parentName;
         const parentInSubtree = subtreeTaskIds.has(parentTaskId);
-        if (!parentInSubtree) {
-          linkedElseWhere = true;
-          linkedElseWhereParent = parentTaskId;
-          break;
-        }
-      }
+        return !isTargetNode && !parentInSubtree;
+      });
       if (linkedElseWhere) {
-        console.log(
-          `Skipping ${taskId}, it's linked elsewhere under ${linkedElseWhereParent}.`,
-        );
         continue;
       }
 
-      toDeleteTaskIds.add(taskId);
+      orphanTaskIds.add(taskId);
       for (const childTaskId of this.getChildren(taskId)) {
         stack.push(childTaskId);
       }
@@ -440,22 +426,25 @@ export class Koso {
 
     this.yDoc.transact(() => {
       // Unlink the target node.
-      console.log(`Unlinking ${node.name} from parent ${node.parentName}`);
       const yParent = this.yGraph.get(node.parentName);
       if (!yParent)
         throw new Error(`Task ${node.parentName} is not in the graph`);
       const yParentsChildren = yParent.get("children") as Y.Array<string>;
-      yParentsChildren.delete(yParentsChildren.toArray().indexOf(node.name));
+      const childIndex = yParentsChildren.toArray().indexOf(node.name);
+      if (childIndex < 0)
+        throw new Error(
+          `Task ${node.name} is not in the children of ${node.parentName}`,
+        );
+      yParentsChildren.delete(childIndex);
 
       // Delete all of the now orphaned tasks.
-      console.log("Deleting tasks", toDeleteTaskIds);
-      for (const taskId of toDeleteTaskIds) {
+      for (const taskId of orphanTaskIds) {
         this.yGraph.delete(taskId);
       }
     });
   }
 
-  // Collect all tasks in the sub-tree, transitive closure, starting at `taskId`.
+  // Collect all task IDs in the sub-tree starting at `taskId`.
   #collectSubtreeTaskIds(taskId: string) {
     const subtreeTaskIds = new Set<string>();
     const stack = [taskId];
