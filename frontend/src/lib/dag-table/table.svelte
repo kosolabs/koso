@@ -83,24 +83,10 @@
     koso.expand(selected.id);
   }
 
-  function unlink() {
-    if (!$selectedId) return;
-    const selected = koso.getNode($selectedId);
-    koso.unlinkNode(selected);
-    $selectedId = null;
-  }
-
   function remove() {
     if (!$selectedId) return;
     const selected = koso.getNode($selectedId);
     koso.deleteNode(selected);
-    $selectedId = null;
-  }
-
-  function removeSubtree() {
-    if (!$selectedId) return;
-    const selected = koso.getNode($selectedId);
-    koso.deleteSubtree(selected);
     $selectedId = null;
   }
 
@@ -117,20 +103,9 @@
       <ListTree class="me-2 w-4" />
       Add Child
     </Button>
-    {#if $parents[Node.name(Node.parse($selectedId))].length === 1}
-      <Button class="text-xs" on:click={remove}>
-        <Trash class="me-2 w-4" />
-        Delete
-      </Button>
-    {:else}
-      <Button class="text-xs" on:click={unlink}>
-        <Unlink class="me-2 w-4" />
-        Unlink
-      </Button>
-    {/if}
-    <Button class="text-xs" on:click={removeSubtree}>
+    <Button class="text-xs" on:click={remove}>
       <Trash class="me-2 w-4" />
-      Delete Subtree
+      Delete
     </Button>
   {:else}
     <Button class="text-xs" on:click={addRoot}>

@@ -245,18 +245,54 @@ describe("Koso tests", () => {
       });
     });
 
-    it("unlink node 2 from node 1 succeeds", () => {
+    it("delete node 2 from node 1 succeeds", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
       const id2 = koso.insertNode(koso.getNode("root"), 1, "Task 2", USER);
       koso.linkNode(koso.getNode(id2), id1, 0);
       koso.expanded.set(new Set([id1]));
 
-      koso.unlinkNode(koso.getNode([id1, id2].join(Node.separator)));
+      koso.deleteNode(koso.getNode([id1, id2].join(Node.separator)));
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: [id1, id2] },
         [id1]: { id: id1, children: [] },
         [id2]: { id: id2, children: [] },
+      });
+    });
+
+    it("delete node 2 from node 1 succeeds and unlinks node 2 and deletes nodes 2, 4 and 6", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+      const id2 = koso.insertNode(koso.getNode("root"), 1, "Task 2", USER);
+      const id3 = koso.insertNode(koso.getNode(id2), 0, "Task 3", USER);
+      const id4 = koso.insertNode(koso.getNode(id2), 1, "Task 4", USER);
+      koso.expanded.set(new Set([id1, id2, id3, id4]));
+      const id5 = koso.insertNode(koso.getNode(id3), 0, "Task 5", USER);
+      koso.insertNode(koso.getNode(id4), 0, "Task 6", USER);
+      const id7 = koso.insertNode(koso.getNode("root"), 2, "Task 7", USER);
+      koso.linkNode(koso.getNode(id3), task(id7), 0);
+      koso.deleteNode(koso.getNode(id2));
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: [task(id1), task(id7)] },
+        [task(id1)]: { id: task(id1), children: [] },
+        [task(id7)]: { id: task(id7), children: [task(id3)] },
+        [task(id3)]: { id: task(id3), children: [task(id5)] },
+        [task(id5)]: { id: task(id5), children: [] },
+      });
+    });
+
+    it("delete node 2 from root succeeds and unlinks node 2", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+      const id2 = koso.insertNode(koso.getNode("root"), 1, "Task 2", USER);
+      const id3 = koso.insertNode(koso.getNode(id2), 0, "Task 3", USER);
+      koso.linkNode(koso.getNode(id2), task(id1), 0);
+      koso.deleteNode(koso.getNode(id2));
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: [task(id1)] },
+        [task(id1)]: { id: task(id1), children: [task(id2)] },
+        [task(id2)]: { id: task(id2), children: [task(id3)] },
+        [task(id3)]: { id: task(id3), children: [] },
       });
     });
 

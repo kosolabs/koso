@@ -288,7 +288,8 @@ export class Koso {
 
   getNode(id: string): Node {
     const result = this.#nodes.get(id);
-    if (!result) throw new Error(`Node ID ${id} not found in nodes`);
+    if (!result)
+      throw new Error(`Node ID ${id} not found in nodes: ${this.#nodes}`);
     return result;
   }
 
@@ -389,43 +390,7 @@ export class Koso {
     });
   }
 
-  #unlinkNode(node: Node) {
-    const nodeId = node.name;
-    const parentId = this.getParent(node).name;
-    const yParent = this.yGraph.get(parentId);
-    if (!yParent) throw new Error(`Task ${parentId} is not in the graph`);
-    const yParentsChildren = yParent.get("children") as Y.Array<string>;
-    const yParentsChildrenArr = yParentsChildren.toArray();
-    yParentsChildren.delete(yParentsChildrenArr.indexOf(nodeId));
-
-    const yNode = this.yGraph.get(nodeId);
-    if (!yNode) throw new Error(`Task ${nodeId} is not in the graph`);
-    const yChildren = yNode.get("children") as Y.Array<string>;
-    for (const child of yChildren) {
-      if (!yParentsChildrenArr.includes(child)) {
-        yParentsChildren.push([child]);
-      }
-    }
-  }
-
-  unlinkNode(node: Node) {
-    this.yDoc.transact(() => {
-      this.#unlinkNode(node);
-    });
-  }
-
-  #deleteNode(node: Node) {
-    this.yGraph.delete(node.name);
-  }
-
   deleteNode(node: Node) {
-    this.yDoc.transact(() => {
-      this.#unlinkNode(node);
-      this.#deleteNode(node);
-    });
-  }
-
-  deleteSubtree(node: Node) {
     const subtreeTaskIds = this.#collectSubtreeTaskIds(node.name);
     console.log(
       `Examining subtree starting at ${node.name} under parent ${node.parentName} `,
