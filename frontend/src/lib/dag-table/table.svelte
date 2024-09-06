@@ -17,7 +17,7 @@
   export let users: User[];
 
   const rows: { [key: string]: HTMLDivElement } = {};
-  const { nodes, parents, selectedId } = koso;
+  const { nodes, selectedId } = koso;
 
   document.onkeydown = (event: KeyboardEvent) => {
     if (event.key === "ArrowDown") {

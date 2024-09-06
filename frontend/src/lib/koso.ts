@@ -2,7 +2,6 @@ import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import {
   derived,
-  get,
   readable,
   writable,
   type Readable,
