@@ -17,7 +17,7 @@
   export let users: User[];
 
   const rows: { [key: string]: HTMLDivElement } = {};
-  const { nodes, selectedId } = koso;
+  const { debug, nodes, selectedId } = koso;
 
   document.onkeydown = (event: KeyboardEvent) => {
     if (event.key === "ArrowDown") {
@@ -119,6 +119,9 @@
     <thead class="text-left text-xs font-bold uppercase">
       <tr>
         <th class="w-32 p-2">ID</th>
+        {#if $debug}
+          <th class="border-l p-2">UUID</th>
+        {/if}
         <th class="border-l p-2">
           <SquarePen class="h-4 md:hidden" />
           <div class="max-md:hidden">Status</div></th

@@ -16,7 +16,8 @@
   export let row: (el: HTMLDivElement) => void = () => {};
 
   const koso = getContext<Koso>("koso");
-  const { draggedId, dropEffect, expanded, highlightedId, selectedId } = koso;
+  const { debug, draggedId, dropEffect, expanded, highlightedId, selectedId } =
+    koso;
 
   let rowElement: HTMLDivElement | undefined;
   let idCellElement: HTMLTableCellElement | undefined;
@@ -382,6 +383,11 @@
       <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
     </div>
   </td>
+  {#if $debug}
+    <td class={cn("border-l border-t p-2 text-xs")}>
+      {task.id}
+    </td>
+  {/if}
   <td class={cn("border-l border-t p-2")}>
     <TaskStatusSelect
       value={task.status}

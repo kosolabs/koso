@@ -116,6 +116,7 @@ export class Koso {
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
 
+  debug: Writable<boolean>;
   events: Readable<YEvent[]>;
   selectedId: Writable<string | null>;
   highlightedId: Writable<string | null>;
@@ -150,6 +151,7 @@ export class Koso {
       },
     );
 
+    this.debug = storable<boolean>("debug", false);
     this.events = readable<YEvent[]>([], (set) => {
       const observer = (events: YEvent[]) => set(events);
       this.observe(observer);
