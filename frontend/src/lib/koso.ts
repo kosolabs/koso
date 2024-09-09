@@ -548,19 +548,29 @@ export class Koso {
     this.moveNode(node, node.parentName, node.offset + 2);
   }
 
+  canIndentNode(node: Node) {
+    const peer = this.getPrevPeer(node);
+    return this.canMove(node.parentName, peer.name, node.name);
+  }
+
   indentNode(node: Node) {
     if (node.offset < 1) return;
     const peer = this.getPrevPeer(node);
-    if (!this.canMove(node.parentName, peer.name, node.name)) return;
+    if (!this.canIndentNode(node)) return;
     this.moveNode(node, peer.name, this.getChildCount(peer.name));
     this.expand(peer.id);
     this.selectedId.set(Node.concat(peer.path, node.name));
   }
 
+  canUndentNode(node: Node) {
+    const parent = node.parent();
+    return this.canMove(node.parentName, parent.parentName, node.name);
+  }
+
   undentNode(node: Node) {
     if (node.length < 2) return;
     const parent = node.parent();
-    if (!this.canMove(node.parentName, parent.parentName, node.name)) return;
+    if (!this.canUndentNode(node)) return;
     this.moveNode(node, parent.parentName, parent.offset + 1);
     this.selectedId.set(Node.concat(parent.parent().path, node.name));
   }

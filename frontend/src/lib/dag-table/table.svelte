@@ -4,6 +4,8 @@
   import { KeyBinding } from "$lib/key-binding";
   import { type Koso } from "$lib/koso";
   import {
+    IndentDecrease,
+    IndentIncrease,
     ListPlus,
     ListTree,
     SquarePen,
@@ -20,20 +22,28 @@
   const rows: { [key: string]: HTMLDivElement } = {};
   const { debug, nodes, selectedId } = koso;
 
+  function indent() {
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.indentNode(selected);
+  }
+
+  function undent() {
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.undentNode(selected);
+  }
+
   document.onkeydown = (event: KeyboardEvent) => {
     if (KeyBinding.INDENT_NODE.equals(event)) {
-      if (!$selectedId) return;
-      const selected = koso.getNode($selectedId);
-      koso.indentNode(selected);
+      indent();
       event.preventDefault();
       event.stopPropagation();
       return;
     }
 
     if (KeyBinding.UNDENT_NODE.equals(event)) {
-      if (!$selectedId) return;
-      const selected = koso.getNode($selectedId);
-      koso.undentNode(selected);
+      undent();
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -158,6 +168,14 @@
     <Button class="text-xs" on:click={remove}>
       <Trash class="me-2 w-4" />
       Delete
+    </Button>
+    <Button class="text-xs" on:click={undent}>
+      <IndentDecrease class="me-2 w-4" />
+      Undent
+    </Button>
+    <Button class="text-xs" on:click={indent}>
+      <IndentIncrease class="me-2 w-4" />
+      Indent
     </Button>
   {:else}
     <Button class="text-xs" on:click={addRoot}>
