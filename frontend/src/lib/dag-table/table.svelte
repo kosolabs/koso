@@ -1,10 +1,15 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
+  import { KeyBinding } from "$lib/key-binding";
   import { type Koso } from "$lib/koso";
   import {
+    IndentDecrease,
+    IndentIncrease,
     ListPlus,
     ListTree,
+    MoveDown,
+    MoveUp,
     SquarePen,
     Trash,
     UserRoundPlus,
@@ -19,8 +24,76 @@
   const rows: { [key: string]: HTMLDivElement } = {};
   const { debug, nodes, selectedId } = koso;
 
+  function moveUp() {
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.moveNodeUp(selected);
+  }
+
+  function moveDown() {
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.moveNodeDown(selected);
+  }
+
+  function indent() {
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.indentNode(selected);
+  }
+
+  function undent() {
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.undentNode(selected);
+  }
+
   document.onkeydown = (event: KeyboardEvent) => {
-    if (event.key === "ArrowDown") {
+    if (KeyBinding.INDENT_NODE.equals(event)) {
+      indent();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.UNDENT_NODE.equals(event)) {
+      undent();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.MOVE_NODE_UP.equals(event)) {
+      moveUp();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.MOVE_NODE_DOWN.equals(event)) {
+      moveDown();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.COLLAPSE_NODE.equals(event)) {
+      if (!$selectedId) return;
+      koso.collapse($selectedId);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.EXPAND_NODE.equals(event)) {
+      if (!$selectedId) return;
+      koso.expand($selectedId);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.SELECT_NEXT_NODE.equals(event)) {
       if (koso.nodelen > 1) {
         if ($selectedId) {
           const selected = koso.getNode($selectedId);
@@ -38,7 +111,7 @@
       return;
     }
 
-    if (event.key === "ArrowUp") {
+    if (KeyBinding.SELECT_PREV_NODE.equals(event)) {
       if (koso.nodelen > 1) {
         if ($selectedId) {
           const selected = koso.getNode($selectedId);
@@ -105,6 +178,18 @@
     <Button class="text-xs" on:click={remove}>
       <Trash class="me-2 w-4" />
       Delete
+    </Button>
+    <Button class="text-xs" on:click={moveUp}>
+      <MoveUp class="w-4" />
+    </Button>
+    <Button class="text-xs" on:click={moveDown}>
+      <MoveDown class="w-4" />
+    </Button>
+    <Button class="text-xs" on:click={undent}>
+      <IndentDecrease class="w-4" />
+    </Button>
+    <Button class="text-xs" on:click={indent}>
+      <IndentIncrease class="w-4" />
     </Button>
   {:else}
     <Button class="text-xs" on:click={addRoot}>

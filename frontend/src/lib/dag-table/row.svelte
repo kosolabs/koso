@@ -286,20 +286,6 @@
       event.stopPropagation();
       return;
     }
-
-    if (event.key === "ArrowLeft") {
-      setOpen(false);
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (event.key === "ArrowRight") {
-      setOpen(true);
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
   }
 
   function hasCycle(parent: string, child: string): boolean {
