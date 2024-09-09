@@ -308,7 +308,18 @@ describe("Koso tests", () => {
       expect(koso.toJSON()).not.toHaveProperty(task(id2));
     });
 
-    it("move node 3 to child of node 1 as a peer of node 2 succeeds", () => {
+    it("link node 1 to child of node 1 throws (prevent cycle)", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+      expect(() => koso.linkNode(koso.getNode(id1), task(id1), 0)).toThrow();
+    });
+
+    it("link node 1 to grandchild of node 1 throws (prevent cycle)", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+      const id2 = koso.insertNode(koso.getNode(id1), 0, "Task 1", USER);
+      expect(() => koso.linkNode(koso.getNode(id1), task(id2), 0)).toThrow();
+    });
+
+    it("move node 3 to child of node 1 as a peer of node 2 succeeds (reparent)", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
       const id2 = koso.insertNode(koso.getNode(id1), 0, "Task 2", USER);
       const id3 = koso.insertNode(koso.getNode("root"), 1, "Task 3", USER);
@@ -324,7 +335,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("move node 3 to immediate child of node 1 succeeds", () => {
+    it("move node 3 to immediate child of node 1 succeeds (reparent)", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
       const id2 = koso.insertNode(koso.getNode(id1), 0, "Task 2", USER);
       const id3 = koso.insertNode(koso.getNode("root"), 1, "Task 3", USER);
@@ -340,7 +351,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("move node 4 to be a child of node 3 succeeds", () => {
+    it("move node 4 to be a child of node 3 succeeds (reparent)", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
       const id2 = koso.insertNode(koso.getNode(id1), 0, "Task 2", USER);
       const id3 = koso.insertNode(koso.getNode(id1), 1, "Task 3", USER);
@@ -358,7 +369,16 @@ describe("Koso tests", () => {
       });
     });
 
-    it("move node 4 to be the peer of node 2 succeeds", () => {
+    it("move node 2 to peer of itself throws (prevent duplicate)", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+      const id2 = koso.insertNode(koso.getNode("root"), 0, "Task 2", USER);
+      koso.linkNode(koso.getNode(id2), task(id1), 0);
+      koso.expanded.set(new Set([Node.id([id1, id2])]));
+
+      expect(() => koso.moveNode(koso.getNode(id2), task(id1), 1)).toThrow();
+    });
+
+    it("move node 4 to be the peer of node 2 succeeds (reorder)", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
       const id2 = koso.insertNode(koso.getNode(id1), 0, "Task 2", USER);
       const id3 = koso.insertNode(koso.getNode(id1), 1, "Task 3", USER);
@@ -376,7 +396,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("move node 3 to be the peer of node 4 succeeds", () => {
+    it("move node 3 to be the peer of node 4 succeeds (reorder)", () => {
       const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
       const id2 = koso.insertNode(koso.getNode(id1), 0, "Task 2", USER);
       const id3 = koso.insertNode(koso.getNode(id1), 1, "Task 3", USER);
