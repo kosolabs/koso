@@ -8,6 +8,8 @@
     IndentIncrease,
     ListPlus,
     ListTree,
+    MoveDown,
+    MoveUp,
     SquarePen,
     Trash,
     UserRoundPlus,
@@ -21,6 +23,18 @@
 
   const rows: { [key: string]: HTMLDivElement } = {};
   const { debug, nodes, selectedId } = koso;
+
+  function moveUp() {
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.moveNodeUp(selected);
+  }
+
+  function moveDown() {
+    if (!$selectedId) return;
+    const selected = koso.getNode($selectedId);
+    koso.moveNodeDown(selected);
+  }
 
   function indent() {
     if (!$selectedId) return;
@@ -50,18 +64,14 @@
     }
 
     if (KeyBinding.MOVE_NODE_UP.equals(event)) {
-      if (!$selectedId) return;
-      const selected = koso.getNode($selectedId);
-      koso.moveNodeUp(selected);
+      moveUp();
       event.preventDefault();
       event.stopPropagation();
       return;
     }
 
     if (KeyBinding.MOVE_NODE_DOWN.equals(event)) {
-      if (!$selectedId) return;
-      const selected = koso.getNode($selectedId);
-      koso.moveNodeDown(selected);
+      moveDown();
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -169,13 +179,17 @@
       <Trash class="me-2 w-4" />
       Delete
     </Button>
+    <Button class="text-xs" on:click={moveUp}>
+      <MoveUp class="w-4" />
+    </Button>
+    <Button class="text-xs" on:click={moveDown}>
+      <MoveDown class="w-4" />
+    </Button>
     <Button class="text-xs" on:click={undent}>
-      <IndentDecrease class="me-2 w-4" />
-      Undent
+      <IndentDecrease class="w-4" />
     </Button>
     <Button class="text-xs" on:click={indent}>
-      <IndentIncrease class="me-2 w-4" />
-      Indent
+      <IndentIncrease class="w-4" />
     </Button>
   {:else}
     <Button class="text-xs" on:click={addRoot}>
