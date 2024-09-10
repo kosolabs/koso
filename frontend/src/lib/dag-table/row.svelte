@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { User } from "$lib/auth";
+  import CircularProgressStatus from "$lib/circular-progress-status.svelte";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import type { Koso } from "$lib/koso";
@@ -35,6 +36,7 @@
   $: isMoving = isDragging && $dropEffect === "move";
   $: isHovered = $highlightedId === node.name;
   $: isSelected = node.id === $selectedId;
+  $: progress = koso.getProgress(task.id);
 
   function getUser(users: User[], email: string | null): User | null {
     for (const user of users) {
@@ -340,12 +342,16 @@
     </td>
   {/if}
   <td class={cn("border-l border-t p-2")}>
-    <TaskStatusSelect
-      value={task.status}
-      on:select={(event) => {
-        koso.setTaskStatus(task.id, event.detail);
-      }}
-    />
+    {#if task.children.length === 0}
+      <TaskStatusSelect
+        value={task.status}
+        on:select={(event) => {
+          koso.setTaskStatus(task.id, event.detail);
+        }}
+      />
+    {:else}
+      <CircularProgressStatus done={progress.numer} total={progress.denom} />
+    {/if}
   </td>
   <td class={cn("border-l border-t p-2")}>
     {#if editedTaskName !== null}

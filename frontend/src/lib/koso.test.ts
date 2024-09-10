@@ -479,4 +479,72 @@ describe("Koso tests", () => {
       });
     });
   });
+
+  describe("getProgress", () => {
+    it("leaf node that is not started has 0 of 1 progress", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+
+      expect(koso.getProgress(task(id1))).toEqual({
+        numer: 0,
+        denom: 1,
+      });
+    });
+
+    it("leaf node that is in progress has 0 of 1 progress", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+      koso.setTaskStatus(task(id1), "In Progress");
+
+      expect(koso.getProgress(task(id1))).toEqual({
+        numer: 0,
+        denom: 1,
+      });
+    });
+
+    it("leaf node that is done has 1 of 1 progress", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+      koso.setTaskStatus(task(id1), "Done");
+
+      expect(koso.getProgress(task(id1))).toEqual({
+        numer: 1,
+        denom: 1,
+      });
+    });
+
+    it("parent node with 2 not started children has 0 of 2 progress", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+      koso.insertNode(koso.getNode(id1), 0, "Task 2", USER);
+      koso.insertNode(koso.getNode(id1), 0, "Task 3", USER);
+
+      expect(koso.getProgress(task(id1))).toEqual({
+        numer: 0,
+        denom: 2,
+      });
+    });
+
+    it("parent node with 2 in progress children has 0 of 2 progress", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+      const id2 = koso.insertNode(koso.getNode(id1), 0, "Task 2", USER);
+      const id3 = koso.insertNode(koso.getNode(id1), 0, "Task 3", USER);
+      koso.setTaskStatus(task(id2), "In Progress");
+      koso.setTaskStatus(task(id3), "In Progress");
+
+      expect(koso.getProgress(task(id1))).toEqual({
+        numer: 0,
+        denom: 2,
+      });
+    });
+
+    it("parent node with 1 done and 1 in progress children has 1 of 2 progress", () => {
+      const id1 = koso.insertNode(koso.getNode("root"), 0, "Task 1", USER);
+      const id2 = koso.insertNode(koso.getNode(id1), 0, "Task 2", USER);
+      const id3 = koso.insertNode(koso.getNode(id1), 0, "Task 3", USER);
+      koso.setTaskStatus(task(id2), "Done");
+      koso.setTaskStatus(task(id3), "In Progress");
+
+      expect(koso.getProgress(task(id1))).toEqual({
+        numer: 1,
+        denom: 2,
+      });
+    });
+  });
 });
