@@ -32,18 +32,6 @@
   $: open = $expanded.has(node.id);
   $: isDragging = node.id === $draggedId;
   $: dragged = $draggedId ? koso.getNode($draggedId) : null;
-  $: canDragDropPeer =
-    !isDragging &&
-    dragged &&
-    !isSamePeer(node, dragged) &&
-    !hasChild(node.parent(), dragged) &&
-    !hasCycle(node.parentName, dragged.name);
-  $: canDragDropChild =
-    !isDragging &&
-    dragged &&
-    !isSameChild(node, dragged) &&
-    !hasChild(node, dragged) &&
-    !hasCycle(node.name, dragged.name);
   $: isMoving = isDragging && $dropEffect === "move";
   $: isHovered = $highlightedId === node.name;
   $: isSelected = node.id === $selectedId;
@@ -192,14 +180,17 @@
       return;
     }
 
-    if (dragged.parent().equals(node.parent())) {
+    if (koso.canLink(dragged, node.parentName)) {
+      $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
+      dragOverPeer = true;
+    } else if (koso.canMove(dragged, node.parentName)) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
+      dragOverPeer = true;
     } else {
-      $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
+      dataTransfer.dropEffect = "none";
+      $dropEffect = "none";
     }
-
-    dragOverPeer = true;
   }
 
   function handleDragOverChild(event: DragEvent) {
@@ -209,14 +200,17 @@
       return;
     }
 
-    if (dragged.parent().equals(node)) {
+    if (koso.canLink(dragged, node.name)) {
+      $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
+      dragOverChild = true;
+    } else if (koso.canMove(dragged, node.name)) {
       dataTransfer.dropEffect = "move";
       $dropEffect = "move";
+      dragOverChild = true;
     } else {
-      $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
+      dataTransfer.dropEffect = "none";
+      $dropEffect = "none";
     }
-
-    dragOverChild = true;
   }
 
   let closeTimeout: number | undefined;
@@ -286,39 +280,6 @@
       event.stopPropagation();
       return;
     }
-  }
-
-  function hasCycle(parent: string, child: string): boolean {
-    if (child === parent) {
-      return true;
-    }
-    for (const next of koso.getChildren(child)) {
-      if (hasCycle(parent, next)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  function hasChild(parent: Node, child: Node): boolean {
-    if (parent.equals(child.parent())) {
-      return false;
-    }
-    return koso.getChildren(parent.name).includes(child.name);
-  }
-
-  function isSamePeer(node: Node, dragged: Node): boolean {
-    if (!node.parent().equals(dragged.parent())) {
-      return false;
-    }
-    return node.offset + 1 === dragged.offset;
-  }
-
-  function isSameChild(node: Node, dragged: Node): boolean {
-    if (!node.equals(dragged.parent())) {
-      return false;
-    }
-    return dragged.offset === 0;
   }
 </script>
 
@@ -429,9 +390,12 @@
   {@const peerOffset = node.length * 20}
   {@const childOffset = (node.length + 1) * 20}
 
-  {#if canDragDropPeer}
+  {#if $draggedId}
     <div
-      class="absolute z-50 -my-3 h-8"
+      class={cn(
+        "absolute z-50 -my-3 h-8",
+        $debug ? "bg-pink-400 bg-opacity-20" : "",
+      )}
       style="width: {childOffset}px;"
       role="table"
       on:dragover={handleDragOverPeer}
@@ -440,9 +404,12 @@
       on:drop={handleDropNodePeer}
     />
   {/if}
-  {#if canDragDropChild}
+  {#if $draggedId}
     <div
-      class="absolute z-50 -my-3 h-8"
+      class={cn(
+        "absolute z-50 -my-3 h-8",
+        $debug ? "bg-cyan-400 bg-opacity-20" : "",
+      )}
       style="width: {cellWidth - childOffset}px; margin-left: {childOffset}px;"
       role="table"
       on:dragover={handleDragOverChild}

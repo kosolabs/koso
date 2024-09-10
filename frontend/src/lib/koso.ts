@@ -507,24 +507,26 @@ export class Koso {
     yChildren.insert(offset, [child]);
   }
 
-  canLink(parent: string, child: string): boolean {
-    return !this.#hasCycle(parent, child) && !this.#hasChild(parent, child);
+  canLink(node: Node, parent: string): boolean {
+    return (
+      !this.#hasCycle(parent, node.name) && !this.#hasChild(parent, node.name)
+    );
   }
 
   linkNode(node: Node, parent: string, offset: number) {
-    if (!this.canLink(parent, node.name))
+    if (!this.canLink(node, parent))
       throw new Error(`Cannot link ${node.name} to ${parent}`);
     this.yDoc.transact(() => {
       this.#insertChild(node.name, parent, offset);
     });
   }
 
-  canMove(srcParent: string, destParent: string, child: string): boolean {
-    return srcParent === destParent || this.canLink(destParent, child);
+  canMove(node: Node, parent: string): boolean {
+    return node.parentName === parent || this.canLink(node, parent);
   }
 
   moveNode(node: Node, parent: string, offset: number) {
-    if (!this.canMove(node.parentName, parent, node.name))
+    if (!this.canMove(node, parent))
       throw new Error(`Cannot move ${node.name} to ${parent}`);
     this.yDoc.transact(() => {
       const srcParentName = node.parentName;
@@ -550,7 +552,7 @@ export class Koso {
 
   canIndentNode(node: Node) {
     const peer = this.getPrevPeer(node);
-    return this.canMove(node.parentName, peer.name, node.name);
+    return this.canMove(node, peer.name);
   }
 
   indentNode(node: Node) {
@@ -564,7 +566,7 @@ export class Koso {
 
   canUndentNode(node: Node) {
     const parent = node.parent();
-    return this.canMove(node.parentName, parent.parentName, node.name);
+    return this.canMove(node, parent.parentName);
   }
 
   undentNode(node: Node) {
