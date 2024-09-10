@@ -118,6 +118,11 @@ export type Graph = { [id: string]: Task };
 export type Nodes = Map<string, Node>;
 export type Parents = { [id: string]: string[] };
 
+export type Progress = {
+  numer: number;
+  denom: number;
+};
+
 export class Koso {
   yDoc: Y.Doc;
   yGraph: Y.Map<Y.Map<Y.Array<string> | string | null>>;
@@ -636,5 +641,22 @@ export class Koso {
         yNode.set("status", status);
       }
     });
+  }
+
+  getProgress(taskId: string): Progress {
+    console.log(taskId);
+    const task = this.getTask(taskId);
+    if (task.children.length === 0) {
+      return task.status === "Done"
+        ? { numer: 1, denom: 1 }
+        : { numer: 0, denom: 1 };
+    }
+    const result = { numer: 0, denom: 0 };
+    task.children.forEach((taskId) => {
+      const childProgress = this.getProgress(taskId);
+      result.numer += childProgress.numer;
+      result.denom += childProgress.denom;
+    });
+    return result;
   }
 }

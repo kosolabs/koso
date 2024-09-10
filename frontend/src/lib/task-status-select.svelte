@@ -3,6 +3,7 @@
   import { createEventDispatcher } from "svelte";
   import Confetti from "svelte-confetti";
   import type { Status } from "./koso";
+  import ResponsiveText from "./responsive-text.svelte";
   import TaskStatusIcon from "./task-status-icon.svelte";
 
   const dispatch = createEventDispatcher<{ select: Status }>();
@@ -22,9 +23,7 @@
 <DropdownMenu.Root>
   <DropdownMenu.Trigger class="flex items-center gap-2">
     <TaskStatusIcon status={value} />
-    <div class="whitespace-nowrap text-sm max-md:hidden">
-      {value || "Not Started"}
-    </div>
+    <ResponsiveText>{value || "Not Started"}</ResponsiveText>
   </DropdownMenu.Trigger>
   <DropdownMenu.Content>
     {#each statuses as status}
@@ -33,7 +32,7 @@
         on:click={() => select(status)}
       >
         <TaskStatusIcon {status} />
-        <div class="whitespace-nowrap text-sm">{status}</div>
+        <ResponsiveText>{status}</ResponsiveText>
       </DropdownMenu.Item>
     {/each}
   </DropdownMenu.Content>
