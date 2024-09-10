@@ -144,10 +144,12 @@
     const dragDestParent = node.parentName;
     const dragDestOffset = node.offset + 1;
 
-    if ($dropEffect === "move") {
+    if ($dropEffect === "link") {
+      koso.linkNode(dragged, dragDestParent, dragDestOffset);
+    } else if ($dropEffect === "move") {
       koso.moveNode(dragged, dragDestParent, dragDestOffset);
     } else {
-      koso.linkNode(dragged, dragDestParent, dragDestOffset);
+      throw new Error(`Invalid dropEffect: ${$dropEffect}`);
     }
     $draggedId = null;
     dragOverPeer = false;
@@ -163,10 +165,12 @@
     const dragDestParent = node.name;
     const dragDestOffset = 0;
 
-    if ($dropEffect === "move") {
+    if ($dropEffect === "link") {
+      koso.linkNode(dragged, dragDestParent, dragDestOffset);
+    } else if ($dropEffect === "move") {
       koso.moveNode(dragged, dragDestParent, dragDestOffset);
     } else {
-      koso.linkNode(dragged, dragDestParent, dragDestOffset);
+      throw new Error(`Invalid dropEffect: ${$dropEffect}`);
     }
     $draggedId = null;
     dragOverPeer = false;
