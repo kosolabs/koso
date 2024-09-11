@@ -29,7 +29,7 @@
   $: task = koso.getTask(node.name);
   $: reporter = getUser(users, task.reporter);
   $: assignee = getUser(users, task.assignee);
-  $: open = $expanded.has(node.id);
+  $: open = $expanded.has(node);
   $: isDragging = node.equals($dragged);
   $: isMoving = isDragging && $dropEffect === "move";
   $: isHovered = $highlighted === node.name;

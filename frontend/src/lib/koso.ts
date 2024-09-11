@@ -1,4 +1,4 @@
-import { List, Map, Record } from "immutable";
+import { fromJS, isIndexed, List, Map, Record, Set } from "immutable";
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import {
@@ -102,7 +102,7 @@ export class Koso {
   highlighted: Writable<string | null>;
   dropEffect: Writable<"link" | "move" | "none">;
   dragged: Writable<Node | null>;
-  expanded: Writable<Set<string>>;
+  expanded: Writable<Set<Node>>;
   nodes: Readable<List<Node>>;
   #nodes: List<Node> = List();
   unsubscribe: Unsubscriber;
@@ -142,11 +142,17 @@ export class Koso {
     this.dragged = writable<Node | null>(null);
 
     const expandedLocalStorageKey = `expanded-nodes-${projectId}`;
-    this.expanded = storable<Set<string>>(
+    this.expanded = storable<Set<Node>>(
       expandedLocalStorageKey,
-      new Set(),
-      (json: string) => new Set<string>(JSON.parse(json)),
-      (value) => JSON.stringify(Array.from(value)),
+      Set(),
+      (json: string) =>
+        // @ts-expect-error: parsing has very generic types
+        fromJS<Set<Node>>(JSON.parse(json), (key, seq) => {
+          if (!isIndexed(seq)) return new Node(seq);
+          if (key === "path") return seq.toList() as List<string>;
+          return seq.toSet() as Set<Node>;
+        }),
+      (value) => JSON.stringify(value.toJS()),
     );
 
     this.nodes = derived([this.expanded, this.events], ([expanded]) =>
@@ -225,25 +231,22 @@ export class Koso {
   }
 
   expand(node: Node) {
-    this.expanded.update(($expanded) => $expanded.add(node.id));
+    this.expanded.update(($expanded) => $expanded.add(node));
   }
 
   collapse(node: Node) {
-    this.expanded.update(($expanded) => {
-      $expanded.delete(node.id);
-      return $expanded;
-    });
+    this.expanded.update(($expanded) => $expanded.delete(node));
   }
 
   #flatten(
     node: Node,
-    expanded: Set<string>,
+    expanded: Set<Node>,
     nodes: List<Node> = List(),
   ): List<Node> {
     const task = this.yGraph.get(node.name);
     if (task) {
       nodes = nodes.push(node);
-      if (node.length < 1 || expanded.has(node.id)) {
+      if (node.length < 1 || expanded.has(node)) {
         (task.get("children") as Y.Array<string>).forEach((name) => {
           nodes = this.#flatten(node.child(name), expanded, nodes);
         });
@@ -310,19 +313,21 @@ export class Koso {
   }
 
   getOrphanedTaskIds() {
-    const allChildTaskIds = new Set<string>();
-    for (const task of this.yGraph.values()) {
-      for (const childTaskId of task.get("children") as Y.Array<string>) {
-        allChildTaskIds.add(childTaskId);
+    const allChildTaskIds = Set<string>().withMutations((allChildTaskIds) => {
+      for (const task of this.yGraph.values()) {
+        for (const childTaskId of task.get("children") as Y.Array<string>) {
+          allChildTaskIds.add(childTaskId);
+        }
       }
-    }
+    });
 
-    const allTaskIds = new Set<string>();
-    for (const taskId of this.yGraph.keys()) {
-      allTaskIds.add(taskId);
-    }
+    const allTaskIds = Set<string>().withMutations((allTaskIds) => {
+      for (const taskId of this.yGraph.keys()) {
+        allTaskIds.add(taskId);
+      }
+    });
 
-    return Array.from(allTaskIds.difference(allChildTaskIds));
+    return allTaskIds.subtract(allChildTaskIds).toArray();
   }
 
   newId(): string {
@@ -375,15 +380,15 @@ export class Koso {
     // is unlinked. In other words, tasks whose only parents are also in the sub-tree
     // being deleted.
     const parents = this.#toParents();
-    const orphanTaskIds = new Set<string>();
-    const visited = new Set<string>();
     const stack = [node.name];
+    let orphanTaskIds = Set<string>();
+    let visited = Set<string>();
     while (stack.length > 0) {
       const taskId = stack.pop();
       if (!taskId || visited.has(taskId)) {
         continue;
       }
-      visited.add(taskId);
+      visited = visited.add(taskId);
 
       // Don't delete tasks that are linked to outside of the target sub-tree.
       const linkedElseWhere = parents[taskId].find((parentTaskId) => {
@@ -396,7 +401,7 @@ export class Koso {
         continue;
       }
 
-      orphanTaskIds.add(taskId);
+      orphanTaskIds = orphanTaskIds.add(taskId);
       for (const childTaskId of this.getChildren(taskId)) {
         stack.push(childTaskId);
       }
@@ -424,21 +429,21 @@ export class Koso {
 
   // Collect all task IDs in the sub-tree starting at `taskId`.
   #collectSubtreeTaskIds(taskId: string) {
-    const subtreeTaskIds = new Set<string>();
-    const stack = [taskId];
-    while (stack.length > 0) {
-      const taskId = stack.pop();
-      if (!taskId) {
-        continue;
-      }
-      subtreeTaskIds.add(taskId);
-      for (const childTaskId of this.getChildren(taskId)) {
-        if (!subtreeTaskIds.has(childTaskId)) {
-          stack.push(childTaskId);
+    return Set<string>().withMutations((subtreeTaskIds) => {
+      const stack = [taskId];
+      while (stack.length > 0) {
+        const taskId = stack.pop();
+        if (!taskId) {
+          continue;
+        }
+        subtreeTaskIds.add(taskId);
+        for (const childTaskId of this.getChildren(taskId)) {
+          if (!subtreeTaskIds.has(childTaskId)) {
+            stack.push(childTaskId);
+          }
         }
       }
-    }
-    return subtreeTaskIds;
+    });
   }
 
   #hasCycle(parent: string, child: string): boolean {

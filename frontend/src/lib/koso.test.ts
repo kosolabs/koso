@@ -1,4 +1,4 @@
-import { List } from "immutable";
+import { List, Set } from "immutable";
 import * as encoding from "lib0/encoding";
 import { get } from "svelte/store";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -99,7 +99,7 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(root, 0, "Task 1", USER);
       const id2 = koso.insertNode(root, 1, "Task 2", USER);
       const id3 = koso.insertNode(id1, 0, "Task 3", USER);
-      koso.expanded.set(new Set([id1.id]));
+      koso.expanded.set(Set([id1]));
       expect(get(koso.nodes)).toStrictEqual(List([root, id1, id3, id2]));
     });
 
@@ -107,7 +107,7 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(root, 0, "Task 1", USER);
       const id2 = koso.insertNode(root, 1, "Task 2", USER);
       koso.linkNode(id2, id1.name, 0);
-      koso.expanded.set(new Set([id1.id]));
+      koso.expanded.set(Set([id1]));
       const lid = id1.child(id2.name);
       expect(get(koso.nodes)).toStrictEqual(List([root, id1, lid, id2]));
     });
@@ -176,7 +176,7 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(root, 0, "Task 1", USER);
       const id2 = koso.insertNode(root, 1, "Task 2", USER);
       koso.linkNode(id2, id1.name, 0);
-      koso.expanded.set(new Set([id1.id]));
+      koso.expanded.set(Set([id1]));
 
       koso.deleteNode(id1.child(id2.name));
 
@@ -192,7 +192,7 @@ describe("Koso tests", () => {
       const id2 = koso.insertNode(root, 1, "Task 2", USER);
       const id3 = koso.insertNode(id2, 0, "Task 3", USER);
       const id4 = koso.insertNode(id2, 1, "Task 4", USER);
-      koso.expanded.set(new Set([id1.id, id2.id, id3.id, id4.id]));
+      koso.expanded.set(Set([id1, id2, id3, id4]));
       const id5 = koso.insertNode(id3, 0, "Task 5", USER);
       koso.insertNode(id4, 0, "Task 6", USER);
       const id7 = koso.insertNode(root, 2, "Task 7", USER);
@@ -226,7 +226,7 @@ describe("Koso tests", () => {
     it("delete node 2 succeeds", () => {
       const id1 = koso.insertNode(root, 0, "Task 1", USER);
       const id2 = koso.insertNode(id1, 0, "Task 2", USER);
-      koso.expanded.set(new Set([id1.id]));
+      koso.expanded.set(Set([id1]));
 
       koso.deleteNode(id2);
 
@@ -250,7 +250,7 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(root, 0, "Task 1", USER);
       const id2 = koso.insertNode(id1, 0, "Task 2", USER);
       const id3 = koso.insertNode(root, 1, "Task 3", USER);
-      koso.expanded.set(new Set([id1.id]));
+      koso.expanded.set(Set([id1]));
 
       koso.moveNode(id3, id1.name, 1);
 
@@ -266,7 +266,7 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(root, 0, "Task 1", USER);
       const id2 = koso.insertNode(id1, 0, "Task 2", USER);
       const id3 = koso.insertNode(root, 1, "Task 3", USER);
-      koso.expanded.set(new Set([id1.id]));
+      koso.expanded.set(Set([id1]));
 
       koso.moveNode(id3, id1.name, 0);
 
@@ -283,7 +283,7 @@ describe("Koso tests", () => {
       const id2 = koso.insertNode(id1, 0, "Task 2", USER);
       const id3 = koso.insertNode(id1, 1, "Task 3", USER);
       const id4 = koso.insertNode(id1, 2, "Task 4", USER);
-      koso.expanded.set(new Set([id1.id, id3.id]));
+      koso.expanded.set(Set([id1, id3]));
 
       koso.moveNode(id4, id3.name, 0);
 
@@ -300,7 +300,7 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(root, 0, "Task 1", USER);
       const id2 = koso.insertNode(root, 0, "Task 2", USER);
       koso.linkNode(id2, id1.name, 0);
-      koso.expanded.set(new Set([id1.child(id2.name).id]));
+      koso.expanded.set(Set([id1.child(id2.name)]));
 
       expect(() => koso.moveNode(id2, id1.name, 1)).toThrow();
     });
@@ -310,7 +310,7 @@ describe("Koso tests", () => {
       const id2 = koso.insertNode(id1, 0, "Task 2", USER);
       const id3 = koso.insertNode(id1, 1, "Task 3", USER);
       const id4 = koso.insertNode(id1, 2, "Task 4", USER);
-      koso.expanded.set(new Set([id1.id]));
+      koso.expanded.set(Set([id1]));
 
       koso.moveNode(id4, id1.name, 1);
 
@@ -328,7 +328,7 @@ describe("Koso tests", () => {
       const id2 = koso.insertNode(id1, 0, "Task 2", USER);
       const id3 = koso.insertNode(id1, 1, "Task 3", USER);
       const id4 = koso.insertNode(id1, 2, "Task 4", USER);
-      koso.expanded.set(new Set([id1.id]));
+      koso.expanded.set(Set([id1]));
 
       koso.moveNode(id3, id1.name, 3);
 
