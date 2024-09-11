@@ -644,7 +644,6 @@ export class Koso {
   }
 
   getProgress(taskId: string): Progress {
-    console.log(taskId);
     const task = this.getTask(taskId);
     if (task.children.length === 0) {
       return task.status === "Done"

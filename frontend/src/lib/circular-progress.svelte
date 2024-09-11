@@ -4,8 +4,8 @@
   export let progress: number;
   export let size: string = "22px";
   export let thickness: string = "2px";
-  export let trackColor: string = "#f0f4f8";
-  export let fillColor: string = "#0b6bcb";
+  export let trackColor: string = "hsl(var(--secondary))";
+  export let fillColor: string = "hsl(var(--primary))";
 </script>
 
 <div class={cn("p-[1px]", $$restProps.class || "")}>
@@ -59,16 +59,16 @@
     cx: 50%;
     cy: 50%;
     r: var(--_cp-radius);
-    stroke-width: var(--cp-thickness);
     stroke: var(--cp-track-color);
+    stroke-width: var(--cp-thickness);
   }
 
   .progress {
     cx: 50%;
     cy: 50%;
     r: var(--_cp-radius);
-    stroke-width: var(--cp-thickness);
     stroke: var(--cp-fill-color);
+    stroke-width: var(--cp-thickness);
     stroke-linecap: round;
     stroke-dasharray: var(--_cp-length);
     stroke-dashoffset: calc((1 - var(--cp-progress)) * var(--_cp-length));
