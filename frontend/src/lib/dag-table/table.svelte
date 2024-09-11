@@ -22,30 +22,26 @@
   export let users: User[];
 
   const rows: { [key: string]: HTMLDivElement } = {};
-  const { debug, nodes, selectedId } = koso;
+  const { debug, nodes, selected } = koso;
 
   function moveUp() {
-    if (!$selectedId) return;
-    const selected = koso.getNode($selectedId);
-    koso.moveNodeUp(selected);
+    if (!$selected) return;
+    koso.moveNodeUp($selected);
   }
 
   function moveDown() {
-    if (!$selectedId) return;
-    const selected = koso.getNode($selectedId);
-    koso.moveNodeDown(selected);
+    if (!$selected) return;
+    koso.moveNodeDown($selected);
   }
 
   function indent() {
-    if (!$selectedId) return;
-    const selected = koso.getNode($selectedId);
-    koso.indentNode(selected);
+    if (!$selected) return;
+    koso.indentNode($selected);
   }
 
   function undent() {
-    if (!$selectedId) return;
-    const selected = koso.getNode($selectedId);
-    koso.undentNode(selected);
+    if (!$selected) return;
+    koso.undentNode($selected);
   }
 
   document.onkeydown = (event: KeyboardEvent) => {
@@ -78,16 +74,16 @@
     }
 
     if (KeyBinding.COLLAPSE_NODE.equals(event)) {
-      if (!$selectedId) return;
-      koso.collapse($selectedId);
+      if (!$selected) return;
+      koso.collapse($selected);
       event.preventDefault();
       event.stopPropagation();
       return;
     }
 
     if (KeyBinding.EXPAND_NODE.equals(event)) {
-      if (!$selectedId) return;
-      koso.expand($selectedId);
+      if (!$selected) return;
+      koso.expand($selected);
       event.preventDefault();
       event.stopPropagation();
       return;
@@ -95,16 +91,18 @@
 
     if (KeyBinding.SELECT_NEXT_NODE.equals(event)) {
       if (koso.nodelen > 1) {
-        if ($selectedId) {
-          const selected = koso.getNode($selectedId);
-          const index = Math.min(selected.index + 1, koso.nodelen - 1);
-          $selectedId = koso.getNodeId(index);
+        if ($selected) {
+          const index = Math.min(
+            koso.getIndex($selected) + 1,
+            koso.nodelen - 1,
+          );
+          $selected = koso.getNodeId(index);
         } else {
-          $selectedId = koso.getNodeId(1);
+          $selected = koso.getNodeId(1);
         }
       }
-      if ($selectedId !== null) {
-        rows[$selectedId].focus();
+      if ($selected !== null) {
+        rows[$selected.id].focus();
       }
       event.preventDefault();
       event.stopPropagation();
@@ -113,16 +111,15 @@
 
     if (KeyBinding.SELECT_PREV_NODE.equals(event)) {
       if (koso.nodelen > 1) {
-        if ($selectedId) {
-          const selected = koso.getNode($selectedId);
-          const index = Math.max(selected.index - 1, 1);
-          $selectedId = koso.getNodeId(index);
+        if ($selected) {
+          const index = Math.max(koso.getIndex($selected) - 1, 1);
+          $selected = koso.getNodeId(index);
         } else {
-          $selectedId = koso.getNodeId(koso.nodelen - 1);
+          $selected = koso.getNodeId(koso.nodelen - 1);
         }
       }
-      if ($selectedId !== null) {
-        rows[$selectedId].focus();
+      if ($selected !== null) {
+        rows[$selected.id].focus();
       }
       event.preventDefault();
       event.stopPropagation();
@@ -132,41 +129,38 @@
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
-    koso.insertNode(koso.getNode("root"), 0, "Untitled", $user);
+    koso.insertNode(koso.root, 0, "Untitled", $user);
   }
 
   function addPeer() {
-    if (!$selectedId) return;
+    if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    const selected = koso.getNode($selectedId);
-    $selectedId = koso.insertNode(
-      selected.parent(),
-      selected.offset + 1,
+    $selected = koso.insertNode(
+      $selected.parent,
+      koso.getOffset($selected) + 1,
       "Untitled",
       $user,
     );
   }
 
   function addChild() {
-    if (!$selectedId) return;
+    if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    const selected = koso.getNode($selectedId);
-    $selectedId = koso.insertNode(selected, 0, "Untitled", $user);
-    koso.expand(selected.id);
+    $selected = koso.insertNode($selected, 0, "Untitled", $user);
+    koso.expand($selected);
   }
 
   function remove() {
-    if (!$selectedId) return;
-    const selected = koso.getNode($selectedId);
-    koso.deleteNode(selected);
-    $selectedId = null;
+    if (!$selected) return;
+    koso.deleteNode($selected);
+    $selected = null;
   }
 
   setContext<Koso>("koso", koso);
 </script>
 
 <div class="sticky top-0 z-30 flex gap-2 px-4 py-2 pb-2 backdrop-blur">
-  {#if $selectedId}
+  {#if $selected}
     <Button class="text-xs" on:click={addPeer}>
       <ListPlus class="me-2 w-4" />
       Add Task
@@ -220,9 +214,9 @@
       </tr>
     </thead>
 
-    {#each [...$nodes].slice(1) as [nodeId, node], index (nodeId)}
+    {#each [...$nodes].slice(1) as node, index (node.id)}
       <tbody animate:flip={{ duration: 250 }}>
-        <Row {index} {node} {users} row={(el) => (rows[nodeId] = el)} />
+        <Row {index} {node} {users} row={(el) => (rows[node.id] = el)} />
       </tbody>
     {/each}
   </table>
