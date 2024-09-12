@@ -158,10 +158,6 @@ export class Koso {
     });
   }
 
-  get nodelen(): number {
-    return this.#nodes.size;
-  }
-
   get root(): Node {
     return new Node();
   }
@@ -260,16 +256,6 @@ export class Koso {
       }
     }
     return parents;
-  }
-
-  getIndex(node: Node): number {
-    return this.#nodes.indexOf(node);
-  }
-
-  getNodeId(index: number): Node {
-    const maybeNode = this.#nodes.get(index);
-    if (!maybeNode) throw new Error(`Node index ${index} out of bounds`);
-    return maybeNode;
   }
 
   getOffset(node: Node): number {

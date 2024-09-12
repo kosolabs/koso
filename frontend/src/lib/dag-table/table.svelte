@@ -90,15 +90,16 @@
     }
 
     if (KeyBinding.SELECT_NEXT_NODE.equals(event)) {
-      if (koso.nodelen > 1) {
+      if ($nodes.size > 1) {
         if ($selected) {
+          $nodes.indexOf($selected);
           const index = Math.min(
-            koso.getIndex($selected) + 1,
-            koso.nodelen - 1,
+            $nodes.indexOf($selected) + 1,
+            $nodes.size - 1,
           );
-          $selected = koso.getNodeId(index);
+          $selected = $nodes.get(index, null);
         } else {
-          $selected = koso.getNodeId(1);
+          $selected = $nodes.get(1, null);
         }
       }
       if ($selected !== null) {
@@ -110,12 +111,12 @@
     }
 
     if (KeyBinding.SELECT_PREV_NODE.equals(event)) {
-      if (koso.nodelen > 1) {
+      if ($nodes.size > 1) {
         if ($selected) {
-          const index = Math.max(koso.getIndex($selected) - 1, 1);
-          $selected = koso.getNodeId(index);
+          const index = Math.max($nodes.indexOf($selected) - 1, 1);
+          $selected = $nodes.get(index, null);
         } else {
-          $selected = koso.getNodeId(koso.nodelen - 1);
+          $selected = $nodes.get($nodes.size - 1, null);
         }
       }
       if ($selected !== null) {
