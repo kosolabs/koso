@@ -4,8 +4,9 @@
   export let progress: number;
   export let size: string = "22px";
   export let thickness: string = "2px";
-  export let trackColor: string = "hsl(from currentColor h s l / 90%)";
-  export let fillColor: string = "currentColor";
+  export let trackColor: string =
+    "color-mix(in srgb, currentColor 10%, transparent)";
+  export let color: string = "currentColor";
 </script>
 
 <div class={cn("p-[1px]", $$restProps.class || "")}>
@@ -16,7 +17,7 @@
       --cp-size:{size};
       --cp-thickness:{thickness};
       --cp-track-color:{trackColor};
-      --cp-fill-color:{fillColor};"
+      --cp-fill-color:{color};"
   >
     <div class="slot">
       <slot />

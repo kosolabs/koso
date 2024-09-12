@@ -32,7 +32,7 @@
         on:click={() => select(status)}
       >
         <TaskStatusIcon {status} />
-        <ResponsiveText>{status}</ResponsiveText>
+        {status}
       </DropdownMenu.Item>
     {/each}
   </DropdownMenu.Content>
