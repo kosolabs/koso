@@ -335,6 +335,7 @@
         />
       {:else if project}
         <Button
+          data-testid="set-project-name-button"
           variant="link"
           class="text-lg"
           on:click={handleStartEditingProjectName}

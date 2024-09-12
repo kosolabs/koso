@@ -1,11 +1,19 @@
-import { expect, test, request } from "@playwright/test";
+import { expect, request, test, type Page } from "@playwright/test";
 
-test("home page presents login header and button", async ({ page }) => {
+test.describe.configure({ mode: "serial" });
+
+let page: Page;
+
+test.beforeAll(async ({ browser }) => {
+  page = await browser.newPage();
+});
+
+test("home page presents login header and button", async () => {
   await page.goto("/");
   await expect(page.locator("h1")).toHaveText("Koso");
 });
 
-test("log user in and view projects", async ({ page }) => {
+test("log user in and view projects", async () => {
   await page.goto("/");
 
   const login_url = `/api/auth/login`;
@@ -29,4 +37,17 @@ test("log user in and view projects", async ({ page }) => {
 
   await page.goto("/projects");
   await expect(page.getByText("Create your first Koso project!")).toBeVisible();
+});
+
+test("create a project and rename it to Integration Test Project", async () => {
+  await page.getByRole("button", { name: "new project" }).click();
+
+  await page.getByTestId("set-project-name-button").click();
+  await page.keyboard.press("ControlOrMeta+A");
+  await page.keyboard.type("Integration Test Project");
+  await page.keyboard.press("Enter");
+
+  await expect(page.getByTestId("set-project-name-button")).toHaveText(
+    "Integration Test Project",
+  );
 });
