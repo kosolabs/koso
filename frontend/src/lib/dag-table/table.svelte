@@ -160,7 +160,7 @@
   setContext<Koso>("koso", koso);
 </script>
 
-<div class="sticky top-0 z-30 flex gap-2 px-4 py-2 pb-2 backdrop-blur">
+<div class="sticky top-0 z-30 flex gap-2 px-2 py-2 backdrop-blur">
   {#if $selected}
     <Button class="text-xs" on:click={addPeer}>
       <ListPlus class="me-2 w-4" />
@@ -194,7 +194,7 @@
   {/if}
 </div>
 
-<div class="mx-4 mb-4">
+<div class="px-2 pb-2">
   <table class="w-full border-separate border-spacing-0 rounded-md border">
     <thead class="text-left text-xs font-bold uppercase">
       <tr>
