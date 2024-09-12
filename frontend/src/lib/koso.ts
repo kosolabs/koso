@@ -58,13 +58,6 @@ export class Node extends NodeRecord {
   child(name: string): Node {
     return new Node({ path: this.path.push(name) });
   }
-
-  equals(other: Node | null): boolean {
-    if (other === null) {
-      return false;
-    }
-    return this.path.equals(other.path);
-  }
 }
 
 export type Status = "Not Started" | "In Progress" | "Done";

@@ -4,8 +4,8 @@
   export let progress: number;
   export let size: string = "22px";
   export let thickness: string = "2px";
-  export let trackColor: string = "hsl(var(--secondary))";
-  export let fillColor: string = "hsl(var(--primary))";
+  export let trackColor: string = "hsl(from currentColor h s l / 90%)";
+  export let fillColor: string = "currentColor";
 </script>
 
 <div class={cn("p-[1px]", $$restProps.class || "")}>
