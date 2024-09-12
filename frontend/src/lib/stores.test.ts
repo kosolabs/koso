@@ -1,6 +1,6 @@
-import { beforeEach } from "node:test";
+import { Set } from "immutable";
 import { get } from "svelte/store";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { storable } from "./stores";
 
 describe("Svelte stores tests", () => {
@@ -9,7 +9,7 @@ describe("Svelte stores tests", () => {
   });
 
   describe("storable", () => {
-    it("store contract is adhered to and subscribe and unsubscribe work", () => {
+    it("subscribe and unsubscribe work", () => {
       const sw = storable<string>("vitest-project", "hello");
       const values: string[] = [];
       const unsubscribe = sw.subscribe((value) => values.push(value));
@@ -23,6 +23,24 @@ describe("Svelte stores tests", () => {
 
       sw.set("other");
       expect(values).toEqual(["hello", "world"]);
+    });
+
+    it("update changes data and saves to local storage", () => {
+      const sw = storable<Set<string>>("vitest-project", Set(), (json) =>
+        Set(JSON.parse(json)),
+      );
+      expect(get(sw)).toEqual(Set());
+
+      sw.update(($sw) => $sw.add("hello"));
+      expect(get(sw)).toEqual(Set(["hello"]));
+
+      sw.update(($sw) => $sw.add("world"));
+      expect(get(sw)).toEqual(Set(["hello", "world"]));
+
+      const sw2 = storable<Set<string>>("vitest-project", Set(), (json) =>
+        Set(JSON.parse(json)),
+      );
+      expect(get(sw2)).toEqual(Set(["hello", "world"]));
     });
 
     it("creating a new store loads previous data", () => {
