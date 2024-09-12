@@ -6,7 +6,6 @@ import {
   readable,
   writable,
   type Readable,
-  type Unsubscriber,
   type Writable,
 } from "svelte/store";
 import { v4 as uuidv4 } from "uuid";
@@ -104,8 +103,6 @@ export class Koso {
   dragged: Writable<Node | null>;
   expanded: Writable<Set<Node>>;
   nodes: Readable<List<Node>>;
-  #nodes: List<Node> = List();
-  unsubscribe: Unsubscriber;
 
   constructor(projectId: string, yDoc: Y.Doc) {
     this.yDoc = yDoc;
@@ -152,10 +149,6 @@ export class Koso {
     this.nodes = derived([this.expanded, this.events], ([expanded]) =>
       this.#flatten(new Node(), expanded),
     );
-
-    this.unsubscribe = this.nodes.subscribe(($nodes) => {
-      this.#nodes = $nodes;
-    });
   }
 
   get root(): Node {
