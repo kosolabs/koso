@@ -1,4 +1,4 @@
-import { fromJS, isIndexed, List, Map, Record, Set } from "immutable";
+import { List, Map, Record, Set } from "immutable";
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import {
@@ -145,14 +145,8 @@ export class Koso {
     this.expanded = storable<Set<Node>>(
       expandedLocalStorageKey,
       Set(),
-      (json: string) =>
-        // @ts-expect-error: parsing has very generic types
-        fromJS<Set<Node>>(JSON.parse(json), (key, seq) => {
-          if (!isIndexed(seq)) return new Node(seq);
-          if (key === "path") return seq.toList() as List<string>;
-          return seq.toSet() as Set<Node>;
-        }),
-      (value) => JSON.stringify(value.toJS()),
+      (json: string) => Set(JSON.parse(json).map(Node.parse)),
+      (nodes) => JSON.stringify(nodes.map((node) => node.id)),
     );
 
     this.nodes = derived([this.expanded, this.events], ([expanded]) =>

@@ -1,4 +1,4 @@
-import { writable, type Writable } from "svelte/store";
+import { writable, type Updater, type Writable } from "svelte/store";
 
 export function storable<T>(
   key: string,
@@ -7,17 +7,24 @@ export function storable<T>(
   serialize: (value: T) => string = (value) => JSON.stringify(value),
 ): Writable<T> {
   const data = localStorage.getItem(key);
-  const value = data ? parse(data) : init;
-  const store = writable<T>(value);
+  const store = writable<T>(data ? parse(data) : init);
+
+  function save(value: T): T {
+    localStorage.setItem(key, serialize(value));
+    return value;
+  }
 
   function set(value: T) {
-    localStorage.setItem(key, serialize(value));
-    store.set(value);
+    store.set(save(value));
+  }
+
+  function update(updater: Updater<T>) {
+    store.update((prev) => save(updater(prev)));
   }
 
   return {
     subscribe: store.subscribe,
     set,
-    update: (fn) => set(fn(value)),
+    update,
   };
 }
