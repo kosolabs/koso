@@ -1,23 +1,21 @@
 <script lang="ts">
-  import { Circle, CircleCheck } from "lucide-svelte";
-  import CircularProgress from "./circular-progress.svelte";
   import ResponsiveText from "./responsive-text.svelte";
+  import TaskStatusIcon from "./task-status-icon.svelte";
 
   export let done: number;
   export let total: number;
 </script>
 
-<div class="flex items-center gap-2">
+<div
+  class="flex items-center gap-2"
+  title="{done} of {total} ({Math.round((done * 100) / total)}%)"
+>
+  <TaskStatusIcon status={done / total} />
   {#if done === total}
-    <CircleCheck />
-    <ResponsiveText title="{done} of {total}">Done</ResponsiveText>
+    <ResponsiveText>Done</ResponsiveText>
   {:else if done === 0}
-    <Circle />
-    <ResponsiveText title="{done} of {total}">Not Started</ResponsiveText>
+    <ResponsiveText>Not Started</ResponsiveText>
   {:else}
-    <CircularProgress progress={done / total}>
-      {Math.round((done * 100) / total)}%
-    </CircularProgress>
-    <ResponsiveText title="{done} of {total}">In Progress</ResponsiveText>
+    <ResponsiveText>In Progress</ResponsiveText>
   {/if}
 </div>
