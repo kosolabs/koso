@@ -30,11 +30,11 @@ export class KosoSocket {
     this.onOnline = onOnline;
     this.onOffline = onOffline;
 
-    this.setOffline();
+    this.#setOffline();
 
-    this.onlineHandler = this.handleOnline.bind(this);
+    this.onlineHandler = this.#handleOnline.bind(this);
     window.addEventListener("online", this.onlineHandler);
-    this.offlineHandler = this.handleOffline.bind(this);
+    this.offlineHandler = this.#handleOffline.bind(this);
     window.addEventListener("offline", this.offlineHandler);
     this.socketPingInterval = setInterval(
       () => {
@@ -69,7 +69,7 @@ export class KosoSocket {
 
     socket.onopen = (event) => {
       console.log("WebSocket opened", event);
-      this.setOnline();
+      this.#setOnline();
       this.koso.handleClientMessage((update) => {
         if (socket.readyState == WebSocket.OPEN) {
           socket.send(update);
@@ -101,7 +101,7 @@ export class KosoSocket {
         return;
       }
 
-      this.setOffline();
+      this.#setOffline();
       if (this.shutdown) {
         console.log(
           `WebSocket closed in onDestroy. Code: ${event.code}, Reason: '${event.reason}' Will not try to reconnect`,
@@ -116,7 +116,7 @@ export class KosoSocket {
           `Unauthorized, WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. `,
           event,
         );
-        this.setShutdown();
+        this.#setShutdown();
         this.onUnauthorized();
         return;
       }
@@ -125,13 +125,13 @@ export class KosoSocket {
       let backoffMs;
       if (event.code === OVERLOADED) {
         // In case of overload, don't retry aggressively.
-        backoffMs = this.backoffOnReconnect(30000);
+        backoffMs = this.#backoffOnReconnect(30000);
         console.log(
           `Overloaded WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
           event,
         );
       } else {
-        backoffMs = this.backoffOnReconnect();
+        backoffMs = this.#backoffOnReconnect();
         console.log(
           `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
           event,
@@ -149,14 +149,14 @@ export class KosoSocket {
     }
   }
 
-  async handleOnline(event: Event) {
+  async #handleOnline(event: Event) {
     console.log("Online.", event);
     await this.openWebSocket();
   }
 
-  handleOffline(event: Event) {
+  #handleOffline(event: Event) {
     console.log("Offline.", event);
-    this.setOffline(1);
+    this.#setOffline(1);
     if (this.socket) {
       const socket = this.socket;
       this.socket = null;
@@ -166,13 +166,13 @@ export class KosoSocket {
 
   closeAndShutdown(code: number, reason: string) {
     const socket = this.socket;
-    this.setShutdown();
+    this.#setShutdown();
     if (socket) {
       socket.close(code, reason);
     }
   }
 
-  setShutdown() {
+  #setShutdown() {
     this.shutdown = true;
     if (this.socketPingInterval) {
       clearInterval(this.socketPingInterval);
@@ -185,7 +185,7 @@ export class KosoSocket {
     this.socket = null;
   }
 
-  setOffline(alertDelayMs = 14000) {
+  #setOffline(alertDelayMs = 14000) {
     if (!this.offlineTimeout && !this.shutdown) {
       // Delay showing the offline alert for a little bit
       // to avoid flashing an alert due to transient events.
@@ -198,7 +198,7 @@ export class KosoSocket {
     }
   }
 
-  setOnline() {
+  #setOnline() {
     this.reconnectBackoffMs = null;
     if (this.offlineTimeout) {
       clearTimeout(this.offlineTimeout);
@@ -207,7 +207,7 @@ export class KosoSocket {
     this.onOnline();
   }
 
-  backoffOnReconnect(min: number = 0): number {
+  #backoffOnReconnect(min: number = 0): number {
     let base = this.reconnectBackoffMs ? this.reconnectBackoffMs * 1.5 : 400;
     // Don't let backoff get too big (or too small).
     base = Math.max(Math.min(60000, base), min);
