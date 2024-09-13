@@ -3,6 +3,7 @@
   import { Button } from "$lib/components/ui/button";
   import { KeyBinding } from "$lib/key-binding";
   import { type Koso } from "$lib/koso";
+  import { cn } from "$lib/utils";
   import {
     IndentDecrease,
     IndentIncrease,
@@ -160,7 +161,41 @@
   setContext<Koso>("koso", koso);
 </script>
 
-<div class="sticky top-0 z-30 flex gap-2 px-2 py-2 backdrop-blur">
+<div class="px-4 pb-2 pt-4 max-md:px-2 max-md:pt-2">
+  <table class="w-full border-separate border-spacing-0 rounded-md border">
+    <thead class="text-left text-xs font-bold uppercase">
+      <tr>
+        <th class="w-32 p-2">ID</th>
+        {#if $debug}
+          <th class="border-l p-2">UUID</th>
+        {/if}
+        <th class="border-l p-2">
+          <SquarePen class="h-4 md:hidden" />
+          <div class="max-md:hidden">Status</div></th
+        >
+        <th class="border-l p-2">Name</th>
+        <th class="border-l p-2">
+          <UserRoundPlus class="h-4 md:hidden" />
+          <div class="max-md:hidden">Assignee</div>
+        </th>
+        <th class="border-l p-2 max-md:hidden">Reporter</th>
+      </tr>
+    </thead>
+
+    {#each [...$nodes].slice(1) as node, index (node.id)}
+      <tbody animate:flip={{ duration: 250 }}>
+        <Row {index} {node} {users} row={(el) => (rows[node.id] = el)} />
+      </tbody>
+    {/each}
+  </table>
+</div>
+
+<div
+  class={cn(
+    "sticky bottom-0 z-10 flex flex-wrap gap-2 backdrop-blur-sm",
+    "px-4 pb-2 max-md:px-2",
+  )}
+>
   {#if $selected}
     <Button class="text-xs" on:click={addPeer}>
       <ListPlus class="me-2 w-4" />
@@ -192,33 +227,4 @@
       Add Task
     </Button>
   {/if}
-</div>
-
-<div class="px-2 pb-2">
-  <table class="w-full border-separate border-spacing-0 rounded-md border">
-    <thead class="text-left text-xs font-bold uppercase">
-      <tr>
-        <th class="w-32 p-2">ID</th>
-        {#if $debug}
-          <th class="border-l p-2">UUID</th>
-        {/if}
-        <th class="border-l p-2">
-          <SquarePen class="h-4 md:hidden" />
-          <div class="max-md:hidden">Status</div></th
-        >
-        <th class="border-l p-2">Name</th>
-        <th class="border-l p-2">
-          <UserRoundPlus class="h-4 md:hidden" />
-          <div class="max-md:hidden">Assignee</div>
-        </th>
-        <th class="border-l p-2 max-md:hidden">Reporter</th>
-      </tr>
-    </thead>
-
-    {#each [...$nodes].slice(1) as node, index (node.id)}
-      <tbody animate:flip={{ duration: 250 }}>
-        <Row {index} {node} {users} row={(el) => (rows[node.id] = el)} />
-      </tbody>
-    {/each}
-  </table>
 </div>
