@@ -84,6 +84,7 @@ export type Progress = {
 
 export class Koso {
   yDoc: Y.Doc;
+  undoManager: Y.UndoManager;
   yGraph: Y.Map<Y.Map<Y.Array<string> | string | null>>;
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
@@ -100,6 +101,7 @@ export class Koso {
   constructor(projectId: string, yDoc: Y.Doc) {
     this.yDoc = yDoc;
     this.yGraph = yDoc.getMap("graph");
+    this.undoManager = new Y.UndoManager(this.yGraph);
     this.yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.yDoc);
     this.clientMessageHandler = () => {
       console.warn("Client message handler was invoked but was not set");
@@ -590,5 +592,13 @@ export class Koso {
       result.denom += childProgress.denom;
     });
     return result;
+  }
+
+  undo() {
+    this.undoManager.undo();
+  }
+
+  redo() {
+    this.undoManager.redo();
   }
 }
