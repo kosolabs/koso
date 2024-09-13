@@ -14,6 +14,8 @@
     SquarePen,
     Trash,
     UserRoundPlus,
+    Undo,
+    Redo,
   } from "lucide-svelte";
   import { setContext } from "svelte";
   import { flip } from "svelte/animate";
@@ -129,7 +131,7 @@
     }
 
     if (KeyBinding.UNDO.equals(event)) {
-      koso.undo();
+      undo();
 
       event.preventDefault();
       event.stopPropagation();
@@ -137,7 +139,7 @@
     }
 
     if (KeyBinding.REDO.equals(event)) {
-      koso.redo();
+      redo();
 
       event.preventDefault();
       event.stopPropagation();
@@ -172,6 +174,14 @@
     if (!$selected) return;
     koso.deleteNode($selected);
     $selected = null;
+  }
+
+  function undo() {
+    koso.undo();
+  }
+
+  function redo() {
+    koso.redo();
   }
 
   setContext<Koso>("koso", koso);
@@ -243,4 +253,10 @@
       Add Task
     </Button>
   {/if}
+  <Button class="text-xs" on:click={undo}>
+    <Undo class="w-4" />
+  </Button>
+  <Button class="text-xs" on:click={redo}>
+    <Redo class="w-4" />
+  </Button>
 </div>
