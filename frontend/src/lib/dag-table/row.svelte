@@ -381,7 +381,7 @@
       }}
     />
   </td>
-  <td class={cn("border-l border-t p-2 max-md:hidden")}>
+  <td class={cn("border-l border-t p-2 max-sm:hidden")}>
     <UserSelect
       {users}
       value={reporter}
