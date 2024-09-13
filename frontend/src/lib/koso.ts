@@ -209,6 +209,7 @@ export class Koso {
   }
 
   expand(node: Node) {
+    console.log("expand", node.id);
     this.expanded.update(($expanded) => $expanded.add(node));
   }
 

@@ -1,9 +1,10 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import { KeyBinding } from "$lib/key-binding";
-  import { type Koso } from "$lib/koso";
+  import { Node, type Koso } from "$lib/koso";
   import ToolbarButton from "$lib/toolbar-button.svelte";
   import { cn } from "$lib/utils";
+  import { Map } from "immutable";
   import {
     IndentDecrease,
     IndentIncrease,
@@ -24,8 +25,15 @@
   export let koso: Koso;
   export let users: User[];
 
-  const rows: { [key: string]: HTMLDivElement } = {};
+  let rows: Map<Node, HTMLDivElement> = Map();
   const { debug, nodes, selected } = koso;
+
+  function focus(node: Node | null) {
+    if (!node) return;
+    const row = rows.get(node);
+    if (!row) return;
+    row.focus();
+  }
 
   function moveUp() {
     if (!$selected) return;
@@ -104,9 +112,7 @@
         } else {
           $selected = $nodes.get(1, null);
         }
-      }
-      if ($selected !== null) {
-        rows[$selected.id].focus();
+        focus($selected);
       }
       event.preventDefault();
       event.stopPropagation();
@@ -121,9 +127,7 @@
         } else {
           $selected = $nodes.get($nodes.size - 1, null);
         }
-      }
-      if ($selected !== null) {
-        rows[$selected.id].focus();
+        focus($selected);
       }
       event.preventDefault();
       event.stopPropagation();
@@ -166,8 +170,8 @@
   function addChild() {
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    $selected = koso.insertNode($selected, 0, "Untitled", $user);
     koso.expand($selected);
+    $selected = koso.insertNode($selected, 0, "Untitled", $user);
   }
 
   function remove() {
@@ -185,6 +189,8 @@
   }
 
   setContext<Koso>("koso", koso);
+
+  $: focus($selected);
 </script>
 
 <div
@@ -232,7 +238,7 @@
 
     {#each [...$nodes].slice(1) as node, index (node.id)}
       <tbody animate:flip={{ duration: 250 }}>
-        <Row {index} {node} {users} row={(el) => (rows[node.id] = el)} />
+        <Row {index} {node} {users} row={(el) => (rows = rows.set(node, el))} />
       </tbody>
     {/each}
   </table>

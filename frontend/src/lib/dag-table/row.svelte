@@ -14,7 +14,7 @@
   export let index: number;
   export let node: Node;
   export let users: User[];
-  export let row: (el: HTMLDivElement) => void = () => {};
+  export let row: (el: HTMLDivElement) => void;
 
   const koso = getContext<Koso>("koso");
   const { debug, dragged, dropEffect, expanded, highlighted, selected } = koso;
@@ -253,11 +253,6 @@
     $highlighted = null;
   }
 
-  function handleFocus(event: FocusEvent) {
-    event.preventDefault();
-    $selected = node;
-  }
-
   function handleRowClick(event: MouseEvent) {
     event.preventDefault();
     $selected = node;
@@ -299,8 +294,8 @@
   )}
   on:mouseout={handleUnhighlight}
   on:mouseover={handleHighlight}
-  on:blur={() => {}}
-  on:focus={handleFocus}
+  on:blur={handleUnhighlight}
+  on:focus={handleHighlight}
   on:click={handleRowClick}
   on:keydown={handleRowKeydown}
   bind:this={rowElement}
