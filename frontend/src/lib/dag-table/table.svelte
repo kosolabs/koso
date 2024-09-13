@@ -46,6 +46,7 @@
   }
 
   document.onkeydown = (event: KeyboardEvent) => {
+    console.log("event", event);
     if (KeyBinding.INDENT_NODE.equals(event)) {
       indent();
       event.preventDefault();
@@ -123,6 +124,22 @@
       if ($selected !== null) {
         rows[$selected.id].focus();
       }
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.UNDO.equals(event)) {
+      koso.undo();
+
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (KeyBinding.REDO.equals(event)) {
+      koso.redo();
+
       event.preventDefault();
       event.stopPropagation();
       return;
