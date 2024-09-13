@@ -161,7 +161,7 @@
   setContext<Koso>("koso", koso);
 </script>
 
-<div class="px-4 pb-2 pt-4 max-md:px-2 max-md:pt-2">
+<div class="px-4 pt-4 max-md:px-2 max-md:pt-2">
   <table class="w-full border-separate border-spacing-0 rounded-md border">
     <thead class="text-left text-xs font-bold uppercase">
       <tr>
@@ -193,7 +193,7 @@
 <div
   class={cn(
     "sticky bottom-0 z-10 flex flex-wrap gap-2 backdrop-blur-sm",
-    "px-4 pb-2 max-md:px-2",
+    "px-4 py-2 max-md:px-2",
   )}
 >
   {#if $selected}
