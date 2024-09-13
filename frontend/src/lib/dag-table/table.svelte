@@ -46,7 +46,6 @@
   }
 
   document.onkeydown = (event: KeyboardEvent) => {
-    console.log("event", event);
     if (KeyBinding.INDENT_NODE.equals(event)) {
       indent();
       event.preventDefault();
