@@ -42,7 +42,7 @@
         <UserRound />
       </AvatarFallback>
     </Avatar>
-    <div class="whitespace-nowrap max-md:hidden">
+    <div class="whitespace-nowrap max-sm:hidden">
       {value?.name || unassigned}
     </div>
   </DropdownMenu.Trigger>

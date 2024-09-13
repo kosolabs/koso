@@ -1,3 +1,3 @@
-<div class="whitespace-nowrap text-sm max-md:hidden">
+<div class="whitespace-nowrap text-sm max-sm:hidden">
   <slot />
 </div>
