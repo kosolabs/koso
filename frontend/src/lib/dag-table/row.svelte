@@ -7,7 +7,7 @@
   import TaskStatusSelect from "$lib/task-status-select.svelte";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
-  import { ChevronRight, GripVertical } from "lucide-svelte";
+  import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
   import type { Node } from "../koso";
 
@@ -301,7 +301,7 @@
   bind:this={rowElement}
   use:row
 >
-  <td class={cn("border-t p-2")} bind:this={idCellElement}>
+  <td class={cn("border-t px-2")} bind:this={idCellElement}>
     <div class="flex items-center">
       <div style="width: {(node.length - 1) * 20}px" />
       {#if task.children.length > 0}
@@ -317,16 +317,16 @@
         <div class="w-4" />
       {/if}
       <button
-        class="w-4"
+        class="flex items-center gap-1 py-1"
         draggable={true}
         on:dragstart={handleDragStart}
         on:dragend={handleDragEnd}
         on:drag={handleDrag}
         bind:this={handleElement}
       >
-        <GripVertical class="w-4" />
+        <Grip class="w-4" />
+        <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
       </button>
-      <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
     </div>
   </td>
   {#if $debug}
