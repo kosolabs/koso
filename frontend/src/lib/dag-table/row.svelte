@@ -363,7 +363,7 @@
         on:click={handleStartEditingTaskName}
         on:keydown={handleStartEditingTaskName}
       >
-        {task.name}
+        {task.name || "Click to edit"}
       </Button>
     {/if}
   </td>

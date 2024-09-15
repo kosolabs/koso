@@ -25,6 +25,7 @@
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
   window.koso = koso;
+  window.Y = Y;
 
   let project: Project | null = null;
   let projectUsers: User[] = [];

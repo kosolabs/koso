@@ -13,6 +13,7 @@ declare global {
 
   interface Window {
     koso: Koso;
+    Y: Y;
   }
 }
 
