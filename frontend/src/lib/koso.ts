@@ -518,7 +518,12 @@ export class Koso {
     this.selected.set(parent.parent.child(node.name));
   }
 
-  insertNode(parent: Node, offset: number, name: string, user: User): Node {
+  insertNode(
+    parent: Node,
+    offset: number,
+    user: User,
+    name: string = "",
+  ): Node {
     const taskId = this.newId();
     this.yDoc.transact(() => {
       this.#upsert({

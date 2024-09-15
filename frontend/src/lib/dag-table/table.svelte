@@ -153,7 +153,7 @@
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
-    koso.insertNode(koso.root, 0, "Untitled", $user);
+    koso.insertNode(koso.root, 0, $user);
   }
 
   function addPeer() {
@@ -162,7 +162,6 @@
     $selected = koso.insertNode(
       $selected.parent,
       koso.getOffset($selected) + 1,
-      "Untitled",
       $user,
     );
   }
@@ -171,7 +170,7 @@
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
     koso.expand($selected);
-    $selected = koso.insertNode($selected, 0, "Untitled", $user);
+    $selected = koso.insertNode($selected, 0, $user);
   }
 
   function remove() {
