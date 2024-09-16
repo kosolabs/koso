@@ -14,9 +14,9 @@
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
-  import { logout_on_authentication_error } from "./errors";
-  import { DialogMonitoredRoot } from "./popover-monitors";
-  import UserAvatar from "./user-avatar.svelte";
+  import { logout_on_authentication_error } from "../../../../lib/errors";
+  import { DialogMonitoredRoot } from "../../../../lib/popover-monitors";
+  import UserAvatar from "../../../../lib/user-avatar.svelte";
 
   export let open: boolean;
   export let project: Project | null;
