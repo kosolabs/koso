@@ -1,9 +1,9 @@
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { createEventDispatcher, SvelteComponent } from "svelte";
+  import { createEventDispatcher } from "svelte";
   import Confetti from "svelte-confetti";
   import type { Status } from "./koso";
-  import { handleOpenChange } from "./popover-monitor";
+  import { DropdownMenuMonitoredRoot } from "./popover-monitors";
   import ResponsiveText from "./responsive-text.svelte";
   import TaskStatusIcon from "./task-status-icon.svelte";
 
@@ -14,10 +14,6 @@
 
   let showConfetti: boolean = false;
 
-  let open: boolean;
-  let component: SvelteComponent;
-  $: handleOpenChange(open, component);
-
   function select(status: Status) {
     value = status;
     showConfetti = status === "Done";
@@ -25,7 +21,7 @@
   }
 </script>
 
-<DropdownMenu.Root bind:open bind:this={component}>
+<DropdownMenuMonitoredRoot>
   <DropdownMenu.Trigger class="flex items-center gap-2">
     <TaskStatusIcon status={value} />
     <ResponsiveText>{value || "Not Started"}</ResponsiveText>
@@ -41,7 +37,7 @@
       </DropdownMenu.Item>
     {/each}
   </DropdownMenu.Content>
-</DropdownMenu.Root>
+</DropdownMenuMonitoredRoot>
 
 {#if showConfetti}
   <Confetti />

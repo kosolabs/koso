@@ -12,19 +12,15 @@
     type Project,
   } from "$lib/projects";
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
-  import type { SvelteComponent } from "svelte";
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
   import { logout_on_authentication_error } from "./errors";
-  import { handleOpenChange } from "./popover-monitor";
+  import { DialogMonitoredRoot } from "./popover-monitors";
   import UserAvatar from "./user-avatar.svelte";
 
   export let open: boolean;
   export let project: Project | null;
   export let projectUsers: User[];
-
-  let component: SvelteComponent;
-  $: handleOpenChange(open, component);
 
   let cachedAllUsers: User[] | null = null;
   export async function loadAllUsers(): Promise<User[]> {
@@ -107,12 +103,11 @@
   );
 </script>
 
-<Dialog.Root
+<DialogMonitoredRoot
   bind:open
   onOpenChange={() => {
     filter = "";
   }}
-  bind:this={component}
 >
   <Dialog.Content>
     <Dialog.Header>
@@ -170,7 +165,7 @@
       </div>
     </div>
   </Dialog.Content>
-</Dialog.Root>
+</DialogMonitoredRoot>
 
 <AlertDialog.Root bind:open={openWarnSelfRemovalModal}>
   <AlertDialog.AlertDialogContent>
