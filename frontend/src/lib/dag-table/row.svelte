@@ -14,7 +14,6 @@
   export let index: number;
   export let node: Node;
   export let users: User[];
-  export let row: (el: HTMLTableRowElement) => void;
 
   const koso = getContext<Koso>("koso");
   const { debug, dragged, dropEffect, expanded, highlighted, selected } = koso;
@@ -304,7 +303,6 @@
   on:click={handleRowClick}
   on:keydown={handleRowKeydown}
   bind:this={rowElement}
-  use:row
 >
   <td class={cn("border-t px-2")} bind:this={idCellElement}>
     <div class="flex items-center">
@@ -369,7 +367,6 @@
         variant="link"
         class="h-auto text-wrap p-0 text-left hover:no-underline"
         on:click={handleStartEditingTaskName}
-        on:keydown={handleStartEditingTaskName}
       >
         {task.name || "Click to edit"}
       </Button>

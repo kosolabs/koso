@@ -1,11 +1,10 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import { KeyBinding } from "$lib/key-binding";
-  import { Node, type Koso } from "$lib/koso";
-  import { globalKeybindingsEnabled } from "$lib/popover-monitor";
+  import { type Koso } from "$lib/koso";
+  import { globalKeybindingsEnabled } from "$lib/popover-monitors";
   import ToolbarButton from "$lib/toolbar-button.svelte";
   import { cn } from "$lib/utils";
-  import { Map } from "immutable";
   import {
     IndentDecrease,
     IndentIncrease,
@@ -26,7 +25,6 @@
   export let koso: Koso;
   export let users: User[];
 
-  let rows: Map<Node, HTMLTableRowElement> = Map();
   const { debug, nodes, selected } = koso;
 
   function moveUp() {
@@ -225,7 +223,7 @@
 
     {#each [...$nodes].slice(1) as node, index (node.id)}
       <tbody animate:flip={{ duration: 250 }}>
-        <Row {index} {node} {users} row={(el) => (rows = rows.set(node, el))} />
+        <Row {index} {node} {users} />
       </tbody>
     {/each}
   </table>
