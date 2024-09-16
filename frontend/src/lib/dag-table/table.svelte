@@ -2,6 +2,7 @@
   import { user, type User } from "$lib/auth";
   import { KeyBinding } from "$lib/key-binding";
   import { Node, type Koso } from "$lib/koso";
+  import { globalKeybindingsEnabled } from "$lib/popover-monitor";
   import ToolbarButton from "$lib/toolbar-button.svelte";
   import { cn } from "$lib/utils";
   import { Map } from "immutable";
@@ -25,15 +26,8 @@
   export let koso: Koso;
   export let users: User[];
 
-  let rows: Map<Node, HTMLDivElement> = Map();
+  let rows: Map<Node, HTMLTableRowElement> = Map();
   const { debug, nodes, selected } = koso;
-
-  function focus(node: Node | null) {
-    if (!node) return;
-    const row = rows.get(node);
-    if (!row) return;
-    row.focus();
-  }
 
   function moveUp() {
     if (!$selected) return;
@@ -56,6 +50,8 @@
   }
 
   document.onkeydown = (event: KeyboardEvent) => {
+    if (!globalKeybindingsEnabled()) return;
+
     if (KeyBinding.INDENT_NODE.equals(event)) {
       indent();
       event.preventDefault();
@@ -112,7 +108,6 @@
         } else {
           $selected = $nodes.get(1, null);
         }
-        focus($selected);
       }
       event.preventDefault();
       event.stopPropagation();
@@ -127,7 +122,6 @@
         } else {
           $selected = $nodes.get($nodes.size - 1, null);
         }
-        focus($selected);
       }
       event.preventDefault();
       event.stopPropagation();
@@ -159,18 +153,14 @@
   function addPeer() {
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    $selected = koso.insertNode(
-      $selected.parent,
-      koso.getOffset($selected) + 1,
-      $user,
-    );
+    koso.insertNode($selected.parent, koso.getOffset($selected) + 1, $user);
   }
 
   function addChild() {
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
     koso.expand($selected);
-    $selected = koso.insertNode($selected, 0, $user);
+    koso.insertNode($selected, 0, $user);
   }
 
   function remove() {
@@ -188,8 +178,6 @@
   }
 
   setContext<Koso>("koso", koso);
-
-  $: focus($selected);
 </script>
 
 <div

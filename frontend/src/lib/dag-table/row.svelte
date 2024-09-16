@@ -14,12 +14,12 @@
   export let index: number;
   export let node: Node;
   export let users: User[];
-  export let row: (el: HTMLDivElement) => void;
+  export let row: (el: HTMLTableRowElement) => void;
 
   const koso = getContext<Koso>("koso");
   const { debug, dragged, dropEffect, expanded, highlighted, selected } = koso;
 
-  let rowElement: HTMLDivElement | undefined;
+  let rowElement: HTMLTableRowElement | undefined;
   let idCellElement: HTMLTableCellElement | undefined;
   let handleElement: HTMLButtonElement | undefined;
 
@@ -35,6 +35,12 @@
   $: isHovered = $highlighted === node.name;
   $: isSelected = node.equals($selected);
   $: progress = koso.getProgress(task.id);
+
+  $: {
+    if (rowElement && node.equals($selected)) {
+      rowElement.focus();
+    }
+  }
 
   function getUser(users: User[], email: string | null): User | null {
     for (const user of users) {
@@ -87,11 +93,12 @@
   }
 
   function handleEditedTaskNameKeydown(event: KeyboardEvent) {
+    event.stopPropagation();
+
     if (event.key === "Escape") {
       revertEditedTaskName();
       $selected = node;
       event.preventDefault();
-      event.stopPropagation();
       return;
     }
 
@@ -99,7 +106,6 @@
       saveEditedTaskName();
       $selected = node;
       event.preventDefault();
-      event.stopPropagation();
       return;
     }
   }
@@ -334,7 +340,10 @@
       {task.id}
     </td>
   {/if}
-  <td class={cn("border-l border-t p-2")}>
+  <td
+    class={cn("border-l border-t p-2")}
+    on:keydown={(e) => e.stopPropagation()}
+  >
     {#if task.children.length === 0}
       <TaskStatusSelect
         value={task.status}
@@ -346,10 +355,10 @@
       <CircularProgressStatus done={progress.numer} total={progress.denom} />
     {/if}
   </td>
-  <td class={cn("border-l border-t p-2")}>
+  <td class={cn("border-l border-t px-2")}>
     {#if editedTaskName !== null}
       <Input
-        class="h-auto bg-transparent p-1"
+        class="h-auto bg-background p-1"
         on:click={(event) => event.stopPropagation()}
         on:blur={handleEditedTaskNameBlur}
         on:keydown={handleEditedTaskNameKeydown}
@@ -367,7 +376,10 @@
       </Button>
     {/if}
   </td>
-  <td class={cn("border-l border-t p-2")}>
+  <td
+    class={cn("border-l border-t p-2")}
+    on:keydown={(e) => e.stopPropagation()}
+  >
     <UserSelect
       {users}
       value={assignee}
@@ -376,7 +388,10 @@
       }}
     />
   </td>
-  <td class={cn("border-l border-t p-2 max-sm:hidden")}>
+  <td
+    class={cn("border-l border-t p-2 max-sm:hidden")}
+    on:keydown={(e) => e.stopPropagation()}
+  >
     <UserSelect
       {users}
       value={reporter}

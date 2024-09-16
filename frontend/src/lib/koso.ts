@@ -209,7 +209,6 @@ export class Koso {
   }
 
   expand(node: Node) {
-    console.log("expand", node.id);
     this.expanded.update(($expanded) => $expanded.add(node));
   }
 
@@ -482,12 +481,14 @@ export class Koso {
     const offset = this.getOffset(node);
     if (offset < 1) return;
     this.moveNode(node, node.parent.name, offset - 1);
+    this.selected.set(node);
   }
 
   moveNodeDown(node: Node) {
     const offset = this.getOffset(node);
     if (offset >= this.getChildCount(node.parent.name) - 1) return;
     this.moveNode(node, node.parent.name, offset + 2);
+    this.selected.set(node);
   }
 
   canIndentNode(node: Node) {
@@ -537,6 +538,7 @@ export class Koso {
       });
       this.#insertChild(taskId, parent.name, offset);
     });
+    this.selected.set(parent.child(taskId));
     return parent.child(taskId);
   }
 
