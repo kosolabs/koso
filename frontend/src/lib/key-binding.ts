@@ -1,33 +1,21 @@
-type Modifiers = {
-  altKey?: boolean;
-  ctrlKey?: boolean;
-  metaKey?: boolean;
-  shiftKey?: boolean;
-};
+import { Record } from "immutable";
 
-export class KeyBinding {
+type KeyBindingProps = {
   key: string;
   altKey: boolean;
   ctrlKey: boolean;
   metaKey: boolean;
   shiftKey: boolean;
+};
+const KeyBindingRecord = Record<KeyBindingProps>({
+  key: "",
+  altKey: false,
+  ctrlKey: false,
+  metaKey: false,
+  shiftKey: false,
+});
 
-  constructor(
-    key: string,
-    {
-      altKey = false,
-      ctrlKey = false,
-      metaKey = false,
-      shiftKey = false,
-    }: Modifiers = {},
-  ) {
-    this.key = key;
-    this.altKey = altKey;
-    this.ctrlKey = ctrlKey;
-    this.metaKey = metaKey;
-    this.shiftKey = shiftKey;
-  }
-
+export class KeyBinding extends KeyBindingRecord {
   equals(event: KeyboardEvent): boolean {
     return (
       this.key === event.key &&
@@ -38,14 +26,28 @@ export class KeyBinding {
     );
   }
 
-  static INDENT_NODE = new KeyBinding("ArrowRight", { altKey: true });
-  static UNDENT_NODE = new KeyBinding("ArrowLeft", { altKey: true });
-  static MOVE_NODE_UP = new KeyBinding("ArrowUp", { altKey: true });
-  static MOVE_NODE_DOWN = new KeyBinding("ArrowDown", { altKey: true });
-  static EXPAND_NODE = new KeyBinding("ArrowRight");
-  static COLLAPSE_NODE = new KeyBinding("ArrowLeft");
-  static SELECT_PREV_NODE = new KeyBinding("ArrowUp");
-  static SELECT_NEXT_NODE = new KeyBinding("ArrowDown");
-  static UNDO = new KeyBinding("z", { metaKey: true });
-  static REDO = new KeyBinding("z", { metaKey: true, shiftKey: true });
+  static fromEvent(event: KeyboardEvent): KeyBinding {
+    return new KeyBinding({
+      key: event.key,
+      altKey: event.altKey,
+      ctrlKey: event.ctrlKey,
+      metaKey: event.metaKey,
+      shiftKey: event.shiftKey,
+    });
+  }
+
+  static EDIT_NODE = new KeyBinding({ key: "Enter" });
+  static CANCEL_SELECTION = new KeyBinding({ key: "Escape" });
+  static INSERT_NODE = new KeyBinding({ key: "Enter", shiftKey: true });
+  static REMOVE_NODE = new KeyBinding({ key: "Delete" });
+  static MOVE_NODE_UP = new KeyBinding({ key: "ArrowUp", altKey: true });
+  static MOVE_NODE_DOWN = new KeyBinding({ key: "ArrowDown", altKey: true });
+  static INDENT_NODE = new KeyBinding({ key: "ArrowRight", altKey: true });
+  static UNDENT_NODE = new KeyBinding({ key: "ArrowLeft", altKey: true });
+  static EXPAND_NODE = new KeyBinding({ key: "ArrowRight" });
+  static COLLAPSE_NODE = new KeyBinding({ key: "ArrowLeft" });
+  static SELECT_PREV_NODE = new KeyBinding({ key: "ArrowUp" });
+  static SELECT_NEXT_NODE = new KeyBinding({ key: "ArrowDown" });
+  static UNDO = new KeyBinding({ key: "z", metaKey: true });
+  static REDO = new KeyBinding({ key: "z", metaKey: true, shiftKey: true });
 }

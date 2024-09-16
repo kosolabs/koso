@@ -1,6 +1,7 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import { KeyBinding } from "$lib/key-binding";
+  import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import { type Koso } from "$lib/koso";
   import { globalKeybindingsEnabled } from "$lib/popover-monitors";
   import ToolbarButton from "$lib/toolbar-button.svelte";
@@ -19,6 +20,7 @@
     UserRoundPlus,
   } from "lucide-svelte";
   import { setContext } from "svelte";
+  import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
   import Row from "./row.svelte";
 
@@ -26,6 +28,28 @@
   export let users: User[];
 
   const { debug, nodes, selected } = koso;
+
+  function insert() {
+    if (!$user) throw new Error("Unauthenticated");
+    if ($selected) {
+      koso.insertNode($selected.parent, koso.getOffset($selected) + 1, $user);
+    } else {
+      koso.insertNode(koso.root, 0, $user);
+    }
+  }
+
+  function insertChild() {
+    if (!$selected) return;
+    if (!$user) throw new Error("Unauthenticated");
+    koso.expand($selected);
+    koso.insertNode($selected, 0, $user);
+  }
+
+  function remove() {
+    if (!$selected) return;
+    koso.deleteNode($selected);
+    $selected = null;
+  }
 
   function moveUp() {
     if (!$selected) return;
@@ -47,124 +71,37 @@
     koso.undentNode($selected);
   }
 
-  document.onkeydown = (event: KeyboardEvent) => {
-    if (!globalKeybindingsEnabled()) return;
-
-    if (KeyBinding.INDENT_NODE.equals(event)) {
-      indent();
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (KeyBinding.UNDENT_NODE.equals(event)) {
-      undent();
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (KeyBinding.MOVE_NODE_UP.equals(event)) {
-      moveUp();
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (KeyBinding.MOVE_NODE_DOWN.equals(event)) {
-      moveDown();
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (KeyBinding.COLLAPSE_NODE.equals(event)) {
-      if (!$selected) return;
-      koso.collapse($selected);
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (KeyBinding.EXPAND_NODE.equals(event)) {
-      if (!$selected) return;
-      koso.expand($selected);
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (KeyBinding.SELECT_NEXT_NODE.equals(event)) {
-      if ($nodes.size > 1) {
-        if ($selected) {
-          $nodes.indexOf($selected);
-          const index = Math.min(
-            $nodes.indexOf($selected) + 1,
-            $nodes.size - 1,
-          );
-          $selected = $nodes.get(index, null);
-        } else {
-          $selected = $nodes.get(1, null);
-        }
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (KeyBinding.SELECT_PREV_NODE.equals(event)) {
-      if ($nodes.size > 1) {
-        if ($selected) {
-          const index = Math.max($nodes.indexOf($selected) - 1, 1);
-          $selected = $nodes.get(index, null);
-        } else {
-          $selected = $nodes.get($nodes.size - 1, null);
-        }
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (KeyBinding.UNDO.equals(event)) {
-      undo();
-
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (KeyBinding.REDO.equals(event)) {
-      redo();
-
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-  };
-
-  function addRoot() {
-    if (!$user) throw new Error("Unauthenticated");
-    koso.insertNode(koso.root, 0, $user);
-  }
-
-  function addPeer() {
+  function expand() {
     if (!$selected) return;
-    if (!$user) throw new Error("Unauthenticated");
-    koso.insertNode($selected.parent, koso.getOffset($selected) + 1, $user);
-  }
-
-  function addChild() {
-    if (!$selected) return;
-    if (!$user) throw new Error("Unauthenticated");
     koso.expand($selected);
-    koso.insertNode($selected, 0, $user);
   }
 
-  function remove() {
+  function collapse() {
     if (!$selected) return;
-    koso.deleteNode($selected);
-    $selected = null;
+    koso.collapse($selected);
+  }
+
+  function selectNext() {
+    if ($nodes.size > 1) {
+      if ($selected) {
+        $nodes.indexOf($selected);
+        const index = Math.min($nodes.indexOf($selected) + 1, $nodes.size - 1);
+        $selected = $nodes.get(index, null);
+      } else {
+        $selected = $nodes.get(1, null);
+      }
+    }
+  }
+
+  function selectPrev() {
+    if ($nodes.size > 1) {
+      if ($selected) {
+        const index = Math.max($nodes.indexOf($selected) - 1, 1);
+        $selected = $nodes.get(index, null);
+      } else {
+        $selected = $nodes.get($nodes.size - 1, null);
+      }
+    }
   }
 
   function undo() {
@@ -174,6 +111,30 @@
   function redo() {
     koso.redo();
   }
+
+  const registry = new KeyHandlerRegistry([
+    [KeyBinding.INSERT_NODE, insert],
+    [KeyBinding.REMOVE_NODE, remove],
+    [KeyBinding.MOVE_NODE_UP, moveUp],
+    [KeyBinding.MOVE_NODE_DOWN, moveDown],
+    [KeyBinding.INDENT_NODE, indent],
+    [KeyBinding.UNDENT_NODE, undent],
+    [KeyBinding.EXPAND_NODE, expand],
+    [KeyBinding.COLLAPSE_NODE, collapse],
+    [KeyBinding.SELECT_NEXT_NODE, selectNext],
+    [KeyBinding.SELECT_PREV_NODE, selectPrev],
+    [KeyBinding.UNDO, undo],
+    [KeyBinding.REDO, redo],
+  ]);
+
+  document.onkeydown = (event: KeyboardEvent) => {
+    if ($debug) {
+      toast.info(JSON.stringify(KeyBinding.fromEvent(event).toJSON()));
+    }
+
+    if (!globalKeybindingsEnabled()) return;
+    registry.handle(event);
+  };
 
   setContext<Koso>("koso", koso);
 </script>
@@ -185,16 +146,14 @@
     "sm:sticky sm:top-0 sm:gap-2 sm:border-b",
   )}
 >
+  <ToolbarButton title="Add Task" icon={ListPlus} on:click={insert} />
   {#if $selected}
-    <ToolbarButton title="Add Task" icon={ListPlus} on:click={addPeer} />
-    <ToolbarButton title="Add Child" icon={ListTree} on:click={addChild} />
+    <ToolbarButton title="Add Child" icon={ListTree} on:click={insertChild} />
     <ToolbarButton title="Delete" icon={Trash} on:click={remove} />
     <ToolbarButton title="Move Up" icon={MoveUp} on:click={moveUp} />
     <ToolbarButton title="Move Down" icon={MoveDown} on:click={moveDown} />
     <ToolbarButton title="Undent" icon={IndentDecrease} on:click={undent} />
     <ToolbarButton title="Indent" icon={IndentIncrease} on:click={indent} />
-  {:else}
-    <ToolbarButton title="Add Task" icon={ListPlus} on:click={addRoot} />
   {/if}
   <ToolbarButton title="Undo" icon={Undo} on:click={undo} />
   <ToolbarButton title="Redo" icon={Redo} on:click={redo} />
