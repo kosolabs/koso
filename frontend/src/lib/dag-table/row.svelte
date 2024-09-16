@@ -289,14 +289,13 @@
 </script>
 
 <tr
-  id="row/{node.id}"
   tabindex="0"
   class={cn(
-    "rounded bg-opacity-50",
+    "rounded bg-opacity-50 outline outline-2 outline-transparent",
     index % 2 === 0 ? "bg-row-even" : "bg-row-odd",
     isMoving ? "opacity-50" : "",
     isHovered ? "bg-accent" : "",
-    isSelected ? "outline outline-2 outline-primary" : "",
+    isSelected ? "outline-primary" : "",
   )}
   on:mouseout={handleUnhighlight}
   on:mouseover={handleHighlight}
