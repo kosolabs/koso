@@ -5,7 +5,13 @@
   import AvatarImage from "$lib/components/ui/avatar/avatar-image.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { resetMode, setMode } from "mode-watcher";
+  import type { SvelteComponent } from "svelte";
+  import { handleOpenChange } from "./popover-monitor";
   import UserAvatar from "./user-avatar.svelte";
+
+  let open: boolean;
+  let component: SvelteComponent;
+  $: handleOpenChange(open, component);
 </script>
 
 <nav class="flex items-center bg-card p-2 shadow">
@@ -20,7 +26,7 @@
     <slot name="right-items"></slot>
 
     {#if $user}
-      <DropdownMenu.Root>
+      <DropdownMenu.Root bind:open bind:this={component}>
         <DropdownMenu.Trigger>
           <Avatar
             class="size-9 rounded transition-all hover:brightness-110 active:scale-95"

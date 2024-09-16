@@ -87,10 +87,11 @@
   }
 
   async function handleEditedProjectNameKeydown(event: KeyboardEvent) {
+    event.stopPropagation();
+
     if (event.key === "Escape") {
       revertEditedProjectName();
       event.preventDefault();
-      event.stopPropagation();
       return;
     }
 

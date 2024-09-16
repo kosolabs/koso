@@ -12,14 +12,19 @@
     type Project,
   } from "$lib/projects";
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
+  import type { SvelteComponent } from "svelte";
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
-  import UserAvatar from "./user-avatar.svelte";
   import { logout_on_authentication_error } from "./errors";
+  import { handleOpenChange } from "./popover-monitor";
+  import UserAvatar from "./user-avatar.svelte";
 
   export let open: boolean;
   export let project: Project | null;
   export let projectUsers: User[];
+
+  let component: SvelteComponent;
+  $: handleOpenChange(open, component);
 
   let cachedAllUsers: User[] | null = null;
   export async function loadAllUsers(): Promise<User[]> {
@@ -102,7 +107,13 @@
   );
 </script>
 
-<Dialog.Root bind:open onOpenChange={() => (filter = "")}>
+<Dialog.Root
+  bind:open
+  onOpenChange={() => {
+    filter = "";
+  }}
+  bind:this={component}
+>
   <Dialog.Content>
     <Dialog.Header>
       <Dialog.Title>Share &quot;{project?.name || ""}&quot;</Dialog.Title>

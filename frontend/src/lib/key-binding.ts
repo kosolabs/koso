@@ -47,8 +47,5 @@ export class KeyBinding {
   static SELECT_PREV_NODE = new KeyBinding("ArrowUp");
   static SELECT_NEXT_NODE = new KeyBinding("ArrowDown");
   static UNDO = new KeyBinding("z", { metaKey: true });
-  static REDO = new KeyBinding("z", {
-    metaKey: true,
-    shiftKey: true,
-  });
+  static REDO = new KeyBinding("z", { metaKey: true, shiftKey: true });
 }

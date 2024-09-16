@@ -7,8 +7,9 @@
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Input } from "$lib/components/ui/input";
   import { UserRound } from "lucide-svelte";
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, SvelteComponent } from "svelte";
   import type { User } from "./auth";
+  import { handleOpenChange } from "./popover-monitor";
   import UserAvatar from "./user-avatar.svelte";
 
   const dispatch = createEventDispatcher<{ select: User | null }>();
@@ -18,6 +19,10 @@
   export let unassigned: string = "Unassigned";
 
   let filter: string = "";
+
+  let open: boolean;
+  let component: SvelteComponent;
+  $: handleOpenChange(open, component);
 
   function select(user: User | null) {
     value = user;
@@ -31,7 +36,7 @@
   );
 </script>
 
-<DropdownMenu.Root>
+<DropdownMenu.Root bind:open bind:this={component}>
   <DropdownMenu.Trigger
     class="flex items-center gap-2"
     title={value?.email || "Unassigned"}
