@@ -3,7 +3,10 @@
   import CircularProgressStatus from "$lib/circular-progress-status.svelte";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
+  import { KeyBinding } from "$lib/key-binding";
+  import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import type { Koso } from "$lib/koso";
+  import { globalKeybindingsEnabled } from "$lib/popover-monitors";
   import TaskStatusSelect from "$lib/task-status-select.svelte";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
@@ -65,11 +68,19 @@
 
   let editedTaskName: string | null = null;
 
-  function handleStartEditingTaskName(event: MouseEvent | KeyboardEvent) {
+  function editTaskName() {
+    editedTaskName = task.name;
+  }
+
+  function unselect() {
+    $selected = null;
+  }
+
+  function handleStartEditingTaskName(event: MouseEvent) {
     event.stopPropagation();
     event.preventDefault();
     $selected = node;
-    editedTaskName = task.name;
+    editTaskName();
   }
 
   function saveEditedTaskName() {
@@ -263,27 +274,14 @@
     $selected = node;
   }
 
+  const registry = new KeyHandlerRegistry([
+    [KeyBinding.EDIT_NODE, editTaskName],
+    [KeyBinding.CANCEL_SELECTION, unselect],
+  ]);
+
   function handleRowKeydown(event: KeyboardEvent) {
-    if (!rowElement) throw new Error("Reference to focusable div is undefined");
-
-    if (editedTaskName !== null) {
-      return;
-    }
-
-    if (event.key === "Enter") {
-      editedTaskName = task.name;
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (event.key === "Escape") {
-      $selected = null;
-      rowElement.blur();
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
+    if (!globalKeybindingsEnabled()) return;
+    registry.handle(event);
   }
 </script>
 
@@ -372,10 +370,7 @@
       </Button>
     {/if}
   </td>
-  <td
-    class={cn("border-l border-t p-2")}
-    on:keydown={(e) => e.stopPropagation()}
-  >
+  <td class={cn("border-l border-t p-2")}>
     <UserSelect
       {users}
       value={assignee}
@@ -384,10 +379,7 @@
       }}
     />
   </td>
-  <td
-    class={cn("border-l border-t p-2 max-sm:hidden")}
-    on:keydown={(e) => e.stopPropagation()}
-  >
+  <td class={cn("border-l border-t p-2 max-sm:hidden")}>
     <UserSelect
       {users}
       value={reporter}
