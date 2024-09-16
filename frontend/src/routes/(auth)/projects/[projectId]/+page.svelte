@@ -10,7 +10,6 @@
   import { Koso } from "$lib/koso";
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
-  import ProjectShareModal from "$lib/project-share-modal.svelte";
   import {
     fetchProjects,
     fetchProjectUsers,
@@ -21,6 +20,7 @@
   import { UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import * as Y from "yjs";
+  import ProjectShareModal from "./project-share-modal.svelte";
 
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
