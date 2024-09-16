@@ -18,7 +18,7 @@
     Undo,
     UserRoundPlus,
   } from "lucide-svelte";
-  import { setContext } from "svelte";
+  import { setContext, tick } from "svelte";
   import { flip } from "svelte/animate";
   import Row from "./row.svelte";
 
@@ -28,8 +28,12 @@
   let rows: Map<Node, HTMLDivElement> = Map();
   const { debug, nodes, selected } = koso;
 
-  function focus(node: Node | null) {
+  async function focus(node: Node | null) {
     if (!node) return;
+
+    // The new row may not be inserted until the next tick,
+    // so wait for a tick before trying to focus to it.
+    await tick();
     const row = rows.get(node);
     if (!row) return;
     row.focus();
@@ -153,7 +157,7 @@
 
   function addRoot() {
     if (!$user) throw new Error("Unauthenticated");
-    koso.insertNode(koso.root, 0, "Untitled", $user);
+    $selected = koso.insertNode(koso.root, 0, "Untitled", $user);
   }
 
   function addPeer() {
