@@ -231,6 +231,8 @@ export class Koso {
           nodes = this.#flatten(node.child(name), expanded, nodes);
         });
       }
+    } else {
+      console.warn(`Missing child task ${node.id}`);
     }
     return nodes;
   }
@@ -584,6 +586,18 @@ export class Koso {
       if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
       if (yNode.get("status") !== status) {
         yNode.set("status", status);
+
+        // When a task is marked done, make it the last child.
+        if (status === "Done") {
+          for (const parentTask of this.yGraph.values()) {
+            const children = parentTask.get("children") as Y.Array<string>;
+            const index = children.slice().indexOf(taskId);
+            if (index !== -1) {
+              children.delete(index);
+              children.push([taskId]);
+            }
+          }
+        }
       }
     });
   }
