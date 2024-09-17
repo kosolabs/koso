@@ -18,7 +18,8 @@ test("log user in and view projects", async () => {
 
   const login_url = `/api/auth/login`;
   const apiContext = await request.newContext({});
-  const email = `${Math.random().toString(36).slice(2)}-test@test.koso.app`;
+  // Avoid test cross-talk by logging in with a randomly generated user.
+  const email = `${Math.random().toString(36).slice(2)}-${Date.now()}-test@test.koso.app`;
   const token = jwt(email);
   const res = await apiContext.post(login_url, {
     data: {},
@@ -51,12 +52,13 @@ test("create a project and rename it to Integration Test Project", async () => {
 });
 
 function jwt(email: string) {
+  const base64 = (s: string) => Buffer.from(s).toString("base64url");
   const header = {
     alg: "HS256",
     typ: "JWT",
     kid: "koso-integration-test",
   };
-  const encodedHeader = btoa(JSON.stringify(header));
+  const encodedHeader = base64(JSON.stringify(header));
   const expirationEpochSeconds = Math.floor(
     (Date.now() + 24 * 60 * 60 * 1000) / 1000,
   );
@@ -66,7 +68,7 @@ function jwt(email: string) {
     picture: "https://static.wikia.nocookie.net/dilbert/images/6/60/Boss.PNG",
     exp: expirationEpochSeconds,
   };
-  const encodedSignature = btoa("test_signature_cannot_validate");
-  const encodedPayload = btoa(JSON.stringify(payload));
+  const encodedSignature = base64("test_signature_cannot_validate");
+  const encodedPayload = base64(JSON.stringify(payload));
   return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
 }
