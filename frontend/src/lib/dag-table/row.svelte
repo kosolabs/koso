@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { User } from "$lib/auth";
+  import { Chip, parseChipProps, type ChipProps } from "$lib/chip";
   import CircularProgressStatus from "$lib/circular-progress-status.svelte";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
@@ -10,6 +11,7 @@
   import TaskStatusSelect from "$lib/task-status-select.svelte";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
+  import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
   import type { Node } from "../koso";
@@ -19,7 +21,15 @@
   export let users: User[];
 
   const koso = getContext<Koso>("koso");
-  const { debug, dragged, dropEffect, expanded, highlighted, selected } = koso;
+  const {
+    debug,
+    dragged,
+    dropEffect,
+    expanded,
+    highlighted,
+    selected,
+    parents,
+  } = koso;
 
   let rowElement: HTMLTableRowElement | undefined;
   let idCellElement: HTMLTableCellElement | undefined;
@@ -37,11 +47,22 @@
   $: isHovered = $highlighted === node.name;
   $: isSelected = node.equals($selected);
   $: progress = koso.getProgress(task.id);
+  $: tags = getTags($parents);
 
   $: {
     if (rowElement && node.equals($selected)) {
       rowElement.focus();
     }
+  }
+
+  function getTags(allParents: Map<string, string[]>): ChipProps[] {
+    const parents = allParents.get(node.name);
+    if (!parents) return [];
+    return parents
+      .filter((parent) => parent !== node.parent.name)
+      .map((parent) => koso.getTask(parent).name)
+      .filter((name) => name.length > 0)
+      .map((name) => parseChipProps(name));
   }
 
   function getUser(users: User[], email: string | null): User | null {
@@ -351,24 +372,29 @@
     {/if}
   </td>
   <td class={cn("border-l border-t px-2")}>
-    {#if editedTaskName !== null}
-      <Input
-        class="h-auto bg-background p-1"
-        on:click={(event) => event.stopPropagation()}
-        on:blur={handleEditedTaskNameBlur}
-        on:keydown={handleEditedTaskNameKeydown}
-        bind:value={editedTaskName}
-        autofocus
-      />
-    {:else}
-      <Button
-        variant="link"
-        class="h-auto text-wrap p-0 text-left hover:no-underline"
-        on:click={handleStartEditingTaskName}
-      >
-        {task.name || "Click to edit"}
-      </Button>
-    {/if}
+    <div class="flex gap-1">
+      {#each tags as tag}
+        <Chip {...tag} />
+      {/each}
+      {#if editedTaskName !== null}
+        <Input
+          class="h-auto bg-background p-1"
+          on:click={(event) => event.stopPropagation()}
+          on:blur={handleEditedTaskNameBlur}
+          on:keydown={handleEditedTaskNameKeydown}
+          bind:value={editedTaskName}
+          autofocus
+        />
+      {:else}
+        <Button
+          variant="link"
+          class="h-auto text-wrap p-0 text-left hover:no-underline"
+          on:click={handleStartEditingTaskName}
+        >
+          {task.name || "Click to edit"}
+        </Button>
+      {/if}
+    </div>
   </td>
   <td class={cn("border-l border-t p-2")}>
     <UserSelect

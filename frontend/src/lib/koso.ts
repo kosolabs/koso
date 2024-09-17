@@ -97,6 +97,7 @@ export class Koso {
   dragged: Writable<Node | null>;
   expanded: Writable<Set<Node>>;
   nodes: Readable<List<Node>>;
+  parents: Readable<Map<string, string[]>>;
 
   constructor(projectId: string, yDoc: Y.Doc) {
     this.yDoc = yDoc;
@@ -127,6 +128,7 @@ export class Koso {
       this.observe(observer);
       return () => this.unobserve(observer);
     });
+    this.parents = derived(this.events, () => Map(this.#toParents()));
 
     this.selected = writable<Node | null>(null);
     this.highlighted = writable<string | null>(null);
