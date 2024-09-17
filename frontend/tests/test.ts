@@ -18,8 +18,9 @@ test("log user in and view projects", async () => {
 
   const login_url = `/api/auth/login`;
   const apiContext = await request.newContext({});
-  const token =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imtvc28taW50ZWdyYXRpb24tdGVzdCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5rb3NvLmFwcCIsIm5hbWUiOiJQb2ludHktSGFpcmVkIEJvc3MiLCJwaWN0dXJlIjoiaHR0cHM6Ly9zdGF0aWMud2lraWEubm9jb29raWUubmV0L2RpbGJlcnQvaW1hZ2VzLzYvNjAvQm9zcy5QTkciLCJleHAiOjIwMjQ3ODgwMTR9.3btheBY5h0nQRpWNODfYWQ_mMc26551178jrSDmpv_c";
+  // Avoid test cross-talk by logging in with a randomly generated user.
+  const email = `${Math.random().toString(36).slice(2)}-${Date.now()}-test@test.koso.app`;
+  const token = jwt(email);
   const res = await apiContext.post(login_url, {
     data: {},
     headers: {
@@ -28,11 +29,9 @@ test("log user in and view projects", async () => {
   });
   expect(res.ok()).toBeTruthy();
 
-  await page.evaluate(() =>
-    window.localStorage.setItem(
-      "credential",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imtvc28taW50ZWdyYXRpb24tdGVzdCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5rb3NvLmFwcCIsIm5hbWUiOiJQb2ludHktSGFpcmVkIEJvc3MiLCJwaWN0dXJlIjoiaHR0cHM6Ly9zdGF0aWMud2lraWEubm9jb29raWUubmV0L2RpbGJlcnQvaW1hZ2VzLzYvNjAvQm9zcy5QTkciLCJleHAiOjIwMjQ3ODgwMTR9.3btheBY5h0nQRpWNODfYWQ_mMc26551178jrSDmpv_c",
-    ),
+  await page.evaluate(
+    ([token]) => window.localStorage.setItem("credential", token),
+    [token],
   );
 
   await page.goto("/projects");
@@ -51,3 +50,25 @@ test("create a project and rename it to Integration Test Project", async () => {
     "Integration Test Project",
   );
 });
+
+function jwt(email: string) {
+  const base64 = (s: string) => Buffer.from(s).toString("base64url");
+  const header = {
+    alg: "HS256",
+    typ: "JWT",
+    kid: "koso-integration-test",
+  };
+  const encodedHeader = base64(JSON.stringify(header));
+  const expirationEpochSeconds = Math.floor(
+    (Date.now() + 24 * 60 * 60 * 1000) / 1000,
+  );
+  const payload = {
+    email: email,
+    name: "Pointy-Haired Boss",
+    picture: "https://static.wikia.nocookie.net/dilbert/images/6/60/Boss.PNG",
+    exp: expirationEpochSeconds,
+  };
+  const encodedSignature = base64("test_signature_cannot_validate");
+  const encodedPayload = base64(JSON.stringify(payload));
+  return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+}
