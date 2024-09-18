@@ -2,8 +2,8 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { token, user, type User } from "$lib/auth";
+  import { Button } from "$lib/button";
   import { Alert } from "$lib/components/ui/alert";
-  import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
   import { Input } from "$lib/components/ui/input";
   import { DagTable } from "$lib/dag-table";

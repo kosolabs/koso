@@ -13,6 +13,14 @@
   ],
   "settings": {
     "rust-analyzer.check.command": "clippy",
-    "css.lint.validProperties": ["cx", "cy", "r"]
+    "css.lint.validProperties": ["cx", "cy", "r"],
+    "tailwindCSS.classAttributes": [
+      "class",
+      "className",
+      "ngClass",
+      "class:list",
+      ".*Class",
+      ".*Classes"
+    ]
   }
 }

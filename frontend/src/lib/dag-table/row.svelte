@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { User } from "$lib/auth";
+  import { Button } from "$lib/button";
   import { Chip, parseChipProps, type ChipProps } from "$lib/chip";
   import CircularProgressStatus from "$lib/circular-progress-status.svelte";
-  import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
