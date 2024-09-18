@@ -372,7 +372,7 @@
     {/if}
   </td>
   <td class={cn("border-l border-t px-2")}>
-    <div class="flex gap-1">
+    <div class="flex items-center gap-1">
       {#each tags as tag}
         <Chip {...tag} />
       {/each}
