@@ -13,21 +13,10 @@
     "lint": "prettier --check . && eslint .",
     "format": "prettier --write .",
     "test:integration": "playwright test",
-    "test:unit": "vitest",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "test:unit": "vitest"
   },
   "devDependencies": {
-    "@chromatic-com/storybook": "^1.8.0",
     "@playwright/test": "^1.46.1",
-    "@storybook/addon-essentials": "^8.2.7",
-    "@storybook/addon-interactions": "^8.2.7",
-    "@storybook/addon-links": "^8.2.7",
-    "@storybook/addon-svelte-csf": "^4.1.6",
-    "@storybook/blocks": "^8.2.7",
-    "@storybook/svelte": "^8.2.7",
-    "@storybook/sveltekit": "^8.2.7",
-    "@storybook/test": "^8.2.7",
     "@sveltejs/adapter-static": "^3.0.0",
     "@sveltejs/kit": "^2.5.25",
     "@sveltejs/vite-plugin-svelte": "^3.1.2",
@@ -39,7 +28,6 @@
     "clsx": "^2.1.1",
     "eslint": "^9.9.1",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-storybook": "^0.8.0",
     "eslint-plugin-svelte": "^2.36.0",
     "fake-indexeddb": "^6.0.0",
     "globals": "^15.9.0",
@@ -53,7 +41,6 @@
     "prettier": "^3.1.1",
     "prettier-plugin-svelte": "^3.1.2",
     "prettier-plugin-tailwindcss": "^0.6.5",
-    "storybook": "^8.2.7",
     "svelte": "^4.2.19",
     "svelte-check": "^3.8.6",
     "svelte-confetti": "^1.4.0",
@@ -70,10 +57,5 @@
     "vitest": "^2.0.5",
     "y-indexeddb": "^9.0.12",
     "yjs": "^13.6.18"
-  },
-  "eslintConfig": {
-    "extends": [
-      "plugin:storybook/recommended"
-    ]
   }
 }
