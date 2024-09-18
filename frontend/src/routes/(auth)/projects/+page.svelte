@@ -1,8 +1,8 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { token, user } from "$lib/auth";
+  import { A, Button } from "$lib/button";
   import { Alert } from "$lib/components/ui/alert";
-  import { Button } from "$lib/components/ui/button";
   import Navbar from "$lib/navbar.svelte";
   import {
     fetchProjects,
@@ -72,13 +72,9 @@
       >
         {#each projects as project}
           <div class="border-t p-2">
-            <Button
-              class="text-lg"
-              variant="link"
-              href="projects/{project.project_id}"
-            >
+            <A class="text-lg" href="projects/{project.project_id}">
               {project.name}
-            </Button>
+            </A>
           </div>
         {/each}
       </div>

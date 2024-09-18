@@ -1,8 +1,8 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { token, user, type User } from "$lib/auth";
+  import { Button } from "$lib/button";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
   import { Input } from "$lib/components/ui/input";
   import * as Popover from "$lib/components/ui/popover";
