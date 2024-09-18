@@ -40,5 +40,5 @@
 </DropdownMenuMonitoredRoot>
 
 {#if showConfetti}
-  <Confetti />
+  <div class="fixed left-1/2 top-1/2"><Confetti /></div>
 {/if}

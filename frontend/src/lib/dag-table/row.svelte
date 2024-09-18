@@ -364,7 +364,7 @@
       <TaskStatusSelect
         value={task.status}
         on:select={(event) => {
-          koso.setTaskStatus(task.id, event.detail);
+          koso.setTaskStatus(node, event.detail);
         }}
       />
     {:else}
