@@ -70,6 +70,7 @@ export type Task = {
   assignee: string | null;
   reporter: string | null;
   status: Status | null;
+  statusTime: number | null;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,10 +83,13 @@ export type Progress = {
   denom: number;
 };
 
+export type YTaskProps = Y.Array<string> | string | number | null;
+export type YTask = Y.Map<YTaskProps>;
+
 export class Koso {
   yDoc: Y.Doc;
   undoManager: Y.UndoManager;
-  yGraph: Y.Map<Y.Map<Y.Array<string> | string | null>>;
+  yGraph: Y.Map<YTask>;
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
 
@@ -288,7 +292,7 @@ export class Koso {
     return node.parent.child(peers[nextPeerOffset]);
   }
 
-  #getYTask(taskId: string): Y.Map<string | Y.Array<string> | null> {
+  #getYTask(taskId: string): YTask {
     const yTask = this.yGraph.get(taskId);
     if (!yTask) throw new Error(`Task ID ${taskId} not found in yGraph`);
     return yTask;
@@ -353,13 +357,14 @@ export class Koso {
       reporter: null,
       assignee: null,
       status: null,
+      statusTime: null,
     });
   }
 
   #upsert(task: Task) {
     this.yGraph.set(
       task.id,
-      new Y.Map<Y.Array<string> | string | null>([
+      new Y.Map<YTaskProps>([
         ["id", task.id],
         ["num", task.num],
         ["name", task.name],
@@ -367,6 +372,7 @@ export class Koso {
         ["reporter", task.reporter],
         ["assignee", task.assignee],
         ["status", task.status],
+        ["statusTime", task.statusTime],
       ]),
     );
   }
@@ -565,6 +571,7 @@ export class Koso {
         reporter: user.email,
         assignee: null,
         status: null,
+        statusTime: null,
       });
       this.#insertChild(taskId, parent.name, offset);
     });
@@ -606,7 +613,7 @@ export class Koso {
     });
   }
 
-  setTaskStatus(node: Node, status: Status | null) {
+  setTaskStatus(node: Node, status: Status) {
     const taskId = node.name;
     this.yDoc.transact(() => {
       const yNode = this.yGraph.get(taskId);
@@ -614,6 +621,7 @@ export class Koso {
       if (yNode.get("status") === status) return;
 
       yNode.set("status", status);
+      yNode.set("statusTime", Date.now());
       // When a task is marked done, make it the last child
       // and select an adjacent peer.
       if (status === "Done") {
