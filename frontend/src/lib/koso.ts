@@ -143,8 +143,18 @@ export class Koso {
       (nodes) => JSON.stringify(nodes.map((node) => node.id)),
     );
 
-    this.nodes = derived([this.expanded, this.events], ([expanded]) =>
-      this.#flatten(new Node(), expanded),
+    this.nodes = derived(
+      [this.expanded, this.events],
+      ([expanded]): List<Node> => {
+        // The nodes store is consistently initialized prior to the ygraph
+        // being loaded, but #flatten expects the presence of at least a
+        // "root" task. Handle the situation here to avoid generating warnings
+        // in #flatten.
+        if (this.yGraph.size === 0) {
+          return List();
+        }
+        return this.#flatten(new Node(), expanded);
+      },
     );
   }
 
@@ -231,6 +241,8 @@ export class Koso {
           nodes = this.#flatten(node.child(name), expanded, nodes);
         });
       }
+    } else {
+      console.warn(`Missing child task ${node.id}`);
     }
     return nodes;
   }
@@ -254,10 +266,26 @@ export class Koso {
     return offset;
   }
 
-  getPrevPeer(node: Node): Node {
+  getPrevPeer(node: Node): Node | null {
     const peers = this.getChildren(node.parent.name);
     const offset = peers.indexOf(node.name);
-    return node.parent.child(peers[offset - 1]);
+    if (offset === -1) throw new Error(`Node ${node.name} not found in parent`);
+    const prevPeerOffset = offset - 1;
+    if (prevPeerOffset < 0) {
+      return null;
+    }
+    return node.parent.child(peers[prevPeerOffset]);
+  }
+
+  getNextPeer(node: Node): Node | null {
+    const peers = this.getChildren(node.parent.name);
+    const offset = peers.indexOf(node.name);
+    if (offset === -1) throw new Error(`Node ${node.name} not found in parent`);
+    const nextPeerOffset = offset + 1;
+    if (nextPeerOffset > peers.length - 1) {
+      return null;
+    }
+    return node.parent.child(peers[nextPeerOffset]);
   }
 
   #getYTask(taskId: string): Y.Map<string | Y.Array<string> | null> {
@@ -495,14 +523,14 @@ export class Koso {
 
   canIndentNode(node: Node) {
     const peer = this.getPrevPeer(node);
-    return this.canMove(node, peer.name);
+    return peer && this.canMove(node, peer.name);
   }
 
   indentNode(node: Node) {
     const offset = this.getOffset(node);
     if (offset < 1) return;
     const peer = this.getPrevPeer(node);
-    if (!this.canIndentNode(node)) return;
+    if (!peer || !this.canIndentNode(node)) return;
     this.moveNode(node, peer.name, this.getChildCount(peer.name));
     this.expand(peer);
     this.selected.set(peer.child(node.name));
@@ -578,12 +606,30 @@ export class Koso {
     });
   }
 
-  setTaskStatus(taskId: string, status: Status | null) {
+  setTaskStatus(node: Node, status: Status | null) {
+    const taskId = node.name;
     this.yDoc.transact(() => {
       const yNode = this.yGraph.get(taskId);
       if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
-      if (yNode.get("status") !== status) {
-        yNode.set("status", status);
+      if (yNode.get("status") === status) return;
+
+      yNode.set("status", status);
+      // When a task is marked done, make it the last child
+      // and select an adjacent peer.
+      if (status === "Done") {
+        const peer = this.getPrevPeer(node) || this.getNextPeer(node);
+        if (peer) {
+          this.selected.set(peer);
+        }
+
+        for (const parentTask of this.yGraph.values()) {
+          const children = parentTask.get("children") as Y.Array<string>;
+          const index = children.slice().indexOf(taskId);
+          if (index !== -1) {
+            children.delete(index);
+            children.push([taskId]);
+          }
+        }
       }
     });
   }
