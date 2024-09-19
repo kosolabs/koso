@@ -52,6 +52,21 @@ jobs:
     defaults:
       run:
         working-directory: ./frontend
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+      DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@v4
       - id: playwright-cache
@@ -72,3 +87,25 @@ jobs:
       - run: npm run check
       - run: npm run lint
       - run: npm run test
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "backend"
+          shared-key: "backend-build"
+      - name: Install sqlx-cli
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: sqlx-cli
+          args: --no-default-features --features rustls,postgres
+          version: latest
+      - name: Migrate database
+        working-directory: ./backend
+        run: SKIP_DOCKER=true ../backend/scripts/init_db.sh
+      - run: |
+          pushd ../backend
+          ./scripts/run_dev.sh &
+          popd
+          npx playwright test
