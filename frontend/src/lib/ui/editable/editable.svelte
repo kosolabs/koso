@@ -13,7 +13,7 @@
   let classes: string = "";
   let edited: string | null = null;
 
-  const dataTestid: string = $$props["data-testid"];
+  const ariaLabel: string = $$props["aria-label"];
 
   function handleInputKeydown(event: KeyboardEvent) {
     event.stopPropagation();
@@ -67,7 +67,7 @@
   <Button
     variant="link"
     class={cn("h-auto text-wrap p-0 text-left hover:no-underline", classes)}
-    data-testid={dataTestid}
+    aria-label={ariaLabel}
     on:click={handleButtonClick}
   >
     {value || placeholder}
