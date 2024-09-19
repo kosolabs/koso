@@ -104,8 +104,10 @@ jobs:
       - name: Migrate database
         working-directory: ./backend
         run: SKIP_DOCKER=true ../backend/scripts/init_db.sh
-      - run: |
-          pushd ../backend
+      - name: Start backend
+        working-directory: ./backend
+        run: |
+          cargo build
           ./scripts/run_dev.sh &
-          popd
-          CI=true npx playwright test
+          curl --head -X GET --retry 30 --retry-connrefused --retry-delay 1 http://localhost:3000
+      - run: CI=true npx playwright test
