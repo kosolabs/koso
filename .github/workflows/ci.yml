@@ -87,6 +87,11 @@ jobs:
       - run: npm run check
       - run: npm run lint
       - run: npm run test
+
+      # The following steps do much of the same work as the backend
+      # "cargo" job above to configure rust, setup the database
+      # and run a build. It'd be nice to avoid this somehow, but
+      # the rate of change is low enough that it's not too important.
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -110,4 +115,6 @@ jobs:
           cargo build
           ./scripts/run_dev.sh &
           curl --head -X GET --retry 30 --retry-connrefused --retry-delay 1 http://localhost:3000
+
+      # Run the playwright tests that depend on the backend started above.
       - run: CI=true npx playwright test
