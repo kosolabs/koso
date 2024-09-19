@@ -59,7 +59,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     // Log in
     {
         let res = client
-            .post(&format!("http://{addr}/api/auth/login"))
+            .post(format!("http://{addr}/api/auth/login"))
             .bearer_auth(&token)
             .send()
             .await
@@ -77,7 +77,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
 
         let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
         let res = client
-            .post(&format!("http://{addr}/api/auth/login"))
+            .post(format!("http://{addr}/api/auth/login"))
             .bearer_auth(&token)
             .send()
             .await
@@ -88,7 +88,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     // Try a request without any credentials attached.
     {
         let res = client
-            .get(&format!("http://{addr}/api/projects"))
+            .get(format!("http://{addr}/api/projects"))
             .send()
             .await
             .expect("Failed to send request.");
@@ -99,7 +99,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     let project_name = "Test Project1";
     let project_id = {
         let res = client
-            .post(&format!("http://{addr}/api/projects"))
+            .post(format!("http://{addr}/api/projects"))
             .bearer_auth(&token)
             .header("Content-Type", "application/json")
             .body(format!("{{\"name\":\"{project_name}\"}}"))
@@ -122,7 +122,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     let project_name = {
         let project_name = "Updated test name 1";
         let res = client
-            .patch(&format!("http://{addr}/api/projects/{project_id}"))
+            .patch(format!("http://{addr}/api/projects/{project_id}"))
             .bearer_auth(&token)
             .header("Content-Type", "application/json")
             .body(format!(
@@ -145,7 +145,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     // Update project permissions
     {
         let res = client
-            .patch(&format!(
+            .patch(format!(
                 "http://{addr}/api/projects/{project_id}/permissions"
             ))
             .bearer_auth(&token)
@@ -162,7 +162,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     // List the projects.
     {
         let res = client
-            .get(&format!("http://{addr}/api/projects"))
+            .get(format!("http://{addr}/api/projects"))
             .bearer_auth(&token)
             .send()
             .await
@@ -182,7 +182,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     // List the project's users.
     {
         let res = client
-            .get(&format!("http://{addr}/api/projects/{project_id}/users"))
+            .get(format!("http://{addr}/api/projects/{project_id}/users"))
             .bearer_auth(&token)
             .send()
             .await
@@ -196,7 +196,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     // List the  users.
     {
         let res = client
-            .get(&format!("http://{addr}/api/users"))
+            .get(format!("http://{addr}/api/users"))
             .bearer_auth(&token)
             .send()
             .await

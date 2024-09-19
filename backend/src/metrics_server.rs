@@ -65,7 +65,7 @@ mod tests {
 
         let client = Client::default();
         let res = client
-            .get(&format!("http://{addr}/metrics"))
+            .get(format!("http://{addr}/metrics"))
             .send()
             .await
             .expect("Failed to send request.");
