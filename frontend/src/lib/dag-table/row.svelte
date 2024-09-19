@@ -325,7 +325,7 @@
 >
   <td class={cn("border-t px-2")} bind:this={idCellElement}>
     <div class="flex items-center">
-      <div style="width: {(node.length - 1) * 20}px" />
+      <div style="width: {(node.length - 1) * 20}px"></div>
       {#if task.children.length > 0}
         <button
           class="w-4 transition-transform"
@@ -336,7 +336,7 @@
           <ChevronRight class="w-4" />
         </button>
       {:else}
-        <div class="w-4" />
+        <div class="w-4"></div>
       {/if}
       <button
         class="flex items-center gap-1 py-1"
@@ -434,7 +434,7 @@
       on:dragenter={handleDragEnterPeer}
       on:dragleave={handleDragLeavePeer}
       on:drop={handleDropNodePeer}
-    />
+    ></div>
     <div
       class={cn(
         "absolute z-50 -my-3 h-8",
@@ -446,19 +446,19 @@
       on:dragenter={handleDragEnterChild}
       on:dragleave={handleDragLeaveChild}
       on:drop={handleDropNodeChild}
-    />
+    ></div>
   {/if}
 
   {#if dragOverPeer}
     <div
       class="absolute -my-[0.125rem] h-1 bg-teal-500"
       style="width: {rowWidth - peerOffset}px; margin-left: {peerOffset}px;"
-    />
+    ></div>
   {/if}
   {#if dragOverChild}
     <div
       class="absolute -my-[0.125rem] h-1 bg-teal-500"
       style="width: {rowWidth - childOffset}px; margin-left: {childOffset}px;"
-    />
+    ></div>
   {/if}
 {/if}

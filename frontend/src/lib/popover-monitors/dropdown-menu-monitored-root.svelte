@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Root } from "$lib/components/ui/dropdown-menu";
-  import { SvelteComponent } from "svelte";
+  import { type SvelteComponent } from "svelte";
   import { handleOpenChange } from ".";
 
   let open: boolean;
