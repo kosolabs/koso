@@ -148,3 +148,36 @@ This setup is similar to how the app will run in production. A single server ser
    ```
 
 This will create a `frontend/build` folder. The `backend/static` folder is symlinked to that folder and will serve the compiled frontend directly from the backend.
+
+### Running playwright tests
+
+Playwright tests, i.e. integration tests, flex the entire system end-to-end via the frontend testing
+framework Playwright. The tests run as part of CI, but you may also run them locally.
+
+#### Option A: Iterate quickly by running against your development server
+
+Make changes and run the tests quickly without rebuilding the world. Start a frontend and backend
+server in the usual manner, see above, and run the tests in VSCode using the Playwright extension or
+via the CLI:
+
+```bash
+npx playwright test
+```
+
+#### Option B: Mimic production and run against a built frontend with production
+
+Follow "Running a Built Frontend with the Backend" above to build the frontend and run the backend.
+Run the tests:
+
+```bash
+PW_SERVER_PORT=3000 npx playwright test
+```
+
+#### Option C: Mimic CI and build things from scratch
+
+This is what our CI workflows do. playwright will build the frontend and run a backend for the
+duration of the tests:
+
+```bash
+CI=true npx playwright test
+```

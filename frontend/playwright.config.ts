@@ -2,8 +2,8 @@ import type { PlaywrightTestConfig } from "@playwright/test";
 
 const config: PlaywrightTestConfig = {
   webServer: {
-    command: "npm run build && npm run preview",
-    port: process.env.CI ? 4173 : 5173,
+    command: "npm run build && (cd ../backend && ./scripts/run_dev.sh)",
+    port: process.env.CI ? 3000 : process.env.PW_SERVER_PORT || 5173,
     reuseExistingServer: !process.env.CI,
     stdout: "pipe",
   },
