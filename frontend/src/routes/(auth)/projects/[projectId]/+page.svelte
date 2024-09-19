@@ -2,11 +2,9 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { token, user, type User } from "$lib/auth";
-  import { Button } from "$lib/button";
   import { Alert } from "$lib/components/ui/alert";
   import * as Dialog from "$lib/components/ui/dialog";
   import { DagTable } from "$lib/dag-table";
-  import { Input } from "$lib/input";
   import { Koso } from "$lib/koso";
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
@@ -17,6 +15,8 @@
     updateProject,
   } from "$lib/projects";
   import { KosoSocket } from "$lib/socket";
+  import { Button } from "$lib/ui/button";
+  import { Editable } from "$lib/ui/editable";
   import { UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import * as Y from "yjs";
@@ -50,56 +50,16 @@
     );
   }
 
-  let editedProjectName: string | null = null;
-
-  function handleStartEditingProjectName(event: MouseEvent | KeyboardEvent) {
-    event.stopPropagation();
-    editedProjectName = project?.name || "";
-  }
-
-  async function saveEditedProjectName() {
-    if (!editedProjectName) {
-      editedProjectName = null;
-      return;
-    }
+  async function saveEditedProjectName(name: string) {
     if (!$user || !$token) throw new Error("User is unauthorized");
 
     const updatedProject = await updateProject($token, {
       project_id: projectId,
-      name: editedProjectName,
+      name,
     });
 
     if (project) {
       project.name = updatedProject.name;
-    }
-    editedProjectName = null;
-  }
-
-  function revertEditedProjectName() {
-    if (editedProjectName === null) {
-      return;
-    }
-    editedProjectName = null;
-  }
-
-  async function handleEditedProjectNameBlur() {
-    await saveEditedProjectName();
-  }
-
-  async function handleEditedProjectNameKeydown(event: KeyboardEvent) {
-    event.stopPropagation();
-
-    if (event.key === "Escape") {
-      revertEditedProjectName();
-      event.preventDefault();
-      return;
-    }
-
-    if (event.key === "Enter") {
-      await saveEditedProjectName();
-      event.preventDefault();
-      event.stopPropagation();
-      return;
     }
   }
 
@@ -142,25 +102,13 @@
 <Navbar>
   <svelte:fragment slot="left-items">
     <div>
-      {#if editedProjectName !== null}
-        <Input
-          class="ml-2 p-2"
-          on:click={(event) => event.stopPropagation()}
-          on:blur={handleEditedProjectNameBlur}
-          on:keydown={handleEditedProjectNameKeydown}
-          bind:value={editedProjectName}
-          autofocus
-        />
-      {:else if project}
-        <Button
+      {#if project}
+        <Editable
+          class="ml-2 text-lg"
+          value={project.name}
           data-testid="set-project-name-button"
-          variant="link"
-          class="text-lg"
-          on:click={handleStartEditingProjectName}
-          on:keydown={handleStartEditingProjectName}
-        >
-          {project.name}
-        </Button>
+          on:save={(event) => saveEditedProjectName(event.detail)}
+        />
       {/if}
     </div>
   </svelte:fragment>

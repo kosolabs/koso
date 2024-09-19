@@ -5,7 +5,7 @@
     AvatarImage,
   } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { Input } from "$lib/input";
+  import { Input } from "$lib/ui/input";
   import { UserRound } from "lucide-svelte";
   import { createEventDispatcher } from "svelte";
   import type { User } from "./auth";
