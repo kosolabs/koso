@@ -8,6 +8,20 @@ test.beforeAll(async ({ browser }) => {
   page = await browser.newPage();
 });
 
+test.afterAll(async () => {
+  await page.goto("/");
+
+  const apiContext = await request.newContext({});
+  const token = jwt(`cleanup-test@test.koso.app`);
+  const res = await apiContext.post("/api/dev/cleanup_test_data", {
+    data: {},
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  expect(res.ok()).toBeTruthy();
+});
+
 test("home page presents login header and button", async () => {
   await page.goto("/");
   await expect(page.locator("h1")).toHaveText("Koso");

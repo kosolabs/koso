@@ -10,6 +10,8 @@ use std::{
 };
 use tokio::sync::Mutex;
 
+pub const TEST_USER_SUFFIX: &str = "test@test.koso.app";
+
 #[derive(Clone)]
 pub struct KeySet {
     inner: Arc<KeySetInner>,
@@ -253,7 +255,7 @@ fn decode_and_validate_test_token(token: &str, key: &DecodingKey) -> ApiResult<U
         }
     };
     let user = token.claims;
-    if !user.email.ends_with("test@test.koso.app") {
+    if !user.email.ends_with(TEST_USER_SUFFIX) {
         return Err(unauthenticated_error(&format!(
             "Invalid test cred email: {}",
             user.email

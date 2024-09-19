@@ -11,6 +11,7 @@ use sqlx::postgres::PgPool;
 
 pub(crate) mod auth;
 pub(crate) mod collab;
+pub(crate) mod dev;
 pub(crate) mod google;
 pub(crate) mod model;
 pub(crate) mod projects;
@@ -25,6 +26,7 @@ pub(crate) fn api_router() -> Router {
         .nest("/auth", auth::auth_router())
         .nest("/ws", ws::ws_router())
         .nest("/users", users::users_router())
+        .nest("/dev", dev::dev_router())
 }
 
 pub(crate) async fn verify_access(
