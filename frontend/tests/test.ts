@@ -58,14 +58,14 @@ test.describe.serial("all tests", () => {
   test("create a project and rename it to Integration Test Project", async () => {
     await page.getByRole("button", { name: "new project" }).click();
 
-    await page.getByTestId("set-project-name-button").click();
+    await page.getByRole("button", { name: "set project name" }).click();
     await page.keyboard.press("ControlOrMeta+A");
     await page.keyboard.type("Integration Test Project");
     await page.keyboard.press("Enter");
 
-    await expect(page.getByTestId("set-project-name-button")).toHaveText(
-      "Integration Test Project",
-    );
+    await expect(
+      page.getByRole("button", { name: "set project name" }),
+    ).toHaveText("Integration Test Project");
   });
 });
 

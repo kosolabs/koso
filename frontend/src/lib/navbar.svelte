@@ -11,7 +11,7 @@
 
 <nav class="flex items-center bg-card p-2 shadow">
   <div class="flex items-center">
-    <a href="/projects">
+    <a href="/projects" aria-label="Home">
       <img class="size-10" alt="Koso Logo" src={kosoLogo} />
     </a>
     <slot name="left-items"></slot>

@@ -106,7 +106,7 @@
         <Editable
           class="ml-2 text-lg"
           value={project.name}
-          data-testid="set-project-name-button"
+          aria-label="Set project name"
           on:save={(event) => saveEditedProjectName(event.detail)}
         />
       {/if}
