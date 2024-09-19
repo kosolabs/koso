@@ -1,14 +1,13 @@
 <script lang="ts">
   import type { User } from "$lib/auth";
-  import { Button } from "$lib/button";
-  import { Chip, parseChipProps, type ChipProps } from "$lib/chip";
   import CircularProgressStatus from "$lib/circular-progress-status.svelte";
-  import { Input } from "$lib/input";
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import type { Koso } from "$lib/koso";
   import { globalKeybindingsEnabled } from "$lib/popover-monitors";
   import TaskStatusSelect from "$lib/task-status-select.svelte";
+  import { Chip, parseChipProps, type ChipProps } from "$lib/ui/chip";
+  import Editable from "$lib/ui/editable/editable.svelte";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
@@ -49,6 +48,8 @@
   $: progress = koso.getProgress(task.id);
   $: tags = getTags($parents);
 
+  let taskNameEditable: Editable;
+
   $: {
     if (rowElement && node.equals($selected)) {
       rowElement.focus();
@@ -87,58 +88,8 @@
     setOpen(!open);
   }
 
-  let editedTaskName: string | null = null;
-
-  function editTaskName() {
-    editedTaskName = task.name;
-  }
-
   function unselect() {
     $selected = null;
-  }
-
-  function handleStartEditingTaskName(event: MouseEvent) {
-    event.stopPropagation();
-    event.preventDefault();
-    $selected = node;
-    editTaskName();
-  }
-
-  function saveEditedTaskName() {
-    if (editedTaskName === null) {
-      return;
-    }
-    koso.setTaskName(node.name, editedTaskName);
-    editedTaskName = null;
-  }
-
-  function revertEditedTaskName() {
-    if (editedTaskName === null) {
-      return;
-    }
-    editedTaskName = null;
-  }
-
-  function handleEditedTaskNameBlur() {
-    saveEditedTaskName();
-  }
-
-  function handleEditedTaskNameKeydown(event: KeyboardEvent) {
-    event.stopPropagation();
-
-    if (event.key === "Escape") {
-      revertEditedTaskName();
-      $selected = node;
-      event.preventDefault();
-      return;
-    }
-
-    if (event.key === "Enter") {
-      saveEditedTaskName();
-      $selected = node;
-      event.preventDefault();
-      return;
-    }
   }
 
   function handleDragStart(event: DragEvent) {
@@ -296,7 +247,7 @@
   }
 
   const registry = new KeyHandlerRegistry([
-    [KeyBinding.EDIT_NODE, editTaskName],
+    [KeyBinding.EDIT_NODE, () => taskNameEditable.edit()],
     [KeyBinding.CANCEL_SELECTION, unselect],
   ]);
 
@@ -376,24 +327,11 @@
       {#each tags as tag}
         <Chip {...tag} />
       {/each}
-      {#if editedTaskName !== null}
-        <Input
-          class="h-auto bg-background p-1"
-          on:click={(event) => event.stopPropagation()}
-          on:blur={handleEditedTaskNameBlur}
-          on:keydown={handleEditedTaskNameKeydown}
-          bind:value={editedTaskName}
-          autofocus
-        />
-      {:else}
-        <Button
-          variant="link"
-          class="h-auto text-wrap p-0 text-left hover:no-underline"
-          on:click={handleStartEditingTaskName}
-        >
-          {task.name || "Click to edit"}
-        </Button>
-      {/if}
+      <Editable
+        value={task.name}
+        bind:this={taskNameEditable}
+        on:save={(event) => koso.setTaskName(task.id, event.detail)}
+      />
     </div>
   </td>
   <td class={cn("border-l border-t p-2")}>

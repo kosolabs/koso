@@ -1,7 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { token, user } from "$lib/auth";
-  import { A, Button } from "$lib/button";
   import { Alert } from "$lib/components/ui/alert";
   import Navbar from "$lib/navbar.svelte";
   import {
@@ -9,6 +8,7 @@
     createProject as projectsCreateProject,
     type Project,
   } from "$lib/projects";
+  import { A, Button } from "$lib/ui/button";
   import { Layers } from "lucide-svelte";
   import { onMount } from "svelte";
 

@@ -1,16 +1,16 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { token, user, type User } from "$lib/auth";
-  import { Button } from "$lib/button";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import * as Dialog from "$lib/components/ui/dialog";
   import * as Popover from "$lib/components/ui/popover";
-  import { Input } from "$lib/input";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectPermissions,
     type Project,
   } from "$lib/projects";
+  import { Button } from "$lib/ui/button";
+  import { Input } from "$lib/ui/input";
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
