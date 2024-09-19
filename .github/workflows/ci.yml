@@ -108,4 +108,4 @@ jobs:
           pushd ../backend
           ./scripts/run_dev.sh &
           popd
-          npx playwright test
+          CI=true npx playwright test
