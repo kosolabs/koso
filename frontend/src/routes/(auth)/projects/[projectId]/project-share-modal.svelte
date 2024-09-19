@@ -4,8 +4,8 @@
   import { Button } from "$lib/button";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import * as Dialog from "$lib/components/ui/dialog";
-  import { Input } from "$lib/components/ui/input";
   import * as Popover from "$lib/components/ui/popover";
+  import { Input } from "$lib/input";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectPermissions,
