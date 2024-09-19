@@ -3,7 +3,7 @@
   import { Button } from "$lib/button";
   import { Chip, parseChipProps, type ChipProps } from "$lib/chip";
   import CircularProgressStatus from "$lib/circular-progress-status.svelte";
-  import { Input } from "$lib/components/ui/input";
+  import { Input } from "$lib/input";
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import type { Koso } from "$lib/koso";
