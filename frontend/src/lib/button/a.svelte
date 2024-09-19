@@ -11,7 +11,7 @@
 
   let classes: $$Props["class"] = undefined;
   export let href: string;
-  export let variant: keyof typeof variantClasses = "default";
+  export let variant: keyof typeof variantClasses = "link";
   export let size: keyof typeof sizeClasses = "default";
   export { classes as class };
 </script>
