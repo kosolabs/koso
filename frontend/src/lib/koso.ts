@@ -241,6 +241,10 @@ export class Koso {
     expanded: Set<Node>,
     nodes: List<Node> = List(),
   ): List<Node> {
+    if (!this.isVisible(node)) {
+      return nodes;
+    }
+
     const task = this.yGraph.get(node.name);
     if (task) {
       nodes = nodes.push(node);
@@ -894,8 +898,8 @@ export class Koso {
   }
 
   isVisible(node: Node) {
-    // TODO
-    if (node) return true;
-    return false;
+    // TODO: Implement this for realz.
+    const task = this.getTask(node.name);
+    return task.name !== "filtered";
   }
 }
