@@ -191,6 +191,7 @@ test.describe.serial("all tests", () => {
     await page
       .getByRole("button", { name: "Task 2 Drag Handle" })
       .dragTo(page.getByRole("button", { name: "Task 3 Child Dropzone" }));
+    await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
 
     const graph = await getKosoGraph();
     const tasks = getTaskNumToTaskIdMap(graph);
