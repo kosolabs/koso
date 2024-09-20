@@ -208,7 +208,9 @@
 
     {#each [...$nodes].slice(1) as node, index (node.id)}
       <tbody animate:flip={{ duration: 250 }}>
-        <Row {index} {node} {users} />
+        {#if koso.isVisible(node)}
+          <Row {index} {node} {users} />
+        {/if}
       </tbody>
     {/each}
   </table>

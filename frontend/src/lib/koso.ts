@@ -275,25 +275,45 @@ export class Koso {
   }
 
   getPrevPeer(node: Node): Node | null {
-    const peers = this.getChildren(node.parent.name);
+    const parent = node.parent;
+    const peers = this.getChildren(parent.name);
     const offset = peers.indexOf(node.name);
     if (offset === -1) throw new Error(`Node ${node.name} not found in parent`);
     const prevPeerOffset = offset - 1;
     if (prevPeerOffset < 0) {
       return null;
     }
-    return node.parent.child(peers[prevPeerOffset]);
+
+    for (const peer of peers.slice(0, offset).reverse()) {
+      const peerNode = parent.child(peer);
+      if (this.isVisible(peerNode)) {
+        return peerNode;
+      }
+    }
+    return null;
   }
 
   getNextPeer(node: Node): Node | null {
-    const peers = this.getChildren(node.parent.name);
+    const parent = node.parent;
+    const peers = this.getChildren(parent.name);
     const offset = peers.indexOf(node.name);
     if (offset === -1) throw new Error(`Node ${node.name} not found in parent`);
     const nextPeerOffset = offset + 1;
     if (nextPeerOffset > peers.length - 1) {
       return null;
     }
-    return node.parent.child(peers[nextPeerOffset]);
+    for (const peer of peers.slice(offset + 1)) {
+      const peerNode = parent.child(peer);
+      if (this.isVisible(peerNode)) {
+        console.log(
+          `Next peer for ${node.name} is ${peerNode.name}`,
+          peerNode,
+          node,
+        );
+        return peerNode;
+      }
+    }
+    return null;
   }
 
   #getYTask(taskId: string): YTask {
@@ -502,6 +522,9 @@ export class Koso {
   }
 
   moveNode(node: Node, parent: string, offset: number) {
+    if (offset < 0) {
+      throw new Error(`Cannot move  ${node.name} to negative offset ${offset}`);
+    }
     if (!this.canMove(node, parent))
       throw new Error(`Cannot move ${node.name} to ${parent}`);
     const srcOffset = this.getOffset(node);
@@ -518,16 +541,18 @@ export class Koso {
   }
 
   moveNodeUp(node: Node) {
-    const offset = this.getOffset(node);
-    if (offset < 1) return;
-    this.moveNode(node, node.parent.name, offset - 1);
+    const prevPeer = this.getPrevPeer(node);
+    if (!prevPeer) return;
+    const offset = this.getOffset(prevPeer);
+    this.moveNode(node, node.parent.name, offset);
     this.selected.set(node);
   }
 
   moveNodeDown(node: Node) {
-    const offset = this.getOffset(node);
-    if (offset >= this.getChildCount(node.parent.name) - 1) return;
-    this.moveNode(node, node.parent.name, offset + 2);
+    const nextPeer = this.getNextPeer(node);
+    if (!nextPeer) return;
+    const offset = this.getOffset(nextPeer);
+    this.moveNode(node, node.parent.name, offset + 1);
     this.selected.set(node);
   }
 
@@ -736,8 +761,6 @@ export class Koso {
   }
 
   indentNode(node: Node) {
-    const offset = this.getOffset(node);
-    if (offset < 1) return;
     const peer = this.getPrevPeer(node);
     if (!peer || !this.canIndentNode(node)) return;
     this.moveNode(node, peer.name, this.getChildCount(peer.name));
@@ -746,14 +769,14 @@ export class Koso {
   }
 
   canUndentNode(node: Node) {
+    if (node.length < 2) return false;
     return this.canMove(node, node.parent.parent.name);
   }
 
   undentNode(node: Node) {
-    if (node.length < 2) return;
+    if (!this.canUndentNode(node)) return;
     const parent = node.parent;
     const offset = this.getOffset(parent);
-    if (!this.canUndentNode(node)) return;
     this.moveNode(node, parent.parent.name, offset + 1);
     this.selected.set(parent.parent.child(node.name));
   }
@@ -868,5 +891,11 @@ export class Koso {
 
   redo() {
     this.undoManager.redo();
+  }
+
+  isVisible(node: Node) {
+    // TODO
+    if (node) return true;
+    return false;
   }
 }
