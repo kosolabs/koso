@@ -57,6 +57,7 @@
 {#if edited !== null}
   <Input
     class={cn("h-auto bg-background p-1", classes)}
+    aria-label={ariaLabel}
     on:click={(event) => event.stopPropagation()}
     on:blur={save}
     on:keydown={handleInputKeydown}

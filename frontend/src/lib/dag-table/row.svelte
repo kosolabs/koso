@@ -266,6 +266,7 @@
     isHovered ? "bg-accent" : "",
     isSelected ? "outline-primary" : "",
   )}
+  aria-label={`Task ${task.num}`}
   on:mouseout={handleUnhighlight}
   on:mouseover={handleHighlight}
   on:blur={handleUnhighlight}
@@ -279,9 +280,9 @@
       <div style="width: {(node.length - 1) * 20}px"></div>
       {#if task.children.length > 0}
         <button
-          class="w-4 transition-transform"
-          class:rotate-90={open}
+          class={cn("w-4 transition-transform", open ? "rotate-90" : "")}
           title={open ? "Collapse" : "Expand"}
+          aria-label={`Task ${task.num} Toggle Expand`}
           on:click={handleToggleOpen}
         >
           <ChevronRight class="w-4" />
@@ -292,6 +293,7 @@
       <button
         class="flex items-center gap-1 py-1"
         draggable={true}
+        aria-label={`Task ${task.num} Drag Handle`}
         on:dragstart={handleDragStart}
         on:dragend={handleDragEnd}
         on:drag={handleDrag}
@@ -330,6 +332,7 @@
       <Editable
         value={task.name}
         bind:this={taskNameEditable}
+        aria-label={`Task ${task.num} Edit Name`}
         on:save={(event) => koso.setTaskName(task.id, event.detail)}
       />
     </div>
@@ -360,32 +363,32 @@
   {@const peerOffset = node.length * 20}
   {@const childOffset = (node.length + 1) * 20}
 
-  {#if $dragged}
-    <div
-      class={cn(
-        "absolute z-50 -my-3 h-8",
-        $debug ? "bg-pink-400 bg-opacity-20" : "",
-      )}
-      style="width: {childOffset}px;"
-      role="table"
-      on:dragover={handleDragOverPeer}
-      on:dragenter={handleDragEnterPeer}
-      on:dragleave={handleDragLeavePeer}
-      on:drop={handleDropNodePeer}
-    ></div>
-    <div
-      class={cn(
-        "absolute z-50 -my-3 h-8",
-        $debug ? "bg-cyan-400 bg-opacity-20" : "",
-      )}
-      style="width: {cellWidth - childOffset}px; margin-left: {childOffset}px;"
-      role="table"
-      on:dragover={handleDragOverChild}
-      on:dragenter={handleDragEnterChild}
-      on:dragleave={handleDragLeaveChild}
-      on:drop={handleDropNodeChild}
-    ></div>
-  {/if}
+  <button
+    class={cn(
+      "absolute z-50 h-1 cursor-default transition-all",
+      $dragged ? "-my-3 h-8 " : "",
+      $debug ? "bg-pink-400 bg-opacity-20" : "",
+    )}
+    style="width: {childOffset}px;"
+    aria-label={`Task ${task.num} Peer Dropzone`}
+    on:dragover={handleDragOverPeer}
+    on:dragenter={handleDragEnterPeer}
+    on:dragleave={handleDragLeavePeer}
+    on:drop={handleDropNodePeer}
+  />
+  <button
+    class={cn(
+      "absolute z-50 h-1 cursor-default transition-all",
+      $dragged ? "-my-3 h-8" : "",
+      $debug ? "bg-cyan-400 bg-opacity-20" : "",
+    )}
+    style="width: {cellWidth - childOffset}px; margin-left: {childOffset}px;"
+    aria-label={`Task ${task.num} Child Dropzone`}
+    on:dragover={handleDragOverChild}
+    on:dragenter={handleDragEnterChild}
+    on:dragleave={handleDragLeaveChild}
+    on:drop={handleDropNodeChild}
+  />
 
   {#if dragOverPeer}
     <div
