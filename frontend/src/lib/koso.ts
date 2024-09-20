@@ -216,7 +216,7 @@ export class Koso {
     this.clientMessageHandler(encoding.toUint8Array(encoder));
   }
 
-  toJSON() {
+  toJSON(): Graph {
     return this.yGraph.toJSON();
   }
 
