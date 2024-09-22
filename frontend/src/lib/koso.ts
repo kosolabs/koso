@@ -492,7 +492,7 @@ export class Koso {
     return node.parent.name === parent || this.canLink(node, parent);
   }
 
-  moveNode(node: Node, parent: string, offset: number, removeDupes?: boolean) {
+  moveNode(node: Node, parent: string, offset: number) {
     if (!this.canMove(node, parent))
       throw new Error(`Cannot move ${node.name} to ${parent}`);
     const srcOffset = this.getOffset(node);
@@ -535,37 +535,30 @@ export class Koso {
     const adj = nodes.get(index - 1);
     if (!adj) throw new Error(`Adjacent node at ${index - 1} out of bounds`);
 
+    let newParent = null;
+    let newOffset = null;
     // The adjacent node is a child of the same parent as this node.
     // Swap this nodes positions with the adajecent node.
     if (adj.parent.equals(node.parent)) {
-      const newOffset = this.getOffset(adj);
-      console.log(
-        `Moving ${node.name} before ${adj.name} under ${node.parent.name} at ${newOffset}`,
-      );
-      this.moveNode(node, node.parent.name, newOffset);
-      this.selected.set(node);
+      newParent = node.parent;
+      newOffset = this.getOffset(adj);
     }
     // The adjacent node is the parent of this node.
     // Unindent this node and make it the prior peer of the adjancent node.
     else if (adj.equals(node.parent)) {
-      const newOffset = this.getOffset(node.parent);
-      console.log(
-        `Moving ${node.name} up as peer of parent ${node.parent.parent.name} at ${newOffset}`,
-      );
-      this.moveNode(node, node.parent.parent.name, newOffset);
-      this.selected.set(node.parent.parent.child(node.name));
+      newParent = node.parent.parent;
+      newOffset = this.getOffset(node.parent);
     }
     // The adjancent node is neither the parent or peer of this node,
     // so it must be a descendent of peer.
     // Indent the node and make it the next peer of the adjacent node.
     else {
-      const newOffset = this.getOffset(adj) + 1;
-      console.log(
-        `Moving ${node.name} after new peer ${adj.name} under ${adj.parent.name} at ${newOffset}`,
-      );
-      this.moveNode(node, adj.parent.name, newOffset);
-      this.selected.set(adj.parent.child(node.name));
+      newParent = adj.parent;
+      newOffset = this.getOffset(adj) + 1;
     }
+
+    this.moveNode(node, newParent.name, newOffset);
+    this.selected.set(newParent.child(node.name));
   }
 
   moveNodeRowDown(node: Node) {
@@ -591,6 +584,8 @@ export class Koso {
     }
     if (!adj) return;
 
+    let newParent = null;
+    let newOffset = null;
     // The adjacent node is a child of the same parent as this node.
     if (adj.parent.equals(node.parent)) {
       const adjAdj = nodes.get(adjIndex + 1);
@@ -598,19 +593,13 @@ export class Koso {
       // If the adjacent node has children, indent this node
       // and make it the first child of the adjacent node.
       if (adjHasChild) {
-        const newOffset = 0;
-        console.log(`Moving ${node.name} under ${adj.name} at ${newOffset}`);
-        this.moveNode(node, adj.name, newOffset);
-        this.selected.set(adj.child(node.name));
+        newParent = adj;
+        newOffset = 0;
       }
       // Otherwise, simply swap this nodes positions with the adajecent node.
       else {
-        const newOffset = this.getOffset(adj) + 1;
-        console.log(
-          `Moving ${node.name} after ${adj.name} under ${node.parent.name} at ${newOffset}`,
-        );
-        this.moveNode(node, node.parent.name, newOffset);
-        this.selected.set(node);
+        newParent = node.parent;
+        newOffset = this.getOffset(adj) + 1;
       }
     } else if (adj.equals(node.parent)) {
       throw new Error(
@@ -620,13 +609,12 @@ export class Koso {
     // The adjacent node is an "uncle," i.e. a peer of an ancestor of this node.
     // Unindent the node and make it the prior peer of the adjacent node.
     else {
-      const newOffset = this.getOffset(adj);
-      console.log(
-        `Moving ${node.name} before new peer ${adj.name} under ${adj.parent.name} at ${newOffset}`,
-      );
-      this.moveNode(node, adj.parent.name, newOffset);
-      this.selected.set(adj.parent.child(node.name));
+      newParent = adj.parent;
+      newOffset = this.getOffset(adj);
     }
+
+    this.moveNode(node, newParent.name, newOffset);
+    this.selected.set(newParent.child(node.name));
   }
 
   canIndentNode(node: Node) {
