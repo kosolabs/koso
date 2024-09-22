@@ -1,3 +1,1 @@
-import Editable from "./editable.svelte";
-
-export { Editable };
+export { default as Editable } from "./editable.svelte";
