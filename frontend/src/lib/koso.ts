@@ -529,12 +529,14 @@ export class Koso {
       throw new Error(
         `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
       );
-    if (index === 0) return;
+    // The node in the "zeroth" position is the root, don't move it.
+    if (index <= 1) return;
 
     const adj = nodes.get(index - 1);
     if (!adj) throw new Error(`Adjacent node at ${index - 1} out of bounds`);
 
-    // Move the node up above the adjacent node, keeping the same parent.
+    // The adjacent node is a child of the same parent as this node.
+    // Swap this nodes positions with the adajecent node.
     if (adj.parent.equals(node.parent)) {
       const newOffset = this.getOffset(adj);
       console.log(
@@ -543,7 +545,8 @@ export class Koso {
       this.moveNode(node, node.parent.name, newOffset);
       this.selected.set(node);
     }
-    // Unindent the node and make it the prior peer of the adjancent node, its current parent.
+    // The adjacent node is the parent of this node.
+    // Unindent this node and make it the prior peer of the adjancent node.
     else if (adj.equals(node.parent)) {
       const newOffset = this.getOffset(node.parent);
       console.log(
@@ -552,6 +555,8 @@ export class Koso {
       this.moveNode(node, node.parent.parent.name, newOffset);
       this.selected.set(node.parent.parent.child(node.name));
     }
+    // The adjancent node is neither the parent or peer of this node,
+    // so it must be a descendent of peer.
     // Indent the node and make it the next peer of the adjacent node.
     else {
       const newOffset = this.getOffset(adj) + 1;
@@ -572,7 +577,8 @@ export class Koso {
       );
     if (index >= nodes.size) return;
 
-    // Find the next node that `node` is not an ancestor of.
+    // Find the next node that this node is not an ancestor of,
+    // either a direct peer or a peer of an ancestor.
     let adj = null;
     let adjIndex = 0;
     for (adjIndex = index + 1; adjIndex < nodes.size; adjIndex++) {
@@ -585,16 +591,20 @@ export class Koso {
     }
     if (!adj) return;
 
-    // Move the node down below the adjacent node, keeping the same parent.
+    // The adjacent node is a child of the same parent as this node.
     if (adj.parent.equals(node.parent)) {
       const adjAdj = nodes.get(adjIndex + 1);
       const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
+      // If the adjacent node has children, indent this node
+      // and make it the first child of the adjacent node.
       if (adjHasChild) {
         const newOffset = 0;
         console.log(`Moving ${node.name} under ${adj.name} at ${newOffset}`);
         this.moveNode(node, adj.name, newOffset);
         this.selected.set(adj.child(node.name));
-      } else {
+      }
+      // Otherwise, simply swap this nodes positions with the adajecent node.
+      else {
         const newOffset = this.getOffset(adj) + 1;
         console.log(
           `Moving ${node.name} after ${adj.name} under ${node.parent.name} at ${newOffset}`,
@@ -607,7 +617,8 @@ export class Koso {
         `Next adjacent node ${adj.name} is somehow also the parent of ${node.name}`,
       );
     }
-    // Unindent the node and make it the next peer of the adjacent node.
+    // The adjacent node is an "uncle," i.e. a peer of an ancestor of this node.
+    // Unindent the node and make it the prior peer of the adjacent node.
     else {
       const newOffset = this.getOffset(adj);
       console.log(
