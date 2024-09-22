@@ -4,13 +4,12 @@
   import { baseClasses, sizeClasses, variantClasses } from ".";
 
   type $$Props = HTMLAnchorAttributes & {
-    href: string;
     variant?: keyof typeof variantClasses;
     size?: keyof typeof sizeClasses;
   };
 
   let classes: $$Props["class"] = undefined;
-  export let href: string;
+  export let href: $$Props["href"] = undefined;
   export let variant: keyof typeof variantClasses = "link";
   export let size: keyof typeof sizeClasses = "default";
   export { classes as class };
