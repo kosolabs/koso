@@ -102,7 +102,7 @@
     $dragged = node;
 
     dataTransfer.setData("text/plain", node.id);
-    dataTransfer.effectAllowed = "linkMove";
+    dataTransfer.effectAllowed = "copyMove";
 
     const rowRect = rowElement.getBoundingClientRect();
     const handleRect = handleElement.getBoundingClientRect();
@@ -132,7 +132,7 @@
     const dragDestParent = node.parent.name;
     const dragDestOffset = koso.getOffset(node) + 1;
 
-    if ($dropEffect === "link") {
+    if ($dropEffect === "copy") {
       koso.linkNode($dragged, dragDestParent, dragDestOffset);
     } else if ($dropEffect === "move") {
       koso.moveNode($dragged, dragDestParent, dragDestOffset);
@@ -153,7 +153,7 @@
     const dragDestParent = node.name;
     const dragDestOffset = 0;
 
-    if ($dropEffect === "link") {
+    if ($dropEffect === "copy") {
       koso.linkNode($dragged, dragDestParent, dragDestOffset);
     } else if ($dropEffect === "move") {
       koso.moveNode($dragged, dragDestParent, dragDestOffset);
@@ -173,7 +173,8 @@
     }
 
     if (koso.canLink($dragged, node.parent.name)) {
-      $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
+      $dropEffect = event.altKey ? "copy" : "move";
+      dataTransfer.dropEffect = $dropEffect;
       dragOverPeer = true;
     } else if (koso.canMove($dragged, node.parent.name)) {
       dataTransfer.dropEffect = "move";
@@ -193,7 +194,8 @@
     }
 
     if (koso.canLink($dragged, node.name)) {
-      $dropEffect = dataTransfer.effectAllowed === "link" ? "link" : "move";
+      $dropEffect = event.altKey ? "copy" : "move";
+      dataTransfer.dropEffect = $dropEffect;
       dragOverChild = true;
     } else if (koso.canMove($dragged, node.name)) {
       dataTransfer.dropEffect = "move";
@@ -391,15 +393,17 @@
   />
 
   {#if dragOverPeer}
-    <div
+    <button
       class="absolute -my-[0.125rem] h-1 bg-teal-500"
       style="width: {rowWidth - peerOffset}px; margin-left: {peerOffset}px;"
-    ></div>
+      aria-label={`Task ${task.num} Peer Drop Indicator`}
+    />
   {/if}
   {#if dragOverChild}
-    <div
+    <button
       class="absolute -my-[0.125rem] h-1 bg-teal-500"
       style="width: {rowWidth - childOffset}px; margin-left: {childOffset}px;"
-    ></div>
+      aria-label={`Task ${task.num} Child Drop Indicator`}
+    />
   {/if}
 {/if}

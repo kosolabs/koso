@@ -93,7 +93,7 @@ export class Koso {
   events: Readable<YEvent[]>;
   selected: Writable<Node | null>;
   highlighted: Writable<string | null>;
-  dropEffect: Writable<"link" | "move" | "none">;
+  dropEffect: Writable<"copy" | "move" | "none">;
   dragged: Writable<Node | null>;
   expanded: Writable<Set<Node>>;
   nodes: Readable<List<Node>>;
@@ -132,7 +132,7 @@ export class Koso {
 
     this.selected = writable<Node | null>(null);
     this.highlighted = writable<string | null>(null);
-    this.dropEffect = writable<"link" | "move" | "none">("none");
+    this.dropEffect = writable<"copy" | "move" | "none">("none");
     this.dragged = writable<Node | null>(null);
 
     const expandedLocalStorageKey = `expanded-nodes-${projectId}`;
@@ -190,7 +190,7 @@ export class Koso {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdateV2(this.yDoc, message);
         if (this.yGraph.size === 0) {
-          this.#upsertRoot([]);
+          this.upsertRoot();
         }
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
@@ -344,19 +344,19 @@ export class Koso {
     return `${max + 1}`;
   }
 
-  #upsertRoot(children: string[]) {
-    this.#upsert({
+  upsertRoot() {
+    this.upsert({
       id: "root",
       num: "0",
       name: "Root",
-      children: children,
+      children: [],
       reporter: null,
       assignee: null,
       status: null,
     });
   }
 
-  #upsert(task: Task) {
+  upsert(task: Task) {
     this.yGraph.set(
       task.id,
       new Y.Map<Y.Array<string> | string | null>([
@@ -557,7 +557,7 @@ export class Koso {
   ): Node {
     const taskId = this.newId();
     this.yDoc.transact(() => {
-      this.#upsert({
+      this.upsert({
         id: taskId,
         num: this.newNum(),
         name: name,
