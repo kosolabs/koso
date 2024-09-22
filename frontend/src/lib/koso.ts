@@ -529,36 +529,49 @@ export class Koso {
       throw new Error(
         `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
       );
-    // The node in the "zeroth" position is the root, don't move it.
-    if (index <= 1) return;
+    let adjIndex = index - 1;
 
-    const adj = nodes.get(index - 1);
-    if (!adj) throw new Error(`Adjacent node at ${index - 1} out of bounds`);
+    let targetParent = node.parent;
+    while (true) {
+      // The node in the "zeroth" position is the root, don't move it.
+      if (adjIndex <= 0) return;
 
-    let newParent = null;
-    let newOffset = null;
-    // The adjacent node is a child of the same parent as this node.
-    // Swap this nodes positions with the adajecent node.
-    if (adj.parent.equals(node.parent)) {
-      newParent = node.parent;
-      newOffset = this.getOffset(adj);
-    }
-    // The adjacent node is the parent of this node.
-    // Unindent this node and make it the prior peer of the adjancent node.
-    else if (adj.equals(node.parent)) {
-      newParent = node.parent.parent;
-      newOffset = this.getOffset(node.parent);
-    }
-    // The adjancent node is neither the parent or peer of this node,
-    // so it must be a descendent of peer.
-    // Indent the node and make it the next peer of the adjacent node.
-    else {
-      newParent = adj.parent;
-      newOffset = this.getOffset(adj) + 1;
-    }
+      const adj = nodes.get(adjIndex);
+      if (!adj) throw new Error(`Adjacent node at ${adjIndex} out of bounds`);
 
-    this.moveNode(node, newParent.name, newOffset);
-    this.selected.set(newParent.child(node.name));
+      let newParent = null;
+      let newOffset = null;
+      // The adjacent node is a child of the same parent as this node.
+      // Swap this nodes positions with the adajecent node.
+      if (adj.parent.equals(targetParent)) {
+        newParent = adj.parent;
+        newOffset = this.getOffset(adj);
+      }
+      // The adjacent node is the parent of this node.
+      // Unindent this node and make it the prior peer of the adjancent node.
+      else if (adj.equals(targetParent)) {
+        newParent = adj.parent;
+        newOffset = this.getOffset(adj);
+      }
+      // The adjancent node is neither the parent or peer of this node,
+      // so it must be a descendent of peer.
+      // Indent the node and make it the next peer of the adjacent node.
+      else {
+        newParent = adj.parent;
+        newOffset = this.getOffset(adj) + 1;
+      }
+
+      if (this.canMove(node, newParent.name)) {
+        this.moveNode(node, newParent.name, newOffset);
+        this.selected.set(newParent.child(node.name));
+        break;
+      }
+      console.log(`Can't move to parent ${newParent.name} at ${adjIndex}`);
+
+      // Try to move past the current, adjacent node.
+      adjIndex--;
+      targetParent = adj.parent;
+    }
   }
 
   moveNodeRowDown(node: Node) {
@@ -568,53 +581,65 @@ export class Koso {
       throw new Error(
         `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
       );
-    if (index >= nodes.size) return;
+    let adjIndex = index + 1;
 
-    // Find the next node that this node is not an ancestor of,
-    // either a direct peer or a peer of an ancestor.
-    let adj = null;
-    let adjIndex = 0;
-    for (adjIndex = index + 1; adjIndex < nodes.size; adjIndex++) {
-      const n = nodes.get(adjIndex);
-      if (!n) throw new Error(`Node at ${adjIndex} does not exist`);
-      if (n && !n.id.startsWith(node.id)) {
-        adj = n;
+    let targetParent = node.parent;
+    while (true) {
+      if (adjIndex >= nodes.size) return;
+
+      // Find the next node that this node is not an ancestor of,
+      // either a direct peer or a peer of an ancestor.
+      let adj = null;
+      for (; adjIndex < nodes.size; adjIndex++) {
+        const n = nodes.get(adjIndex);
+        if (!n) throw new Error(`Node at ${adjIndex} does not exist`);
+        if (n && !n.id.startsWith(node.id)) {
+          adj = n;
+          break;
+        }
+      }
+      if (!adj) return;
+
+      let newParent = null;
+      let newOffset = null;
+      // The adjacent node is a child of the same parent as this node.
+      if (adj.parent.equals(targetParent)) {
+        const adjAdj = nodes.get(adjIndex + 1);
+        const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
+        // If the adjacent node has children, indent this node
+        // and make it the first child of the adjacent node.
+        if (adjHasChild) {
+          newParent = adj;
+          newOffset = 0;
+        }
+        // Otherwise, simply swap this nodes positions with the adjacent node.
+        else {
+          newParent = adj.parent;
+          newOffset = this.getOffset(adj) + 1;
+        }
+      } else if (adj.equals(targetParent)) {
+        throw new Error(
+          `Next adjacent node ${adj.name} is somehow also the parent of ${node.name}`,
+        );
+      }
+      // The adjacent node is an "uncle," i.e. a peer of an ancestor of this node.
+      // Unindent the node and make it the prior peer of the adjacent node.
+      else {
+        newParent = adj.parent;
+        newOffset = this.getOffset(adj);
+      }
+
+      if (this.canMove(node, newParent.name)) {
+        this.moveNode(node, newParent.name, newOffset);
+        this.selected.set(newParent.child(node.name));
         break;
       }
-    }
-    if (!adj) return;
+      console.log(`Can't move to parent ${newParent.name} at ${adjIndex}`);
 
-    let newParent = null;
-    let newOffset = null;
-    // The adjacent node is a child of the same parent as this node.
-    if (adj.parent.equals(node.parent)) {
-      const adjAdj = nodes.get(adjIndex + 1);
-      const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
-      // If the adjacent node has children, indent this node
-      // and make it the first child of the adjacent node.
-      if (adjHasChild) {
-        newParent = adj;
-        newOffset = 0;
-      }
-      // Otherwise, simply swap this nodes positions with the adajecent node.
-      else {
-        newParent = node.parent;
-        newOffset = this.getOffset(adj) + 1;
-      }
-    } else if (adj.equals(node.parent)) {
-      throw new Error(
-        `Next adjacent node ${adj.name} is somehow also the parent of ${node.name}`,
-      );
+      // Try to move past the current, adjacent node.
+      adjIndex++;
+      targetParent = adj.parent;
     }
-    // The adjacent node is an "uncle," i.e. a peer of an ancestor of this node.
-    // Unindent the node and make it the prior peer of the adjacent node.
-    else {
-      newParent = adj.parent;
-      newOffset = this.getOffset(adj);
-    }
-
-    this.moveNode(node, newParent.name, newOffset);
-    this.selected.set(newParent.child(node.name));
   }
 
   canIndentNode(node: Node) {
