@@ -492,7 +492,7 @@ export class Koso {
     return node.parent.name === parent || this.canLink(node, parent);
   }
 
-  moveNode(node: Node, parent: string, offset: number) {
+  moveNode(node: Node, parent: string, offset: number, removeDupes?: boolean) {
     if (!this.canMove(node, parent))
       throw new Error(`Cannot move ${node.name} to ${parent}`);
     const srcOffset = this.getOffset(node);
@@ -561,26 +561,6 @@ export class Koso {
       this.moveNode(node, adj.parent.name, newOffset);
       this.selected.set(adj.parent.child(node.name));
     }
-
-    // const parent = adj.parent;
-    // const offset = this.getOffset(adj);
-    // console.log(`Moving ${node.name} up under ${parent.name} at ${offset}`);
-    // this.moveNode(node, parent.name, offset);
-    // this.selected.set(parent.child(node.name));
-
-    // const newAdj = nodes.get(index - 2);
-    // if (!newAdj) {
-    //   throw new Error(`New adjacent node at ${index - 2} out of bounds`);
-    // }
-
-    // if (node.length === newAdj.length) {
-    //   const parent = newAdj.parent;
-    //   this.moveNode(node, parent.name, this.getOffset(newAdj) + 1);
-    // } else if (node.length > newAdj.length) {
-    //   this.moveNode(node, newAdj.name, this.getChildCount(newAdj.name));
-    // } else {
-
-    // }
   }
 
   moveNodeRowDown(node: Node) {
@@ -608,7 +588,8 @@ export class Koso {
     // Move the node down below the adjacent node, keeping the same parent.
     if (adj.parent.equals(node.parent)) {
       const adjAdj = nodes.get(adjIndex + 1);
-      if (adjAdj && adjAdj.parent.equals(adj)) {
+      const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
+      if (adjHasChild) {
         const newOffset = 0;
         console.log(`Moving ${node.name} under ${adj.name} at ${newOffset}`);
         this.moveNode(node, adj.name, newOffset);
@@ -635,23 +616,6 @@ export class Koso {
       this.moveNode(node, adj.parent.name, newOffset);
       this.selected.set(adj.parent.child(node.name));
     }
-
-    // const nodes = get(this.nodes);
-    // const index = nodes.findIndex((n) => n.equals(node));
-    // if (index === -1)
-    //   throw new Error(
-    //     `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
-    //   );
-    // if (index >= nodes.size) return;
-
-    // const adj = nodes.get(index + 1);
-    // if (!adj) throw new Error(`Adjacent node at ${index + 1} out of bounds`);
-
-    // const parent = adj.parent;
-    // const offset = this.getOffset(adj) + 1;
-    // console.log(`Moving ${node.name} down under ${parent.name} at ${offset}`);
-    // this.moveNode(node, parent.name, offset);
-    // this.selected.set(parent.child(node.name));
   }
 
   canIndentNode(node: Node) {
