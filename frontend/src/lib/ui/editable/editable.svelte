@@ -69,7 +69,7 @@
     variant="link"
     class={cn("h-auto text-wrap p-0 text-left hover:no-underline", classes)}
     aria-label={ariaLabel}
-    on:click={handleButtonClick}
+    onclick={handleButtonClick}
   >
     {value || placeholder}
   </Button>

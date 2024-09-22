@@ -57,14 +57,14 @@
       <div><Layers /></div>
       <div class="text-xl">Create your first Koso project!</div>
       <div>
-        <Button on:click={() => createProject()}>New project</Button>
+        <Button onclick={() => createProject()}>New project</Button>
       </div>
     </div>
   {:else}
     <div class="m-4 flex flex-col rounded border">
       <div class="flex flex-col items-end p-2">
         <div>
-          <Button on:click={() => createProject()}>New project</Button>
+          <Button onclick={() => createProject()}>New project</Button>
         </div>
       </div>
       <div

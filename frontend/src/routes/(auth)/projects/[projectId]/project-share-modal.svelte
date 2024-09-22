@@ -154,7 +154,7 @@
               class="ml-auto"
               variant="link"
               title="Remove {projectUser.email}"
-              on:click={async () => {
+              onclick={async () => {
                 await removeUser(projectUser, false);
               }}
             >

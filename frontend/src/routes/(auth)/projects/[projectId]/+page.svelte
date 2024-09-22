@@ -115,7 +115,7 @@
   <svelte:fragment slot="right-items">
     <Button
       title="Share Project"
-      on:click={() => {
+      onclick={() => {
         openShareModal = true;
       }}
     >
@@ -140,7 +140,7 @@
     </Dialog.Header>
     <Dialog.Footer>
       <Button
-        on:click={async () => {
+        onclick={async () => {
           // Don't redirect the user back to a project they don't have access too.
           $lastVisitedProjectId = null;
           await goto("/projects");
