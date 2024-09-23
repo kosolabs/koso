@@ -14,6 +14,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
 import { storable } from "./stores";
+import { toast } from "svelte-sonner";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -530,11 +531,16 @@ export class Koso {
         `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
       );
     let adjIndex = index - 1;
+    // The node in the "zeroth" position is the root, don't move it.
+    if (adjIndex <= 0) return;
 
+    let attempt = 0;
     let targetParent = node.parent;
     while (true) {
-      // The node in the "zeroth" position is the root, don't move it.
-      if (adjIndex <= 0) return;
+      if (adjIndex <= 0) {
+        toast.info("Cannot move up without conflict.");
+        return;
+      }
 
       const adj = nodes.get(adjIndex);
       if (!adj) throw new Error(`Adjacent node at ${adjIndex} out of bounds`);
@@ -564,12 +570,18 @@ export class Koso {
       if (this.canMove(node, newParent.name)) {
         this.moveNode(node, newParent.name, newOffset);
         this.selected.set(newParent.child(node.name));
+        if (attempt > 0) {
+          toast.info(
+            `Skipped over a ${attempt} row${attempt > 1 ? "s" : ""} to avoid collision with existing task`,
+          );
+        }
         break;
       }
       console.log(`Can't move to parent ${newParent.name} at ${adjIndex}`);
 
       // Try to move past the current, adjacent node.
       adjIndex--;
+      attempt++;
       targetParent = adj.parent;
     }
   }
@@ -582,10 +594,15 @@ export class Koso {
         `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
       );
     let adjIndex = index + 1;
+    if (adjIndex >= nodes.size) return;
 
+    let attempt = 0;
     let targetParent = node.parent;
     while (true) {
-      if (adjIndex >= nodes.size) return;
+      if (adjIndex >= nodes.size) {
+        toast.info("Cannot move down without conflict.");
+        return;
+      }
 
       // Find the next node that this node is not an ancestor of,
       // either a direct peer or a peer of an ancestor.
@@ -632,12 +649,18 @@ export class Koso {
       if (this.canMove(node, newParent.name)) {
         this.moveNode(node, newParent.name, newOffset);
         this.selected.set(newParent.child(node.name));
+        if (attempt > 0) {
+          toast.info(
+            `Skipped over a ${attempt} row${attempt > 1 ? "s" : ""} to avoid collision with existing task`,
+          );
+        }
         break;
       }
       console.log(`Can't move to parent ${newParent.name} at ${adjIndex}`);
 
       // Try to move past the current, adjacent node.
       adjIndex++;
+      attempt++;
       targetParent = adj.parent;
     }
   }
