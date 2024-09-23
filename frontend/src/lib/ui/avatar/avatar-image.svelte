@@ -2,17 +2,9 @@
   import { cn } from "$lib/utils";
   import type { HTMLImgAttributes } from "svelte/elements";
 
-  type $$Props = HTMLImgAttributes;
+  type Props = HTMLImgAttributes;
 
-  let classes: $$Props["class"] = undefined;
-  export let src: $$Props["src"] = undefined;
-  export let alt: $$Props["alt"] = undefined;
-  export { classes as class };
+  let { class: classes, ...props }: Props = $props();
 </script>
 
-<img
-  {src}
-  {alt}
-  class={cn("aspect-square h-full w-full", classes)}
-  {...$$restProps}
-/>
+<img class={cn("aspect-square h-full w-full", classes)} {...props} />
