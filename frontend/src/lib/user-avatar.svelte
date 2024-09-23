@@ -9,7 +9,7 @@
 <div class="flex items-center gap-2 text-left">
   <Avatar>
     {#if user.picture}
-      <AvatarImage src={user.picture} alt={user.email} />
+      <AvatarImage class="rounded" src={user.picture} alt={user.email} />
     {:else}
       <AvatarFallback class="rounded">
         <UserRound />
