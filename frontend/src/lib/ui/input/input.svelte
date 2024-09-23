@@ -2,11 +2,19 @@
   import { cn } from "$lib/utils";
   import type { HTMLInputAttributes } from "svelte/elements";
 
-  type $$Props = HTMLInputAttributes;
+  type Props = HTMLInputAttributes;
 
-  let classes: $$Props["class"] = undefined;
-  export let value: $$Props["value"] = undefined;
-  export { classes as class };
+  let {
+    class: classes,
+    value = $bindable(),
+    autofocus,
+    ...props
+  }: Props = $props();
+
+  let el: HTMLInputElement;
+  $effect(() => {
+    if (autofocus) el.focus();
+  });
 </script>
 
 <input
@@ -15,21 +23,6 @@
     classes,
   )}
   bind:value
-  on:blur
-  on:change
-  on:click
-  on:focus
-  on:focusin
-  on:focusout
-  on:keydown
-  on:keypress
-  on:keyup
-  on:mouseover
-  on:mouseenter
-  on:mouseleave
-  on:mousemove
-  on:paste
-  on:input
-  on:wheel|passive
-  {...$$restProps}
+  bind:this={el}
+  {...props}
 />

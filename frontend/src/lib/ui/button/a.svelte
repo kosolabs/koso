@@ -3,22 +3,25 @@
   import type { HTMLAnchorAttributes } from "svelte/elements";
   import { baseClasses, sizeClasses, variantClasses } from ".";
 
-  type $$Props = HTMLAnchorAttributes & {
+  type Props = HTMLAnchorAttributes & {
     variant?: keyof typeof variantClasses;
     size?: keyof typeof sizeClasses;
   };
 
-  let classes: $$Props["class"] = undefined;
-  export let href: $$Props["href"] = undefined;
-  export let variant: keyof typeof variantClasses = "link";
-  export let size: keyof typeof sizeClasses = "default";
-  export { classes as class };
+  let {
+    children,
+    variant = "link",
+    size = "default",
+    class: classes,
+    ...props
+  }: Props = $props();
 </script>
 
 <a
   class={cn(baseClasses, variantClasses[variant], sizeClasses[size], classes)}
-  {href}
-  {...$$restProps}
+  {...props}
 >
-  <slot />
+  {#if children}
+    {@render children()}
+  {/if}
 </a>

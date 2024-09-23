@@ -1,6 +1,7 @@
 <script lang="ts">
-  export let title: string;
-  export let description: string = "";
+  import type { ChipProps } from ".";
+
+  let { title, description = "" }: ChipProps = $props();
 </script>
 
 <div

@@ -4,8 +4,6 @@
   import type { User } from "./auth";
 
   export let user: User;
-
-  console.log(user.picture);
 </script>
 
 <div class="flex items-center gap-2 text-left">

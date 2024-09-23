@@ -2,15 +2,16 @@
   import { cn } from "$lib/utils";
   import type { HTMLAttributes } from "svelte/elements";
 
-  type $$Props = HTMLAttributes<HTMLSpanElement>;
+  type Props = HTMLAttributes<HTMLSpanElement>;
 
-  let classes: $$Props["class"] = undefined;
-  export { classes as class };
+  let { children, class: classes, ...props }: Props = $props();
 </script>
 
 <span
   class={cn("flex h-full w-full items-center justify-center bg-muted", classes)}
-  {...$$restProps}
+  {...props}
 >
-  <slot />
+  {#if children}
+    {@render children()}
+  {/if}
 </span>

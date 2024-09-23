@@ -58,18 +58,18 @@
   <Input
     class={cn("h-auto bg-background p-1", classes)}
     aria-label={ariaLabel}
-    on:click={(event) => event.stopPropagation()}
-    on:blur={save}
-    on:keydown={handleInputKeydown}
-    bind:value={edited}
+    onclick={(event) => event.stopPropagation()}
+    onblur={save}
+    onkeydown={handleInputKeydown}
     autofocus
+    bind:value={edited}
   />
 {:else}
   <Button
     variant="link"
     class={cn("h-auto text-wrap p-0 text-left hover:no-underline", classes)}
     aria-label={ariaLabel}
-    on:click={handleButtonClick}
+    onclick={handleButtonClick}
   >
     {value || placeholder}
   </Button>

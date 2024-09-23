@@ -377,7 +377,7 @@
     on:dragenter={handleDragEnterPeer}
     on:dragleave={handleDragLeavePeer}
     on:drop={handleDropNodePeer}
-  />
+  ></button>
   <button
     class={cn(
       "absolute z-50 h-1 cursor-default transition-all",
@@ -390,20 +390,20 @@
     on:dragenter={handleDragEnterChild}
     on:dragleave={handleDragLeaveChild}
     on:drop={handleDropNodeChild}
-  />
+  ></button>
 
   {#if dragOverPeer}
     <button
       class="absolute -my-[0.125rem] h-1 bg-teal-500"
       style="width: {rowWidth - peerOffset}px; margin-left: {peerOffset}px;"
       aria-label={`Task ${task.num} Peer Drop Indicator`}
-    />
+    ></button>
   {/if}
   {#if dragOverChild}
     <button
       class="absolute -my-[0.125rem] h-1 bg-teal-500"
       style="width: {rowWidth - childOffset}px; margin-left: {childOffset}px;"
       aria-label={`Task ${task.num} Child Drop Indicator`}
-    />
+    ></button>
   {/if}
 {/if}

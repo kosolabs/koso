@@ -3,22 +3,25 @@
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { baseClasses, sizeClasses, variantClasses } from ".";
 
-  type $$Props = HTMLButtonAttributes & {
+  type Props = HTMLButtonAttributes & {
     variant?: keyof typeof variantClasses;
     size?: keyof typeof sizeClasses;
   };
 
-  let classes: $$Props["class"] = undefined;
-  export let variant: keyof typeof variantClasses = "default";
-  export let size: keyof typeof sizeClasses = "default";
-  export { classes as class };
+  let {
+    children,
+    variant = "default",
+    size = "default",
+    class: classes,
+    ...props
+  }: Props = $props();
 </script>
 
 <button
   class={cn(baseClasses, variantClasses[variant], sizeClasses[size], classes)}
-  {...$$restProps}
-  on:click
-  on:keydown
+  {...props}
 >
-  <slot />
+  {#if children}
+    {@render children()}
+  {/if}
 </button>
