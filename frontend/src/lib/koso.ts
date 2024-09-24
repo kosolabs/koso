@@ -585,13 +585,11 @@ export class Koso {
         console.log(
           `Trying to insert as prior peer of adjacent adjacent ${adj.id}`,
         );
-        const newParent = adj.parent;
-        const newOffset = this.getOffset(adj);
-        if (maybeMove(newParent, newOffset)) {
+        if (maybeMove(adj.parent, this.getOffset(adj))) {
           break;
         }
-        adjIndex--;
 
+        adjIndex--;
         const adjAdj = adjIndex == 0 ? null : nodes.get(adjIndex);
         if (
           adjAdj &&
@@ -604,9 +602,9 @@ export class Koso {
         console.log(
           `Trying insert after insertion target ${insertionTarget.id}, adjacent ${adj.id}`,
         );
-        const newParent = insertionTarget.parent;
-        const newOffset = this.getOffset(insertionTarget) + 1;
-        if (maybeMove(newParent, newOffset)) {
+        if (
+          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
+        ) {
           break;
         }
 
@@ -689,9 +687,9 @@ export class Koso {
           return;
         }
 
-        const newParent = insertionTarget.parent;
-        const newOffset = this.getOffset(insertionTarget) + 1;
-        if (maybeMove(newParent, newOffset)) {
+        if (
+          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
+        ) {
           return;
         }
 
@@ -703,18 +701,14 @@ export class Koso {
           const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
           if (adjHasChild) {
             console.log(`Trying to insert as first child of ${adj.id}`);
-            const newParent = adj;
-            const newOffset = 0;
-            if (maybeMove(newParent, newOffset)) {
+            if (maybeMove(adj, 0)) {
               return;
             }
             adjIndex++;
             continue;
           } else {
             console.log(`Trying to insert as next peer of ${adj.id}`);
-            const newParent = adj.parent;
-            const newOffset = this.getOffset(adj) + 1;
-            if (maybeMove(newParent, newOffset)) {
+            if (maybeMove(adj.parent, this.getOffset(adj) + 1)) {
               return;
             }
 
@@ -737,9 +731,12 @@ export class Koso {
             `Trying to insert as peer of insertion target before going back to adjacent ${insertionTarget.id}`,
           );
 
-          const newParent = insertionTarget.parent;
-          const newOffset = this.getOffset(insertionTarget) + 1;
-          if (maybeMove(newParent, newOffset)) {
+          if (
+            maybeMove(
+              insertionTarget.parent,
+              this.getOffset(insertionTarget) + 1,
+            )
+          ) {
             return;
           }
 
