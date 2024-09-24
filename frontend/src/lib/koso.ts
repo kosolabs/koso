@@ -552,37 +552,111 @@ export class Koso {
       if (adj.parent.equals(targetParent)) {
         newParent = adj.parent;
         newOffset = this.getOffset(adj);
+        console.log(
+          `Trying to move node backwards, child of ${newParent.name} at ${newOffset} and adj ${adj.name}`,
+        );
+        if (this.canMove(node, newParent.name)) {
+          this.moveNode(node, newParent.name, newOffset);
+          this.selected.set(newParent.child(node.name));
+          if (attempt > 0) {
+            toast.info(
+              `Skipped over ${attempt} position${attempt > 1 ? "s" : ""} to avoid collision with existing task`,
+            );
+          }
+          break;
+        }
+        console.log(`Can't move to parent ${newParent.name} at ${adjIndex}`);
+
+        // Try to move past the current, adjacent node.
+        adjIndex--;
+        attempt++;
+        console.log(
+          `Trying again with parent ${targetParent.name} and new adjIndex (${adjIndex})`,
+        );
       }
       // The adjacent node is the parent of this node.
       // Unindent this node and make it the prior peer of the adjancent node.
       else if (adj.equals(targetParent)) {
         newParent = adj.parent;
         newOffset = this.getOffset(adj);
+        console.log(
+          `Trying to move node up, child of ${newParent.name} at ${newOffset}`,
+        );
+        if (this.canMove(node, newParent.name)) {
+          this.moveNode(node, newParent.name, newOffset);
+          this.selected.set(newParent.child(node.name));
+          if (attempt > 0) {
+            toast.info(
+              `Skipped over ${attempt} position${attempt > 1 ? "s" : ""} to avoid collision with existing task`,
+            );
+          }
+          break;
+        }
+        console.log(`Can't move to parent ${newParent.name} at ${adjIndex}`);
+
+        // Try to move past the current, adjacent node.
+        adjIndex--;
+        attempt++;
+        console.log(
+          `Trying again with parent ${targetParent.name} and new adjIndex (${adjIndex})`,
+        );
       }
       // The adjancent node is neither the parent or peer of this node,
       // so it must be a descendent of peer.
       // Indent the node and make it the next peer of the adjacent node.
       else {
-        newParent = adj.parent;
-        newOffset = this.getOffset(adj) + 1;
-      }
+        if (adj.id.startsWith(targetParent.id)) {
+          let n = adj;
+          while (!n.parent.parent.equals(targetParent)) {
+            n = n.parent;
+          }
 
-      if (this.canMove(node, newParent.name)) {
-        this.moveNode(node, newParent.name, newOffset);
-        this.selected.set(newParent.child(node.name));
-        if (attempt > 0) {
-          toast.info(
-            `Skipped over a ${attempt} row${attempt > 1 ? "s" : ""} to avoid collision with existing task`,
+          newParent = n.parent;
+          newOffset = this.getOffset(n) + 1;
+          console.log(
+            `Trying to indent node, child of ${newParent.name} at ${newOffset}, starting from adj ${adj.name} and targetParent ${targetParent.name}`,
           );
-        }
-        break;
-      }
-      console.log(`Can't move to parent ${newParent.name} at ${adjIndex}`);
+          if (this.canMove(node, newParent.name)) {
+            this.moveNode(node, newParent.name, newOffset);
+            this.selected.set(newParent.child(node.name));
+            if (attempt > 0) {
+              toast.info(
+                `Skipped over ${attempt} position${attempt > 1 ? "s" : ""} to avoid collision with existing task`,
+              );
+            }
+            break;
+          }
+          targetParent = newParent;
+          console.log(
+            `Trying again with new parent ${targetParent.name} and adjIndex (${adjIndex})`,
+          );
+        } else {
+          let n = adj;
+          while (!n.parent.parent.equals(nodes.get(0))) {
+            n = n.parent;
+          }
+          targetParent = n;
+          console.log(
+            `Trying with new targetParent ${targetParent.name} and adjIndex (${adjIndex}) and adj ${adj.name}`,
+          );
 
-      // Try to move past the current, adjacent node.
-      adjIndex--;
-      attempt++;
-      targetParent = adj.parent;
+          newParent = targetParent.parent;
+          newOffset = this.getOffset(targetParent) + 1;
+          console.log(
+            `Trying to indent node in new tree, child of ${newParent.name} at ${newOffset}, starting from adj ${adj.name} and targetParent ${targetParent.name}`,
+          );
+          if (this.canMove(node, newParent.name)) {
+            this.moveNode(node, newParent.name, newOffset);
+            this.selected.set(newParent.child(node.name));
+            if (attempt > 0) {
+              toast.info(
+                `Skipped over ${attempt} position${attempt > 1 ? "s" : ""} to avoid collision with existing task`,
+              );
+            }
+            break;
+          }
+        }
+      }
     }
   }
 
@@ -594,15 +668,14 @@ export class Koso {
         `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
       );
     let adjIndex = index + 1;
-    if (adjIndex >= nodes.size) return;
-
-    let attempt = 0;
     let targetParent = node.parent;
+
+    let attempts = 0;
     while (true) {
-      if (adjIndex >= nodes.size) {
-        toast.info("Cannot move down without conflict.");
-        return;
-      }
+      // if (adjIndex >= nodes.size) {
+      //   toast.info("Cannot move down without conflict.");
+      //   return;
+      // }
 
       // Find the next node that this node is not an ancestor of,
       // either a direct peer or a peer of an ancestor.
@@ -615,53 +688,111 @@ export class Koso {
           break;
         }
       }
-      if (!adj) return;
 
-      let newParent = null;
-      let newOffset = null;
-      // The adjacent node is a child of the same parent as this node.
-      if (adj.parent.equals(targetParent)) {
-        const adjAdj = nodes.get(adjIndex + 1);
-        const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
-        // If the adjacent node has children, indent this node
-        // and make it the first child of the adjacent node.
-        if (adjHasChild) {
-          newParent = adj;
-          newOffset = 0;
-        }
-        // Otherwise, simply swap this nodes positions with the adjacent node.
-        else {
-          newParent = adj.parent;
-          newOffset = this.getOffset(adj) + 1;
-        }
-      } else if (adj.equals(targetParent)) {
-        throw new Error(
-          `Next adjacent node ${adj.name} is somehow also the parent of ${node.name}`,
-        );
-      }
-      // The adjacent node is an "uncle," i.e. a peer of an ancestor of this node.
-      // Unindent the node and make it the prior peer of the adjacent node.
-      else {
-        newParent = adj.parent;
-        newOffset = this.getOffset(adj);
-      }
+      if (adj) {
+        let newParent = null;
+        let newOffset = null;
+        // The adjacent node is a child of the same parent as this node.
+        if (adj.parent.equals(targetParent)) {
+          const adjAdj = nodes.get(adjIndex + 1);
+          const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
+          // If the adjacent node has children, indent this node
+          // and make it the first child of the adjacent node.
+          if (adjHasChild) {
+            newParent = adj;
+            newOffset = 0;
+            console.log(
+              `Trying to make node first child of ${newParent.name} at ${newOffset}`,
+            );
+          }
+          // Otherwise, simply swap this nodes positions with the adjacent node.
+          else {
+            newParent = adj.parent;
+            newOffset = this.getOffset(adj) + 1;
+            console.log(
+              `Trying to moved node forward, child of ${newParent.name} at ${newOffset}`,
+            );
+          }
+          if (this.canMove(node, newParent.name)) {
+            this.moveNode(node, newParent.name, newOffset);
+            this.selected.set(newParent.child(node.name));
+            if (attempts > 0) {
+              toast.info(
+                `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
+              );
+            }
+            break;
+          }
 
-      if (this.canMove(node, newParent.name)) {
-        this.moveNode(node, newParent.name, newOffset);
-        this.selected.set(newParent.child(node.name));
-        if (attempt > 0) {
-          toast.info(
-            `Skipped over a ${attempt} row${attempt > 1 ? "s" : ""} to avoid collision with existing task`,
+          adjIndex++;
+          attempts++;
+          console.log(
+            `Trying again with new adjacent node (${adjIndex}), parent ${targetParent}`,
           );
         }
-        break;
-      }
-      console.log(`Can't move to parent ${newParent.name} at ${adjIndex}`);
+        // The adjacent node is an "uncle," i.e. a peer of an ancestor of this node.
+        // Unindent the node and make it the prior peer of the adjacent node.
+        else {
+          if (targetParent.equals(nodes.get(0))) {
+            targetParent = adj.parent;
+            console.log(
+              `Trying again with new parent node parent ${targetParent} and adjIndex (${adjIndex})`,
+            );
+            continue;
+          }
 
-      // Try to move past the current, adjacent node.
-      adjIndex++;
-      attempt++;
-      targetParent = adj.parent;
+          const newParent = targetParent.parent;
+          const newOffset = this.getOffset(targetParent) + 1;
+          console.log(
+            `Trying to unindent node, child of ${newParent.name} at ${newOffset}`,
+          );
+          if (this.canMove(node, newParent.name)) {
+            this.moveNode(node, newParent.name, newOffset);
+            this.selected.set(newParent.child(node.name));
+            if (attempts > 0) {
+              toast.info(
+                `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
+              );
+            }
+            break;
+          }
+
+          targetParent = targetParent.parent;
+          attempts++;
+          console.log(
+            `Trying again with new target parent ${targetParent} and adjIndex ${adjIndex}`,
+          );
+          continue;
+        }
+      } else {
+        if (targetParent.equals(nodes.get(0))) {
+          console.log("No valid destination");
+          break;
+        }
+
+        const newParent = targetParent.parent;
+        const newOffset = this.getOffset(targetParent) + 1;
+        console.log(
+          `Trying to unindent trailing node, child of ${newParent.name} at ${newOffset}`,
+        );
+        if (this.canMove(node, newParent.name)) {
+          this.moveNode(node, newParent.name, newOffset);
+          this.selected.set(newParent.child(node.name));
+          if (attempts > 0) {
+            toast.info(
+              `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
+            );
+          }
+          break;
+        }
+
+        targetParent = targetParent.parent;
+        attempts++;
+        console.log(
+          `Trying again with new target parent ${targetParent} and no adjacent node`,
+        );
+        continue;
+      }
     }
   }
 
