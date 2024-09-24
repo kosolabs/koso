@@ -538,17 +538,17 @@ export class Koso {
     let targetParent = node.parent;
 
     const maybeMove = (newParent: Node, newOffset: number) => {
-      if (this.canMove(node, newParent.name)) {
-        this.moveNode(node, newParent.name, newOffset);
-        this.selected.set(newParent.child(node.name));
-        if (attempts > 1) {
-          toast.info(
-            `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
-          );
-        }
-        return true;
+      if (!this.canMove(node, newParent.name)) {
+        return false;
       }
-      return false;
+      this.moveNode(node, newParent.name, newOffset);
+      this.selected.set(newParent.child(node.name));
+      if (attempts > 1) {
+        toast.info(
+          `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
+        );
+      }
+      return true;
     };
 
     while (true) {
@@ -621,24 +621,25 @@ export class Koso {
       );
     let adjIndex = index + 1;
     let targetParent = node.parent;
-
+    // There's no where to move to if this node
+    // is the last node and an immediate child of the root,
     if (adjIndex >= nodes.size && targetParent.equals(nodes.get(0))) {
       return;
     }
 
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      if (this.canMove(node, newParent.name)) {
-        this.moveNode(node, newParent.name, newOffset);
-        this.selected.set(newParent.child(node.name));
-        if (attempts > 1) {
-          toast.info(
-            `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
-          );
-        }
-        return true;
+      if (!this.canMove(node, newParent.name)) {
+        return false;
       }
-      return false;
+      this.moveNode(node, newParent.name, newOffset);
+      this.selected.set(newParent.child(node.name));
+      if (attempts > 1) {
+        toast.info(
+          `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
+        );
+      }
+      return true;
     };
 
     while (true) {
