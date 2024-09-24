@@ -534,16 +534,16 @@ export class Koso {
 
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      attempts++;
       console.log(
         `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
       );
       if (!this.canMove(node, newParent.name)) {
+        attempts++;
         return false;
       }
       this.moveNode(node, newParent.name, newOffset);
       this.selected.set(newParent.child(node.name));
-      if (attempts > 1) {
+      if (attempts > 0) {
         toast.info(
           `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
         );
@@ -551,9 +551,6 @@ export class Koso {
       return true;
     };
     const nearestGrandchildAncestor = (n: Node, targetGrandParent: Node) => {
-      console.log(
-        `finding nearest grandchil of n ${n.id} and targetGrandParent ${targetGrandParent.id}`,
-      );
       while (!n.parent.parent.equals(targetGrandParent)) {
         if (n.length == 0) {
           throw new Error("No more parents");
@@ -637,16 +634,16 @@ export class Koso {
 
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      attempts++;
       console.log(
         `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
       );
       if (!this.canMove(node, newParent.name)) {
+        attempts++;
         return false;
       }
       this.moveNode(node, newParent.name, newOffset);
       this.selected.set(newParent.child(node.name));
-      if (attempts > 1) {
+      if (attempts > 0) {
         toast.info(
           `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
         );
