@@ -636,15 +636,21 @@ export class Koso {
             n = n.parent;
           }
           targetParent = n;
-          console.log(
-            `Trying with new targetParent ${targetParent.name} and adjIndex (${adjIndex}) and adj ${adj.name}`,
-          );
 
-          newParent = targetParent.parent;
-          newOffset = this.getOffset(targetParent) + 1;
-          console.log(
-            `Trying to indent node in new tree, child of ${newParent.name} at ${newOffset}, starting from adj ${adj.name} and targetParent ${targetParent.name}`,
-          );
+          if (targetParent.equals(adj)) {
+            newParent = targetParent.parent;
+            newOffset = this.getOffset(targetParent);
+            console.log(
+              `Trying to moveee node upp, child of ${newParent.name} at ${newOffset}, starting from adj ${adj.name} and targetParent ${targetParent.name}`,
+            );
+          } else {
+            newParent = targetParent.parent;
+            newOffset = this.getOffset(targetParent) + 1;
+            console.log(
+              `Trying to indent node in new tree, child of ${newParent.name} at ${newOffset}, starting from adj ${adj.name} and targetParent ${targetParent.name}`,
+            );
+          }
+
           if (this.canMove(node, newParent.name)) {
             this.moveNode(node, newParent.name, newOffset);
             this.selected.set(newParent.child(node.name));
@@ -655,6 +661,7 @@ export class Koso {
             }
             break;
           }
+          console.log("Will try again");
         }
       }
     }
