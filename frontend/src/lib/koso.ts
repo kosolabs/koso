@@ -562,30 +562,12 @@ export class Koso {
       const adj = nodes.get(adjIndex);
       if (!adj) throw new Error(`Adjacent node at ${adjIndex} out of bounds`);
 
-      let newParent = null;
-      let newOffset = null;
-      // The adjacent node is a child of the same parent as this node.
-      // Swap this nodes positions with the adajecent node.
-      if (adj.parent.equals(targetParent)) {
-        newParent = adj.parent;
-        newOffset = this.getOffset(adj);
+      if (adj.parent.equals(targetParent) || adj.equals(targetParent)) {
+        const newParent = adj.parent;
+        const newOffset = this.getOffset(adj);
         if (maybeMove(newParent, newOffset)) {
           break;
         }
-
-        // Try to move past the current, adjacent node.
-        adjIndex--;
-      }
-      // The adjacent node is the parent of this node.
-      // Unindent this node and make it the prior peer of the adjancent node.
-      else if (adj.equals(targetParent)) {
-        newParent = adj.parent;
-        newOffset = this.getOffset(adj);
-        if (maybeMove(newParent, newOffset)) {
-          break;
-        }
-
-        // Try to move past the current, adjacent node.
         adjIndex--;
       }
       // The adjancent node is neither the parent or peer of this node,
@@ -598,8 +580,8 @@ export class Koso {
             n = n.parent;
           }
 
-          newParent = n.parent;
-          newOffset = this.getOffset(n) + 1;
+          const newParent = n.parent;
+          const newOffset = this.getOffset(n) + 1;
           if (maybeMove(newParent, newOffset)) {
             break;
           }
@@ -613,14 +595,17 @@ export class Koso {
           targetParent = n;
 
           if (targetParent.equals(adj)) {
-            newParent = targetParent.parent;
-            newOffset = this.getOffset(targetParent);
+            const newParent = targetParent.parent;
+            const newOffset = this.getOffset(targetParent);
+            if (maybeMove(newParent, newOffset)) {
+              break;
+            }
           } else {
-            newParent = targetParent.parent;
-            newOffset = this.getOffset(targetParent) + 1;
-          }
-          if (maybeMove(newParent, newOffset)) {
-            break;
+            const newParent = targetParent.parent;
+            const newOffset = this.getOffset(targetParent) + 1;
+            if (maybeMove(newParent, newOffset)) {
+              break;
+            }
           }
         }
       }
@@ -655,6 +640,7 @@ export class Koso {
       }
       return false;
     };
+
     while (true) {
       attempts++;
 
@@ -671,8 +657,6 @@ export class Koso {
       }
 
       if (adj) {
-        let newParent = null;
-        let newOffset = null;
         // The adjacent node is a child of the same parent as this node.
         if (adj.parent.equals(targetParent)) {
           const adjAdj = nodes.get(adjIndex + 1);
@@ -680,16 +664,16 @@ export class Koso {
           // If the adjacent node has children, indent this node
           // and make it the first child of the adjacent node.
           if (adjHasChild) {
-            newParent = adj;
-            newOffset = 0;
+            const newParent = adj;
+            const newOffset = 0;
             if (maybeMove(newParent, newOffset)) {
               break;
             }
           }
           // Otherwise, simply swap this nodes positions with the adjacent node.
           else {
-            newParent = adj.parent;
-            newOffset = this.getOffset(adj) + 1;
+            const newParent = adj.parent;
+            const newOffset = this.getOffset(adj) + 1;
             if (maybeMove(newParent, newOffset)) {
               break;
             }
