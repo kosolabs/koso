@@ -772,6 +772,42 @@ test.describe.serial("dag table tests", () => {
         });
       });
 
+      test("move row past invalid to start", async () => {
+        await init([
+          { id: "root", children: ["1", "2"] },
+          { id: "1", children: ["2"] },
+          { id: "2" },
+        ]);
+
+        await page
+          .getByRole("button", { name: "Task 1 Toggle Expand" })
+          .click();
+
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 2" }).first(),
+        ).toBeFocused();
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 2" }).nth(1),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "1"] },
+          ["1"]: { children: ["2"] },
+          ["2"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["1", "2"] },
+          ["1"]: { children: ["2"] },
+          ["2"]: { children: [] },
+        });
+      });
+
       test("single row remains unchanged", async () => {
         await init([
           { id: "root", children: ["1"] },
