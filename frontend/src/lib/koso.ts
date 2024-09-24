@@ -309,11 +309,6 @@ export class Koso {
     for (const peer of peers.slice(offset + 1)) {
       const peerNode = parent.child(peer);
       if (this.isVisible(peerNode)) {
-        console.log(
-          `Next peer for ${node.name} is ${peerNode.name}`,
-          peerNode,
-          node,
-        );
         return peerNode;
       }
     }
