@@ -35,6 +35,7 @@ test.describe.serial("dag table tests", () => {
     assignee?: string | null;
     reporter?: string | null;
     status?: Status | null;
+    statusTime?: number | null;
   };
 
   async function init(tasks: TaskBuilder[]) {
@@ -49,6 +50,7 @@ test.describe.serial("dag table tests", () => {
           assignee = null,
           reporter = null,
           status = null,
+          statusTime = null,
         } of tasks) {
           window.koso.upsert({
             id,
@@ -58,6 +60,7 @@ test.describe.serial("dag table tests", () => {
             assignee,
             reporter,
             status,
+            statusTime,
           });
         }
       });
