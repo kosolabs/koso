@@ -895,7 +895,9 @@ test.describe.serial("dag table tests", () => {
         });
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
-        await expect(page.getByRole("row", { name: "Task 99" })).toBeFocused();
+        await expect(
+          page.getByRole("row", { name: "Task 99" }).last(),
+        ).toBeFocused();
         expect(await getKosoGraph()).toMatchObject({
           root: { children: ["1", "99"] },
           ["1"]: { children: ["2"] },

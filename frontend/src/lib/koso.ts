@@ -531,12 +531,8 @@ export class Koso {
         `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
       );
     let adjIndex = index - 1;
-    // The node in the "zeroth" position is the root, don't move it.
-    if (adjIndex <= 0) return;
 
     let attempts = 0;
-    let targetParent = node.parent;
-
     const maybeMove = (newParent: Node, newOffset: number) => {
       attempts++;
       if (!this.canMove(node, newParent.name)) {
@@ -551,56 +547,79 @@ export class Koso {
       }
       return true;
     };
+    const nearestGrandchildAncestor = (n: Node, targetGrandParent: Node) => {
+      while (!n.parent.parent.equals(targetGrandParent)) {
+        if (n.length == 0) {
+          throw new Error("No more parents");
+        }
+        n = n.parent;
+      }
+      return n;
+    };
+
+    const prevAdj = () => {
+      return adjIndex == 0 ? null : nodes.get(adjIndex) || null;
+    };
+
+    const initPrevAdj = prevAdj();
+    if (!initPrevAdj) {
+      // The node in the "zeroth" position is the root, don't move it.
+      return;
+    }
+
+    let insertionTarget: Node | null = null;
+    if (
+      !initPrevAdj.parent.equals(node.parent) &&
+      !initPrevAdj.equals(node.parent)
+    ) {
+      insertionTarget = nearestGrandchildAncestor(initPrevAdj, node.parent);
+    }
 
     while (true) {
-      if (adjIndex <= 0) {
+      const adj = prevAdj();
+      if (!adj) {
         toast.info("Cannot move up without conflict.");
         return;
       }
 
-      const adj = nodes.get(adjIndex);
-      if (!adj) throw new Error(`Adjacent node at ${adjIndex} out of bounds`);
-
-      console.log(
-        `Trying [adjIndex: ${adjIndex}, adj: ${adj?.id}], targetParent: ${targetParent.id}`,
-      );
-
-      if (adj.parent.equals(targetParent) || adj.equals(targetParent)) {
+      if (!insertionTarget) {
+        console.log(
+          `Trying to insert as prior peer of adjacent adjacent ${adj.id}`,
+        );
         const newParent = adj.parent;
         const newOffset = this.getOffset(adj);
         if (maybeMove(newParent, newOffset)) {
           break;
         }
         adjIndex--;
-      } else {
-        if (adj.id.startsWith(targetParent.id)) {
-          let n = adj;
-          while (!n.parent.parent.equals(targetParent)) {
-            n = n.parent;
-          }
 
-          const newParent = n.parent;
-          const newOffset = this.getOffset(n) + 1;
-          if (maybeMove(newParent, newOffset)) {
-            break;
-          }
-          targetParent = newParent;
-        } else {
-          let n = adj;
-          while (!n.parent.parent.equals(nodes.get(0))) {
-            n = n.parent;
-          }
-
-          const newParent = n.parent;
-          const newOffset = this.getOffset(n);
-          console.log(
-            `Moving newParent ${newParent.id} at newOffset ${newOffset}, n= ${n.id}, nOffset=${this.getOffset(n)}, adj=${adj.id}`,
-          );
-          if (maybeMove(newParent, newOffset)) {
-            break;
-          }
-          targetParent = n;
+        const adjAdj = prevAdj();
+        if (
+          adjAdj &&
+          !adjAdj.parent.equals(adj.parent) &&
+          !adjAdj.equals(adj.parent)
+        ) {
+          insertionTarget = nearestGrandchildAncestor(initPrevAdj, node.parent);
         }
+      } else {
+        console.log(
+          `Trying insert after insertion target ${insertionTarget.id}, adjacent ${adj.id}`,
+        );
+        const newParent = insertionTarget.parent;
+        const newOffset = this.getOffset(insertionTarget) + 1;
+        if (maybeMove(newParent, newOffset)) {
+          break;
+        }
+
+        if (insertionTarget.equals(adj)) {
+          insertionTarget = null;
+          console.log(`Moving on from insertion target to adjacent: ${adj.id}`);
+          continue;
+        }
+        insertionTarget = nearestGrandchildAncestor(
+          adj,
+          insertionTarget.parent,
+        );
       }
     }
   }
@@ -653,12 +672,8 @@ export class Koso {
     }
 
     let insertionTarget: Node | null = null;
-    if (!initAdj) {
+    if (!initAdj || !initAdj.parent.equals(node.parent)) {
       insertionTarget = node.parent;
-    } else {
-      if (!initAdj.parent.equals(node.parent)) {
-        insertionTarget = node.parent;
-      }
     }
 
     while (true) {
