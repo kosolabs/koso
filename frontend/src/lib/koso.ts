@@ -3,6 +3,7 @@ import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import {
   derived,
+  get,
   readable,
   writable,
   type Readable,
@@ -13,6 +14,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
 import { storable } from "./stores";
+import { toast } from "svelte-sonner";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -519,6 +521,205 @@ export class Koso {
     if (offset >= this.getChildCount(node.parent.name) - 1) return;
     this.moveNode(node, node.parent.name, offset + 2);
     this.selected.set(node);
+  }
+
+  moveNodeRowUp(node: Node) {
+    const nodes = get(this.nodes);
+    const index = nodes.findIndex((n) => n.equals(node));
+    if (index === -1)
+      throw new Error(
+        `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
+      );
+    let adjIndex = index - 1;
+
+    const debug = get(this.debug);
+    let attempts = 0;
+    const maybeMove = (newParent: Node, newOffset: number) => {
+      if (debug) {
+        console.log(
+          `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
+        );
+      }
+      if (!this.canMove(node, newParent.name)) {
+        attempts++;
+        return false;
+      }
+      this.moveNode(node, newParent.name, newOffset);
+      this.selected.set(newParent.child(node.name));
+      if (attempts > 0) {
+        toast.info(
+          `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
+        );
+      }
+      return true;
+    };
+    const nearestGrandchildAncestor = (n: Node, targetGrandParent: Node) => {
+      while (!n.parent.parent.equals(targetGrandParent)) {
+        if (n.length == 0) {
+          throw new Error("No more parents");
+        }
+        n = n.parent;
+      }
+      return n;
+    };
+
+    const initPrevAdj = adjIndex == 0 ? null : nodes.get(adjIndex);
+    if (!initPrevAdj) {
+      // The node in the "zeroth" position is the root, don't move it.
+      return;
+    }
+
+    let insertionTarget: Node | null = null;
+    if (
+      !initPrevAdj.parent.equals(node.parent) &&
+      !initPrevAdj.equals(node.parent)
+    ) {
+      insertionTarget = nearestGrandchildAncestor(initPrevAdj, node.parent);
+    }
+
+    while (true) {
+      const adj = adjIndex == 0 ? null : nodes.get(adjIndex);
+      if (!adj) {
+        toast.info("Cannot move up without conflict.");
+        return;
+      }
+
+      if (!insertionTarget) {
+        if (maybeMove(adj.parent, this.getOffset(adj))) {
+          return;
+        }
+
+        adjIndex--;
+        const adjAdj = adjIndex == 0 ? null : nodes.get(adjIndex);
+        if (
+          adjAdj &&
+          !adjAdj.parent.equals(adj.parent) &&
+          !adjAdj.equals(adj.parent)
+        ) {
+          insertionTarget = nearestGrandchildAncestor(adjAdj, adj.parent);
+        }
+      } else {
+        if (
+          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
+        ) {
+          return;
+        }
+
+        if (insertionTarget.equals(adj)) {
+          insertionTarget = null;
+        } else {
+          insertionTarget = nearestGrandchildAncestor(
+            adj,
+            insertionTarget.parent,
+          );
+        }
+      }
+    }
+  }
+
+  moveNodeRowDown(node: Node) {
+    const nodes = get(this.nodes);
+    const index = nodes.findIndex((n) => n.equals(node));
+    if (index === -1)
+      throw new Error(
+        `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
+      );
+    let adjIndex = index + 1;
+
+    const debug = get(this.debug);
+    let attempts = 0;
+    const maybeMove = (newParent: Node, newOffset: number) => {
+      if (debug) {
+        console.log(
+          `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
+        );
+      }
+      if (!this.canMove(node, newParent.name)) {
+        attempts++;
+        return false;
+      }
+      this.moveNode(node, newParent.name, newOffset);
+      this.selected.set(newParent.child(node.name));
+      if (attempts > 0) {
+        toast.info(
+          `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
+        );
+      }
+      return true;
+    };
+
+    // Find the next node that this node is not an ancestor of,
+    // either a direct peer or a peer of an ancestor.
+    let initAdj = null;
+    for (; adjIndex < nodes.size; adjIndex++) {
+      const n = nodes.get(adjIndex);
+      if (!n) throw new Error(`Node at ${adjIndex} does not exist`);
+      if (!n.id.startsWith(node.id)) {
+        initAdj = n;
+        break;
+      }
+    }
+    // There's no where to move to if this node
+    // is the last node and an immediate child of the root,
+    if (!initAdj && node.parent.equals(nodes.get(0))) {
+      return;
+    }
+
+    let insertionTarget: Node | null = null;
+    if (!initAdj || !initAdj.parent.equals(node.parent)) {
+      insertionTarget = node.parent;
+    }
+
+    while (true) {
+      const adj = nodes.get(adjIndex);
+      if (!adj) {
+        if (!insertionTarget) throw new Error("Expected insertionTarget.");
+        if (insertionTarget.equals(nodes.get(0))) {
+          toast.info("Cannot move down without conflict.");
+          return;
+        }
+
+        if (
+          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
+        ) {
+          return;
+        }
+        insertionTarget = insertionTarget.parent;
+      } else if (!insertionTarget) {
+        const adjAdj = nodes.get(adjIndex + 1);
+        const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
+        if (adjHasChild) {
+          if (maybeMove(adj, 0)) {
+            return;
+          }
+          adjIndex++;
+        } else {
+          if (maybeMove(adj.parent, this.getOffset(adj) + 1)) {
+            return;
+          }
+
+          if (!adjAdj || (adjAdj && !adjAdj.parent.equals(adj.parent))) {
+            insertionTarget = adj.parent;
+          }
+          adjIndex++;
+        }
+      } else {
+        if (
+          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
+        ) {
+          return;
+        }
+
+        if (
+          insertionTarget.equals(nodes.get(0)) ||
+          insertionTarget.parent.equals(adj.parent)
+        ) {
+          insertionTarget = null;
+        } else {
+          insertionTarget = insertionTarget.parent;
+        }
+      }
+    }
   }
 
   canIndentNode(node: Node) {

@@ -42,6 +42,16 @@ export class KeyBinding extends KeyBindingRecord {
   static REMOVE_NODE = new KeyBinding({ key: "Delete" });
   static MOVE_NODE_UP = new KeyBinding({ key: "ArrowUp", altKey: true });
   static MOVE_NODE_DOWN = new KeyBinding({ key: "ArrowDown", altKey: true });
+  static MOVE_NODE_ROW_UP = new KeyBinding({
+    key: "ArrowUp",
+    altKey: true,
+    shiftKey: true,
+  });
+  static MOVE_NODE_ROW_DOWN = new KeyBinding({
+    key: "ArrowDown",
+    altKey: true,
+    shiftKey: true,
+  });
   static INDENT_NODE = new KeyBinding({ key: "ArrowRight", altKey: true });
   static UNDENT_NODE = new KeyBinding({ key: "ArrowLeft", altKey: true });
   static EXPAND_NODE = new KeyBinding({ key: "ArrowRight" });

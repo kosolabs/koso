@@ -61,6 +61,16 @@
     koso.moveNodeDown($selected);
   }
 
+  function moveRowUp() {
+    if (!$selected) return;
+    koso.moveNodeRowUp($selected);
+  }
+
+  function moveRowDown() {
+    if (!$selected) return;
+    koso.moveNodeRowDown($selected);
+  }
+
   function indent() {
     if (!$selected) return;
     koso.indentNode($selected);
@@ -117,6 +127,8 @@
     [KeyBinding.REMOVE_NODE, remove],
     [KeyBinding.MOVE_NODE_UP, moveUp],
     [KeyBinding.MOVE_NODE_DOWN, moveDown],
+    [KeyBinding.MOVE_NODE_ROW_UP, moveRowUp],
+    [KeyBinding.MOVE_NODE_ROW_DOWN, moveRowDown],
     [KeyBinding.INDENT_NODE, indent],
     [KeyBinding.UNDENT_NODE, undent],
     [KeyBinding.EXPAND_NODE, expand],

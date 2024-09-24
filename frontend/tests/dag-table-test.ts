@@ -277,6 +277,776 @@ test.describe.serial("dag table tests", () => {
         ["3"]: { children: [] },
       });
     });
+
+    test.describe("option+shift up and down arrows change the order of rows", async () => {
+      test("option+shift skips past collapsed nodes", async () => {
+        await init([
+          { id: "root", children: ["1", "2", "3"] },
+          { id: "1" },
+          { id: "2", children: ["4", "5"] },
+          { id: "3" },
+          { id: "4" },
+          { id: "5", children: ["6"] },
+          { id: "6" },
+        ]);
+
+        await page.keyboard.press("ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "1", "3"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3", "1"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3", "1"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+        });
+      });
+
+      test("option+shift moves row by row", async () => {
+        await init([
+          { id: "root", children: ["1", "2", "3"] },
+          { id: "1" },
+          { id: "2", children: ["4", "5"] },
+          { id: "3" },
+          { id: "4" },
+          { id: "5", children: ["6"] },
+          { id: "6" },
+        ]);
+
+        await page
+          .getByRole("button", { name: "Task 2 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 5 Toggle Expand" })
+          .click();
+
+        await page.keyboard.press("ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: ["1", "4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: ["4", "1", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["1", "6"] },
+          ["6"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6", "1"] },
+          ["6"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: ["4", "5", "1"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "1", "3"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3", "1"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+        });
+      });
+
+      test("option+shift moves ignores target descendants", async () => {
+        await init([
+          { id: "root", children: ["1", "2", "3"] },
+          { id: "1", children: ["11", "12", "13"] },
+          { id: "2", children: ["4", "5"] },
+          { id: "3" },
+          { id: "4" },
+          { id: "5", children: ["6"] },
+          { id: "6" },
+          { id: "11" },
+          { id: "12", children: ["14", "16"] },
+          { id: "13" },
+          { id: "14", children: ["15"] },
+          { id: "15" },
+          { id: "16" },
+        ]);
+
+        await page
+          .getByRole("button", { name: "Task 2 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 5 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 1 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 12 Toggle Expand" })
+          .click();
+
+        await page.keyboard.press("ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["1", "4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "1", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["1", "6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6", "1"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5", "1"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "1", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3", "1"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3", "1"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "1", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5", "1"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6", "1"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["1", "6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "1", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["1", "4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 1", exact: true }),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["1", "2", "3"] },
+          ["1"]: { children: ["11", "12", "13"] },
+          ["2"]: { children: ["4", "5"] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["6"] },
+          ["6"]: { children: [] },
+          ["11"]: { children: [] },
+          ["12"]: { children: ["14", "16"] },
+          ["13"]: { children: [] },
+          ["14"]: { children: ["15"] },
+          ["15"]: { children: [] },
+          ["16"]: { children: [] },
+        });
+      });
+
+      test("move row past invalid to start", async () => {
+        await init([
+          { id: "root", children: ["1", "2"] },
+          { id: "1", children: ["2"] },
+          { id: "2" },
+        ]);
+
+        await page
+          .getByRole("button", { name: "Task 1 Toggle Expand" })
+          .click();
+
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 2" }).nth(1),
+        ).toBeFocused();
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 2" }).first(),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["2", "1"] },
+          ["1"]: { children: ["2"] },
+          ["2"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 2" }).nth(1),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["1", "2"] },
+          ["1"]: { children: ["2"] },
+          ["2"]: { children: [] },
+        });
+      });
+
+      test("move row past multiple invalid locations", async () => {
+        await init([
+          { id: "root", children: ["1"] },
+          { id: "1", children: ["2", "99"] },
+          { id: "2", children: ["99", "3", "4"] },
+          { id: "3", children: ["99"] },
+          { id: "4" },
+          { id: "99" },
+        ]);
+
+        await page
+          .getByRole("button", { name: "Task 1 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 2 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 3 Toggle Expand" })
+          .click();
+
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 99" }).nth(2),
+        ).toBeFocused();
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 99" }).first(),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["1"] },
+          ["1"]: { children: ["99", "2"] },
+          ["2"]: { children: ["99", "3", "4"] },
+          ["3"]: { children: ["99"] },
+          ["4"]: { children: [] },
+          ["99"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(
+          page.getByRole("row", { name: "Task 99" }).first(),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["99", "1"] },
+          ["1"]: { children: ["2"] },
+          ["2"]: { children: ["99", "3", "4"] },
+          ["3"]: { children: ["99"] },
+          ["4"]: { children: [] },
+          ["99"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 99" }).first(),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["1"] },
+          ["1"]: { children: ["99", "2"] },
+          ["2"]: { children: ["99", "3", "4"] },
+          ["3"]: { children: ["99"] },
+          ["4"]: { children: [] },
+          ["99"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 99" }).last(),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["1"] },
+          ["1"]: { children: ["2", "99"] },
+          ["2"]: { children: ["99", "3", "4"] },
+          ["3"]: { children: ["99"] },
+          ["4"]: { children: [] },
+          ["99"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 99" }).last(),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["1", "99"] },
+          ["1"]: { children: ["2"] },
+          ["2"]: { children: ["99", "3", "4"] },
+          ["3"]: { children: ["99"] },
+          ["4"]: { children: [] },
+          ["99"]: { children: [] },
+        });
+      });
+
+      test("single row remains unchanged", async () => {
+        await init([
+          { id: "root", children: ["1"] },
+          { id: "1", children: ["2", "3"] },
+          { id: "2" },
+          { id: "3", children: ["4"] },
+          { id: "4", children: ["5", "6"] },
+          { id: "5" },
+          { id: "6" },
+        ]);
+
+        await page
+          .getByRole("button", { name: "Task 1 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 3 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 4 Toggle Expand" })
+          .click();
+
+        await page.keyboard.press("ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["1"] },
+          ["1"]: { children: ["2", "3"] },
+          ["2"]: { children: [] },
+          ["3"]: { children: ["4"] },
+          ["4"]: { children: ["5", "6"] },
+          ["5"]: { children: [] },
+          ["6"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["1"] },
+          ["1"]: { children: ["2", "3"] },
+          ["2"]: { children: [] },
+          ["3"]: { children: ["4"] },
+          ["4"]: { children: ["5", "6"] },
+          ["5"]: { children: [] },
+          ["6"]: { children: [] },
+        });
+      });
+
+      test("invalid locations are skipped", async () => {
+        await init([
+          { id: "root", children: ["1", "5", "6"] },
+          { id: "1", children: ["2", "3"] },
+          { id: "2" },
+          { id: "3", children: ["4"] },
+          { id: "4" },
+          { id: "5", children: ["1"] },
+          { id: "6", children: ["7"] },
+          { id: "7" },
+        ]);
+
+        await page
+          .getByRole("button", { name: "Task 1 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 3 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 5 Toggle Expand" })
+          .click();
+        await page
+          .getByRole("button", { name: "Task 6 Toggle Expand" })
+          .click();
+
+        await page.keyboard.press("ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1" }).first(),
+        ).toBeFocused();
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1" }).nth(1),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["5", "1", "6"] },
+          ["1"]: { children: ["2", "3"] },
+          ["2"]: { children: [] },
+          ["3"]: { children: ["4"] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["1"] },
+          ["6"]: { children: ["7"] },
+          ["7"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1" }).nth(1),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["5", "6"] },
+          ["1"]: { children: ["2", "3"] },
+          ["2"]: { children: [] },
+          ["3"]: { children: ["4"] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["1"] },
+          ["6"]: { children: ["1", "7"] },
+          ["7"]: { children: [] },
+        });
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1" }).nth(1),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["5", "6"] },
+          ["1"]: { children: ["2", "3"] },
+          ["2"]: { children: [] },
+          ["3"]: { children: ["4"] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["1"] },
+          ["6"]: { children: ["7", "1"] },
+          ["7"]: { children: [] },
+        });
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(
+          page.getByRole("row", { name: "Task 1" }).nth(1),
+        ).toBeFocused();
+        expect(await getKosoGraph()).toMatchObject({
+          root: { children: ["5", "6", "1"] },
+          ["1"]: { children: ["2", "3"] },
+          ["2"]: { children: [] },
+          ["3"]: { children: ["4"] },
+          ["4"]: { children: [] },
+          ["5"]: { children: ["1"] },
+          ["6"]: { children: ["7"] },
+          ["7"]: { children: [] },
+        });
+      });
+    });
   });
 
   test.describe("expand and collapse", () => {
