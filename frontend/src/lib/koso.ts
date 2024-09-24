@@ -538,6 +538,7 @@ export class Koso {
     let targetParent = node.parent;
 
     const maybeMove = (newParent: Node, newOffset: number) => {
+      attempts++;
       if (!this.canMove(node, newParent.name)) {
         return false;
       }
@@ -552,8 +553,6 @@ export class Koso {
     };
 
     while (true) {
-      attempts++;
-
       if (adjIndex <= 0) {
         toast.info("Cannot move up without conflict.");
         return;
@@ -561,6 +560,10 @@ export class Koso {
 
       const adj = nodes.get(adjIndex);
       if (!adj) throw new Error(`Adjacent node at ${adjIndex} out of bounds`);
+
+      console.log(
+        `Trying [adjIndex: ${adjIndex}, adj: ${adj?.id}], targetParent: ${targetParent.id}`,
+      );
 
       if (adj.parent.equals(targetParent) || adj.equals(targetParent)) {
         const newParent = adj.parent;
@@ -589,7 +592,10 @@ export class Koso {
           }
 
           const newParent = n.parent;
-          const newOffset = this.getOffset(n) + (n.equals(adj) ? 0 : 1);
+          const newOffset = this.getOffset(n);
+          console.log(
+            `Moving newParent ${newParent.id} at newOffset ${newOffset}, n= ${n.id}, nOffset=${this.getOffset(n)}, adj=${adj.id}`,
+          );
           if (maybeMove(newParent, newOffset)) {
             break;
           }
@@ -607,15 +613,18 @@ export class Koso {
         `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
       );
     let adjIndex = index + 1;
-    let targetParent = node.parent;
     // There's no where to move to if this node
     // is the last node and an immediate child of the root,
-    if (adjIndex >= nodes.size && targetParent.equals(nodes.get(0))) {
+    if (adjIndex >= nodes.size && node.parent.equals(nodes.get(0))) {
       return;
     }
 
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
+      attempts++;
+      console.log(
+        `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
+      );
       if (!this.canMove(node, newParent.name)) {
         return false;
       }
@@ -629,9 +638,8 @@ export class Koso {
       return true;
     };
 
+    let insertionTarget: Node | null = node.parent;
     while (true) {
-      attempts++;
-
       // Find the next node that this node is not an ancestor of,
       // either a direct peer or a peer of an ancestor.
       let adj = null;
@@ -644,50 +652,87 @@ export class Koso {
         }
       }
 
-      if (!adj && targetParent.equals(nodes.get(0))) {
-        toast.info("Cannot move down without conflict.");
-        break;
-      }
+      if (!adj) {
+        if (!insertionTarget) {
+          throw new Error("No insertion root, absent adjacent");
+        }
 
-      if (adj) {
-        if (adj.parent.equals(targetParent)) {
+        if (insertionTarget.equals(nodes.get(0))) {
+          toast.info("Cannot move down without conflict.");
+          return;
+        }
+        insertionTarget = insertionTarget.parent;
+        console.log(
+          `Going to next insertion target, no adjacent node: ${insertionTarget.id}`,
+        );
+
+        const newParent = insertionTarget.parent;
+        const newOffset = this.getOffset(insertionTarget) + 1;
+        if (maybeMove(newParent, newOffset)) {
+          return;
+        }
+        insertionTarget = insertionTarget.parent;
+        continue;
+      } else {
+        if (!insertionTarget) {
           const adjAdj = nodes.get(adjIndex + 1);
           const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
           if (adjHasChild) {
+            console.log(`Trying to insert as first child`);
             const newParent = adj;
             const newOffset = 0;
             if (maybeMove(newParent, newOffset)) {
-              break;
+              return;
             }
+            adjIndex++;
+            continue;
           } else {
+            console.log(`Trying to insert as next peer`);
             const newParent = adj.parent;
             const newOffset = this.getOffset(adj) + 1;
             if (maybeMove(newParent, newOffset)) {
-              break;
+              return;
             }
-          }
 
-          adjIndex++;
+            if (adjAdj) {
+              if (!adjAdj.parent.equals(adj.parent)) {
+                insertionTarget = adj.parent;
+                console.log(`Using insertion target: ${insertionTarget.id}`);
+              }
+            } else {
+              insertionTarget = adj.parent;
+              console.log(
+                `Using insertion target, no next adj: ${insertionTarget.id}`,
+              );
+            }
+            adjIndex++;
+            continue;
+          }
         } else {
-          if (targetParent.equals(nodes.get(0))) {
-            targetParent = adj.parent;
+          if (insertionTarget.equals(adj.parent)) {
+            insertionTarget = null;
+            console.log(
+              `Moving on to adjacent from insertion target: ${adj.id}`,
+            );
             continue;
           }
 
-          const newParent = targetParent.parent;
-          const newOffset = this.getOffset(targetParent) + 1;
+          console.log(`Trying insertion target before going back to adjacent`);
+
+          const newParent = insertionTarget.parent;
+          const newOffset = this.getOffset(insertionTarget) + 1;
           if (maybeMove(newParent, newOffset)) {
-            break;
+            return;
           }
-          targetParent = targetParent.parent;
+
+          if (insertionTarget.equals(nodes.get(0))) {
+            insertionTarget = null;
+            console.log(`Cleared insertion target`);
+          } else {
+            insertionTarget = insertionTarget.parent;
+            console.log(`Going to parent target ${insertionTarget.id}`);
+          }
         }
-      } else {
-        const newParent = targetParent.parent;
-        const newOffset = this.getOffset(targetParent) + 1;
-        if (maybeMove(newParent, newOffset)) {
-          break;
-        }
-        targetParent = targetParent.parent;
       }
     }
   }
