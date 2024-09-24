@@ -10,6 +10,7 @@
     arrow?: boolean;
     visible?: boolean;
     placement?: popper.Placement;
+    portalEl?: HTMLElement;
   };
 
   let {
@@ -17,6 +18,7 @@
     trigger,
     visible = $bindable(false),
     placement = "top",
+    portalEl,
   }: Props = $props();
 
   let referenceEl: popper.ReferenceElement | undefined = $state();
@@ -67,7 +69,8 @@
     {@render trigger()}
   {/if}
 </span>
-<Portal>
+
+{#snippet tooltip()}
   {#if visible}
     <div
       class={cn(
@@ -82,4 +85,12 @@
       {/if}
     </div>
   {/if}
-</Portal>
+{/snippet}
+
+{#if !portalEl}
+  {@render tooltip()}
+{:else}
+  <Portal target={portalEl}>
+    {@render tooltip()}
+  </Portal>
+{/if}

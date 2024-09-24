@@ -11,7 +11,7 @@
   let { children, title, Icon, class: classes, ...props }: Props = $props();
 </script>
 
-<Tooltip>
+<Tooltip portalEl={document.body}>
   {#snippet trigger()}
     <Button class={classes} variant="ghost" {...props}>
       <Icon class="w-4 sm:me-2" />
