@@ -54,6 +54,16 @@ export class KeyBinding extends KeyBindingRecord {
   });
   static INDENT_NODE = new KeyBinding({ key: "ArrowRight", altKey: true });
   static UNDENT_NODE = new KeyBinding({ key: "ArrowLeft", altKey: true });
+  static INDENT_NODE_SHIFT = new KeyBinding({
+    key: "ArrowRight",
+    altKey: true,
+    shiftKey: true,
+  });
+  static UNDENT_NODE_SHIFT = new KeyBinding({
+    key: "ArrowLeft",
+    altKey: true,
+    shiftKey: true,
+  });
   static EXPAND_NODE = new KeyBinding({ key: "ArrowRight" });
   static COLLAPSE_NODE = new KeyBinding({ key: "ArrowLeft" });
   static SELECT_PREV_NODE = new KeyBinding({ key: "ArrowUp" });
