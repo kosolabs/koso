@@ -569,11 +569,7 @@ export class Koso {
           break;
         }
         adjIndex--;
-      }
-      // The adjancent node is neither the parent or peer of this node,
-      // so it must be a descendent of peer.
-      // Indent the node and make it the next peer of the adjacent node.
-      else {
+      } else {
         if (adj.id.startsWith(targetParent.id)) {
           let n = adj;
           while (!n.parent.parent.equals(targetParent)) {
@@ -585,28 +581,19 @@ export class Koso {
           if (maybeMove(newParent, newOffset)) {
             break;
           }
-
           targetParent = newParent;
         } else {
           let n = adj;
           while (!n.parent.parent.equals(nodes.get(0))) {
             n = n.parent;
           }
-          targetParent = n;
 
-          if (targetParent.equals(adj)) {
-            const newParent = targetParent.parent;
-            const newOffset = this.getOffset(targetParent);
-            if (maybeMove(newParent, newOffset)) {
-              break;
-            }
-          } else {
-            const newParent = targetParent.parent;
-            const newOffset = this.getOffset(targetParent) + 1;
-            if (maybeMove(newParent, newOffset)) {
-              break;
-            }
+          const newParent = n.parent;
+          const newOffset = this.getOffset(n) + (n.equals(adj) ? 0 : 1);
+          if (maybeMove(newParent, newOffset)) {
+            break;
           }
+          targetParent = n;
         }
       }
     }
@@ -663,21 +650,16 @@ export class Koso {
       }
 
       if (adj) {
-        // The adjacent node is a child of the same parent as this node.
         if (adj.parent.equals(targetParent)) {
           const adjAdj = nodes.get(adjIndex + 1);
           const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
-          // If the adjacent node has children, indent this node
-          // and make it the first child of the adjacent node.
           if (adjHasChild) {
             const newParent = adj;
             const newOffset = 0;
             if (maybeMove(newParent, newOffset)) {
               break;
             }
-          }
-          // Otherwise, simply swap this nodes positions with the adjacent node.
-          else {
+          } else {
             const newParent = adj.parent;
             const newOffset = this.getOffset(adj) + 1;
             if (maybeMove(newParent, newOffset)) {
@@ -686,10 +668,7 @@ export class Koso {
           }
 
           adjIndex++;
-        }
-        // The adjacent node is an "uncle," i.e. a peer of an ancestor of this node.
-        // Unindent the node and make it the prior peer of the adjacent node.
-        else {
+        } else {
           if (targetParent.equals(nodes.get(0))) {
             targetParent = adj.parent;
             continue;
@@ -700,7 +679,6 @@ export class Koso {
           if (maybeMove(newParent, newOffset)) {
             break;
           }
-
           targetParent = targetParent.parent;
         }
       } else {
@@ -709,7 +687,6 @@ export class Koso {
         if (maybeMove(newParent, newOffset)) {
           break;
         }
-
         targetParent = targetParent.parent;
       }
     }
