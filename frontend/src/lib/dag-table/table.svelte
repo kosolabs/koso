@@ -141,22 +141,20 @@
 
 <div
   class={cn(
-    "z-10 flex items-center overflow-x-scroll px-2 backdrop-blur-sm",
-    "fixed bottom-0 left-0 h-12 w-full border-t",
-    "sm:sticky sm:top-0 sm:gap-2 sm:border-b",
+    "fixed bottom-0 left-0 z-10 flex h-12 w-full items-center overflow-x-scroll border-t px-2 backdrop-blur-sm sm:sticky sm:top-0 sm:gap-2 sm:border-b",
   )}
 >
-  <ToolbarButton title="Add Task" icon={ListPlus} on:click={insert} />
+  <ToolbarButton Icon={ListPlus} title="Add Task" onclick={insert} />
   {#if $selected}
-    <ToolbarButton title="Add Child" icon={ListTree} on:click={insertChild} />
-    <ToolbarButton title="Delete" icon={Trash} on:click={remove} />
-    <ToolbarButton title="Move Up" icon={MoveUp} on:click={moveUp} />
-    <ToolbarButton title="Move Down" icon={MoveDown} on:click={moveDown} />
-    <ToolbarButton title="Undent" icon={IndentDecrease} on:click={undent} />
-    <ToolbarButton title="Indent" icon={IndentIncrease} on:click={indent} />
+    <ToolbarButton Icon={ListTree} title="Add Child" onclick={insertChild} />
+    <ToolbarButton Icon={Trash} title="Delete" onclick={remove} />
+    <ToolbarButton Icon={MoveUp} title="Move Up" onclick={moveUp} />
+    <ToolbarButton Icon={MoveDown} title="Move Down" onclick={moveDown} />
+    <ToolbarButton Icon={IndentDecrease} title="Undent" onclick={undent} />
+    <ToolbarButton Icon={IndentIncrease} title="Indent" onclick={indent} />
   {/if}
-  <ToolbarButton title="Undo" icon={Undo} on:click={undo} />
-  <ToolbarButton title="Redo" icon={Redo} on:click={redo} />
+  <ToolbarButton Icon={Undo} title="Undo" onclick={undo} />
+  <ToolbarButton Icon={Redo} title="Redo" onclick={redo} />
 </div>
 
 <div class="mb-12 p-2 sm:mb-0">

@@ -17,7 +17,6 @@
   import { KosoSocket } from "$lib/socket";
   import { Button } from "$lib/ui/button";
   import { Editable } from "$lib/ui/editable";
-  import { Tooltip } from "$lib/ui/tooltip";
   import { UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import * as Y from "yjs";
@@ -130,8 +129,6 @@
     <Alert>Connection to server lost. Working offline.</Alert>
   </div>
 {/if}
-
-<Tooltip />
 
 <Dialog.Root bind:open={showUnauthorizedModal}>
   <Dialog.Content>
