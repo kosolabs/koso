@@ -535,6 +535,9 @@ export class Koso {
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
       attempts++;
+      console.log(
+        `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
+      );
       if (!this.canMove(node, newParent.name)) {
         return false;
       }
@@ -548,6 +551,9 @@ export class Koso {
       return true;
     };
     const nearestGrandchildAncestor = (n: Node, targetGrandParent: Node) => {
+      console.log(
+        `finding nearest grandchil of n ${n.id} and targetGrandParent ${targetGrandParent.id}`,
+      );
       while (!n.parent.parent.equals(targetGrandParent)) {
         if (n.length == 0) {
           throw new Error("No more parents");
@@ -557,11 +563,7 @@ export class Koso {
       return n;
     };
 
-    const prevAdj = () => {
-      return adjIndex == 0 ? null : nodes.get(adjIndex) || null;
-    };
-
-    const initPrevAdj = prevAdj();
+    const initPrevAdj = adjIndex == 0 ? null : nodes.get(adjIndex);
     if (!initPrevAdj) {
       // The node in the "zeroth" position is the root, don't move it.
       return;
@@ -576,7 +578,7 @@ export class Koso {
     }
 
     while (true) {
-      const adj = prevAdj();
+      const adj = adjIndex == 0 ? null : nodes.get(adjIndex);
       if (!adj) {
         toast.info("Cannot move up without conflict.");
         return;
@@ -593,13 +595,13 @@ export class Koso {
         }
         adjIndex--;
 
-        const adjAdj = prevAdj();
+        const adjAdj = adjIndex == 0 ? null : nodes.get(adjIndex);
         if (
           adjAdj &&
           !adjAdj.parent.equals(adj.parent) &&
           !adjAdj.equals(adj.parent)
         ) {
-          insertionTarget = nearestGrandchildAncestor(initPrevAdj, node.parent);
+          insertionTarget = nearestGrandchildAncestor(adjAdj, adj.parent);
         }
       } else {
         console.log(
@@ -651,20 +653,18 @@ export class Koso {
       }
       return true;
     };
-    const nextAdj = () => {
-      // Find the next node that this node is not an ancestor of,
-      // either a direct peer or a peer of an ancestor.
-      for (; adjIndex < nodes.size; adjIndex++) {
-        const n = nodes.get(adjIndex);
-        if (!n) throw new Error(`Node at ${adjIndex} does not exist`);
-        if (n && !n.id.startsWith(node.id)) {
-          return n;
-        }
-      }
-      return null;
-    };
 
-    const initAdj = nextAdj();
+    // Find the next node that this node is not an ancestor of,
+    // either a direct peer or a peer of an ancestor.
+    let initAdj = null;
+    for (; adjIndex < nodes.size; adjIndex++) {
+      const n = nodes.get(adjIndex);
+      if (!n) throw new Error(`Node at ${adjIndex} does not exist`);
+      if (!n.id.startsWith(node.id)) {
+        initAdj = n;
+        break;
+      }
+    }
     // There's no where to move to if this node
     // is the last node and an immediate child of the root,
     if (!initAdj && node.parent.equals(nodes.get(0))) {
@@ -677,7 +677,7 @@ export class Koso {
     }
 
     while (true) {
-      const adj = nextAdj();
+      const adj = nodes.get(adjIndex);
       if (!adj) {
         if (!insertionTarget) {
           throw new Error("No insertion root, absent adjacent");
