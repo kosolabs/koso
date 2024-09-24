@@ -657,6 +657,11 @@ export class Koso {
         }
       }
 
+      if (!adj && targetParent.equals(nodes.get(0))) {
+        toast.info("Cannot move down without conflict.");
+        break;
+      }
+
       if (adj) {
         // The adjacent node is a child of the same parent as this node.
         if (adj.parent.equals(targetParent)) {
@@ -699,11 +704,6 @@ export class Koso {
           targetParent = targetParent.parent;
         }
       } else {
-        if (targetParent.equals(nodes.get(0))) {
-          toast.info("Cannot move down without conflict.");
-          break;
-        }
-
         const newParent = targetParent.parent;
         const newOffset = this.getOffset(targetParent) + 1;
         if (maybeMove(newParent, newOffset)) {
