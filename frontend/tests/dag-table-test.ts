@@ -785,13 +785,14 @@ test.describe.serial("dag table tests", () => {
 
         await page.keyboard.press("ArrowDown");
         await page.keyboard.press("ArrowDown");
+        await page.keyboard.press("ArrowDown");
         await expect(
-          page.getByRole("row", { name: "Task 2" }).first(),
+          page.getByRole("row", { name: "Task 2" }).nth(1),
         ).toBeFocused();
 
         await page.keyboard.press("Alt+Shift+ArrowUp");
         await expect(
-          page.getByRole("row", { name: "Task 2" }).nth(1),
+          page.getByRole("row", { name: "Task 2" }).first(),
         ).toBeFocused();
         expect(await getKosoGraph()).toMatchObject({
           root: { children: ["2", "1"] },
@@ -800,7 +801,9 @@ test.describe.serial("dag table tests", () => {
         });
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
-        await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
+        await expect(
+          page.getByRole("row", { name: "Task 2" }).nth(1),
+        ).toBeFocused();
         expect(await getKosoGraph()).toMatchObject({
           root: { children: ["1", "2"] },
           ["1"]: { children: ["2"] },
