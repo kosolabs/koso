@@ -61,7 +61,8 @@
     onclick={(event) => event.stopPropagation()}
     onblur={save}
     onkeydown={handleInputKeydown}
-    autofocus
+    autofocus={true}
+    autocomplete="off"
     bind:value={edited}
   />
 {:else}
