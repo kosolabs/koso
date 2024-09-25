@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { cn } from "$lib/utils.js";
   import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
   import Check from "svelte-radix/Check.svelte";
-  import { cn } from "$lib/utils.js";
 
   type $$Props = DropdownMenuPrimitive.CheckboxItemProps;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type $$Events = DropdownMenuPrimitive.CheckboxItemEvents;
 
   let className: $$Props["class"] = undefined;

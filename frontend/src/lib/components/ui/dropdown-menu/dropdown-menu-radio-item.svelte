@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { cn } from "$lib/utils.js";
   import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
   import DotFilled from "svelte-radix/DotFilled.svelte";
-  import { cn } from "$lib/utils.js";
 
   type $$Props = DropdownMenuPrimitive.RadioItemProps;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type $$Events = DropdownMenuPrimitive.RadioItemEvents;
 
   let className: $$Props["class"] = undefined;

@@ -4,6 +4,7 @@
   import { buttonVariants } from ".";
 
   type $$Props = AlertDialogPrimitive.ActionProps;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type $$Events = AlertDialogPrimitive.ActionEvents;
 
   let className: $$Props["class"] = undefined;

@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { cn } from "$lib/utils.js";
   import { Button as ButtonPrimitive } from "bits-ui";
   import { type Events, type Props, buttonVariants } from "./index.js";
-  import { cn } from "$lib/utils.js";
 
   type $$Props = Props;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type $$Events = Events;
 
   let className: $$Props["class"] = undefined;

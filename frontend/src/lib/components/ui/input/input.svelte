@@ -4,6 +4,7 @@
   import type { InputEvents } from "./index.js";
 
   type $$Props = HTMLInputAttributes;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type $$Events = InputEvents;
 
   let className: $$Props["class"] = undefined;

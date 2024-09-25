@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
   import { cn } from "$lib/utils.js";
+  import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
 
   type $$Props = DropdownMenuPrimitive.ItemProps & {
     inset?: boolean;
   };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type $$Events = DropdownMenuPrimitive.ItemEvents;
 
   let className: $$Props["class"] = undefined;

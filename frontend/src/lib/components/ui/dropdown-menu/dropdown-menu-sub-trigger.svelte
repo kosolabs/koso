@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { cn } from "$lib/utils.js";
   import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
   import ChevronRight from "svelte-radix/ChevronRight.svelte";
-  import { cn } from "$lib/utils.js";
 
   type $$Props = DropdownMenuPrimitive.SubTriggerProps & {
     inset?: boolean;
   };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type $$Events = DropdownMenuPrimitive.SubTriggerEvents;
 
   let className: $$Props["class"] = undefined;
