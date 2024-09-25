@@ -1,6 +1,5 @@
-import { writable } from "svelte/store";
 import { page } from "$app/stores";
-import { get } from "svelte/store";
+import { get, writable } from "svelte/store";
 
 const ON_LOGIN_REDIRECT_KEY = "login-redirect";
 const DO_NOT_REDIRECT = "DO_NOT";
@@ -37,7 +36,7 @@ onLoginRedirect.subscribe((redirect) => {
 // in order to prevent setRedirectOnUserNotAuthenticated from
 // redirecting the user back to where they were on login.
 export function disableRedirectOnLogOut() {
-  console.log("Disabling redirect on log out.");
+  console.debug("Disabling redirect on log out.");
   onLoginRedirect.update(() => DO_NOT_REDIRECT);
 }
 
@@ -47,7 +46,7 @@ export function disableRedirectOnLogOut() {
 export function pushRedirectOnUserNotAuthenticated() {
   if (get(onLoginRedirect) === DO_NOT_REDIRECT) {
     onLoginRedirect.update(() => null);
-    console.log(
+    console.debug(
       "User isn't logged in and DO_NOT_REDIRECT is set. Going to / without a redirect destination.",
     );
     return;
@@ -55,7 +54,7 @@ export function pushRedirectOnUserNotAuthenticated() {
 
   const redirect = get(page).url.pathname;
   onLoginRedirect.update(() => redirect);
-  console.log(
+  console.debug(
     `User isn't logged in. Going to / with redirect destination ${redirect}`,
   );
 }
