@@ -290,7 +290,7 @@ export class Koso {
       return null;
     }
 
-    for (const peer of peers.slice(0, offset).reverse()) {
+    for (const peer of peers.slice(0, prevPeerOffset + 1).reverse()) {
       const peerNode = parent.child(peer);
       if (this.isVisible(peerNode)) {
         return peerNode;
@@ -308,7 +308,8 @@ export class Koso {
     if (nextPeerOffset > peers.length - 1) {
       return null;
     }
-    for (const peer of peers.slice(offset + 1)) {
+
+    for (const peer of peers.slice(nextPeerOffset)) {
       const peerNode = parent.child(peer);
       if (this.isVisible(peerNode)) {
         return peerNode;
