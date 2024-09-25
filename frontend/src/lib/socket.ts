@@ -54,7 +54,7 @@ export class KosoSocket {
       (this.socket.readyState == WebSocket.OPEN ||
         this.socket.readyState == WebSocket.CONNECTING)
     ) {
-      console.log("Socket already connected");
+      console.debug("Socket already connected");
       return;
     }
     if (this.shutdown) {
@@ -68,7 +68,7 @@ export class KosoSocket {
     socket.binaryType = "arraybuffer";
 
     socket.onopen = (event) => {
-      console.log("WebSocket opened", event);
+      console.debug("WebSocket opened", event);
       this.#setOnline();
       this.koso.handleClientMessage((update) => {
         if (socket.readyState == WebSocket.OPEN) {
@@ -86,24 +86,24 @@ export class KosoSocket {
       if (event.data instanceof ArrayBuffer) {
         this.koso.handleServerMessage(new Uint8Array(event.data));
       } else {
-        console.log("Received text frame from server:", event.data);
+        console.debug("Received text frame from server:", event.data);
       }
     };
     socket.onerror = (event) => {
-      console.log("WebSocket errored", event);
+      console.debug("WebSocket errored", event);
       // Errors also trigger onclose events so handle everything there.
     };
     socket.onclose = (event) => {
       // Sometimes onclose events are delayed while, in the meantime,
       // a new socket was opened.
       if (this.socket && this.socket != socket) {
-        console.log("Socket already reopened");
+        console.debug("Socket already reopened");
         return;
       }
 
       this.#setOffline();
       if (this.shutdown) {
-        console.log(
+        console.debug(
           `WebSocket closed in onDestroy. Code: ${event.code}, Reason: '${event.reason}' Will not try to reconnect`,
           event,
         );
@@ -112,7 +112,7 @@ export class KosoSocket {
 
       const UNAUTHORIZED = 3000;
       if (event.code === UNAUTHORIZED) {
-        console.log(
+        console.debug(
           `Unauthorized, WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. `,
           event,
         );
@@ -126,13 +126,13 @@ export class KosoSocket {
       if (event.code === OVERLOADED) {
         // In case of overload, don't retry aggressively.
         backoffMs = this.#backoffOnReconnect(30000);
-        console.log(
+        console.debug(
           `Overloaded WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
           event,
         );
       } else {
         backoffMs = this.#backoffOnReconnect();
-        console.log(
+        console.debug(
           `WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. Will try to reconnect in ${backoffMs} ms.`,
           event,
         );
@@ -150,12 +150,12 @@ export class KosoSocket {
   }
 
   async #handleOnline(event: Event) {
-    console.log("Online.", event);
+    console.debug("Online.", event);
     await this.openWebSocket();
   }
 
   #handleOffline(event: Event) {
-    console.log("Offline.", event);
+    console.debug("Offline.", event);
     this.#setOffline(1);
     if (this.socket) {
       const socket = this.socket;

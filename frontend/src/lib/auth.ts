@@ -43,7 +43,7 @@ export const user = derived(token, (token) => {
   }
   setTimeout(
     () => {
-      console.log("Logging the user out at token expiry");
+      console.debug("Logging the user out at token expiry");
       logout();
     },
     // Avoid exceeding setTimeout's max delay.

@@ -26,14 +26,14 @@
     // clear the redirect and go there.
     const redirect = popRedirectOnLogin();
     if (redirect) {
-      console.log(`Going to prior page: ${redirect}`);
+      console.debug(`Going to prior page: ${redirect}`);
       await goto(redirect);
       return;
     }
 
     // Go to the previously viewed project, if there is one.
     if ($lastVisitedProjectId) {
-      console.log(`Going to last visited project: ${$lastVisitedProjectId}`);
+      console.debug(`Going to last visited project: ${$lastVisitedProjectId}`);
       await goto(`/projects/${$lastVisitedProjectId}`);
       return;
     }
@@ -42,13 +42,13 @@
     const projects = await fetchProjects($token);
     if (projects.length == 1) {
       const onlyProjectId = projects[0].project_id;
-      console.log(`Going to singular project: ${onlyProjectId}`);
+      console.debug(`Going to singular project: ${onlyProjectId}`);
       await goto(`/projects/${onlyProjectId}`);
       return;
     }
 
     // If there's no better choice, go to the projects page.
-    console.log("Going to /projects");
+    console.debug("Going to /projects");
     await goto(`/projects`);
   }
 

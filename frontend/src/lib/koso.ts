@@ -1,6 +1,7 @@
 import { List, Map, Record, Set } from "immutable";
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
+import { toast } from "svelte-sonner";
 import {
   derived,
   get,
@@ -14,7 +15,6 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
 import { storable } from "./stores";
-import { toast } from "svelte-sonner";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -536,7 +536,7 @@ export class Koso {
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
       if (debug) {
-        console.log(
+        console.debug(
           `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
       }
@@ -630,7 +630,7 @@ export class Koso {
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
       if (debug) {
-        console.log(
+        console.debug(
           `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
       }
