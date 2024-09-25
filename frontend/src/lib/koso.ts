@@ -28,8 +28,6 @@ const MSG_SYNC_UPDATE = 2;
 type NodeProps = { path: List<string> };
 const NodeRecord = Record<NodeProps>({ path: List() });
 
-const DONE_INIT = new Date(`2011-04-11T10:20:30Z`);
-
 export class Node extends NodeRecord {
   static get separator() {
     return "/";
@@ -74,6 +72,8 @@ export type Task = {
   assignee: string | null;
   reporter: string | null;
   status: Status | null;
+  // Time, in milliseconds since the unix epoch,
+  // when the `status` field was last modified.
   statusTime: number | null;
 };
 
@@ -894,15 +894,19 @@ export class Koso {
     this.undoManager.redo();
   }
 
-  DONE_INIT = new Date(`2024-09-19T10:00:00Z`);
-
   isVisible(node: Node) {
     const task = this.getTask(node.name);
-
     if (task.status === "Done") {
-      const now = new Date();
-      const doneTime = task.statusTime ? new Date(task.statusTime) : DONE_INIT;
-      return doneTime.valueOf() - now.valueOf() < 3 * 24 * 60 * 60 * 1000;
+      // Tasks marked done prior to the addition of statusTime
+      // won't have a statusTime set. Assume they were all marked done
+      // on the day when statusTime was enabled so they drop off after
+      // a few days.
+      const doneTime = task.statusTime
+        ? new Date(task.statusTime)
+        : new Date(`2024-09-24T08:00:00Z`);
+      const doneDurationMs = doneTime.valueOf() - new Date().valueOf();
+      const threeDays = 3 * 24 * 60 * 60 * 1000;
+      return doneDurationMs < threeDays;
     }
     return true;
   }
