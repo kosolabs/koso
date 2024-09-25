@@ -1,6 +1,10 @@
 <script lang="ts">
+  import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+  } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { Avatar, AvatarFallback, AvatarImage } from "$lib/ui/avatar";
   import { Input } from "$lib/ui/input";
   import { UserRound } from "lucide-svelte";
   import { createEventDispatcher } from "svelte";
@@ -33,14 +37,11 @@
     class="flex items-center gap-2"
     title={value?.email || "Unassigned"}
   >
-    <Avatar class="size-6">
-      {#if value && value.picture}
-        <AvatarImage src={value.picture} class="rounded" />
-      {:else}
-        <AvatarFallback class="rounded">
-          <UserRound />
-        </AvatarFallback>
-      {/if}
+    <Avatar class="size-6 rounded">
+      <AvatarImage src={value?.picture || ""} />
+      <AvatarFallback>
+        <UserRound />
+      </AvatarFallback>
     </Avatar>
     <div class="whitespace-nowrap max-sm:hidden">
       {value?.name || unassigned}

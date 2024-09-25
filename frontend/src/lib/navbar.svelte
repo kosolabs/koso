@@ -1,10 +1,10 @@
 <script lang="ts">
   import kosoLogo from "$lib/assets/koso.svg";
   import { logout, user } from "$lib/auth";
+  import { Avatar, AvatarImage } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { resetMode, setMode } from "mode-watcher";
   import DropdownMenuMonitoredRoot from "./popover-monitors/dropdown-menu-monitored-root.svelte";
-  import { Avatar, AvatarImage } from "./ui/avatar";
   import UserAvatar from "./user-avatar.svelte";
 </script>
 
@@ -23,9 +23,9 @@
       <DropdownMenuMonitoredRoot>
         <DropdownMenu.Trigger>
           <Avatar
-            class="size-9 transition-all hover:brightness-110 active:scale-95"
+            class="size-9 rounded transition-all hover:brightness-110 active:scale-95"
           >
-            <AvatarImage src={$user.picture} class="rounded" />
+            <AvatarImage src={$user.picture} />
           </Avatar>
         </DropdownMenu.Trigger>
         <DropdownMenu.Content>
