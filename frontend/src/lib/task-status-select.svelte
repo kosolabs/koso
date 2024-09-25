@@ -11,6 +11,7 @@
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
 
   export let value: Status | null;
+  export let closeFocus: HTMLElement;
 
   let showConfetti: boolean = false;
 
@@ -21,7 +22,7 @@
   }
 </script>
 
-<DropdownMenuMonitoredRoot>
+<DropdownMenuMonitoredRoot {closeFocus}>
   <DropdownMenu.Trigger class="flex items-center gap-2">
     <TaskStatusIcon status={value} />
     <ResponsiveText>{value || "Not Started"}</ResponsiveText>

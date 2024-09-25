@@ -17,6 +17,7 @@
   export let users: User[];
   export let value: User | null = null;
   export let unassigned: string = "Unassigned";
+  export let closeFocus: HTMLElement;
 
   let filter: string = "";
 
@@ -32,7 +33,7 @@
   );
 </script>
 
-<DropdownMenuMonitoredRoot>
+<DropdownMenuMonitoredRoot {closeFocus}>
   <DropdownMenu.Trigger
     class="flex items-center gap-2"
     title={value?.email || "Unassigned"}
