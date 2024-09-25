@@ -5,6 +5,7 @@
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
+  import { Editable } from "$lib/components/ui/editable";
   import { DagTable } from "$lib/dag-table";
   import { Koso } from "$lib/koso";
   import { lastVisitedProjectId } from "$lib/nav";
@@ -16,7 +17,6 @@
     updateProject,
   } from "$lib/projects";
   import { KosoSocket } from "$lib/socket";
-  import { Editable } from "$lib/ui/editable";
   import { UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import * as Y from "yjs";
