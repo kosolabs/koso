@@ -1,12 +1,15 @@
 <script lang="ts">
   import { mode } from "mode-watcher";
-  import { Toaster, type ToasterProps } from "svelte-sonner";
+  import {
+    Toaster as Sonner,
+    type ToasterProps as SonnerProps,
+  } from "svelte-sonner";
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  type $$Props = ToasterProps;
+  type $$Props = SonnerProps;
 </script>
 
-<Toaster
+<Sonner
   theme={$mode}
   class="toaster group"
   toastOptions={{

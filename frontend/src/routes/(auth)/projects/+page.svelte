@@ -2,13 +2,13 @@
   import { goto } from "$app/navigation";
   import { token, user } from "$lib/auth";
   import { Alert } from "$lib/components/ui/alert";
+  import { Button } from "$lib/components/ui/button";
   import Navbar from "$lib/navbar.svelte";
   import {
     fetchProjects,
     createProject as projectsCreateProject,
     type Project,
   } from "$lib/projects";
-  import { A, Button } from "$lib/ui/button";
   import { Layers } from "lucide-svelte";
   import { onMount } from "svelte";
 
@@ -72,9 +72,13 @@
       >
         {#each projects as project}
           <div class="border-t p-2">
-            <A class="text-lg" href="projects/{project.project_id}">
+            <Button
+              variant="link"
+              class="text-lg"
+              href="projects/{project.project_id}"
+            >
               {project.name}
-            </A>
+            </Button>
           </div>
         {/each}
       </div>

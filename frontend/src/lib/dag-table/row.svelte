@@ -1,13 +1,17 @@
 <script lang="ts">
   import type { User } from "$lib/auth";
   import CircularProgressStatus from "$lib/circular-progress-status.svelte";
+  import {
+    Chip,
+    parseChipProps,
+    type ChipProps,
+  } from "$lib/components/ui/chip";
+  import { Editable } from "$lib/components/ui/editable";
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import type { Koso } from "$lib/koso";
   import { globalKeybindingsEnabled } from "$lib/popover-monitors";
   import TaskStatusSelect from "$lib/task-status-select.svelte";
-  import { Chip, parseChipProps, type ChipProps } from "$lib/ui/chip";
-  import Editable from "$lib/ui/editable/editable.svelte";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";

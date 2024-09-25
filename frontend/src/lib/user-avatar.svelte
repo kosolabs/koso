@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { Avatar, AvatarFallback, AvatarImage } from "$lib/ui/avatar";
+  import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+  } from "$lib/components/ui/avatar";
   import { UserRound } from "lucide-svelte";
   import type { User } from "./auth";
 
@@ -7,14 +11,11 @@
 </script>
 
 <div class="flex items-center gap-2 text-left">
-  <Avatar>
-    {#if user.picture}
-      <AvatarImage class="rounded" src={user.picture} alt={user.email} />
-    {:else}
-      <AvatarFallback class="rounded">
-        <UserRound />
-      </AvatarFallback>
-    {/if}
+  <Avatar class="rounded">
+    <AvatarImage src={user.picture} alt={user.email} />
+    <AvatarFallback class="rounded">
+      <UserRound />
+    </AvatarFallback>
   </Avatar>
   <div class="flex flex-col">
     <div class="text-sm">{user.name}</div>

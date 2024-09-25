@@ -2,21 +2,21 @@
   import { goto } from "$app/navigation";
   import { token, user, type User } from "$lib/auth";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
+  import { Input } from "$lib/components/ui/input";
   import * as Popover from "$lib/components/ui/popover";
+  import { logout_on_authentication_error } from "$lib/errors";
+  import { DialogMonitoredRoot } from "$lib/popover-monitors";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectPermissions,
     type Project,
   } from "$lib/projects";
-  import { Button } from "$lib/ui/button";
-  import { Input } from "$lib/ui/input";
+  import UserAvatar from "$lib/user-avatar.svelte";
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
-  import { logout_on_authentication_error } from "../../../../lib/errors";
-  import { DialogMonitoredRoot } from "../../../../lib/popover-monitors";
-  import UserAvatar from "../../../../lib/user-avatar.svelte";
 
   export let open: boolean;
   export let project: Project | null;

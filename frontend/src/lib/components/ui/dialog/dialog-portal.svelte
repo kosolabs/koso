@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { Dialog as DialogPrimitive } from "bits-ui";
+  import { Dialog as DialogPrimitive } from "bits-ui";
 
-	type $$Props = DialogPrimitive.PortalProps;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  type $$Props = DialogPrimitive.PortalProps;
 </script>
 
 <DialogPrimitive.Portal {...$$restProps}>
-	<slot />
+  <slot />
 </DialogPrimitive.Portal>
