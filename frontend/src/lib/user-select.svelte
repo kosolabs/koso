@@ -1,16 +1,16 @@
 <script lang="ts">
+  import type { User } from "$lib/auth";
   import {
     Avatar,
     AvatarFallback,
     AvatarImage,
   } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { Input } from "$lib/ui/input";
+  import Input from "$lib/components/ui/input/input.svelte";
+  import { DropdownMenuMonitoredRoot } from "$lib/popover-monitors";
+  import UserAvatar from "$lib/user-avatar.svelte";
   import { UserRound } from "lucide-svelte";
   import { createEventDispatcher } from "svelte";
-  import type { User } from "./auth";
-  import { DropdownMenuMonitoredRoot } from "./popover-monitors";
-  import UserAvatar from "./user-avatar.svelte";
 
   const dispatch = createEventDispatcher<{ select: User | null }>();
 

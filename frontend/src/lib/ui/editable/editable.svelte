@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
-  import { Input } from "$lib/ui/input";
+  import { Input } from "$lib/components/ui/input";
   import { cn } from "$lib/utils";
   import { createEventDispatcher } from "svelte";
 
