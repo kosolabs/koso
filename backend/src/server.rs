@@ -5,9 +5,9 @@ use crate::api::{
 };
 use axum::{
     extract::{MatchedPath, Request},
-    http::HeaderName,
+    http::{HeaderName, HeaderValue},
     middleware::{self, Next},
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     Extension, Router,
 };
 use listenfd::ListenFd;
@@ -20,6 +20,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::{net::TcpListener, signal, sync::oneshot::Receiver, task::JoinHandle};
+use tower::builder::ServiceBuilder;
 use tower_http::{
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
     trace::MakeSpan,
@@ -88,7 +89,11 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             Extension(key_set),
             middleware::from_fn(google::authenticate),
         ))
-        .fallback_service(ServeDir::new("static").fallback(ServeFile::new("static/index.html")));
+        .fallback_service(
+            ServiceBuilder::new()
+                .layer(middleware::from_fn(set_immutable_cache_control))
+                .service(ServeDir::new("static").fallback(ServeFile::new("static/index.html"))),
+        );
 
     // We can either use a listener provided by the environment by ListenFd or
     // listen on a local port. The former is convenient when using `cargo watch`
@@ -210,4 +215,18 @@ impl<B> MakeSpan<B> for KosoMakeSpan {
             request_id = request_id,
         )
     }
+}
+
+// Built frontend files in /_app/immutable/ are immutable and never change.
+// Allow them to be cached as such.
+async fn set_immutable_cache_control(request: Request, next: Next) -> Response {
+    let is_immutable = request.uri().path().starts_with("/_app/immutable/");
+    let mut response = next.run(request).await;
+    if is_immutable && response.status().is_success() {
+        response.headers_mut().insert(
+            reqwest::header::CACHE_CONTROL,
+            HeaderValue::from_static("public, immutable, max-age=31536000"),
+        );
+    }
+    response
 }
