@@ -57,7 +57,6 @@
   $: {
     if (rowElement && node.equals($selected)) {
       rowElement.focus();
-      console.log(document.activeElement);
     }
   }
 
