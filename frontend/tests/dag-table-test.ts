@@ -103,6 +103,28 @@ test.describe.serial("dag table tests", () => {
       const tasks = getTaskNumToTaskIdMap(graph);
       expect(graph["root"].children).toStrictEqual([tasks["1"], tasks["2"]]);
     });
+
+    test("create a child task by presing Option+Shift+Enter on the task", async () => {
+      await init([{ id: "root", children: ["1"] }, { id: "1" }]);
+
+      await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.keyboard.press("Alt+Shift+Enter");
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
+      let graph = await getKosoGraph();
+      let tasks = getTaskNumToTaskIdMap(graph);
+      expect(graph["root"].children).toStrictEqual([tasks["1"]]);
+      expect(graph[tasks["1"]].children).toStrictEqual([tasks["2"]]);
+
+      await page.keyboard.press("Alt+Shift+Enter");
+      await expect(page.getByRole("row", { name: "Task 3" })).toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
+      graph = await getKosoGraph();
+      tasks = getTaskNumToTaskIdMap(graph);
+      expect(graph["root"].children).toStrictEqual([tasks["1"]]);
+      expect(graph[tasks["1"]].children).toStrictEqual([tasks["2"]]);
+      expect(graph[tasks["2"]].children).toStrictEqual([tasks["3"]]);
+    });
   });
 
   test.describe("deleting tasks", () => {
