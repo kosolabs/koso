@@ -20,7 +20,7 @@
     <slot name="right-items"></slot>
 
     {#if $user}
-      <DropdownMenuMonitoredRoot>
+      <DropdownMenuMonitoredRoot closeFocus={document.body}>
         <DropdownMenu.Trigger>
           <Avatar
             class="size-9 rounded transition-all hover:brightness-110 active:scale-95"

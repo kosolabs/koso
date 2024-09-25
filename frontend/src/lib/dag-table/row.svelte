@@ -322,6 +322,7 @@
     {#if task.children.length === 0}
       <TaskStatusSelect
         value={task.status}
+        closeFocus={rowElement}
         on:select={(event) => {
           koso.setTaskStatus(node, event.detail);
         }}
@@ -346,6 +347,7 @@
   <td class={cn("border-l border-t p-2")}>
     <UserSelect
       {users}
+      closeFocus={rowElement}
       value={assignee}
       on:select={(event) => {
         koso.setAssignee(task.id, event.detail);
@@ -355,6 +357,7 @@
   <td class={cn("border-l border-t p-2 max-sm:hidden")}>
     <UserSelect
       {users}
+      closeFocus={rowElement}
       value={reporter}
       on:select={(event) => {
         koso.setReporter(task.id, event.detail);
