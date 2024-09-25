@@ -85,6 +85,7 @@ export type Nodes = Map<string, Node>;
 export type Progress = {
   numer: number;
   denom: number;
+  lastStatusTime: number | null;
 };
 
 export type YTaskProps = Y.Array<string> | string | number | null;
@@ -875,14 +876,23 @@ export class Koso {
     const task = this.getTask(taskId);
     if (task.children.length === 0) {
       return task.status === "Done"
-        ? { numer: 1, denom: 1 }
-        : { numer: 0, denom: 1 };
+        ? { numer: 1, denom: 1, lastStatusTime: task.statusTime }
+        : { numer: 0, denom: 1, lastStatusTime: task.statusTime };
     }
-    const result = { numer: 0, denom: 0 };
+    const result: Progress = { numer: 0, denom: 0, lastStatusTime: null };
     task.children.forEach((taskId) => {
+      // If performance is ever an issue for large, nested graphs,
+      // we can memoize the recursive call and trade memory for time.
       const childProgress = this.getProgress(taskId);
       result.numer += childProgress.numer;
       result.denom += childProgress.denom;
+      if (
+        childProgress.lastStatusTime &&
+        (!result.lastStatusTime ||
+          result.lastStatusTime < childProgress.lastStatusTime)
+      ) {
+        result.lastStatusTime = childProgress.lastStatusTime;
+      }
     });
     return result;
   }
@@ -897,7 +907,9 @@ export class Koso {
 
   isVisible(node: Node) {
     const task = this.getTask(node.name);
-    if (task.status === "Done") {
+    const progress = this.getProgress(node.name);
+
+    if (progress.denom === progress.numer) {
       // Tasks marked done prior to the addition of statusTime
       // won't have a statusTime set. Assume they were all marked done
       // on the day when statusTime was enabled so they drop off after
