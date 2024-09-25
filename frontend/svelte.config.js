@@ -7,6 +7,11 @@ const config = {
 
   kit: {
     adapter: adapter({ fallback: "index.html" }),
+    version: {
+      // Configure how often in milliseconds version.json is polled to refresh the
+      // $updated store used to reload pages following deployments.
+      pollInterval: 60 * 1000,
+    },
   },
 };
 
