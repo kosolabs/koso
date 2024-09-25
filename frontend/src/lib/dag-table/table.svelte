@@ -125,6 +125,7 @@
   const registry = new KeyHandlerRegistry([
     [KeyBinding.INSERT_NODE, insert],
     [KeyBinding.REMOVE_NODE, remove],
+    [KeyBinding.INSERT_CHILD_NODE, insertChild],
     [KeyBinding.MOVE_NODE_UP, moveUp],
     [KeyBinding.MOVE_NODE_DOWN, moveDown],
     [KeyBinding.MOVE_NODE_ROW_UP, moveRowUp],

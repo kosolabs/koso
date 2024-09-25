@@ -40,6 +40,11 @@ export class KeyBinding extends KeyBindingRecord {
   static CANCEL_SELECTION = new KeyBinding({ key: "Escape" });
   static INSERT_NODE = new KeyBinding({ key: "Enter", shiftKey: true });
   static REMOVE_NODE = new KeyBinding({ key: "Delete" });
+  static INSERT_CHILD_NODE = new KeyBinding({
+    key: "Enter",
+    altKey: true,
+    shiftKey: true,
+  });
   static MOVE_NODE_UP = new KeyBinding({ key: "ArrowUp", altKey: true });
   static MOVE_NODE_DOWN = new KeyBinding({ key: "ArrowDown", altKey: true });
   static MOVE_NODE_ROW_UP = new KeyBinding({
