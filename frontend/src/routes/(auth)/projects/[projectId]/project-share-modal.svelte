@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { token, user, type User } from "$lib/auth";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
   import * as Popover from "$lib/components/ui/popover";
   import {
@@ -9,7 +10,6 @@
     updateProjectPermissions,
     type Project,
   } from "$lib/projects";
-  import { Button } from "$lib/ui/button";
   import { Input } from "$lib/ui/input";
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
   import { toast } from "svelte-sonner";
