@@ -7,6 +7,7 @@
   } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
+  import { KeyBinding } from "$lib/key-binding";
   import type { Koso, Node } from "$lib/koso";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
@@ -49,8 +50,6 @@
   $: tags = getTags($parents);
 
   $: isEditing = isSelected && $editing;
-
-  let taskNameEditable: Editable;
 
   $: {
     if (rowElement && node.equals($selected)) {
@@ -321,11 +320,18 @@
       {/each}
       <Editable
         value={task.name}
-        bind:this={taskNameEditable}
         aria-label={`Task ${task.num} Edit Name`}
         editing={isEditing}
         onsave={(name) => koso.setTaskName(task.id, name)}
         ondone={() => ($editing = false)}
+        onkeydown={(e) => {
+          if (
+            !KeyBinding.INSERT_NODE.matches(e) &&
+            !KeyBinding.INSERT_CHILD_NODE.matches(e)
+          ) {
+            e.stopPropagation();
+          }
+        }}
       />
     </div>
   </td>
