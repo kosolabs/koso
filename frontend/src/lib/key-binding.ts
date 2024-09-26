@@ -16,7 +16,7 @@ const KeyBindingRecord = Record<KeyBindingProps>({
 });
 
 export class KeyBinding extends KeyBindingRecord {
-  equals(event: KeyboardEvent): boolean {
+  matches(event: KeyboardEvent): boolean {
     return (
       this.key === event.key &&
       this.altKey === event.altKey &&
@@ -36,6 +36,8 @@ export class KeyBinding extends KeyBindingRecord {
     });
   }
 
+  static SAVE_EDITABLE = new KeyBinding({ key: "Enter" });
+  static REVERT_EDITABLE = new KeyBinding({ key: "Escape" });
   static EDIT_NODE = new KeyBinding({ key: "Enter" });
   static CANCEL_SELECTION = new KeyBinding({ key: "Escape" });
   static INSERT_NODE = new KeyBinding({ key: "Enter", shiftKey: true });

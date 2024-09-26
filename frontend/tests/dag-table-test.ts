@@ -111,7 +111,6 @@ test.describe.serial("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Alt+Shift+Enter");
-      await page.keyboard.press("Escape");
       await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
 
       let graph = await getKosoGraph();
@@ -120,7 +119,6 @@ test.describe.serial("dag table tests", () => {
       expect(graph[tasks["1"]].children).toStrictEqual([tasks["2"]]);
 
       await page.keyboard.press("Alt+Shift+Enter");
-      await page.keyboard.press("Escape");
       await expect(page.getByRole("row", { name: "Task 3" })).toBeVisible();
 
       graph = await getKosoGraph();

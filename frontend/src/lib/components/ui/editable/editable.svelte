@@ -1,6 +1,8 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
+  import { KeyBinding } from "$lib/key-binding";
+  import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import { cn } from "$lib/utils";
 
   type Props = {
@@ -24,20 +26,24 @@
 
   let edited: string = $state(value);
 
+  const registry = new KeyHandlerRegistry([
+    [KeyBinding.SAVE_EDITABLE, save],
+    [KeyBinding.REVERT_EDITABLE, revert],
+  ]);
+
   function handleInputKeydown(event: KeyboardEvent) {
-    event.stopPropagation();
-
-    if (event.key === "Escape") {
-      revert();
-      event.preventDefault();
-      return;
-    }
-
-    if (event.key === "Enter") {
+    if (
+      KeyBinding.INSERT_NODE.matches(event) ||
+      KeyBinding.INSERT_CHILD_NODE.matches(event)
+    ) {
       save();
       event.preventDefault();
       return;
     }
+
+    // Events after here will not bubble
+    event.stopPropagation();
+    registry.handle(event);
   }
 
   function handleButtonClick(event: MouseEvent) {
