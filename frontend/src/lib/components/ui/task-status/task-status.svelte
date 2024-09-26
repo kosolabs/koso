@@ -1,9 +1,12 @@
 <script lang="ts">
-  import ResponsiveText from "./responsive-text.svelte";
-  import TaskStatusIcon from "./task-status-icon.svelte";
+  import { ResponsiveText } from "$lib/components/ui/responsive-text";
+  import { TaskStatusIcon } from ".";
 
-  export let done: number;
-  export let total: number;
+  type Props = {
+    done: number;
+    total: number;
+  };
+  const { done, total }: Props = $props();
 </script>
 
 <div

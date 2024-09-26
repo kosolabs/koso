@@ -1,9 +1,12 @@
 <script lang="ts">
   import { CircularProgress } from "$lib/components/ui/circular-progress";
+  import type { Status } from "$lib/koso";
   import { CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
-  import type { Status } from "./koso";
 
-  export let status: Status | number | null;
+  type Props = {
+    status: Status | number | null;
+  };
+  const { status }: Props = $props();
 </script>
 
 {#if status === "Done" || status === 1}

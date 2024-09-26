@@ -1,17 +1,16 @@
 <script lang="ts">
   import type { User } from "$lib/auth";
-  import CircularProgressStatus from "$lib/circular-progress-status.svelte";
   import {
     Chip,
     parseChipProps,
     type ChipProps,
   } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
+  import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import type { Koso } from "$lib/koso";
   import { globalKeybindingsEnabled } from "$lib/popover-monitors";
-  import TaskStatusSelect from "$lib/task-status-select.svelte";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
@@ -323,12 +322,12 @@
       <TaskStatusSelect
         value={task.status}
         closeFocus={rowElement}
-        on:select={(event) => {
-          koso.setTaskStatus(node, event.detail);
+        onselect={(status) => {
+          koso.setTaskStatus(node, status);
         }}
       />
     {:else}
-      <CircularProgressStatus done={progress.numer} total={progress.denom} />
+      <TaskStatus done={progress.numer} total={progress.denom} />
     {/if}
   </td>
   <td class={cn("border-l border-t px-2")}>
