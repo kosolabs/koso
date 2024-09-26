@@ -931,13 +931,10 @@ export class Koso {
       if (progress.denom === progress.numer) {
         // Tasks marked done prior to the addition of statusTime
         // won't have a statusTime set. Assume they were all marked done
-        // on the day when statusTime was enabled so they drop off after
-        // a few days.
-        const doneTime = progress.lastStatusTime
-          ? progress.lastStatusTime
-          : new Date(`2024-09-24T08:00:00Z`).valueOf();
+        // a long time ago.
+        const doneTime = progress.lastStatusTime ? progress.lastStatusTime : 0;
         const threeDays = 3 * 24 * 60 * 60 * 1000;
-        return new Date().valueOf() - doneTime < threeDays;
+        return Date.now() - doneTime < threeDays;
       }
     }
     return true;
