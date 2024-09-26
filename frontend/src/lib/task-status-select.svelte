@@ -1,11 +1,12 @@
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { Portal } from "$lib/components/ui/portal";
+  import type { Status } from "$lib/koso";
+  import { DropdownMenuMonitoredRoot } from "$lib/popover-monitors";
+  import ResponsiveText from "$lib/responsive-text.svelte";
+  import TaskStatusIcon from "$lib/task-status-icon.svelte";
   import { createEventDispatcher } from "svelte";
   import Confetti from "svelte-confetti";
-  import type { Status } from "./koso";
-  import { DropdownMenuMonitoredRoot } from "./popover-monitors";
-  import ResponsiveText from "./responsive-text.svelte";
-  import TaskStatusIcon from "./task-status-icon.svelte";
 
   const dispatch = createEventDispatcher<{ select: Status }>();
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
@@ -41,5 +42,9 @@
 </DropdownMenuMonitoredRoot>
 
 {#if showConfetti}
-  <div class="fixed left-1/2 top-1/2"><Confetti /></div>
+  <Portal>
+    <div class="fixed left-1/2 top-1/2">
+      <Confetti />
+    </div>
+  </Portal>
 {/if}
