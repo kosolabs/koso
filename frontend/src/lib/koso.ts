@@ -72,6 +72,9 @@ export type Task = {
   assignee: string | null;
   reporter: string | null;
   status: Status | null;
+  // Time, in milliseconds since the unix epoch,
+  // when the `status` field was last modified.
+  statusTime: number | null;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,12 +85,16 @@ export type Nodes = Map<string, Node>;
 export type Progress = {
   numer: number;
   denom: number;
+  lastStatusTime: number | null;
 };
+
+export type YTaskProps = Y.Array<string> | string | number | null;
+export type YTask = Y.Map<YTaskProps>;
 
 export class Koso {
   yDoc: Y.Doc;
   undoManager: Y.UndoManager;
-  yGraph: Y.Map<Y.Map<Y.Array<string> | string | null>>;
+  yGraph: Y.Map<YTask>;
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
 
@@ -99,6 +106,7 @@ export class Koso {
   dropEffect: Writable<"copy" | "move" | "none">;
   dragged: Writable<Node | null>;
   expanded: Writable<Set<Node>>;
+  showDone: Writable<boolean>;
   nodes: Readable<List<Node>>;
   parents: Readable<Map<string, string[]>>;
 
@@ -147,9 +155,17 @@ export class Koso {
       (nodes) => JSON.stringify(nodes.map((node) => node.id)),
     );
 
+    const showDoneLocalStorageKey = `show-done-${projectId}`;
+    this.showDone = storable<boolean>(
+      showDoneLocalStorageKey,
+      false,
+      (s: string) => s === "true",
+      (b) => (b ? "true" : "false"),
+    );
+
     this.nodes = derived(
-      [this.expanded, this.events],
-      ([expanded]): List<Node> => {
+      [this.expanded, this.showDone, this.events],
+      ([expanded, showDone]): List<Node> => {
         // The nodes store is consistently initialized prior to the ygraph
         // being loaded, but #flatten expects the presence of at least a
         // "root" task. Handle the situation here to avoid generating warnings
@@ -157,7 +173,7 @@ export class Koso {
         if (this.yGraph.size === 0) {
           return List();
         }
-        return this.#flatten(new Node(), expanded);
+        return this.#flatten(new Node(), expanded, showDone);
       },
     );
   }
@@ -232,17 +248,26 @@ export class Koso {
     this.expanded.update(($expanded) => $expanded.delete(node));
   }
 
+  setShowDone(showDone: boolean) {
+    this.showDone.set(showDone);
+  }
+
   #flatten(
     node: Node,
     expanded: Set<Node>,
+    showDone: boolean,
     nodes: List<Node> = List(),
   ): List<Node> {
+    if (!this.isVisible(node, showDone)) {
+      return nodes;
+    }
+
     const task = this.yGraph.get(node.name);
     if (task) {
       nodes = nodes.push(node);
       if (node.length < 1 || expanded.has(node)) {
         (task.get("children") as Y.Array<string>).forEach((name) => {
-          nodes = this.#flatten(node.child(name), expanded, nodes);
+          nodes = this.#flatten(node.child(name), expanded, showDone, nodes);
         });
       }
     } else {
@@ -271,28 +296,50 @@ export class Koso {
   }
 
   getPrevPeer(node: Node): Node | null {
-    const peers = this.getChildren(node.parent.name);
+    const parent = node.parent;
+    const peers = this.getChildren(parent.name);
     const offset = peers.indexOf(node.name);
     if (offset === -1) throw new Error(`Node ${node.name} not found in parent`);
     const prevPeerOffset = offset - 1;
     if (prevPeerOffset < 0) {
       return null;
     }
-    return node.parent.child(peers[prevPeerOffset]);
+
+    // Find the nearest prior peer that isn't filtered out.
+    const nodes = get(this.nodes);
+    for (const peer of peers.slice(0, prevPeerOffset + 1).reverse()) {
+      const peerNode = parent.child(peer);
+      // TODO: This call to includes, and the one in getNextPeer, could be optimized
+      // to avoid iterating over the entire nodes list repeatedly.
+      if (nodes.includes(peerNode)) {
+        return peerNode;
+      }
+    }
+    return null;
   }
 
   getNextPeer(node: Node): Node | null {
-    const peers = this.getChildren(node.parent.name);
+    const parent = node.parent;
+    const peers = this.getChildren(parent.name);
     const offset = peers.indexOf(node.name);
     if (offset === -1) throw new Error(`Node ${node.name} not found in parent`);
     const nextPeerOffset = offset + 1;
     if (nextPeerOffset > peers.length - 1) {
       return null;
     }
-    return node.parent.child(peers[nextPeerOffset]);
+
+    // Find the nearest next peer that isn't filtered out.
+    const nodes = get(this.nodes);
+    for (const peer of peers.slice(nextPeerOffset)) {
+      const peerNode = parent.child(peer);
+      if (nodes.includes(peerNode)) {
+        return peerNode;
+      }
+    }
+    return null;
   }
 
-  #getYTask(taskId: string): Y.Map<string | Y.Array<string> | null> {
+  #getYTask(taskId: string): YTask {
     const yTask = this.yGraph.get(taskId);
     if (!yTask) throw new Error(`Task ID ${taskId} not found in yGraph`);
     return yTask;
@@ -357,13 +404,14 @@ export class Koso {
       reporter: null,
       assignee: null,
       status: null,
+      statusTime: null,
     });
   }
 
   upsert(task: Task) {
     this.yGraph.set(
       task.id,
-      new Y.Map<Y.Array<string> | string | null>([
+      new Y.Map<YTaskProps>([
         ["id", task.id],
         ["num", task.num],
         ["name", task.name],
@@ -371,6 +419,7 @@ export class Koso {
         ["reporter", task.reporter],
         ["assignee", task.assignee],
         ["status", task.status],
+        ["statusTime", task.statusTime],
       ]),
     );
   }
@@ -496,6 +545,9 @@ export class Koso {
   }
 
   moveNode(node: Node, parent: string, offset: number) {
+    if (offset < 0) {
+      throw new Error(`Cannot move  ${node.name} to negative offset ${offset}`);
+    }
     if (!this.canMove(node, parent))
       throw new Error(`Cannot move ${node.name} to ${parent}`);
     const srcOffset = this.getOffset(node);
@@ -512,16 +564,18 @@ export class Koso {
   }
 
   moveNodeUp(node: Node) {
-    const offset = this.getOffset(node);
-    if (offset < 1) return;
-    this.moveNode(node, node.parent.name, offset - 1);
+    const prevPeer = this.getPrevPeer(node);
+    if (!prevPeer) return;
+    const offset = this.getOffset(prevPeer);
+    this.moveNode(node, node.parent.name, offset);
     this.selected.set(node);
   }
 
   moveNodeDown(node: Node) {
-    const offset = this.getOffset(node);
-    if (offset >= this.getChildCount(node.parent.name) - 1) return;
-    this.moveNode(node, node.parent.name, offset + 2);
+    const nextPeer = this.getNextPeer(node);
+    if (!nextPeer) return;
+    const offset = this.getOffset(nextPeer);
+    this.moveNode(node, node.parent.name, offset + 1);
     this.selected.set(node);
   }
 
@@ -730,8 +784,6 @@ export class Koso {
   }
 
   indentNode(node: Node) {
-    const offset = this.getOffset(node);
-    if (offset < 1) return;
     const peer = this.getPrevPeer(node);
     if (!peer || !this.canIndentNode(node)) return;
     this.moveNode(node, peer.name, this.getChildCount(peer.name));
@@ -740,14 +792,14 @@ export class Koso {
   }
 
   canUndentNode(node: Node) {
+    if (node.length < 2) return false;
     return this.canMove(node, node.parent.parent.name);
   }
 
   undentNode(node: Node) {
-    if (node.length < 2) return;
+    if (!this.canUndentNode(node)) return;
     const parent = node.parent;
     const offset = this.getOffset(parent);
-    if (!this.canUndentNode(node)) return;
     this.moveNode(node, parent.parent.name, offset + 1);
     this.selected.set(parent.parent.child(node.name));
   }
@@ -768,6 +820,7 @@ export class Koso {
         reporter: user.email,
         assignee: null,
         status: null,
+        statusTime: null,
       });
       this.#insertChild(taskId, parent.name, offset);
     });
@@ -810,7 +863,7 @@ export class Koso {
     });
   }
 
-  setTaskStatus(node: Node, status: Status | null) {
+  setTaskStatus(node: Node, status: Status) {
     const taskId = node.name;
     this.yDoc.transact(() => {
       const yNode = this.yGraph.get(taskId);
@@ -818,6 +871,7 @@ export class Koso {
       if (yNode.get("status") === status) return;
 
       yNode.set("status", status);
+      yNode.set("statusTime", Date.now());
       // When a task is marked done, make it the last child
       // and select an adjacent peer.
       if (status === "Done") {
@@ -842,14 +896,23 @@ export class Koso {
     const task = this.getTask(taskId);
     if (task.children.length === 0) {
       return task.status === "Done"
-        ? { numer: 1, denom: 1 }
-        : { numer: 0, denom: 1 };
+        ? { numer: 1, denom: 1, lastStatusTime: task.statusTime }
+        : { numer: 0, denom: 1, lastStatusTime: task.statusTime };
     }
-    const result = { numer: 0, denom: 0 };
+    const result: Progress = { numer: 0, denom: 0, lastStatusTime: null };
     task.children.forEach((taskId) => {
+      // If performance is ever an issue for large, nested graphs,
+      // we can memoize the recursive call and trade memory for time.
       const childProgress = this.getProgress(taskId);
       result.numer += childProgress.numer;
       result.denom += childProgress.denom;
+      if (
+        childProgress.lastStatusTime &&
+        (!result.lastStatusTime ||
+          childProgress.lastStatusTime > result.lastStatusTime)
+      ) {
+        result.lastStatusTime = childProgress.lastStatusTime;
+      }
     });
     return result;
   }
@@ -860,5 +923,20 @@ export class Koso {
 
   redo() {
     this.undoManager.redo();
+  }
+
+  isVisible(node: Node, showDone: boolean) {
+    if (!showDone) {
+      const progress = this.getProgress(node.name);
+      if (progress.denom === progress.numer) {
+        // Tasks marked done prior to the addition of statusTime
+        // won't have a statusTime set. Assume they were all marked done
+        // a long time ago.
+        const doneTime = progress.lastStatusTime ? progress.lastStatusTime : 0;
+        const threeDays = 3 * 24 * 60 * 60 * 1000;
+        return Date.now() - doneTime < threeDays;
+      }
+    }
+    return true;
   }
 }

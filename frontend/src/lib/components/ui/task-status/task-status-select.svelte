@@ -11,10 +11,16 @@
 
   type Props = {
     value: Status | null;
+    statusTime: Date | null;
     closeFocus: HTMLElement;
     onselect: (status: Status) => void;
   };
-  let { value = $bindable(), closeFocus, onselect }: Props = $props();
+  let {
+    value = $bindable(),
+    statusTime,
+    closeFocus,
+    onselect,
+  }: Props = $props();
   let showConfetti: boolean = $state(false);
 
   function select(status: Status) {
@@ -25,7 +31,11 @@
 </script>
 
 <DropdownMenuMonitoredRoot {closeFocus}>
-  <DropdownMenu.Trigger class="flex items-center gap-2">
+  <DropdownMenu.Trigger
+    class="flex items-center gap-2"
+    title={(value || "Not Started") +
+      (statusTime ? " - " + statusTime.toLocaleString() : "")}
+  >
     <TaskStatusIcon status={value} />
     <ResponsiveText>{value || "Not Started"}</ResponsiveText>
   </DropdownMenu.Trigger>

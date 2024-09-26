@@ -7,6 +7,8 @@
   import ToolbarButton from "$lib/toolbar-button.svelte";
   import { cn } from "$lib/utils";
   import {
+    Eye,
+    EyeOff,
     IndentDecrease,
     IndentIncrease,
     ListPlus,
@@ -27,7 +29,7 @@
   export let koso: Koso;
   export let users: User[];
 
-  const { debug, editing, nodes, selected } = koso;
+  const { debug, editing, nodes, selected, showDone } = koso;
 
   function insert() {
     if (!$user) throw new Error("Unauthenticated");
@@ -98,6 +100,14 @@
   function collapse() {
     if (!$selected) return;
     koso.collapse($selected);
+  }
+
+  function showDoneTasks() {
+    koso.setShowDone(true);
+  }
+
+  function hideDoneTasks() {
+    koso.setShowDone(false);
   }
 
   function selectNext() {
@@ -183,6 +193,19 @@
   {/if}
   <ToolbarButton title="Undo" icon={Undo} on:click={undo} />
   <ToolbarButton title="Redo" icon={Redo} on:click={redo} />
+  {#if $showDone}
+    <ToolbarButton
+      title="Hide Done Tasks"
+      icon={EyeOff}
+      on:click={hideDoneTasks}
+    />
+  {:else}
+    <ToolbarButton
+      title="Show Done Tasks"
+      icon={Eye}
+      on:click={showDoneTasks}
+    />
+  {/if}
 </div>
 
 <div class="mb-12 p-2 sm:mb-0">

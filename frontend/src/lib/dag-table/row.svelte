@@ -304,6 +304,7 @@
     {#if task.children.length === 0}
       <TaskStatusSelect
         value={task.status}
+        statusTime={task.statusTime ? new Date(task.statusTime) : null}
         closeFocus={rowElement}
         onselect={(status) => {
           koso.setTaskStatus(node, status);

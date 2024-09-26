@@ -1,8 +1,9 @@
 import { List, Set } from "immutable";
 import * as encoding from "lib0/encoding";
 import { get } from "svelte/store";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
+import MockDate from "mockdate";
 import type { User } from "./auth";
 import { Koso, Node } from "./koso";
 
@@ -42,6 +43,7 @@ describe("Koso tests", () => {
         reporter: "t@koso.app",
         assignee: null,
         status: null,
+        statusTime: null,
       });
     });
 
@@ -408,12 +410,23 @@ describe("Koso tests", () => {
   });
 
   describe("getProgress", () => {
+    const initDate = new Date();
+
+    beforeEach(() => {
+      MockDate.set(initDate);
+    });
+
+    afterEach(() => {
+      MockDate.reset();
+    });
+
     it("leaf node that is not started has 0 of 1 progress", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
 
       expect(koso.getProgress(id1.name)).toEqual({
         numer: 0,
         denom: 1,
+        lastStatusTime: null,
       });
     });
 
@@ -424,6 +437,7 @@ describe("Koso tests", () => {
       expect(koso.getProgress(id1.name)).toEqual({
         numer: 0,
         denom: 1,
+        lastStatusTime: initDate.valueOf(),
       });
     });
 
@@ -434,6 +448,7 @@ describe("Koso tests", () => {
       expect(koso.getProgress(id1.name)).toEqual({
         numer: 1,
         denom: 1,
+        lastStatusTime: initDate.valueOf(),
       });
     });
 
@@ -445,6 +460,7 @@ describe("Koso tests", () => {
       expect(koso.getProgress(id1.name)).toEqual({
         numer: 0,
         denom: 2,
+        lastStatusTime: null,
       });
     });
 
@@ -458,6 +474,7 @@ describe("Koso tests", () => {
       expect(koso.getProgress(id1.name)).toEqual({
         numer: 0,
         denom: 2,
+        lastStatusTime: initDate.valueOf(),
       });
     });
 
@@ -471,6 +488,7 @@ describe("Koso tests", () => {
       expect(koso.getProgress(id1.name)).toEqual({
         numer: 1,
         denom: 2,
+        lastStatusTime: initDate.valueOf(),
       });
     });
   });
