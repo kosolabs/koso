@@ -1,10 +1,8 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { token, user, type User } from "$lib/auth";
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
-  import * as Dialog from "$lib/components/ui/dialog";
   import { Editable } from "$lib/components/ui/editable";
   import { DagTable } from "$lib/dag-table";
   import { Koso } from "$lib/koso";
@@ -21,6 +19,7 @@
   import { onDestroy, onMount } from "svelte";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
+  import UnauthorizedModal from "./unauthorized-modal.svelte";
 
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
@@ -130,26 +129,7 @@
   </div>
 {/if}
 
-<Dialog.Root bind:open={showUnauthorizedModal}>
-  <Dialog.Content>
-    <Dialog.Header>
-      <Dialog.Title>Unauthorized</Dialog.Title>
-      <Dialog.Description>
-        You do not have access to the project or the project does not exist.
-      </Dialog.Description>
-    </Dialog.Header>
-    <Dialog.Footer>
-      <Button
-        onclick={async () => {
-          // Don't redirect the user back to a project they don't have access too.
-          $lastVisitedProjectId = null;
-          await goto("/projects");
-        }}>Take me home</Button
-      >
-    </Dialog.Footer>
-  </Dialog.Content>
-</Dialog.Root>
-
+<UnauthorizedModal bind:open={showUnauthorizedModal} />
 <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
 
 <DagTable {koso} users={projectUsers} />

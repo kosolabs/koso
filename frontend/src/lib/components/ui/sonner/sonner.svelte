@@ -5,8 +5,8 @@
     type ToasterProps as SonnerProps,
   } from "svelte-sonner";
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  type $$Props = SonnerProps;
+  type Props = SonnerProps;
+  const { ...props }: Props = $props();
 </script>
 
 <Sonner
@@ -23,5 +23,5 @@
         "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
     },
   }}
-  {...$$restProps}
+  {...props}
 />
