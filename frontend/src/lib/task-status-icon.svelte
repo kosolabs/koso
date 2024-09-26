@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { CircularProgress } from "$lib/components/ui/circular-progress";
   import { CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
-  import CircularProgress from "./circular-progress.svelte";
   import type { Status } from "./koso";
 
   export let status: Status | number | null;
