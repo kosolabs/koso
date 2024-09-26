@@ -33,7 +33,8 @@
 <DropdownMenuMonitoredRoot {closeFocus}>
   <DropdownMenu.Trigger
     class="flex items-center gap-2"
-    title={statusTime ? statusTime.toLocaleString() : ""}
+    title={(value || "Not Started") +
+      (statusTime ? " - " + statusTime.toLocaleString() : "")}
   >
     <TaskStatusIcon status={value} />
     <ResponsiveText>{value || "Not Started"}</ResponsiveText>
