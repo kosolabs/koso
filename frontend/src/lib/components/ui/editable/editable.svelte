@@ -2,18 +2,27 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import { cn } from "$lib/utils";
-  import { createEventDispatcher } from "svelte";
 
-  const dispatch = createEventDispatcher<{ save: string }>();
+  type Props = {
+    value: string;
+    placeholder?: string;
+    editing?: boolean;
+    class?: string;
+    "aria-label"?: string;
+    onsave: (value: string) => void;
+    ondone?: () => void;
+  };
+  let {
+    value = $bindable(),
+    editing = $bindable(false),
+    placeholder = "Click to edit",
+    class: classes,
+    "aria-label": ariaLabel,
+    onsave,
+    ondone,
+  }: Props = $props();
 
-  export let value: string;
-  export let placeholder: string = "Click to edit";
-  export { classes as class };
-
-  let classes: string = "";
-  let edited: string | null = null;
-
-  const ariaLabel: string = $$props["aria-label"];
+  let edited: string = $state(value);
 
   function handleInputKeydown(event: KeyboardEvent) {
     event.stopPropagation();
@@ -39,22 +48,25 @@
 
   export function edit() {
     edited = value;
+    editing = true;
   }
 
   function save() {
     if (edited === null) return;
-    dispatch("save", edited);
+    onsave(edited);
     value = edited;
-    edited = null;
+    ondone?.();
+    editing = false;
   }
 
   function revert() {
     if (edited === null) return;
-    edited = null;
+    ondone?.();
+    editing = false;
   }
 </script>
 
-{#if edited !== null}
+{#if editing}
   <Input
     class={cn("h-auto bg-background p-1", classes)}
     aria-label={ariaLabel}

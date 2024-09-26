@@ -106,7 +106,7 @@
           class="ml-2 text-lg"
           value={project.name}
           aria-label="Set project name"
-          on:save={(event) => saveEditedProjectName(event.detail)}
+          onsave={saveEditedProjectName}
         />
       {/if}
     </div>
