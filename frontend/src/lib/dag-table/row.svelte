@@ -7,10 +7,7 @@
   } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
-  import { KeyBinding } from "$lib/key-binding";
-  import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import type { Koso, Node } from "$lib/koso";
-  import { globalKeybindingsEnabled } from "$lib/popover-monitors";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
@@ -91,10 +88,6 @@
   function handleToggleOpen(event: MouseEvent) {
     event.stopPropagation();
     setOpen(!open);
-  }
-
-  function unselect() {
-    $selected = null;
   }
 
   function handleDragStart(event: DragEvent) {
@@ -252,16 +245,6 @@
     event.preventDefault();
     $selected = node;
   }
-
-  const registry = new KeyHandlerRegistry([
-    [KeyBinding.EDIT_NODE, () => taskNameEditable.edit()],
-    [KeyBinding.CANCEL_SELECTION, unselect],
-  ]);
-
-  function handleRowKeydown(event: KeyboardEvent) {
-    if (!globalKeybindingsEnabled()) return;
-    registry.handle(event);
-  }
 </script>
 
 <tr
@@ -279,7 +262,6 @@
   on:blur={handleUnhighlight}
   on:focus={handleHighlight}
   on:click={handleRowClick}
-  on:keydown={handleRowKeydown}
   bind:this={rowElement}
 >
   <td class={cn("border-t px-2")} bind:this={idCellElement}>

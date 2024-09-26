@@ -27,7 +27,7 @@
   export let koso: Koso;
   export let users: User[];
 
-  const { debug, nodes, selected } = koso;
+  const { debug, editing, nodes, selected } = koso;
 
   function insert() {
     if (!$user) throw new Error("Unauthenticated");
@@ -48,6 +48,15 @@
   function remove() {
     if (!$selected) return;
     koso.deleteNode($selected);
+    $selected = null;
+  }
+
+  function edit() {
+    if (!$selected) return;
+    $editing = true;
+  }
+
+  function unselect() {
     $selected = null;
   }
 
@@ -125,6 +134,8 @@
   const registry = new KeyHandlerRegistry([
     [KeyBinding.INSERT_NODE, insert],
     [KeyBinding.REMOVE_NODE, remove],
+    [KeyBinding.EDIT_NODE, edit],
+    [KeyBinding.CANCEL_SELECTION, unselect],
     [KeyBinding.INSERT_CHILD_NODE, insertChild],
     [KeyBinding.MOVE_NODE_UP, moveUp],
     [KeyBinding.MOVE_NODE_DOWN, moveDown],
