@@ -291,9 +291,13 @@ export class Koso {
       return null;
     }
 
+    // Find the nearest prior peer that isn't filtered out.
+    const nodes = get(this.nodes);
     for (const peer of peers.slice(0, prevPeerOffset + 1).reverse()) {
       const peerNode = parent.child(peer);
-      if (this.isVisible(peerNode)) {
+      // TODO: This call to includes, and the one in getNextPeer, could be optimized
+      // to avoid iterating over the entire nodes list repeatedly.
+      if (nodes.includes(peerNode)) {
         return peerNode;
       }
     }
@@ -310,9 +314,11 @@ export class Koso {
       return null;
     }
 
+    // Find the nearest next peer that isn't filtered out.
+    const nodes = get(this.nodes);
     for (const peer of peers.slice(nextPeerOffset)) {
       const peerNode = parent.child(peer);
-      if (this.isVisible(peerNode)) {
+      if (nodes.includes(peerNode)) {
         return peerNode;
       }
     }
