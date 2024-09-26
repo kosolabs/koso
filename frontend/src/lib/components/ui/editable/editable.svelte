@@ -27,23 +27,16 @@
   let edited: string = $state(value);
 
   const registry = new KeyHandlerRegistry([
-    [KeyBinding.SAVE_EDITABLE, save],
-    [KeyBinding.REVERT_EDITABLE, revert],
+    [KeyBinding.INSERT_NODE, { func: save, bubble: true }],
+    [KeyBinding.INSERT_CHILD_NODE, { func: save, bubble: true }],
+    [KeyBinding.SAVE_EDITABLE, { func: save }],
+    [KeyBinding.REVERT_EDITABLE, { func: revert }],
   ]);
 
   function handleInputKeydown(event: KeyboardEvent) {
-    if (
-      KeyBinding.INSERT_NODE.matches(event) ||
-      KeyBinding.INSERT_CHILD_NODE.matches(event)
-    ) {
-      save();
-      event.preventDefault();
-      return;
+    if (!registry.handle(event)) {
+      event.stopPropagation();
     }
-
-    // Events after here will not bubble
-    event.stopPropagation();
-    registry.handle(event);
   }
 
   function handleButtonClick(event: MouseEvent) {

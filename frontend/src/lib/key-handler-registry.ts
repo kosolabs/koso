@@ -1,7 +1,7 @@
 import { Map } from "immutable";
 import { KeyBinding } from "./key-binding";
 
-export type Handler = () => void;
+export type Handler = { func: () => void; bubble?: boolean };
 
 export class KeyHandlerRegistry {
   registry: Map<KeyBinding, Handler>;
@@ -10,11 +10,13 @@ export class KeyHandlerRegistry {
     this.registry = Map<KeyBinding, Handler>(registry);
   }
 
-  handle(event: KeyboardEvent) {
+  handle(event: KeyboardEvent): boolean {
     const handler = this.registry.get(KeyBinding.fromEvent(event));
-    if (!handler) return;
-    handler();
+    if (!handler) return false;
+    const { func, bubble = false } = handler;
+    func();
     event.preventDefault();
-    event.stopPropagation();
+    if (!bubble) event.stopPropagation();
+    return true;
   }
 }
