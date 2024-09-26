@@ -1,25 +1,26 @@
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Portal } from "$lib/components/ui/portal";
+  import { ResponsiveText } from "$lib/components/ui/responsive-text";
   import type { Status } from "$lib/koso";
   import { DropdownMenuMonitoredRoot } from "$lib/popover-monitors";
-  import ResponsiveText from "$lib/responsive-text.svelte";
-  import TaskStatusIcon from "$lib/task-status-icon.svelte";
-  import { createEventDispatcher } from "svelte";
   import Confetti from "svelte-confetti";
+  import { TaskStatusIcon } from ".";
 
-  const dispatch = createEventDispatcher<{ select: Status }>();
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
 
-  export let value: Status | null;
-  export let closeFocus: HTMLElement;
-
-  let showConfetti: boolean = false;
+  type Props = {
+    value: Status | null;
+    closeFocus: HTMLElement;
+    onselect: (status: Status) => void;
+  };
+  let { value = $bindable(), closeFocus, onselect }: Props = $props();
+  let showConfetti: boolean = $state(false);
 
   function select(status: Status) {
     value = status;
     showConfetti = status === "Done";
-    dispatch("select", status);
+    onselect(status);
   }
 </script>
 
