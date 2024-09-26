@@ -1,15 +1,29 @@
 <script lang="ts">
-  import { cn } from "./utils";
+  import { cn } from "$lib/utils";
+  import type { Snippet } from "svelte";
 
-  export let progress: number;
-  export let size: string = "22px";
-  export let thickness: string = "2px";
-  export let trackColor: string =
-    "color-mix(in srgb, currentColor 10%, transparent)";
-  export let color: string = "currentColor";
+  type Props = {
+    children?: Snippet;
+    progress: number;
+    size?: string;
+    thickness?: string;
+    trackColor?: string;
+    color?: string;
+    class?: string;
+  };
+
+  const {
+    children,
+    progress,
+    size = "22px",
+    thickness = "2px",
+    trackColor = "color-mix(in srgb, currentColor 10%, transparent)",
+    color = "currentColor",
+    class: classes,
+  }: Props = $props();
 </script>
 
-<div class={cn("p-[1px]", $$restProps.class || "")}>
+<div class={cn("p-[1px]", classes)}>
   <div
     class="circular-progress"
     style="
@@ -20,7 +34,7 @@
       --cp-fill-color:{color};"
   >
     <div class="slot">
-      <slot />
+      {@render children?.()}
     </div>
     <svg class="progress-bar">
       <circle class="track" />
