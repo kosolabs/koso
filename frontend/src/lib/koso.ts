@@ -94,6 +94,7 @@ export class Koso {
   debug: Writable<boolean>;
   events: Readable<YEvent[]>;
   selected: Writable<Node | null>;
+  editing: Writable<boolean>;
   highlighted: Writable<string | null>;
   dropEffect: Writable<"copy" | "move" | "none">;
   dragged: Writable<Node | null>;
@@ -133,6 +134,7 @@ export class Koso {
     this.parents = derived(this.events, () => Map(this.#toParents()));
 
     this.selected = writable<Node | null>(null);
+    this.editing = writable<boolean>(false);
     this.highlighted = writable<string | null>(null);
     this.dropEffect = writable<"copy" | "move" | "none">("none");
     this.dragged = writable<Node | null>(null);
@@ -769,6 +771,7 @@ export class Koso {
       });
       this.#insertChild(taskId, parent.name, offset);
     });
+    this.editing.set(true);
     this.selected.set(parent.child(taskId));
     return parent.child(taskId);
   }

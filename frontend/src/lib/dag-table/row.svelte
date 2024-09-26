@@ -9,14 +9,13 @@
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
-  import type { Koso } from "$lib/koso";
+  import type { Koso, Node } from "$lib/koso";
   import { globalKeybindingsEnabled } from "$lib/popover-monitors";
   import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
-  import type { Node } from "../koso";
 
   export let index: number;
   export let node: Node;
@@ -27,6 +26,7 @@
     debug,
     dragged,
     dropEffect,
+    editing,
     expanded,
     highlighted,
     selected,
@@ -50,6 +50,8 @@
   $: isSelected = node.equals($selected);
   $: progress = koso.getProgress(task.id);
   $: tags = getTags($parents);
+
+  $: isEditing = isSelected && $editing;
 
   let taskNameEditable: Editable;
 
@@ -339,7 +341,9 @@
         value={task.name}
         bind:this={taskNameEditable}
         aria-label={`Task ${task.num} Edit Name`}
-        on:save={(event) => koso.setTaskName(task.id, event.detail)}
+        editing={isEditing}
+        onsave={(name) => koso.setTaskName(task.id, name)}
+        ondone={() => ($editing = false)}
       />
     </div>
   </td>
