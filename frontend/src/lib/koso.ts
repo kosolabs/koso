@@ -106,6 +106,7 @@ export class Koso {
   dropEffect: Writable<"copy" | "move" | "none">;
   dragged: Writable<Node | null>;
   expanded: Writable<Set<Node>>;
+  showDone: Writable<boolean>;
   nodes: Readable<List<Node>>;
   parents: Readable<Map<string, string[]>>;
 
@@ -154,9 +155,17 @@ export class Koso {
       (nodes) => JSON.stringify(nodes.map((node) => node.id)),
     );
 
+    const showDoneLocalStorageKey = `show-done-${projectId}`;
+    this.showDone = storable<boolean>(
+      showDoneLocalStorageKey,
+      false,
+      (s: string) => s === "true",
+      (b) => (b ? "true" : "false"),
+    );
+
     this.nodes = derived(
-      [this.expanded, this.events],
-      ([expanded]): List<Node> => {
+      [this.expanded, this.showDone, this.events],
+      ([expanded, showDone]): List<Node> => {
         // The nodes store is consistently initialized prior to the ygraph
         // being loaded, but #flatten expects the presence of at least a
         // "root" task. Handle the situation here to avoid generating warnings
@@ -164,7 +173,7 @@ export class Koso {
         if (this.yGraph.size === 0) {
           return List();
         }
-        return this.#flatten(new Node(), expanded);
+        return this.#flatten(new Node(), expanded, showDone);
       },
     );
   }
@@ -239,12 +248,17 @@ export class Koso {
     this.expanded.update(($expanded) => $expanded.delete(node));
   }
 
+  setShowDone(showDone: boolean) {
+    this.showDone.set(showDone);
+  }
+
   #flatten(
     node: Node,
     expanded: Set<Node>,
+    showDone: boolean,
     nodes: List<Node> = List(),
   ): List<Node> {
-    if (!this.isVisible(node)) {
+    if (!this.isVisible(node, showDone)) {
       return nodes;
     }
 
@@ -253,7 +267,7 @@ export class Koso {
       nodes = nodes.push(node);
       if (node.length < 1 || expanded.has(node)) {
         (task.get("children") as Y.Array<string>).forEach((name) => {
-          nodes = this.#flatten(node.child(name), expanded, nodes);
+          nodes = this.#flatten(node.child(name), expanded, showDone, nodes);
         });
       }
     } else {
@@ -911,18 +925,20 @@ export class Koso {
     this.undoManager.redo();
   }
 
-  isVisible(node: Node) {
-    const progress = this.getProgress(node.name);
-    if (progress.denom === progress.numer) {
-      // Tasks marked done prior to the addition of statusTime
-      // won't have a statusTime set. Assume they were all marked done
-      // on the day when statusTime was enabled so they drop off after
-      // a few days.
-      const doneTime = progress.lastStatusTime
-        ? progress.lastStatusTime
-        : new Date(`2024-09-24T08:00:00Z`).valueOf();
-      const threeDays = 3 * 24 * 60 * 60 * 1000;
-      return new Date().valueOf() - doneTime < threeDays;
+  isVisible(node: Node, showDone: boolean) {
+    if (!showDone) {
+      const progress = this.getProgress(node.name);
+      if (progress.denom === progress.numer) {
+        // Tasks marked done prior to the addition of statusTime
+        // won't have a statusTime set. Assume they were all marked done
+        // on the day when statusTime was enabled so they drop off after
+        // a few days.
+        const doneTime = progress.lastStatusTime
+          ? progress.lastStatusTime
+          : new Date(`2024-09-24T08:00:00Z`).valueOf();
+        const threeDays = 3 * 24 * 60 * 60 * 1000;
+        return new Date().valueOf() - doneTime < threeDays;
+      }
     }
     return true;
   }
