@@ -107,6 +107,7 @@
           value={project.name}
           aria-label="Set project name"
           onsave={saveEditedProjectName}
+          onkeydown={(e) => e.stopPropagation()}
         />
       {/if}
     </div>

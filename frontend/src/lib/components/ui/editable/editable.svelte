@@ -13,6 +13,7 @@
     "aria-label"?: string;
     onsave: (value: string) => void;
     ondone?: () => void;
+    onkeydown?: (event: KeyboardEvent) => void;
   };
   let {
     value = $bindable(),
@@ -22,18 +23,20 @@
     "aria-label": ariaLabel,
     onsave,
     ondone,
+    onkeydown,
   }: Props = $props();
 
   let edited: string = $state(value);
 
   const registry = new KeyHandlerRegistry([
-    [KeyBinding.INSERT_NODE, { func: save, bubble: true }],
-    [KeyBinding.INSERT_CHILD_NODE, { func: save, bubble: true }],
-    [KeyBinding.SAVE_EDITABLE, { func: save }],
-    [KeyBinding.REVERT_EDITABLE, { func: revert }],
+    [KeyBinding.INSERT_NODE, save],
+    [KeyBinding.INSERT_CHILD_NODE, save],
+    [KeyBinding.SAVE_EDITABLE, save],
+    [KeyBinding.REVERT_EDITABLE, revert],
   ]);
 
   function handleInputKeydown(event: KeyboardEvent) {
+    onkeydown?.(event);
     if (!registry.handle(event)) {
       event.stopPropagation();
     }
