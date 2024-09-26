@@ -889,7 +889,7 @@ export class Koso {
       if (
         childProgress.lastStatusTime &&
         (!result.lastStatusTime ||
-          result.lastStatusTime < childProgress.lastStatusTime)
+          childProgress.lastStatusTime > result.lastStatusTime)
       ) {
         result.lastStatusTime = childProgress.lastStatusTime;
       }
@@ -906,20 +906,17 @@ export class Koso {
   }
 
   isVisible(node: Node) {
-    const task = this.getTask(node.name);
     const progress = this.getProgress(node.name);
-
     if (progress.denom === progress.numer) {
       // Tasks marked done prior to the addition of statusTime
       // won't have a statusTime set. Assume they were all marked done
       // on the day when statusTime was enabled so they drop off after
       // a few days.
-      const doneTime = task.statusTime
-        ? new Date(task.statusTime)
-        : new Date(`2024-09-24T08:00:00Z`);
-      const doneDurationMs = doneTime.valueOf() - new Date().valueOf();
+      const doneTime = progress.lastStatusTime
+        ? progress.lastStatusTime
+        : new Date(`2024-09-24T08:00:00Z`).valueOf();
       const threeDays = 3 * 24 * 60 * 60 * 1000;
-      return doneDurationMs < threeDays;
+      return new Date().valueOf() - doneTime < threeDays;
     }
     return true;
   }
