@@ -1,13 +1,14 @@
 <script lang="ts">
+  import type { User } from "$lib/auth";
   import {
     Avatar,
     AvatarFallback,
     AvatarImage,
   } from "$lib/components/ui/avatar";
   import { UserRound } from "lucide-svelte";
-  import type { User } from "./auth";
 
-  export let user: User;
+  type Props = { user: User };
+  const { user }: Props = $props();
 </script>
 
 <div class="flex items-center gap-2 text-left">
