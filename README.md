@@ -195,17 +195,50 @@ Build and run the docker image defined in `Dockerfile`.
 Build the image:
 
 ```bash
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -t gcr.io/koso/koso .
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -t ghcr.io/kosolabs/koso .
 ```
 
 Run database migrations:
 
 ```bash
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --rm -it gcr.io/koso/koso:latest "./sqlx" migrate run
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --rm -it ghcr.io/kosolabs/koso:latest "./sqlx" migrate run
 ```
 
 Run the server:
 
 ```bash
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --publish 3000:3000 --publish 127.0.0.1:3001:3001 --rm -it gcr.io/koso/koso:latest
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --publish 3000:3000 --publish 127.0.0.1:3001:3001 --rm -it ghcr.io/kosolabs/koso:latest
+```
+
+## setup
+
+```bash
+sudo su &&\
+apt update &&\
+apt install ca-certificates curl gnupg apt-transport-https gpg
+curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg
+apt update
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable" |tee /etc/apt/sources.list.d/docker.list > /dev/null
+apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-compose
+systemctl is-active docker
+
+export PULL_TOKEN=TOKENNN
+echo $PULL_TOKEN| docker login ghcr.io -u kyle-leonhard --password-stdin
+
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --net=host --env DATABASE_URL=postgresql://koso:koso@localhost/koso --rm -it ghcr.io/kosolabs/koso:main "./sqlx" migrate run
+
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --net=host --env DATABASE_URL=postgresql://koso:koso@localhost/koso --publish 3000:3000 --publish 127.0.0.1:3001:3001 --rm -it ghcr.io/kosolabs/koso:main
+```
+
+Add 172.17.0.1 to /etc/postgresql/16/main/postgresql.conf:
+
+```
+listen_addresses = 'localhost,172.17.0.1'
+```
+
+Add entry to: /etc/postgresql/16/main/pg_hba.conf
+
+```
+# Allow docker bridge
+host    all             all             172.0.0.0/8             scram-sha-256
 ```
