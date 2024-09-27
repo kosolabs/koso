@@ -124,6 +124,7 @@ jobs:
       REGISTRY: ghcr.io
       # name for the Docker image that this workflow builds
       IMAGE_NAME: ${{ github.repository }}
+      PUSH_IMAGE: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
@@ -164,7 +165,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          push: ${{ env.PUSH_IMAGE == 'true' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max`
           tags: ${{ steps.meta.outputs.tags }}
@@ -179,4 +180,5 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
-      
+        if: env.PUSH_IMAGE == 'true'
+
