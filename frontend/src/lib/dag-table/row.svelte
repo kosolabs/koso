@@ -7,9 +7,9 @@
   } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
+  import UserSelect from "$lib/components/ui/user-select/user-select.svelte";
   import { KeyBinding } from "$lib/key-binding";
   import type { Koso, Node } from "$lib/koso";
-  import UserSelect from "$lib/user-select.svelte";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
@@ -341,8 +341,8 @@
       {users}
       closeFocus={rowElement}
       value={assignee}
-      on:select={(event) => {
-        koso.setAssignee(task.id, event.detail);
+      onselect={(user) => {
+        koso.setAssignee(task.id, user);
       }}
     />
   </td>
@@ -351,8 +351,8 @@
       {users}
       closeFocus={rowElement}
       value={reporter}
-      on:select={(event) => {
-        koso.setReporter(task.id, event.detail);
+      onselect={(user) => {
+        koso.setReporter(task.id, user);
       }}
     />
   </td>

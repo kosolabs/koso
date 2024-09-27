@@ -6,30 +6,39 @@
     AvatarImage,
   } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import Input from "$lib/components/ui/input/input.svelte";
+  import { Input } from "$lib/components/ui/input";
   import { DropdownMenuMonitoredRoot } from "$lib/popover-monitors";
-  import UserAvatar from "$lib/user-avatar.svelte";
   import { UserRound } from "lucide-svelte";
-  import { createEventDispatcher } from "svelte";
+  import { UserAvatar } from ".";
 
-  const dispatch = createEventDispatcher<{ select: User | null }>();
+  type Props = {
+    users: User[];
+    value: User | null;
+    closeFocus?: HTMLElement;
+    unassigned?: string;
+    onselect?: (select: User | null) => void;
+  };
+  let {
+    users,
+    value = null,
+    closeFocus,
+    unassigned = "Unassigned",
+    onselect,
+  }: Props = $props();
 
-  export let users: User[];
-  export let value: User | null = null;
-  export let unassigned: string = "Unassigned";
-  export let closeFocus: HTMLElement;
-
-  let filter: string = "";
+  let filter: string = $state("");
 
   function select(user: User | null) {
     value = user;
-    dispatch("select", user);
+    onselect?.(user);
   }
 
-  $: filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(filter.toLowerCase()) ||
-      user.email.toLowerCase().includes(filter.toLowerCase()),
+  const filteredUsers = $derived.by(() =>
+    users.filter(
+      (user) =>
+        user.name.toLowerCase().includes(filter.toLowerCase()) ||
+        user.email.toLowerCase().includes(filter.toLowerCase()),
+    ),
   );
 </script>
 

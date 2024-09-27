@@ -3,9 +3,9 @@
   import { logout, user } from "$lib/auth";
   import { Avatar, AvatarImage } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { UserAvatar } from "$lib/components/ui/user-select";
+  import { DropdownMenuMonitoredRoot } from "$lib/popover-monitors";
   import { resetMode, setMode } from "mode-watcher";
-  import DropdownMenuMonitoredRoot from "./popover-monitors/dropdown-menu-monitored-root.svelte";
-  import UserAvatar from "./user-avatar.svelte";
 </script>
 
 <nav class="flex items-center bg-card p-2 shadow">

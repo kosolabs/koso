@@ -6,6 +6,7 @@
   import * as Dialog from "$lib/components/ui/dialog";
   import { Input } from "$lib/components/ui/input";
   import * as Popover from "$lib/components/ui/popover";
+  import { UserAvatar } from "$lib/components/ui/user-select";
   import { logout_on_authentication_error } from "$lib/errors";
   import { DialogMonitoredRoot } from "$lib/popover-monitors";
   import {
@@ -13,7 +14,6 @@
     updateProjectPermissions,
     type Project,
   } from "$lib/projects";
-  import UserAvatar from "$lib/user-avatar.svelte";
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
