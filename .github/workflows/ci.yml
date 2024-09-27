@@ -6,11 +6,6 @@ on:
   pull_request:
   workflow_dispatch:
 jobs:
-  # docker:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - run: docker build -t gcr.io/koso/koso .
   cargo:
     runs-on: ubuntu-latest
     defaults:
