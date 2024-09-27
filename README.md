@@ -184,6 +184,8 @@ CI=true npx playwright test
 
 ## Development Docker builds
 
+Build and run the docker image defined in `Dockerfile`.
+
 ### One time setup
 
 1. Download and install Docker: https://www.docker.com/products/docker-desktop/
