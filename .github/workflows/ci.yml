@@ -124,7 +124,6 @@ jobs:
       REGISTRY: ghcr.io
       # name for the Docker image that this workflow builds
       IMAGE_NAME: koso
-      PUSH_IMAGE: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
@@ -163,7 +162,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: ${{ env.PUSH_IMAGE }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
       
@@ -176,5 +175,4 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
-        if: ${{ env.PUSH_IMAGE }}
       
