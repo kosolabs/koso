@@ -1,10 +1,10 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
+  import { ToolbarButton } from "$lib/components/ui/toolbar-button";
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import { type Koso } from "$lib/koso";
   import { globalKeybindingsEnabled } from "$lib/popover-monitors";
-  import ToolbarButton from "$lib/toolbar-button.svelte";
   import { cn } from "$lib/utils";
   import {
     Eye,
@@ -182,29 +182,25 @@
     "sm:sticky sm:top-0 sm:gap-2 sm:border-b",
   )}
 >
-  <ToolbarButton title="Add Task" icon={ListPlus} on:click={insert} />
+  <ToolbarButton title="Add Task" icon={ListPlus} onclick={insert} />
   {#if $selected}
-    <ToolbarButton title="Add Child" icon={ListTree} on:click={insertChild} />
-    <ToolbarButton title="Delete" icon={Trash} on:click={remove} />
-    <ToolbarButton title="Move Up" icon={MoveUp} on:click={moveUp} />
-    <ToolbarButton title="Move Down" icon={MoveDown} on:click={moveDown} />
-    <ToolbarButton title="Undent" icon={IndentDecrease} on:click={undent} />
-    <ToolbarButton title="Indent" icon={IndentIncrease} on:click={indent} />
+    <ToolbarButton title="Add Child" icon={ListTree} onclick={insertChild} />
+    <ToolbarButton title="Delete" icon={Trash} onclick={remove} />
+    <ToolbarButton title="Move Up" icon={MoveUp} onclick={moveUp} />
+    <ToolbarButton title="Move Down" icon={MoveDown} onclick={moveDown} />
+    <ToolbarButton title="Undent" icon={IndentDecrease} onclick={undent} />
+    <ToolbarButton title="Indent" icon={IndentIncrease} onclick={indent} />
   {/if}
-  <ToolbarButton title="Undo" icon={Undo} on:click={undo} />
-  <ToolbarButton title="Redo" icon={Redo} on:click={redo} />
+  <ToolbarButton title="Undo" icon={Undo} onclick={undo} />
+  <ToolbarButton title="Redo" icon={Redo} onclick={redo} />
   {#if $showDone}
     <ToolbarButton
       title="Hide Done Tasks"
       icon={EyeOff}
-      on:click={hideDoneTasks}
+      onclick={hideDoneTasks}
     />
   {:else}
-    <ToolbarButton
-      title="Show Done Tasks"
-      icon={Eye}
-      on:click={showDoneTasks}
-    />
+    <ToolbarButton title="Show Done Tasks" icon={Eye} onclick={showDoneTasks} />
   {/if}
 </div>
 
