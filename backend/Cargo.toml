@@ -3,6 +3,12 @@ name = "koso"
 version = "0.1.0"
 edition = "2021"
 
+# Target built docker to speed up dependency compilation.
+# See Dockerfile.
+[lib]
+name = "build_dummy"
+path = "build/dummy.rs"
+
 [dependencies]
 axum = { version = "0.7.6", features = ["http2", "ws", "macros"] }
 axum-extra = { version = "0.9.4", features = ["typed-header"] }

@@ -181,3 +181,29 @@ duration of the tests:
 ```bash
 CI=true npx playwright test
 ```
+
+## Development Docker builds
+
+### One time setup
+
+1. Download and install Docker: https://www.docker.com/products/docker-desktop/
+
+### Build & run
+
+Build the image:
+
+```bash
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -t gcr.io/koso/koso .
+```
+
+Run database migrations:
+
+```bash
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --rm -it gcr.io/koso/koso:latest "./sqlx" migrate run
+```
+
+Run the server:
+
+```bash
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --publish 3000:3000 --publish 127.0.0.1:3001:3001 --rm -it gcr.io/koso/koso:latest
+```

@@ -3,6 +3,13 @@ FROM rust AS backend
 WORKDIR /app
 
 COPY backend/Cargo.toml backend/Cargo.lock ./
+# Speed up re-builds triggered by changes to src/
+# by building a dummy library and thus dependencies
+# in a separate layer.
+COPY backend/build/dummy.rs build/dummy.rs
+RUN cargo build --release --lib
+
+# Now run the real build!
 COPY backend/src ./src
 COPY backend/migrations ./migrations
 RUN cargo build --release
@@ -34,10 +41,6 @@ COPY --from=backend /app/migrations ./migrations
 COPY --from=sqlx /app/bin/sqlx ./
 COPY --from=frontend /app/build ./static
 
-# DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build --platform linux/amd64 -t gcr.io/koso/koso .
-# TODO: Expose metrics server.
-# docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --publish 3000:3000 --publish 3001:3001 --rm -it gcr.io/koso/koso:latest
-# docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --rm -it gcr.io/koso/koso:latest "./sqlx" migrate run
 ENV DATABASE_URL=postgresql://koso:koso@host.docker.internal/koso
 
 CMD ["./koso"]
