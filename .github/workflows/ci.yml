@@ -123,7 +123,7 @@ jobs:
       # Container registry domain
       REGISTRY: ghcr.io
       # name for the Docker image that this workflow builds
-      IMAGE_NAME: koso
+      IMAGE_NAME: ${{ github.repository }}
     runs-on: ubuntu-latest
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
@@ -134,6 +134,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       # Log in to the Container registry registry using the account and password
       # that will publish the packages.
       # Once published, the packages are scoped to the account defined here.
