@@ -10,7 +10,7 @@ name = "build_dummy"
 path = "build/dummy.rs"
 
 [dependencies]
-axum = { version = "0.7.6", features = ["http2", "ws", "macros"] }
+axum = { version = "0.7.7", features = ["http2", "ws", "macros"] }
 axum-extra = { version = "0.9.4", features = ["typed-header"] }
 tokio = { version = "1.40.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
