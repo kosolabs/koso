@@ -1,5 +1,6 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
+  import { Strokes } from "$lib/components/ui/stroke";
   import { ToolbarButton } from "$lib/components/ui/toolbar-button";
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
@@ -165,7 +166,11 @@
 
   document.onkeydown = (event: KeyboardEvent) => {
     if ($debug) {
-      toast.info(JSON.stringify(KeyBinding.fromEvent(event).toJSON()));
+      // TODO: Remove any once toast support Component type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.info(Strokes as any, {
+        componentProps: { binding: KeyBinding.fromEvent(event) },
+      });
     }
 
     if (!globalKeybindingsEnabled()) return;
