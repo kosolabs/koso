@@ -17,7 +17,7 @@ docker run \
     --add-host host.docker.internal:host-gateway \
     --env DATABASE_URL=postgresql://koso:koso@host.docker.internal/koso \
     --rm \
-    -it ghcr.io/kosolabs/koso:main \
+    ghcr.io/kosolabs/koso:main \
     "./sqlx" migrate run
 
 systemctl daemon-reload
