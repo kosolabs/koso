@@ -26,6 +26,16 @@ export class KeyBinding extends KeyBindingRecord {
     );
   }
 
+  toString(): string {
+    return (
+      (this.ctrlKey ? "⌃" : "") +
+      (this.shiftKey ? "⇧" : "") +
+      (this.altKey ? "⌥" : "") +
+      (this.metaKey ? "⌘" : "") +
+      (this.key.length === 1 ? this.key.toUpperCase() : this.key)
+    );
+  }
+
   static fromEvent(event: KeyboardEvent): KeyBinding {
     return new KeyBinding({
       key: event.key,
