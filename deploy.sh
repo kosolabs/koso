@@ -10,9 +10,14 @@ trap _on_fail ZERR
 source /root/.environment
 source /root/.telegram.zsh
 
+# Cleanup old images and containers
+docker image prune -a --force --filter "until=32h"
+docker container prune --force --filter "until=32h"
+
+# Pull the new image
 docker pull ghcr.io/kosolabs/koso:main
 
-# TODO: Use an image tagged with the git revision being deployed. In koso.service too.
+# Run DB migrations.
 docker run \
     --add-host host.docker.internal:host-gateway \
     --env DATABASE_URL=postgresql://koso:koso@host.docker.internal/koso \
@@ -20,6 +25,7 @@ docker run \
     ghcr.io/kosolabs/koso:main \
     "./sqlx" migrate run
 
+# Load the updated koso.service file and restart on the new version.
 systemctl daemon-reload
 systemctl restart koso
 
