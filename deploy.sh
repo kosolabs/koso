@@ -10,15 +10,15 @@ trap _on_fail ZERR
 source /root/.environment
 source /root/.telegram.zsh
 
-pushd frontend
-npm ci
-npm run build
-popd
+docker pull ghcr.io/kosolabs/koso:main
 
-pushd backend
-cargo build --release
-DATABASE_URL=postgresql://koso:koso@localhost/koso sqlx migrate run
-popd
+# TODO: Use an image tagged with the git revision being deployed. In koso.service too.
+docker run \
+    --add-host host.docker.internal:host-gateway \
+    --env DATABASE_URL=postgresql://koso:koso@host.docker.internal/koso \
+    --rm \
+    -it ghcr.io/kosolabs/koso:main \
+    "./sqlx" migrate run
 
 systemctl daemon-reload
 systemctl restart koso
