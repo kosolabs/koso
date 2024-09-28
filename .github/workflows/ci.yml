@@ -1,10 +1,12 @@
 name: CI
 on:
-  push:
-    branches:
-      - main
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    outputs:
+      image_digest:
+        description: "Digest of the image."
+        value: ${{ jobs.build-and-push-image.outputs.digest }}
 jobs:
   cargo:
     runs-on: ubuntu-latest
@@ -119,7 +121,7 @@ jobs:
       REGISTRY: ghcr.io
       # name for the Docker image that this workflow builds
       # "kosolabs/koso" or, for PRs, "kosolabs/koso/dev"
-      IMAGE_NAME: ${{ (github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && github.repository) || format('{0}/dev', github.repository)}}
+      IMAGE_NAME: ${{ (github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'kosolabs/koso') || 'kosolabs/koso/dev'}}
     runs-on: ubuntu-latest
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
@@ -127,6 +129,8 @@ jobs:
       packages: write
       attestations: write
       id-token: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
