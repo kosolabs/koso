@@ -7,7 +7,14 @@ Restart=always
 RestartSec=1
 User=root
 WorkingDirectory=/root/koso/backend
-ExecStart=docker run --add-host host.docker.internal:host-gateway --env DATABASE_URL=postgresql://koso:koso@host.docker.internal/koso --publish 3000:3000 --publish 127.0.0.1:3001:3001 --rm ghcr.io/kosolabs/koso:main
+Environment="KOSO_IMAGE_LABEL=main"
+ExecStart=docker run \
+    --add-host host.docker.internal:host-gateway \
+    --env DATABASE_URL=postgresql://koso:koso@host.docker.internal/koso \
+    --publish 3000:3000 \
+    --publish 127.0.0.1:3001:3001 \
+    --rm \
+    ghcr.io/kosolabs/koso:$KOSO_IMAGE_LABEL
 
 [Install]
 WantedBy=multi-user.target
