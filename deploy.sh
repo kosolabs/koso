@@ -45,7 +45,7 @@ EOL
 # Load the updated koso.service file and restart on the new version.
 echo "Restarting service..."
 systemctl daemon-reload
-systemctl restart koso@"$KOSO_IMAGE_DIGEST".service
+systemctl restart koso.service
 echo "Restarted service."
 
 telegram "$(git log --format='Deployed %h by %an - %s' -n 1 HEAD | telegram_escape)" "✅"
