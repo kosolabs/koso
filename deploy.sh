@@ -16,8 +16,12 @@ if [ -z "${KOSO_IMAGE_DIGEST}" ]; then
 fi
 
 # Cleanup old images and containers
+echo "Cleaning up stale images and containers..."
 docker image prune -a --force --filter "until=32h"
 docker container prune --force --filter "until=32h"
+echo "Cleaned up stale images and containers."
+
+echo "Deploying image ghcr.io/kosolabs/koso:$KOSO_IMAGE_DIGEST"
 
 # Pull the new image
 docker pull ghcr.io/kosolabs/koso:$KOSO_IMAGE_DIGEST

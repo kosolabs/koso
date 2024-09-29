@@ -31,7 +31,7 @@ jobs:
           envs: GITHUB_SHA
           script: |
             set -e
-            echo "Deploying commit ${GITHUB_SHA}, image digest ${env.KOSO_IMAGE_DIGEST}"
+            echo "Deploying commit ${GITHUB_SHA}, image digest ${KOSO_IMAGE_DIGEST}"
             cd /root/koso
             git reset --hard
             git clean -f -d
