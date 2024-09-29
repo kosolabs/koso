@@ -210,7 +210,9 @@ Run the server:
 DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --publish 3000:3000 --publish 127.0.0.1:3001:3001 --rm -it ghcr.io/kosolabs/koso:latest
 ```
 
-## setup
+## Server setup notes
+
+Install docker:
 
 ```bash
 sudo su &&\
@@ -222,12 +224,7 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docke
 apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-compose
 systemctl is-active docker
 
-export PULL_TOKEN=TOKENNN
-echo $PULL_TOKEN| docker login ghcr.io -u kyle-leonhard --password-stdin
-
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --net=host --env DATABASE_URL=postgresql://koso:koso@localhost/koso --rm -it ghcr.io/kosolabs/koso:main "./sqlx" migrate run
-
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --net=host --env DATABASE_URL=postgresql://koso:koso@localhost/koso --publish 3000:3000 --publish 127.0.0.1:3001:3001 --rm -it ghcr.io/kosolabs/koso:main
+echo $PULL_TOKEN| docker login ghcr.io -u $USER --password-stdin
 ```
 
 Add 172.17.0.1 to /etc/postgresql/16/main/postgresql.conf:
@@ -236,7 +233,7 @@ Add 172.17.0.1 to /etc/postgresql/16/main/postgresql.conf:
 listen_addresses = 'localhost,172.17.0.1'
 ```
 
-Add entry to: /etc/postgresql/16/main/pg_hba.conf
+Add entry to /etc/postgresql/16/main/pg_hba.conf:
 
 ```
 # Allow docker bridge
