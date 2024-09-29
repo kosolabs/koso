@@ -14,7 +14,7 @@ ExecStart=docker run \
     --publish 3000:3000 \
     --publish 127.0.0.1:3001:3001 \
     --rm \
-    ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST
+    ghcr.io/kosolabs/koso@${KOSO_IMAGE_DIGEST}
 
 [Install]
 WantedBy=multi-user.target
