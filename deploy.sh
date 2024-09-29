@@ -21,10 +21,10 @@ docker image prune -a --force --filter "until=32h"
 docker container prune --force --filter "until=32h"
 echo "Cleaned up stale images and containers."
 
-echo "Deploying image ghcr.io/kosolabs/koso:$KOSO_IMAGE_DIGEST"
+echo "Deploying image ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST"
 
 # Pull the new image
-docker pull ghcr.io/kosolabs/koso:$KOSO_IMAGE_DIGEST
+docker pull ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST
 
 # Run DB migrations.
 echo "Running database migrations..."
@@ -32,14 +32,14 @@ docker run \
     --add-host host.docker.internal:host-gateway \
     --env DATABASE_URL=postgresql://koso:koso@host.docker.internal/koso \
     --rm \
-    ghcr.io/kosolabs/koso:$KOSO_IMAGE_DIGEST \
+    ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST \
     "./sqlx" migrate run
 echo "Finished database migrations."
 
 # Set the image label in the systemctl override file.
 cat >/etc/systemd/system/koso.service.d/override.conf <<EOL
 [Service]
-Environment="KOSO_IMAGE_LABEL=$KOSO_IMAGE_DIGEST"
+Environment="KOSO_IMAGE_DIGEST=$KOSO_IMAGE_DIGEST"
 EOL
 
 # Load the updated koso.service file and restart on the new version.
