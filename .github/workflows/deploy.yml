@@ -28,7 +28,7 @@ jobs:
           host: koso.app
           username: root
           key: ${{ secrets.KEY }}
-          envs: GITHUB_SHA
+          envs: GITHUB_SHA,KOSO_IMAGE_DIGEST
           script: |
             set -e
             echo "Deploying commit ${GITHUB_SHA}, image digest ${KOSO_IMAGE_DIGEST}"
