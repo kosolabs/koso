@@ -54,6 +54,23 @@ jobs:
     defaults:
       run:
         working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm run check
+      - run: npm run lint
+      - run: npm run test
+  playwright:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
     env:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -85,10 +102,6 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-      - run: npm run build
-      - run: npm run check
-      - run: npm run lint
-      - run: npm run test
 
       # The following steps do much of the same work as the backend
       # "cargo" job above to configure rust, setup the database
