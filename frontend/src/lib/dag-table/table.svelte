@@ -228,6 +228,20 @@
         shortcut: KeyBinding.MOVE_NODE_DOWN,
       });
       actions.push({
+        title: "Move Row Up",
+        icon: MoveUp,
+        callback: moveRowUp,
+        toolbar: true,
+        shortcut: KeyBinding.MOVE_NODE_ROW_UP,
+      });
+      actions.push({
+        title: "Move Row Down",
+        icon: MoveDown,
+        callback: moveRowDown,
+        toolbar: true,
+        shortcut: KeyBinding.MOVE_NODE_ROW_DOWN,
+      });
+      actions.push({
         title: "Undent",
         icon: IndentDecrease,
         callback: undent,
@@ -240,6 +254,20 @@
         callback: indent,
         toolbar: true,
         shortcut: KeyBinding.INDENT_NODE,
+      });
+      actions.push({
+        title: "Undent",
+        icon: IndentDecrease,
+        callback: undent,
+        toolbar: true,
+        shortcut: KeyBinding.UNDENT_NODE_SHIFT,
+      });
+      actions.push({
+        title: "Indent",
+        icon: IndentIncrease,
+        callback: indent,
+        toolbar: true,
+        shortcut: KeyBinding.INDENT_NODE_SHIFT,
       });
     }
     actions.push({
