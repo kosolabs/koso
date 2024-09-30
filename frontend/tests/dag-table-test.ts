@@ -9,20 +9,12 @@ test.describe("dag table tests", () => {
     await setupNewProject(page);
   });
 
-  test.afterEach(async ({ page }) => {
-    await tearDown(page);
+  test.afterAll(async () => {
+    await tearDown();
   });
 
   async function getKosoGraph(page: Page): Promise<Graph> {
     return page.evaluate("koso.toJSON()");
-  }
-
-  async function clear(page: Page) {
-    await page.evaluate(() => {
-      window.koso.yGraph.clear();
-      window.koso.upsertRoot();
-    });
-    await page.reload();
   }
 
   type TaskBuilder = {
@@ -39,9 +31,8 @@ test.describe("dag table tests", () => {
   async function init(page: Page, tasks: TaskBuilder[]) {
     await page.evaluate((tasks) => {
       window.koso.yDoc.transact(() => {
-        window.koso.yGraph.clear();
         for (const {
-          id = "root",
+          id,
           num = id,
           name = "",
           children = [],
@@ -83,15 +74,13 @@ test.describe("dag table tests", () => {
 
   test.describe("creating tasks", () => {
     test("create a task by clicking the Add Task button", async ({ page }) => {
-      await clear(page);
-
       await page.getByRole("button", { name: "Add Task" }).click();
       await page.keyboard.press("Escape");
       await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
 
       const graph = await getKosoGraph(page);
       const tasks = getTaskNumToTaskIdMap(graph);
-      expect(graph["root"].children).toStrictEqual([tasks["1"]]);
+      await expect(graph["root"].children).toStrictEqual([tasks["1"]]);
     });
 
     test("create a task by presing Shift+Enter on the task", async ({
@@ -106,7 +95,10 @@ test.describe("dag table tests", () => {
 
       const graph = await getKosoGraph(page);
       const tasks = getTaskNumToTaskIdMap(graph);
-      expect(graph["root"].children).toStrictEqual([tasks["1"], tasks["2"]]);
+      await expect(graph["root"].children).toStrictEqual([
+        tasks["1"],
+        tasks["2"],
+      ]);
     });
 
     test("create a child task by presing Option+Shift+Enter on the task", async ({
@@ -120,17 +112,17 @@ test.describe("dag table tests", () => {
 
       let graph = await getKosoGraph(page);
       let tasks = getTaskNumToTaskIdMap(graph);
-      expect(graph["root"].children).toStrictEqual([tasks["1"]]);
-      expect(graph[tasks["1"]].children).toStrictEqual([tasks["2"]]);
+      await expect(graph["root"].children).toStrictEqual([tasks["1"]]);
+      await expect(graph[tasks["1"]].children).toStrictEqual([tasks["2"]]);
 
       await page.keyboard.press("Alt+Shift+Enter");
       await expect(page.getByRole("row", { name: "Task 3" })).toBeVisible();
 
       graph = await getKosoGraph(page);
       tasks = getTaskNumToTaskIdMap(graph);
-      expect(graph["root"].children).toStrictEqual([tasks["1"]]);
-      expect(graph[tasks["1"]].children).toStrictEqual([tasks["2"]]);
-      expect(graph[tasks["2"]].children).toStrictEqual([tasks["3"]]);
+      await expect(graph["root"].children).toStrictEqual([tasks["1"]]);
+      await expect(graph[tasks["1"]].children).toStrictEqual([tasks["2"]]);
+      await expect(graph[tasks["2"]].children).toStrictEqual([tasks["3"]]);
     });
   });
 
@@ -145,9 +137,9 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
       await page.getByRole("button", { name: "Delete" }).click();
-      expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "3"] },
         ["1"]: { children: [] },
         ["3"]: { children: [] },
@@ -166,9 +158,9 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
       await page.keyboard.press("Delete");
-      expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "3"] },
         ["1"]: { children: [] },
         ["3"]: { children: [] },
@@ -186,7 +178,10 @@ test.describe("dag table tests", () => {
 
       const graph = await getKosoGraph(page);
       const tasks = getTaskNumToTaskIdMap(graph);
-      expect(graph["root"].children).toStrictEqual([tasks["1"], tasks["2"]]);
+      await expect(graph["root"].children).toStrictEqual([
+        tasks["1"],
+        tasks["2"],
+      ]);
     });
   });
 
@@ -194,7 +189,7 @@ test.describe("dag table tests", () => {
     test("select task 1 by clicking on the drag handle", async ({ page }) => {
       await init(page, [{ id: "root", children: ["1"] }, { id: "1" }]);
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
-      expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
     });
   });
 
@@ -245,7 +240,7 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("ArrowUp");
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2", "3"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
@@ -269,7 +264,7 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Alt+ArrowDown");
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["2", "1", "3"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
@@ -294,7 +289,7 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Alt+ArrowRight");
       await page.keyboard.press("Alt+ArrowRight");
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1"] },
         ["1"]: { children: ["2"] },
         ["2"]: { children: ["3"] },
@@ -305,7 +300,7 @@ test.describe("dag table tests", () => {
       await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
       await page.keyboard.press("Alt+ArrowLeft");
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2"] },
         ["1"]: { children: [] },
         ["2"]: { children: ["3"] },
@@ -330,7 +325,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "1", "3"] },
           ["1"]: { children: [] },
           ["2"]: { children: ["4", "5"] },
@@ -342,7 +337,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3", "1"] },
           ["1"]: { children: [] },
           ["2"]: { children: ["4", "5"] },
@@ -354,7 +349,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3", "1"] },
           ["1"]: { children: [] },
           ["2"]: { children: ["4", "5"] },
@@ -388,7 +383,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: [] },
           ["2"]: { children: ["1", "4", "5"] },
@@ -400,7 +395,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: [] },
           ["2"]: { children: ["4", "1", "5"] },
@@ -412,7 +407,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: [] },
           ["2"]: { children: ["4", "5"] },
@@ -424,7 +419,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: [] },
           ["2"]: { children: ["4", "5"] },
@@ -436,7 +431,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: [] },
           ["2"]: { children: ["4", "5", "1"] },
@@ -448,7 +443,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "1", "3"] },
           ["1"]: { children: [] },
           ["2"]: { children: ["4", "5"] },
@@ -460,7 +455,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3", "1"] },
           ["1"]: { children: [] },
           ["2"]: { children: ["4", "5"] },
@@ -512,7 +507,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["1", "4", "5"] },
@@ -532,7 +527,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "1", "5"] },
@@ -552,7 +547,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5"] },
@@ -572,7 +567,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5"] },
@@ -592,7 +587,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5", "1"] },
@@ -612,7 +607,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "1", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5"] },
@@ -632,7 +627,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3", "1"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5"] },
@@ -652,7 +647,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3", "1"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5"] },
@@ -672,7 +667,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "1", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5"] },
@@ -692,7 +687,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5", "1"] },
@@ -712,7 +707,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5"] },
@@ -732,7 +727,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5"] },
@@ -752,7 +747,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "1", "5"] },
@@ -772,7 +767,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["1", "4", "5"] },
@@ -792,7 +787,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["1", "2", "3"] },
           ["1"]: { children: ["11", "12", "13"] },
           ["2"]: { children: ["4", "5"] },
@@ -831,7 +826,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 2" }).first(),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "1"] },
           ["1"]: { children: ["2"] },
           ["2"]: { children: [] },
@@ -841,7 +836,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 2" }).nth(1),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["1", "2"] },
           ["1"]: { children: ["2"] },
           ["2"]: { children: [] },
@@ -883,7 +878,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 99" }).first(),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["1"] },
           ["1"]: { children: ["99", "2"] },
           ["2"]: { children: ["99", "3", "4"] },
@@ -896,7 +891,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 99" }).first(),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["99", "1"] },
           ["1"]: { children: ["2"] },
           ["2"]: { children: ["99", "3", "4"] },
@@ -909,7 +904,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 99" }).first(),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["1"] },
           ["1"]: { children: ["99", "2"] },
           ["2"]: { children: ["99", "3", "4"] },
@@ -922,7 +917,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 99" }).last(),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["1"] },
           ["1"]: { children: ["2", "99"] },
           ["2"]: { children: ["99", "3", "4"] },
@@ -935,7 +930,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 99" }).last(),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["1", "99"] },
           ["1"]: { children: ["2"] },
           ["2"]: { children: ["99", "3", "4"] },
@@ -971,7 +966,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["1"] },
           ["1"]: { children: ["2", "3"] },
           ["2"]: { children: [] },
@@ -983,7 +978,7 @@ test.describe("dag table tests", () => {
 
         await page.keyboard.press("Alt+Shift+ArrowUp");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["1"] },
           ["1"]: { children: ["2", "3"] },
           ["2"]: { children: [] },
@@ -1028,7 +1023,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1" }).nth(1),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["5", "1", "6"] },
           ["1"]: { children: ["2", "3"] },
           ["2"]: { children: [] },
@@ -1043,7 +1038,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1" }).nth(1),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["5", "6"] },
           ["1"]: { children: ["2", "3"] },
           ["2"]: { children: [] },
@@ -1058,7 +1053,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1" }).nth(1),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["5", "6"] },
           ["1"]: { children: ["2", "3"] },
           ["2"]: { children: [] },
@@ -1072,7 +1067,7 @@ test.describe("dag table tests", () => {
         await expect(
           page.getByRole("row", { name: "Task 1" }).nth(1),
         ).toBeFocused();
-        expect(await getKosoGraph(page)).toMatchObject({
+        await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["5", "6", "1"] },
           ["1"]: { children: ["2", "3"] },
           ["2"]: { children: [] },
@@ -1124,7 +1119,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Undo" }).click();
       await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
@@ -1134,7 +1129,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Redo" }).click();
       await expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1"] },
         ["1"]: { children: [] },
       });
@@ -1162,7 +1157,7 @@ test.describe("dag table tests", () => {
       await page.mouse.up();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["2", "1", "3"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
@@ -1190,7 +1185,7 @@ test.describe("dag table tests", () => {
       await page.mouse.up();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["2", "3"] },
         ["1"]: { children: [] },
         ["2"]: { children: ["1"] },
@@ -1220,7 +1215,7 @@ test.describe("dag table tests", () => {
       await page.keyboard.up("Alt");
       await expect(page.getByRole("row", { name: "Task 1" })).toHaveCount(2);
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["2", "3"] },
         ["1"]: { children: [] },
         ["2"]: { children: ["1"] },
@@ -1242,7 +1237,7 @@ test.describe("dag table tests", () => {
         .dragTo(page.getByRole("button", { name: "Task 1 Child Dropzone" }));
       await page.keyboard.up("Alt");
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2", "3"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
@@ -1270,7 +1265,7 @@ test.describe("dag table tests", () => {
         .first()
         .dragTo(page.getByRole("button", { name: "Task 2 Child Dropzone" }));
 
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2", "3"] },
         ["1"]: { children: [] },
         ["2"]: { children: ["1"] },

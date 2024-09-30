@@ -76,7 +76,7 @@ export async function login(page: Page, email: string) {
       Authorization: `Bearer ${token}`,
     },
   });
-  expect(res.ok()).toBeTruthy();
+  await expect(res.ok()).toBeTruthy();
 
   await page.evaluate(
     ([token]) => window.localStorage.setItem("credential", token),
@@ -84,8 +84,8 @@ export async function login(page: Page, email: string) {
   );
 }
 
-export async function tearDown(page: Page) {
-  await page.goto("/");
+export async function tearDown() {
+  console.log("Cleaing up test data");
   const apiContext = await request.newContext({});
   const token = jwt(`cleanup-test@test.koso.app`);
   const res = await apiContext.post("/api/dev/cleanup_test_data", {
@@ -94,5 +94,5 @@ export async function tearDown(page: Page) {
       Authorization: `Bearer ${token}`,
     },
   });
-  expect(res.ok()).toBeTruthy();
+  await expect(res.ok()).toBeTruthy();
 }
