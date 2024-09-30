@@ -1,11 +1,15 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
+  import { CommandPalette } from "$lib/components/ui/command-palette";
   import { Strokes } from "$lib/components/ui/stroke";
   import { ToolbarButton } from "$lib/components/ui/toolbar-button";
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import { type Koso } from "$lib/koso";
-  import { globalKeybindingsEnabled } from "$lib/popover-monitors";
+  import {
+    globalKeybindingsEnabled,
+    handleOpenChange,
+  } from "$lib/popover-monitors";
   import { cn } from "$lib/utils";
   import {
     Eye,
@@ -29,8 +33,16 @@
 
   export let koso: Koso;
   export let users: User[];
+  export let commandPaletteOpen: boolean = false;
 
   const { debug, editing, nodes, selected, showDone } = koso;
+
+  let commandPalette: any;
+  $: handleOpenChange(commandPaletteOpen, commandPalette);
+
+  function showCommandPalette() {
+    commandPaletteOpen = true;
+  }
 
   function insert() {
     if (!$user) throw new Error("Unauthenticated");
@@ -153,6 +165,7 @@
   }
 
   const registry = new KeyHandlerRegistry([
+    [KeyBinding.SHOW_COMMAND_PALETTE, showCommandPalette],
     [KeyBinding.INSERT_NODE, insert],
     [KeyBinding.REMOVE_NODE, remove],
     [KeyBinding.EDIT_NODE, edit],
@@ -218,6 +231,57 @@
     <ToolbarButton title="Show Done Tasks" icon={Eye} onclick={showDoneTasks} />
   {/if}
 </div>
+
+<CommandPalette
+  bind:open={commandPaletteOpen}
+  bind:this={commandPalette}
+  actions={[
+    {
+      title: "Add Task",
+      icon: ListPlus,
+      callback: insert,
+      shortcut: KeyBinding.INSERT_NODE,
+    },
+    {
+      title: "Add Child",
+      icon: ListTree,
+      callback: insertChild,
+      shortcut: KeyBinding.INSERT_CHILD_NODE,
+    },
+    {
+      title: "Delete",
+      icon: Trash,
+      callback: remove,
+      shortcut: KeyBinding.REMOVE_NODE,
+    },
+    {
+      title: "Move Up",
+      icon: MoveUp,
+      callback: moveUp,
+      shortcut: KeyBinding.MOVE_NODE_UP,
+    },
+    {
+      title: "Move Down",
+      icon: MoveDown,
+      callback: moveDown,
+      shortcut: KeyBinding.MOVE_NODE_DOWN,
+    },
+    {
+      title: "Undent",
+      icon: IndentDecrease,
+      callback: undent,
+      shortcut: KeyBinding.INDENT_NODE,
+    },
+    {
+      title: "Indent",
+      icon: IndentIncrease,
+      callback: indent,
+      shortcut: KeyBinding.UNDENT_NODE,
+    },
+    { title: "Undo", icon: Undo, callback: undo, shortcut: KeyBinding.UNDO },
+    { title: "Redo", icon: Redo, callback: redo, shortcut: KeyBinding.REDO },
+  ]}
+/>
 
 <div class="mb-12 p-2 sm:mb-0">
   <table class="w-full border-separate border-spacing-0 rounded-md border">

@@ -1,14 +1,16 @@
 <script lang="ts">
   import type { KeyBinding } from "$lib/key-binding";
+  import { cn } from "$lib/utils";
   import { Stroke } from ".";
 
   type Props = {
     binding: KeyBinding;
+    class?: string;
   };
-  const { binding }: Props = $props();
+  const { binding, class: classes }: Props = $props();
 </script>
 
-<div class="flex gap-1 p-1">
+<div class={cn("flex gap-1 p-1", classes)}>
   {#if binding.ctrlKey}
     <Stroke>⌃</Stroke>
   {/if}

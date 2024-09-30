@@ -1,53 +1,52 @@
 <script lang="ts">
   import * as Command from "$lib/components/ui/command/index.js";
-  import Calendar from "svelte-radix/Calendar.svelte";
-  import EnvelopeClosed from "svelte-radix/EnvelopeClosed.svelte";
-  import Face from "svelte-radix/Face.svelte";
-  import Gear from "svelte-radix/Gear.svelte";
-  import Person from "svelte-radix/Person.svelte";
-  import Rocket from "svelte-radix/Rocket.svelte";
+  import { Strokes } from "$lib/components/ui/stroke";
+  import { KeyBinding } from "$lib/key-binding";
+
+  type Action = {
+    title: string;
+    icon: any;
+    callback: (value: string) => void;
+    shortcut?: KeyBinding;
+  };
 
   type Props = {
     open: boolean;
+    actions: Action[];
   };
-  let { open = $bindable(false) }: Props = $props();
+  let { open = $bindable(), actions }: Props = $props();
+
+  let filter: string = $state("");
+
+  const filteredActions = $derived(
+    actions.filter((action) =>
+      action.title.toLocaleLowerCase().includes(filter),
+    ),
+  );
 </script>
 
-<Command.Dialog bind:open>
-  <Command.Input placeholder="Type a command or search..." />
+<Command.Dialog bind:open shouldFilter={false} portal={null}>
+  <Command.Input
+    bind:value={filter}
+    placeholder="Type a command or search..."
+  />
   <Command.List>
     <Command.Empty>No results found.</Command.Empty>
-    <Command.Group heading="Suggestions">
-      <Command.Item>
-        <Calendar class="mr-2 h-4 w-4" />
-        <span>Calendar</span>
+    {#each filteredActions as action}
+      {@const { title, icon: Icon, callback, shortcut } = action}
+      <Command.Item
+        value={title}
+        onSelect={(value) => {
+          open = false;
+          callback(value);
+        }}
+      >
+        <Icon class="mr-2 h-4 w-4" />
+        {title}
+        {#if shortcut}
+          <Strokes class="ml-auto" binding={shortcut} />
+        {/if}
       </Command.Item>
-      <Command.Item>
-        <Face class="mr-2 h-4 w-4" />
-        <span>Search Emoji</span>
-      </Command.Item>
-      <Command.Item>
-        <Rocket class="mr-2 h-4 w-4" />
-        <span>Launch</span>
-      </Command.Item>
-    </Command.Group>
-    <Command.Separator />
-    <Command.Group heading="Settings">
-      <Command.Item>
-        <Person class="mr-2 h-4 w-4" />
-        <span>Profile</span>
-        <Command.Shortcut>⌘P</Command.Shortcut>
-      </Command.Item>
-      <Command.Item>
-        <EnvelopeClosed class="mr-2 h-4 w-4" />
-        <span>Mail</span>
-        <Command.Shortcut>⌘B</Command.Shortcut>
-      </Command.Item>
-      <Command.Item>
-        <Gear class="mr-2 h-4 w-4" />
-        <span>Settings</span>
-        <Command.Shortcut>⌘S</Command.Shortcut>
-      </Command.Item>
-    </Command.Group>
+    {/each}
   </Command.List>
 </Command.Dialog>
