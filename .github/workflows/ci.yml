@@ -113,7 +113,7 @@ jobs:
         run: SKIP_DOCKER=true ../backend/scripts/init_db.sh
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
-      - run: CI=true npx playwright test
+      - run: CI=true npx playwright test --workers=8
 
   build-and-push-image:
     env:
@@ -169,10 +169,10 @@ jobs:
           cache-to: type=gha,mode=max`
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      
-      # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built. 
-      # It increases supply chain security for people who consume the image. 
-      # For more information, see "[AUTOTITLE](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)." 
+
+      # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built.
+      # It increases supply chain security for people who consume the image.
+      # For more information, see "[AUTOTITLE](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)."
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
         with:
@@ -182,13 +182,13 @@ jobs:
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5
         with:
-            package-name: 'koso'
-            package-type: 'container'
-            min-versions-to-keep: 50
-            delete-only-untagged-versions: 'true'
+          package-name: "koso"
+          package-type: "container"
+          min-versions-to-keep: 50
+          delete-only-untagged-versions: "true"
       - name: Cleanup old dev images
         uses: actions/delete-package-versions@v5
         with:
-            package-name: 'koso/dev'
-            package-type: 'container'
-            min-versions-to-keep: 50
+          package-name: "koso/dev"
+          package-type: "container"
+          min-versions-to-keep: 50
