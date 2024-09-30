@@ -1,6 +1,9 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
-  import { CommandPalette } from "$lib/components/ui/command-palette";
+  import {
+    CommandPalette,
+    type Action,
+  } from "$lib/components/ui/command-palette";
   import { Strokes } from "$lib/components/ui/stroke";
   import { ToolbarButton } from "$lib/components/ui/toolbar-button";
   import { KeyBinding } from "$lib/key-binding";
@@ -12,6 +15,9 @@
   } from "$lib/popover-monitors";
   import { cn } from "$lib/utils";
   import {
+    ChevronsDownUp,
+    ChevronsUpDown,
+    CircleX,
     Eye,
     EyeOff,
     IndentDecrease,
@@ -20,8 +26,12 @@
     ListTree,
     MoveDown,
     MoveUp,
+    Pencil,
     Redo,
     SquarePen,
+    StepBack,
+    StepForward,
+    Terminal,
     Trash,
     Undo,
     UserRoundPlus,
@@ -164,28 +174,145 @@
     koso.redo();
   }
 
-  const registry = new KeyHandlerRegistry([
-    [KeyBinding.SHOW_COMMAND_PALETTE, showCommandPalette],
-    [KeyBinding.INSERT_NODE, insert],
-    [KeyBinding.REMOVE_NODE, remove],
-    [KeyBinding.EDIT_NODE, edit],
-    [KeyBinding.CANCEL_SELECTION, unselect],
-    [KeyBinding.INSERT_CHILD_NODE, insertChild],
-    [KeyBinding.MOVE_NODE_UP, moveUp],
-    [KeyBinding.MOVE_NODE_DOWN, moveDown],
-    [KeyBinding.MOVE_NODE_ROW_UP, moveRowUp],
-    [KeyBinding.MOVE_NODE_ROW_DOWN, moveRowDown],
-    [KeyBinding.INDENT_NODE, indent],
-    [KeyBinding.INDENT_NODE_SHIFT, indent],
-    [KeyBinding.UNDENT_NODE, undent],
-    [KeyBinding.UNDENT_NODE_SHIFT, undent],
-    [KeyBinding.EXPAND_NODE, expand],
-    [KeyBinding.COLLAPSE_NODE, collapse],
-    [KeyBinding.SELECT_NEXT_NODE, selectNext],
-    [KeyBinding.SELECT_PREV_NODE, selectPrev],
-    [KeyBinding.UNDO, undo],
-    [KeyBinding.REDO, redo],
-  ]);
+  let actions: Action[];
+  $: {
+    actions = [];
+    actions.push({
+      title: "Add Task",
+      icon: ListPlus,
+      callback: insert,
+      toolbar: true,
+      shortcut: KeyBinding.INSERT_NODE,
+    });
+    actions.push({
+      title: "Edit Name",
+      icon: Pencil,
+      callback: edit,
+      toolbar: false,
+      shortcut: KeyBinding.EDIT_NODE,
+    });
+    actions.push({
+      title: "Cancel Selection",
+      icon: CircleX,
+      callback: unselect,
+      toolbar: false,
+      shortcut: KeyBinding.CANCEL_SELECTION,
+    });
+    if ($selected) {
+      actions.push({
+        title: "Add Child",
+        icon: ListTree,
+        callback: insertChild,
+        toolbar: true,
+        shortcut: KeyBinding.INSERT_CHILD_NODE,
+      });
+      actions.push({
+        title: "Delete",
+        icon: Trash,
+        callback: remove,
+        toolbar: true,
+        shortcut: KeyBinding.REMOVE_NODE,
+      });
+      actions.push({
+        title: "Move Up",
+        icon: MoveUp,
+        callback: moveUp,
+        toolbar: true,
+        shortcut: KeyBinding.MOVE_NODE_UP,
+      });
+      actions.push({
+        title: "Move Down",
+        icon: MoveDown,
+        callback: moveDown,
+        toolbar: true,
+        shortcut: KeyBinding.MOVE_NODE_DOWN,
+      });
+      actions.push({
+        title: "Undent",
+        icon: IndentDecrease,
+        callback: undent,
+        toolbar: true,
+        shortcut: KeyBinding.UNDENT_NODE,
+      });
+      actions.push({
+        title: "Indent",
+        icon: IndentIncrease,
+        callback: indent,
+        toolbar: true,
+        shortcut: KeyBinding.INDENT_NODE,
+      });
+    }
+    actions.push({
+      title: "Undo",
+      icon: Undo,
+      callback: undo,
+      toolbar: true,
+      shortcut: KeyBinding.UNDO,
+    });
+    actions.push({
+      title: "Redo",
+      icon: Redo,
+      callback: redo,
+      toolbar: true,
+      shortcut: KeyBinding.REDO,
+    });
+    if ($showDone) {
+      actions.push({
+        title: "Hide Done Tasks",
+        icon: EyeOff,
+        callback: hideDoneTasks,
+        toolbar: true,
+      });
+    } else {
+      actions.push({
+        title: "Show Done Tasks",
+        icon: Eye,
+        callback: showDoneTasks,
+        toolbar: true,
+      });
+    }
+    actions.push({
+      title: "Expand Task",
+      icon: ChevronsUpDown,
+      callback: expand,
+      toolbar: false,
+      shortcut: KeyBinding.EXPAND_NODE,
+    });
+    actions.push({
+      title: "Collapse Task",
+      icon: ChevronsDownUp,
+      callback: collapse,
+      toolbar: false,
+      shortcut: KeyBinding.COLLAPSE_NODE,
+    });
+    actions.push({
+      title: "Select Next Task",
+      icon: StepForward,
+      callback: selectNext,
+      toolbar: false,
+      shortcut: KeyBinding.SELECT_NEXT_NODE,
+    });
+    actions.push({
+      title: "Select Previous Task",
+      icon: StepBack,
+      callback: selectPrev,
+      toolbar: false,
+      shortcut: KeyBinding.SELECT_PREV_NODE,
+    });
+    actions.push({
+      title: "Show Command Palette",
+      icon: Terminal,
+      callback: showCommandPalette,
+      toolbar: true,
+      shortcut: KeyBinding.SHOW_COMMAND_PALETTE,
+    });
+  }
+
+  $: registry = new KeyHandlerRegistry(
+    actions
+      .filter((action) => action.shortcut)
+      .map((action) => [action.shortcut!, action.callback]),
+  );
 
   document.onkeydown = (event: KeyboardEvent) => {
     if ($debug) {
@@ -196,6 +323,7 @@
       });
     }
 
+    console.log(event);
     if (!globalKeybindingsEnabled()) return;
     registry.handle(event);
   };
@@ -210,77 +338,17 @@
     "sm:sticky sm:top-0 sm:gap-2 sm:border-b",
   )}
 >
-  <ToolbarButton title="Add Task" icon={ListPlus} onclick={insert} />
-  {#if $selected}
-    <ToolbarButton title="Add Child" icon={ListTree} onclick={insertChild} />
-    <ToolbarButton title="Delete" icon={Trash} onclick={remove} />
-    <ToolbarButton title="Move Up" icon={MoveUp} onclick={moveUp} />
-    <ToolbarButton title="Move Down" icon={MoveDown} onclick={moveDown} />
-    <ToolbarButton title="Undent" icon={IndentDecrease} onclick={undent} />
-    <ToolbarButton title="Indent" icon={IndentIncrease} onclick={indent} />
-  {/if}
-  <ToolbarButton title="Undo" icon={Undo} onclick={undo} />
-  <ToolbarButton title="Redo" icon={Redo} onclick={redo} />
-  {#if $showDone}
-    <ToolbarButton
-      title="Hide Done Tasks"
-      icon={EyeOff}
-      onclick={hideDoneTasks}
-    />
-  {:else}
-    <ToolbarButton title="Show Done Tasks" icon={Eye} onclick={showDoneTasks} />
-  {/if}
+  {#each actions as { title, icon, callback, toolbar }}
+    {#if toolbar}
+      <ToolbarButton {title} {icon} onclick={callback} />
+    {/if}
+  {/each}
 </div>
 
 <CommandPalette
   bind:open={commandPaletteOpen}
   bind:this={commandPalette}
-  actions={[
-    {
-      title: "Add Task",
-      icon: ListPlus,
-      callback: insert,
-      shortcut: KeyBinding.INSERT_NODE,
-    },
-    {
-      title: "Add Child",
-      icon: ListTree,
-      callback: insertChild,
-      shortcut: KeyBinding.INSERT_CHILD_NODE,
-    },
-    {
-      title: "Delete",
-      icon: Trash,
-      callback: remove,
-      shortcut: KeyBinding.REMOVE_NODE,
-    },
-    {
-      title: "Move Up",
-      icon: MoveUp,
-      callback: moveUp,
-      shortcut: KeyBinding.MOVE_NODE_UP,
-    },
-    {
-      title: "Move Down",
-      icon: MoveDown,
-      callback: moveDown,
-      shortcut: KeyBinding.MOVE_NODE_DOWN,
-    },
-    {
-      title: "Undent",
-      icon: IndentDecrease,
-      callback: undent,
-      shortcut: KeyBinding.INDENT_NODE,
-    },
-    {
-      title: "Indent",
-      icon: IndentIncrease,
-      callback: indent,
-      shortcut: KeyBinding.UNDENT_NODE,
-    },
-    { title: "Undo", icon: Undo, callback: undo, shortcut: KeyBinding.UNDO },
-    { title: "Redo", icon: Redo, callback: redo, shortcut: KeyBinding.REDO },
-  ]}
+  {actions}
 />
 
 <div class="mb-12 p-2 sm:mb-0">

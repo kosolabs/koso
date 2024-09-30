@@ -1,14 +1,7 @@
 <script lang="ts">
   import * as Command from "$lib/components/ui/command/index.js";
   import { Strokes } from "$lib/components/ui/stroke";
-  import { KeyBinding } from "$lib/key-binding";
-
-  type Action = {
-    title: string;
-    icon: any;
-    callback: (value: string) => void;
-    shortcut?: KeyBinding;
-  };
+  import type { Action } from ".";
 
   type Props = {
     open: boolean;
@@ -25,7 +18,7 @@
   );
 </script>
 
-<Command.Dialog bind:open shouldFilter={false} portal={null}>
+<Command.Dialog bind:open shouldFilter={false}>
   <Command.Input
     bind:value={filter}
     placeholder="Type a command or search..."
@@ -34,13 +27,7 @@
     <Command.Empty>No results found.</Command.Empty>
     {#each filteredActions as action}
       {@const { title, icon: Icon, callback, shortcut } = action}
-      <Command.Item
-        value={title}
-        onSelect={(value) => {
-          open = false;
-          callback(value);
-        }}
-      >
+      <Command.Item value={title} onSelect={callback}>
         <Icon class="mr-2 h-4 w-4" />
         {title}
         {#if shortcut}
