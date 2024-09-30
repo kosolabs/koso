@@ -113,7 +113,7 @@ jobs:
         run: SKIP_DOCKER=true ../backend/scripts/init_db.sh
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
-      - run: CI=true npx playwright test --workers=8
+      - run: CI=true npx playwright test --workers=6
 
   build-and-push-image:
     env:
