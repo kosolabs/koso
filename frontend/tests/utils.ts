@@ -1,5 +1,5 @@
 import type { Graph } from "$lib/koso";
-import { expect, request, type Browser, type Page } from "@playwright/test";
+import { expect, request, type Page } from "@playwright/test";
 
 export async function getKosoGraph(page: Page): Promise<Graph> {
   return page.evaluate("koso.toJSON()");
@@ -53,9 +53,7 @@ export function generateEmail() {
   return `${Math.random().toString(36).slice(2)}-${Date.now()}-test@test.koso.app`;
 }
 
-export async function setupNewProject(browser: Browser): Promise<Page> {
-  const page = await browser.newPage();
-
+export async function setupNewProject(page: Page): Promise<Page> {
   await login(page, generateEmail());
 
   await page.goto("/projects");
