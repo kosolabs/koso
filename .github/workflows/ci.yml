@@ -54,6 +54,23 @@ jobs:
     defaults:
       run:
         working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm run check
+      - run: npm run lint
+      - run: npm run test
+  playwright:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
     env:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -85,10 +102,6 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-      - run: npm run build
-      - run: npm run check
-      - run: npm run lint
-      - run: npm run test
 
       # The following steps do much of the same work as the backend
       # "cargo" job above to configure rust, setup the database
@@ -113,7 +126,7 @@ jobs:
         run: SKIP_DOCKER=true ../backend/scripts/init_db.sh
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
-      - run: CI=true npx playwright test
+      - run: CI=true npx playwright test --workers=4
 
   build-and-push-image:
     env:
@@ -169,10 +182,10 @@ jobs:
           cache-to: type=gha,mode=max`
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      
-      # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built. 
-      # It increases supply chain security for people who consume the image. 
-      # For more information, see "[AUTOTITLE](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)." 
+
+      # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built.
+      # It increases supply chain security for people who consume the image.
+      # For more information, see "[AUTOTITLE](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)."
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v1
         with:
@@ -182,13 +195,13 @@ jobs:
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5
         with:
-            package-name: 'koso'
-            package-type: 'container'
-            min-versions-to-keep: 50
-            delete-only-untagged-versions: 'true'
+          package-name: "koso"
+          package-type: "container"
+          min-versions-to-keep: 50
+          delete-only-untagged-versions: "true"
       - name: Cleanup old dev images
         uses: actions/delete-package-versions@v5
         with:
-            package-name: 'koso/dev'
-            package-type: 'container'
-            min-versions-to-keep: 50
+          package-name: "koso/dev"
+          package-type: "container"
+          min-versions-to-keep: 50

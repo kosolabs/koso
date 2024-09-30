@@ -1,5 +1,5 @@
 import type { Graph } from "$lib/koso";
-import { expect, request, type Browser, type Page } from "@playwright/test";
+import { expect, request, type Page } from "@playwright/test";
 
 export async function getKosoGraph(page: Page): Promise<Graph> {
   return page.evaluate("koso.toJSON()");
@@ -53,9 +53,7 @@ export function generateEmail() {
   return `${Math.random().toString(36).slice(2)}-${Date.now()}-test@test.koso.app`;
 }
 
-export async function setupNewProject(browser: Browser): Promise<Page> {
-  const page = await browser.newPage();
-
+export async function setupNewProject(page: Page): Promise<Page> {
   await login(page, generateEmail());
 
   await page.goto("/projects");
@@ -78,7 +76,7 @@ export async function login(page: Page, email: string) {
       Authorization: `Bearer ${token}`,
     },
   });
-  expect(res.ok()).toBeTruthy();
+  await expect(res.ok()).toBeTruthy();
 
   await page.evaluate(
     ([token]) => window.localStorage.setItem("credential", token),
@@ -86,8 +84,8 @@ export async function login(page: Page, email: string) {
   );
 }
 
-export async function tearDown(page: Page) {
-  await page.goto("/");
+export async function tearDown() {
+  console.log("Cleaing up test data");
   const apiContext = await request.newContext({});
   const token = jwt(`cleanup-test@test.koso.app`);
   const res = await apiContext.post("/api/dev/cleanup_test_data", {
@@ -96,5 +94,5 @@ export async function tearDown(page: Page) {
       Authorization: `Bearer ${token}`,
     },
   });
-  expect(res.ok()).toBeTruthy();
+  await expect(res.ok()).toBeTruthy();
 }

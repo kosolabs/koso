@@ -1,9 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { generateEmail, login, tearDown } from "./utils";
 
-test.describe.configure({ mode: "serial" });
+test.describe("new project", () => {
+  test.describe.configure({ mode: "serial" });
 
-test.describe.serial("new project", () => {
   let page: Page;
 
   test.beforeAll(async ({ browser }) => {
@@ -11,7 +11,7 @@ test.describe.serial("new project", () => {
   });
 
   test.afterAll(async () => {
-    await tearDown(page);
+    await tearDown();
   });
 
   test("home page presents login header and button", async () => {
