@@ -1,6 +1,11 @@
-import type { Graph, Status } from "$lib/koso";
+import type { Status } from "$lib/koso";
 import { expect, test, type Page } from "@playwright/test";
-import { setupNewProject, tearDown } from "./utils";
+import {
+  getKosoGraph,
+  getTaskNumToTaskIdMap,
+  setupNewProject,
+  tearDown,
+} from "./utils";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -12,10 +17,6 @@ test.describe("dag table tests", () => {
   test.afterAll(async () => {
     await tearDown();
   });
-
-  async function getKosoGraph(page: Page): Promise<Graph> {
-    return page.evaluate("koso.toJSON()");
-  }
 
   type TaskBuilder = {
     id: string;
@@ -62,14 +63,6 @@ test.describe("dag table tests", () => {
     }, tasks);
     await page.reload();
     await page.getByLabel("Home").focus();
-  }
-
-  function getTaskNumToTaskIdMap(graph: Graph) {
-    const result: { [num: string]: string } = {};
-    for (const [id, task] of Object.entries(graph)) {
-      result[task.num] = id;
-    }
-    return result;
   }
 
   test.describe("creating tasks", () => {
