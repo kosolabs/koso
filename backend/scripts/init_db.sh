@@ -16,7 +16,6 @@ done
 echo >&2 "Postgres is up and running on port ${DB_PORT}!"
 export DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}
 
-# Allow to skip Docker if a dockerized Postgres database is already running
 if [[ -z "${KOSO_IMAGE}" ]]; then
   sqlx database create
   sqlx migrate run
