@@ -201,13 +201,22 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -t ghcr.io/kosolabs/koso .
 Run database migrations:
 
 ```bash
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --rm -it ghcr.io/kosolabs/koso:latest "./sqlx" migrate run
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
+   --env DATABASE_URL=postgresql://$USER@localhost/$USER \
+   --network=host \
+   --rm -it \
+   ghcr.io/kosolabs/koso:latest \
+   "./sqlx" migrate run
 ```
 
 Run the server:
 
 ```bash
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run --env DATABASE_URL=postgresql://$USER@host.docker.internal/$USER --publish 3000:3000 --publish 127.0.0.1:3001:3001 --rm -it ghcr.io/kosolabs/koso:latest
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
+   --env DATABASE_URL=postgresql://$USER@localhost/$USER \
+   --network=host \
+   --rm -it \
+   ghcr.io/kosolabs/koso:latest
 ```
 
 ## Server setup notes

@@ -9,10 +9,8 @@ User=root
 WorkingDirectory=/root/koso/backend
 Environment="KOSO_IMAGE_DIGEST=main"
 ExecStart=docker run \
-    --add-host host.docker.internal:host-gateway \
-    --env DATABASE_URL=postgresql://koso:koso@host.docker.internal/koso \
-    --publish 3000:3000 \
-    --publish 127.0.0.1:3001:3001 \
+    --env DATABASE_URL=postgresql://koso:koso@localhost/koso \
+    --network=host \
     --rm \
     ghcr.io/kosolabs/koso@${KOSO_IMAGE_DIGEST}
 

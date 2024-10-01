@@ -43,5 +43,5 @@ COPY backend/migrations ./migrations
 COPY --from=backend /app/target/release/koso ./
 COPY --from=frontend /app/build ./static
 
-ENV DATABASE_URL=postgresql://koso:koso@host.docker.internal/koso
+ENV DATABASE_URL=postgresql://koso:koso@localhost/koso
 CMD ["./koso"]

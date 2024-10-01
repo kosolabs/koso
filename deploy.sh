@@ -29,8 +29,8 @@ docker pull ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST
 # Run DB migrations.
 echo "Running database migrations..."
 docker run \
-    --add-host host.docker.internal:host-gateway \
-    --env DATABASE_URL=postgresql://koso:koso@host.docker.internal/koso \
+    --env DATABASE_URL=postgresql://koso:koso@localhost/koso \
+    --network=host \
     --rm \
     ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST \
     "./sqlx" migrate run
