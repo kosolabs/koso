@@ -100,6 +100,18 @@ jobs:
       - run: npx playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
+      # Build a backend docker image that will be ran by playwright.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Backend Docker Image
+        id: build-backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
       # The following steps do much of the same work as the backend
       # "cargo" job above to configure rust, setup the database
       # and run a build. It'd be nice to avoid this somehow, but
@@ -120,7 +132,7 @@ jobs:
         run: SKIP_DOCKER=true ../backend/scripts/init_db.sh
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
-      - run: CI=true npx playwright test --workers=4
+      - run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} npx playwright test --workers=4
 
   build-and-push-image:
     env:
@@ -173,7 +185,7 @@ jobs:
           context: .
           push: true
           cache-from: type=gha
-          cache-to: type=gha,mode=max`
+          cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
