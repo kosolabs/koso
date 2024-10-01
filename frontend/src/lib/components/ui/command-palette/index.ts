@@ -9,5 +9,6 @@ export type Action = {
   icon: any;
   callback: () => void;
   toolbar?: boolean;
+  enabled: () => boolean;
   shortcut?: KeyBinding;
 };

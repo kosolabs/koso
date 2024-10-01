@@ -1,19 +1,22 @@
 import { Map } from "immutable";
+import type { Action } from "./components/ui/command-palette";
 import { KeyBinding } from "./key-binding";
 
-export type Handler = () => void;
-
 export class KeyHandlerRegistry {
-  registry: Map<KeyBinding, Handler>;
+  registry: Map<KeyBinding, Action>;
 
-  constructor(registry: [KeyBinding, Handler][]) {
-    this.registry = Map<KeyBinding, Handler>(registry);
+  constructor(actions: Action[]) {
+    this.registry = Map<KeyBinding, Action>(
+      actions
+        .filter((action) => action.shortcut)
+        .map((action) => [action.shortcut!, action]),
+    );
   }
 
   handle(event: KeyboardEvent): boolean {
-    const handler = this.registry.get(KeyBinding.fromEvent(event));
-    if (!handler) return false;
-    handler();
+    const action = this.registry.get(KeyBinding.fromEvent(event));
+    if (!action || !action.enabled()) return false;
+    action.callback();
     event.preventDefault();
     return true;
   }

@@ -9,10 +9,7 @@
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import { type Koso } from "$lib/koso";
-  import {
-    globalKeybindingsEnabled,
-    handleOpenChange,
-  } from "$lib/popover-monitors";
+  import { globalKeybindingsEnabled } from "$lib/popover-monitors";
   import { cn } from "$lib/utils";
   import {
     ChevronsDownUp,
@@ -46,9 +43,6 @@
   export let commandPaletteOpen: boolean = false;
 
   const { debug, editing, nodes, selected, showDone } = koso;
-
-  let commandPalette: any;
-  $: handleOpenChange(commandPaletteOpen, commandPalette);
 
   function showCommandPalette() {
     commandPaletteOpen = true;
@@ -174,173 +168,183 @@
     koso.redo();
   }
 
-  let actions: Action[];
-  $: {
-    actions = [];
-    actions.push({
+  const actions: Action[] = [
+    {
       title: "Add Task",
       icon: ListPlus,
       callback: insert,
       toolbar: true,
+      enabled: () => true,
       shortcut: KeyBinding.INSERT_NODE,
-    });
-    actions.push({
+    },
+    {
       title: "Edit Name",
       icon: Pencil,
       callback: edit,
       toolbar: false,
+      enabled: () => true,
       shortcut: KeyBinding.EDIT_NODE,
-    });
-    actions.push({
+    },
+    {
       title: "Cancel Selection",
       icon: CircleX,
       callback: unselect,
       toolbar: false,
+      enabled: () => true,
       shortcut: KeyBinding.CANCEL_SELECTION,
-    });
-    if ($selected) {
-      actions.push({
-        title: "Add Child",
-        icon: ListTree,
-        callback: insertChild,
-        toolbar: true,
-        shortcut: KeyBinding.INSERT_CHILD_NODE,
-      });
-      actions.push({
-        title: "Delete",
-        icon: Trash,
-        callback: remove,
-        toolbar: true,
-        shortcut: KeyBinding.REMOVE_NODE,
-      });
-      actions.push({
-        title: "Move Up",
-        icon: MoveUp,
-        callback: moveUp,
-        toolbar: true,
-        shortcut: KeyBinding.MOVE_NODE_UP,
-      });
-      actions.push({
-        title: "Move Down",
-        icon: MoveDown,
-        callback: moveDown,
-        toolbar: true,
-        shortcut: KeyBinding.MOVE_NODE_DOWN,
-      });
-      actions.push({
-        title: "Move Row Up",
-        icon: MoveUp,
-        callback: moveRowUp,
-        toolbar: true,
-        shortcut: KeyBinding.MOVE_NODE_ROW_UP,
-      });
-      actions.push({
-        title: "Move Row Down",
-        icon: MoveDown,
-        callback: moveRowDown,
-        toolbar: true,
-        shortcut: KeyBinding.MOVE_NODE_ROW_DOWN,
-      });
-      actions.push({
-        title: "Undent",
-        icon: IndentDecrease,
-        callback: undent,
-        toolbar: true,
-        shortcut: KeyBinding.UNDENT_NODE,
-      });
-      actions.push({
-        title: "Indent",
-        icon: IndentIncrease,
-        callback: indent,
-        toolbar: true,
-        shortcut: KeyBinding.INDENT_NODE,
-      });
-      actions.push({
-        title: "Undent",
-        icon: IndentDecrease,
-        callback: undent,
-        toolbar: true,
-        shortcut: KeyBinding.UNDENT_NODE_SHIFT,
-      });
-      actions.push({
-        title: "Indent",
-        icon: IndentIncrease,
-        callback: indent,
-        toolbar: true,
-        shortcut: KeyBinding.INDENT_NODE_SHIFT,
-      });
-    }
-    actions.push({
+    },
+    {
+      title: "Add Child",
+      icon: ListTree,
+      callback: insertChild,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: KeyBinding.INSERT_CHILD_NODE,
+    },
+    {
+      title: "Delete",
+      icon: Trash,
+      callback: remove,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: KeyBinding.REMOVE_NODE,
+    },
+    {
+      title: "Move Up",
+      icon: MoveUp,
+      callback: moveUp,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: KeyBinding.MOVE_NODE_UP,
+    },
+    {
+      title: "Move Down",
+      icon: MoveDown,
+      callback: moveDown,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: KeyBinding.MOVE_NODE_DOWN,
+    },
+    {
+      title: "Move Row Up",
+      icon: MoveUp,
+      callback: moveRowUp,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: KeyBinding.MOVE_NODE_ROW_UP,
+    },
+    {
+      title: "Move Row Down",
+      icon: MoveDown,
+      callback: moveRowDown,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: KeyBinding.MOVE_NODE_ROW_DOWN,
+    },
+    {
+      title: "Undent",
+      icon: IndentDecrease,
+      callback: undent,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: KeyBinding.UNDENT_NODE,
+    },
+    {
+      title: "Indent",
+      icon: IndentIncrease,
+      callback: indent,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: KeyBinding.INDENT_NODE,
+    },
+    {
+      title: "Undent",
+      icon: IndentDecrease,
+      callback: undent,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: KeyBinding.UNDENT_NODE_SHIFT,
+    },
+    {
+      title: "Indent",
+      icon: IndentIncrease,
+      callback: indent,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: KeyBinding.INDENT_NODE_SHIFT,
+    },
+    {
       title: "Undo",
       icon: Undo,
       callback: undo,
       toolbar: true,
+      enabled: () => true,
       shortcut: KeyBinding.UNDO,
-    });
-    actions.push({
+    },
+    {
       title: "Redo",
       icon: Redo,
       callback: redo,
       toolbar: true,
+      enabled: () => true,
       shortcut: KeyBinding.REDO,
-    });
-    if ($showDone) {
-      actions.push({
-        title: "Hide Done Tasks",
-        icon: EyeOff,
-        callback: hideDoneTasks,
-        toolbar: true,
-      });
-    } else {
-      actions.push({
-        title: "Show Done Tasks",
-        icon: Eye,
-        callback: showDoneTasks,
-        toolbar: true,
-      });
-    }
-    actions.push({
+    },
+    {
+      title: "Hide Done Tasks",
+      icon: EyeOff,
+      callback: hideDoneTasks,
+      enabled: () => !!$showDone,
+      toolbar: true,
+    },
+    {
+      title: "Show Done Tasks",
+      icon: Eye,
+      callback: showDoneTasks,
+      enabled: () => !$showDone,
+      toolbar: true,
+    },
+    {
       title: "Expand Task",
       icon: ChevronsUpDown,
       callback: expand,
       toolbar: false,
+      enabled: () => true,
       shortcut: KeyBinding.EXPAND_NODE,
-    });
-    actions.push({
+    },
+    {
       title: "Collapse Task",
       icon: ChevronsDownUp,
       callback: collapse,
       toolbar: false,
+      enabled: () => true,
       shortcut: KeyBinding.COLLAPSE_NODE,
-    });
-    actions.push({
+    },
+    {
       title: "Select Next Task",
       icon: StepForward,
       callback: selectNext,
       toolbar: false,
+      enabled: () => true,
       shortcut: KeyBinding.SELECT_NEXT_NODE,
-    });
-    actions.push({
+    },
+    {
       title: "Select Previous Task",
       icon: StepBack,
       callback: selectPrev,
       toolbar: false,
+      enabled: () => true,
       shortcut: KeyBinding.SELECT_PREV_NODE,
-    });
-    actions.push({
+    },
+    {
       title: "Show Command Palette",
       icon: Terminal,
       callback: showCommandPalette,
       toolbar: true,
+      enabled: () => true,
       shortcut: KeyBinding.SHOW_COMMAND_PALETTE,
-    });
-  }
-
-  $: registry = new KeyHandlerRegistry(
-    actions
-      .filter((action) => action.shortcut)
-      .map((action) => [action.shortcut!, action.callback]),
-  );
+    },
+  ];
+  const registry = new KeyHandlerRegistry(actions);
 
   document.onkeydown = (event: KeyboardEvent) => {
     if ($debug) {
@@ -351,7 +355,6 @@
       });
     }
 
-    console.log(event);
     if (!globalKeybindingsEnabled()) return;
     registry.handle(event);
   };
@@ -373,11 +376,7 @@
   {/each}
 </div>
 
-<CommandPalette
-  bind:open={commandPaletteOpen}
-  bind:this={commandPalette}
-  {actions}
-/>
+<CommandPalette bind:open={commandPaletteOpen} {actions} />
 
 <div class="mb-12 p-2 sm:mb-0">
   <table class="w-full border-separate border-spacing-0 rounded-md border">

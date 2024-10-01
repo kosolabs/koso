@@ -1,9 +1,11 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
+  import type { Action } from "$lib/components/ui/command-palette";
   import { Input } from "$lib/components/ui/input";
   import { KeyBinding } from "$lib/key-binding";
   import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import { cn } from "$lib/utils";
+  import { Save, Undo2 } from "lucide-svelte";
 
   type Props = {
     value: string;
@@ -28,12 +30,42 @@
 
   let edited: string = $state(value);
 
-  const registry = new KeyHandlerRegistry([
-    [KeyBinding.INSERT_NODE, save],
-    [KeyBinding.INSERT_CHILD_NODE, save],
-    [KeyBinding.SAVE_EDITABLE, save],
-    [KeyBinding.REVERT_EDITABLE, revert],
-  ]);
+  const actions: Action[] = [
+    {
+      title: "Save and New Task",
+      icon: Save,
+      callback: save,
+      toolbar: false,
+      enabled: () => true,
+      shortcut: KeyBinding.INSERT_NODE,
+    },
+    {
+      title: "Save and New Child",
+      icon: Save,
+      callback: save,
+      toolbar: false,
+      enabled: () => true,
+      shortcut: KeyBinding.INSERT_CHILD_NODE,
+    },
+    {
+      title: "Save",
+      icon: Save,
+      callback: save,
+      toolbar: false,
+      enabled: () => true,
+      shortcut: KeyBinding.SAVE_EDITABLE,
+    },
+    {
+      title: "Revert",
+      icon: Undo2,
+      callback: revert,
+      toolbar: false,
+      enabled: () => true,
+      shortcut: KeyBinding.REVERT_EDITABLE,
+    },
+  ];
+
+  const registry = new KeyHandlerRegistry(actions);
 
   function handleInputKeydown(event: KeyboardEvent) {
     onkeydown?.(event);
@@ -54,15 +86,14 @@
   }
 
   function save() {
-    if (edited === null) return;
-    onsave(edited);
     value = edited;
+    onsave(edited);
     ondone?.();
     editing = false;
   }
 
   function revert() {
-    if (edited === null) return;
+    edited = value;
     ondone?.();
     editing = false;
   }
