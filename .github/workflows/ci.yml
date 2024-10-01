@@ -115,18 +115,8 @@ jobs:
       - name: Set up test database
         working-directory: ./backend
         run: |
-          docker run \
-            --env DATABASE_URL=${{ env.DATABASE_URL }} \
-            --network=host \
-            --rm \
-            ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST \
-            "./sqlx" database create
-          docker run \
-            --env DATABASE_URL=${{ env.DATABASE_URL }} \
-            --network=host \
-            --rm \
-            ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST \
-            "./sqlx" migrate run
+          KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} ../backend/scripts/init_db.sh
+
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
       - run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} npx playwright test --workers=4
