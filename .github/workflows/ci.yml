@@ -30,10 +30,7 @@ jobs:
           - 5432:5432
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "backend"
@@ -107,10 +104,7 @@ jobs:
       # "cargo" job above to configure rust, setup the database
       # and run a build. It'd be nice to avoid this somehow, but
       # the rate of change is low enough that it's not too important.
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "backend"
