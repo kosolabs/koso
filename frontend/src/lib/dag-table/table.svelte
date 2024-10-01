@@ -50,8 +50,18 @@
 
   function remove() {
     if (!$selected) return;
-    koso.deleteNode($selected);
-    $selected = null;
+    const toDelete = $selected;
+
+    selectNext();
+    if (toDelete.equals($selected)) {
+      selectPrev();
+    }
+
+    const adjSelected = !toDelete.equals($selected);
+    koso.deleteNode(toDelete);
+    if (!adjSelected) {
+      $selected = null;
+    }
   }
 
   function edit() {
