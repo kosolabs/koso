@@ -111,20 +111,22 @@ jobs:
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          
-      # The following steps do much of the same work as the backend
-      # "cargo" job above to setup the database.
-      # It'd be nice to avoid this somehow, but
-      # the rate of change is low enough that it's not too important.
-      - name: Install sqlx-cli
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: sqlx-cli
-          args: --no-default-features --features rustls,postgres
-          version: latest
-      - name: Migrate database
+
+      - name: Set up test database
         working-directory: ./backend
-        run: SKIP_DOCKER=true ../backend/scripts/init_db.sh
+        run: |
+          docker run \
+            --env DATABASE_URL=${{ env.DATABASE_URL }} \
+            --network=host \
+            --rm \
+            ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST \
+            "./sqlx" database create
+          docker run \
+            --env DATABASE_URL=${{ env.DATABASE_URL }} \
+            --network=host \
+            --rm \
+            ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST \
+            "./sqlx" migrate run
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
       - run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} npx playwright test --workers=4
