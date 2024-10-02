@@ -312,7 +312,11 @@
         }}
       />
     {:else}
-      <TaskStatus done={progress.numer} total={progress.denom} />
+      <TaskStatus
+        inProgress={progress.inProgress}
+        done={progress.done}
+        total={progress.total}
+      />
     {/if}
   </td>
   <td class={cn("border-l border-t px-2")}>

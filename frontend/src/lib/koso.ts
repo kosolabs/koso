@@ -83,8 +83,9 @@ export type Graph = { [id: string]: Task };
 export type Nodes = Map<string, Node>;
 
 export type Progress = {
-  numer: number;
-  denom: number;
+  inProgress: number;
+  done: number;
+  total: number;
   lastStatusTime: number | null;
 };
 
@@ -907,17 +908,52 @@ export class Koso {
   getProgress(taskId: string): Progress {
     const task = this.getTask(taskId);
     if (task.children.length === 0) {
-      return task.status === "Done"
-        ? { numer: 1, denom: 1, lastStatusTime: task.statusTime }
-        : { numer: 0, denom: 1, lastStatusTime: task.statusTime };
+      switch (task.status) {
+        case "Done":
+          return {
+            inProgress: 0,
+            done: 1,
+            total: 1,
+            lastStatusTime: task.statusTime,
+          };
+        case "In Progress":
+          return {
+            inProgress: 1,
+            done: 0,
+            total: 1,
+            lastStatusTime: task.statusTime,
+          };
+        case "Not Started":
+        case null:
+          return {
+            inProgress: 0,
+            done: 0,
+            total: 1,
+            lastStatusTime: task.statusTime,
+          };
+        default:
+          console.log(`Invalid status ${task.status} for task ${task.name}`);
+          return {
+            inProgress: 0,
+            done: 0,
+            total: 1,
+            lastStatusTime: task.statusTime,
+          };
+      }
     }
-    const result: Progress = { numer: 0, denom: 0, lastStatusTime: null };
+    const result: Progress = {
+      lastStatusTime: null,
+      inProgress: 0,
+      done: 0,
+      total: 0,
+    };
     task.children.forEach((taskId) => {
       // If performance is ever an issue for large, nested graphs,
       // we can memoize the recursive call and trade memory for time.
       const childProgress = this.getProgress(taskId);
-      result.numer += childProgress.numer;
-      result.denom += childProgress.denom;
+      result.inProgress += childProgress.inProgress;
+      result.done += childProgress.done;
+      result.total += childProgress.total;
       if (
         childProgress.lastStatusTime &&
         (!result.lastStatusTime ||
@@ -940,7 +976,7 @@ export class Koso {
   isVisible(node: Node, showDone: boolean) {
     if (!showDone) {
       const progress = this.getProgress(node.name);
-      if (progress.denom === progress.numer) {
+      if (progress.total === progress.done) {
         // Tasks marked done prior to the addition of statusTime
         // won't have a statusTime set. Assume they were all marked done
         // a long time ago.

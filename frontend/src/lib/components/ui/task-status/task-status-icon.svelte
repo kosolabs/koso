@@ -4,12 +4,12 @@
   import { CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
 
   type Props = {
-    status: Status | number | null;
+    status: Status | null;
   };
   const { status }: Props = $props();
 </script>
 
-{#if status === "Done" || status === 1}
+{#if status === "Done"}
   <CircleCheck color="hsl(var(--primary))" />
 {:else if status === "In Progress"}
   <CircleFadingArrowUp color="hsl(var(--primary))" />
