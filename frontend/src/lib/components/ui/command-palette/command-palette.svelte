@@ -27,7 +27,6 @@
   shouldFilter={false}
   portal={null}
   onkeydown={(event) => {
-    console.log(event);
     event.stopPropagation();
     if (ESCAPE.matches(event)) {
       open = false;

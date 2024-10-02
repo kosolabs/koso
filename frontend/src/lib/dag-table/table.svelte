@@ -38,12 +38,14 @@
   import { flip } from "svelte/animate";
   import Row from "./row.svelte";
 
-  export let koso: Koso;
-  export let users: User[];
-  export let commandPaletteOpen: boolean = false;
-
+  type Props = {
+    koso: Koso;
+    users: User[];
+  };
+  const { koso, users }: Props = $props();
   const { debug, editing, nodes, selected, showDone } = koso;
 
+  let commandPaletteOpen: boolean = $state(false);
   function showCommandPalette() {
     commandPaletteOpen = true;
   }
@@ -346,6 +348,10 @@
   ];
   const registry = new KeyHandlerRegistry(actions);
 
+  const toolbarActions = $derived(
+    actions.filter((action) => action.toolbar && action.enabled()),
+  );
+
   document.onkeydown = (event: KeyboardEvent) => {
     if ($debug) {
       // TODO: Remove any once toast support Component type
@@ -369,10 +375,8 @@
     "sm:sticky sm:top-0 sm:gap-2 sm:border-b",
   )}
 >
-  {#each actions as { title, icon, callback, toolbar }}
-    {#if toolbar}
-      <ToolbarButton {title} {icon} onclick={callback} />
-    {/if}
+  {#each toolbarActions as { title, icon, callback }}
+    <ToolbarButton {title} {icon} onclick={callback} />
   {/each}
 </div>
 
