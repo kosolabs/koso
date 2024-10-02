@@ -171,10 +171,8 @@ export class Koso {
         // "root" task. Handle the situation here to avoid generating warnings
         // in #flatten.
         if (this.yGraph.size === 0) {
-          console.log("Empty graph");
           return List();
         }
-        console.log("NONEMPTY graph");
         return this.#flatten(new Node(), expanded, showDone);
       },
     );
@@ -268,10 +266,9 @@ export class Koso {
           const childNode = node.child(name);
           // Apply visibility filtering here instead of at the start of #flatten
           // to ensure that the root node is always present.
-          if (!this.isVisible(childNode, showDone)) {
-            return;
+          if (this.isVisible(childNode, showDone)) {
+            nodes = this.#flatten(childNode, expanded, showDone, nodes);
           }
-          nodes = this.#flatten(childNode, expanded, showDone, nodes);
         });
       }
     } else {
