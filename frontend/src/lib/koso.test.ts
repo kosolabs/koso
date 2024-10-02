@@ -14,6 +14,13 @@ const USER: User = {
   exp: 0,
 };
 
+const OTHER_USER: User = {
+  email: "t2@koso.app",
+  name: "Test2 User",
+  picture: "",
+  exp: 0,
+};
+
 const EMPTY_SYNC_RESPONSE = (() => {
   const encoder = encoding.createEncoder();
   encoding.writeVarUint(encoder, 0);
@@ -318,7 +325,7 @@ describe("Koso tests", () => {
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: [id1.name] },
-        [id1.name]: { children: [id2.name, id4.name, id3.name] },
+        [id3.name]: { children: [id2.name, id4.name, id3.name] },
         [id2.name]: { children: [] },
         [id3.name]: { children: [] },
         [id4.name]: { children: [] },
@@ -395,16 +402,68 @@ describe("Koso tests", () => {
   });
 
   describe("setTaskStatus", () => {
-    it("set node 2's reporter succeeds", () => {
+    it("set node 2's status to done succeeds", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(root, 0, USER, "Task 2");
 
-      koso.setTaskStatus(id2, "Done");
+      koso.setTaskStatus(id2, "Done", USER);
 
       expect(koso.toJSON()).toMatchObject({
-        root: { status: null },
-        [id1.name]: { status: null },
-        [id2.name]: { status: "Done" },
+        root: { status: null, children: [id1.name, id2.name], assignee: null },
+        [id1.name]: { status: null, children: [], assignee: null },
+        [id2.name]: { status: "Done", children: [], assignee: null },
+      });
+    });
+
+    it("set non-trailing node status to done succeeds and moves done task to end", () => {
+      const id1 = koso.insertNode(root, 0, USER, "Task 1");
+      const id2 = koso.insertNode(root, 0, USER, "Task 2");
+
+      koso.setTaskStatus(id1, "Done", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: [id2.name, id1.name], assignee: null },
+        [id1.name]: { status: "Done", children: [], assignee: null },
+        [id2.name]: { status: null, children: [], assignee: null },
+      });
+    });
+
+    it("set node status to in-progress succeeds and moves done task to front and assigns to user", () => {
+      const id1 = koso.insertNode(root, 0, USER, "Task 1");
+      const id2 = koso.insertNode(root, 0, USER, "Task 2");
+
+      koso.setTaskStatus(id2, "In Progress", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: [id2.name, id1.name], assignee: null },
+        [id1.name]: { status: null, children: [], assignee: null },
+        [id2.name]: {
+          status: "In Progress",
+          children: [],
+          assignee: USER.email,
+        },
+      });
+    });
+
+    it("set node status to in-progress succeeds and moves done task to front and assigns to user", () => {
+      const id1 = koso.insertNode(root, 0, USER, "Task 1");
+      const id2 = koso.insertNode(root, 0, USER, "Task 2");
+
+      koso.setAssignee(id2.name, OTHER_USER);
+      koso.setTaskStatus(id2, "In Progress", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: {
+          status: null,
+          children: [id2.name, id1.name],
+          assignee: null,
+        },
+        [id1.name]: { status: null, children: [], assignee: null },
+        [id2.name]: {
+          status: "In Progress",
+          children: [],
+          assignee: OTHER_USER.email,
+        },
       });
     });
   });
@@ -432,7 +491,7 @@ describe("Koso tests", () => {
 
     it("leaf node that is in progress has 0 of 1 progress", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      koso.setTaskStatus(id1, "In Progress");
+      koso.setTaskStatus(id1, "In Progress", USER);
 
       expect(koso.getProgress(id1.name)).toEqual({
         numer: 0,
@@ -443,7 +502,7 @@ describe("Koso tests", () => {
 
     it("leaf node that is done has 1 of 1 progress", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      koso.setTaskStatus(id1, "Done");
+      koso.setTaskStatus(id1, "Done", USER);
 
       expect(koso.getProgress(id1.name)).toEqual({
         numer: 1,
@@ -468,8 +527,8 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(id1, 0, USER, "Task 2");
       const id3 = koso.insertNode(id1, 0, USER, "Task 3");
-      koso.setTaskStatus(id2, "In Progress");
-      koso.setTaskStatus(id3, "In Progress");
+      koso.setTaskStatus(id2, "In Progress", USER);
+      koso.setTaskStatus(id3, "In Progress", USER);
 
       expect(koso.getProgress(id1.name)).toEqual({
         numer: 0,
@@ -482,8 +541,8 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(id1, 0, USER, "Task 2");
       const id3 = koso.insertNode(id1, 0, USER, "Task 3");
-      koso.setTaskStatus(id2, "Done");
-      koso.setTaskStatus(id3, "In Progress");
+      koso.setTaskStatus(id2, "Done", USER);
+      koso.setTaskStatus(id3, "In Progress", USER);
 
       expect(koso.getProgress(id1.name)).toEqual({
         numer: 1,

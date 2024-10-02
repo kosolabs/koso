@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { User } from "$lib/auth";
+  import { user, type User } from "$lib/auth";
   import {
     Chip,
     parseChipProps,
@@ -307,7 +307,8 @@
         statusTime={task.statusTime ? new Date(task.statusTime) : null}
         closeFocus={rowElement}
         onselect={(status) => {
-          koso.setTaskStatus(node, status);
+          if (!$user) throw new Error("Unauthenticated");
+          koso.setTaskStatus(node, status, $user);
         }}
       />
     {:else}

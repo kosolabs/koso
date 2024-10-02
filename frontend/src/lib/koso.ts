@@ -460,9 +460,7 @@ export class Koso {
 
     this.yDoc.transact(() => {
       // Unlink the target node.
-      const yParent = this.yGraph.get(node.parent.name);
-      if (!yParent)
-        throw new Error(`Task ${node.parent.name} is not in the graph`);
+      const yParent = this.#getYTask(node.parent.name);
       const yParentsChildren = yParent.get("children") as Y.Array<string>;
       const childIndex = yParentsChildren.toArray().indexOf(node.name);
       if (childIndex < 0)
@@ -831,8 +829,7 @@ export class Koso {
 
   setTaskName(taskId: string, newName: string) {
     this.yDoc.transact(() => {
-      const yNode = this.yGraph.get(taskId);
-      if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
+      const yNode = this.#getYTask(taskId);
       if (yNode.get("name") !== newName) {
         yNode.set("name", newName);
       }
@@ -841,8 +838,7 @@ export class Koso {
 
   setAssignee(taskId: string, assignee: User | null) {
     this.yDoc.transact(() => {
-      const yNode = this.yGraph.get(taskId);
-      if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
+      const yNode = this.#getYTask(taskId);
       if (assignee === null && yNode.get("assignee") !== null) {
         yNode.set("assignee", null);
       } else if (assignee && assignee.email !== yNode.get("assignee")) {
@@ -853,8 +849,7 @@ export class Koso {
 
   setReporter(taskId: string, reporter: User | null) {
     this.yDoc.transact(() => {
-      const yNode = this.yGraph.get(taskId);
-      if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
+      const yNode = this.#getYTask(taskId);
       if (reporter === null && yNode.get("reporter") !== null) {
         yNode.set("reporter", null);
       } else if (reporter && reporter.email !== yNode.get("reporter")) {
@@ -863,11 +858,10 @@ export class Koso {
     });
   }
 
-  setTaskStatus(node: Node, status: Status) {
+  setTaskStatus(node: Node, status: Status, user: User) {
     const taskId = node.name;
     this.yDoc.transact(() => {
-      const yNode = this.yGraph.get(taskId);
-      if (!yNode) throw new Error(`Task ${taskId} is not in the graph`);
+      const yNode = this.#getYTask(taskId);
       if (yNode.get("status") === status) return;
 
       yNode.set("status", status);
@@ -880,6 +874,8 @@ export class Koso {
           this.selected.set(peer);
         }
 
+        // If scanning all tasks ever gets slow, we could always
+        // maintain a by-parent index. The same applies below.
         for (const parentTask of this.yGraph.values()) {
           const children = parentTask.get("children") as Y.Array<string>;
           const index = children.slice().indexOf(taskId);
@@ -887,6 +883,21 @@ export class Koso {
             children.delete(index);
             children.push([taskId]);
           }
+        }
+      }
+      // When a task is marked in progress, make it the first child
+      // and, if unassigned, assign to the current user
+      else if (status == "In Progress") {
+        for (const parentTask of this.yGraph.values()) {
+          const children = parentTask.get("children") as Y.Array<string>;
+          const index = children.slice().indexOf(taskId);
+          if (index !== -1) {
+            children.delete(index);
+            children.insert(0, [taskId]);
+          }
+        }
+        if (!yNode.get("assignee")) {
+          yNode.set("assignee", user.email);
         }
       }
     });
