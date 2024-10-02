@@ -46,6 +46,11 @@ export class KeyBinding extends KeyBindingRecord {
     });
   }
 
+  static SHOW_COMMAND_PALETTE = new KeyBinding({
+    key: "p",
+    shiftKey: true,
+    metaKey: true,
+  });
   static SAVE_EDITABLE = new KeyBinding({ key: "Enter" });
   static REVERT_EDITABLE = new KeyBinding({ key: "Escape" });
   static EDIT_NODE = new KeyBinding({ key: "Enter" });
