@@ -258,16 +258,17 @@ export class Koso {
     showDone: boolean,
     nodes: List<Node> = List(),
   ): List<Node> {
-    if (!this.isVisible(node, showDone)) {
-      return nodes;
-    }
-
     const task = this.yGraph.get(node.name);
     if (task) {
       nodes = nodes.push(node);
       if (node.length < 1 || expanded.has(node)) {
         (task.get("children") as Y.Array<string>).forEach((name) => {
-          nodes = this.#flatten(node.child(name), expanded, showDone, nodes);
+          const childNode = node.child(name);
+          // Apply visibility filtering here instead of at the start of #flatten
+          // to ensure that the root node is always present.
+          if (this.isVisible(childNode, showDone)) {
+            nodes = this.#flatten(childNode, expanded, showDone, nodes);
+          }
         });
       }
     } else {

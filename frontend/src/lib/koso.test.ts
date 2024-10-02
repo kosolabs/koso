@@ -91,6 +91,12 @@ describe("Koso tests", () => {
       expect(get(koso.nodes)).toStrictEqual(List([root, id1]));
     });
 
+    it("doc with non-visible tasks still returns root", () => {
+      const id1 = koso.insertNode(root, 0, USER, "Task 1");
+      koso.yGraph.get(id1.name)?.set("status", "Done");
+      expect(get(koso.nodes)).toStrictEqual(List([root]));
+    });
+
     it("doc with two tasks has two nodes", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(root, 1, USER, "Task 2");
