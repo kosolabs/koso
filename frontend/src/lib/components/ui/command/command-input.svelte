@@ -3,6 +3,7 @@
   import { Command as CommandPrimitive } from "cmdk-sv";
   import MagnifyingGlass from "svelte-radix/MagnifyingGlass.svelte";
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type $$Props = CommandPrimitive.InputProps;
 
   let className: string | undefined | null = undefined;

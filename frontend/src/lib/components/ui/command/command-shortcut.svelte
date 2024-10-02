@@ -2,6 +2,7 @@
   import { cn } from "$lib/utils.js";
   import type { HTMLAttributes } from "svelte/elements";
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type $$Props = HTMLAttributes<HTMLSpanElement>;
 
   let className: string | undefined | null = undefined;
