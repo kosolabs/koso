@@ -1,9 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
-  import type { Action } from "$lib/components/ui/command-palette";
   import { Input } from "$lib/components/ui/input";
-  import { KeyBinding } from "$lib/key-binding";
-  import { KeyHandlerRegistry } from "$lib/key-handler-registry";
+  import { Shortcut, ShortcutRegistry, type Action } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import { Save, Undo2 } from "lucide-svelte";
 
@@ -37,7 +35,7 @@
       callback: save,
       toolbar: false,
       enabled: () => true,
-      shortcut: KeyBinding.INSERT_NODE,
+      shortcut: Shortcut.INSERT_NODE,
     },
     {
       title: "Save and New Child",
@@ -45,7 +43,7 @@
       callback: save,
       toolbar: false,
       enabled: () => true,
-      shortcut: KeyBinding.INSERT_CHILD_NODE,
+      shortcut: Shortcut.INSERT_CHILD_NODE,
     },
     {
       title: "Save",
@@ -53,7 +51,7 @@
       callback: save,
       toolbar: false,
       enabled: () => true,
-      shortcut: KeyBinding.SAVE_EDITABLE,
+      shortcut: Shortcut.SAVE_EDITABLE,
     },
     {
       title: "Revert",
@@ -61,11 +59,11 @@
       callback: revert,
       toolbar: false,
       enabled: () => true,
-      shortcut: KeyBinding.REVERT_EDITABLE,
+      shortcut: Shortcut.REVERT_EDITABLE,
     },
   ];
 
-  const registry = new KeyHandlerRegistry(actions);
+  const registry = new ShortcutRegistry(actions);
 
   function handleInputKeydown(event: KeyboardEvent) {
     onkeydown?.(event);
