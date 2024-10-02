@@ -123,7 +123,7 @@
         <Popover.Trigger>
           <Input type="text" placeholder="Add people" bind:value={filter} />
         </Popover.Trigger>
-        <Popover.Content sameWidth={true}>
+        <Popover.Content sameWidth={true} class="max-h-96 overflow-y-auto">
           {#if filteredUsers.length > 0}
             {#each filteredUsers as user}
               <button
