@@ -221,7 +221,7 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
 
 ## Server setup notes
 
-Install docker:
+### Install docker:
 
 ```bash
 sudo su &&\
@@ -236,13 +236,13 @@ systemctl is-active docker
 echo $PULL_TOKEN| docker login ghcr.io -u $USER --password-stdin
 ```
 
-Add 172.17.0.1 to /etc/postgresql/16/main/postgresql.conf:
+### Add 172.17.0.1 to /etc/postgresql/16/main/postgresql.conf:
 
 ```
 listen_addresses = 'localhost,172.17.0.1'
 ```
 
-Add entry to /etc/postgresql/16/main/pg_hba.conf:
+### Add entry to /etc/postgresql/16/main/pg_hba.conf:
 
 ```
 # Allow docker bridge
