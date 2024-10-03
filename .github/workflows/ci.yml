@@ -9,7 +9,7 @@ on:
         value: ${{ jobs.build-and-push-image.outputs.digest }}
 concurrency:
   group: ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}
-  # Cancel in-progress workflows for PRs (but not main)
+  # Cancel in-progress workflows for PRs (but not main).
   cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
 jobs:
   cargo:
