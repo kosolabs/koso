@@ -67,7 +67,7 @@ test.describe("dag table tests", () => {
 
   test.describe("creating tasks", () => {
     test("create a task by clicking the Add Task button", async ({ page }) => {
-      await page.getByRole("button", { name: "Add Task" }).click();
+      await page.getByRole("button", { name: "Add Task" }).last().click();
       await page.keyboard.press("Escape");
       await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
 
