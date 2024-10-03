@@ -8,7 +8,7 @@ on:
         description: "Digest of the image."
         value: ${{ jobs.build-and-push-image.outputs.digest }}
 concurrency:
-  # For runs against PRs, use a stable group
+  # For runs against PRs, use a stable group.
   # For runs gainst main, use a unique group for each run to enable parallel runs when, for example, multiple
   # PRs were merged in short succession.
   group: ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}-${{ github.ref != 'refs/heads/main' || github.run_id}}
