@@ -9,6 +9,7 @@ on:
         value: ${{ jobs.build-and-push-image.outputs.digest }}
 concurrency:
   group: ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}
+  # Cancel in-progress workflows for PRs (but not main)
   cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
 jobs:
   cargo:
@@ -119,7 +120,6 @@ jobs:
         working-directory: ./backend
         run: |
           KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} ../backend/scripts/init_db.sh
-
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
       - run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} npx playwright test --workers=4
