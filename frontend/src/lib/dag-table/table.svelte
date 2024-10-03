@@ -1,5 +1,6 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
+  import { Button } from "$lib/components/ui/button";
   import { CommandPalette } from "$lib/components/ui/command-palette";
   import { ShortcutChips } from "$lib/components/ui/shortcut";
   import { ToolbarButton } from "$lib/components/ui/toolbar-button";
@@ -379,30 +380,40 @@
 <CommandPalette bind:open={commandPaletteOpen} {actions} />
 
 <div class="mb-12 p-2 sm:mb-0">
-  <table class="w-full border-separate border-spacing-0 rounded-md border">
-    <thead class="text-left text-xs font-bold uppercase">
-      <tr>
-        <th class="w-32 p-2">ID</th>
-        {#if $debug}
-          <th class="border-l p-2">UUID</th>
-        {/if}
-        <th class="border-l p-2">
-          <SquarePen class="h-4 sm:hidden" />
-          <div class="max-sm:hidden">Status</div></th
-        >
-        <th class="border-l p-2">Name</th>
-        <th class="border-l p-2">
-          <UserRoundPlus class="h-4 sm:hidden" />
-          <div class="max-sm:hidden">Assignee</div>
-        </th>
-        <th class="border-l p-2 max-sm:hidden">Reporter</th>
-      </tr>
-    </thead>
+  {#if $nodes.size > 1}
+    <table class="w-full border-separate border-spacing-0 rounded-md border">
+      <thead class="text-left text-xs font-bold uppercase">
+        <tr>
+          <th class="w-32 p-2">ID</th>
+          {#if $debug}
+            <th class="border-l p-2">UUID</th>
+          {/if}
+          <th class="border-l p-2">
+            <SquarePen class="h-4 sm:hidden" />
+            <div class="max-sm:hidden">Status</div></th
+          >
+          <th class="border-l p-2">Name</th>
+          <th class="border-l p-2">
+            <UserRoundPlus class="h-4 sm:hidden" />
+            <div class="max-sm:hidden">Assignee</div>
+          </th>
+          <th class="border-l p-2 max-sm:hidden">Reporter</th>
+        </tr>
+      </thead>
 
-    {#each [...$nodes].slice(1) as node, index (node.id)}
-      <tbody animate:flip={{ duration: 250 }}>
-        <Row {index} {node} {users} />
-      </tbody>
-    {/each}
-  </table>
+      {#each [...$nodes].slice(1) as node, index (node.id)}
+        <tbody animate:flip={{ duration: 250 }}>
+          <Row {index} {node} {users} />
+        </tbody>
+      {/each}
+    </table>
+  {:else}
+    <div class="flex items-center justify-center">
+      Welcome to Koso! Add your first task
+      <Button size="sm" onclick={insert} class="ml-2">
+        <ListPlus class="w-4 sm:me-2" />
+        Add task
+      </Button>
+    </div>
+  {/if}
 </div>
