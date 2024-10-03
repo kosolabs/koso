@@ -1,10 +1,9 @@
 <script lang="ts">
-  import * as Command from "$lib/components/ui/command/index.js";
-  import { Strokes } from "$lib/components/ui/stroke";
-  import { KeyBinding } from "$lib/key-binding";
-  import type { Action } from ".";
+  import * as Command from "$lib/components/ui/command";
+  import { ShortcutChips } from "$lib/components/ui/shortcut";
+  import { Shortcut, type Action } from "$lib/shortcuts";
 
-  const ESCAPE = new KeyBinding({ key: "Escape" });
+  const ESCAPE = new Shortcut({ key: "Escape" });
 
   type Props = {
     open: boolean;
@@ -51,7 +50,7 @@
         <Icon class="mr-2 h-4 w-4" />
         {title}
         {#if shortcut}
-          <Strokes class="ml-auto" binding={shortcut} />
+          <ShortcutChips class="ml-auto" {shortcut} />
         {/if}
       </Command.Item>
     {/each}

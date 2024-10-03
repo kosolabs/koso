@@ -8,8 +8,8 @@
   import { Editable } from "$lib/components/ui/editable";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
   import UserSelect from "$lib/components/ui/user-select/user-select.svelte";
-  import { KeyBinding } from "$lib/key-binding";
   import type { Koso, Node } from "$lib/koso";
+  import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
@@ -328,8 +328,8 @@
         ondone={() => ($editing = false)}
         onkeydown={(e) => {
           if (
-            !KeyBinding.INSERT_NODE.matches(e) &&
-            !KeyBinding.INSERT_CHILD_NODE.matches(e)
+            !Shortcut.INSERT_NODE.matches(e) &&
+            !Shortcut.INSERT_CHILD_NODE.matches(e)
           ) {
             e.stopPropagation();
           }

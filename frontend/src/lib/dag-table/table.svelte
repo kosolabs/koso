@@ -1,15 +1,11 @@
 <script lang="ts">
   import { user, type User } from "$lib/auth";
-  import {
-    CommandPalette,
-    type Action,
-  } from "$lib/components/ui/command-palette";
-  import { Strokes } from "$lib/components/ui/stroke";
+  import { CommandPalette } from "$lib/components/ui/command-palette";
+  import { ShortcutChips } from "$lib/components/ui/shortcut";
   import { ToolbarButton } from "$lib/components/ui/toolbar-button";
-  import { KeyBinding } from "$lib/key-binding";
-  import { KeyHandlerRegistry } from "$lib/key-handler-registry";
   import { type Koso } from "$lib/koso";
   import { globalKeybindingsEnabled } from "$lib/popover-monitors";
+  import { Shortcut, ShortcutRegistry, type Action } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import {
     ChevronsDownUp,
@@ -177,7 +173,7 @@
       callback: insert,
       toolbar: true,
       enabled: () => true,
-      shortcut: KeyBinding.INSERT_NODE,
+      shortcut: Shortcut.INSERT_NODE,
     },
     {
       title: "Edit Name",
@@ -185,7 +181,7 @@
       callback: edit,
       toolbar: false,
       enabled: () => true,
-      shortcut: KeyBinding.EDIT_NODE,
+      shortcut: Shortcut.EDIT_NODE,
     },
     {
       title: "Cancel Selection",
@@ -193,7 +189,7 @@
       callback: unselect,
       toolbar: false,
       enabled: () => true,
-      shortcut: KeyBinding.CANCEL_SELECTION,
+      shortcut: Shortcut.CANCEL_SELECTION,
     },
     {
       title: "Add Child",
@@ -201,7 +197,7 @@
       callback: insertChild,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: KeyBinding.INSERT_CHILD_NODE,
+      shortcut: Shortcut.INSERT_CHILD_NODE,
     },
     {
       title: "Delete",
@@ -209,7 +205,7 @@
       callback: remove,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: KeyBinding.REMOVE_NODE,
+      shortcut: Shortcut.REMOVE_NODE,
     },
     {
       title: "Move Up",
@@ -217,7 +213,7 @@
       callback: moveUp,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: KeyBinding.MOVE_NODE_UP,
+      shortcut: Shortcut.MOVE_NODE_UP,
     },
     {
       title: "Move Down",
@@ -225,7 +221,7 @@
       callback: moveDown,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: KeyBinding.MOVE_NODE_DOWN,
+      shortcut: Shortcut.MOVE_NODE_DOWN,
     },
     {
       title: "Move Row Up",
@@ -233,7 +229,7 @@
       callback: moveRowUp,
       toolbar: false,
       enabled: () => !!$selected,
-      shortcut: KeyBinding.MOVE_NODE_ROW_UP,
+      shortcut: Shortcut.MOVE_NODE_ROW_UP,
     },
     {
       title: "Move Row Down",
@@ -241,7 +237,7 @@
       callback: moveRowDown,
       toolbar: false,
       enabled: () => !!$selected,
-      shortcut: KeyBinding.MOVE_NODE_ROW_DOWN,
+      shortcut: Shortcut.MOVE_NODE_ROW_DOWN,
     },
     {
       title: "Undent",
@@ -249,7 +245,7 @@
       callback: undent,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: KeyBinding.UNDENT_NODE,
+      shortcut: Shortcut.UNDENT_NODE,
     },
     {
       title: "Indent",
@@ -257,7 +253,7 @@
       callback: indent,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: KeyBinding.INDENT_NODE,
+      shortcut: Shortcut.INDENT_NODE,
     },
     {
       title: "Undent",
@@ -265,7 +261,7 @@
       callback: undent,
       toolbar: false,
       enabled: () => !!$selected,
-      shortcut: KeyBinding.UNDENT_NODE_SHIFT,
+      shortcut: Shortcut.UNDENT_NODE_SHIFT,
     },
     {
       title: "Indent",
@@ -273,7 +269,7 @@
       callback: indent,
       toolbar: false,
       enabled: () => !!$selected,
-      shortcut: KeyBinding.INDENT_NODE_SHIFT,
+      shortcut: Shortcut.INDENT_NODE_SHIFT,
     },
     {
       title: "Undo",
@@ -281,7 +277,7 @@
       callback: undo,
       toolbar: true,
       enabled: () => true,
-      shortcut: KeyBinding.UNDO,
+      shortcut: Shortcut.UNDO,
     },
     {
       title: "Redo",
@@ -289,7 +285,7 @@
       callback: redo,
       toolbar: true,
       enabled: () => true,
-      shortcut: KeyBinding.REDO,
+      shortcut: Shortcut.REDO,
     },
     {
       title: "Hide Done Tasks",
@@ -311,7 +307,7 @@
       callback: expand,
       toolbar: false,
       enabled: () => true,
-      shortcut: KeyBinding.EXPAND_NODE,
+      shortcut: Shortcut.EXPAND_NODE,
     },
     {
       title: "Collapse Task",
@@ -319,7 +315,7 @@
       callback: collapse,
       toolbar: false,
       enabled: () => true,
-      shortcut: KeyBinding.COLLAPSE_NODE,
+      shortcut: Shortcut.COLLAPSE_NODE,
     },
     {
       title: "Select Next Task",
@@ -327,7 +323,7 @@
       callback: selectNext,
       toolbar: false,
       enabled: () => true,
-      shortcut: KeyBinding.SELECT_NEXT_NODE,
+      shortcut: Shortcut.SELECT_NEXT_NODE,
     },
     {
       title: "Select Previous Task",
@@ -335,7 +331,7 @@
       callback: selectPrev,
       toolbar: false,
       enabled: () => true,
-      shortcut: KeyBinding.SELECT_PREV_NODE,
+      shortcut: Shortcut.SELECT_PREV_NODE,
     },
     {
       title: "Show Command Palette",
@@ -343,10 +339,10 @@
       callback: showCommandPalette,
       toolbar: true,
       enabled: () => true,
-      shortcut: KeyBinding.SHOW_COMMAND_PALETTE,
+      shortcut: Shortcut.SHOW_COMMAND_PALETTE,
     },
   ];
-  const registry = new KeyHandlerRegistry(actions);
+  const registry = new ShortcutRegistry(actions);
 
   const toolbarActions = $derived(
     actions.filter((action) => action.toolbar && action.enabled()),
@@ -356,8 +352,8 @@
     if ($debug) {
       // TODO: Remove any once toast support Component type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.info(Strokes as any, {
-        componentProps: { binding: KeyBinding.fromEvent(event) },
+      toast.info(ShortcutChips as any, {
+        componentProps: { binding: Shortcut.fromEvent(event) },
       });
     }
 
@@ -375,8 +371,8 @@
     "sm:sticky sm:top-0 sm:gap-2 sm:border-b",
   )}
 >
-  {#each toolbarActions as { title, icon, callback }}
-    <ToolbarButton {title} {icon} onclick={callback} />
+  {#each toolbarActions as action}
+    <ToolbarButton {...action} />
   {/each}
 </div>
 
