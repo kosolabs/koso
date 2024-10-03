@@ -489,19 +489,21 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
 
       expect(koso.getProgress(id1.name)).toEqual({
-        numer: 0,
-        denom: 1,
+        inProgress: 0,
+        done: 0,
+        total: 1,
         lastStatusTime: null,
       });
     });
 
-    it("leaf node that is in progress has 0 of 1 progress", () => {
+    it("leaf node that is in progress has 0 done and 1 inProgress of 1 progress", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       koso.setTaskStatus(id1, "In Progress", USER);
 
       expect(koso.getProgress(id1.name)).toEqual({
-        numer: 0,
-        denom: 1,
+        inProgress: 1,
+        done: 0,
+        total: 1,
         lastStatusTime: initDate.valueOf(),
       });
     });
@@ -511,8 +513,9 @@ describe("Koso tests", () => {
       koso.setTaskStatus(id1, "Done", USER);
 
       expect(koso.getProgress(id1.name)).toEqual({
-        numer: 1,
-        denom: 1,
+        inProgress: 0,
+        done: 1,
+        total: 1,
         lastStatusTime: initDate.valueOf(),
       });
     });
@@ -523,8 +526,9 @@ describe("Koso tests", () => {
       koso.insertNode(id1, 0, USER, "Task 3");
 
       expect(koso.getProgress(id1.name)).toEqual({
-        numer: 0,
-        denom: 2,
+        inProgress: 0,
+        done: 0,
+        total: 2,
         lastStatusTime: null,
       });
     });
@@ -537,8 +541,9 @@ describe("Koso tests", () => {
       koso.setTaskStatus(id3, "In Progress", USER);
 
       expect(koso.getProgress(id1.name)).toEqual({
-        numer: 0,
-        denom: 2,
+        inProgress: 2,
+        done: 0,
+        total: 2,
         lastStatusTime: initDate.valueOf(),
       });
     });
@@ -551,8 +556,9 @@ describe("Koso tests", () => {
       koso.setTaskStatus(id3, "In Progress", USER);
 
       expect(koso.getProgress(id1.name)).toEqual({
-        numer: 1,
-        denom: 2,
+        inProgress: 1,
+        done: 1,
+        total: 2,
         lastStatusTime: initDate.valueOf(),
       });
     });

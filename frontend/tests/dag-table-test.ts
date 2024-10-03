@@ -130,7 +130,7 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
       await page.getByRole("button", { name: "Delete" }).click();
-      await expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
 
       await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "3"] },
@@ -151,7 +151,7 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
       await page.keyboard.press("Delete");
-      await expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
 
       await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "3"] },
@@ -1083,13 +1083,13 @@ test.describe("dag table tests", () => {
         { id: "1", children: ["2"] },
         { id: "2" },
       ]);
-      await expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
 
       await page.getByRole("button", { name: "Task 1 Toggle Expand" }).click();
       await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
 
       await page.getByRole("button", { name: "Task 1 Toggle Expand" }).click();
-      await expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
     });
   });
 
@@ -1106,7 +1106,7 @@ test.describe("dag table tests", () => {
       await page.waitForTimeout(50);
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
       await page.keyboard.press("Delete");
-      await expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
 
       await page.waitForTimeout(50);
       await page.getByRole("button", { name: "Undo" }).click();
@@ -1120,7 +1120,7 @@ test.describe("dag table tests", () => {
 
       await page.waitForTimeout(50);
       await page.getByRole("button", { name: "Redo" }).click();
-      await expect(page.getByRole("row", { name: "Task 2" })).not.toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
 
       await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1"] },
