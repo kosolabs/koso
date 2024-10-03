@@ -14,7 +14,7 @@ export type UpdateProjectPermissions = {
 
 export type ProjectExport = {
   project_id: string;
-  data: any;
+  data: unknown;
 };
 
 export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>
