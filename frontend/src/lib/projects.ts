@@ -12,6 +12,11 @@ export type UpdateProjectUsers = {
   remove_emails: string[];
 };
 
+export type ProjectExport = {
+  project_id: string;
+  data: any;
+};
+
 export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>
   a.name.localeCompare(b.name) || a.email.localeCompare(b.email);
 
@@ -125,4 +130,21 @@ export async function updateProjectUsers(
       `Failed to update project permissions: ${response.statusText} (${response.status})`,
     );
   }
+}
+
+export async function exportProject(
+  token: string | null,
+  projectId: string,
+): Promise<ProjectExport> {
+  const response = await fetch(`/api/projects/${projectId}/export`, {
+    headers: { Authorization: "Bearer " + token },
+  });
+  if (!response.ok) {
+    logout_on_authentication_error(response);
+    throw new Error(
+      `Failed to fetch project users: ${response.statusText} (${response.status})`,
+    );
+  }
+  const projectExport: ProjectExport = await response.json();
+  return projectExport;
 }
