@@ -25,8 +25,6 @@ const MSG_SYNC_REQUEST = 0;
 const MSG_SYNC_RESPONSE = 1;
 const MSG_SYNC_UPDATE = 2;
 
-const INSERT_ROOT_ORIGIN = "system_root_insertion";
-
 type NodeProps = { path: List<string> };
 const NodeRecord = Record<NodeProps>({ path: List() });
 
