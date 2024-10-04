@@ -353,7 +353,7 @@
       // TODO: Remove any once toast support Component type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       toast.info(ShortcutChips as any, {
-        componentProps: { binding: Shortcut.fromEvent(event) },
+        componentProps: { shortcut: Shortcut.fromEvent(event) },
       });
     }
 
