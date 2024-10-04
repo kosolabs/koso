@@ -25,6 +25,8 @@ const MSG_SYNC_REQUEST = 0;
 const MSG_SYNC_RESPONSE = 1;
 const MSG_SYNC_UPDATE = 2;
 
+const INSERT_ROOT_ORIGIN = "system_root_insertion";
+
 type NodeProps = { path: List<string> };
 const NodeRecord = Record<NodeProps>({ path: List() });
 
@@ -413,16 +415,20 @@ export class Koso {
   }
 
   upsertRoot() {
-    this.upsert({
-      id: "root",
-      num: "0",
-      name: "Root",
-      children: [],
-      reporter: null,
-      assignee: null,
-      status: null,
-      statusTime: null,
+    this.yDoc.transact(() => {
+      this.upsert({
+        id: "root",
+        num: "0",
+        name: "Root",
+        children: [],
+        reporter: null,
+        assignee: null,
+        status: null,
+        statusTime: null,
+      });
     });
+    // Prevent undoing creation of the root task.
+    this.undoManager.clear();
   }
 
   upsert(task: Task) {
