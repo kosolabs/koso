@@ -66,16 +66,15 @@
   function remove() {
     if (!$selected) return;
     const toDelete = $selected;
+    const toDeleteIndex = $nodes.indexOf(toDelete);
 
-    selectNext();
-    if (toDelete.equals($selected)) {
-      selectPrev();
-    }
-
-    const adjSelected = !toDelete.equals($selected);
     koso.deleteNode(toDelete);
-    if (!adjSelected) {
+
+    // Select the next (or previous) node following deletion.
+    if ($nodes.size < 2) {
       $selected = null;
+    } else {
+      $selected = $nodes.get(Math.min(toDeleteIndex, $nodes.size - 1)) || null;
     }
   }
 
@@ -161,10 +160,16 @@
 
   function undo() {
     koso.undo();
+    if ($nodes.indexOf($selected) == -1) {
+      $selected = null;
+    }
   }
 
   function redo() {
     koso.redo();
+    if ($nodes.indexOf($selected) == -1) {
+      $selected = null;
+    }
   }
 
   const actions: Action[] = [
