@@ -413,16 +413,20 @@ export class Koso {
   }
 
   upsertRoot() {
-    this.upsert({
-      id: "root",
-      num: "0",
-      name: "Root",
-      children: [],
-      reporter: null,
-      assignee: null,
-      status: null,
-      statusTime: null,
+    this.yDoc.transact(() => {
+      this.upsert({
+        id: "root",
+        num: "0",
+        name: "Root",
+        children: [],
+        reporter: null,
+        assignee: null,
+        status: null,
+        statusTime: null,
+      });
     });
+    // Prevent undoing creation of the root task.
+    this.undoManager.clear();
   }
 
   upsert(task: Task) {
