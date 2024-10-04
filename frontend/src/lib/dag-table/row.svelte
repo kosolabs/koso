@@ -17,7 +17,7 @@
   import { Editable } from "$lib/components/ui/editable";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
   import UserSelect from "$lib/components/ui/user-select/user-select.svelte";
-  import type { Koso, Node } from "$lib/koso.svelte";
+  import { Node, type Koso } from "$lib/koso.svelte";
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
@@ -25,6 +25,7 @@
   import { getContext } from "svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
+  import { get } from "svelte/store";
 
   type Props = {
     index: number;
@@ -80,9 +81,22 @@
     if (!parents) return [];
     return parents
       .filter((parent) => parent !== node.parent.name)
-      .map((parent) => koso.getTask(parent).name)
-      .filter((name) => name.length > 0)
-      .map((name) => parseChipProps(name));
+      .map((parent) => koso.getTask(parent))
+      .filter((parent) => parent.name.length > 0)
+      .map((parent) => {
+        const props = parseChipProps(parent.name);
+        props.onClick = (event) => {
+          let p = get(koso.nodes)
+            .filter((n) => n.name === parent.id)
+            .minBy((n) => n.path.size);
+          if (p) {
+            console.log(`Selecting parent ${p.id}`);
+            $selected = p;
+          }
+          event.stopPropagation();
+        };
+        return props;
+      });
   }
 
   function getUser(users: User[], email: string | null): User | null {
