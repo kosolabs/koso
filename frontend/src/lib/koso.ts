@@ -115,6 +115,21 @@ export class Koso {
     this.yDoc = yDoc;
     this.yGraph = yDoc.getMap("graph");
     this.undoManager = new Y.UndoManager(this.yGraph);
+    // Save and restore node selection on undo/redo.
+    this.undoManager.on("stack-item-added", (event) => {
+      event.stackItem.meta.set("selected-node", get(this.selected));
+    });
+    this.undoManager.on("stack-item-popped", (event) => {
+      const selected = event.stackItem.meta.get("selected-node");
+      if (selected === null || selected.constructor === Node) {
+        this.selected.set(selected);
+      } else {
+        console.warn(
+          `Unexpectedly found non-node "selected-node" stack item: ${selected}`,
+        );
+        this.selected.set(null);
+      }
+    });
     this.yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.yDoc);
     this.clientMessageHandler = () => {
       console.warn("Client message handler was invoked but was not set");
