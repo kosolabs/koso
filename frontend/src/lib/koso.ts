@@ -944,6 +944,7 @@ export class Koso {
           };
         case "Not Started":
         case null:
+        case undefined:
           return {
             inProgress: 0,
             done: 0,
