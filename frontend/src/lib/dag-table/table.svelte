@@ -160,16 +160,10 @@
 
   function undo() {
     koso.undo();
-    if ($nodes.indexOf($selected) == -1) {
-      $selected = null;
-    }
   }
 
   function redo() {
     koso.redo();
-    if ($nodes.indexOf($selected) == -1) {
-      $selected = null;
-    }
   }
 
   const actions: Action[] = [
