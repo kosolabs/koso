@@ -1,4 +1,5 @@
 <script lang="ts">
+  import kosoLogo from "$lib/assets/koso.svg";
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
   import { CommandPalette } from "$lib/components/ui/command-palette";
@@ -408,11 +409,23 @@
     </table>
   {:else}
     <div class="flex items-center justify-center">
-      Welcome to Koso! Add your first task
-      <Button size="sm" onclick={insert} class="ml-2">
-        <ListPlus class="w-4 sm:me-2" />
-        Add task
-      </Button>
+      <div class="flex w-1/2 rounded-md border bg-gray-100 p-4">
+        <div>
+          <img class="size-14" alt="Koso Logo" src={kosoLogo} />
+        </div>
+        <div class="ml-4">
+          <div class="text-md">Welcome to Koso!</div>
+          <div class="mt-2 text-xs">
+            Koso helps you to organize your work and be productive.
+          </div>
+          <div class="mt-4">
+            <Button size="sm" class="text-xs" onclick={insert}>
+              <ListPlus class="w-4 sm:me-2" />
+              Add task
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
