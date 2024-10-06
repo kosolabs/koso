@@ -13,10 +13,13 @@
       <div class="text-xs max-sm:hidden">{title}</div>
     </Button>
   </Tooltip.Trigger>
-  <Tooltip.Content class="flex items-center gap-2">
-    <div class="text-secondary">{title}</div>
-    {#if shortcut}
-      <div class="text-secondary-foreground">{shortcut.toString()}</div>
-    {/if}
+  <Tooltip.Content>
+    <Tooltip.Arrow class="z-50" />
+    <div class="flex items-center gap-2">
+      <div class="text-secondary">{title}</div>
+      {#if shortcut}
+        <div class="text-primary-foreground">{shortcut.toString()}</div>
+      {/if}
+    </div>
   </Tooltip.Content>
 </Tooltip.Root>

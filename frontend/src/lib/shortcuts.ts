@@ -15,6 +15,16 @@ const ShortcutRecord = Record<ShortcutProps>({
   shiftKey: false,
 });
 
+const keys = Map([
+  ["ArrowDown", "↓"],
+  ["ArrowLeft", "←"],
+  ["ArrowRight", "→"],
+  ["ArrowUp", "↑"],
+  ["Delete", "⌦"],
+  ["Enter", "⏎"],
+  ["Escape", "⎋"],
+]);
+
 export class Shortcut extends ShortcutRecord {
   matches(event: KeyboardEvent): boolean {
     return (
@@ -26,13 +36,19 @@ export class Shortcut extends ShortcutRecord {
     );
   }
 
+  toChar(): string {
+    return this.key.length === 1
+      ? this.key.toUpperCase()
+      : keys.get(this.key, this.key);
+  }
+
   toString(): string {
     return (
       (this.ctrlKey ? "⌃" : "") +
       (this.shiftKey ? "⇧" : "") +
       (this.altKey ? "⌥" : "") +
       (this.metaKey ? "⌘" : "") +
-      (this.key.length === 1 ? this.key.toUpperCase() : this.key)
+      this.toChar()
     );
   }
 
