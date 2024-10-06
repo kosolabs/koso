@@ -408,10 +408,10 @@
       {/each}
     </table>
   {:else}
-    <div class="flex items-center justify-center">
-      <div class="flex w-1/2 rounded-md border bg-gray-100 p-4">
-        <div>
-          <img class="size-14" alt="Koso Logo" src={kosoLogo} />
+    <div class="flex items-center justify-center pt-8">
+      <div class="flex w-9/12 max-w-[425px] rounded-md border bg-gray-100 p-4">
+        <div class="min-w-16">
+          <img class="size-16" alt="Koso Logo" src={kosoLogo} />
         </div>
         <div class="ml-4">
           <div class="text-md">Welcome to Koso!</div>
