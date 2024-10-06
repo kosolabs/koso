@@ -10,7 +10,7 @@
   const { shortcut, class: classes }: Props = $props();
 </script>
 
-<div class={cn("flex gap-1 bg-primary p-1 text-foreground", classes)}>
+<div class={cn("flex gap-1 p-1 text-foreground", classes)}>
   {#if shortcut.ctrlKey}
     <ShortcutChip>⌃</ShortcutChip>
   {/if}
@@ -24,6 +24,6 @@
     <ShortcutChip>⌘</ShortcutChip>
   {/if}
   <ShortcutChip>
-    {shortcut.key.length === 1 ? shortcut.key.toUpperCase() : shortcut.key}
+    {shortcut.toChar()}
   </ShortcutChip>
 </div>
