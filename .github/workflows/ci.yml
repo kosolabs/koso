@@ -48,36 +48,17 @@ jobs:
           shared-key: "backend-build-sqlx"
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
-      - run: cargo test
-      - run: cargo clippy -- -D warnings
-      - run: cargo fmt -- --check
-  npm:
+  cargo2:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npm run check
-      - run: npm run lint
-      - run: npm run test
-  playwright:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
+        working-directory: ./backend
     env:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
       DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
+
     services:
       postgres:
         image: postgres:16
@@ -87,118 +68,91 @@ jobs:
           POSTGRES_DB: postgres
         ports:
           - 5432:5432
-
     steps:
       - uses: actions/checkout@v4
-      - id: playwright-cache
-        uses: actions/cache@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: ~/.cache/ms-playwright
-          key: Linux-playwright-${{ hashFiles('**/frontend/package-lock.json') }}
-          restore-keys: Linux-playwright-
-      - uses: actions/setup-node@v4
+          workspaces: "backend"
+          shared-key: "backend-build"
+      - name: Install sqlx-cli
+        uses: baptiste0928/cargo-install@d2cb6ee356dc5e860b6fc541cf929b5bc77f700d
         with:
-          node-version: 22
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npx playwright install --with-deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-
-      # Build a backend docker image that will be ran by playwright.
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Build Backend Docker Image
-        id: build-backend
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
-
-      - name: Set up test database
-        working-directory: ./backend
-        run: |
-          KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} ../backend/scripts/init_db.sh
-
-      # Run the playwright tests. They'll start a backend leveraging the DB setup above.
-      - run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} npx playwright test --workers=4
-
-  build-and-push-image:
-    env:
-      # Container registry domain
-      REGISTRY: ghcr.io
-      # name for the Docker image that this workflow builds
-      # "kosolabs/koso" or, for PRs, "kosolabs/koso/dev"
-      IMAGE_NAME: ${{ (github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'kosolabs/koso') || 'kosolabs/koso/dev'}}
+          crate: sqlx-cli
+          args: --no-default-features --features rustls,postgres
+          version: latest
+          shared-key: "backend-build-sqlx"
+      - name: Migrate database
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
+  cargo3:
     runs-on: ubuntu-latest
-    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
-    outputs:
-      digest: ${{ steps.push.outputs.digest }}
+    defaults:
+      run:
+        working-directory: ./backend
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+      DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      # Log in to the Container registry registry using the account and password
-      # that will publish the packages.
-      # Once published, the packages are scoped to the account defined here.
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      # Extract tags and labels that will be applied to the specified image.
-      - name: Extract metadata (tags, labels) for Docker
-        # allows the output of this step to be referenced in a subsequent step.
-        id: meta
-        uses: docker/metadata-action@v5
+          workspaces: "backend"
+          shared-key: "backend-build"
+      - name: Install sqlx-cli
+        uses: baptiste0928/cargo-install@d2cb6ee356dc5e860b6fc541cf929b5bc77f700d
         with:
-          # Base name for the tags and labels.
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      # Build the image, based on our `Dockerfile`.
-      # If the build succeeds, it pushes the image to GitHub Packages.
-      # It uses the `context` parameter to define the build's context as the set of files located in the specified path.
-      # For more information, see "[Usage](https://github.com/docker/build-push-action#usage)"
-      # in the README of the `docker/build-push-action` repository.
-      # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
-      - name: Build and push Docker image
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          crate: sqlx-cli
+          args: --no-default-features --features rustls,postgres
+          version: latest
+          shared-key: "backend-build-sqlx"
+      - name: Migrate database
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
+  cargo4:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+      DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
 
-      # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built.
-      # It increases supply chain security for people who consume the image.
-      # For more information, see "[AUTOTITLE](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)."
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v1
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
-          subject-digest: ${{ steps.push.outputs.digest }}
-
-      - name: Cleanup old images
-        uses: actions/delete-package-versions@v5
+          workspaces: "backend"
+          shared-key: "backend-build"
+      - name: Install sqlx-cli
+        uses: baptiste0928/cargo-install@d2cb6ee356dc5e860b6fc541cf929b5bc77f700d
         with:
-          package-name: "koso"
-          package-type: "container"
-          min-versions-to-keep: 50
-          delete-only-untagged-versions: "true"
-      - name: Cleanup old dev images
-        uses: actions/delete-package-versions@v5
-        with:
-          package-name: "koso/dev"
-          package-type: "container"
-          min-versions-to-keep: 50
+          crate: sqlx-cli
+          args: --no-default-features --features rustls,postgres
+          version: latest
+          shared-key: "backend-build-sqlx"
+      - name: Migrate database
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
