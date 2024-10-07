@@ -26,21 +26,27 @@
   window.koso = koso;
   window.Y = Y;
 
+  let projectPromise: Promise<Project> = loadProject();
   let project: Project | null = null;
+  let projectUsersPromise: Promise<User[]> = loadProjectUsers();
   let projectUsers: User[] = [];
   let openShareModal = false;
 
   async function loadProjectUsers() {
     if (!$user || !$token) throw new Error("User is unauthorized");
-    return await fetchProjectUsers($token, projectId);
+    let users = await fetchProjectUsers($token, projectId);
+
+    projectUsers = users;
+    return projectUsers;
   }
 
   async function loadProject() {
     if (!$user || !$token) throw new Error("User is unauthorized");
 
     const projects = await fetchProjects($token);
-    for (const project of projects) {
-      if (project.project_id == projectId) {
+    for (const p of projects) {
+      if (p.project_id == projectId) {
+        project = p;
         return project;
       }
     }
@@ -51,15 +57,16 @@
 
   async function saveEditedProjectName(name: string) {
     if (!$user || !$token) throw new Error("User is unauthorized");
+    if (!project) {
+      throw new Error("Project not loaded yet. Maybe loadProject failed?");
+    }
 
     const updatedProject = await updateProject($token, {
       project_id: projectId,
       name,
     });
 
-    if (project) {
-      project.name = updatedProject.name;
-    }
+    project.name = updatedProject.name;
   }
 
   let showSocketOfflineAlert: boolean = false;
@@ -85,11 +92,7 @@
       return;
     }
 
-    [projectUsers, project] = await Promise.all([
-      loadProjectUsers(),
-      loadProject(),
-      kosoSocket.openWebSocket(),
-    ]);
+    await kosoSocket.openWebSocket();
     $lastVisitedProjectId = $page.params.projectId;
   });
 
@@ -101,7 +104,7 @@
 <Navbar>
   <svelte:fragment slot="left-items">
     <div>
-      {#if project}
+      {#await projectPromise then project}
         <Editable
           class="ml-2 text-lg"
           value={project.name}
@@ -109,7 +112,7 @@
           onsave={saveEditedProjectName}
           onkeydown={(e) => e.stopPropagation()}
         />
-      {/if}
+      {/await}
     </div>
   </svelte:fragment>
   <svelte:fragment slot="right-items">
@@ -131,6 +134,10 @@
 {/if}
 
 <UnauthorizedModal bind:open={showUnauthorizedModal} />
-<ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
+{#await projectPromise then project}
+  {#await projectUsersPromise then _}
+    <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
+  {/await}
+{/await}
 
 <DagTable {koso} users={projectUsers} />
