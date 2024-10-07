@@ -40,11 +40,12 @@ jobs:
           workspaces: "backend"
           shared-key: "backend-build"
       - name: Install sqlx-cli
-        uses: baptiste0928/cargo-install@v3
+        uses: baptiste0928/cargo-install@d2cb6ee356dc5e860b6fc541cf929b5bc77f700d
         with:
           crate: sqlx-cli
           args: --no-default-features --features rustls,postgres
           version: latest
+          shared-key: "backend-build-sqlx"
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
       - run: cargo test
