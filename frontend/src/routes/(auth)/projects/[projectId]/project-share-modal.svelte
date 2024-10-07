@@ -19,12 +19,12 @@
   import { flip } from "svelte/animate";
 
   export let open: boolean;
-  export let project: Project | null;
+  export let project: Project;
   export let projectUsers: User[];
 
-  let cachedAllUsers: User[] | null = null;
+  let cachedAllUsers: Promise<User[]> = loadAllUsers();
+
   export async function loadAllUsers(): Promise<User[]> {
-    if (cachedAllUsers !== null) return cachedAllUsers;
     if (!$user || !$token) throw new Error("User is unauthorized");
 
     const response = await fetch(`/api/users`, {
@@ -39,15 +39,14 @@
     let users: User[] = await response.json();
     users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
 
-    cachedAllUsers = users;
-    return cachedAllUsers;
+    return users;
   }
 
   async function addUser(add: User) {
     if (!$user) throw new Error("User is unauthorized");
 
     await updateProjectUsers($token, {
-      project_id: project?.project_id || "",
+      project_id: project.project_id,
       add_emails: [add.email],
       remove_emails: [],
     });
@@ -72,7 +71,7 @@
     if (i == -1) throw new Error("Could not find user");
 
     await updateProjectUsers($token, {
-      project_id: project?.project_id || "",
+      project_id: project.project_id,
       add_emails: [],
       remove_emails: [remove.email],
     });
@@ -90,7 +89,7 @@
   let filter: string = "";
   let openWarnSelfRemovalModal = false;
 
-  $: loadAllUsers().then(
+  $: cachedAllUsers.then(
     (allUsers) =>
       (nonProjectUsers = allUsers.filter(
         (u) => !projectUsers.some((pu) => pu.email === u.email),
@@ -119,7 +118,7 @@
     }}
   >
     <Dialog.Header>
-      <Dialog.Title>Share &quot;{project?.name || ""}&quot;</Dialog.Title>
+      <Dialog.Title>Share &quot;{project.name}&quot;</Dialog.Title>
       <Dialog.Description>Manage access to your project.</Dialog.Description>
     </Dialog.Header>
     <div class="flex flex-col gap-2">
