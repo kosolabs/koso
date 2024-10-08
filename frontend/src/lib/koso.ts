@@ -92,6 +92,11 @@ export type Progress = {
 export type YTaskProps = Y.Array<string> | string | number | null;
 export type YTask = Y.Map<YTaskProps>;
 
+export type SyncState = {
+  indexedDbSync: boolean;
+  serverSync: boolean;
+};
+
 export class Koso {
   yDoc: Y.Doc;
   undoManager: Y.UndoManager;
@@ -110,6 +115,7 @@ export class Koso {
   showDone: Writable<boolean>;
   nodes: Readable<List<Node>>;
   parents: Readable<Map<string, string[]>>;
+  syncState: Writable<SyncState>;
 
   constructor(projectId: string, yDoc: Y.Doc) {
     this.yDoc = yDoc;
@@ -192,6 +198,17 @@ export class Koso {
         return this.#flatten(new Node(), expanded, showDone);
       },
     );
+
+    this.yIndexedDb.whenSynced.then(() => {
+      this.syncState.update((s) => {
+        s.indexedDbSync = true;
+        return s;
+      });
+    });
+    this.syncState = writable<SyncState>({
+      indexedDbSync: false,
+      serverSync: false,
+    });
   }
 
   get root(): Node {
@@ -228,6 +245,10 @@ export class Koso {
         if (this.yGraph.size === 0) {
           this.upsertRoot();
         }
+        this.syncState.update((s) => {
+          s.serverSync = true;
+          return s;
+        });
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdateV2(this.yDoc, message);
