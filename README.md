@@ -221,30 +221,30 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
 
 ## Server setup notes
 
-Install docker:
+1. Install docker:
 
-```bash
-sudo su &&\
-apt update &&\
-apt install ca-certificates curl gnupg apt-transport-https gpg
-curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg
-apt update
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable" |tee /etc/apt/sources.list.d/docker.list > /dev/null
-apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-compose
-systemctl is-active docker
+   ```bash
+   sudo su &&\
+   apt update &&\
+   apt install ca-certificates curl gnupg apt-transport-https gpg
+   curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg
+   apt update
+   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable" |tee /etc/apt/sources.list.d/docker.list > /dev/null
+   apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-compose
+   systemctl is-active docker
 
-echo $PULL_TOKEN| docker login ghcr.io -u $USER --password-stdin
-```
+   echo $PULL_TOKEN| docker login ghcr.io -u $USER --password-stdin
+   ```
 
-Add 172.17.0.1 to /etc/postgresql/16/main/postgresql.conf:
+1. Add 172.17.0.1 to /etc/postgresql/16/main/postgresql.conf:
 
-```
-listen_addresses = 'localhost,172.17.0.1'
-```
+   ```
+   listen_addresses = 'localhost,172.17.0.1'
+   ```
 
-Add entry to /etc/postgresql/16/main/pg_hba.conf:
+1. Add entry to /etc/postgresql/16/main/pg_hba.conf:
 
-```
-# Allow docker bridge
-host    all             all             172.0.0.0/8             scram-sha-256
-```
+   ```
+   # Allow docker bridge
+   host    all             all             172.0.0.0/8             scram-sha-256
+   ```
