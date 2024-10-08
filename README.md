@@ -219,7 +219,7 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
    ghcr.io/kosolabs/koso:latest
 ```
 
-## Server setup notes
+## Server setup
 
 1. Install docker:
 
