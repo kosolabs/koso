@@ -9,7 +9,7 @@
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
   import {
-    fetchProjects,
+    fetchProject,
     fetchProjectUsers,
     type Project,
     updateProject,
@@ -38,15 +38,7 @@
   async function loadProject() {
     if (!$user || !$token) throw new Error("User is unauthorized");
 
-    const projects = await fetchProjects($token);
-    for (const project of projects) {
-      if (project.project_id == projectId) {
-        return project;
-      }
-    }
-    throw new Error(
-      `Project ${projectId} does not exist or user no longer has access: ${projects})`,
-    );
+    return await fetchProject($token, projectId);
   }
 
   async function saveEditedProjectName(name: string) {

@@ -31,6 +31,25 @@ export async function fetchProjects(token: string | null): Promise<Project[]> {
   return await response.json();
 }
 
+export async function fetchProject(
+  token: string | null,
+  projectId: string,
+): Promise<Project> {
+  const response = await fetch(`/api/projects/${projectId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) {
+    logout_on_authentication_error(response);
+    throw new Error(
+      `Failed to fetch project: ${response.statusText} (${response.status})`,
+    );
+  }
+  return await response.json();
+}
+
 export async function createProject(token: string | null): Promise<Project> {
   const response = await fetch("/api/projects", {
     method: "POST",
