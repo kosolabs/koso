@@ -92,7 +92,12 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_immutable_cache_control))
-                .service(ServeDir::new("static").fallback(ServeFile::new("static/index.html"))),
+                .service(
+                    ServeDir::new("static")
+                        .precompressed_gzip()
+                        .precompressed_br()
+                        .fallback(ServeFile::new("static/index.html")),
+                ),
         );
 
     // We can either use a listener provided by the environment by ListenFd or
