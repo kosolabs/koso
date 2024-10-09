@@ -6,7 +6,10 @@ const config = {
   preprocess: [vitePreprocess()],
 
   kit: {
-    adapter: adapter({ fallback: "index.html" }),
+    adapter: adapter({
+      fallback: "index.html",
+      precompress: true,
+    }),
     version: {
       // Configure how often in milliseconds version.json is polled to refresh the
       // $updated store used to reload pages following deployments.
