@@ -84,11 +84,11 @@
   }
 
   function save() {
-    value = edited;
     // Only trigger save if the value has changed.
     // This occurs as part of the normal flow due to
     // both the onblur and "Save" action callbacks triggering.
     if (value !== edited) {
+      value = edited;
       onsave(edited);
     }
     ondone?.();
