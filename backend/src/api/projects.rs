@@ -22,6 +22,7 @@ pub(super) fn projects_router() -> Router {
     Router::new()
         .route("/", get(list_projects_handler))
         .route("/", post(create_project_handler))
+        .route("/:project_id", get(get_project_handler))
         .route("/:project_id", patch(update_project_handler))
         .route("/:project_id/users", patch(update_project_users_handler))
         .route("/:project_id/users", get(list_project_users_handler))
@@ -108,6 +109,29 @@ async fn list_project_users_handler(
     users.sort_by(|a, b| a.name.cmp(&b.name).then(a.email.cmp(&b.email)));
 
     Ok(Json(users))
+}
+
+#[tracing::instrument(skip(user, pool))]
+async fn get_project_handler(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+    Path(project_id): Path<String>,
+) -> ApiResult<Json<Project>> {
+    verify_access(pool, user, &project_id).await?;
+
+    let project: Project = sqlx::query_as(
+        "
+        SELECT
+          project_id,
+          projects.name
+        FROM projects
+        WHERE project_id = $1",
+    )
+    .bind(project_id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(Json(project))
 }
 
 #[tracing::instrument(skip(user, pool))]
