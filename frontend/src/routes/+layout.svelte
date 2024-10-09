@@ -13,11 +13,6 @@
   }
 </script>
 
-<svelte:head>
-  <title>Koso</title>
-  <meta name="description" content="Organize your work with Koso." />
-</svelte:head>
-
 <ModeWatcher />
 <Toaster />
 <slot />
