@@ -21,11 +21,11 @@
 
     {#if $user}
       <DropdownMenuMonitoredRoot closeFocus={document.body}>
-        <DropdownMenu.Trigger>
+        <DropdownMenu.Trigger title={$user.email}>
           <Avatar
             class="size-9 rounded transition-all hover:brightness-110 active:scale-95"
           >
-            <AvatarImage src={$user.picture} />
+            <AvatarImage src={$user.picture} alt={$user.email} />
           </Avatar>
         </DropdownMenu.Trigger>
         <DropdownMenu.Content>

@@ -48,7 +48,7 @@
     title={value?.email || "Unassigned"}
   >
     <Avatar class="size-6 rounded">
-      <AvatarImage src={value?.picture || ""} />
+      <AvatarImage src={value?.picture || ""} alt={value?.email} />
       <AvatarFallback>
         <UserRound />
       </AvatarFallback>
