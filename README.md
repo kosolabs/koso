@@ -221,6 +221,8 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
 
 ## Server setup
 
+ff
+
 1. Install docker:
 
    ```bash
