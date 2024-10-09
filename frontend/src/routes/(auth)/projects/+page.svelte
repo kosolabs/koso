@@ -6,6 +6,7 @@
   import Navbar from "$lib/navbar.svelte";
   import { createProject as projectsCreateProject } from "$lib/projects";
   import { Layers } from "lucide-svelte";
+  import type { PageData } from "./$types";
 
   let errorMessage: string | null = null;
 
@@ -21,8 +22,7 @@
     await goto(`/projects/${project.project_id}`);
   }
 
-  /** @type {import('./$types').PageData} */
-  export let data;
+  export let data: PageData;
 </script>
 
 <Navbar />
