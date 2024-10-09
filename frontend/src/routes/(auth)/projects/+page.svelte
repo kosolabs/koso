@@ -1,18 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { token, user } from "$lib/auth";
+  import { token } from "$lib/auth";
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import Navbar from "$lib/navbar.svelte";
-  import {
-    fetchProjects,
-    createProject as projectsCreateProject,
-    type Project,
-  } from "$lib/projects";
+  import { createProject as projectsCreateProject } from "$lib/projects";
   import { Layers } from "lucide-svelte";
-  import { onMount } from "svelte";
+  import type { PageData } from "./$types";
 
-  let projects: Promise<Project[]> = new Promise(() => {});
   let errorMessage: string | null = null;
 
   async function createProject() {
@@ -27,13 +22,7 @@
     await goto(`/projects/${project.project_id}`);
   }
 
-  onMount(() => {
-    if (!$user) {
-      return;
-    }
-
-    projects = fetchProjects($token);
-  });
+  export let data: PageData;
 </script>
 
 <Navbar />
@@ -44,44 +33,35 @@
   </div>
 {/if}
 
-{#await projects}
-  <!-- TODO: Make this a Skeleton -->
-  <div class="flex flex-col items-center justify-center rounded border p-4">
-    <div class="text-xl">Loading...</div>
+{#if data.projects.length === 0}
+  <div class="m-4 flex flex-col items-center gap-6 rounded border bg-card p-8">
+    <div><Layers /></div>
+    <div class="text-xl">Create your first Koso project!</div>
+    <div>
+      <Button onclick={() => createProject()}>New project</Button>
+    </div>
   </div>
-{:then projects}
-  {#if projects.length === 0}
-    <div
-      class="m-4 flex flex-col items-center gap-6 rounded border bg-card p-8"
-    >
-      <div><Layers /></div>
-      <div class="text-xl">Create your first Koso project!</div>
+{:else}
+  <div class="m-4 flex flex-col rounded border">
+    <div class="flex flex-col items-end p-2">
       <div>
         <Button onclick={() => createProject()}>New project</Button>
       </div>
     </div>
-  {:else}
-    <div class="m-4 flex flex-col rounded border">
-      <div class="flex flex-col items-end p-2">
-        <div>
-          <Button onclick={() => createProject()}>New project</Button>
+    <div
+      class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-row-even [&>*:nth-child(odd)]:bg-row-odd"
+    >
+      {#each data.projects as project}
+        <div class="border-t p-2">
+          <Button
+            variant="link"
+            class="text-lg"
+            href="projects/{project.project_id}"
+          >
+            {project.name}
+          </Button>
         </div>
-      </div>
-      <div
-        class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-row-even [&>*:nth-child(odd)]:bg-row-odd"
-      >
-        {#each projects as project}
-          <div class="border-t p-2">
-            <Button
-              variant="link"
-              class="text-lg"
-              href="projects/{project.project_id}"
-            >
-              {project.name}
-            </Button>
-          </div>
-        {/each}
-      </div>
+      {/each}
     </div>
-  {/if}
-{/await}
+  </div>
+{/if}
