@@ -6,7 +6,7 @@ export type Project = {
   name: string;
 };
 
-export type UpdateProjectPermissions = {
+export type UpdateProjectUsers = {
   project_id: string;
   add_emails: string[];
   remove_emails: string[];
@@ -88,21 +88,18 @@ export async function fetchProjectUsers(
   return users;
 }
 
-export async function updateProjectPermissions(
+export async function updateProjectUsers(
   token: string | null,
-  update: UpdateProjectPermissions,
+  update: UpdateProjectUsers,
 ): Promise<void> {
-  const response = await fetch(
-    `/api/projects/${update.project_id}/permissions`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(update),
+  const response = await fetch(`/api/projects/${update.project_id}/users`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify(update),
+  });
   if (!response.ok) {
     logout_on_authentication_error(response);
     throw new Error(
