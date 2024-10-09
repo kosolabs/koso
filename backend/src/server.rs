@@ -22,6 +22,7 @@ use std::{
 use tokio::{net::TcpListener, signal, sync::oneshot::Receiver, task::JoinHandle};
 use tower::builder::ServiceBuilder;
 use tower_http::{
+    compression::CompressionLayer,
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
     trace::MakeSpan,
 };
@@ -87,6 +88,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             Extension(pool),
             Extension(collab.clone()),
             Extension(key_set),
+            CompressionLayer::new(),
             middleware::from_fn(google::authenticate),
         ))
         .fallback_service(

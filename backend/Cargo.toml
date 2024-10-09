@@ -19,12 +19,7 @@ uuid = { version = "1.10.0", features = [
     "v4",       # Lets you generate random UUIDs
     "fast-rng", # Use a faster (but still sufficiently random) RNG
 ] }
-tower-http = { version = "0.6.1", features = [
-    "fs",
-    "trace",
-    "timeout",
-    "request-id",
-] }
+tower-http = { version = "0.6.1", features = ["fs", "trace", "timeout", "request-id", "compression-br", "compression-gzip"] }
 sqlx = { version = "0.8", features = [
     "runtime-tokio-rustls",
     "any",
