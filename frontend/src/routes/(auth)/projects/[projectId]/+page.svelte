@@ -9,14 +9,16 @@
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
   import {
+    exportProject,
     fetchProjects,
     fetchProjectUsers,
     type Project,
     updateProject,
   } from "$lib/projects";
   import { KosoSocket } from "$lib/socket";
-  import { UserPlus } from "lucide-svelte";
+  import { FileDown, UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
+  import { toast } from "svelte-sonner";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
   import UnauthorizedModal from "./unauthorized-modal.svelte";
@@ -60,6 +62,16 @@
     if (project) {
       project.name = updatedProject.name;
     }
+  }
+
+  async function exportProjectToClipboard() {
+    if (!$user || !$token) throw new Error("User is unauthorized");
+
+    toast.info("Exporting project...");
+    const projectExport = await exportProject($token, projectId);
+    const downloadProjectExport = JSON.stringify(projectExport, null, 2);
+    navigator.clipboard.writeText(downloadProjectExport);
+    toast.info("Project exported to clipboard.");
   }
 
   let showSocketOfflineAlert: boolean = false;
@@ -113,6 +125,9 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="right-items">
+    <Button title="Export Project" onclick={exportProjectToClipboard}>
+      <FileDown />
+    </Button>
     <Button
       title="Share Project"
       onclick={() => {

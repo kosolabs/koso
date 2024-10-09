@@ -38,3 +38,9 @@ pub(crate) struct User {
     pub(crate) name: String,
     pub(crate) picture: String,
 }
+
+#[derive(serde::Serialize, Debug)]
+pub(crate) struct ProjectExport {
+    pub(crate) project_id: ProjectId,
+    pub(crate) data: yrs::Any,
+}
