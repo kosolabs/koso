@@ -11,7 +11,6 @@ use crate::{
 use anyhow::Result;
 use axum::{
     extract::Path,
-    http::{HeaderMap, HeaderValue},
     routing::{get, patch, post},
     Extension, Json, Router,
 };
@@ -34,17 +33,11 @@ pub(super) fn projects_router() -> Router {
 async fn list_projects_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
-) -> ApiResult<(HeaderMap, Json<Vec<Project>>)> {
+) -> ApiResult<Json<Vec<Project>>> {
     let mut projects = list_projects(&user.email, pool).await?;
     projects.sort_by(|a, b| a.name.cmp(&b.name).then(a.project_id.cmp(&b.project_id)));
 
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        reqwest::header::CACHE_CONTROL,
-        HeaderValue::from_static("private, max-age=600, stale-while-revalidate=300"),
-    );
-
-    Ok((headers, Json(projects)))
+    Ok(Json(projects))
 }
 
 async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>> {
@@ -110,18 +103,11 @@ async fn list_project_users_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Path(project_id): Path<String>,
-) -> ApiResult<(HeaderMap, Json<Vec<ProjectUser>>)> {
+) -> ApiResult<Json<Vec<ProjectUser>>> {
     verify_access(pool, user, &project_id).await?;
     let mut users = list_project_users(pool, &project_id).await?;
     users.sort_by(|a, b| a.name.cmp(&b.name).then(a.email.cmp(&b.email)));
-
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        reqwest::header::CACHE_CONTROL,
-        HeaderValue::from_static("private, max-age=600, stale-while-revalidate=300"),
-    );
-
-    Ok((headers, Json(users)))
+    Ok(Json(users))
 }
 
 #[tracing::instrument(skip(user, pool))]
