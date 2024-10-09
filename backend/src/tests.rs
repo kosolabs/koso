@@ -118,6 +118,24 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .to_string()
     };
 
+    // Get the project
+    {
+        let res = client
+            .get(format!("http://{addr}/api/projects/{project_id}"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let project: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        let project = project.as_object().unwrap();
+        assert_eq!(
+            project.get("project_id").unwrap().as_str().unwrap(),
+            project_id
+        );
+        assert_eq!(project.get("name").unwrap().as_str().unwrap(), project_name);
+    }
+
     // Update a project
     let project_name = {
         let project_name = "Updated test name 1";
