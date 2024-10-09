@@ -146,7 +146,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     {
         let res = client
             .patch(format!(
-                "http://{addr}/api/projects/{project_id}/permissions"
+                "http://{addr}/api/projects/{project_id}/users"
             ))
             .bearer_auth(&token)
             .header("Content-Type", "application/json")

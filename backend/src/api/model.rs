@@ -18,7 +18,7 @@ pub(crate) struct ProjectPermission {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
-pub struct UpdateProjectPermissions {
+pub struct UpdateProjectUsers {
     pub project_id: ProjectId,
     pub add_emails: Vec<String>,
     pub remove_emails: Vec<String>,

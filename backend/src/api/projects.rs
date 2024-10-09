@@ -3,7 +3,7 @@ use crate::{
         bad_request_error,
         collab::{storage, Collab},
         google::User,
-        model::{CreateProject, Project, ProjectUser, UpdateProjectPermissions},
+        model::{CreateProject, Project, ProjectUser, UpdateProjectUsers},
         verify_access, ApiResult,
     },
     postgres::list_project_users,
@@ -23,10 +23,7 @@ pub(super) fn projects_router() -> Router {
         .route("/", get(list_projects_handler))
         .route("/", post(create_project_handler))
         .route("/:project_id", patch(update_project_handler))
-        .route(
-            "/:project_id/permissions",
-            patch(update_project_permissions_handler),
-        )
+        .route("/:project_id/users", patch(update_project_users_handler))
         .route("/:project_id/users", get(list_project_users_handler))
         .route("/:project_id/doc", get(get_project_doc_handler))
         .route("/:project_id/updates", get(get_project_doc_updates_handler))
@@ -142,11 +139,11 @@ async fn update_project_handler(
 }
 
 #[tracing::instrument(skip(user, pool))]
-async fn update_project_permissions_handler(
+async fn update_project_users_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Path(project_id): Path<String>,
-    Json(update): Json<UpdateProjectPermissions>,
+    Json(update): Json<UpdateProjectUsers>,
 ) -> ApiResult<()> {
     verify_access(pool, user, &project_id).await?;
 

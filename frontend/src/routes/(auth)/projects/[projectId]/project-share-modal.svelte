@@ -11,7 +11,7 @@
   import { DialogMonitoredRoot } from "$lib/popover-monitors";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
-    updateProjectPermissions,
+    updateProjectUsers,
     type Project,
   } from "$lib/projects";
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
@@ -46,7 +46,7 @@
   async function addUser(add: User) {
     if (!$user) throw new Error("User is unauthorized");
 
-    await updateProjectPermissions($token, {
+    await updateProjectUsers($token, {
       project_id: project?.project_id || "",
       add_emails: [add.email],
       remove_emails: [],
@@ -71,7 +71,7 @@
     let i = projectUsers.findIndex((u) => u.email === remove.email);
     if (i == -1) throw new Error("Could not find user");
 
-    await updateProjectPermissions($token, {
+    await updateProjectUsers($token, {
       project_id: project?.project_id || "",
       add_emails: [],
       remove_emails: [remove.email],
