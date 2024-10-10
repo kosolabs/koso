@@ -113,8 +113,7 @@ jobs:
         with:
           context: .
           load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
+          cache-from: type=registry,ref=ghcr.io/kosolabs/koso/buildcache:latest, type=registry,ref=ghcr.io/kosolabs/koso/buildcache:main
 
       - name: Set up test database
         working-directory: ./backend
@@ -174,8 +173,8 @@ jobs:
         with:
           context: .
           push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
+          cache-from: type=registry,ref=ghcr.io/kosolabs/koso/buildcache:latest, type=registry,ref=ghcr.io/kosolabs/koso/buildcache:main
+          cache-to: type=registry,ref=ghcr.io/kosolabs/koso/buildcache:${{ (github.ref == 'refs/heads/main' || github.event_name != 'pull_request' && 'main' || 'latest' ) }},mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
