@@ -7,16 +7,16 @@ WORKDIR /app
 # in a separate layer.
 COPY backend/Cargo.toml backend/Cargo.lock ./
 COPY backend/build/dummy.rs build/dummy.rs
-RUN --mount=type=cache,target=/app/target/ \
+RUN --mount=type=cache,target=/app/target \
     --mount=type=cache,target=/usr/local/cargo/git/db \
-    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --release --lib
 
 # Build the backend.
 COPY backend/src ./src
-RUN --mount=type=cache,target=/app/target/ \
+RUN --mount=type=cache,target=/app/target \
     --mount=type=cache,target=/usr/local/cargo/git/db \
-    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    --mount=type=cache,target=/usr/local/cargo/registry \
     <<EOF
 set -e
 cargo build --release

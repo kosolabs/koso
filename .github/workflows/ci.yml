@@ -109,10 +109,10 @@ jobs:
           path: |
             target
             home-cargo-git-db
-            home-cargo-registry-index
+            home-cargo-registry
           key: ${{ runner.os }}-rust-build-cache-${{ hashFiles('**/backend/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-rust-build-cache-
-      - name: inject go-build-cache into docker
+      - name: inject rust-build-cache into docker
         uses: reproducible-containers/buildkit-cache-dance@v3
         with:
           cache-map: |
@@ -121,6 +121,7 @@ jobs:
               "home-cargo-git-db": "/usr/local/cargo/git/db",
               "home-cargo-registry": "/usr/local/cargo/registry"
             }
+          skip-extraction: true
 
       # Build a backend docker image that will be ran by playwright.
       - name: Build Backend Docker Image
@@ -168,10 +169,10 @@ jobs:
           path: |
             target
             home-cargo-git-db
-            home-cargo-registry-index
+            home-cargo-registry
           key: ${{ runner.os }}-rust-build-cache-${{ hashFiles('**/backend/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-rust-build-cache-
-      - name: inject go-build-cache into docker
+      - name: inject rust-build-cache into docker
         uses: reproducible-containers/buildkit-cache-dance@v3
         with:
           cache-map: |
