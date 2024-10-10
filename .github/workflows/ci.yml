@@ -91,8 +91,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: Linux-playwright-${{ hashFiles('**/frontend/package-lock.json') }}
-          restore-keys: Linux-playwright-
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -110,7 +110,8 @@ jobs:
             target
             home-cargo-git-db
             home-cargo-registry-index
-          key: ${{ runner.os }}-rust-build-cache
+          key: ${{ runner.os }}-rust-build-cache-${{ hashFiles('**/backend/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-rust-build-cache-
       - name: inject go-build-cache into docker
         uses: reproducible-containers/buildkit-cache-dance@v3
         with:
@@ -168,7 +169,8 @@ jobs:
             target
             home-cargo-git-db
             home-cargo-registry-index
-          key: ${{ runner.os }}-rust-build-cache
+          key: ${{ runner.os }}-rust-build-cache-${{ hashFiles('**/backend/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-rust-build-cache-
       - name: inject go-build-cache into docker
         uses: reproducible-containers/buildkit-cache-dance@v3
         with:
