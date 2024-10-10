@@ -60,8 +60,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run build
       - run: npm run check
@@ -98,15 +96,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
-      # Build a backend docker image that will be ran by playwright.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Rust Build Cache for Docker
+        uses: actions/cache/restore@v4
+        id: rust-build-cache
+        with:
+          path: |
+            target
+            home-cargo-git-db
+            home-cargo-registry-index
+          key: ${{ runner.os }}-rust-build-cache
+      - name: inject go-build-cache into docker
+        uses: reproducible-containers/buildkit-cache-dance@v3
+        with:
+          cache-map: |
+            {
+              "target": "/app/target",
+              "home-cargo-git-db": "/usr/local/cargo/git/db",
+              "home-cargo-registry": "/usr/local/cargo/registry"
+            }
+
+      # Build a backend docker image that will be ran by playwright.
       - name: Build Backend Docker Image
         id: build-backend
         uses: docker/build-push-action@v6
@@ -114,7 +129,6 @@ jobs:
           context: .
           load: true
           cache-from: type=gha
-          cache-to: type=gha,mode=min
 
       - name: Set up test database
         working-directory: ./backend
@@ -143,8 +157,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Rust Build Cache for Docker
+        uses: actions/cache@v4
+        id: rust-build-cache
+        with:
+          path: |
+            target
+            home-cargo-git-db
+            home-cargo-registry-index
+          key: ${{ runner.os }}-rust-build-cache
+      - name: inject go-build-cache into docker
+        uses: reproducible-containers/buildkit-cache-dance@v3
+        with:
+          cache-map: |
+            {
+              "target": "/app/target",
+              "home-cargo-git-db": "/usr/local/cargo/git/db",
+              "home-cargo-registry": "/usr/local/cargo/registry"
+            }
+
       # Log in to the Container registry registry using the account and password
       # that will publish the packages.
       # Once published, the packages are scoped to the account defined here.
