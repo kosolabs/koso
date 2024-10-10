@@ -60,6 +60,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run build
       - run: npm run check
@@ -96,6 +98,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
@@ -117,7 +121,7 @@ jobs:
         with:
           cache-map: |
             {
-              "target": "/app/target",
+              "target": "/app/target/release",
               "home-cargo-git-db": "/usr/local/cargo/git/db",
               "home-cargo-registry": "/usr/local/cargo/registry"
             }
@@ -177,7 +181,7 @@ jobs:
         with:
           cache-map: |
             {
-              "target": "/app/target",
+              "target": "/app/target/release",
               "home-cargo-git-db": "/usr/local/cargo/git/db",
               "home-cargo-registry": "/usr/local/cargo/registry"
             }
