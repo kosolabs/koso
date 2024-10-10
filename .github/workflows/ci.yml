@@ -181,6 +181,7 @@ jobs:
               "home-cargo-git-db": "/usr/local/cargo/git/db",
               "home-cargo-registry": "/usr/local/cargo/registry"
             }
+          skip-extraction: ${{ steps.rust-build-cache.outputs.cache-hit }}
 
       # Log in to the Container registry registry using the account and password
       # that will publish the packages.
