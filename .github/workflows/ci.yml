@@ -114,10 +114,10 @@ jobs:
           result-encoding: string
           script: |
             if (context.eventName == 'pull_request') {
-              return context.issue.number;
+              return 'pr-' + context.issue.number;
             }
             if (context.ref == 'refs/heads/main') {
-              return (
+              return 'pr' + (
                 await github.rest.repos.listPullRequestsAssociatedWithCommit({
                   commit_sha: context.sha,
                   owner: context.repo.owner,
@@ -202,10 +202,10 @@ jobs:
           result-encoding: string
           script: |
             if (context.eventName == 'pull_request') {
-              return context.issue.number;
+              return 'pr-' + context.issue.number;
             }
             if (context.ref == 'refs/heads/main') {
-              return (
+              return 'pr-' + (
                 await github.rest.repos.listPullRequestsAssociatedWithCommit({
                   commit_sha: context.sha,
                   owner: context.repo.owner,
