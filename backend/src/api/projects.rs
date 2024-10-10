@@ -145,7 +145,7 @@ async fn update_project_handler(
 
     if project_id != project.project_id {
         return Err(bad_request_error(&format!(
-            "Path project id ({project_id} is different than body project idd {}",
+            "Path project id ({project_id} is different than body project id {}",
             project.project_id
         )));
     }
