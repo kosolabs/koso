@@ -48,7 +48,6 @@ dashmap = "6.1.0"
 anyhow = "1.0.89"
 rand = "0.8.5"
 tower = "0.5.1"
-cipher = "0.4.4"
 
 [dev-dependencies]
 test-log = { version = "0.2.16", features = ["trace", "color"] }
