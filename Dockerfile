@@ -7,11 +7,21 @@ WORKDIR /app
 # in a separate layer.
 COPY backend/Cargo.toml backend/Cargo.lock ./
 COPY backend/build/dummy.rs build/dummy.rs
-RUN cargo build --release --lib
+RUN --mount=type=cache,target=/app/target/release \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry \
+    cargo build --release --lib
 
 # Build the backend.
 COPY backend/src ./src
-RUN cargo build --release
+RUN --mount=type=cache,target=/app/target/release \
+    --mount=type=cache,target=/usr/local/cargo/git/db \
+    --mount=type=cache,target=/usr/local/cargo/registry \
+    <<EOF
+set -e
+cargo build --release
+cp ./target/release/koso ./koso
+EOF
 
 # Build the sqlx binary, used to apply database migrations.
 FROM rust AS sqlx
@@ -43,7 +53,7 @@ WORKDIR /app
 
 COPY --from=sqlx /app/bin/sqlx ./
 COPY backend/migrations ./migrations
-COPY --from=backend /app/target/release/koso ./
+COPY --from=backend /app/koso ./
 COPY --from=frontend /app/build ./static
 
 ENV DATABASE_URL=postgresql://koso:koso@localhost/koso

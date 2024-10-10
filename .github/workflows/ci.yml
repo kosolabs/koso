@@ -136,6 +136,26 @@ jobs:
       # Build a backend docker image that will be ran by playwright.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Rust Build Cache for Docker
+        uses: actions/cache/restore@v4
+        id: rust-build-cache
+        with:
+          path: |
+            target
+            home-cargo-git-db
+            home-cargo-registry
+          key: ${{ runner.os }}-rust-build-cache-${{ hashFiles('**/backend/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-rust-build-cache-
+      - name: inject rust-build-cache into docker
+        uses: reproducible-containers/buildkit-cache-dance@v3
+        with:
+          cache-map: |
+            {
+              "target": "/app/target/release",
+              "home-cargo-git-db": "/usr/local/cargo/git/db",
+              "home-cargo-registry": "/usr/local/cargo/registry"
+            }
+          skip-extraction: true
       # Log in to the Container registry registry using the account and password
       # that will publish the cache.
       - name: Log in to the Container registry
@@ -185,8 +205,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Rust Build Cache for Docker
+        uses: actions/cache@v4
+        id: rust-build-cache
+        with:
+          path: |
+            target
+            home-cargo-git-db
+            home-cargo-registry
+          key: ${{ runner.os }}-rust-build-cache-${{ hashFiles('**/backend/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-rust-build-cache-
+      - name: inject rust-build-cache into docker
+        uses: reproducible-containers/buildkit-cache-dance@v3
+        with:
+          cache-map: |
+            {
+              "target": "/app/target/release",
+              "home-cargo-git-db": "/usr/local/cargo/git/db",
+              "home-cargo-registry": "/usr/local/cargo/registry"
+            }
+          skip-extraction: ${{ steps.rust-build-cache.outputs.cache-hit }}
+
       # Log in to the Container registry registry using the account and password
       # that will publish the packages.
       # Once published, the packages are scoped to the account defined here.
