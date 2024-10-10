@@ -200,3 +200,9 @@ jobs:
           package-name: "koso/dev"
           package-type: "container"
           min-versions-to-keep: 50
+      - name: Cleanup old buildcache images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: "koso/buildcache"
+          package-type: "container"
+          min-versions-to-keep: 100
