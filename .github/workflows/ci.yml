@@ -188,7 +188,7 @@ jobs:
           cache-from: |
             type=registry,ref=ghcr.io/kosolabs/koso/buildcache:latest
             type=registry,ref=ghcr.io/kosolabs/koso/buildcache:main
-          cache-to: type=registry,ref=ghcr.io/kosolabs/koso/buildcache:${{ (github.ref == 'refs/heads/main' || github.event_name != 'pull_request' && 'main' || 'latest' ) }},mode=max
+          cache-to: type=registry,ref=ghcr.io/kosolabs/koso/buildcache:${{ (github.ref == 'refs/heads/main' || github.event_name != 'pull_request' && 'main' || 'main' ) }},mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
