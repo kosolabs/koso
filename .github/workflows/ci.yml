@@ -230,7 +230,7 @@ jobs:
           cache-from: |
             type=registry,ref=ghcr.io/kosolabs/koso/buildcache:${{ steps.get-docker-image-cache-name.outputs.result }}
             type=registry,ref=ghcr.io/kosolabs/koso/buildcache:main
-          cache-to: type=registry,ref=ghcr.io/kosolabs/koso/buildcache:${{ (github.ref == 'refs/heads/main' || github.event_name != 'pull_request' && 'main' || format('pr-{0}', github.event.number)) }},mode=max
+          cache-to: type=registry,ref=ghcr.io/kosolabs/koso/buildcache:${{ ((github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'main') || format('pr-{0}', github.event.number)) }},mode=max
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -261,4 +261,4 @@ jobs:
         with:
           package-name: "koso/buildcache"
           package-type: "container"
-          min-versions-to-keep: 100
+          min-versions-to-keep: 150
