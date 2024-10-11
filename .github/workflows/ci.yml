@@ -142,6 +142,9 @@ jobs:
       - name: Build Backend Docker Image
         id: build-backend
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_SUMMARY: ${{ github.ref == 'refs/heads/main'}}
+          DOCKER_BUILD_RECORD_UPLOAD: ${{ github.ref == 'refs/heads/main'}}
         with:
           context: .
           load: true
@@ -226,6 +229,9 @@ jobs:
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_SUMMARY: ${{ github.ref == 'refs/heads/main'}}
+          DOCKER_BUILD_RECORD_UPLOAD: ${{ github.ref == 'refs/heads/main'}}
         with:
           context: .
           push: true
