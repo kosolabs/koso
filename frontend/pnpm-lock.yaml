@@ -11,9 +11,6 @@ importers:
       cmdk-sv:
         specifier: ^0.0.18
         version: 0.0.18(svelte@5.0.0-next.264)
-      lib0:
-        specifier: ^0.2.98
-        version: 0.2.98
     devDependencies:
       '@playwright/test':
         specifier: ^1.47.2
@@ -72,6 +69,9 @@ importers:
       jwt-decode:
         specifier: ^4.0.0
         version: 4.0.0
+      lib0:
+        specifier: ^0.2.98
+        version: 0.2.98
       lucide-svelte:
         specifier: ^0.447.0
         version: 0.447.0(svelte@5.0.0-next.264)
