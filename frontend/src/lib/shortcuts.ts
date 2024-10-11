@@ -37,9 +37,14 @@ export class Shortcut extends ShortcutRecord {
   }
 
   toChar(): string {
-    return this.key.length === 1
-      ? this.key.toUpperCase()
-      : keys.get(this.key, this.key);
+    if (this.key.length === 1) {
+      return this.key.toUpperCase();
+    }
+    const result = keys.get(this.key);
+    if (!result) {
+      throw new Error(`${this.key} was not be mapped to a character`);
+    }
+    return result;
   }
 
   toString(): string {
