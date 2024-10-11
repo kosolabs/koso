@@ -91,12 +91,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - id: playwright-cache
+      - name: Cache Playwright install
+        id: playwright-cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: Linux-playwright-${{ hashFiles('**/frontend/package-lock.json') }}
-          restore-keys: Linux-playwright-
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -154,7 +155,8 @@ jobs:
           KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} ../backend/scripts/init_db.sh
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
-      - run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} npx playwright test --workers=4
+      - name: Run Playwright tests
+        run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} npx playwright test --workers=4
 
   build-and-push-image:
     env:
@@ -242,6 +244,7 @@ jobs:
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
 
       - name: Cleanup old images
         uses: actions/delete-package-versions@v5
@@ -250,15 +253,18 @@ jobs:
           package-type: "container"
           min-versions-to-keep: 50
           delete-only-untagged-versions: "true"
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       - name: Cleanup old dev images
         uses: actions/delete-package-versions@v5
         with:
           package-name: "koso/dev"
           package-type: "container"
           min-versions-to-keep: 50
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       - name: Cleanup old buildcache images
         uses: actions/delete-package-versions@v5
         with:
           package-name: "koso/buildcache"
           package-type: "container"
           min-versions-to-keep: 150
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
