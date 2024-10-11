@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "dev": "vite dev",
     "build": "svelte-kit sync && vite build",
     "preview": "vite preview",
-    "test": "npm run test:unit",
+    "test": "pnpm run test:unit",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "prettier --check . && eslint .",
@@ -60,7 +61,8 @@
     "yjs": "^13.6.18"
   },
   "dependencies": {
-    "cmdk-sv": "^0.0.18"
+    "cmdk-sv": "^0.0.18",
+    "lib0": "^0.2.98"
   },
   "overrides": {
     "@sveltejs/kit": {

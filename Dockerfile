@@ -22,14 +22,14 @@ FROM node AS frontend
 WORKDIR /app
 
 # Setup dependencies
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install
 
 # Build the frontend.
 COPY frontend/*.json frontend/*.js frontend/*.cjs frontend/*.ts ./
 COPY frontend/src ./src
 COPY frontend/static ./static
-RUN npm run build
+RUN pnpm run build
 
 # Assemble the app.
 #
