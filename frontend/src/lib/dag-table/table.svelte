@@ -3,12 +3,9 @@
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
   import { CommandPalette } from "$lib/components/ui/command-palette";
-  import { ShortcutChips } from "$lib/components/ui/shortcut";
-  import { ToolbarButton } from "$lib/components/ui/toolbar-button";
   import { type Koso } from "$lib/koso";
   import { globalKeybindingsEnabled } from "$lib/popover-monitors";
   import { Shortcut, ShortcutRegistry, type Action } from "$lib/shortcuts";
-  import { cn } from "$lib/utils";
   import {
     ChevronsDownUp,
     ChevronsUpDown,
@@ -31,10 +28,10 @@
     Undo,
     UserRoundPlus,
   } from "lucide-svelte";
-  import { setContext } from "svelte";
-  import { toast } from "svelte-sonner";
+  import { onMount, setContext } from "svelte";
   import { flip } from "svelte/animate";
   import Row from "./row.svelte";
+  import Toolbar from "./toolbar.svelte";
 
   type Props = {
     koso: Koso;
@@ -343,40 +340,30 @@
       shortcut: Shortcut.SHOW_COMMAND_PALETTE,
     },
   ];
+
   const registry = new ShortcutRegistry(actions);
 
-  const toolbarActions = $derived(
-    actions.filter((action) => action.toolbar && action.enabled()),
-  );
+  onMount(() => {
+    const keyDownListener = (event: KeyboardEvent) => {
+      if ($debug) {
+        console.log(Shortcut.fromEvent(event).toString());
+      }
 
-  document.onkeydown = (event: KeyboardEvent) => {
-    if ($debug) {
-      // TODO: Remove any once toast support Component type
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.info(ShortcutChips as any, {
-        componentProps: { shortcut: Shortcut.fromEvent(event) },
-      });
-    }
+      if (!globalKeybindingsEnabled()) return;
+      registry.handle(event);
+    };
 
-    if (!globalKeybindingsEnabled()) return;
-    registry.handle(event);
-  };
+    document.addEventListener("keydown", keyDownListener);
+
+    return () => {
+      document.removeEventListener("keydown", keyDownListener);
+    };
+  });
 
   setContext<Koso>("koso", koso);
 </script>
 
-<div
-  class={cn(
-    "z-10 flex items-center overflow-x-scroll px-2 backdrop-blur-sm",
-    "fixed bottom-0 left-0 h-12 w-full border-t",
-    "sm:sticky sm:top-0 sm:gap-2 sm:border-b",
-  )}
->
-  {#each toolbarActions as action}
-    <ToolbarButton {...action} />
-  {/each}
-</div>
-
+<Toolbar {actions} />
 <CommandPalette bind:open={commandPaletteOpen} {actions} />
 
 <div class="mb-12 p-2 sm:mb-0">
