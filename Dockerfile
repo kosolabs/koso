@@ -19,17 +19,20 @@ WORKDIR /app
 RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres --root ./
 
 FROM node AS frontend
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 WORKDIR /app
 
 # Setup dependencies
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # Build the frontend.
 COPY frontend/*.json frontend/*.js frontend/*.cjs frontend/*.ts ./
 COPY frontend/src ./src
 COPY frontend/static ./static
-RUN npm run build
+RUN pnpm run build
 
 # Assemble the app.
 #

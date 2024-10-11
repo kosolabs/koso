@@ -57,16 +57,20 @@ jobs:
         working-directory: ./frontend
     steps:
       - uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npm run check
-      - run: npm run lint
-      - run: npm run test
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install
+      - run: pnpm run build
+      - run: pnpm run check
+      - run: pnpm run lint
+      - run: pnpm run test
   playwright:
     runs-on: ubuntu-latest
     defaults:
@@ -96,14 +100,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/frontend/package-lock.json') }}
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/frontend/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-playwright-
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install
       - run: npx playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 

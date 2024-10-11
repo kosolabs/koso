@@ -53,7 +53,7 @@
 1. Install [Node.js](https://nodejs.org/).
 
    ```sh
-   brew install node
+   brew install node pnpm
    ```
 
 1. Install the frontend dependencies.
@@ -61,7 +61,7 @@
    In the `frontend` folder, run:
 
    ```sh
-   npm install
+   pnpm install
    ```
 
 ### Start Backend and Frontend
@@ -79,7 +79,7 @@
    In the `frontend` folder, run:
 
    ```sh
-   npm run dev
+   pnpm run dev
    ```
 
 1. Navigate to http://localhost:5173/
@@ -138,7 +138,7 @@ This setup is similar to how the app will run in production. A single server ser
 1. In the `frontend` folder, run:
 
    ```bash
-   npm run build
+   pnpm run build
    ```
 
 1. In the `backend` folder, run the server:
