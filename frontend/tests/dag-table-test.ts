@@ -264,6 +264,10 @@ test.describe("dag table tests", () => {
         { id: "3" },
       ]);
 
+      await expect(
+        page.getByRole("button", { name: "Task 1 Drag Handle" }),
+      ).toBeVisible();
+
       await page.keyboard.press("ArrowDown");
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
 
@@ -290,6 +294,10 @@ test.describe("dag table tests", () => {
         { id: "2" },
         { id: "3" },
       ]);
+
+      await expect(
+        page.getByRole("button", { name: "Task 1 Drag Handle" }),
+      ).toBeVisible();
 
       await page.keyboard.press("ArrowDown");
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
@@ -352,6 +360,10 @@ test.describe("dag table tests", () => {
           { id: "5", children: ["6"] },
           { id: "6" },
         ]);
+
+        await expect(
+          page.getByRole("button", { name: "Task 1 Drag Handle" }),
+        ).toBeVisible();
 
         await page.keyboard.press("ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
