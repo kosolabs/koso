@@ -53,7 +53,7 @@
 1. Install [Node.js](https://nodejs.org/).
 
    ```sh
-   brew install node
+   brew install node pnpm
    ```
 
 1. Install the frontend dependencies.
