@@ -4,7 +4,6 @@
   import { Avatar, AvatarImage } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { UserAvatar } from "$lib/components/ui/user-select";
-  import { DropdownMenuMonitoredRoot } from "$lib/popover-monitors";
   import { resetMode, setMode } from "mode-watcher";
 </script>
 
@@ -20,7 +19,7 @@
     <slot name="right-items"></slot>
 
     {#if $user}
-      <DropdownMenuMonitoredRoot closeFocus={document.body}>
+      <DropdownMenu.Root closeFocus={document.body} portal={null}>
         <DropdownMenu.Trigger title={$user.email}>
           <Avatar
             class="size-9 rounded transition-all hover:brightness-110 active:scale-95"
@@ -28,7 +27,11 @@
             <AvatarImage src={$user.picture} alt={$user.email} />
           </Avatar>
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content>
+        <DropdownMenu.Content
+          onkeydown={(event) => {
+            event.stopPropagation();
+          }}
+        >
           <DropdownMenu.Label>
             <UserAvatar user={$user} />
           </DropdownMenu.Label>
@@ -51,7 +54,7 @@
           <DropdownMenu.Item on:click={() => logout()}>Logout</DropdownMenu.Item
           >
         </DropdownMenu.Content>
-      </DropdownMenuMonitoredRoot>
+      </DropdownMenu.Root>
     {/if}
   </div>
 </nav>

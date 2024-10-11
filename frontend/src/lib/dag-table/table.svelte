@@ -4,7 +4,6 @@
   import { Button } from "$lib/components/ui/button";
   import { CommandPalette } from "$lib/components/ui/command-palette";
   import { type Koso } from "$lib/koso";
-  import { globalKeybindingsEnabled } from "$lib/popover-monitors";
   import { Shortcut, ShortcutRegistry, type Action } from "$lib/shortcuts";
   import {
     ChevronsDownUp,
@@ -187,7 +186,7 @@
       callback: unselect,
       toolbar: false,
       enabled: () => true,
-      shortcut: Shortcut.CANCEL_SELECTION,
+      shortcut: Shortcut.CANCEL,
     },
     {
       title: "Add Child",
@@ -349,7 +348,6 @@
         console.log(Shortcut.fromEvent(event).toString());
       }
 
-      if (!globalKeybindingsEnabled()) return;
       registry.handle(event);
     };
 

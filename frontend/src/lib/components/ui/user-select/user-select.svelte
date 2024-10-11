@@ -7,7 +7,6 @@
   } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Input } from "$lib/components/ui/input";
-  import { DropdownMenuMonitoredRoot } from "$lib/popover-monitors";
   import { UserRound } from "lucide-svelte";
   import { UserAvatar } from ".";
 
@@ -42,14 +41,14 @@
   );
 </script>
 
-<DropdownMenuMonitoredRoot {closeFocus}>
+<DropdownMenu.Root {closeFocus} portal={null}>
   <DropdownMenu.Trigger
     class="flex items-center gap-2"
     title={value?.email || "Unassigned"}
   >
     <Avatar class="size-6 rounded">
       <AvatarImage src={value?.picture || ""} alt={value?.email} />
-      <AvatarFallback>
+      <AvatarFallback class="rounded">
         <UserRound />
       </AvatarFallback>
     </Avatar>
@@ -57,7 +56,12 @@
       {value?.name || unassigned}
     </div>
   </DropdownMenu.Trigger>
-  <DropdownMenu.Content class="min-w-64">
+  <DropdownMenu.Content
+    class="min-w-64"
+    onkeydown={(event) => {
+      event.stopPropagation();
+    }}
+  >
     <DropdownMenu.Label>
       <Input placeholder="Filter users" bind:value={filter} />
     </DropdownMenu.Label>
@@ -75,4 +79,4 @@
       {/each}
     </DropdownMenu.Group>
   </DropdownMenu.Content>
-</DropdownMenuMonitoredRoot>
+</DropdownMenu.Root>
