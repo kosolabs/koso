@@ -67,6 +67,7 @@ export class Shortcut extends ShortcutRecord {
     });
   }
 
+  static CANCEL = new Shortcut({ key: "Escape" });
   static SHOW_COMMAND_PALETTE = new Shortcut({
     key: "p",
     shiftKey: true,
@@ -75,7 +76,6 @@ export class Shortcut extends ShortcutRecord {
   static SAVE_EDITABLE = new Shortcut({ key: "Enter" });
   static REVERT_EDITABLE = new Shortcut({ key: "Escape" });
   static EDIT_NODE = new Shortcut({ key: "Enter" });
-  static CANCEL_SELECTION = new Shortcut({ key: "Escape" });
   static INSERT_NODE = new Shortcut({ key: "Enter", shiftKey: true });
   static REMOVE_NODE = new Shortcut({ key: "Delete" });
   static INSERT_CHILD_NODE = new Shortcut({

@@ -3,7 +3,6 @@
   import { Portal } from "$lib/components/ui/portal";
   import { ResponsiveText } from "$lib/components/ui/responsive-text";
   import type { Status } from "$lib/koso";
-  import { DropdownMenuMonitoredRoot } from "$lib/popover-monitors";
   import Confetti from "svelte-confetti";
   import { TaskStatusIcon } from ".";
 
@@ -30,7 +29,7 @@
   }
 </script>
 
-<DropdownMenuMonitoredRoot {closeFocus}>
+<DropdownMenu.Root {closeFocus} portal={null}>
   <DropdownMenu.Trigger
     class="flex items-center gap-2"
     title={(value || "Not Started") +
@@ -39,7 +38,11 @@
     <TaskStatusIcon status={value} />
     <ResponsiveText>{value || "Not Started"}</ResponsiveText>
   </DropdownMenu.Trigger>
-  <DropdownMenu.Content>
+  <DropdownMenu.Content
+    onkeydown={(event) => {
+      event.stopPropagation();
+    }}
+  >
     {#each statuses as status}
       <DropdownMenu.Item
         class="flex items-center gap-2 rounded p-2"
@@ -50,7 +53,7 @@
       </DropdownMenu.Item>
     {/each}
   </DropdownMenu.Content>
-</DropdownMenuMonitoredRoot>
+</DropdownMenu.Root>
 
 {#if showConfetti}
   <Portal>

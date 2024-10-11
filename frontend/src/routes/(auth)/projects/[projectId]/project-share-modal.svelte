@@ -8,12 +8,12 @@
   import * as Popover from "$lib/components/ui/popover";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { logout_on_authentication_error } from "$lib/errors";
-  import { DialogMonitoredRoot } from "$lib/popover-monitors";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectUsers,
     type Project,
   } from "$lib/projects";
+  import { Shortcut } from "$lib/shortcuts";
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
@@ -103,13 +103,21 @@
   );
 </script>
 
-<DialogMonitoredRoot
+<Dialog.Root
   bind:open
+  portal={null}
   onOpenChange={() => {
     filter = "";
   }}
 >
-  <Dialog.Content>
+  <Dialog.Content
+    onkeydown={(event) => {
+      event.stopPropagation();
+      if (Shortcut.CANCEL.matches(event)) {
+        open = false;
+      }
+    }}
+  >
     <Dialog.Header>
       <Dialog.Title>Share &quot;{project?.name || ""}&quot;</Dialog.Title>
       <Dialog.Description>Manage access to your project.</Dialog.Description>
@@ -165,7 +173,7 @@
       </div>
     </div>
   </Dialog.Content>
-</DialogMonitoredRoot>
+</Dialog.Root>
 
 <AlertDialog.Root bind:open={openWarnSelfRemovalModal}>
   <AlertDialog.AlertDialogContent>
