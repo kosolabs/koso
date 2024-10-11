@@ -61,5 +61,10 @@
   },
   "dependencies": {
     "cmdk-sv": "^0.0.18"
+  },
+  "overrides": {
+    "@sveltejs/kit": {
+      "cookie": "^0.7.0"
+    }
   }
 }
