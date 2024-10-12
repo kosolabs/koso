@@ -106,10 +106,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
+          cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install
-      - run: npx playwright install --with-deps
+      - run: pnpm exec playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       # Find PR number
@@ -164,7 +164,7 @@ jobs:
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
       - name: Run Playwright tests
-        run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} npx playwright test --workers=4
+        run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} pnpm exec playwright test --workers=4
 
   build-and-push-image:
     env:
