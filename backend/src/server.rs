@@ -48,7 +48,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             // Connect to the Postgres database.
             let db_connection_str = std::env::var("DATABASE_URL")
                 .unwrap_or_else(|_| "postgresql://localhost".to_string());
-            tracing::debug!("Connecting to database: {}", db_connection_str);
+            tracing::info!("Connecting to database: {}", db_connection_str);
 
             Box::leak(Box::new(
                 PgPoolOptions::new()
@@ -120,7 +120,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
 
     let addr = listener.local_addr().unwrap();
     let serve = tokio::spawn(async {
-        tracing::debug!("server listening on {}", listener.local_addr().unwrap());
+        tracing::info!("server listening on {}", listener.local_addr().unwrap());
         axum::serve(
             listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -131,7 +131,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
 
         // Now that the server is shutdown, it's safe to clean things up.
         collab.stop().await;
-        tracing::debug!("Closing database pool...");
+        tracing::info!("Closing database pool...");
         pool.close().await;
     });
 
@@ -153,7 +153,7 @@ pub(super) async fn shutdown_signal(name: &str, signal: Option<Receiver<()>>) {
         signal::ctrl_c()
             .await
             .expect("failed to install Ctrl+C handler");
-        tracing::debug!("Terminating {name} with ctrl-c...");
+        tracing::info!("Terminating {name} with ctrl-c...");
     };
 
     #[cfg(unix)]
@@ -162,7 +162,7 @@ pub(super) async fn shutdown_signal(name: &str, signal: Option<Receiver<()>>) {
             .expect("failed to install signal handler")
             .recv()
             .await;
-        tracing::debug!("Terminating {name}...");
+        tracing::info!("Terminating {name}...");
     };
 
     #[cfg(not(unix))]
