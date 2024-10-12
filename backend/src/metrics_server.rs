@@ -35,7 +35,7 @@ pub async fn start_metrics_server(config: Config) -> (SocketAddr, JoinHandle<()>
 
     let addr = listener.local_addr().unwrap();
     let serve = tokio::spawn(async {
-        tracing::debug!(
+        tracing::info!(
             "metrics server listening on {}",
             listener.local_addr().unwrap()
         );
