@@ -16,22 +16,22 @@ importers:
         version: 0.0.18(svelte@5.0.0-next.264)
     devDependencies:
       '@playwright/test':
-        specifier: ^1.47.2
+        specifier: ^1.48.0
         version: 1.48.0
       '@sveltejs/adapter-static':
-        specifier: ^3.0.0
+        specifier: ^3.0.5
         version: 3.0.5(@sveltejs/kit@2.7.0(@sveltejs/vite-plugin-svelte@4.0.0-next.8(svelte@5.0.0-next.264)(vite@5.4.8(@types/node@22.7.5)))(svelte@5.0.0-next.264)(vite@5.4.8(@types/node@22.7.5)))
       '@sveltejs/kit':
-        specifier: ^2.6.2
+        specifier: ^2.7.0
         version: 2.7.0(@sveltejs/vite-plugin-svelte@4.0.0-next.8(svelte@5.0.0-next.264)(vite@5.4.8(@types/node@22.7.5)))(svelte@5.0.0-next.264)(vite@5.4.8(@types/node@22.7.5))
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^4.0.0-next.7
+        specifier: 4.0.0-next.8
         version: 4.0.0-next.8(svelte@5.0.0-next.264)(vite@5.4.8(@types/node@22.7.5))
       '@types/eslint':
         specifier: ^9.6.1
         version: 9.6.1
       '@types/node':
-        specifier: ^22.7.4
+        specifier: ^22.7.5
         version: 22.7.5
       '@types/uuid':
         specifier: ^10.0.0
@@ -40,13 +40,13 @@ importers:
         specifier: ^10.4.20
         version: 10.4.20(postcss@8.4.47)
       bits-ui:
-        specifier: ^0.21.15
+        specifier: ^0.21.16
         version: 0.21.16(svelte@5.0.0-next.264)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
       eslint:
-        specifier: ^9.11.1
+        specifier: ^9.12.0
         version: 9.12.0(jiti@1.21.6)
       eslint-config-prettier:
         specifier: ^9.1.0
@@ -58,7 +58,7 @@ importers:
         specifier: ^6.0.0
         version: 6.0.0
       globals:
-        specifier: ^15.9.0
+        specifier: ^15.11.0
         version: 15.11.0
       google-oauth-gsi:
         specifier: ^4.0.1
@@ -76,8 +76,8 @@ importers:
         specifier: ^0.2.98
         version: 0.2.98
       lucide-svelte:
-        specifier: ^0.447.0
-        version: 0.447.0(svelte@5.0.0-next.264)
+        specifier: ^0.452.0
+        version: 0.452.0(svelte@5.0.0-next.264)
       mockdate:
         specifier: ^3.0.5
         version: 3.0.5
@@ -85,10 +85,10 @@ importers:
         specifier: ^0.4.1
         version: 0.4.1(svelte@5.0.0-next.264)
       postcss:
-        specifier: ^8.4.42
+        specifier: ^8.4.47
         version: 8.4.47
       prettier:
-        specifier: ^3.1.1
+        specifier: ^3.3.3
         version: 3.3.3
       prettier-plugin-svelte:
         specifier: ^3.2.7
@@ -97,10 +97,10 @@ importers:
         specifier: ^0.6.8
         version: 0.6.8(prettier-plugin-svelte@3.2.7(prettier@3.3.3)(svelte@5.0.0-next.264))(prettier@3.3.3)
       svelte:
-        specifier: ^5.0.0-next.252
+        specifier: 5.0.0-next.264
         version: 5.0.0-next.264
       svelte-check:
-        specifier: ^4.0.4
+        specifier: ^4.0.5
         version: 4.0.5(svelte@5.0.0-next.264)(typescript@5.6.3)
       svelte-confetti:
         specifier: ^2.1.2
@@ -112,7 +112,7 @@ importers:
         specifier: ^0.3.28
         version: 0.3.28(svelte@5.0.0-next.264)
       tailwind-merge:
-        specifier: ^2.5.2
+        specifier: ^2.5.3
         version: 2.5.3
       tailwind-variants:
         specifier: ^0.2.1
@@ -124,10 +124,10 @@ importers:
         specifier: ^2.7.0
         version: 2.7.0
       typescript:
-        specifier: ^5.0.0
+        specifier: ^5.6.3
         version: 5.6.3
       typescript-eslint:
-        specifier: ^8.8.0
+        specifier: ^8.8.1
         version: 8.8.1(eslint@9.12.0(jiti@1.21.6))(typescript@5.6.3)
       uuid:
         specifier: ^10.0.0
@@ -142,7 +142,7 @@ importers:
         specifier: ^9.0.12
         version: 9.0.12(yjs@13.6.19)
       yjs:
-        specifier: ^13.6.18
+        specifier: ^13.6.19
         version: 13.6.19
 
 packages:
@@ -1219,8 +1219,8 @@ packages:
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
 
-  lucide-svelte@0.447.0:
-    resolution: {integrity: sha512-DDCVy79q9H1IAGmrbGDG4GZmCZK+5elK3Fxzu0RzbHKr2Khg7EMc8S6C12bzWcnfW263raqo3grthEjB5gxAjw==}
+  lucide-svelte@0.452.0:
+    resolution: {integrity: sha512-Nnt+8ljOyQ1P/k+lWKUAS13tT0hn2vVtgE7/zbVI8tiorY/aaeIkhRzY0MdVHogwEavr9VNEpQUGVBEFVicPzA==}
     peerDependencies:
       svelte: ^3 || ^4 || ^5.0.0-next.42
 
@@ -1330,8 +1330,8 @@ packages:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
     engines: {node: '>=6'}
 
-  parse5@7.1.2:
-    resolution: {integrity: sha512-Czj1WaSVpaoj0wbhMzLmWD69anp2WH7FXMB9n1Sy8/ZFF9jolSQVMu1Ij5WIyGmcBmhk7EOndpO4mIpihVqAXw==}
+  parse5@7.2.0:
+    resolution: {integrity: sha512-ZkDsAOcxsUMZ4Lz5fVciOehNcJ+Gb8gTzcA4yl3wnc273BAybYWrQ+Ks/OjCjSEpjvQkDSeZbybK9qj2VHHdGA==}
 
   path-exists@4.0.0:
     resolution: {integrity: sha512-ak9Qy5Q7jYb2Wwcey5Fpvg2KoAc/ZIhLSLOSBmRmygPsGwkVVt0fZa0qrtMz+m6tJTAHfZQ8FnmB4MG4LWy7/w==}
@@ -1724,11 +1724,11 @@ packages:
     resolution: {integrity: sha512-n1cw8k1k0x4pgA2+9XrOkFydTerNcJ1zWCO5Nn9scWHTD+5tp8dghT2x1uduQePZTZgd3Tupf+x9BxJjeJi77Q==}
     engines: {node: '>=14.0.0'}
 
-  tldts-core@6.1.50:
-    resolution: {integrity: sha512-na2EcZqmdA2iV9zHV7OHQDxxdciEpxrjbkp+aHmZgnZKHzoElLajP59np5/4+sare9fQBfixgvXKx8ev1d7ytw==}
+  tldts-core@6.1.51:
+    resolution: {integrity: sha512-bu9oCYYWC1iRjx+3UnAjqCsfrWNZV1ghNQf49b3w5xE8J/tNShHTzp5syWJfwGH+pxUgTTLUnzHnfuydW7wmbg==}
 
-  tldts@6.1.50:
-    resolution: {integrity: sha512-q9GOap6q3KCsLMdOjXhWU5jVZ8/1dIib898JBRLsN+tBhENpBDcAVQbE0epADOjw11FhQQy9AcbqKGBQPUfTQA==}
+  tldts@6.1.51:
+    resolution: {integrity: sha512-33lfQoL0JsDogIbZ8fgRyvv77GnRtwkNE/MOKocwUgPO1WrSfsq7+vQRKxRQZai5zd+zg97Iv9fpFQSzHyWdLA==}
     hasBin: true
 
   to-regex-range@5.0.1:
@@ -2928,7 +2928,7 @@ snapshots:
       https-proxy-agent: 7.0.5
       is-potential-custom-element-name: 1.0.1
       nwsapi: 2.2.13
-      parse5: 7.1.2
+      parse5: 7.2.0
       rrweb-cssom: 0.7.1
       saxes: 6.0.0
       symbol-tree: 3.2.4
@@ -2988,7 +2988,7 @@ snapshots:
 
   lru-cache@10.4.3: {}
 
-  lucide-svelte@0.447.0(svelte@5.0.0-next.264):
+  lucide-svelte@0.452.0(svelte@5.0.0-next.264):
     dependencies:
       svelte: 5.0.0-next.264
 
@@ -3078,7 +3078,7 @@ snapshots:
     dependencies:
       callsites: 3.1.0
 
-  parse5@7.1.2:
+  parse5@7.2.0:
     dependencies:
       entities: 4.5.0
 
@@ -3419,11 +3419,11 @@ snapshots:
 
   tinyspy@3.0.2: {}
 
-  tldts-core@6.1.50: {}
+  tldts-core@6.1.51: {}
 
-  tldts@6.1.50:
+  tldts@6.1.51:
     dependencies:
-      tldts-core: 6.1.50
+      tldts-core: 6.1.51
 
   to-regex-range@5.0.1:
     dependencies:
@@ -3433,7 +3433,7 @@ snapshots:
 
   tough-cookie@5.0.0:
     dependencies:
-      tldts: 6.1.50
+      tldts: 6.1.51
 
   tr46@5.0.0:
     dependencies:
