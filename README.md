@@ -161,7 +161,7 @@ server in the usual manner, see above, and run the tests in VSCode using the Pla
 via the CLI:
 
 ```bash
-npx playwright test
+pnpm exec playwright test
 ```
 
 #### Option B: Mimic production and run against a built frontend with production
@@ -170,7 +170,7 @@ Follow "Running a Built Frontend with the Backend" above to build the frontend a
 Run the tests:
 
 ```bash
-PW_SERVER_PORT=3000 npx playwright test
+PW_SERVER_PORT=3000 pnpm exec playwright test
 ```
 
 #### Option C: Mimic CI and build things from scratch
@@ -179,7 +179,7 @@ This is what our CI workflows do. playwright will build the frontend and run a b
 duration of the tests:
 
 ```bash
-CI=true npx playwright test
+CI=true pnpm exec playwright test
 ```
 
 ## Development Docker builds
