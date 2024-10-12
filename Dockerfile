@@ -5,9 +5,24 @@ WORKDIR /app
 # of copying in our code. This speeds up re-builds
 # triggered by changes to src/ by keeping dependencies
 # in a separate layer.
+# Mount caches to preserve the build cache build over build.
+# Copy the build cache out to expose it to the build below.
 COPY backend/Cargo.toml backend/Cargo.lock ./
 COPY backend/build/dummy.rs build/dummy.rs
-RUN cargo build --release --lib
+RUN --mount=type=cache,target=/app/target/ \
+    --mount=type=cache,target=/usr/local/cargo/git/db/ \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    cargo build --release --lib \
+    && cp --preserve -r /app/target ./cache-target \
+    && cp --preserve -r /usr/local/cargo/git/db ./cargo-git-db \
+    && cp --preserve -r /usr/local/cargo/registry ./cargo-registry
+
+# Move cargo build cache files to their proper places
+# in order to speed along the subsequent build.
+RUN mv ./cache-target /app/target  \
+    && mkdir /usr/local/cargo/git \
+    && mv  ./cargo-git-db /usr/local/cargo/git/db \
+    && mv ./cargo-registry /usr/local/cargo/registry
 
 # Build the backend.
 COPY backend/src ./src
