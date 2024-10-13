@@ -20,6 +20,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    environment:
+      name: koso
+      url: https://koso.app
     env:
       KOSO_IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
     steps:
@@ -27,7 +30,7 @@ jobs:
         with:
           host: koso.app
           username: root
-          key: ${{ secrets.KEY }}
+          key: ${{ secrets.KOSO_KEY }}
           envs: GITHUB_SHA,KOSO_IMAGE_DIGEST
           script: |
             set -e

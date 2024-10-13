@@ -248,3 +248,11 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
    # Allow docker bridge
    host    all             all             172.0.0.0/8             scram-sha-256
    ```
+
+### Server Github access
+
+Rather than using our personal key and since we only need read access, we use [Github Deploy Keys](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#deploy-keys) to authenticate with Github from our server.
+
+### Environment
+
+We use a [Github Environment](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment) configured on the `Deploy` workflow which exposes a `KOSO_KEY` to access the server.
