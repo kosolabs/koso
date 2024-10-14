@@ -1357,4 +1357,32 @@ test.describe("dag table tests", () => {
       });
     });
   });
+
+  test.describe("status icon", () => {
+    test("one out of four tasks in-progress shows 0%", async ({ page }) => {
+      await init(page, [
+        { id: "root", children: ["1"] },
+        { id: "1", children: ["2", "3", "4", "5"] },
+        { id: "2", status: null },
+        { id: "3", status: null },
+        { id: "4", status: null },
+        { id: "5", status: "In Progress" },
+      ]);
+
+      await expect(page.getByLabel("circular-progress")).toHaveText("0%");
+    });
+
+    test("two out of four tasks complete shows 50%", async ({ page }) => {
+      await init(page, [
+        { id: "root", children: ["1"] },
+        { id: "1", children: ["2", "3", "4", "5"] },
+        { id: "2", status: null },
+        { id: "3", status: null },
+        { id: "4", status: "Done" },
+        { id: "5", status: "Done" },
+      ]);
+
+      await expect(page.getByLabel("circular-progress")).toHaveText("50%");
+    });
+  });
 });

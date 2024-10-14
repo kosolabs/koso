@@ -14,10 +14,5 @@
 {:else if status === "In Progress"}
   <CircleFadingArrowUp color="hsl(var(--primary))" />
 {:else}
-  {@const progress = typeof status === "number" ? status : 0}
-  <CircularProgress {progress} color="hsl(var(--primary))">
-    {#if progress !== 0}
-      {Math.round(progress * 100)}%
-    {/if}
-  </CircularProgress>
+  <CircularProgress progress={0} color="hsl(var(--primary))" />
 {/if}
