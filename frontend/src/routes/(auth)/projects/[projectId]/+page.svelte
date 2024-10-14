@@ -127,9 +127,7 @@
 
 <UnauthorizedModal bind:open={showUnauthorizedModal} />
 {#await projectPromise then project}
-  {#await projectUsersPromise then _}
-    <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
-  {/await}
+  <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
 {/await}
 
 <DagTable {koso} users={projectUsers} />
