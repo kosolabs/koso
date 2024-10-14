@@ -365,7 +365,9 @@
 <CommandPalette bind:open={commandPaletteOpen} {actions} />
 
 <div class="mb-12 p-2 sm:mb-0">
-  {#if !$syncState.serverSync && !$syncState.indexedDbSync}{:else if $nodes.size > 1}
+  {#if !$syncState.serverSync && !$syncState.indexedDbSync}
+    <!-- Loading.-->
+  {:else if $nodes.size > 1}
     <table class="w-full border-separate border-spacing-0 rounded-md border">
       <thead class="text-left text-xs font-bold uppercase">
         <tr>

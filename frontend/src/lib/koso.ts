@@ -93,7 +93,9 @@ export type YTaskProps = Y.Array<string> | string | number | null;
 export type YTask = Y.Map<YTaskProps>;
 
 export type SyncState = {
+  // True when the indexed DB is sync'd with the Koso doc.
   indexedDbSync: boolean;
+  // True when state from the server is sync'd with the Koso doc.
   serverSync: boolean;
 };
 
