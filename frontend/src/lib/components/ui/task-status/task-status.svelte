@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { CircularProgress } from "$lib/components/ui/circular-progress";
   import { ResponsiveText } from "$lib/components/ui/responsive-text";
-  import { TaskStatusIcon } from ".";
+  import { CircleCheck } from "lucide-svelte";
 
   type Props = {
     inProgress: number;
@@ -15,13 +16,15 @@
   title="{done} of {total} ({Math.round((done * 100) / total)}%)"
 >
   {#if done === total}
-    <TaskStatusIcon status="Done" />
+    <CircleCheck color="hsl(var(--primary))" />
     <ResponsiveText>Done</ResponsiveText>
   {:else if done === 0 && inProgress == 0}
-    <TaskStatusIcon status="Not Started" />
+    <CircularProgress progress={0} color="hsl(var(--primary))" />
     <ResponsiveText>Not Started</ResponsiveText>
   {:else}
-    <TaskStatusIcon status="In Progress" />
+    <CircularProgress progress={done / total} color="hsl(var(--primary))">
+      {Math.round((done * 100) / total)}%
+    </CircularProgress>
     <ResponsiveText>In Progress</ResponsiveText>
   {/if}
 </div>

@@ -23,7 +23,7 @@
   }: Props = $props();
 </script>
 
-<div class={cn("p-[1px]", classes)}>
+<div class={cn("p-[1px]", classes)} aria-label="circular-progress">
   <div
     class="circular-progress"
     style="
