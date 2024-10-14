@@ -37,7 +37,7 @@
     users: User[];
   };
   const { koso, users }: Props = $props();
-  const { debug, editing, nodes, selected, showDone } = koso;
+  const { debug, editing, nodes, selected, showDone, syncState } = koso;
 
   let commandPaletteOpen: boolean = $state(false);
   function showCommandPalette() {
@@ -365,7 +365,9 @@
 <CommandPalette bind:open={commandPaletteOpen} {actions} />
 
 <div class="mb-12 p-2 sm:mb-0">
-  {#if $nodes.size > 1}
+  {#if !$syncState.serverSync && !$syncState.indexedDbSync}
+    <!-- Loading.-->
+  {:else if $nodes.size > 1}
     <table class="w-full border-separate border-spacing-0 rounded-md border">
       <thead class="text-left text-xs font-bold uppercase">
         <tr>
