@@ -61,9 +61,24 @@
 
     toast.info("Exporting project...");
     const projectExport = await exportProject($token, projectId);
-    const downloadProjectExport = JSON.stringify(projectExport, null, 2);
-    navigator.clipboard.writeText(downloadProjectExport);
-    toast.info("Project exported to clipboard.");
+
+    let projectName = (project?.name || "project")
+      .toLowerCase()
+      .trim()
+      .replaceAll(/[\s+]/g, "-")
+      .replaceAll(/[^-_a-z0-9]/g, "");
+    let now = new Date();
+    const fileName = `${projectName}-export-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}.json`;
+    saveJsonFile(JSON.stringify(projectExport, null, 2), fileName);
+  }
+
+  function saveJsonFile(json: string, name: string) {
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
   }
 
   let showSocketOfflineAlert: boolean = false;
