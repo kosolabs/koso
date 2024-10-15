@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { token, user } from "$lib/auth";
+  import { token } from "$lib/auth";
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import Navbar from "$lib/navbar.svelte";
@@ -42,7 +42,7 @@
   {:then}
     <!-- TODO: Make this a Skeleton -->
     <div class="flex flex-col items-center justify-center rounded border p-4">
-      <div class="text-xl">Loading...</div>
+      <div class="text-l">Loading...</div>
     </div>
   {/await}
 {:then projects}

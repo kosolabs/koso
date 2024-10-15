@@ -37,6 +37,7 @@
   async function loadProjectUsers() {
     if (!$user || !$token) throw new Error("User is unauthorized");
     const users = await fetchProjectUsers($token, projectId);
+
     projectUsers = users;
     return projectUsers;
   }
@@ -155,10 +156,10 @@
   {:then}
     <!-- TODO: Make this a Skeleton -->
     <div class="flex flex-col items-center justify-center rounded border p-4">
-      <div class="text-xl">Loading...</div>
+      <div class="text-l">Loading...</div>
     </div>
   {/await}
-{:then pp}
+{:then}
   {#await project then project}
     <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
   {/await}
