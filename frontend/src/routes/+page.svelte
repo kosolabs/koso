@@ -90,7 +90,7 @@
 
 {#if !$user}
   <div
-    class="mx-auto my-4 flex flex-col gap-8 rounded-xl border bg-card p-10 text-center shadow lg:w-96"
+    class="m-4 flex flex-col gap-8 rounded-xl border bg-card p-10 text-center shadow sm:mx-auto sm:w-96"
   >
     <img class="m-auto w-20" alt="Koso Logo" src={kosoLogo} />
     <h1 class="text-4xl text-primary">Koso</h1>
