@@ -92,6 +92,10 @@
           if (p) {
             console.log(`Selecting parent ${p.id}`);
             $selected = p;
+          } else {
+            // TODO: this probably means the linked task is filtered out or collapsed.
+            // We could expand nodes to show it or do something else?
+            console.log("No parent found");
           }
           event.stopPropagation();
         };
