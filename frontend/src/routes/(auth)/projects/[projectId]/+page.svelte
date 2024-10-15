@@ -28,13 +28,17 @@
   window.koso = koso;
   window.Y = Y;
 
-  let project: Project | null = null;
+  let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
+  let project: Promise<Project> = loadProject();
+  let projectUsersPromise: Promise<User[]> = loadProjectUsers();
   let projectUsers: User[] = [];
   let openShareModal = false;
 
   async function loadProjectUsers() {
     if (!$user || !$token) throw new Error("User is unauthorized");
-    return await fetchProjectUsers($token, projectId);
+    const users = await fetchProjectUsers($token, projectId);
+    projectUsers = users;
+    return projectUsers;
   }
 
   async function loadProject() {
@@ -50,10 +54,8 @@
       project_id: projectId,
       name,
     });
-
-    if (project) {
-      project.name = updatedProject.name;
-    }
+    let p = await project;
+    p.name = updatedProject.name;
   }
 
   async function exportProjectToFile() {
@@ -62,7 +64,8 @@
     toast.info("Exporting project...");
     const projectExport = await exportProject($token, projectId);
 
-    let projectName = (project?.name || "project")
+    let p = await project;
+    let projectName = (p.name || "project")
       .toLowerCase()
       .trim()
       .replaceAll(/[\s+]/g, "-")
@@ -100,15 +103,7 @@
   );
 
   onMount(async () => {
-    if (!$user || !$token) {
-      return;
-    }
-
-    [projectUsers, project] = await Promise.all([
-      loadProjectUsers(),
-      loadProject(),
-      kosoSocket.openWebSocket(),
-    ]);
+    await kosoSocket.openWebSocket();
     $lastVisitedProjectId = $page.params.projectId;
   });
 
@@ -120,7 +115,7 @@
 <Navbar>
   <svelte:fragment slot="left-items">
     <div>
-      {#if project}
+      {#await project then project}
         <Editable
           class="ml-2 text-lg"
           value={project.name}
@@ -128,7 +123,7 @@
           onsave={saveEditedProjectName}
           onkeydown={(e) => e.stopPropagation()}
         />
-      {/if}
+      {/await}
     </div>
   </svelte:fragment>
   <svelte:fragment slot="right-items">
@@ -153,6 +148,20 @@
 {/if}
 
 <UnauthorizedModal bind:open={showUnauthorizedModal} />
-<ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
 
-<DagTable {koso} users={projectUsers} />
+{#await projectUsersPromise}
+  {#await deflicker}
+    <!-- Deflicker load. -->
+  {:then}
+    <!-- TODO: Make this a Skeleton -->
+    <div class="flex flex-col items-center justify-center rounded border p-4">
+      <div class="text-xl">Loading...</div>
+    </div>
+  {/await}
+{:then pp}
+  {#await project then project}
+    <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
+  {/await}
+
+  <DagTable {koso} users={projectUsers} />
+{/await}

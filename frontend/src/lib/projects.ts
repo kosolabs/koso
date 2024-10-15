@@ -21,6 +21,7 @@ export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>
   a.name.localeCompare(b.name) || a.email.localeCompare(b.email);
 
 export async function fetchProjects(token: string | null): Promise<Project[]> {
+  if (!token) throw new Error("Authentication token is absent.");
   const response = await fetch("/api/projects", {
     method: "GET",
     headers: {
@@ -40,6 +41,7 @@ export async function fetchProject(
   token: string | null,
   projectId: string,
 ): Promise<Project> {
+  if (!token) throw new Error("Authentication token is absent.");
   const response = await fetch(`/api/projects/${projectId}`, {
     method: "GET",
     headers: {
