@@ -396,7 +396,7 @@
     </table>
   {:else}
     <div class="flex items-center justify-center pt-8">
-      <div class="flex w-9/12 max-w-[425px] rounded-md border bg-gray-100 p-4">
+      <div class="flex w-9/12 max-w-[425px] rounded-md border bg-muted p-4">
         <div class="min-w-16">
           <img class="size-16" alt="Koso Logo" src={kosoLogo} />
         </div>
