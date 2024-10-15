@@ -18,6 +18,8 @@ use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
 
+use super::model::ProjectExport;
+
 pub(super) fn projects_router() -> Router {
     Router::new()
         .route("/", get(list_projects_handler))
@@ -28,6 +30,7 @@ pub(super) fn projects_router() -> Router {
         .route("/:project_id/users", get(list_project_users_handler))
         .route("/:project_id/doc", get(get_project_doc_handler))
         .route("/:project_id/updates", get(get_project_doc_updates_handler))
+        .route("/:project_id/export", get(export_project))
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -250,4 +253,20 @@ async fn get_project_doc_updates_handler(
         .map(|u| u.to_string())
         .collect();
     Ok(Json(updates))
+}
+
+#[tracing::instrument(skip(user, pool, collab))]
+async fn export_project(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+    Extension(collab): Extension<Collab>,
+    Path(project_id): Path<String>,
+) -> ApiResult<Json<ProjectExport>> {
+    verify_access(pool, user, &project_id).await?;
+
+    let doc = collab.get_doc(&project_id).await?;
+    Ok(Json(ProjectExport {
+        project_id,
+        data: doc,
+    }))
 }

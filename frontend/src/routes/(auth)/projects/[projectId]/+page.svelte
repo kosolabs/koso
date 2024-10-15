@@ -9,14 +9,16 @@
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
   import {
+    exportProject,
     fetchProject,
     fetchProjectUsers,
     type Project,
     updateProject,
   } from "$lib/projects";
   import { KosoSocket } from "$lib/socket";
-  import { UserPlus } from "lucide-svelte";
+  import { FileDown, UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
+  import { toast } from "svelte-sonner";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
   import UnauthorizedModal from "./unauthorized-modal.svelte";
@@ -52,6 +54,31 @@
     if (project) {
       project.name = updatedProject.name;
     }
+  }
+
+  async function exportProjectToFile() {
+    if (!$user || !$token) throw new Error("User is unauthorized");
+
+    toast.info("Exporting project...");
+    const projectExport = await exportProject($token, projectId);
+
+    let projectName = (project?.name || "project")
+      .toLowerCase()
+      .trim()
+      .replaceAll(/[\s+]/g, "-")
+      .replaceAll(/[^-_a-z0-9]/g, "");
+    let now = new Date();
+    const fileName = `${projectName}-export-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}.json`;
+    saveJsonFile(JSON.stringify(projectExport, null, 2), fileName);
+  }
+
+  function saveJsonFile(json: string, name: string) {
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
   }
 
   let showSocketOfflineAlert: boolean = false;
@@ -105,6 +132,9 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="right-items">
+    <Button title="Export Project" onclick={exportProjectToFile}>
+      <FileDown />
+    </Button>
     <Button
       title="Share Project"
       onclick={() => {
