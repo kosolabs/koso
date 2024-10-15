@@ -56,7 +56,7 @@
     }
   }
 
-  async function exportProjectToClipboard() {
+  async function exportProjectToFile() {
     if (!$user || !$token) throw new Error("User is unauthorized");
 
     toast.info("Exporting project...");
@@ -132,7 +132,7 @@
     </div>
   </svelte:fragment>
   <svelte:fragment slot="right-items">
-    <Button title="Export Project" onclick={exportProjectToClipboard}>
+    <Button title="Export Project" onclick={exportProjectToFile}>
       <FileDown />
     </Button>
     <Button
