@@ -22,7 +22,10 @@ use std::{
 use tokio::{net::TcpListener, signal, sync::oneshot::Receiver, task::JoinHandle};
 use tower::builder::ServiceBuilder;
 use tower_http::{
-    compression::CompressionLayer,
+    compression::{
+        predicate::{NotForContentType, SizeAbove},
+        CompressionLayer, Predicate as _,
+    },
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
     trace::MakeSpan,
 };
@@ -88,7 +91,14 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             Extension(pool),
             Extension(collab.clone()),
             Extension(key_set),
-            CompressionLayer::new(),
+            CompressionLayer::new()
+                // Mimics compression::DefaultPredicate but with a larger size filter
+                // since we have many tiny responses that don't compress well.
+                .compress_when(
+                    SizeAbove::new(1024)
+                        .and(NotForContentType::GRPC)
+                        .and(NotForContentType::IMAGES),
+                ),
             middleware::from_fn(google::authenticate),
         ))
         .fallback_service(
