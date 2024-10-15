@@ -1321,7 +1321,7 @@ test.describe("dag table tests", () => {
         .dragTo(page.getByRole("button", { name: "Task 1 Child Dropzone" }));
       await page.keyboard.up("Alt");
 
-      await expect(await getKosoGraph(page)).toMatchObject({
+      expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2", "3"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
@@ -1359,30 +1359,70 @@ test.describe("dag table tests", () => {
   });
 
   test.describe("status icon", () => {
-    test("one out of four tasks in-progress shows 0%", async ({ page }) => {
+    const now = Date.now();
+
+    test("all tasks not started shows Not Started", async ({ page }) => {
       await init(page, [
         { id: "root", children: ["1"] },
         { id: "1", children: ["2", "3", "4", "5"] },
-        { id: "2", status: null },
-        { id: "3", status: null },
-        { id: "4", status: null },
-        { id: "5", status: "In Progress" },
+        { id: "2", status: null, statusTime: now },
+        { id: "3", status: null, statusTime: now },
+        { id: "4", status: null, statusTime: now },
+        { id: "5", status: null, statusTime: now },
       ]);
 
-      await expect(page.getByLabel("circular-progress")).toHaveText("0%");
+      await expect(
+        page.getByRole("row", { name: "Task 1" }).getByLabel("task-status"),
+      ).toHaveText("Not Started");
     });
 
-    test("two out of four tasks complete shows 50%", async ({ page }) => {
+    test("one out of four tasks in-progress shows 0% In Progress", async ({
+      page,
+    }) => {
       await init(page, [
         { id: "root", children: ["1"] },
         { id: "1", children: ["2", "3", "4", "5"] },
-        { id: "2", status: null },
-        { id: "3", status: null },
-        { id: "4", status: "Done" },
-        { id: "5", status: "Done" },
+        { id: "2", status: null, statusTime: now },
+        { id: "3", status: null, statusTime: now },
+        { id: "4", status: null, statusTime: now },
+        { id: "5", status: "In Progress", statusTime: now },
       ]);
 
-      await expect(page.getByLabel("circular-progress")).toHaveText("50%");
+      await expect(
+        page.getByRole("row", { name: "Task 1" }).getByLabel("task-status"),
+      ).toHaveText("0% In Progress");
+    });
+
+    test("two out of four tasks complete shows 50% In Progress", async ({
+      page,
+    }) => {
+      await init(page, [
+        { id: "root", children: ["1"] },
+        { id: "1", children: ["2", "3", "4", "5"] },
+        { id: "2", status: null, statusTime: now },
+        { id: "3", status: null, statusTime: now },
+        { id: "4", status: "Done", statusTime: now },
+        { id: "5", status: "Done", statusTime: now },
+      ]);
+
+      await expect(
+        page.getByRole("row", { name: "Task 1" }).getByLabel("task-status"),
+      ).toHaveText("50% In Progress");
+    });
+
+    test("four out of four tasks complete shows Done", async ({ page }) => {
+      await init(page, [
+        { id: "root", children: ["1"] },
+        { id: "1", children: ["2", "3", "4", "5"] },
+        { id: "2", status: "Done", statusTime: now },
+        { id: "3", status: "Done", statusTime: now },
+        { id: "4", status: "Done", statusTime: now },
+        { id: "5", status: "Done", statusTime: now },
+      ]);
+
+      await expect(
+        page.getByRole("row", { name: "Task 1" }).getByLabel("task-status"),
+      ).toHaveText("Done");
     });
   });
 });

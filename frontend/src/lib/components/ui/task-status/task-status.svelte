@@ -14,6 +14,7 @@
 <div
   class="flex items-center gap-2"
   title="{done} of {total} ({Math.round((done * 100) / total)}%)"
+  aria-label="task-status"
 >
   {#if done === total}
     <CircleCheck color="hsl(var(--primary))" />
