@@ -26,7 +26,7 @@ jobs:
     env:
       KOSO_IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
     steps:
-      - uses: appleboy/ssh-action@v1.0.3
+      - uses: appleboy/ssh-action@v1.1.0
         with:
           host: koso.app
           username: root
