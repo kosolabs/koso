@@ -14,10 +14,12 @@
   }
 
   let googleLogin: () => void;
-  let errorMessage: string | null = null;
+  let loggingIn: boolean = $state(false);
+  let errorMessage: string | null = $state(null);
 
   function login() {
     errorMessage = null;
+    loggingIn = true;
     googleLogin();
   }
 
@@ -62,9 +64,10 @@
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
       onScriptLoadSuccess: () => {
         googleLogin = googleProvider.useGoogleOneTapLogin({
-          cancel_on_tap_outside: true,
+          cancel_on_tap_outside: false,
           use_fedcm_for_prompt: true,
           onSuccess: async (oneTapResponse) => {
+            loggingIn = false;
             if (!oneTapResponse.credential) {
               console.error("Credential is missing", oneTapResponse);
               return;
@@ -82,6 +85,18 @@
               errorMessage = `Failed to login: ${loginResponse.statusText} (${loginResponse.status})`;
             }
           },
+          onError: () => {
+            loggingIn = false;
+            errorMessage = "Failed to login";
+          },
+          promptMomentNotification: (notification) => {
+            loggingIn = false;
+            console.log(notification);
+            if (notification.isSkippedMoment()) {
+              errorMessage =
+                "Login was skipped and a cool down has been triggered. Cool down can be cleared in the browser's Site Settings.";
+            }
+          },
         });
       },
     });
@@ -94,7 +109,7 @@
   >
     <img class="m-auto w-20" alt="Koso Logo" src={kosoLogo} />
     <h1 class="text-4xl text-primary">Koso</h1>
-    <Google on:click={login} />
+    <Google onclick={login} disabled={loggingIn} />
     {#if errorMessage}
       <Alert variant="destructive">{errorMessage}</Alert>
     {/if}
