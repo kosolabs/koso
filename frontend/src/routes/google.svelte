@@ -1,7 +1,21 @@
 <script lang="ts">
+  import { cn } from "$lib/utils";
+  import type { HTMLAttributes } from "svelte/elements";
+
+  type Props = HTMLAttributes<HTMLButtonElement> & {
+    disabled: boolean;
+  };
+  const { class: classes, disabled, ...props }: Props = $props();
 </script>
 
-<button class="gsi-material-button m-auto" on:click>
+<button
+  class={cn(
+    "gsi-material-button m-auto transition-all enabled:hover:brightness-110 enabled:active:scale-95",
+    classes,
+  )}
+  {disabled}
+  {...props}
+>
   <div class="gsi-material-button-state"></div>
   <div class="gsi-material-button-content-wrapper">
     <div class="gsi-material-button-icon">
