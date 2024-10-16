@@ -19,6 +19,7 @@
 
   function login() {
     errorMessage = null;
+    document.cookie = "g_state=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT";
     loggingIn = true;
     googleLogin();
   }
@@ -92,7 +93,10 @@
           promptMomentNotification: (notification) => {
             loggingIn = false;
             console.log(notification);
-            if (notification.isSkippedMoment()) {
+            if (
+              notification.isSkippedMoment() &&
+              notification.getSkippedReason() !== "user_cancel"
+            ) {
               errorMessage =
                 "Login was skipped and a cool down has been triggered. Cool down can be cleared in the browser's Site Settings.";
             }
