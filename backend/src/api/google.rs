@@ -206,11 +206,16 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
         }
     };
 
-    let user = if kid == KeySet::INTEG_TEST_KID {
+    let mut user = if kid == KeySet::INTEG_TEST_KID {
         decode_and_validate_test_token(bearer, &key)?
     } else {
         decode_and_validate_token(bearer, &key)?
     };
+    // Canonicalize emails to lower case.
+    // Why? In Oct. 2024 Google suddenly started serving emails
+    // with upper case characters, where previously they were lower.
+    user.email = user.email.to_lowercase();
+
     tracing::Span::current().record("email", user.email.clone());
     assert!(request.extensions_mut().insert(user).is_none());
 
