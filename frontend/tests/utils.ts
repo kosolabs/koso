@@ -85,7 +85,6 @@ export async function login(page: Page, email: string) {
 }
 
 export async function tearDown() {
-  console.log("Cleaing up test data");
   const apiContext = await request.newContext({});
   const token = jwt(`cleanup-test@test.koso.app`);
   const res = await apiContext.post("/api/dev/cleanup_test_data", {
