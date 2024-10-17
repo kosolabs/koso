@@ -1,20 +1,28 @@
 <script lang="ts">
   import { user } from "$lib/auth";
+  import { Alert } from "$lib/components/ui/alert";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
+  import { Settings2 } from "lucide-svelte";
   import { onMount } from "svelte";
 
   type Props = {
-    onstart: () => void;
     onsuccess: (token: string) => void;
-    onerror: (message: string) => void;
   };
-  const { onstart, onsuccess, onerror }: Props = $props();
+  const { onsuccess }: Props = $props();
+
+  type Error =
+    | "ThirdPartySigninDisabled"
+    | "ThirdPartyCookiesBlocked"
+    | "KosoBackendErrored"
+    | "Unknown"
+    | null;
 
   let googleLogin: () => void;
   let loggingIn: boolean = $state(false);
+  let error: Error = $state(null);
 
   function login() {
-    onstart();
+    error = null;
     document.cookie = "g_state=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT";
     loggingIn = true;
     googleLogin();
@@ -31,7 +39,7 @@
       onScriptLoadSuccess: () => {
         googleLogin = googleProvider.useGoogleOneTapLogin({
           cancel_on_tap_outside: false,
-          use_fedcm_for_prompt: false,
+          use_fedcm_for_prompt: true,
           onSuccess: async (oneTapResponse) => {
             loggingIn = false;
             if (!oneTapResponse.credential) {
@@ -47,32 +55,31 @@
             if (loginResponse.ok) {
               onsuccess(oneTapResponse.credential!);
             } else {
-              onerror(
+              error = "KosoBackendErrored";
+              console.error(
                 `Failed to login: ${loginResponse.statusText} (${loginResponse.status})`,
+                loginResponse,
               );
             }
           },
           onError: () => {
             loggingIn = false;
-            onerror("Failed to login");
+            error = "Unknown";
+            console.error("Google one tap login failed unexpectedly.");
           },
           promptMomentNotification: (notification) => {
             loggingIn = false;
-            console.debug(notification);
+            console.debug("Got promptMomentNotification", notification);
             if (
               notification.isSkippedMoment() &&
               notification.getSkippedReason() !== "user_cancel"
             ) {
-              onerror(
-                "Login was skipped and a cool down has been triggered. Cool down can be cleared in the browser's Site Settings.",
-              );
+              error = "ThirdPartySigninDisabled";
             } else if (
               notification.isDisplayMoment() &&
               notification.getNotDisplayedReason() === "opt_out_or_no_session"
             ) {
-              onerror(
-                `Login cannot proceed because third-party cookies are blocked. Please allow third-party cookies, or add an exception for ${location.host.split(":")[0]}.`,
-              );
+              error = "ThirdPartyCookiesBlocked";
             }
           },
         });
@@ -119,6 +126,31 @@
     <span style="display: none;">Sign in with Google</span>
   </div>
 </button>
+{#if error === "ThirdPartySigninDisabled"}
+  <Alert variant="destructive">
+    Third-party sign-in has been disabled. To login, click the
+    <span class="rounded-sm border border-destructive px-1">
+      <Settings2 class="inline" size={16} strokeWidth={3} />
+    </span>
+    button in the URL bar and then click
+    <span class="rounded-sm border border-destructive px-1 font-bold">
+      Reset permission
+    </span>
+    .
+  </Alert>
+{:else if error === "ThirdPartyCookiesBlocked"}
+  <Alert variant="destructive">
+    Login cannot proceed because third-party cookies are blocked. Please allow
+    third-party cookies, or add an exception for {location.host.split(":")[0]}.
+  </Alert>
+{:else if error === "KosoBackendErrored"}
+  <Alert variant="destructive">
+    The Koso backend returned an error. Please see browser's console log for
+    more information.
+  </Alert>
+{:else if error === "Unknown"}
+  <Alert variant="destructive">Login failed unexpectedly.</Alert>
+{/if}
 
 <style>
   .gsi-material-button {

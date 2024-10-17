@@ -2,7 +2,6 @@
   import { goto } from "$app/navigation";
   import kosoLogo from "$lib/assets/koso.svg";
   import { token, user } from "$lib/auth";
-  import { Alert } from "$lib/components/ui/alert";
   import { lastVisitedProjectId, popRedirectOnLogin } from "$lib/nav";
   import { fetchProjects } from "$lib/projects";
   import Google from "./google.svelte";
@@ -11,19 +10,9 @@
     redirectOnLogin();
   }
 
-  let errorMessage: string | null = $state(null);
-
-  function onstart() {
-    errorMessage = null;
-  }
-
   async function onsuccess(credential: string) {
     $token = credential;
     await redirectOnLogin();
-  }
-
-  function onerror(message: string) {
-    errorMessage = message;
   }
 
   async function redirectOnLogin() {
@@ -64,9 +53,6 @@
   >
     <img class="m-auto w-20" alt="Koso Logo" src={kosoLogo} />
     <h1 class="text-4xl text-primary">Koso</h1>
-    <Google {onstart} {onsuccess} {onerror} />
-    {#if errorMessage}
-      <Alert variant="destructive">{errorMessage}</Alert>
-    {/if}
+    <Google {onsuccess} />
   </div>
 {/if}
