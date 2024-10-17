@@ -15,6 +15,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
 import { storable } from "./stores";
+import { tick } from "svelte";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -900,9 +901,7 @@ export class Koso {
     // the dom and thus onMount will not have been called to register
     // row callbacks.
     // Delay interacting with the row registry to start editing.
-    setTimeout(() => {
-      this.rowRegistry.get(node).edit(true);
-    }, 0);
+    tick().then(() => this.rowRegistry.get(node).edit(true));
     return node;
   }
 
