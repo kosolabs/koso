@@ -76,6 +76,25 @@ test.describe("dag table tests", () => {
       await expect(graph["root"].children).toStrictEqual([tasks["1"]]);
     });
 
+    test("create a task by clicking the Add Task button and then edit", async ({
+      page,
+    }) => {
+      await page.getByRole("button", { name: "Add Task" }).last().click();
+
+      await expect(
+        page.getByRole("textbox", { name: "Task 1 Edit Name" }),
+      ).toBeVisible();
+      await page.keyboard.type("New task 1");
+      await page.keyboard.press("Enter");
+
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
+
+      const graph = await getKosoGraph(page);
+      const tasks = getTaskNumToTaskIdMap(graph);
+      await expect(graph["root"].children).toStrictEqual([tasks["1"]]);
+    });
+
     test("create a task by presing Shift+Enter on the task", async ({
       page,
     }) => {
@@ -83,7 +102,14 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Shift+Enter");
-      await page.keyboard.press("Escape");
+
+      await expect(
+        page.getByRole("textbox", { name: "Task 2 Edit Name" }),
+      ).toBeVisible();
+      await page.keyboard.type("New task 2");
+      await page.keyboard.press("Enter");
+
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
       await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
 
       const graph = await getKosoGraph(page);

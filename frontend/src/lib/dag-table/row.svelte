@@ -13,7 +13,7 @@
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
-  import { getContext } from "svelte";
+  import { getContext, onDestroy } from "svelte";
 
   type Props = {
     index: number;
@@ -27,11 +27,11 @@
     debug,
     dragged,
     dropEffect,
-    editing,
     expanded,
     highlighted,
     selected,
     parents,
+    rowRegistry,
   } = koso;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
@@ -40,6 +40,7 @@
 
   let dragOverPeer = $state(false);
   let dragOverChild = $state(false);
+  let isEditing = $state(false);
 
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
@@ -52,13 +53,17 @@
   let progress = $derived(koso.getProgress(task.id));
   let tags = $derived(getTags($parents));
 
-  let isEditing = $derived(isSelected && $editing);
-
   $effect(() => {
     if (rowElement && node.equals($selected)) {
       rowElement.focus();
     }
   });
+
+  rowRegistry.register(node, { edit });
+
+  function edit(editing: boolean) {
+    isEditing = editing;
+  }
 
   function getTags(allParents: Map<string, string[]>): ChipProps[] {
     const parents = allParents.get(node.name);
@@ -247,6 +252,10 @@
     event.preventDefault();
     $selected = node;
   }
+
+  onDestroy(() => {
+    rowRegistry.unregister(node);
+  });
 </script>
 
 <tr
@@ -332,7 +341,7 @@
         aria-label={`Task ${task.num} Edit Name`}
         editing={isEditing}
         onsave={(name) => koso.setTaskName(task.id, name)}
-        ondone={() => ($editing = false)}
+        ondone={() => edit(false)}
         onkeydown={(e) => {
           if (
             !Shortcut.INSERT_NODE.matches(e) &&

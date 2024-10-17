@@ -1,3 +1,1 @@
-import { default as DagTable } from "./table.svelte";
-
-export { DagTable };
+export { default as DagTable } from "./table.svelte";

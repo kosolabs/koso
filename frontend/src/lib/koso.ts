@@ -99,17 +99,44 @@ export type SyncState = {
   serverSync: boolean;
 };
 
+export type RowCallbacks = {
+  edit: (editing: boolean) => void;
+};
+
+export class RowRegistry {
+  registry = Map<Node, RowCallbacks>();
+
+  get(node: Node): RowCallbacks {
+    const maybeCallbacks = this.registry.get(node);
+    if (!maybeCallbacks) {
+      throw new Error(`Callbacks for ${node} doesn't exist`);
+    }
+    return maybeCallbacks;
+  }
+
+  register(node: Node, callbacks: RowCallbacks) {
+    this.registry = this.registry.set(node, callbacks);
+  }
+
+  unregister(node: Node) {
+    if (!this.registry.get(node)) {
+      throw new Error(`Callbacks for ${node} doesn't exist`);
+    }
+    this.registry = this.registry.delete(node);
+  }
+}
+
 export class Koso {
   yDoc: Y.Doc;
   undoManager: Y.UndoManager;
   yGraph: Y.Map<YTask>;
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
+  rowRegistry: RowRegistry;
 
   debug: Writable<boolean>;
   events: Readable<YEvent[]>;
   selected: Writable<Node | null>;
-  editing: Writable<boolean>;
   highlighted: Writable<string | null>;
   dropEffect: Writable<"copy" | "move" | "none">;
   dragged: Writable<Node | null>;
@@ -120,6 +147,8 @@ export class Koso {
   syncState: Writable<SyncState>;
 
   constructor(projectId: string, yDoc: Y.Doc) {
+    this.rowRegistry = new RowRegistry();
+
     this.yDoc = yDoc;
     this.yGraph = yDoc.getMap("graph");
     this.undoManager = new Y.UndoManager(this.yGraph);
@@ -166,7 +195,6 @@ export class Koso {
     this.parents = derived(this.events, () => Map(this.#toParents()));
 
     this.selected = writable<Node | null>(null);
-    this.editing = writable<boolean>(false);
     this.highlighted = writable<string | null>(null);
     this.dropEffect = writable<"copy" | "move" | "none">("none");
     this.dragged = writable<Node | null>(null);
@@ -866,9 +894,16 @@ export class Koso {
       });
       this.#insertChild(taskId, parent.name, offset);
     });
-    this.editing.set(true);
-    this.selected.set(parent.child(taskId));
-    return parent.child(taskId);
+    const node = parent.child(taskId);
+    this.selected.set(node);
+    // The newly inserted node's row won't yet have been inserted into
+    // the dom and thus onMount will not have been called to register
+    // row callbacks.
+    // Delay interacting with the row registry to start editing.
+    setTimeout(() => {
+      this.rowRegistry.get(node).edit(true);
+    }, 0);
+    return node;
   }
 
   setTaskName(taskId: string, newName: string) {
