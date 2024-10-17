@@ -132,7 +132,7 @@
     <span class="rounded-sm border border-destructive px-1">
       <Settings2 class="inline" size={16} strokeWidth={3} />
     </span>
-    button in the URL bar and then click
+    button in the URL bar and in the Permissions section click
     <span class="rounded-sm border border-destructive px-1 font-bold">
       Reset permission
     </span>
