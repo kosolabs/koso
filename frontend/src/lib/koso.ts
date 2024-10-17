@@ -104,11 +104,16 @@ export type RowCallbacks = {
   edit: (editing: boolean) => void;
 };
 
-export class RowRegistry {
-  registry = Map<Node, RowCallbacks>();
+export type RowRegistry = {
+  get: (node: Node) => RowCallbacks;
+  register: (node: Node, callbacks: RowCallbacks) => void;
+  unregister: (node: Node) => void;
+};
+export class RowRegistryImpl {
+  #registry = Map<Node, RowCallbacks>();
 
   get(node: Node): RowCallbacks {
-    const maybeCallbacks = this.registry.get(node);
+    const maybeCallbacks = this.#registry.get(node);
     if (!maybeCallbacks) {
       throw new Error(`Callbacks for ${node} doesn't exist`);
     }
@@ -116,14 +121,14 @@ export class RowRegistry {
   }
 
   register(node: Node, callbacks: RowCallbacks) {
-    this.registry = this.registry.set(node, callbacks);
+    this.#registry = this.#registry.set(node, callbacks);
   }
 
   unregister(node: Node) {
-    if (!this.registry.get(node)) {
+    if (!this.#registry.get(node)) {
       throw new Error(`Callbacks for ${node} doesn't exist`);
     }
-    this.registry = this.registry.delete(node);
+    this.#registry = this.#registry.delete(node);
   }
 }
 
@@ -148,7 +153,7 @@ export class Koso {
   syncState: Writable<SyncState>;
 
   constructor(projectId: string, yDoc: Y.Doc) {
-    this.rowRegistry = new RowRegistry();
+    this.rowRegistry = new RowRegistryImpl();
 
     this.yDoc = yDoc;
     this.yGraph = yDoc.getMap("graph");
