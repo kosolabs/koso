@@ -5,23 +5,25 @@
   import { Alert } from "$lib/components/ui/alert";
   import { lastVisitedProjectId, popRedirectOnLogin } from "$lib/nav";
   import { fetchProjects } from "$lib/projects";
-  import { GoogleOAuthProvider } from "google-oauth-gsi";
-  import { onMount } from "svelte";
   import Google from "./google.svelte";
 
   if ($user) {
     redirectOnLogin();
   }
 
-  let googleLogin: () => void;
-  let loggingIn: boolean = $state(false);
   let errorMessage: string | null = $state(null);
 
-  function login() {
+  function onstart() {
     errorMessage = null;
-    document.cookie = "g_state=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT";
-    loggingIn = true;
-    googleLogin();
+  }
+
+  async function onsuccess(credential: string) {
+    $token = credential;
+    await redirectOnLogin();
+  }
+
+  function onerror(message: string) {
+    errorMessage = message;
   }
 
   async function redirectOnLogin() {
@@ -54,57 +56,6 @@
     console.debug("Going to /projects");
     await goto(`/projects`);
   }
-
-  onMount(() => {
-    if ($user) {
-      return;
-    }
-
-    const googleProvider = new GoogleOAuthProvider({
-      clientId:
-        "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
-      onScriptLoadSuccess: () => {
-        googleLogin = googleProvider.useGoogleOneTapLogin({
-          cancel_on_tap_outside: false,
-          use_fedcm_for_prompt: true,
-          onSuccess: async (oneTapResponse) => {
-            loggingIn = false;
-            if (!oneTapResponse.credential) {
-              console.error("Credential is missing", oneTapResponse);
-              return;
-            }
-            const loginResponse = await fetch("/api/auth/login", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${oneTapResponse.credential}`,
-              },
-            });
-            if (loginResponse.ok) {
-              $token = oneTapResponse.credential!;
-              await redirectOnLogin();
-            } else {
-              errorMessage = `Failed to login: ${loginResponse.statusText} (${loginResponse.status})`;
-            }
-          },
-          onError: () => {
-            loggingIn = false;
-            errorMessage = "Failed to login";
-          },
-          promptMomentNotification: (notification) => {
-            loggingIn = false;
-            console.log(notification);
-            if (
-              notification.isSkippedMoment() &&
-              notification.getSkippedReason() !== "user_cancel"
-            ) {
-              errorMessage =
-                "Login was skipped and a cool down has been triggered. Cool down can be cleared in the browser's Site Settings.";
-            }
-          },
-        });
-      },
-    });
-  });
 </script>
 
 {#if !$user}
@@ -113,7 +64,7 @@
   >
     <img class="m-auto w-20" alt="Koso Logo" src={kosoLogo} />
     <h1 class="text-4xl text-primary">Koso</h1>
-    <Google onclick={login} disabled={loggingIn} />
+    <Google {onstart} {onsuccess} {onerror} />
     {#if errorMessage}
       <Alert variant="destructive">{errorMessage}</Alert>
     {/if}

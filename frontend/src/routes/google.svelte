@@ -1,20 +1,90 @@
 <script lang="ts">
-  import { cn } from "$lib/utils";
-  import type { HTMLAttributes } from "svelte/elements";
+  import { user } from "$lib/auth";
+  import { GoogleOAuthProvider } from "google-oauth-gsi";
+  import { onMount } from "svelte";
 
-  type Props = HTMLAttributes<HTMLButtonElement> & {
-    disabled: boolean;
+  type Props = {
+    onstart: () => void;
+    onsuccess: (token: string) => void;
+    onerror: (message: string) => void;
   };
-  const { class: classes, disabled, ...props }: Props = $props();
+  const { onstart, onsuccess, onerror }: Props = $props();
+
+  let googleLogin: () => void;
+  let loggingIn: boolean = $state(false);
+
+  function login() {
+    onstart();
+    document.cookie = "g_state=;path=/;expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    loggingIn = true;
+    googleLogin();
+  }
+
+  onMount(() => {
+    if ($user) {
+      return;
+    }
+
+    const googleProvider = new GoogleOAuthProvider({
+      clientId:
+        "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
+      onScriptLoadSuccess: () => {
+        googleLogin = googleProvider.useGoogleOneTapLogin({
+          cancel_on_tap_outside: false,
+          use_fedcm_for_prompt: false,
+          onSuccess: async (oneTapResponse) => {
+            loggingIn = false;
+            if (!oneTapResponse.credential) {
+              console.error("Credential is missing", oneTapResponse);
+              return;
+            }
+            const loginResponse = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${oneTapResponse.credential}`,
+              },
+            });
+            if (loginResponse.ok) {
+              onsuccess(oneTapResponse.credential!);
+            } else {
+              onerror(
+                `Failed to login: ${loginResponse.statusText} (${loginResponse.status})`,
+              );
+            }
+          },
+          onError: () => {
+            loggingIn = false;
+            onerror("Failed to login");
+          },
+          promptMomentNotification: (notification) => {
+            loggingIn = false;
+            console.debug(notification);
+            if (
+              notification.isSkippedMoment() &&
+              notification.getSkippedReason() !== "user_cancel"
+            ) {
+              onerror(
+                "Login was skipped and a cool down has been triggered. Cool down can be cleared in the browser's Site Settings.",
+              );
+            } else if (
+              notification.isDisplayMoment() &&
+              notification.getNotDisplayedReason() === "opt_out_or_no_session"
+            ) {
+              onerror(
+                `Login cannot proceed because third-party cookies are blocked. Please allow third-party cookies, or add an exception for ${location.host.split(":")[0]}.`,
+              );
+            }
+          },
+        });
+      },
+    });
+  });
 </script>
 
 <button
-  class={cn(
-    "gsi-material-button m-auto transition-all enabled:hover:brightness-110 enabled:active:scale-95",
-    classes,
-  )}
-  {disabled}
-  {...props}
+  class="gsi-material-button m-auto transition-all enabled:active:scale-95"
+  disabled={loggingIn}
+  onclick={() => login()}
 >
   <div class="gsi-material-button-state"></div>
   <div class="gsi-material-button-content-wrapper">
@@ -76,14 +146,6 @@
     padding: 0 12px;
     position: relative;
     text-align: center;
-    -webkit-transition:
-      background-color 0.218s,
-      border-color 0.218s,
-      box-shadow 0.218s;
-    transition:
-      background-color 0.218s,
-      border-color 0.218s,
-      box-shadow 0.218s;
     vertical-align: middle;
     white-space: nowrap;
     width: auto;
