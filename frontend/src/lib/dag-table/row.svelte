@@ -15,9 +15,12 @@
   import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
 
-  export let index: number;
-  export let node: Node;
-  export let users: User[];
+  type Props = {
+    index: number;
+    node: Node;
+    users: User[];
+  };
+  const { index, node, users }: Props = $props();
 
   const koso = getContext<Koso>("koso");
   const {
@@ -31,31 +34,31 @@
     parents,
   } = koso;
 
-  let rowElement: HTMLTableRowElement | undefined;
-  let idCellElement: HTMLTableCellElement | undefined;
-  let handleElement: HTMLButtonElement | undefined;
+  let rowElement: HTMLTableRowElement | undefined = $state();
+  let idCellElement: HTMLTableCellElement | undefined = $state();
+  let handleElement: HTMLButtonElement | undefined = $state();
 
-  let dragOverPeer = false;
-  let dragOverChild = false;
+  let dragOverPeer = $state(false);
+  let dragOverChild = $state(false);
 
-  $: task = koso.getTask(node.name);
-  $: reporter = getUser(users, task.reporter);
-  $: assignee = getUser(users, task.assignee);
-  $: open = $expanded.has(node);
-  $: isDragging = node.equals($dragged);
-  $: isMoving = isDragging && $dropEffect === "move";
-  $: isHovered = $highlighted === node.name;
-  $: isSelected = node.equals($selected);
-  $: progress = koso.getProgress(task.id);
-  $: tags = getTags($parents);
+  let task = $derived(koso.getTask(node.name));
+  let reporter = $derived(getUser(users, task.reporter));
+  let assignee = $derived(getUser(users, task.assignee));
+  let open = $derived($expanded.has(node));
+  let isDragging = $derived(node.equals($dragged));
+  let isMoving = $derived(isDragging && $dropEffect === "move");
+  let isHovered = $derived($highlighted === node.name);
+  let isSelected = $derived(node.equals($selected));
+  let progress = $derived(koso.getProgress(task.id));
+  let tags = $derived(getTags($parents));
 
-  $: isEditing = isSelected && $editing;
+  let isEditing = $derived(isSelected && $editing);
 
-  $: {
+  $effect(() => {
     if (rowElement && node.equals($selected)) {
       rowElement.focus();
     }
-  }
+  });
 
   function getTags(allParents: Map<string, string[]>): ChipProps[] {
     const parents = allParents.get(node.name);
@@ -256,11 +259,11 @@
     isSelected ? "outline-primary" : "",
   )}
   aria-label={`Task ${task.num}`}
-  on:mouseout={handleUnhighlight}
-  on:mouseover={handleHighlight}
-  on:blur={handleUnhighlight}
-  on:focus={handleHighlight}
-  on:click={handleRowClick}
+  onmouseout={handleUnhighlight}
+  onmouseover={handleHighlight}
+  onblur={handleUnhighlight}
+  onfocus={handleHighlight}
+  onclick={handleRowClick}
   bind:this={rowElement}
 >
   <td class={cn("border-t px-2")} bind:this={idCellElement}>
@@ -271,7 +274,7 @@
           class={cn("w-4 transition-transform", open ? "rotate-90" : "")}
           title={open ? "Collapse" : "Expand"}
           aria-label={`Task ${task.num} Toggle Expand`}
-          on:click={handleToggleOpen}
+          onclick={handleToggleOpen}
         >
           <ChevronRight class="w-4" />
         </button>
@@ -282,9 +285,9 @@
         class="flex items-center gap-1 py-1"
         draggable={true}
         aria-label={`Task ${task.num} Drag Handle`}
-        on:dragstart={handleDragStart}
-        on:dragend={handleDragEnd}
-        on:drag={handleDrag}
+        ondragstart={handleDragStart}
+        ondragend={handleDragEnd}
+        ondrag={handleDrag}
         bind:this={handleElement}
       >
         <Grip class="w-4" />
@@ -299,7 +302,7 @@
   {/if}
   <td
     class={cn("border-l border-t p-2")}
-    on:keydown={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.stopPropagation()}
   >
     {#if task.children.length === 0}
       <TaskStatusSelect
@@ -377,10 +380,10 @@
     )}
     style="width: {childOffset}px;"
     aria-label={`Task ${task.num} Peer Dropzone`}
-    on:dragover={handleDragOverPeer}
-    on:dragenter={handleDragEnterPeer}
-    on:dragleave={handleDragLeavePeer}
-    on:drop={handleDropNodePeer}
+    ondragover={handleDragOverPeer}
+    ondragenter={handleDragEnterPeer}
+    ondragleave={handleDragLeavePeer}
+    ondrop={handleDropNodePeer}
   ></button>
   <button
     class={cn(
@@ -390,10 +393,10 @@
     )}
     style="width: {cellWidth - childOffset}px; margin-left: {childOffset}px;"
     aria-label={`Task ${task.num} Child Dropzone`}
-    on:dragover={handleDragOverChild}
-    on:dragenter={handleDragEnterChild}
-    on:dragleave={handleDragLeaveChild}
-    on:drop={handleDropNodeChild}
+    ondragover={handleDragOverChild}
+    ondragenter={handleDragEnterChild}
+    ondragleave={handleDragLeaveChild}
+    ondrop={handleDropNodeChild}
   ></button>
 
   {#if dragOverPeer}
