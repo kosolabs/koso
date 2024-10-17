@@ -37,7 +37,7 @@
     users: User[];
   };
   const { koso, users }: Props = $props();
-  const { debug, editing, nodes, selected, showDone, syncState } = koso;
+  const { debug, nodes, selected, showDone, syncState, rowRegistry } = koso;
 
   let commandPaletteOpen: boolean = $state(false);
   function showCommandPalette() {
@@ -77,7 +77,7 @@
 
   function edit() {
     if (!$selected) return;
-    $editing = true;
+    rowRegistry.get($selected).edit(true);
   }
 
   function unselect() {
@@ -340,7 +340,7 @@
     },
   ];
 
-  const registry = new ShortcutRegistry(actions);
+  const shortcutRegistry = new ShortcutRegistry(actions);
 
   onMount(() => {
     const keyDownListener = (event: KeyboardEvent) => {
@@ -348,7 +348,7 @@
         console.log(Shortcut.fromEvent(event).toString());
       }
 
-      registry.handle(event);
+      shortcutRegistry.handle(event);
     };
 
     document.addEventListener("keydown", keyDownListener);
