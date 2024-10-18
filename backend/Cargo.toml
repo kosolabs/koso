@@ -34,8 +34,8 @@ sqlx = { version = "0.8.2", features = [
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 listenfd = "1.0.1"
-metrics = { version = "0.23.0", default-features = false }
-metrics-exporter-prometheus = { version = "0.15.3", default-features = false }
+metrics = { version = "0.24.0", default-features = false }
+metrics-exporter-prometheus = { version = "0.16.0", default-features = false }
 futures = "0.3.31"
 tokio-stream = "0.1.16"
 async-stream = "0.3.6"
