@@ -1,11 +1,11 @@
 import { List, Set } from "immutable";
 import * as encoding from "lib0/encoding";
+import MockDate from "mockdate";
 import { get } from "svelte/store";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import MockDate from "mockdate";
 import type { User } from "./auth";
-import { Koso, Node, type RowCallbacks } from "./koso";
+import { Koso, Node } from "./koso";
 
 const USER: User = {
   email: "t@koso.app",
@@ -29,25 +29,11 @@ const EMPTY_SYNC_RESPONSE = (() => {
   return encoding.toUint8Array(encoder);
 })();
 
-export class NoopRowRegistry {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  get(node: Node): RowCallbacks {
-    return { edit: () => {} };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  register(node: Node, callbacks: RowCallbacks) {}
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  unregister(node: Node) {}
-}
-
 describe("Koso tests", () => {
   const root = new Node();
   let koso: Koso;
   beforeEach(() => {
     koso = new Koso("project-id", new Y.Doc());
-    koso.rowRegistry = new NoopRowRegistry();
     koso.handleClientMessage(() => {});
     koso.handleServerMessage(EMPTY_SYNC_RESPONSE);
   });

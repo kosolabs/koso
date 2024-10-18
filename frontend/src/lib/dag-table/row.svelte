@@ -13,7 +13,7 @@
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
-  import { getContext, onDestroy } from "svelte";
+  import { getContext } from "svelte";
 
   type Props = {
     index: number;
@@ -31,7 +31,6 @@
     highlighted,
     selected,
     parents,
-    rowRegistry,
   } = koso;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
@@ -59,9 +58,7 @@
     }
   });
 
-  rowRegistry.register(node, { edit });
-
-  function edit(editing: boolean) {
+  export function edit(editing: boolean) {
     isEditing = editing;
   }
 
@@ -252,10 +249,6 @@
     event.preventDefault();
     $selected = node;
   }
-
-  onDestroy(() => {
-    rowRegistry.unregister(node);
-  });
 </script>
 
 <tr
