@@ -1219,16 +1219,22 @@ test.describe("dag table tests", () => {
       page.evaluate(() => {
         window.koso.undoManager.captureTimeout = 0;
       });
-
+      await page.waitForTimeout(7000);
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.waitForTimeout(5000);
       await page.keyboard.press("Delete");
+      await page.waitForTimeout(2000);
       await expect(page.getByRole("row", { name: "Task 1" })).toBeHidden();
+      await page.waitForTimeout(2000);
       await expect(page.getByRole("button", { name: "Delete" })).toBeHidden();
+      await page.waitForTimeout(2000);
       await expect(await getKosoGraph(page)).toMatchObject({
         root: { children: [] },
       });
 
+      await page.waitForTimeout(2000);
       await page.getByRole("button", { name: "Undo" }).click();
+      await page.waitForTimeout(2000);
       await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
       await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
