@@ -3,7 +3,7 @@
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
   import { CommandPalette } from "$lib/components/ui/command-palette";
-  import { type Koso } from "$lib/koso";
+  import { Node, type Koso } from "$lib/koso";
   import { Shortcut, ShortcutRegistry, type Action } from "$lib/shortcuts";
   import {
     ChevronsDownUp,
@@ -27,9 +27,9 @@
     Undo,
     UserRoundPlus,
   } from "lucide-svelte";
-  import { onMount, setContext } from "svelte";
+  import { onMount, setContext, tick } from "svelte";
   import { flip } from "svelte/animate";
-  import Row from "./row.svelte";
+  import Row, { type RowType } from "./row.svelte";
   import Toolbar from "./toolbar.svelte";
 
   type Props = {
@@ -37,19 +37,38 @@
     users: User[];
   };
   const { koso, users }: Props = $props();
-  const { debug, nodes, selected, showDone, syncState, rowRegistry } = koso;
+  const { debug, nodes, selected, showDone, syncState } = koso;
+
+  let rows: RowType[] = $state([]);
+
+  function getRow(node: Node) {
+    const maybeRow = rows[$nodes.indexOf(node)];
+    if (!maybeRow) {
+      throw new Error(`Row doesn't exist for ${node}`);
+    }
+    return maybeRow;
+  }
 
   let commandPaletteOpen: boolean = $state(false);
   function showCommandPalette() {
     commandPaletteOpen = true;
   }
 
+  function insertAndEdit(parent: Node, offset: number, user: User) {
+    const node = koso.insertNode(parent, offset, user);
+    // The newly inserted node's row won't yet have been inserted into
+    // the dom and thus onMount will not have been called to register
+    // row callbacks.
+    // Delay interacting with the row registry to start editing.
+    tick().then(() => getRow(node).edit(true));
+  }
+
   function insert() {
     if (!$user) throw new Error("Unauthenticated");
     if ($selected) {
-      koso.insertNode($selected.parent, koso.getOffset($selected) + 1, $user);
+      insertAndEdit($selected.parent, koso.getOffset($selected) + 1, $user);
     } else {
-      koso.insertNode(koso.root, 0, $user);
+      insertAndEdit(koso.root, 0, $user);
     }
   }
 
@@ -57,7 +76,7 @@
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
     koso.expand($selected);
-    koso.insertNode($selected, 0, $user);
+    insertAndEdit($selected, 0, $user);
   }
 
   function remove() {
@@ -77,7 +96,7 @@
 
   function edit() {
     if (!$selected) return;
-    rowRegistry.get($selected).edit(true);
+    getRow($selected).edit(true);
   }
 
   function unselect() {
@@ -390,7 +409,7 @@
 
       {#each [...$nodes].slice(1) as node, index (node.id)}
         <tbody animate:flip={{ duration: 250 }}>
-          <Row {index} {node} {users} />
+          <Row bind:this={rows[index + 1]} {index} {node} {users} />
         </tbody>
       {/each}
     </table>

@@ -1,3 +1,15 @@
+<script module lang="ts">
+  type Props = {
+    index: number;
+    node: Node;
+    users: User[];
+  };
+
+  export type RowType = SvelteComponent<Props> & {
+    edit: (editing: boolean) => void;
+  } & { $$bindings: "" };
+</script>
+
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import {
@@ -13,13 +25,8 @@
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
-  import { getContext, onDestroy } from "svelte";
+  import { getContext, SvelteComponent } from "svelte";
 
-  type Props = {
-    index: number;
-    node: Node;
-    users: User[];
-  };
   const { index, node, users }: Props = $props();
 
   const koso = getContext<Koso>("koso");
@@ -31,7 +38,6 @@
     highlighted,
     selected,
     parents,
-    rowRegistry,
   } = koso;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
@@ -59,9 +65,7 @@
     }
   });
 
-  rowRegistry.register(node, { edit });
-
-  function edit(editing: boolean) {
+  export function edit(editing: boolean) {
     isEditing = editing;
   }
 
@@ -252,10 +256,6 @@
     event.preventDefault();
     $selected = node;
   }
-
-  onDestroy(() => {
-    rowRegistry.unregister(node);
-  });
 </script>
 
 <tr

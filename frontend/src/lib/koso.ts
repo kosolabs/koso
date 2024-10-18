@@ -15,7 +15,6 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
 import { storable } from "./stores";
-import { tick } from "svelte";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -100,45 +99,12 @@ export type SyncState = {
   serverSync: boolean;
 };
 
-export type RowCallbacks = {
-  edit: (editing: boolean) => void;
-};
-
-export type RowRegistry = {
-  get: (node: Node) => RowCallbacks;
-  register: (node: Node, callbacks: RowCallbacks) => void;
-  unregister: (node: Node) => void;
-};
-export class RowRegistryImpl {
-  #registry = Map<Node, RowCallbacks>();
-
-  get(node: Node): RowCallbacks {
-    const maybeCallbacks = this.#registry.get(node);
-    if (!maybeCallbacks) {
-      throw new Error(`Callbacks for ${node} doesn't exist`);
-    }
-    return maybeCallbacks;
-  }
-
-  register(node: Node, callbacks: RowCallbacks) {
-    this.#registry = this.#registry.set(node, callbacks);
-  }
-
-  unregister(node: Node) {
-    if (!this.#registry.get(node)) {
-      throw new Error(`Callbacks for ${node} doesn't exist`);
-    }
-    this.#registry = this.#registry.delete(node);
-  }
-}
-
 export class Koso {
   yDoc: Y.Doc;
   undoManager: Y.UndoManager;
   yGraph: Y.Map<YTask>;
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
-  rowRegistry: RowRegistry;
 
   debug: Writable<boolean>;
   events: Readable<YEvent[]>;
@@ -153,8 +119,6 @@ export class Koso {
   syncState: Writable<SyncState>;
 
   constructor(projectId: string, yDoc: Y.Doc) {
-    this.rowRegistry = new RowRegistryImpl();
-
     this.yDoc = yDoc;
     this.yGraph = yDoc.getMap("graph");
     this.undoManager = new Y.UndoManager(this.yGraph);
@@ -902,11 +866,6 @@ export class Koso {
     });
     const node = parent.child(taskId);
     this.selected.set(node);
-    // The newly inserted node's row won't yet have been inserted into
-    // the dom and thus onMount will not have been called to register
-    // row callbacks.
-    // Delay interacting with the row registry to start editing.
-    tick().then(() => this.rowRegistry.get(node).edit(true));
     return node;
   }
 
