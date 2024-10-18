@@ -1,3 +1,15 @@
+<script module lang="ts">
+  type Props = {
+    index: number;
+    node: Node;
+    users: User[];
+  };
+
+  export type RowType = SvelteComponent<Props> & {
+    edit: (editing: boolean) => void;
+  } & { $$bindings: "" };
+</script>
+
 <script lang="ts">
   import { user, type User } from "$lib/auth";
   import {
@@ -13,13 +25,8 @@
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
-  import { getContext } from "svelte";
+  import { getContext, SvelteComponent } from "svelte";
 
-  type Props = {
-    index: number;
-    node: Node;
-    users: User[];
-  };
   const { index, node, users }: Props = $props();
 
   const koso = getContext<Koso>("koso");

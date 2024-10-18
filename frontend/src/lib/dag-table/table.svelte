@@ -29,7 +29,7 @@
   } from "lucide-svelte";
   import { onMount, setContext, tick } from "svelte";
   import { flip } from "svelte/animate";
-  import Row from "./row.svelte";
+  import Row, { type RowType } from "./row.svelte";
   import Toolbar from "./toolbar.svelte";
 
   type Props = {
@@ -39,7 +39,7 @@
   const { koso, users }: Props = $props();
   const { debug, nodes, selected, showDone, syncState } = koso;
 
-  let rows: (typeof Row)[] = $state([]);
+  let rows: RowType[] = $state([]);
 
   function getRow(node: Node) {
     const maybeRow = rows[$nodes.indexOf(node)];
