@@ -39,10 +39,10 @@
   const { koso, users }: Props = $props();
   const { debug, nodes, selected, showDone, syncState } = koso;
 
-  let rows: RowType[] = $state([]);
+  const rows: { [key: string]: RowType } = {};
 
   function getRow(node: Node) {
-    const maybeRow = rows[$nodes.indexOf(node)];
+    const maybeRow = rows[node.id];
     if (!maybeRow) {
       throw new Error(`Row doesn't exist for ${node}`);
     }
@@ -364,6 +364,7 @@
   onMount(() => {
     const keyDownListener = (event: KeyboardEvent) => {
       if ($debug) {
+        if (["Alt", "Control", "Meta", "Shift"].includes(event.key)) return;
         console.log(Shortcut.fromEvent(event).toString());
       }
 
@@ -409,7 +410,9 @@
 
       {#each [...$nodes].slice(1) as node, index (node.id)}
         <tbody animate:flip={{ duration: 250 }}>
-          <Row bind:this={rows[index + 1]} {index} {node} {users} />
+          <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
+          <!-- svelte-ignore binding_property_non_reactive -->
+          <Row bind:this={rows[node.id]} {index} {node} {users} />
         </tbody>
       {/each}
     </table>
