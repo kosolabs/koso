@@ -410,6 +410,7 @@
 
       {#each [...$nodes].slice(1) as node, index (node.id)}
         <tbody animate:flip={{ duration: 250 }}>
+          <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
           <!-- svelte-ignore binding_property_non_reactive -->
           <Row bind:this={rows[node.id]} {index} {node} {users} />
         </tbody>
