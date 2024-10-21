@@ -1,4 +1,4 @@
-FROM rust:1.82.0@sha256:81584ce20ac0fc77ac45384c28f356cb76489e8c71998962fed0008dbe496987 AS backend
+FROM rust:1.82.0@sha256:33a0ea4769482be860174e1139c457bdcb2a236a988580a28c3a48824cbc17d6 AS backend
 WORKDIR /app
 
 # Setup dependencies and run a dummy build ahead
@@ -14,7 +14,7 @@ COPY backend/src ./src
 RUN cargo build --release
 
 # Build the sqlx binary, used to apply database migrations.
-FROM rust:1.82.0@sha256:81584ce20ac0fc77ac45384c28f356cb76489e8c71998962fed0008dbe496987 AS sqlx
+FROM rust:1.82.0@sha256:33a0ea4769482be860174e1139c457bdcb2a236a988580a28c3a48824cbc17d6 AS sqlx
 WORKDIR /app
 RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres --root ./
 
