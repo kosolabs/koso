@@ -4,9 +4,14 @@
 /// <reference lib="webworker" />
 
 import { build, files, prerendered, version } from "$service-worker";
+import "workbox-core";
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
 import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
+
+const sw = self as unknown as ServiceWorkerGlobalScope;
+
+sw.__WB_DISABLE_DEV_LOGS = true;
 
 const precache_list = [...build, ...files, ...prerendered].map((s) => ({
   url: s,
