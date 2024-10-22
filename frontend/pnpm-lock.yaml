@@ -149,6 +149,9 @@ importers:
       workbox-strategies:
         specifier: ^7.1.0
         version: 7.1.0
+      workbox-window:
+        specifier: ^7.1.0
+        version: 7.1.0
       y-indexeddb:
         specifier: ^9.0.12
         version: 9.0.12(yjs@13.6.20)
@@ -543,6 +546,9 @@ packages:
 
   '@types/node@22.7.7':
     resolution: {integrity: sha512-SRxCrrg9CL/y54aiMCG3edPKdprgMVGDXjA3gB8UmmBW5TcXzRUYAh8EWzTnSJFAd1rgImPELza+A3bJ+qxz8Q==}
+
+  '@types/trusted-types@2.0.7':
+    resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
   '@types/uuid@10.0.0':
     resolution: {integrity: sha512-7gqG38EyHgyP1S+7+xomFtL+ZNHcKv6DwNaCZmJmo1vgMugyF3TCnXVg4t1uk89mLNwnLtnY3TpOpCOyp1/xHQ==}
@@ -1922,6 +1928,9 @@ packages:
   workbox-strategies@7.1.0:
     resolution: {integrity: sha512-/UracPiGhUNehGjRm/tLUQ+9PtWmCbRufWtV0tNrALuf+HZ4F7cmObSEK+E4/Bx1p8Syx2tM+pkIrvtyetdlew==}
 
+  workbox-window@7.1.0:
+    resolution: {integrity: sha512-ZHeROyqR+AS5UPzholQRDttLFqGMwP0Np8MKWAdyxsDETxq3qOAyXvqessc3GniohG6e0mAqSQyKOHmT8zPF7g==}
+
   wrap-ansi@7.0.0:
     resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
     engines: {node: '>=10'}
@@ -2285,6 +2294,8 @@ snapshots:
   '@types/node@22.7.7':
     dependencies:
       undici-types: 6.19.8
+
+  '@types/trusted-types@2.0.7': {}
 
   '@types/uuid@10.0.0': {}
 
@@ -3610,6 +3621,11 @@ snapshots:
 
   workbox-strategies@7.1.0:
     dependencies:
+      workbox-core: 7.1.0
+
+  workbox-window@7.1.0:
+    dependencies:
+      '@types/trusted-types': 2.0.7
       workbox-core: 7.1.0
 
   wrap-ansi@7.0.0:

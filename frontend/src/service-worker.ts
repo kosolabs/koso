@@ -16,14 +16,18 @@ import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 const sw = self as unknown as ServiceWorkerGlobalScope;
 sw.__WB_DISABLE_DEV_LOGS = true;
 
+sw.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    sw.skipWaiting();
+  }
+});
+
 const precache_list = ["/index.html", ...build, ...files, ...prerendered].map(
   (s) => ({
     url: s,
     revision: version,
   }),
 );
-
-console.debug("Precached:", precache_list);
 
 precacheAndRoute(precache_list);
 
@@ -36,11 +40,7 @@ registerRoute(
 );
 
 // Serve the app from the precache
-registerRoute(
-  new NavigationRoute(createHandlerBoundToURL("/index.html"), {
-    denylist: [new RegExp("/api/.*")],
-  }),
-);
+registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
 
 // Serve requests to /api from the network first, and from the cache if offline.
 registerRoute(({ url }) => url.pathname.startsWith("/api"), new NetworkFirst());
