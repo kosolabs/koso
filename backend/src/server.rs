@@ -91,7 +91,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         ))
         .fallback_service(
             ServiceBuilder::new()
-                .layer(middleware::from_fn(set_immutable_cache_control))
+                .layer(middleware::from_fn(set_static_cache_control))
                 .service(
                     ServeDir::new("static")
                         .precompressed_gzip()
@@ -224,13 +224,20 @@ impl<B> MakeSpan<B> for KosoMakeSpan {
 
 // Built frontend files in /_app/immutable/ are immutable and never change.
 // Allow them to be cached as such.
-async fn set_immutable_cache_control(request: Request, next: Next) -> Response {
-    let is_immutable = request.uri().path().starts_with("/_app/immutable/");
+async fn set_static_cache_control(request: Request, next: Next) -> Response {
+    let header = if request.uri().path().starts_with("/_app/immutable/") {
+        "public, immutable, max-age=31536000"
+    } else if request.uri().path() == "/robots.txt" || request.uri().path() == "/favicon.svg" {
+        "public, max-age=345600, stale-while-revalidate=345600"
+    } else {
+        "public, max-age=3600, stale-while-revalidate=3600"
+    };
+
     let mut response = next.run(request).await;
-    if is_immutable && response.status().is_success() {
+    if response.status().is_success() {
         response.headers_mut().insert(
             reqwest::header::CACHE_CONTROL,
-            HeaderValue::from_static("public, immutable, max-age=31536000"),
+            HeaderValue::from_static(header),
         );
     }
     response
