@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { dev } from "$app/environment";
   import { updated } from "$app/stores";
   import { Toaster } from "$lib/components/ui/sonner";
   import { ModeWatcher } from "mode-watcher";
@@ -8,7 +9,9 @@
 
   const { children } = $props();
 
-  const wb = new Workbox("/service-worker.js");
+  const wb = new Workbox("/service-worker.js", {
+    type: dev ? "module" : "classic",
+  });
   wb.addEventListener("waiting", () => {
     wb.messageSkipWaiting();
   });

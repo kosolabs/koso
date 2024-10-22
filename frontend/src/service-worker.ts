@@ -22,12 +22,10 @@ sw.addEventListener("message", (event) => {
   }
 });
 
-const precache_list = ["/index.html", ...build, ...files, ...prerendered].map(
-  (s) => ({
-    url: s,
-    revision: version,
-  }),
-);
+const precache_list = ["/", ...build, ...files, ...prerendered].map((s) => ({
+  url: s,
+  revision: version,
+}));
 
 precacheAndRoute(precache_list);
 
@@ -40,7 +38,7 @@ registerRoute(
 );
 
 // Serve the app from the precache
-registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
+registerRoute(new NavigationRoute(createHandlerBoundToURL("/")));
 
 // Serve requests to /api from the network first, and from the cache if offline.
 registerRoute(({ url }) => url.pathname.startsWith("/api"), new NetworkFirst());
