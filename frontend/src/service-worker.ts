@@ -5,18 +5,23 @@
 
 import { build, files, prerendered, version } from "$service-worker";
 import "workbox-core";
-import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
-import { registerRoute } from "workbox-routing";
+import {
+  cleanupOutdatedCaches,
+  createHandlerBoundToURL,
+  precacheAndRoute,
+} from "workbox-precaching";
+import { NavigationRoute, registerRoute } from "workbox-routing";
 import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
-
 sw.__WB_DISABLE_DEV_LOGS = true;
 
-const precache_list = [...build, ...files, ...prerendered].map((s) => ({
-  url: s,
-  revision: version,
-}));
+const precache_list = ["/index.html", ...build, ...files, ...prerendered].map(
+  (s) => ({
+    url: s,
+    revision: version,
+  }),
+);
 
 console.debug("Precached:", precache_list);
 
@@ -30,11 +35,8 @@ registerRoute(
   new StaleWhileRevalidate(),
 );
 
-// Anything that is not /api can serve from the cache first
-registerRoute(
-  ({ url }) => !url.pathname.startsWith("/api"),
-  new StaleWhileRevalidate(),
-);
+// Serve the app from the precache
+registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
 
 // Serve requests to /api from the network first, and from the cache if offline.
 registerRoute(({ url }) => url.pathname.startsWith("/api"), new NetworkFirst());
