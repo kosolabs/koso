@@ -36,7 +36,11 @@ registerRoute(
 );
 
 // Serve the app from the precache
-registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html")));
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL("/index.html"), {
+    denylist: [new RegExp("/api/.*")],
+  }),
+);
 
 // Serve requests to /api from the network first, and from the cache if offline.
 registerRoute(({ url }) => url.pathname.startsWith("/api"), new NetworkFirst());
