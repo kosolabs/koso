@@ -33,16 +33,6 @@ ssh -T git@github.com && echo "Github auth works"
 git clone git@github.com:shadanan/dotfiles.git .dotfiles
 .dotfiles/install
 
-# Clone the Koso repo
-git clone https://github.com/kosolabs/koso.git
-
-# MANUAL - Configure Telegram auth
-cat >>/root/.localenv <<EOL
-export TELEGRAM_TOKEN=TODO
-export TELEGRAM_CHAT_ID=TODO
-EOL
-telegram SetupTest && echo "Telegram auth works" 
-
 # Install Docker
 sudo su &&\
 apt update &&\
