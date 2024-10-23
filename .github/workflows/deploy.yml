@@ -35,7 +35,9 @@ jobs:
           envs: GITHUB_SHA,KOSO_IMAGE_DIGEST
           script_stop: true
           script: |
+            #!/usr/bin/env zsh
             set -e
+
             echo "Deploying commit ${GITHUB_SHA}, image digest ${KOSO_IMAGE_DIGEST}"
 
             if [ -z "${KOSO_IMAGE_DIGEST}" ]; then
