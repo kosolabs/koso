@@ -36,6 +36,9 @@ docker run \
     "./sqlx" migrate run
 echo "Finished database migrations."
 
+# Copy over the latest systemctl unit file.
+cp -p backend/koso.service /etc/systemd/system/koso.service
+
 # Set the image label in the systemctl override file.
 cat >/etc/systemd/system/koso.service.d/override.conf <<EOL
 [Service]
