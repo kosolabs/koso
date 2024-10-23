@@ -16,7 +16,10 @@
 
 <ButtonPrimitive.Root
   {builders}
-  class={cn(buttonVariants({ variant, size, className }))}
+  class={cn(
+    buttonVariants({ variant, size, className }),
+    "transition-all active:scale-95",
+  )}
   type="button"
   {...$$restProps}
   on:click
