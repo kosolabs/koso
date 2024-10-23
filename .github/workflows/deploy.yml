@@ -49,12 +49,12 @@ jobs:
       - name: Craft the success message
         id: success-message
         run: |
-          echo "MSG=$(git log --format='✅ Deployed %h by %an - %s' -n 1 HEAD | sed -E 's/([][_*()~`>#+-=|{}.!])/\\\1/g')" >> $GITHUB_OUTPUT
+          echo "MSG=$(git log --format='✅ Deployed %h by %an - %s' -n 1 HEAD" >> $GITHUB_OUTPUT
       - name: Craft the failure message
         if: failure()
         id: failure-message
         run: |
-          echo "MSG=$(git log --format='❌ Failed to deploy %h by %an - %s' -n 1 HEAD | sed -E 's/([][_*()~`>#+-=|{}.!])/\\\1/g')" >> $GITHUB_OUTPUT
+          echo "MSG=$(git log --format='❌ Failed to deploy %h by %an - %s%n$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID' -n 1 HEAD" >> $GITHUB_OUTPUT
       - name: Notify telegram
         uses: appleboy/telegram-action@master
         if: always()
