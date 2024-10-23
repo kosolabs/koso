@@ -54,7 +54,13 @@ jobs:
         if: failure()
         id: failure-message
         run: |
-          echo "MSG=$(git log --format='❌ Failed to deploy %h by %an - %s%n' -n 1 HEAD)$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_OUTPUT
+          {
+            echo 'MSG<<EOFEOFMSGOUTPUT'
+            git log --format='❌ Failed to deploy %h by %an - %s' -n 1 HEAD
+            echo ""
+            echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo EOFEOFMSGOUTPUT
+          } >> "$GITHUB_OUTPUT"
       - name: Notify telegram
         uses: appleboy/telegram-action@master
         if: always()
@@ -63,4 +69,3 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: | 
             ${{ steps.failure-message.outputs.MSG || steps.success-message.outputs.MSG }}
-
