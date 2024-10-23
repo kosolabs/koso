@@ -49,9 +49,9 @@ EOL
 # Load the updated koso.service file and restart on the new version.
 echo "Restarting service..."
 systemctl daemon-reload
-systemctl enable koso.service
 systemctl restart koso.service
 systemctl is-active koso.service && echo Koso service is running
+systemctl enable koso.service
 echo "Restarted service."
 
 telegram "$(git log --format='Deployed %h by %an - %s' -n 1 HEAD | telegram_escape)" "✅"
