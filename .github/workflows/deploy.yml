@@ -36,10 +36,34 @@ jobs:
             set -e
             echo "Deploying commit ${GITHUB_SHA}, image digest ${KOSO_IMAGE_DIGEST}"
             cd /root/koso
+
             git status
             git reset --hard
             git clean -f -d
             git fetch
             git checkout $GITHUB_SHA
             git status
+
             ./deploy.sh
+      - name: Craft the success message
+        id: success-message
+        run: |
+          echo "::set-output name=MSG::$(
+            git log --format='✅ Deployed %h by %an - %s' -n 1 HEAD | sed -E 's/([][_*()~`>#+-=|{}.!])/\\\1/g'
+          )"
+      - name: Craft the failure message
+        if: failure()
+        id: failure-message
+        run: |
+          echo "::set-output name=MSG::$(
+            git log --format='❌ Failed to deploy %h by %an - %s' -n 1 HEAD | sed -E 's/([][_*()~`>#+-=|{}.!])/\\\1/g'
+          )"
+      - name: Notify telegram
+        uses: appleboy/telegram-action@master
+        if: always()
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: | 
+            ${{ steps.failure-message.outputs.MSG || steps.success-message.outputs.MSG }}
+

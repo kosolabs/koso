@@ -2,14 +2,6 @@
 
 set -e
 
-function _on_fail {
-    telegram "Failed to deploy $(git rev-parse --short HEAD) \\- $(git log --format=%s -n 1 HEAD | telegram_escape)" "❌"
-}
-trap _on_fail ZERR
-
-source /root/.environment
-source /root/.telegram.zsh
-
 if [ -z "${KOSO_IMAGE_DIGEST}" ]; then
     echo "KOSO_IMAGE_DIGEST variable must be set."
     exit 1
@@ -54,4 +46,4 @@ systemctl is-active koso.service && echo Koso service is running
 systemctl enable koso.service
 echo "Restarted service."
 
-telegram "$(git log --format='Deployed %h by %an - %s' -n 1 HEAD | telegram_escape)" "✅"
+echo "Deployment complete"
