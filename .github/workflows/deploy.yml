@@ -62,7 +62,7 @@ jobs:
         uses: appleboy/telegram-action@master
         if: always()
         with:
-          to: ${{ secrets.TELEGRAM_TO }}
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: | 
             ${{ steps.failure-message.outputs.MSG || steps.success-message.outputs.MSG }}
