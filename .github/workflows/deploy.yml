@@ -45,19 +45,16 @@ jobs:
             git status
 
             ./deploy.sh
+      - uses: actions/checkout@v4
       - name: Craft the success message
         id: success-message
         run: |
-          echo "::set-output name=MSG::$(
-            git log --format='✅ Deployed %h by %an - %s' -n 1 HEAD | sed -E 's/([][_*()~`>#+-=|{}.!])/\\\1/g'
-          )"
+          echo "MSG=$(git log --format='✅ Deployed %h by %an - %s' -n 1 HEAD | sed -E 's/([][_*()~`>#+-=|{}.!])/\\\1/g')" >> $GITHUB_OUTPUT
       - name: Craft the failure message
         if: failure()
         id: failure-message
         run: |
-          echo "::set-output name=MSG::$(
-            git log --format='❌ Failed to deploy %h by %an - %s' -n 1 HEAD | sed -E 's/([][_*()~`>#+-=|{}.!])/\\\1/g'
-          )"
+          echo "MSG=$(git log --format='❌ Failed to deploy %h by %an - %s' -n 1 HEAD | sed -E 's/([][_*()~`>#+-=|{}.!])/\\\1/g')" >> $GITHUB_OUTPUT
       - name: Notify telegram
         uses: appleboy/telegram-action@master
         if: always()
