@@ -37,9 +37,10 @@ docker run \
 echo "Finished database migrations."
 
 # Copy over the latest systemctl unit file.
-cp -p backend/koso.service /etc/systemd/system/koso.service
+cp backend/koso.service /etc/systemd/system/koso.service
 
 # Set the image label in the systemctl override file.
+mkdir -p /etc/systemd/system/koso.service.d/
 cat >/etc/systemd/system/koso.service.d/override.conf <<EOL
 [Service]
 Environment="KOSO_IMAGE_DIGEST=$KOSO_IMAGE_DIGEST"
@@ -48,7 +49,9 @@ EOL
 # Load the updated koso.service file and restart on the new version.
 echo "Restarting service..."
 systemctl daemon-reload
+systemctl enable koso.service
 systemctl restart koso.service
+systemctl is-active koso.service && echo Koso service is running
 echo "Restarted service."
 
 telegram "$(git log --format='Deployed %h by %an - %s' -n 1 HEAD | telegram_escape)" "✅"
