@@ -1,12 +1,12 @@
 {
   "id": "koso",
   "name": "Koso",
-  "short_name": "koso",
+  "short_name": "Koso",
   "description": "Koso Web App",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#ffffff",
-  "background_color": "#000000",
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
   "icons": [
     {
       "src": "pwa-64x64.png",
