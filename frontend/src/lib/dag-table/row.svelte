@@ -261,7 +261,7 @@
   tabindex="0"
   class={cn(
     "rounded bg-opacity-50 outline outline-2 outline-transparent",
-    index % 2 === 0 ? "bg-row-even" : "bg-row-odd",
+    index % 2 === 0 ? "bg-muted" : "",
     isMoving ? "opacity-50" : "",
     isHovered ? "bg-accent" : "",
     isSelected ? "outline-primary" : "",

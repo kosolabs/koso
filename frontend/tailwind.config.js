@@ -48,10 +48,6 @@ export default {
           DEFAULT: "hsl(var(--card) / <alpha-value>)",
           foreground: "hsl(var(--card-foreground) / <alpha-value>)",
         },
-        row: {
-          even: "hsl(var(--row-even) / <alpha-value>)",
-          odd: "hsl(var(--row-odd) / <alpha-value>)",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",

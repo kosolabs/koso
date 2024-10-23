@@ -67,9 +67,7 @@
           <Button onclick={() => createProject()}>New project</Button>
         </div>
       </div>
-      <div
-        class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-row-even [&>*:nth-child(odd)]:bg-row-odd"
-      >
+      <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-muted">
         {#each projects as project}
           <div class="border-t p-2">
             <Button
