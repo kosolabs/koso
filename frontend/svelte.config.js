@@ -10,10 +10,13 @@ const config = {
       fallback: "index.html",
       precompress: true,
     }),
+    serviceWorker: {
+      register: false,
+    },
     version: {
       // Configure how often in milliseconds version.json is polled to refresh the
       // $updated store used to reload pages following deployments.
-      pollInterval: 60 * 1000,
+      pollInterval: 5 * 1000,
     },
   },
 };

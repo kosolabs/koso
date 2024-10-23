@@ -9,20 +9,23 @@
 
   const { children } = $props();
 
-  const wb = new Workbox("/service-worker.js", {
-    type: dev ? "module" : "classic",
-  });
-  wb.addEventListener("waiting", () => {
-    wb.messageSkipWaiting();
-  });
-  wb.addEventListener("controlling", (event) => {
-    console.debug("Reloading to activate new updates.", event);
-    window.location.reload();
-  });
-  wb.register();
+  function register(): Workbox | null {
+    if (dev) return null;
+    const wb = new Workbox("/service-worker.js");
+    wb.addEventListener("waiting", () => {
+      wb.messageSkipWaiting();
+    });
+    wb.addEventListener("controlling", (event) => {
+      console.debug("Reloading to activate new updates.", event);
+      window.location.reload();
+    });
+    wb.register();
+    return wb;
+  }
+  const wb = register();
 
   $effect(() => {
-    if ($updated) {
+    if (wb && $updated) {
       toast.info("New updates are available. Installing in the background...");
       wb.update();
     }
