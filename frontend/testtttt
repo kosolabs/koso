@@ -1,5 +1,0 @@
-cat >>fooo <<EOL
-Host github.com
-  AddKeysToAgent yes
-  IdentityFile  ~/.ssh/koso_github_read_id_ed25519
-EOL
