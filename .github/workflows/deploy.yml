@@ -26,6 +26,7 @@ jobs:
     env:
       KOSO_IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
     steps:
+      - uses: actions/checkout@v4
       - uses: appleboy/ssh-action@v1.1.0
         with:
           host: koso.app
@@ -45,7 +46,6 @@ jobs:
             git status
 
             ./deploy.sh
-      - uses: actions/checkout@v4
       - name: Craft the success message
         id: success-message
         run: |
