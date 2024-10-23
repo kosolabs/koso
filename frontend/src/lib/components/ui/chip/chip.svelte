@@ -5,7 +5,7 @@
 </script>
 
 <div
-  class="text-nowrap rounded border bg-primary-foreground px-1 text-xs max-sm:hidden"
+  class="text-nowrap rounded border bg-secondary px-1 text-xs text-secondary-foreground max-sm:hidden"
   title={description}
 >
   {title}

@@ -261,7 +261,7 @@
   tabindex="0"
   class={cn(
     "rounded bg-opacity-50 outline outline-2 outline-transparent",
-    index % 2 === 0 ? "bg-row-even" : "bg-row-odd",
+    index % 2 === 0 ? "bg-muted" : "",
     isMoving ? "opacity-50" : "",
     isHovered ? "bg-accent" : "",
     isSelected ? "outline-primary" : "",
@@ -304,7 +304,7 @@
     </div>
   </td>
   {#if $debug}
-    <td class={cn("border-l border-t p-2 text-xs")}>
+    <td class={cn("border-l border-t p-2 text-xs lg:text-nowrap")}>
       {task.id}
     </td>
   {/if}
@@ -384,7 +384,7 @@
     class={cn(
       "absolute z-50 h-1 cursor-default transition-all",
       $dragged ? "-my-3 h-8 " : "",
-      $debug ? "bg-pink-400 bg-opacity-20" : "",
+      $debug ? "bg-fuchsia-500 bg-opacity-20" : "",
     )}
     style="width: {childOffset}px;"
     aria-label={`Task ${task.num} Peer Dropzone`}
@@ -397,7 +397,7 @@
     class={cn(
       "absolute z-50 h-1 cursor-default transition-all",
       $dragged ? "-my-3 h-8" : "",
-      $debug ? "bg-cyan-400 bg-opacity-20" : "",
+      $debug ? "bg-teal-500 bg-opacity-20" : "",
     )}
     style="width: {cellWidth - childOffset}px; margin-left: {childOffset}px;"
     aria-label={`Task ${task.num} Child Dropzone`}
@@ -409,14 +409,14 @@
 
   {#if dragOverPeer}
     <button
-      class="absolute -my-[0.125rem] h-1 bg-teal-500"
+      class="absolute -my-[0.1rem] h-1 rounded bg-teal-500"
       style="width: {rowWidth - peerOffset}px; margin-left: {peerOffset}px;"
       aria-label={`Task ${task.num} Peer Drop Indicator`}
     ></button>
   {/if}
   {#if dragOverChild}
     <button
-      class="absolute -my-[0.125rem] h-1 bg-teal-500"
+      class="absolute -my-[0.1rem] h-1 rounded bg-fuchsia-500"
       style="width: {rowWidth - childOffset}px; margin-left: {childOffset}px;"
       aria-label={`Task ${task.num} Child Drop Indicator`}
     ></button>

@@ -150,7 +150,7 @@
 
       <div class="h3 mt-2">People with access</div>
       <div
-        class="flex h-64 w-full flex-col items-stretch overflow-y-auto [&>*:nth-child(even)]:bg-row-even"
+        class="flex h-64 w-full flex-col items-stretch overflow-y-auto [&>*:nth-child(even)]:bg-muted"
       >
         {#each projectUsers as projectUser (projectUser.email)}
           <div
