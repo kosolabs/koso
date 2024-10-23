@@ -236,6 +236,8 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
    echo $PULL_TOKEN| docker login ghcr.io -u $USER --password-stdin
    ```
 
+### Access in bridge mode (old)
+
 1. Add 172.17.0.1 to /etc/postgresql/16/main/postgresql.conf:
 
    ```
