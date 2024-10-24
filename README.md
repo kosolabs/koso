@@ -251,7 +251,7 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
    host    all             all             172.0.0.0/8             scram-sha-256
    ```
 
-### Configure github ssh keys
+### Configure github ssh keys (old)
 
 https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#set-up-deploy-keys
 
