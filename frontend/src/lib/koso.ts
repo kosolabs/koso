@@ -929,7 +929,7 @@ export class Koso {
       }
       // When a task is marked in progress, make it the first child
       // and, if unassigned, assign to the current user
-      else if (status == "In Progress") {
+      else if (status === "In Progress") {
         for (const parentTask of this.yGraph.values()) {
           const children = parentTask.get("children") as Y.Array<string>;
           const index = children.slice().indexOf(taskId);

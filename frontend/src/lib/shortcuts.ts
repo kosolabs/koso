@@ -23,6 +23,7 @@ const keys = Map([
   ["Delete", "⌦"],
   ["Enter", "⏎"],
   ["Escape", "⎋"],
+  [" ", "␣"],
 ]);
 
 export class Shortcut extends ShortcutRecord {
@@ -37,7 +38,7 @@ export class Shortcut extends ShortcutRecord {
   }
 
   toChar(): string {
-    if (this.key.length === 1) {
+    if (this.key !== " " && this.key.length === 1) {
       return this.key.toUpperCase();
     }
     const result = keys.get(this.key);
@@ -67,6 +68,7 @@ export class Shortcut extends ShortcutRecord {
     });
   }
 
+  static TOGGLE_STATUS = new Shortcut({ key: " " });
   static CANCEL = new Shortcut({ key: "Escape" });
   static SHOW_COMMAND_PALETTE = new Shortcut({
     key: "p",
