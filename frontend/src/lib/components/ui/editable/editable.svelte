@@ -11,6 +11,7 @@
     editing?: boolean;
     class?: string;
     "aria-label"?: string;
+    onclick?: (event: MouseEvent) => void;
     onsave: (value: string) => void;
     ondone?: () => void;
     onkeydown?: (event: KeyboardEvent) => void;
@@ -21,6 +22,7 @@
     placeholder = "Click to edit",
     class: classes,
     "aria-label": ariaLabel,
+    onclick,
     onsave,
     ondone,
     onkeydown,
@@ -75,6 +77,7 @@
   function handleButtonClick(event: MouseEvent) {
     event.stopPropagation();
     event.preventDefault();
+    onclick?.(event);
     edit();
   }
 
