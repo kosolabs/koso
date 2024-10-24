@@ -31,12 +31,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: appleboy/ssh-action@v1.1.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.repository_owner }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: koso.app
           username: root
           key: ${{ secrets.KOSO_KEY }}
-          envs: GITHUB_TOKEN,GITHUB_SHA,KOSO_IMAGE_DIGEST
+          envs: GHCR_USER,GHCR_TOKEN,GITHUB_SHA,KOSO_IMAGE_DIGEST
           script: |
             set -e
             echo "Deploying commit ${GITHUB_SHA}, image digest ${KOSO_IMAGE_DIGEST}"
@@ -48,8 +49,6 @@ jobs:
             git fetch
             git checkout $GITHUB_SHA
             git status
-
-            echo $GITHUB_TOKEN | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
 
             ./deploy.sh
       - name: Craft the success message

@@ -16,6 +16,7 @@ echo "Cleaned up stale images and containers."
 echo "Deploying image ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST"
 
 # Pull the new image
+echo $GHCR_TOKEN | docker login ghcr.io -u $GHCR_USER --password-stdin
 docker pull ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST
 
 # Run DB migrations.
