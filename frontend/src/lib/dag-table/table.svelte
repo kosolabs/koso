@@ -76,11 +76,29 @@
     }
   }
 
+  function insertAbove() {
+    if (!$selected) return;
+    if (!$user) throw new Error("Unauthenticated");
+    insertAndEdit($selected.parent, koso.getOffset($selected), $user);
+  }
+
   function insertChild() {
     if (!$selected) return;
     if (!$user) throw new Error("Unauthenticated");
     koso.expand($selected);
     insertAndEdit($selected, 0, $user);
+  }
+
+  function insertChildAbove() {
+    if (!$selected) return;
+    if (!$user) throw new Error("Unauthenticated");
+
+    const previousPeer = koso.getPrevPeer($selected);
+    if (!previousPeer) return;
+
+    koso.expand(previousPeer);
+    const lastIndex = koso.getChildCount(previousPeer.name);
+    insertAndEdit(previousPeer, lastIndex, $user);
   }
 
   function toggleStatus() {
@@ -216,6 +234,12 @@
       shortcut: Shortcut.INSERT_NODE,
     }),
     new Action({
+      title: "Add Task Above",
+      icon: ListPlus,
+      callback: insertAbove,
+      shortcut: Shortcut.INSERT_NODE_ABOVE,
+    }),
+    new Action({
       title: "Edit Name",
       icon: Pencil,
       callback: edit,
@@ -234,6 +258,13 @@
       toolbar: true,
       enabled: () => !!$selected,
       shortcut: Shortcut.INSERT_CHILD_NODE,
+    }),
+    new Action({
+      title: "Add Child Above",
+      icon: ListTree,
+      callback: insertChildAbove,
+      enabled: () => !!$selected && koso.getOffset($selected) > 0,
+      shortcut: Shortcut.INSERT_CHILD_NODE_ABOVE,
     }),
     new Action({
       title: "Delete",
