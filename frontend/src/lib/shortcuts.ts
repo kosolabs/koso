@@ -1,4 +1,5 @@
 import { Map, Record } from "immutable";
+import { Icon } from "lucide-svelte";
 
 type ShortcutProps = {
   key: string;
@@ -137,13 +138,36 @@ export class ShortcutRegistry {
   }
 }
 
-export type Action = {
+type ActionProps = {
   title: string;
-  // TODO: Use Component once lucide-svelte exports a Svelte 5 compatible type
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  icon: any;
+  icon: typeof Icon;
   callback: () => void;
   toolbar?: boolean;
   enabled?: () => boolean;
   shortcut?: Shortcut;
 };
+
+export class Action {
+  title: string;
+  icon: typeof Icon;
+  callback: () => void;
+  toolbar: boolean;
+  enabled: () => boolean;
+  shortcut?: Shortcut;
+
+  constructor({
+    title,
+    icon,
+    callback,
+    toolbar = false,
+    enabled = () => true,
+    shortcut,
+  }: ActionProps) {
+    this.title = title;
+    this.icon = icon;
+    this.callback = callback;
+    this.toolbar = toolbar;
+    this.enabled = enabled;
+    this.shortcut = shortcut;
+  }
+}
