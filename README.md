@@ -251,6 +251,23 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
    host    all             all             172.0.0.0/8             scram-sha-256
    ```
 
+### Configure github ssh keys (old)
+
+https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#set-up-deploy-keys
+
+```bash
+ssh-keygen -t ed25519 -C "koso-github-read-key" -f /root/.ssh/koso_github_read_id_ed25519 -N ''
+eval "$(ssh-agent -s)"
+cat >>/root/.ssh/config <<EOL
+Host github.com
+  AddKeysToAgent yes
+  IdentityFile  ~/.ssh/koso_github_read_id_ed25519
+EOL
+# MANUAL - add a new deploy key with the public key (e.g. ssh-ed25519 KEY) to https://github.com/kosolabs/koso/settings/keys/new
+cat /root/.ssh/koso_github_read_id_ed25519.pub
+ssh -T git@github.com && echo "Github auth works"
+```
+
 ### Server Github access
 
 Rather than using our personal key and since we only need read access, we use [Github Deploy Keys](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#deploy-keys) to authenticate with Github from our server.
