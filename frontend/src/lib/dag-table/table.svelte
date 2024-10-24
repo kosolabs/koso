@@ -6,6 +6,7 @@
   import { Node, type Koso } from "$lib/koso";
   import { Shortcut, ShortcutRegistry, type Action } from "$lib/shortcuts";
   import {
+    Check,
     ChevronsDownUp,
     ChevronsUpDown,
     CircleX,
@@ -28,6 +29,7 @@
     UserRoundPlus,
   } from "lucide-svelte";
   import { onMount, setContext, tick } from "svelte";
+  import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
   import Row, { type RowType } from "./row.svelte";
   import Toolbar from "./toolbar.svelte";
@@ -77,6 +79,27 @@
     if (!$user) throw new Error("Unauthenticated");
     koso.expand($selected);
     insertAndEdit($selected, 0, $user);
+  }
+
+  function toggleStatus() {
+    if (!$selected) return;
+    if (!$user) throw new Error("Unauthenticated");
+
+    const task = koso.getTask($selected.name);
+    if (task.children.length > 0) {
+      toast.warning(
+        "Cannot change the status of a composite task. Change the status of the task's children instead.",
+      );
+      return;
+    }
+
+    if (task.status === "Done") {
+      return;
+    } else if (task.status === "In Progress") {
+      koso.setTaskStatus($selected, "Done", $user);
+    } else {
+      koso.setTaskStatus($selected, "In Progress", $user);
+    }
   }
 
   function remove() {
@@ -348,6 +371,14 @@
       toolbar: false,
       enabled: () => true,
       shortcut: Shortcut.SELECT_PREV_NODE,
+    },
+    {
+      title: "Toggle Task Status",
+      icon: Check,
+      callback: toggleStatus,
+      toolbar: false,
+      enabled: () => true,
+      shortcut: Shortcut.TOGGLE_STATUS,
     },
     {
       title: "Show Command Palette",
