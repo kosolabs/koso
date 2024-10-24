@@ -36,6 +36,15 @@ jobs:
           script: |
             set -e
             echo "Deploying commit ${GITHUB_SHA}, image digest ${KOSO_IMAGE_DIGEST}"
+            cd /root/koso
+
+            git status
+            git reset --hard
+            git clean -f -d
+            git fetch
+            git checkout $GITHUB_SHA
+            git status
+
             ./deploy.sh
       - name: Craft the success message
         id: success-message
