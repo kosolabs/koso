@@ -9,7 +9,9 @@
   let { actions }: Props = $props();
 
   const toolbarActions = $derived(
-    actions.filter((action) => action.toolbar && action.enabled()),
+    actions.filter(
+      ({ toolbar = false, enabled = () => true }) => toolbar && enabled(),
+    ),
   );
 </script>
 
