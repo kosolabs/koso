@@ -130,7 +130,7 @@ export class ShortcutRegistry {
 
   handle(event: KeyboardEvent): boolean {
     const action = this.registry.get(Shortcut.fromEvent(event));
-    if (!action || !action.enabled()) return false;
+    if (!action || (action.enabled && !action.enabled())) return false;
     action.callback();
     event.preventDefault();
     return true;
@@ -144,6 +144,6 @@ export type Action = {
   icon: any;
   callback: () => void;
   toolbar?: boolean;
-  enabled: () => boolean;
+  enabled?: () => boolean;
   shortcut?: Shortcut;
 };
