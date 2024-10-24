@@ -80,7 +80,18 @@ export class Shortcut extends ShortcutRecord {
   static REVERT_EDITABLE = new Shortcut({ key: "Escape" });
   static EDIT_NODE = new Shortcut({ key: "Enter" });
   static INSERT_NODE = new Shortcut({ key: "Enter", shiftKey: true });
+  static INSERT_NODE_ABOVE = new Shortcut({
+    key: "Enter",
+    metaKey: true,
+    shiftKey: true,
+  });
   static REMOVE_NODE = new Shortcut({ key: "Delete" });
+  static INSERT_CHILD_NODE_ABOVE = new Shortcut({
+    key: "Enter",
+    altKey: true,
+    metaKey: true,
+    shiftKey: true,
+  });
   static INSERT_CHILD_NODE = new Shortcut({
     key: "Enter",
     altKey: true,
