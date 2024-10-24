@@ -340,6 +340,7 @@
         value={task.name}
         aria-label={`Task ${task.num} Edit Name`}
         editing={isEditing}
+        onclick={() => ($selected = node)}
         onsave={(name) => koso.setTaskName(task.id, name)}
         ondone={() => edit(false)}
         onkeydown={(e) => {
