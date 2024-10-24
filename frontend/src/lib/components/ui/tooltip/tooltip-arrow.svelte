@@ -5,6 +5,4 @@
   const { class: classes, ...props }: TooltipPrimitive.ArrowProps = $props();
 </script>
 
-<div class="bg-primary">
-  <TooltipPrimitive.Arrow class={cn(classes)} {...props} />
-</div>
+<TooltipPrimitive.Arrow class={cn("bg-primary", classes)} {...props} />

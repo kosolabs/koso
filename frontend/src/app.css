@@ -13,9 +13,9 @@
     --popover: 0deg 0% 100%;
     --popover-foreground: 175deg 10% 5%;
     --primary: 175deg 75% 25%;
-    --primary-foreground: 355 100% 98%;
-    --secondary: 175deg 5% 95%;
-    --secondary-foreground: 175deg 5% 10%;
+    --primary-foreground: 0deg 0% 100%;
+    --secondary: 275deg 35% 60%;
+    --secondary-foreground: 0deg 0% 100%;
     --muted: 175deg 5% 98%;
     --muted-foreground: 175deg 5% 45%;
     --accent: 175deg 5% 95%;
@@ -35,9 +35,9 @@
     --popover: 0deg 0% 9%;
     --popover-foreground: 0deg 0% 95%;
     --primary: 175deg 70% 45%;
-    --primary-foreground: 145deg 80% 10%;
-    --secondary: 175deg 5% 15%;
-    --secondary-foreground: 0deg 0% 98%;
+    --primary-foreground: 175deg 80% 10%;
+    --secondary: 275deg 30% 75%;
+    --secondary-foreground: 275deg 80% 10%;
     --muted: 220deg 15% 15%;
     --muted-foreground: 175deg 5% 65%;
     --accent: 220deg 15% 20%;
