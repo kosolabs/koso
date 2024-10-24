@@ -13,8 +13,11 @@ sudo apt upgrade
 apt install git tmux zsh vim
 
 # Setup SSH auth
-# MANUAL - add developer public keys /root/.ssh/authorized_keys
-# MANUAL - add public key corresponding to environment secret KOSO_KEY to /root/.ssh/authorized_keys
+cat >> /root/.ssh/authorized_keys <<EOL
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFES++sWzKktYuyLQIwhnIfJX75OheYvTbp16G6rF97u shad@storm
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM1Vu2l/fbZgXt94US7PWgxTagVymWmaeB4zLM8cQuyl kyle@mac
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINiVwOyxjtYb3dNx40mEZ8se6JRPSF6OE2VFVmryEJRf Koso-Deploy-Key-KOSO_KEY
+EOL
 
 # Setup dotfiles
 git clone https://github.com/shadanan/dotfiles.git .dotfiles
