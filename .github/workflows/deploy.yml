@@ -8,8 +8,18 @@ concurrency:
   group: workflow-${{ github.workflow }}
   cancel-in-progress: false
 jobs:
+  build:
+    uses: ./.github/workflows/ci.yml
+    # Mirror the permissions set on build-and-push-image
+    # as nested jobs inherit the permissions of the caller.
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
   deploy:
     runs-on: ubuntu-latest
+    needs: build
     permissions:
       packages: read
     environment:
@@ -40,5 +50,28 @@ jobs:
             git status
 
             echo $GITHUB_TOKEN | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-            docker info
-            docker pull ghcr.io/kosolabs/koso:main
+
+            ./deploy.sh
+      - name: Craft the success message
+        id: success-message
+        run: |
+          echo "MSG=$(git log --format='✅ Deployed %h by %an - %s' -n 1 HEAD)" >> $GITHUB_OUTPUT
+      - name: Craft the failure message
+        if: failure()
+        id: failure-message
+        run: |
+          {
+            echo 'MSG<<EOFEOFMSGOUTPUT'
+            git log --format='❌ Failed to deploy %h by %an - %s' -n 1 HEAD
+            echo ""
+            echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo EOFEOFMSGOUTPUT
+          } >> "$GITHUB_OUTPUT"
+      - name: Notify telegram
+        uses: appleboy/telegram-action@master
+        if: always()
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: | 
+            ${{ steps.failure-message.outputs.MSG || steps.success-message.outputs.MSG }}
