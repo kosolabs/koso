@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
-  import { Shortcut, ShortcutRegistry, type Action } from "$lib/shortcuts";
+  import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import { Save, Undo2 } from "lucide-svelte";
 
@@ -31,30 +31,30 @@
   let edited: string = $state(value);
 
   const actions: Action[] = [
-    {
+    new Action({
       title: "Save and New Task",
       icon: Save,
       callback: save,
       shortcut: Shortcut.INSERT_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Save and New Child",
       icon: Save,
       callback: save,
       shortcut: Shortcut.INSERT_CHILD_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Save",
       icon: Save,
       callback: save,
       shortcut: Shortcut.SAVE_EDITABLE,
-    },
-    {
+    }),
+    new Action({
       title: "Revert",
       icon: Undo2,
       callback: revert,
       shortcut: Shortcut.REVERT_EDITABLE,
-    },
+    }),
   ];
 
   const registry = new ShortcutRegistry(actions);

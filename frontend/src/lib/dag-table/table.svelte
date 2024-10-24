@@ -4,7 +4,7 @@
   import { Button } from "$lib/components/ui/button";
   import { CommandPalette } from "$lib/components/ui/command-palette";
   import { Node, type Koso } from "$lib/koso";
-  import { Shortcut, ShortcutRegistry, type Action } from "$lib/shortcuts";
+  import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import {
     Check,
     ChevronsDownUp,
@@ -208,181 +208,181 @@
   }
 
   const actions: Action[] = [
-    {
+    new Action({
       title: "Add Task",
       icon: ListPlus,
       callback: insert,
       toolbar: true,
       shortcut: Shortcut.INSERT_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Edit Name",
       icon: Pencil,
       callback: edit,
       shortcut: Shortcut.EDIT_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Cancel Selection",
       icon: CircleX,
       callback: unselect,
       shortcut: Shortcut.CANCEL,
-    },
-    {
+    }),
+    new Action({
       title: "Add Child",
       icon: ListTree,
       callback: insertChild,
       toolbar: true,
       enabled: () => !!$selected,
       shortcut: Shortcut.INSERT_CHILD_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Delete",
       icon: Trash,
       callback: remove,
       toolbar: true,
       enabled: () => !!$selected,
       shortcut: Shortcut.REMOVE_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Move Up",
       icon: MoveUp,
       callback: moveUp,
       toolbar: true,
       enabled: () => !!$selected,
       shortcut: Shortcut.MOVE_NODE_UP,
-    },
-    {
+    }),
+    new Action({
       title: "Move Down",
       icon: MoveDown,
       callback: moveDown,
       toolbar: true,
       enabled: () => !!$selected,
       shortcut: Shortcut.MOVE_NODE_DOWN,
-    },
-    {
+    }),
+    new Action({
       title: "Move Row Up",
       icon: MoveUp,
       callback: moveRowUp,
       enabled: () => !!$selected,
       shortcut: Shortcut.MOVE_NODE_ROW_UP,
-    },
-    {
+    }),
+    new Action({
       title: "Move Row Down",
       icon: MoveDown,
       callback: moveRowDown,
       enabled: () => !!$selected,
       shortcut: Shortcut.MOVE_NODE_ROW_DOWN,
-    },
-    {
+    }),
+    new Action({
       title: "Undent",
       icon: IndentDecrease,
       callback: undent,
       toolbar: true,
       enabled: () => !!$selected,
       shortcut: Shortcut.UNDENT_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Indent",
       icon: IndentIncrease,
       callback: indent,
       toolbar: true,
       enabled: () => !!$selected,
       shortcut: Shortcut.INDENT_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Undent",
       icon: IndentDecrease,
       callback: undent,
       enabled: () => !!$selected,
       shortcut: Shortcut.UNDENT_NODE_SHIFT,
-    },
-    {
+    }),
+    new Action({
       title: "Indent",
       icon: IndentIncrease,
       callback: indent,
       enabled: () => !!$selected,
       shortcut: Shortcut.INDENT_NODE_SHIFT,
-    },
-    {
+    }),
+    new Action({
       title: "Undo",
       icon: Undo,
       callback: undo,
       toolbar: true,
       shortcut: Shortcut.UNDO,
-    },
-    {
+    }),
+    new Action({
       title: "Redo",
       icon: Redo,
       callback: redo,
       toolbar: true,
       shortcut: Shortcut.REDO,
-    },
-    {
+    }),
+    new Action({
       title: "Hide Done Tasks",
       icon: EyeOff,
       callback: hideDoneTasks,
-      enabled: () => !!$showDone,
+      enabled: () => $showDone,
       toolbar: true,
-    },
-    {
+    }),
+    new Action({
       title: "Show Done Tasks",
       icon: Eye,
       callback: showDoneTasks,
       enabled: () => !$showDone,
       toolbar: true,
-    },
-    {
+    }),
+    new Action({
       title: "Expand Task",
       icon: ChevronsUpDown,
       callback: expand,
       shortcut: Shortcut.EXPAND_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Collapse Task",
       icon: ChevronsDownUp,
       callback: collapse,
       shortcut: Shortcut.COLLAPSE_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Select Next Task",
       icon: StepForward,
       callback: selectNext,
       shortcut: Shortcut.SELECT_NEXT_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Select Previous Task",
       icon: StepBack,
       callback: selectPrev,
       shortcut: Shortcut.SELECT_PREV_NODE,
-    },
-    {
+    }),
+    new Action({
       title: "Toggle Task Status",
       icon: Check,
       callback: toggleStatus,
       shortcut: Shortcut.TOGGLE_STATUS,
-    },
-    {
+    }),
+    new Action({
       title: "Set Theme to Light",
       icon: Sun,
       callback: () => setMode("light"),
-    },
-    {
+    }),
+    new Action({
       title: "Set Theme to Dark",
       icon: Sun,
       callback: () => setMode("dark"),
-    },
-    {
+    }),
+    new Action({
       title: "Set Theme to System",
       icon: Sun,
       callback: () => resetMode(),
-    },
-    {
+    }),
+    new Action({
       title: "Show Command Palette",
       icon: Terminal,
       callback: showCommandPalette,
       toolbar: true,
       shortcut: Shortcut.SHOW_COMMAND_PALETTE,
-    },
+    }),
   ];
 
   const shortcutRegistry = new ShortcutRegistry(actions);

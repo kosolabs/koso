@@ -15,8 +15,8 @@
 
   const filteredActions = $derived(
     actions.filter(
-      ({ enabled = () => true, title }) =>
-        enabled() && title.toLocaleLowerCase().includes(filter),
+      (action) =>
+        action.enabled() && action.title.toLocaleLowerCase().includes(filter),
     ),
   );
 </script>
