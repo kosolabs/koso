@@ -20,6 +20,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      packages: read
     environment:
       name: koso
       url: https://koso.app
