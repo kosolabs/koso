@@ -16,32 +16,12 @@ apt install git tmux zsh vim
 # MANUAL - add developer public keys /root/.ssh/authorized_keys
 # MANUAL - add public key corresponding to environment secret KOSO_KEY to /root/.ssh/authorized_keys
 
-# Setup github auth via deploy keys
-# https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#set-up-deploy-keys
-ssh-keygen -t ed25519 -C "koso-github-read-key" -f /root/.ssh/koso_github_read_id_ed25519 -N ''
-eval "$(ssh-agent -s)"
-cat >>/root/.ssh/config <<EOL
-Host github.com
-  AddKeysToAgent yes
-  IdentityFile  ~/.ssh/koso_github_read_id_ed25519
-EOL
-# MANUAL - add a new deploy key with the public key (e.g. ssh-ed25519 KEY) to https://github.com/kosolabs/koso/settings/keys/new
-cat /root/.ssh/koso_github_read_id_ed25519.pub
-ssh -T git@github.com && echo "Github auth works"
-
 # Setup dotfiles
-git clone git@github.com:shadanan/dotfiles.git .dotfiles
+git clone https://github.com/shadanan/dotfiles.git .dotfiles
 .dotfiles/install
 
 # Clone the Koso repo
 git clone https://github.com/kosolabs/koso.git
-
-# MANUAL - Configure Telegram auth
-cat >>/root/.localenv <<EOL
-export TELEGRAM_TOKEN=TODO
-export TELEGRAM_CHAT_ID=TODO
-EOL
-telegram SetupTest && echo "Telegram auth works" 
 
 # Install Docker
 sudo su &&\
