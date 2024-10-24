@@ -236,6 +236,10 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
    echo $PULL_TOKEN| docker login ghcr.io -u $USER --password-stdin
    ```
 
+### Environment
+
+We use a [Github Environment](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment) configured on the `Deploy` workflow which exposes a `KOSO_KEY` to access the server.
+
 ### Access in bridge mode (old)
 
 1. Add 172.17.0.1 to /etc/postgresql/16/main/postgresql.conf:
@@ -268,10 +272,6 @@ cat /root/.ssh/koso_github_read_id_ed25519.pub
 ssh -T git@github.com && echo "Github auth works"
 ```
 
-### Server Github access
+### Server Github access (old)
 
 Rather than using our personal key and since we only need read access, we use [Github Deploy Keys](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#deploy-keys) to authenticate with Github from our server.
-
-### Environment
-
-We use a [Github Environment](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment) configured on the `Deploy` workflow which exposes a `KOSO_KEY` to access the server.
