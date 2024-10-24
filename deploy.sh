@@ -6,12 +6,6 @@ if [ -z "${KOSO_IMAGE_DIGEST}" ]; then
     echo "KOSO_IMAGE_DIGEST variable must be set."
     exit 1
 fi
-if [ -z "${GITHUB_SHA}" ]; then
-    echo "GITHUB_SHA variable must be set."
-    exit 1
-fi
-
-cd /root
 
 # Cleanup old images and containers
 echo "Cleaning up stale images and containers..."
@@ -35,8 +29,7 @@ docker run \
 echo "Finished database migrations."
 
 # Copy over the latest systemctl unit file.
-wget -O koso.service https://raw.githubusercontent.com/kosolabs/koso/$GITHUB_SHA/backend/koso.service
-mv koso.service /etc/systemd/system/koso.service
+cp backend/koso.service /etc/systemd/system/koso.service
 
 # Set the image label in the systemctl override file.
 mkdir -p /etc/systemd/system/koso.service.d/
