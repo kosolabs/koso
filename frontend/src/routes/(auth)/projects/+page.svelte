@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { token, user } from "$lib/auth";
+  import { token } from "$lib/auth";
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import Navbar from "$lib/navbar.svelte";
@@ -10,9 +10,9 @@
     type Project,
   } from "$lib/projects";
   import { Layers } from "lucide-svelte";
-  import { onMount } from "svelte";
 
-  let projects: Promise<Project[]> = new Promise(() => {});
+  let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
+  let projects: Promise<Project[]> = fetchProjects($token);
   let errorMessage: string | null = null;
 
   async function createProject() {
@@ -26,14 +26,6 @@
     }
     await goto(`/projects/${project.project_id}`);
   }
-
-  onMount(() => {
-    if (!$user) {
-      return;
-    }
-
-    projects = fetchProjects($token);
-  });
 </script>
 
 <Navbar />
@@ -45,10 +37,14 @@
 {/if}
 
 {#await projects}
-  <!-- TODO: Make this a Skeleton -->
-  <div class="flex flex-col items-center justify-center rounded border p-4">
-    <div class="text-xl">Loading...</div>
-  </div>
+  {#await deflicker}
+    <!-- Deflicker load. -->
+  {:then}
+    <!-- TODO: Make this a Skeleton -->
+    <div class="flex flex-col items-center justify-center rounded border p-4">
+      <div class="text-l">Loading...</div>
+    </div>
+  {/await}
 {:then projects}
   {#if projects.length === 0}
     <div
