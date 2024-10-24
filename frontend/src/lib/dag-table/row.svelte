@@ -13,14 +13,14 @@
   } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
-  import * as Tooltip from "$lib/components/ui/tooltip";
   import UserSelect from "$lib/components/ui/user-select/user-select.svelte";
   import type { Koso, Node } from "$lib/koso";
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
-  import { AlignJustify, ChevronRight, Grip, TextQuote } from "lucide-svelte";
+  import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
+  import DropIndicator from "./drop-indicator.svelte";
 
   type Props = {
     index: number;
@@ -409,55 +409,25 @@
     ondrop={handleDropNodeChild}
   ></button>
 
-  {#if $dragged && dragOverPeer}
-    <Tooltip.Root open={true}>
-      <Tooltip.Trigger asChild let:builder>
-        <button
-          use:builder.action
-          {...builder}
-          class="absolute -my-[0.1rem] h-1 rounded bg-primary"
-          style="width: {rowWidth - peerOffset}px; margin-left: {peerOffset}px;"
-          aria-label={`Task ${task.num} Peer Drop Indicator`}
-        ></button>
-      </Tooltip.Trigger>
-      <Tooltip.Content>
-        <Tooltip.Arrow class="z-50" />
-        <div class="flex items-center gap-1">
-          <AlignJustify size={16} />
-          <div>
-            Task <span class="font-bold">{koso.getTask($dragged.name).num}</span
-            >
-            will become the <span class="font-bold">peer</span> of task
-            <span class="font-bold">{task.num}</span>
-          </div>
-        </div>
-      </Tooltip.Content>
-    </Tooltip.Root>
-  {/if}
-  {#if $dragged && dragOverChild}
-    <Tooltip.Root open={true}>
-      <Tooltip.Trigger asChild let:builder>
-        <button
-          use:builder.action
-          {...builder}
-          class="absolute -my-[0.1rem] h-1 rounded bg-secondary"
-          style="width: {rowWidth -
-            childOffset}px; margin-left: {childOffset}px;"
-          aria-label={`Task ${task.num} Child Drop Indicator`}
-        ></button>
-      </Tooltip.Trigger>
-      <Tooltip.Content class="bg-secondary text-secondary-foreground">
-        <Tooltip.Arrow class="z-50 bg-secondary text-secondary-foreground" />
-        <div class="flex items-center gap-1">
-          <TextQuote size={16} />
-          <div>
-            Task <span class="font-bold">{koso.getTask($dragged.name).num}</span
-            >
-            will become the <span class="font-bold">child</span> of task
-            <span class="font-bold">{task.num}</span>
-          </div>
-        </div>
-      </Tooltip.Content>
-    </Tooltip.Root>
+  {#if $dragged}
+    {@const source = koso.getTask($dragged.name)}
+    {#if dragOverPeer}
+      <DropIndicator
+        src={source}
+        dest={task}
+        width={rowWidth - peerOffset}
+        offset={peerOffset}
+        type="Peer"
+      />
+    {/if}
+    {#if dragOverChild}
+      <DropIndicator
+        src={source}
+        dest={task}
+        width={rowWidth - childOffset}
+        offset={childOffset}
+        type="Child"
+      />
+    {/if}
   {/if}
 {/if}
