@@ -45,6 +45,9 @@ jobs:
             git checkout $GITHUB_SHA
             git status
 
+            export DOCKER_GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            echo $DOCKER_GITHUB_TOKEN | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+
             ./deploy.sh
       - name: Craft the success message
         id: success-message

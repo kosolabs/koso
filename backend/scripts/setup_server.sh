@@ -33,10 +33,6 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docke
 apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-compose
 systemctl status docker
 systemctl is-active docker && echo "Docker running"
-# MANUAL - Login via a personal access token granted "read:packages". Unfortunately the only option.
-# https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry
-DOCKER_USER=TODO DOCKER_PULL_TOKEN=TODO echo $DOCKER_PULL_TOKEN | docker login ghcr.io -u $DOCKER_USER --password-stdin
-docker pull ghcr.io/kosolabs/koso@:main && echo "Docker auth works"
 
 # Install caddy
 sudo apt update
