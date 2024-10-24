@@ -1,12 +1,17 @@
 <script lang="ts">
   import type { ChipProps } from ".";
+  import { Button } from "$lib/components/ui/button";
 
-  let { title, description = "" }: ChipProps = $props();
+  let { title, description = "", onClick }: ChipProps = $props();
 </script>
 
 <div
   class="text-nowrap rounded border bg-secondary px-1 text-xs text-secondary-foreground max-sm:hidden"
   title={description}
 >
-  {title}
+  {#if onClick}
+    <Button onclick={onClick}>
+      {title}
+    </Button>
+  {:else}{/if}
 </div>

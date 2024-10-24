@@ -15,12 +15,13 @@
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
   import * as Tooltip from "$lib/components/ui/tooltip";
   import UserSelect from "$lib/components/ui/user-select/user-select.svelte";
-  import type { Koso, Node } from "$lib/koso";
+  import { Node, type Koso } from "$lib/koso";
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { AlignJustify, ChevronRight, Grip, TextQuote } from "lucide-svelte";
   import { getContext } from "svelte";
+  import { get } from "svelte/store";
 
   type Props = {
     index: number;
@@ -74,9 +75,26 @@
     if (!parents) return [];
     return parents
       .filter((parent) => parent !== node.parent.name)
-      .map((parent) => koso.getTask(parent).name)
-      .filter((name) => name.length > 0)
-      .map((name) => parseChipProps(name));
+      .map((parent) => koso.getTask(parent))
+      .filter((parent) => parent.name.length > 0)
+      .map((parent) => {
+        const props = parseChipProps(parent.name);
+        props.onClick = (event) => {
+          let p = get(koso.nodes)
+            .filter((n) => n.name === parent.id)
+            .minBy((n) => n.path.size);
+          if (p) {
+            console.log(`Selecting parent ${p.id}`);
+            $selected = p;
+          } else {
+            // TODO: this probably means the linked task is filtered out or collapsed.
+            // We could expand nodes to show it or do something else?
+            console.log("No parent found");
+          }
+          event.stopPropagation();
+        };
+        return props;
+      });
   }
 
   function getUser(users: User[], email: string | null): User | null {
