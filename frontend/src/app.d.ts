@@ -1,5 +1,5 @@
 // See https://kit.svelte.dev/docs/types#app
-import type { Koso } from "$lib/koso";
+import type { Koso } from "$lib/koso.svelte";
 
 // for information about these interfaces
 declare global {

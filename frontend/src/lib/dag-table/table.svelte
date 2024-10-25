@@ -4,7 +4,7 @@
   import { CommandPalette } from "$lib/components/ui/command-palette";
   import { confetti } from "$lib/components/ui/confetti";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
-  import { Node, type Koso } from "$lib/koso";
+  import { Node, type Koso } from "$lib/koso.svelte";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import {
     Check,

@@ -16,7 +16,7 @@
   import { Editable } from "$lib/components/ui/editable";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
   import UserSelect from "$lib/components/ui/user-select/user-select.svelte";
-  import type { Koso, Node } from "$lib/koso";
+  import type { Koso, Node } from "$lib/koso.svelte";
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";

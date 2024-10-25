@@ -1,4 +1,4 @@
-import { Koso } from "$lib/koso";
+import { Koso } from "$lib/koso.svelte";
 
 export class KosoSocket {
   socket: WebSocket | null = null;

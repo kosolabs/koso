@@ -1,4 +1,4 @@
-import type { Graph } from "$lib/koso";
+import type { Graph } from "$lib/koso.svelte";
 import { expect, request, type Page } from "@playwright/test";
 
 export async function getKosoGraph(page: Page): Promise<Graph> {

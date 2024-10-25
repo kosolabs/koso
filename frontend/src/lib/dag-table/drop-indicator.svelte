@@ -1,6 +1,6 @@
 <script lang="ts">
   import * as Tooltip from "$lib/components/ui/tooltip";
-  import type { Task } from "$lib/koso";
+  import type { Task } from "$lib/koso.svelte";
   import { cn } from "$lib/utils";
   import { ArrowBigDown } from "lucide-svelte";
 
