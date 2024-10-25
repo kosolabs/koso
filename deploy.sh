@@ -31,7 +31,7 @@ echo "Finished database migrations."
 
 # Setup backups
 mkdir -p /root/koso-psql-backups
-cp /root/koso/backend/psql_backups/. /root/koso-psql-backups/
+cp -r /root/koso/backend/psql_backups/. /root/koso-psql-backups/
 crontab -u root /root/koso-psql-backups/psql_backup_cron.txt
 
 # Copy over the latest systemctl unit file.
