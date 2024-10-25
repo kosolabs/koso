@@ -43,7 +43,7 @@ create_backup() {
 
 upload_backup() {
     echo "$(date -u "+%Y-%m-%dT%H:%M:%S.%3NZ"): Uploading backup to $backup_object..."
-    gcloud storage cp $backup_path $backup_object
+    gcloud storage cp --print-created-message $backup_path $backup_object
     echo "$(date -u "+%Y-%m-%dT%H:%M:%S.%3NZ"): Finished upload."
 }
 
