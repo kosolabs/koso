@@ -3,7 +3,6 @@
   import { Input } from "$lib/components/ui/input";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
-  import { Save, Undo2 } from "lucide-svelte";
 
   type Props = {
     value: string;
@@ -32,28 +31,20 @@
 
   const actions: Action[] = [
     new Action({
-      title: "Save and New Task",
-      icon: Save,
       callback: save,
       shortcut: Shortcut.INSERT_NODE,
     }),
     new Action({
-      title: "Save and New Child",
-      icon: Save,
       callback: save,
       shortcut: Shortcut.INSERT_CHILD_NODE,
     }),
     new Action({
-      title: "Save",
-      icon: Save,
       callback: save,
-      shortcut: Shortcut.SAVE_EDITABLE,
+      shortcut: Shortcut.OK,
     }),
     new Action({
-      title: "Revert",
-      icon: Undo2,
       callback: revert,
-      shortcut: Shortcut.REVERT_EDITABLE,
+      shortcut: Shortcut.CANCEL,
     }),
   ];
 

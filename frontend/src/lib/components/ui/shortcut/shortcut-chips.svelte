@@ -11,16 +11,16 @@
 </script>
 
 <div class={cn("flex gap-1 p-1 text-foreground", classes)}>
-  {#if shortcut.ctrlKey}
+  {#if shortcut.ctrl}
     <ShortcutChip>⌃</ShortcutChip>
   {/if}
-  {#if shortcut.shiftKey}
+  {#if shortcut.shift}
     <ShortcutChip>⇧</ShortcutChip>
   {/if}
-  {#if shortcut.altKey}
+  {#if shortcut.alt}
     <ShortcutChip>⌥</ShortcutChip>
   {/if}
-  {#if shortcut.metaKey}
+  {#if shortcut.meta}
     <ShortcutChip>⌘</ShortcutChip>
   {/if}
   <ShortcutChip>

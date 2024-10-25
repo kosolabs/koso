@@ -3,8 +3,6 @@
   import { ShortcutChips } from "$lib/components/ui/shortcut";
   import { Shortcut, type Action } from "$lib/shortcuts";
 
-  const ESCAPE = new Shortcut({ key: "Escape" });
-
   type Props = {
     open: boolean;
     actions: Action[];
@@ -27,7 +25,7 @@
   portal={null}
   onkeydown={(event) => {
     event.stopPropagation();
-    if (ESCAPE.matches(event)) {
+    if (Shortcut.CANCEL.matches(event)) {
       open = false;
     }
   }}
