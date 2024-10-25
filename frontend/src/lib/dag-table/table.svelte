@@ -170,16 +170,6 @@
     koso.moveNodeEnd($selected);
   }
 
-  function moveRowUp() {
-    if (!$selected) return;
-    koso.moveNodeRowUp($selected);
-  }
-
-  function moveRowDown() {
-    if (!$selected) return;
-    koso.moveNodeRowDown($selected);
-  }
-
   function indent() {
     if (!$selected) return;
     koso.indentNode($selected);
@@ -324,20 +314,6 @@
       toolbar: true,
       enabled: () => !!$selected,
       shortcut: new Shortcut({ key: "ArrowDown", alt: true, shift: true }),
-    }),
-    new Action({
-      title: "Move Row Up",
-      icon: MoveUp,
-      callback: moveRowUp,
-      enabled: () => !!$selected,
-      shortcut: new Shortcut({ key: "ArrowUp", meta: true, shift: true }),
-    }),
-    new Action({
-      title: "Move Row Down",
-      icon: MoveDown,
-      callback: moveRowDown,
-      enabled: () => !!$selected,
-      shortcut: new Shortcut({ key: "ArrowDown", meta: true, shift: true }),
     }),
     new Action({
       title: "Undent",
