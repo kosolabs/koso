@@ -275,3 +275,18 @@ ssh -T git@github.com && echo "Github auth works"
 ### Server Github access (old)
 
 Rather than using our personal key and since we only need read access, we use [Github Deploy Keys](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#deploy-keys) to authenticate with Github from our server.
+
+## Backups
+
+[psql_backup.sh](backend/scripts/psql_backup.sh) exports backups of our Postgresql DB to cloud storage.
+
+The script is ran by a daily cron and logs are available at `koso-psql-backups/backups.log`.
+
+Backups are stored in GCP cloud storage bucket named `koso-psql-backups`. The bucket has
+soft deletion and object versioning configured, along with lifecycle rules to
+delete objects after 30 days.
+
+
+### Restore
+
+TODO
