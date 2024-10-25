@@ -288,4 +288,28 @@ auto-delete objects after 30 days.
 
 ### Restore
 
-TODO
+Identify the backup to restore in the cloud console and update `backup_name` below with the target object name.
+
+```bash
+backup_name=TARGET-backup.sql.gz
+```
+
+Download and unzip the backup:
+
+```bash
+backup_object=gs://$koso-psql-backups/$backup_name
+gcloud storage cp --print-created-message $backup_object ./
+gzip -dk $backup_name
+```
+
+Restore the backup:
+
+```bash
+PGPASSWORD=$PSQL_PASSWORD pg_restore \
+   --host="$PSQL_HOST" \
+   --port="$PSQL_PORT" \
+   --db="$PSQL_DB" \
+   --username="$PSQL_USER" \
+   -f \
+   $backup_name
+```
