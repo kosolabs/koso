@@ -282,10 +282,9 @@ Rather than using our personal key and since we only need read access, we use [G
 
 The script is ran by a daily cron and logs are available at `koso-psql-backups/backups.log`.
 
-Backups are stored in GCP cloud storage bucket named `koso-psql-backups`. The bucket has
+Backups are stored in a GCP cloud storage bucket named `koso-psql-backups`. The bucket has
 soft deletion and object versioning configured, along with lifecycle rules to
-delete objects after 30 days.
-
+auto-delete objects after 30 days.
 
 ### Restore
 

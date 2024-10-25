@@ -74,6 +74,5 @@ sudo apt-get update && sudo apt-get install google-cloud-cli
 # Manual - auth with a SA
 gcloud auth activate-service-account --project=$PROJECT --key-file=sa.json
 
-
 # Finally, run the Deploy action to start the backend.
 # https://github.com/kosolabs/koso/actions/workflows/deploy.yml

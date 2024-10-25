@@ -28,6 +28,7 @@ cleanup_old_backups() {
     # As is, we'll accumulate backups for N days if we're unable to upload to cloud storage
     # which might fill up our disk.
 }
+
 create_backup() {
     echo "$(date -u "+%Y-%m-%dT%H:%M:%S.%3NZ"): Exporting backup to $backup_path..."
     PGPASSWORD=$PSQL_PASSWORD pg_dump \
