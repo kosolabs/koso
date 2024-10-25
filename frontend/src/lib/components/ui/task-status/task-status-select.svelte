@@ -1,9 +1,7 @@
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { Portal } from "$lib/components/ui/portal";
   import { ResponsiveText } from "$lib/components/ui/responsive-text";
   import type { Status } from "$lib/koso";
-  import Confetti from "svelte-confetti";
   import { TaskStatusIcon } from ".";
 
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
@@ -20,11 +18,9 @@
     closeFocus,
     onselect,
   }: Props = $props();
-  let showConfetti: boolean = $state(false);
 
   function select(status: Status) {
     value = status;
-    showConfetti = status === "Done";
     onselect(status);
   }
 </script>
@@ -54,11 +50,3 @@
     {/each}
   </DropdownMenu.Content>
 </DropdownMenu.Root>
-
-{#if showConfetti}
-  <Portal>
-    <div class="fixed left-1/2 top-1/2">
-      <Confetti />
-    </div>
-  </Portal>
-{/if}
