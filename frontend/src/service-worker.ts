@@ -16,6 +16,7 @@ import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 const sw = self as unknown as ServiceWorkerGlobalScope;
 sw.__WB_DISABLE_DEV_LOGS = true;
 
+console.debug(`Installing service worker at version ${version}`);
 sw.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     sw.skipWaiting();
