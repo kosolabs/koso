@@ -96,11 +96,16 @@
         (u) => !projectUsers.some((pu) => pu.email === u.email),
       )),
   );
-  $: filteredUsers = nonProjectUsers.filter(
-    (user) =>
-      user.name.toLowerCase().includes(filter.toLowerCase()) ||
-      user.email.toLowerCase().includes(filter.toLowerCase()),
-  );
+
+  const MIN_FILTER_LEN = 2;
+  $: filteredUsers =
+    filter.length < MIN_FILTER_LEN
+      ? []
+      : nonProjectUsers.filter(
+          (user) =>
+            user.name.toLowerCase().includes(filter.toLowerCase()) ||
+            user.email.toLowerCase().includes(filter.toLowerCase()),
+        );
 </script>
 
 <Dialog.Root
@@ -108,6 +113,7 @@
   portal={null}
   onOpenChange={() => {
     filter = "";
+    openDropDown = false;
   }}
 >
   <Dialog.Content
@@ -115,6 +121,8 @@
       event.stopPropagation();
       if (Shortcut.CANCEL.matches(event)) {
         open = false;
+        filter = "";
+        openDropDown = false;
       }
     }}
   >
@@ -132,7 +140,9 @@
           <Input type="text" placeholder="Add people" bind:value={filter} />
         </Popover.Trigger>
         <Popover.Content sameWidth={true} class="max-h-96 overflow-y-auto">
-          {#if filteredUsers.length > 0}
+          {#if filter.length < MIN_FILTER_LEN}
+            Search for people.
+          {:else if filteredUsers.length > 0}
             {#each filteredUsers as user}
               <button
                 class="w-full cursor-pointer rounded p-2 hover:bg-accent"
