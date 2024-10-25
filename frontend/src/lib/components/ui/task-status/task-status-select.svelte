@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { ResponsiveText } from "$lib/components/ui/responsive-text";
-  import type { Status } from "$lib/koso";
+  import type { Status } from "$lib/koso.svelte";
   import { TaskStatusIcon } from ".";
 
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];

@@ -5,7 +5,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Editable } from "$lib/components/ui/editable";
   import { DagTable } from "$lib/dag-table";
-  import { Koso } from "$lib/koso";
+  import { Koso } from "$lib/koso.svelte";
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
   import {
