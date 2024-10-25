@@ -603,11 +603,15 @@ export class Koso {
     });
   }
 
+  reorderNode(node: Node, offset: number) {
+    this.moveNode(node, node.parent.name, offset);
+  }
+
   moveNodeUp(node: Node) {
     const prevPeer = this.getPrevPeer(node);
     if (!prevPeer) return;
     const offset = this.getOffset(prevPeer);
-    this.moveNode(node, node.parent.name, offset);
+    this.reorderNode(node, offset);
     this.selected.set(node);
   }
 
@@ -615,8 +619,29 @@ export class Koso {
     const nextPeer = this.getNextPeer(node);
     if (!nextPeer) return;
     const offset = this.getOffset(nextPeer);
-    this.moveNode(node, node.parent.name, offset + 1);
+    this.reorderNode(node, offset + 1);
     this.selected.set(node);
+  }
+
+  moveNodeStart(node: Node) {
+    const offset = this.getOffset(node);
+    if (offset === 0) {
+      const task = this.getTask(node.name);
+      toast.warning(`Task ${task.num} is already at the top`);
+      return;
+    }
+    this.reorderNode(node, 0);
+  }
+
+  moveNodeEnd(node: Node) {
+    const offset = this.getOffset(node);
+    const length = this.getChildCount(node.parent.name);
+    if (offset === length - 1) {
+      const task = this.getTask(node.name);
+      toast.warning(`Task ${task.num} is already at the bottom`);
+      return;
+    }
+    this.reorderNode(node, length);
   }
 
   moveNodeRowUp(node: Node) {

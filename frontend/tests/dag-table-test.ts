@@ -339,6 +339,44 @@ test.describe("dag table tests", () => {
       });
     });
 
+    test("option+shift up and down arrows change the order of rows", async ({
+      page,
+    }) => {
+      await init(page, [
+        { id: "root", children: ["1", "2", "3"] },
+        { id: "1" },
+        { id: "2" },
+        { id: "3" },
+      ]);
+
+      await expect(
+        page.getByRole("button", { name: "Task 1 Drag Handle" }),
+      ).toBeVisible();
+
+      await page.keyboard.press("ArrowDown");
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+
+      await page.keyboard.press("Alt+Shift+ArrowDown");
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+
+      await expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["2", "3", "1"] },
+        ["1"]: { children: [] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+      });
+
+      await page.keyboard.press("Alt+Shift+ArrowUp");
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+
+      await expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1", "2", "3"] },
+        ["1"]: { children: [] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+      });
+    });
+
     test("option left and right change row indentation", async ({ page }) => {
       await init(page, [
         { id: "root", children: ["1", "2", "3"] },
@@ -375,8 +413,8 @@ test.describe("dag table tests", () => {
       });
     });
 
-    test.describe("option+shift up and down arrows change the order of rows", async () => {
-      test("option+shift skips past collapsed nodes", async ({ page }) => {
+    test.describe("meta+shift up and down arrows change the order of rows", async () => {
+      test("meta+shift skips past collapsed nodes", async ({ page }) => {
         await init(page, [
           { id: "root", children: ["1", "2", "3"] },
           { id: "1" },
@@ -394,7 +432,7 @@ test.describe("dag table tests", () => {
         await page.keyboard.press("ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "1", "3"] },
@@ -406,7 +444,7 @@ test.describe("dag table tests", () => {
           ["6"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3", "1"] },
@@ -418,7 +456,7 @@ test.describe("dag table tests", () => {
           ["6"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3", "1"] },
@@ -431,7 +469,7 @@ test.describe("dag table tests", () => {
         });
       });
 
-      test("option+shift moves row by row", async ({ page }) => {
+      test("meta+shift moves row by row", async ({ page }) => {
         await init(page, [
           { id: "root", children: ["1", "2", "3"] },
           { id: "1" },
@@ -452,7 +490,7 @@ test.describe("dag table tests", () => {
         await page.keyboard.press("ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
@@ -464,7 +502,7 @@ test.describe("dag table tests", () => {
           ["6"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
@@ -476,7 +514,7 @@ test.describe("dag table tests", () => {
           ["6"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
@@ -488,7 +526,7 @@ test.describe("dag table tests", () => {
           ["6"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
@@ -500,7 +538,7 @@ test.describe("dag table tests", () => {
           ["6"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3"] },
@@ -512,7 +550,7 @@ test.describe("dag table tests", () => {
           ["6"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "1", "3"] },
@@ -524,7 +562,7 @@ test.describe("dag table tests", () => {
           ["6"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["2", "3", "1"] },
@@ -537,9 +575,7 @@ test.describe("dag table tests", () => {
         });
       });
 
-      test("option+shift moves ignores target descendants", async ({
-        page,
-      }) => {
+      test("meta+shift moves ignores target descendants", async ({ page }) => {
         await init(page, [
           { id: "root", children: ["1", "2", "3"] },
           { id: "1", children: ["11", "12", "13"] },
@@ -574,7 +610,7 @@ test.describe("dag table tests", () => {
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -594,7 +630,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -614,7 +650,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -634,7 +670,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -654,7 +690,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -674,7 +710,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -694,7 +730,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -714,7 +750,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -734,7 +770,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -754,7 +790,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -774,7 +810,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -794,7 +830,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -814,7 +850,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -834,7 +870,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -854,7 +890,7 @@ test.describe("dag table tests", () => {
           ["16"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(
           page.getByRole("row", { name: "Task 1", exact: true }),
         ).toBeFocused();
@@ -893,7 +929,7 @@ test.describe("dag table tests", () => {
           page.getByRole("row", { name: "Task 2" }).nth(1),
         ).toBeFocused();
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(
           page.getByRole("row", { name: "Task 2" }).first(),
         ).toBeFocused();
@@ -903,7 +939,7 @@ test.describe("dag table tests", () => {
           ["2"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 2" }).nth(1),
         ).toBeFocused();
@@ -945,7 +981,7 @@ test.describe("dag table tests", () => {
           page.getByRole("row", { name: "Task 99" }).nth(2),
         ).toBeFocused();
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(
           page.getByRole("row", { name: "Task 99" }).first(),
         ).toBeFocused();
@@ -958,7 +994,7 @@ test.describe("dag table tests", () => {
           ["99"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(
           page.getByRole("row", { name: "Task 99" }).first(),
         ).toBeFocused();
@@ -971,7 +1007,7 @@ test.describe("dag table tests", () => {
           ["99"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 99" }).first(),
         ).toBeFocused();
@@ -984,7 +1020,7 @@ test.describe("dag table tests", () => {
           ["99"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 99" }).last(),
         ).toBeFocused();
@@ -997,7 +1033,7 @@ test.describe("dag table tests", () => {
           ["99"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 99" }).last(),
         ).toBeFocused();
@@ -1035,7 +1071,7 @@ test.describe("dag table tests", () => {
         await page.keyboard.press("ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["1"] },
@@ -1047,7 +1083,7 @@ test.describe("dag table tests", () => {
           ["6"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await page.keyboard.press("Meta+Shift+ArrowUp");
         await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
         await expect(await getKosoGraph(page)).toMatchObject({
           root: { children: ["1"] },
@@ -1090,7 +1126,7 @@ test.describe("dag table tests", () => {
           page.getByRole("row", { name: "Task 1" }).first(),
         ).toBeFocused();
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1" }).nth(1),
         ).toBeFocused();
@@ -1105,7 +1141,7 @@ test.describe("dag table tests", () => {
           ["7"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1" }).nth(1),
         ).toBeFocused();
@@ -1120,7 +1156,7 @@ test.describe("dag table tests", () => {
           ["7"]: { children: [] },
         });
 
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1" }).nth(1),
         ).toBeFocused();
@@ -1134,7 +1170,7 @@ test.describe("dag table tests", () => {
           ["6"]: { children: ["7", "1"] },
           ["7"]: { children: [] },
         });
-        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await page.keyboard.press("Meta+Shift+ArrowDown");
         await expect(
           page.getByRole("row", { name: "Task 1" }).nth(1),
         ).toBeFocused();

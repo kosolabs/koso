@@ -15,7 +15,9 @@
     EyeOff,
     IndentDecrease,
     IndentIncrease,
+    ListEnd,
     ListPlus,
+    ListStart,
     ListTree,
     MoveDown,
     MoveUp,
@@ -158,6 +160,16 @@
     koso.moveNodeDown($selected);
   }
 
+  function moveStart() {
+    if (!$selected) return;
+    koso.moveNodeStart($selected);
+  }
+
+  function moveEnd() {
+    if (!$selected) return;
+    koso.moveNodeEnd($selected);
+  }
+
   function moveRowUp() {
     if (!$selected) return;
     koso.moveNodeRowUp($selected);
@@ -227,7 +239,7 @@
     koso.redo();
   }
 
-  const actions: Action[] = [
+  export const actions: Action[] = [
     new Action({
       title: "Add Task",
       icon: ListPlus,
@@ -239,13 +251,13 @@
       title: "Add Task Above",
       icon: ListPlus,
       callback: insertAbove,
-      shortcut: Shortcut.INSERT_NODE_ABOVE,
+      shortcut: new Shortcut({ key: "Enter", meta: true, shift: true }),
     }),
     new Action({
       title: "Edit Name",
       icon: Pencil,
       callback: edit,
-      shortcut: Shortcut.EDIT_NODE,
+      shortcut: new Shortcut({ key: "Enter" }),
     }),
     new Action({
       title: "Cancel Selection",
@@ -266,7 +278,12 @@
       icon: ListTree,
       callback: insertChildAbove,
       enabled: () => !!$selected && koso.getOffset($selected) > 0,
-      shortcut: Shortcut.INSERT_CHILD_NODE_ABOVE,
+      shortcut: new Shortcut({
+        key: "Enter",
+        alt: true,
+        meta: true,
+        shift: true,
+      }),
     }),
     new Action({
       title: "Delete",
@@ -274,7 +291,7 @@
       callback: remove,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: Shortcut.REMOVE_NODE,
+      shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
       title: "Move Up",
@@ -282,7 +299,7 @@
       callback: moveUp,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: Shortcut.MOVE_NODE_UP,
+      shortcut: new Shortcut({ key: "ArrowUp", alt: true }),
     }),
     new Action({
       title: "Move Down",
@@ -290,21 +307,37 @@
       callback: moveDown,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: Shortcut.MOVE_NODE_DOWN,
+      shortcut: new Shortcut({ key: "ArrowDown", alt: true }),
+    }),
+    new Action({
+      title: "Move to Start",
+      icon: ListStart,
+      callback: moveStart,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: new Shortcut({ key: "ArrowUp", alt: true, shift: true }),
+    }),
+    new Action({
+      title: "Move to End",
+      icon: ListEnd,
+      callback: moveEnd,
+      toolbar: true,
+      enabled: () => !!$selected,
+      shortcut: new Shortcut({ key: "ArrowDown", alt: true, shift: true }),
     }),
     new Action({
       title: "Move Row Up",
       icon: MoveUp,
       callback: moveRowUp,
       enabled: () => !!$selected,
-      shortcut: Shortcut.MOVE_NODE_ROW_UP,
+      shortcut: new Shortcut({ key: "ArrowUp", meta: true, shift: true }),
     }),
     new Action({
       title: "Move Row Down",
       icon: MoveDown,
       callback: moveRowDown,
       enabled: () => !!$selected,
-      shortcut: Shortcut.MOVE_NODE_ROW_DOWN,
+      shortcut: new Shortcut({ key: "ArrowDown", meta: true, shift: true }),
     }),
     new Action({
       title: "Undent",
@@ -312,7 +345,7 @@
       callback: undent,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: Shortcut.UNDENT_NODE,
+      shortcut: new Shortcut({ key: "ArrowLeft", alt: true }),
     }),
     new Action({
       title: "Indent",
@@ -320,35 +353,35 @@
       callback: indent,
       toolbar: true,
       enabled: () => !!$selected,
-      shortcut: Shortcut.INDENT_NODE,
+      shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
     }),
     new Action({
       title: "Undent",
       icon: IndentDecrease,
       callback: undent,
       enabled: () => !!$selected,
-      shortcut: Shortcut.UNDENT_NODE_SHIFT,
+      shortcut: new Shortcut({ key: "ArrowLeft", alt: true, shift: true }),
     }),
     new Action({
       title: "Indent",
       icon: IndentIncrease,
       callback: indent,
       enabled: () => !!$selected,
-      shortcut: Shortcut.INDENT_NODE_SHIFT,
+      shortcut: new Shortcut({ key: "ArrowRight", alt: true, shift: true }),
     }),
     new Action({
       title: "Undo",
       icon: Undo,
       callback: undo,
       toolbar: true,
-      shortcut: Shortcut.UNDO,
+      shortcut: new Shortcut({ key: "z", meta: true }),
     }),
     new Action({
       title: "Redo",
       icon: Redo,
       callback: redo,
       toolbar: true,
-      shortcut: Shortcut.REDO,
+      shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
     }),
     new Action({
       title: "Hide Done Tasks",
@@ -368,31 +401,31 @@
       title: "Expand Task",
       icon: ChevronsUpDown,
       callback: expand,
-      shortcut: Shortcut.EXPAND_NODE,
+      shortcut: new Shortcut({ key: "ArrowRight" }),
     }),
     new Action({
       title: "Collapse Task",
       icon: ChevronsDownUp,
       callback: collapse,
-      shortcut: Shortcut.COLLAPSE_NODE,
+      shortcut: new Shortcut({ key: "ArrowLeft" }),
     }),
     new Action({
       title: "Select Next Task",
       icon: StepForward,
       callback: selectNext,
-      shortcut: Shortcut.SELECT_NEXT_NODE,
+      shortcut: new Shortcut({ key: "ArrowDown" }),
     }),
     new Action({
       title: "Select Previous Task",
       icon: StepBack,
       callback: selectPrev,
-      shortcut: Shortcut.SELECT_PREV_NODE,
+      shortcut: new Shortcut({ key: "ArrowUp" }),
     }),
     new Action({
       title: "Toggle Task Status",
       icon: Check,
       callback: toggleStatus,
-      shortcut: Shortcut.TOGGLE_STATUS,
+      shortcut: new Shortcut({ key: " " }),
     }),
     new Action({
       title: "Set Theme to Light",
@@ -414,7 +447,7 @@
       icon: Terminal,
       callback: showCommandPalette,
       toolbar: true,
-      shortcut: Shortcut.SHOW_COMMAND_PALETTE,
+      shortcut: new Shortcut({ key: "p", shift: true, meta: true }),
     }),
   ];
 
