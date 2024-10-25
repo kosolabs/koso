@@ -5,7 +5,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Editable } from "$lib/components/ui/editable";
   import { DagTable } from "$lib/dag-table";
-  import { Koso } from "$lib/koso";
+  import { Koso } from "$lib/koso.svelte";
   import { lastVisitedProjectId } from "$lib/nav";
   import Navbar from "$lib/navbar.svelte";
   import {
@@ -114,7 +114,7 @@
 </script>
 
 <Navbar>
-  <svelte:fragment slot="left-items">
+  {#snippet left()}
     <div>
       {#await project then project}
         <Editable
@@ -126,8 +126,8 @@
         />
       {/await}
     </div>
-  </svelte:fragment>
-  <svelte:fragment slot="right-items">
+  {/snippet}
+  {#snippet right()}
     <Button title="Export Project" onclick={exportProjectToFile}>
       <FileDown />
     </Button>
@@ -139,7 +139,7 @@
     >
       <UserPlus />
     </Button>
-  </svelte:fragment>
+  {/snippet}
 </Navbar>
 
 {#if showSocketOfflineAlert}

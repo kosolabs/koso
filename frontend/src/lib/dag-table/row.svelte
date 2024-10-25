@@ -1,6 +1,7 @@
 <script module lang="ts">
   export type RowType = {
-    edit: (editing: boolean) => void;
+    edit(editing: boolean): void;
+    getStatusPosition(): DOMRect;
   };
 </script>
 
@@ -11,10 +12,11 @@
     parseChipProps,
     type ChipProps,
   } from "$lib/components/ui/chip";
+  import { confetti } from "$lib/components/ui/confetti";
   import { Editable } from "$lib/components/ui/editable";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
   import UserSelect from "$lib/components/ui/user-select/user-select.svelte";
-  import type { Koso, Node } from "$lib/koso";
+  import type { Koso, Node } from "$lib/koso.svelte";
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
@@ -43,6 +45,7 @@
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
   let handleElement: HTMLButtonElement | undefined = $state();
+  let statusElement: HTMLTableCellElement | undefined = $state();
 
   let dragOverPeer = $state(false);
   let dragOverChild = $state(false);
@@ -67,6 +70,11 @@
 
   export function edit(editing: boolean) {
     isEditing = editing;
+  }
+
+  export function getStatusPosition(): DOMRect {
+    if (!statusElement) throw new Error("Status element is undefined");
+    return statusElement.getBoundingClientRect();
   }
 
   function getTags(allParents: Map<string, string[]>): ChipProps[] {
@@ -312,6 +320,7 @@
   <td
     class={cn("border-l border-t p-2")}
     onkeydown={(e) => e.stopPropagation()}
+    bind:this={statusElement}
   >
     {#if task.children.length === 0}
       <TaskStatusSelect
@@ -320,6 +329,7 @@
         closeFocus={rowElement}
         onselect={(status) => {
           if (!$user) throw new Error("Unauthenticated");
+          if (status === "Done") confetti.add(getStatusPosition());
           koso.setTaskStatus(node, status, $user);
         }}
       />

@@ -1,22 +1,29 @@
 <script lang="ts">
-  import kosoLogo from "$lib/assets/koso.svg";
   import { logout, user } from "$lib/auth";
   import { Avatar, AvatarImage } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { resetMode, setMode } from "mode-watcher";
+  import type { Snippet } from "svelte";
+  import { KosoLogo } from "./components/ui/koso-logo";
+
+  type Props = {
+    left?: Snippet;
+    right?: Snippet;
+  };
+  const { left, right }: Props = $props();
 </script>
 
 <nav class="flex items-center bg-card p-2 shadow">
   <div class="flex items-center">
     <a href="/projects" aria-label="Home">
-      <img class="size-10" alt="Koso Logo" src={kosoLogo} />
+      <KosoLogo class="size-10" />
     </a>
-    <slot name="left-items"></slot>
+    {@render left?.()}
   </div>
 
   <div class="ml-auto flex items-center gap-2">
-    <slot name="right-items"></slot>
+    {@render right?.()}
 
     {#if $user}
       <DropdownMenu.Root closeFocus={document.body} portal={null}>

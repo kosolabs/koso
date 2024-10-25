@@ -1,4 +1,4 @@
-import type { Status } from "$lib/koso";
+import type { Status } from "$lib/koso.svelte";
 import { expect, test, type Page } from "@playwright/test";
 import {
   getKosoGraph,

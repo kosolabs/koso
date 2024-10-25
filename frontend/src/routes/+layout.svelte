@@ -1,6 +1,7 @@
 <script lang="ts">
   import { dev } from "$app/environment";
   import { updated } from "$app/stores";
+  import { Confetti } from "$lib/components/ui/confetti";
   import { Toaster } from "$lib/components/ui/sonner";
   import { ModeWatcher } from "mode-watcher";
   import { toast } from "svelte-sonner";
@@ -34,4 +35,5 @@
 
 <ModeWatcher />
 <Toaster />
+<Confetti />
 {@render children()}

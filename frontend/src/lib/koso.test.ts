@@ -5,7 +5,7 @@ import { get } from "svelte/store";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import type { User } from "./auth";
-import { Koso, Node } from "./koso";
+import { Koso, Node } from "./koso.svelte";
 
 const USER: User = {
   email: "t@koso.app",

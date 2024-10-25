@@ -2,15 +2,23 @@
   import { goto } from "$app/navigation";
   import { user } from "$lib/auth";
   import { pushRedirectOnUserNotAuthenticated } from "$lib/nav";
+  import type { Snippet } from "svelte";
 
-  $: if (!$user) {
-    pushRedirectOnUserNotAuthenticated();
-    goto("/");
-  }
+  type Props = {
+    children: Snippet;
+  };
+  const { children }: Props = $props();
+
+  $effect(() => {
+    if (!$user) {
+      pushRedirectOnUserNotAuthenticated();
+      goto("/");
+    }
+  });
 </script>
 
 {#if $user}
-  <slot />
+  {@render children()}
 {:else}
   <div class="flex flex-col items-center justify-center rounded border p-4">
     <div class="text-l">Redirecting to login...</div>
