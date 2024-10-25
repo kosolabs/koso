@@ -1,8 +1,8 @@
 <script lang="ts">
-  import kosoLogo from "$lib/assets/koso.svg";
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
   import { CommandPalette } from "$lib/components/ui/command-palette";
+  import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { Node, type Koso } from "$lib/koso";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import {
@@ -477,7 +477,7 @@
     <div class="flex items-center justify-center pt-8">
       <div class="flex w-9/12 max-w-[425px] rounded-md border bg-muted p-4">
         <div class="min-w-16">
-          <img class="size-16" alt="Koso Logo" src={kosoLogo} />
+          <KosoLogo class="size-16" />
         </div>
         <div class="ml-4">
           <div class="text-md">Welcome to Koso!</div>

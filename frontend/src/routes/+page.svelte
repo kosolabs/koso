@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import kosoLogo from "$lib/assets/koso.svg";
   import { token, user } from "$lib/auth";
+  import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { lastVisitedProjectId, popRedirectOnLogin } from "$lib/nav";
   import { fetchProjects } from "$lib/projects";
   import Google from "./google.svelte";
@@ -51,7 +51,7 @@
   <div
     class="m-4 flex flex-col gap-8 rounded-xl border bg-card p-10 text-center shadow sm:mx-auto sm:w-96"
   >
-    <img class="m-auto w-20" alt="Koso Logo" src={kosoLogo} />
+    <KosoLogo class="m-auto w-20" />
     <h1 class="text-4xl text-primary">Koso</h1>
     <Google {onsuccess} />
   </div>
