@@ -2,6 +2,7 @@
   import { user, type User } from "$lib/auth";
   import { Button } from "$lib/components/ui/button";
   import { CommandPalette } from "$lib/components/ui/command-palette";
+  import { confetti } from "$lib/components/ui/confetti";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { Node, type Koso } from "$lib/koso";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
@@ -116,6 +117,7 @@
     if (task.status === "Done") {
       return;
     } else if (task.status === "In Progress") {
+      confetti.add(getRow($selected).getStatusPosition());
       koso.setTaskStatus($selected, "Done", $user);
     } else {
       koso.setTaskStatus($selected, "In Progress", $user);
