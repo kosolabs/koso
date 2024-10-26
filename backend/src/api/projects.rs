@@ -67,10 +67,11 @@ async fn create_project_handler(
     Json(project): Json<CreateProject>,
 ) -> ApiResult<Json<Project>> {
     let projects = list_projects(&user.email, pool).await?;
-    if projects.len() >= 5 {
+    const MAX_PROJECTS: usize = 20;
+    if projects.len() >= MAX_PROJECTS {
         return Err(bad_request_error(&format!(
-            "User has more than 5 projects ({})",
-            projects.len()
+            "Cannot create more than {} projects",
+            MAX_PROJECTS
         )));
     }
 
