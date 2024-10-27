@@ -74,16 +74,7 @@ async fn create_project_handler(
             &format!("Cannot create more than {} projects", MAX_PROJECTS),
         ));
     }
-    const MAX_NAME_LEN: usize = 36;
-    if project.name.len() > MAX_NAME_LEN {
-        return Err(bad_request_error(
-            "LONG_NAME",
-            &format!(
-                "Project name cannot be longer than {} characters ",
-                MAX_NAME_LEN
-            ),
-        ));
-    }
+    validate_project_name(&project.name)?;
 
     let project = Project {
         project_id: BASE64_URL_SAFE_NO_PAD.encode(Uuid::new_v4()),
@@ -167,19 +158,7 @@ async fn update_project_handler(
         ));
     }
 
-    if project.name.is_empty() {
-        return Err(bad_request_error("EMPTY_NAME", "Project name is empty"));
-    }
-    const MAX_NAME_LEN: usize = 36;
-    if project.name.len() > MAX_NAME_LEN {
-        return Err(bad_request_error(
-            "LONG_NAME",
-            &format!(
-                "Project name cannot be longer than {} characters ",
-                MAX_NAME_LEN
-            ),
-        ));
-    }
+    validate_project_name(&project.name)?;
 
     sqlx::query("UPDATE projects SET name=$2 WHERE project_id=$1")
         .bind(&project.project_id)
@@ -296,4 +275,21 @@ async fn export_project(
         project_id,
         data: doc,
     }))
+}
+
+fn validate_project_name(name: &str) -> ApiResult<()> {
+    if name.is_empty() {
+        return Err(bad_request_error("EMPTY_NAME", "Project name is empty"));
+    }
+    const MAX_NAME_LEN: usize = 36;
+    if name.len() > MAX_NAME_LEN {
+        return Err(bad_request_error(
+            "LONG_NAME",
+            &format!(
+                "Project name cannot be longer than {} characters ",
+                MAX_NAME_LEN
+            ),
+        ));
+    }
+    Ok(())
 }
