@@ -1,5 +1,5 @@
 import type { User } from "./auth";
-import { logout_on_authentication_error } from "./errors";
+import { parse_response } from "./api";
 
 export type Project = {
   project_id: string;
@@ -27,13 +27,7 @@ export async function fetchProjects(token: string | null): Promise<Project[]> {
       Authorization: `Bearer ${token}`,
     },
   });
-  if (!response.ok) {
-    logout_on_authentication_error(response);
-    throw new Error(
-      `Failed to fetch projects: ${response.statusText} (${response.status})`,
-    );
-  }
-  return await response.json();
+  return parse_response(response);
 }
 
 export async function fetchProject(
@@ -46,13 +40,7 @@ export async function fetchProject(
       Authorization: `Bearer ${token}`,
     },
   });
-  if (!response.ok) {
-    logout_on_authentication_error(response);
-    throw new Error(
-      `Failed to fetch project: ${response.statusText} (${response.status})`,
-    );
-  }
-  return await response.json();
+  return parse_response(response);
 }
 
 export async function createProject(token: string | null): Promise<Project> {
@@ -64,13 +52,7 @@ export async function createProject(token: string | null): Promise<Project> {
     },
     body: JSON.stringify({ name: "My Project!" }),
   });
-  if (!response.ok) {
-    logout_on_authentication_error(response);
-    throw new Error(
-      `Failed to create project: ${response.statusText} (${response.status})`,
-    );
-  }
-  return await response.json();
+  return parse_response(response);
 }
 
 export async function updateProject(
@@ -85,13 +67,7 @@ export async function updateProject(
     },
     body: JSON.stringify(project),
   });
-  if (!response.ok) {
-    logout_on_authentication_error(response);
-    throw new Error(
-      `Failed to update project name: ${response.statusText} (${response.status})`,
-    );
-  }
-  return await response.json();
+  return parse_response(response);
 }
 
 export async function fetchProjectUsers(
@@ -101,13 +77,7 @@ export async function fetchProjectUsers(
   const response = await fetch(`/api/projects/${projectId}/users`, {
     headers: { Authorization: "Bearer " + token },
   });
-  if (!response.ok) {
-    logout_on_authentication_error(response);
-    throw new Error(
-      `Failed to fetch project users: ${response.statusText} (${response.status})`,
-    );
-  }
-  const users: User[] = await response.json();
+  const users: User[] = await parse_response(response);
   users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
   return users;
 }
@@ -124,12 +94,7 @@ export async function updateProjectUsers(
     },
     body: JSON.stringify(update),
   });
-  if (!response.ok) {
-    logout_on_authentication_error(response);
-    throw new Error(
-      `Failed to update project permissions: ${response.statusText} (${response.status})`,
-    );
-  }
+  await parse_response(response);
 }
 
 export async function exportProject(
@@ -139,12 +104,5 @@ export async function exportProject(
   const response = await fetch(`/api/projects/${projectId}/export`, {
     headers: { Authorization: "Bearer " + token },
   });
-  if (!response.ok) {
-    logout_on_authentication_error(response);
-    throw new Error(
-      `Failed to fetch project users: ${response.statusText} (${response.status})`,
-    );
-  }
-  const projectExport: ProjectExport = await response.json();
-  return projectExport;
+  return await parse_response(response);
 }
