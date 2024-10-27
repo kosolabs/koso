@@ -43,4 +43,25 @@ test.describe("new project", () => {
       page.getByRole("button", { name: "Set Project Name" }),
     ).toHaveText("Integration Test Project");
   });
+
+  test("create projects until the limit is hit and is rejected", async () => {
+    for (let i = 0; i < 19; i++) {
+      await page.goto("/projects");
+      await page.getByRole("button", { name: "New Project" }).click();
+      await expect(
+        page.getByRole("button", { name: "Set Project Name" }),
+      ).toBeVisible();
+    }
+
+    await page.goto("/projects");
+    await page.getByRole("button", { name: "New Project" }).click();
+
+    await expect(
+      page.getByRole("alert", {
+        name: "Create Project Error",
+      }),
+    ).toHaveText(
+      "Cannot create new project, you already have too many. Contact us for more!",
+    );
+  });
 });

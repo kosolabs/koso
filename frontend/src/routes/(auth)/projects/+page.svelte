@@ -38,7 +38,9 @@
 
 {#if errorMessage}
   <div class="my-2 flex-grow-0">
-    <Alert variant="destructive">{errorMessage}</Alert>
+    <Alert variant="destructive" aria-label="Create Project Error"
+      >{errorMessage}</Alert
+    >
   </div>
 {/if}
 
