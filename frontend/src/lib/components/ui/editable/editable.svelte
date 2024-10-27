@@ -11,6 +11,10 @@
     class?: string;
     "aria-label"?: string;
     onclick?: (event: MouseEvent) => void;
+    // Callback invoked to apply the edited value.
+    // May return false to revert the edit.
+    // May throw and allow the user to continue
+    // editing but should notify the user.
     onsave: (value: string) => Promise<boolean>;
     ondone?: () => void;
     onkeydown?: (event: KeyboardEvent) => void;

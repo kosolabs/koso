@@ -7,9 +7,11 @@ export type ErrorResponseBody = {
 };
 
 export class KosoError extends Error {
+  // Status code in number form. e.g. 400, 500
   status: number;
+  // Terse, stable, machine readable error reason.
+  // e.g. NO_STOCK
   reason: string;
-  msg: string;
 
   constructor({
     status,
@@ -20,14 +22,17 @@ export class KosoError extends Error {
     reason: string;
     msg: string;
   }) {
-    super();
+    super(`${reason} (${status}: ${msg})`);
     this.status = status;
     this.reason = reason;
-    this.msg = msg;
   }
 }
 
-export async function parse_response<T>(response: Response) {
+/**
+ * Returns the response body as json or throws if the response is not OK.
+ * @throws {KosoError}
+ */
+export async function parse_response<T>(response: Response): Promise<T> {
   if (response.ok) {
     const ret: T = await response.json();
     return ret;

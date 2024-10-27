@@ -115,7 +115,10 @@ pub(crate) fn error_response(status: StatusCode, reason: &'static str, msg: &str
 
 pub(crate) struct ErrorResponse {
     status: StatusCode,
+    // Terse, stable, machine readable error reason.
+    // e.g. NO_STOCK
     reason: &'static str,
+    // Debug message for developers. Not intended for end users.
     msg: String,
 }
 
@@ -127,8 +130,12 @@ impl ErrorResponse {
 
 #[derive(serde::Serialize)]
 struct ErrorResponseBody {
+    // StatusCode in number form. e.g. 400, 500
     status: u16,
+    // Terse, stable, machine readable error reason.
+    // e.g. NO_STOCK
     reason: &'static str,
+    // Debug message for developers. Not intended for end users.
     msg: String,
 }
 
