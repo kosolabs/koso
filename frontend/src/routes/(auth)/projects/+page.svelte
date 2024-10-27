@@ -3,6 +3,7 @@
   import { token } from "$lib/auth";
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
+  import { KosoError } from "$lib/api";
   import Navbar from "$lib/navbar.svelte";
   import {
     fetchProjects,
@@ -21,7 +22,12 @@
     try {
       project = await projectsCreateProject($token);
     } catch (err) {
-      errorMessage = `${err}`;
+      if (err instanceof KosoError && err.reason === "TOO_MANY_PROJECTS") {
+        errorMessage =
+          "Cannot create new project, you already have too many. Contact us for more!";
+      } else {
+        errorMessage = "Something went wrong. Please try again.";
+      }
       return;
     }
     await goto(`/projects/${project.project_id}`);

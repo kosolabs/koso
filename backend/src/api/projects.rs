@@ -67,12 +67,12 @@ async fn create_project_handler(
     Json(project): Json<CreateProject>,
 ) -> ApiResult<Json<Project>> {
     let projects = list_projects(&user.email, pool).await?;
-    const MAX_PROJECTS: usize = 20;
+    const MAX_PROJECTS: usize = 2;
     if projects.len() >= MAX_PROJECTS {
-        return Err(bad_request_error(&format!(
-            "Cannot create more than {} projects",
-            MAX_PROJECTS
-        )));
+        return Err(bad_request_error(
+            "TOO_MANY_PROJECTS",
+            &format!("Cannot create more than {} projects", MAX_PROJECTS),
+        ));
     }
 
     let project = Project {
@@ -148,14 +148,17 @@ async fn update_project_handler(
     verify_access(pool, user, &project_id).await?;
 
     if project_id != project.project_id {
-        return Err(bad_request_error(&format!(
-            "Path project id ({project_id} is different than body project id {}",
-            project.project_id
-        )));
+        return Err(bad_request_error(
+            "ID_MISMATCH",
+            &format!(
+                "Path project id ({project_id} is different than body project id {}",
+                project.project_id
+            ),
+        ));
     }
 
     if project.name.is_empty() {
-        return Err(bad_request_error("Project name is empty"));
+        return Err(bad_request_error("EMPTY_NAME", "Project name is empty"));
     }
 
     sqlx::query("UPDATE projects SET name=$2 WHERE project_id=$1")
@@ -176,10 +179,13 @@ async fn update_project_users_handler(
     verify_access(pool, user, &project_id).await?;
 
     if project_id != update.project_id {
-        return Err(bad_request_error(&format!(
-            "Path project id ({project_id} is different than body project id {}",
-            update.project_id
-        )));
+        return Err(bad_request_error(
+            "ID_MISMATCH",
+            &format!(
+                "Path project id ({project_id} is different than body project id {}",
+                update.project_id
+            ),
+        ));
     }
     if update.add_emails.is_empty() && update.remove_emails.is_empty() {
         return Ok(());

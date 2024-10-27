@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Error, Result};
 use axum::{
-    body::Body,
     http::StatusCode,
     response::{IntoResponse, Response},
     Router,
@@ -35,7 +34,10 @@ pub(crate) async fn verify_access(
     project_id: &ProjectId,
 ) -> Result<(), ErrorResponse> {
     if project_id.is_empty() {
-        return Err(bad_request_error("Project ID must not be empty"));
+        return Err(bad_request_error(
+            "EMPTY_PROJECT_ID",
+            "Project ID must not be empty",
+        ));
     }
 
     let mut txn = match pool.begin().await {
@@ -82,44 +84,54 @@ pub(crate) async fn handler_404() -> impl IntoResponse {
 }
 
 pub(crate) fn internal_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::INTERNAL_SERVER_ERROR, msg)
+    error_response(StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL", msg)
 }
 
 pub(crate) fn unauthenticated_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::UNAUTHORIZED, msg)
+    error_response(StatusCode::UNAUTHORIZED, "UNAUTHENTICATED", msg)
 }
 
 pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::FORBIDDEN, msg)
+    error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", msg)
 }
 
-pub(crate) fn bad_request_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::BAD_REQUEST, msg)
+pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorResponse {
+    error_response(StatusCode::BAD_REQUEST, reason, msg)
 }
 
-pub(crate) fn error_response(code: StatusCode, msg: &str) -> ErrorResponse {
-    match code {
+pub(crate) fn error_response(status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse {
+    match status {
         StatusCode::INTERNAL_SERVER_ERROR => {
-            tracing::error!("Failed: {}: {}", code, msg)
+            tracing::error!("Failed: {} ({}): {}", status, reason, msg)
         }
-        _ => tracing::warn!("Failed: {}: {}", code, msg),
+        _ => tracing::warn!("Failed: {} ({}): {}", status, reason, msg),
     }
     ErrorResponse {
-        code,
+        status,
+        reason,
         msg: msg.to_string(),
     }
 }
 
 pub(crate) struct ErrorResponse {
-    code: StatusCode,
+    status: StatusCode,
+    reason: &'static str,
     msg: String,
 }
 
 impl ErrorResponse {
     fn as_err(&self) -> Error {
-        anyhow!("{} ({})", self.msg, self.code)
+        anyhow!("{} ({}-{})", self.msg, self.status, self.reason)
     }
 }
+
+#[derive(serde::Serialize)]
+struct ErrorResponseBody {
+    status: u16,
+    reason: &'static str,
+    msg: String,
+}
+
 /// Converts from ErrorResponse to Response.
 impl IntoResponse for ErrorResponse {
     fn into_response(self) -> Response {
@@ -129,10 +141,13 @@ impl IntoResponse for ErrorResponse {
             // Redact the the error message outside of dev.
             "See server logs for details.".to_string()
         };
-        Response::builder()
-            .status(self.code)
-            .body(Body::from(format!("{}: {}", self.code, msg)))
-            .unwrap()
+        let body = axum::Json(ErrorResponseBody {
+            status: self.status.as_u16(),
+            reason: self.reason,
+            msg,
+        });
+
+        (self.status, body).into_response()
     }
 }
 
@@ -142,11 +157,7 @@ where
     E: Into<Box<dyn std::error::Error>>,
 {
     fn from(err: E) -> Self {
-        let err = err.into();
-        let code = StatusCode::INTERNAL_SERVER_ERROR;
-        let msg = format!("{:?}", err);
-        tracing::error!("Failed: {}: {}", code, msg);
-        ErrorResponse { code, msg }
+        internal_error(&format!("{:?}", err.into()))
     }
 }
 

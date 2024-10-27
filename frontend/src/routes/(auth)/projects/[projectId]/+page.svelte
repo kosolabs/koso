@@ -50,13 +50,24 @@
 
   async function saveEditedProjectName(name: string) {
     if (!$user || !$token) throw new Error("User is unauthorized");
+    name = name.trim();
+    if (name === "") {
+      return false;
+    }
 
-    const updatedProject = await updateProject($token, {
-      project_id: projectId,
-      name,
-    });
+    let updatedProject;
+    try {
+      updatedProject = await updateProject($token, {
+        project_id: projectId,
+        name,
+      });
+    } catch (err) {
+      toast.error("Failed to change project name.");
+      throw err;
+    }
     let p = await project;
     p.name = updatedProject.name;
+    return true;
   }
 
   async function exportProjectToFile() {
@@ -121,7 +132,9 @@
           class="ml-2 text-lg"
           value={project.name}
           aria-label="Set project name"
-          onsave={saveEditedProjectName}
+          onsave={async (name) => {
+            return await saveEditedProjectName(name);
+          }}
           onkeydown={(e) => e.stopPropagation()}
         />
       {/await}
