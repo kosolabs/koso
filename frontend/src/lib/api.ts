@@ -2,6 +2,12 @@ import { logout_on_authentication_error } from "./errors";
 
 export type ErrorResponseBody = {
   status: number;
+  details: ErrorDetail[];
+};
+
+export type ErrorDetail = {
+  // Terse, stable, machine readable error reason.
+  // e.g. NO_STOCK
   reason: string;
   msg: string;
 };
@@ -9,22 +15,17 @@ export type ErrorResponseBody = {
 export class KosoError extends Error {
   // Status code in number form. e.g. 400, 500
   status: number;
-  // Terse, stable, machine readable error reason.
-  // e.g. NO_STOCK
-  reason: string;
+  details: ErrorDetail[];
 
-  constructor({
-    status,
-    reason,
-    msg,
-  }: {
-    status: number;
-    reason: string;
-    msg: string;
-  }) {
-    super(`${reason} (${status}: ${msg})`);
+  constructor({ status, details }: { status: number; details: ErrorDetail[] }) {
+    const cause = details.map((d) => `(${d.reason}) ${d.msg}`).join(", ");
+    super(`(${status}: [${cause})]`);
     this.status = status;
-    this.reason = reason;
+    this.details = details;
+  }
+
+  hasReason(reason: string): boolean {
+    return this.details.find((d) => d.reason === reason) !== undefined;
   }
 }
 
@@ -50,13 +51,16 @@ export async function parse_response<T>(response: Response): Promise<T> {
     }
     throw new KosoError({
       status: error.status,
-      reason: error.reason,
-      msg: error.msg,
+      details: error.details,
     });
   }
   throw new KosoError({
     status: response.status,
-    reason: "UNKNOWN",
-    msg: "No error details present.",
+    details: [
+      {
+        reason: "UNKNOWN",
+        msg: "No error details present.",
+      },
+    ],
   });
 }

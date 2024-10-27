@@ -108,23 +108,36 @@ pub(crate) fn error_response(status: StatusCode, reason: &'static str, msg: &str
     }
     ErrorResponse {
         status,
-        reason,
-        msg: msg.to_string(),
+        details: vec![ErrorDetail {
+            reason,
+            msg: msg.to_string(),
+        }],
     }
 }
 
 pub(crate) struct ErrorResponse {
     status: StatusCode,
+    details: Vec<ErrorDetail>,
+}
+
+#[derive(serde::Serialize, Debug)]
+pub(crate) struct ErrorDetail {
     // Terse, stable, machine readable error reason.
     // e.g. NO_STOCK
     reason: &'static str,
     // Debug message for developers. Not intended for end users.
     msg: String,
+    // Need more details about an error? Consider adding
+    // a map of key/values for use in the client.
 }
 
 impl ErrorResponse {
     fn as_err(&self) -> Error {
-        anyhow!("{} ({}-{})", self.msg, self.status, self.reason)
+        if self.details.is_empty() {
+            anyhow!("({}) <MISSING_ERROR_DETAILS>", self.status)
+        } else {
+            anyhow!("({}) {:?}", self.status, self.details)
+        }
     }
 }
 
@@ -132,26 +145,15 @@ impl ErrorResponse {
 struct ErrorResponseBody {
     // StatusCode in number form. e.g. 400, 500
     status: u16,
-    // Terse, stable, machine readable error reason.
-    // e.g. NO_STOCK
-    reason: &'static str,
-    // Debug message for developers. Not intended for end users.
-    msg: String,
+    details: Vec<ErrorDetail>,
 }
 
 /// Converts from ErrorResponse to Response.
 impl IntoResponse for ErrorResponse {
     fn into_response(self) -> Response {
-        let msg = if dev_mode() {
-            self.msg
-        } else {
-            // Redact the the error message outside of dev.
-            "See server logs for details.".to_string()
-        };
         let body = axum::Json(ErrorResponseBody {
             status: self.status.as_u16(),
-            reason: self.reason,
-            msg,
+            details: self.details,
         });
 
         (self.status, body).into_response()
@@ -166,9 +168,4 @@ where
     fn from(err: E) -> Self {
         internal_error(&format!("{:?}", err.into()))
     }
-}
-
-fn dev_mode() -> bool {
-    // TODO: Decide on this based on an environment variable or the build.
-    true
 }
