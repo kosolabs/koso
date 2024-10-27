@@ -22,6 +22,7 @@
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
   import UnauthorizedModal from "./unauthorized-modal.svelte";
+  import { KosoError } from "$lib/api";
 
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
@@ -62,7 +63,11 @@
         name,
       });
     } catch (err) {
-      toast.error("Failed to change project name.");
+      if (err instanceof KosoError && err.reason == "LONG_NAME") {
+        toast.warning("Project name is too long. Try a shorter one.");
+      } else {
+        toast.error("Failed to change project name.");
+      }
       throw err;
     }
     let p = await project;

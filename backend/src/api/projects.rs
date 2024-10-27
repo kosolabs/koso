@@ -67,11 +67,21 @@ async fn create_project_handler(
     Json(project): Json<CreateProject>,
 ) -> ApiResult<Json<Project>> {
     let projects = list_projects(&user.email, pool).await?;
-    const MAX_PROJECTS: usize = 2;
+    const MAX_PROJECTS: usize = 20;
     if projects.len() >= MAX_PROJECTS {
         return Err(bad_request_error(
             "TOO_MANY_PROJECTS",
             &format!("Cannot create more than {} projects", MAX_PROJECTS),
+        ));
+    }
+    const MAX_NAME_LEN: usize = 36;
+    if project.name.len() > MAX_NAME_LEN {
+        return Err(bad_request_error(
+            "LONG_NAME",
+            &format!(
+                "Project name cannot be longer than {} characters ",
+                MAX_NAME_LEN
+            ),
         ));
     }
 
@@ -159,6 +169,16 @@ async fn update_project_handler(
 
     if project.name.is_empty() {
         return Err(bad_request_error("EMPTY_NAME", "Project name is empty"));
+    }
+    const MAX_NAME_LEN: usize = 36;
+    if project.name.len() > MAX_NAME_LEN {
+        return Err(bad_request_error(
+            "LONG_NAME",
+            &format!(
+                "Project name cannot be longer than {} characters ",
+                MAX_NAME_LEN
+            ),
+        ));
     }
 
     sqlx::query("UPDATE projects SET name=$2 WHERE project_id=$1")
