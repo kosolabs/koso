@@ -11,7 +11,11 @@
     class?: string;
     "aria-label"?: string;
     onclick?: (event: MouseEvent) => void;
-    onsave: (value: string) => void;
+    // Callback invoked to apply the edited value.
+    // May return false to revert the edit.
+    // May throw and allow the user to continue
+    // editing but should notify the user.
+    onsave: (value: string) => Promise<boolean>;
     ondone?: () => void;
     onkeydown?: (event: KeyboardEvent) => void;
   };
@@ -69,13 +73,16 @@
     editing = true;
   }
 
-  function save() {
+  async function save() {
     // Only trigger save if the value has changed.
     // This occurs as part of the normal flow due to
     // both the onblur and "Save" action callbacks triggering.
     if (value !== edited) {
-      value = edited;
-      onsave(edited);
+      if (await onsave(edited)) {
+        value = edited;
+      } else {
+        edited = value;
+      }
     }
     ondone?.();
     editing = false;
