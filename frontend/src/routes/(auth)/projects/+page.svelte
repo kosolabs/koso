@@ -22,7 +22,7 @@
     try {
       project = await projectsCreateProject($token);
     } catch (err) {
-      if (err instanceof KosoError && err.reason === "TOO_MANY_PROJECTS") {
+      if (err instanceof KosoError && err.hasReason("TOO_MANY_PROJECTS")) {
         errorMessage =
           "Cannot create new project, you already have too many. Contact us for more!";
       } else {
