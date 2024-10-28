@@ -1,7 +1,7 @@
 import { Set } from "immutable";
 import { get } from "svelte/store";
 import { beforeEach, describe, expect, it } from "vitest";
-import { storable } from "./stores";
+import { storable } from "./stores.svelte";
 
 describe("Svelte stores tests", () => {
   beforeEach(() => {

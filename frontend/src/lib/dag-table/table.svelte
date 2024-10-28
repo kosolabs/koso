@@ -44,7 +44,7 @@
     users: User[];
   };
   const { koso, users }: Props = $props();
-  const { debug, nodes, selected, showDone, syncState } = koso;
+  const { nodes, selected, showDone, syncState } = koso;
 
   const rows: { [key: string]: RowType } = {};
 
@@ -431,7 +431,7 @@
 
   onMount(() => {
     const keyDownListener = (event: KeyboardEvent) => {
-      if ($debug) {
+      if (koso.debug.value) {
         if (["Alt", "Control", "Meta", "Shift"].includes(event.key)) return;
         console.log(Shortcut.fromEvent(event).toString());
       }
@@ -460,7 +460,7 @@
       <thead class="text-left text-xs font-bold uppercase">
         <tr>
           <th class="w-32 p-2">ID</th>
-          {#if $debug}
+          {#if koso.debug.value}
             <th class="border-l p-2">UUID</th>
           {/if}
           <th class="border-l p-2">

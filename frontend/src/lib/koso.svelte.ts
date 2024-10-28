@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
-import { storable } from "./stores";
+import { storable, useLocalStorage, type Storable } from "./stores.svelte";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -106,12 +106,12 @@ export class Koso {
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
 
-  debug: Writable<boolean>;
+  debug: Storable<boolean>;
   events: Readable<YEvent[]>;
   selected: Writable<Node | null>;
   highlighted: Writable<string | null>;
   dropEffect: Writable<"copy" | "move" | "none">;
-  dragged: Writable<Node | null>;
+  dragged: Node | null = $state(null);
   expanded: Writable<Set<Node>>;
   showDone: Writable<boolean>;
   nodes: Readable<List<Node>>;
@@ -156,7 +156,7 @@ export class Koso {
       },
     );
 
-    this.debug = storable<boolean>("debug", false);
+    this.debug = useLocalStorage("debug", false);
     this.events = readable<YEvent[]>([], (set) => {
       const observer = (events: YEvent[]) => set(events);
       this.observe(observer);
@@ -167,7 +167,6 @@ export class Koso {
     this.selected = writable<Node | null>(null);
     this.highlighted = writable<string | null>(null);
     this.dropEffect = writable<"copy" | "move" | "none">("none");
-    this.dragged = writable<Node | null>(null);
 
     const expandedLocalStorageKey = `expanded-nodes-${projectId}`;
     this.expanded = storable<Set<Node>>(
@@ -616,10 +615,9 @@ export class Koso {
       );
     let adjIndex = index - 1;
 
-    const debug = get(this.debug);
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      if (debug) {
+      if (this.debug.value) {
         console.debug(
           `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
@@ -710,10 +708,9 @@ export class Koso {
       );
     let adjIndex = index + 1;
 
-    const debug = get(this.debug);
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      if (debug) {
+      if (this.debug.value) {
         console.debug(
           `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
