@@ -5,6 +5,9 @@ export async function getKosoGraph(page: Page): Promise<Graph> {
   return page.evaluate("koso.toJSON()");
 }
 
+export async function getKosoProjectId(page: Page): Promise<Graph> {
+  return page.evaluate("koso.projectId");
+}
 export async function clear(page: Page) {
   await page.evaluate("koso.clear()");
   await page.reload();

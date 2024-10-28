@@ -92,6 +92,7 @@ export type SyncState = {
 };
 
 export class Koso {
+  projectId: string;
   yDoc: Y.Doc;
   yGraph: Y.Map<YTask>;
   yUndoManager: Y.UndoManager;
@@ -136,6 +137,7 @@ export class Koso {
   });
 
   constructor(projectId: string, yDoc: Y.Doc) {
+    this.projectId = projectId;
     this.yDoc = yDoc;
     this.yGraph = yDoc.getMap("graph");
     this.yUndoManager = new Y.UndoManager(this.yGraph);
