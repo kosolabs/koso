@@ -278,8 +278,8 @@ async fn export_project(
 }
 
 fn validate_project_name(name: &str) -> ApiResult<()> {
-    if name.is_empty() {
-        return Err(bad_request_error("EMPTY_NAME", "Project name is empty"));
+    if name.is_empty() || name.chars().all(char::is_whitespace) {
+        return Err(bad_request_error("EMPTY_NAME", "Project name is blank"));
     }
     const MAX_NAME_LEN: usize = 36;
     if name.len() > MAX_NAME_LEN {

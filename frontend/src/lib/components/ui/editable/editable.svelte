@@ -11,7 +11,10 @@
     class?: string;
     "aria-label"?: string;
     onclick?: (event: MouseEvent) => void;
-    onsave: (value: string) => void;
+    // Callback invoked to apply the edited value.
+    // May throw or return a failed promise if save fails
+    // but should show users a warning.
+    onsave: (value: string) => Promise<void>;
     ondone?: () => void;
     onkeydown?: (event: KeyboardEvent) => void;
   };
@@ -73,12 +76,17 @@
     // Only trigger save if the value has changed.
     // This occurs as part of the normal flow due to
     // both the onblur and "Save" action callbacks triggering.
-    if (value !== edited) {
-      value = edited;
-      onsave(edited);
+    if (value === edited) {
+      ondone?.();
+      editing = false;
+      return;
     }
-    ondone?.();
-    editing = false;
+
+    onsave(edited).then(() => {
+      value = edited;
+      ondone?.();
+      editing = false;
+    });
   }
 
   function revert() {
