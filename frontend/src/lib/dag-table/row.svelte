@@ -32,7 +32,7 @@
   const { index, node, users }: Props = $props();
 
   const koso = getContext<Koso>("koso");
-  let { dropEffect, expanded, highlighted, selected, parents } = koso;
+  let { dropEffect, expanded, highlighted, parents } = koso;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
@@ -50,12 +50,12 @@
   let isDragging = $derived(node.equals(koso.dragged));
   let isMoving = $derived(isDragging && $dropEffect === "move");
   let isHovered = $derived($highlighted === node.name);
-  let isSelected = $derived(node.equals($selected));
+  let isSelected = $derived(node.equals(koso.selected));
   let progress = $derived(koso.getProgress(task.id));
   let tags = $derived(getTags($parents));
 
   $effect(() => {
-    if (rowElement && node.equals($selected)) {
+    if (rowElement && node.equals(koso.selected)) {
       rowElement.focus();
     }
   });
@@ -107,7 +107,7 @@
       return;
     }
     $highlighted = null;
-    $selected = null;
+    koso.selected = null;
     koso.dragged = node;
 
     dataTransfer.setData("text/plain", node.id);
@@ -254,7 +254,7 @@
 
   function handleRowClick(event: MouseEvent) {
     event.preventDefault();
-    $selected = node;
+    koso.selected = node;
   }
 </script>
 
@@ -342,7 +342,7 @@
         value={task.name}
         aria-label={`Task ${task.num} Edit Name`}
         editing={isEditing}
-        onclick={() => ($selected = node)}
+        onclick={() => (koso.selected = node)}
         onsave={(name) => koso.setTaskName(task.id, name)}
         ondone={() => edit(false)}
         onkeydown={(e) => {

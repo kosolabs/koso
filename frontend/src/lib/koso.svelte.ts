@@ -108,7 +108,7 @@ export class Koso {
 
   debug: Storable<boolean>;
   events: Readable<YEvent[]>;
-  selected: Writable<Node | null>;
+  selected: Node | null = $state(null);
   highlighted: Writable<string | null>;
   dropEffect: Writable<"copy" | "move" | "none">;
   dragged: Node | null = $state(null);
@@ -124,17 +124,17 @@ export class Koso {
     this.undoManager = new Y.UndoManager(this.yGraph);
     // Save and restore node selection on undo/redo.
     this.undoManager.on("stack-item-added", (event) => {
-      event.stackItem.meta.set("selected-node", get(this.selected));
+      event.stackItem.meta.set("selected-node", this.selected);
     });
     this.undoManager.on("stack-item-popped", (event) => {
       const selected = event.stackItem.meta.get("selected-node");
       if (selected === null || selected.constructor === Node) {
-        this.selected.set(selected);
+        this.selected = selected;
       } else {
         console.warn(
           `Unexpectedly found non-node "selected-node" stack item: ${selected}`,
         );
-        this.selected.set(null);
+        this.selected = null;
       }
     });
     this.yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.yDoc);
@@ -164,7 +164,6 @@ export class Koso {
     });
     this.parents = derived(this.events, () => Map(this.#toParents()));
 
-    this.selected = writable<Node | null>(null);
     this.highlighted = writable<string | null>(null);
     this.dropEffect = writable<"copy" | "move" | "none">("none");
 
@@ -627,7 +626,7 @@ export class Koso {
         return false;
       }
       this.moveNode(node, newParent.name, newOffset);
-      this.selected.set(newParent.child(node.name));
+      this.selected = newParent.child(node.name);
       if (attempts > 0) {
         toast.info(
           `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
@@ -720,7 +719,7 @@ export class Koso {
         return false;
       }
       this.moveNode(node, newParent.name, newOffset);
-      this.selected.set(newParent.child(node.name));
+      this.selected = newParent.child(node.name);
       if (attempts > 0) {
         toast.info(
           `Skipped over ${attempts} position${attempts > 1 ? "s" : ""} to avoid collision with existing task`,
@@ -834,7 +833,7 @@ export class Koso {
     if (!peer || !this.canIndentNode(node)) return;
     this.moveNode(node, peer.name, this.getChildCount(peer.name));
     this.expand(peer);
-    this.selected.set(peer.child(node.name));
+    this.selected = peer.child(node.name);
   }
 
   canUndentNode(node: Node) {
@@ -847,7 +846,7 @@ export class Koso {
     const parent = node.parent;
     const offset = this.getOffset(parent);
     this.moveNode(node, parent.parent.name, offset + 1);
-    this.selected.set(parent.parent.child(node.name));
+    this.selected = parent.parent.child(node.name);
   }
 
   insertNode(
@@ -871,7 +870,7 @@ export class Koso {
       this.#insertChild(taskId, parent.name, offset);
     });
     const node = parent.child(taskId);
-    this.selected.set(node);
+    this.selected = node;
     return node;
   }
 
@@ -919,7 +918,7 @@ export class Koso {
       if (status === "Done") {
         const peer = this.getPrevPeer(node) || this.getNextPeer(node);
         if (peer) {
-          this.selected.set(peer);
+          this.selected = peer;
         }
 
         // If scanning all tasks ever gets slow, we could always
