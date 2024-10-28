@@ -15,15 +15,21 @@
   let projects: Promise<Project[]> = fetchProjects();
   let errorMessage: string | null = null;
 
-  async function createProject() {
+  async function createProject(import_data: string | null = null) {
     errorMessage = null;
     let project;
     try {
-      project = await projectsCreateProject();
+      project = await projectsCreateProject(mport_data);
     } catch (err) {
       if (err instanceof KosoError && err.hasReason("TOO_MANY_PROJECTS")) {
         errorMessage =
           "Cannot create new project, you already have too many. Contact us for more!";
+      } else if (
+        err instanceof KosoError &&
+        err.hasReason("MALFORMED_IMPORT")
+      ) {
+        errorMessage =
+          "The selected import file is malformed. Verify the correct file was selected and try again.";
       } else {
         errorMessage = "Something went wrong. Please try again.";
       }
@@ -41,15 +47,7 @@
       return;
     }
 
-    errorMessage = null;
-    let project;
-    try {
-      project = await projectsCreateProject(await file.text());
-    } catch (err) {
-      errorMessage = `${err}`;
-      return;
-    }
-    await goto(`/projects/${project.project_id}`);
+    await createProject(await file.text());
   }
 </script>
 
