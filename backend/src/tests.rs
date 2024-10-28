@@ -349,7 +349,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     {
         let mut txn = doc_2.transact_mut();
         let graph = txn.get_or_insert_map("graph");
-        graph.insert(&mut txn, "entry1", "value1");
+        graph.insert(&mut txn, "entry1", MapPrelim::from([("inner", "value1")]));
         graph.insert(&mut txn, "entry2", MapPrelim::from([("inner", "value2")]));
     }
 
@@ -429,7 +429,11 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     for i in 0..10 {
         let mut txn = doc_1.transact_mut();
         let graph = txn.get_or_insert_map("graph");
-        graph.insert(&mut txn, format!("new_entry_{i}"), "value1");
+        graph.insert(
+            &mut txn,
+            format!("new_entry_{i}"),
+            MapPrelim::from([("inner", "value1")]),
+        );
         let update = txn.encode_update_v2();
         socket_1
             .send(Message::Binary(msg_sync::sync_update(&update)))
