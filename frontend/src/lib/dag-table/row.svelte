@@ -85,21 +85,21 @@
       .filter((parent) => parent.name.length > 0)
       .map((parent) => {
         const props = parseChipProps(parent.name);
-        if (parent.id !== $nodes.get(0)?.name) {
+        if (parent.id !== koso.nodes.get(0)?.name) {
           props.onClick = (event) => {
             event.stopPropagation();
 
-            let parentNode = $nodes
+            let parentNode = koso.nodes
               .filter((n) => n.name === parent.id)
               // Prefer the least nested linkage of the parent.
               // i.e. the one closed to the root.
               .minBy((n) => n.path.size);
             if (parentNode) {
               console.log(`Selecting parent ${parentNode.id}`);
-              $selected = parentNode;
+              koso.selected = parentNode;
               return;
             }
-            const root = $nodes.get(0);
+            const root = koso.nodes.get(0);
             if (!root) throw new Error("Missing root");
 
             // All instances of parent are under collapsed nodes or aren't visible.
@@ -108,9 +108,9 @@
             while (queue.length > 0) {
               let n = queue.shift();
               if (!n) throw new Error("Unexpectly found nothing in queue.");
-              if (n.name === parent.id && koso.isVisible(n, $showDone)) {
+              if (n.name === parent.id && koso.isVisible(n, koso.showDone)) {
                 console.log(`Selecting previously not shown parent ${n.id}`);
-                $selected = n;
+                koso.selected = n;
 
                 let t = n;
                 while (t.length) {
