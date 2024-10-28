@@ -1183,7 +1183,7 @@ test.describe("dag table tests", () => {
         { id: "2" },
       ]);
       page.evaluate(() => {
-        window.koso.undoManager.captureTimeout = 0;
+        window.koso.yUndoManager.captureTimeout = 0;
       });
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
@@ -1219,7 +1219,7 @@ test.describe("dag table tests", () => {
     test("clicking undo restores selected node", async ({ page }) => {
       await init(page, [{ id: "root", children: ["1"] }, { id: "1" }]);
       page.evaluate(() => {
-        window.koso.undoManager.captureTimeout = 0;
+        window.koso.yUndoManager.captureTimeout = 0;
       });
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();

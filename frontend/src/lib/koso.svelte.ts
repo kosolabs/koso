@@ -93,16 +93,17 @@ export type SyncState = {
 
 export class Koso {
   yDoc: Y.Doc;
-  undoManager: Y.UndoManager;
   yGraph: Y.Map<YTask>;
+  yUndoManager: Y.UndoManager;
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
 
-  #debug: Storable<boolean> = useLocalStorage("debug", false);
   selected: Node | null = $state(null);
   highlighted: string | null = $state(null);
-  dropEffect: "copy" | "move" | "none" = $state("none");
   dragged: Node | null = $state(null);
+  dropEffect: "copy" | "move" | "none" = $state("none");
+
+  #debug: Storable<boolean>;
   #observer: (events: YEvent[]) => void;
   #events: YEvent[] = $state.raw([]);
   #expanded: Storable<Set<Node>>;
@@ -110,7 +111,7 @@ export class Koso {
   #parents: Map<string, string[]> = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     this.#events;
-    return Map(this.#toParents());
+    return this.#toParents();
   });
   #nodes: List<Node> = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -124,7 +125,7 @@ export class Koso {
     }
     return this.#flatten(new Node(), this.expanded, this.showDone);
   });
-  syncState: SyncState = $state({
+  #syncState: SyncState = $state({
     indexedDbSync: false,
     serverSync: false,
   });
@@ -132,12 +133,12 @@ export class Koso {
   constructor(projectId: string, yDoc: Y.Doc) {
     this.yDoc = yDoc;
     this.yGraph = yDoc.getMap("graph");
-    this.undoManager = new Y.UndoManager(this.yGraph);
+    this.yUndoManager = new Y.UndoManager(this.yGraph);
     // Save and restore node selection on undo/redo.
-    this.undoManager.on("stack-item-added", (event) => {
+    this.yUndoManager.on("stack-item-added", (event) => {
       event.stackItem.meta.set("selected-node", this.selected);
     });
-    this.undoManager.on("stack-item-popped", (event) => {
+    this.yUndoManager.on("stack-item-popped", (event) => {
       const selected = event.stackItem.meta.get("selected-node");
       if (selected === null || selected.constructor === Node) {
         this.selected = selected;
@@ -150,9 +151,8 @@ export class Koso {
     });
     this.yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.yDoc);
     this.clientMessageHandler = () => {
-      console.warn("Client message handler was invoked but was not set");
+      throw new Error("Client message handler was invoked but was not set");
     };
-
     this.yDoc.on(
       "updateV2",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,9 +167,9 @@ export class Koso {
       },
     );
 
-    this.#observer = (events: YEvent[]) => {
-      this.#events = events;
-    };
+    this.#debug = useLocalStorage("debug", false);
+
+    this.#observer = (events: YEvent[]) => (this.#events = events);
     this.observe(this.#observer);
 
     this.#expanded = useLocalStorage<Set<Node>>(
@@ -179,15 +179,10 @@ export class Koso {
       (nodes) => JSON.stringify(nodes.map((node) => node.id)),
     );
 
-    this.#showDone = useLocalStorage<boolean>(
-      `show-done-${projectId}`,
-      false,
-      (s: string) => s === "true",
-      (b) => (b ? "true" : "false"),
-    );
+    this.#showDone = useLocalStorage<boolean>(`show-done-${projectId}`, false);
 
     this.yIndexedDb.whenSynced.then(() => {
-      this.syncState.indexedDbSync = true;
+      this.#syncState.indexedDbSync = true;
     });
   }
 
@@ -231,6 +226,10 @@ export class Koso {
     return this.#nodes;
   }
 
+  get syncState(): SyncState {
+    return this.#syncState;
+  }
+
   observe(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
     this.yGraph.observeDeep(f);
   }
@@ -261,7 +260,7 @@ export class Koso {
         if (this.yGraph.size === 0) {
           this.upsertRoot();
         }
-        this.syncState.serverSync = true;
+        this.#syncState.serverSync = true;
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdateV2(this.yDoc, message);
@@ -323,17 +322,16 @@ export class Koso {
     return nodes;
   }
 
-  #toParents(): { [id: string]: string[] } {
-    const parents: { [id: string]: string[] } = {};
-    for (const [parentId, task] of this.yGraph.entries()) {
-      for (const childId of task.get("children") as Y.Array<string>) {
-        if (!(childId in parents)) {
-          parents[childId] = [];
+  #toParents(): Map<string, string[]> {
+    return Map<string, string[]>().withMutations((parents) => {
+      for (const [parentId, task] of this.yGraph.entries()) {
+        for (const childId of task.get("children") as Y.Array<string>) {
+          const children = parents.get<string[]>(childId, []);
+          children.push(parentId);
+          parents.set(childId, children);
         }
-        parents[childId].push(parentId);
       }
-    }
-    return parents;
+    });
   }
 
   getOffset(node: Node): number {
@@ -454,7 +452,7 @@ export class Koso {
       });
     });
     // Prevent undoing creation of the root task.
-    this.undoManager.clear();
+    this.yUndoManager.clear();
   }
 
   upsert(task: Task) {
@@ -1020,11 +1018,11 @@ export class Koso {
   }
 
   undo() {
-    this.undoManager.undo();
+    this.yUndoManager.undo();
   }
 
   redo() {
-    this.undoManager.redo();
+    this.yUndoManager.redo();
   }
 
   isVisible(node: Node, showDone: boolean) {
