@@ -52,13 +52,6 @@ export class Node extends NodeRecord {
   child(name: string): Node {
     return new Node({ path: this.path.push(name) });
   }
-
-  isDescendantOf(ancestor: Node): boolean {
-    if (ancestor.path.size > this.path.size) {
-      return false;
-    }
-    return this.id.startsWith(ancestor.id);
-  }
 }
 
 export type Status = "Not Started" | "In Progress" | "Done";
@@ -319,7 +312,6 @@ export class Koso {
     node: Node,
     expanded: Set<Node>,
     showDone: boolean,
-    selected: Node | null,
     nodes: List<Node> = List(),
   ): List<Node> {
     const task = this.yGraph.get(node.name);
@@ -330,14 +322,8 @@ export class Koso {
           const childNode = node.child(name);
           // Apply visibility filtering here instead of at the start of #flatten
           // to ensure that the root node is always present.
-          if (this.isVisible(childNode, showDone, selected)) {
-            nodes = this.#flatten(
-              childNode,
-              expanded,
-              showDone,
-              selected,
-              nodes,
-            );
+          if (this.isVisible(childNode, showDone)) {
+            nodes = this.#flatten(childNode, expanded, showDone, nodes);
           }
         });
       }
@@ -1050,7 +1036,7 @@ export class Koso {
     this.yUndoManager.redo();
   }
 
-  isVisible(node: Node, showDone: boolean, selected: Node | null) {
+  isVisible(node: Node, showDone: boolean) {
     if (!showDone) {
       const progress = this.getProgress(node.name);
       if (progress.total === progress.done) {
@@ -1058,14 +1044,8 @@ export class Koso {
         // won't have a statusTime set. Assume they were all marked done
         // a long time ago.
         const doneTime = progress.lastStatusTime ? progress.lastStatusTime : 0;
-        if (node.name === "3836c2c6-4d00-4a68-833c-997d5baaf814") {
-          return true;
-        }
-        if (Date.now() - doneTime < 3) {
-          return true;
-        }
-
-        return selected && selected.isDescendantOf(node);
+        const threeDays = 3 * 24 * 60 * 60 * 1000;
+        return Date.now() - doneTime < threeDays;
       }
     }
     return true;
