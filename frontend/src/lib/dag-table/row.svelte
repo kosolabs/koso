@@ -32,7 +32,6 @@
   const { index, node, users }: Props = $props();
 
   const koso = getContext<Koso>("koso");
-  let { expanded, parents } = koso;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
@@ -46,13 +45,13 @@
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
   let assignee = $derived(getUser(users, task.assignee));
-  let open = $derived($expanded.has(node));
+  let open = $derived(koso.expanded.has(node));
   let isDragging = $derived(node.equals(koso.dragged));
   let isMoving = $derived(isDragging && koso.dropEffect === "move");
   let isHovered = $derived(koso.highlighted === node.name);
   let isSelected = $derived(node.equals(koso.selected));
   let progress = $derived(koso.getProgress(task.id));
-  let tags = $derived(getTags($parents));
+  let tags = $derived(getTags(koso.parents));
 
   $effect(() => {
     if (rowElement && node.equals(koso.selected)) {

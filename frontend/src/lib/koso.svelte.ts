@@ -2,18 +2,11 @@ import { List, Map, Record, Set } from "immutable";
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import { toast } from "svelte-sonner";
-import {
-  derived,
-  get,
-  readable,
-  type Readable,
-  type Writable,
-} from "svelte/store";
 import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
-import { storable, useLocalStorage, type Storable } from "./stores.svelte";
+import { useLocalStorage, type Storable } from "./stores.svelte";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -106,15 +99,31 @@ export class Koso {
   clientMessageHandler: (message: Uint8Array) => void;
 
   #debug: Storable<boolean> = useLocalStorage("debug", false);
-  events: Readable<YEvent[]>;
   selected: Node | null = $state(null);
   highlighted: string | null = $state(null);
   dropEffect: "copy" | "move" | "none" = $state("none");
   dragged: Node | null = $state(null);
-  expanded: Writable<Set<Node>>;
-  showDone: Writable<boolean>;
-  nodes: Readable<List<Node>>;
-  parents: Readable<Map<string, string[]>>;
+  #observer: (events: YEvent[]) => void;
+  #events: YEvent[] = $state.raw([]);
+  #expanded: Storable<Set<Node>>;
+  #showDone: Storable<boolean>;
+  #parents: Map<string, string[]> = $derived.by(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    this.#events;
+    return Map(this.#toParents());
+  });
+  #nodes: List<Node> = $derived.by(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    this.#events;
+    // The nodes store is consistently initialized prior to the ygraph
+    // being loaded, but #flatten expects the presence of at least a
+    // "root" task. Handle the situation here to avoid generating warnings
+    // in #flatten.
+    if (this.yGraph.size === 0) {
+      return List();
+    }
+    return this.#flatten(new Node(), this.expanded, this.showDone);
+  });
   syncState: SyncState = $state({
     indexedDbSync: false,
     serverSync: false,
@@ -158,46 +167,32 @@ export class Koso {
       },
     );
 
-    this.events = readable<YEvent[]>([], (set) => {
-      const observer = (events: YEvent[]) => set(events);
-      this.observe(observer);
-      return () => this.unobserve(observer);
-    });
-    this.parents = derived(this.events, () => Map(this.#toParents()));
+    this.#observer = (events: YEvent[]) => {
+      this.#events = events;
+    };
+    this.observe(this.#observer);
 
-    const expandedLocalStorageKey = `expanded-nodes-${projectId}`;
-    this.expanded = storable<Set<Node>>(
-      expandedLocalStorageKey,
+    this.#expanded = useLocalStorage<Set<Node>>(
+      `expanded-nodes-${projectId}`,
       Set(),
       (json: string) => Set(JSON.parse(json).map(Node.parse)),
       (nodes) => JSON.stringify(nodes.map((node) => node.id)),
     );
 
-    const showDoneLocalStorageKey = `show-done-${projectId}`;
-    this.showDone = storable<boolean>(
-      showDoneLocalStorageKey,
+    this.#showDone = useLocalStorage<boolean>(
+      `show-done-${projectId}`,
       false,
       (s: string) => s === "true",
       (b) => (b ? "true" : "false"),
     );
 
-    this.nodes = derived(
-      [this.expanded, this.showDone, this.events],
-      ([expanded, showDone]): List<Node> => {
-        // The nodes store is consistently initialized prior to the ygraph
-        // being loaded, but #flatten expects the presence of at least a
-        // "root" task. Handle the situation here to avoid generating warnings
-        // in #flatten.
-        if (this.yGraph.size === 0) {
-          return List();
-        }
-        return this.#flatten(new Node(), expanded, showDone);
-      },
-    );
-
     this.yIndexedDb.whenSynced.then(() => {
       this.syncState.indexedDbSync = true;
     });
+  }
+
+  destroy() {
+    this.unobserve(this.#observer);
   }
 
   get root(): Node {
@@ -208,8 +203,32 @@ export class Koso {
     return this.#debug.value;
   }
 
-  set debug(v: boolean) {
-    this.#debug.value = v;
+  set debug(value: boolean) {
+    this.#debug.value = value;
+  }
+
+  get expanded(): Set<Node> {
+    return this.#expanded.value;
+  }
+
+  set expanded(value: Set<Node>) {
+    this.#expanded.value = value;
+  }
+
+  get showDone(): boolean {
+    return this.#showDone.value;
+  }
+
+  set showDone(value: boolean) {
+    this.#showDone.value = value;
+  }
+
+  get parents(): Map<string, string[]> {
+    return this.#parents;
+  }
+
+  get nodes(): List<Node> {
+    return this.#nodes;
   }
 
   observe(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
@@ -272,15 +291,11 @@ export class Koso {
   }
 
   expand(node: Node) {
-    this.expanded.update(($expanded) => $expanded.add(node));
+    this.expanded = this.expanded.add(node);
   }
 
   collapse(node: Node) {
-    this.expanded.update(($expanded) => $expanded.delete(node));
-  }
-
-  setShowDone(showDone: boolean) {
-    this.showDone.set(showDone);
+    this.expanded = this.expanded.delete(node);
   }
 
   #flatten(
@@ -338,12 +353,11 @@ export class Koso {
     }
 
     // Find the nearest prior peer that isn't filtered out.
-    const nodes = get(this.nodes);
     for (const peer of peers.slice(0, prevPeerOffset + 1).reverse()) {
       const peerNode = parent.child(peer);
       // TODO: This call to includes, and the one in getNextPeer, could be optimized
       // to avoid iterating over the entire nodes list repeatedly.
-      if (nodes.includes(peerNode)) {
+      if (this.nodes.includes(peerNode)) {
         return peerNode;
       }
     }
@@ -361,10 +375,9 @@ export class Koso {
     }
 
     // Find the nearest next peer that isn't filtered out.
-    const nodes = get(this.nodes);
     for (const peer of peers.slice(nextPeerOffset)) {
       const peerNode = parent.child(peer);
-      if (nodes.includes(peerNode)) {
+      if (this.nodes.includes(peerNode)) {
         return peerNode;
       }
     }
@@ -466,7 +479,6 @@ export class Koso {
     // Find all of the tasks that will become orphans when `node`
     // is unlinked. In other words, tasks whose only parents are also in the sub-tree
     // being deleted.
-    const parents = this.#toParents();
     const stack = [node.name];
     let orphanTaskIds = Set<string>();
     let visited = Set<string>();
@@ -478,7 +490,9 @@ export class Koso {
       visited = visited.add(taskId);
 
       // Don't delete tasks that are linked to outside of the target sub-tree.
-      const linkedElseWhere = parents[taskId].find((parentTaskId) => {
+      const parents = this.parents.get(taskId);
+      if (!parents) throw new Error(`Parents missing ${taskId}`);
+      const linkedElseWhere = parents.find((parentTaskId) => {
         const isTargetNode =
           taskId === node.name && parentTaskId === node.parent.name;
         const parentInSubtree = subtreeTaskIds.has(parentTaskId);
@@ -602,11 +616,10 @@ export class Koso {
   }
 
   moveNodeUp(node: Node) {
-    const nodes = get(this.nodes);
-    const index = nodes.findIndex((n) => n.equals(node));
+    const index = this.nodes.findIndex((n) => n.equals(node));
     if (index === -1)
       throw new Error(
-        `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
+        `Could not find node ${node.path} in ${this.nodes.map((n) => n.path)}`,
       );
     let adjIndex = index - 1;
 
@@ -640,7 +653,7 @@ export class Koso {
       return n;
     };
 
-    const initPrevAdj = adjIndex == 0 ? null : nodes.get(adjIndex);
+    const initPrevAdj = adjIndex == 0 ? null : this.nodes.get(adjIndex);
     if (!initPrevAdj) {
       // The node in the "zeroth" position is the root, don't move it.
       return;
@@ -655,7 +668,7 @@ export class Koso {
     }
 
     while (true) {
-      const adj = adjIndex == 0 ? null : nodes.get(adjIndex);
+      const adj = adjIndex == 0 ? null : this.nodes.get(adjIndex);
       if (!adj) {
         toast.info("Cannot move up without conflict.");
         return;
@@ -667,7 +680,7 @@ export class Koso {
         }
 
         adjIndex--;
-        const adjAdj = adjIndex == 0 ? null : nodes.get(adjIndex);
+        const adjAdj = adjIndex == 0 ? null : this.nodes.get(adjIndex);
         if (
           adjAdj &&
           !adjAdj.parent.equals(adj.parent) &&
@@ -695,11 +708,10 @@ export class Koso {
   }
 
   moveNodeDown(node: Node) {
-    const nodes = get(this.nodes);
-    const index = nodes.findIndex((n) => n.equals(node));
+    const index = this.nodes.findIndex((n) => n.equals(node));
     if (index === -1)
       throw new Error(
-        `Could not find node ${node.path} in ${nodes.map((n) => n.path)}`,
+        `Could not find node ${node.path} in ${this.nodes.map((n) => n.path)}`,
       );
     let adjIndex = index + 1;
 
@@ -727,8 +739,8 @@ export class Koso {
     // Find the next node that this node is not an ancestor of,
     // either a direct peer or a peer of an ancestor.
     let initAdj = null;
-    for (; adjIndex < nodes.size; adjIndex++) {
-      const n = nodes.get(adjIndex);
+    for (; adjIndex < this.nodes.size; adjIndex++) {
+      const n = this.nodes.get(adjIndex);
       if (!n) throw new Error(`Node at ${adjIndex} does not exist`);
       if (!n.id.startsWith(node.id)) {
         initAdj = n;
@@ -737,7 +749,7 @@ export class Koso {
     }
     // There's no where to move to if this node
     // is the last node and an immediate child of the root,
-    if (!initAdj && node.parent.equals(nodes.get(0))) {
+    if (!initAdj && node.parent.equals(this.nodes.get(0))) {
       return;
     }
 
@@ -747,10 +759,10 @@ export class Koso {
     }
 
     while (true) {
-      const adj = nodes.get(adjIndex);
+      const adj = this.nodes.get(adjIndex);
       if (!adj) {
         if (!insertionTarget) throw new Error("Expected insertionTarget.");
-        if (insertionTarget.equals(nodes.get(0))) {
+        if (insertionTarget.equals(this.nodes.get(0))) {
           toast.info("Cannot move down without conflict.");
           return;
         }
@@ -762,7 +774,7 @@ export class Koso {
         }
         insertionTarget = insertionTarget.parent;
       } else if (!insertionTarget) {
-        const adjAdj = nodes.get(adjIndex + 1);
+        const adjAdj = this.nodes.get(adjIndex + 1);
         const adjHasChild = adjAdj && adjAdj.parent.equals(adj);
         if (adjHasChild) {
           if (maybeMove(adj, 0)) {
@@ -787,7 +799,7 @@ export class Koso {
         }
 
         if (
-          insertionTarget.equals(nodes.get(0)) ||
+          insertionTarget.equals(this.nodes.get(0)) ||
           insertionTarget.parent.equals(adj.parent)
         ) {
           insertionTarget = null;

@@ -44,7 +44,6 @@
     users: User[];
   };
   const { koso, users }: Props = $props();
-  const { nodes, showDone } = koso;
 
   const rows: { [key: string]: RowType } = {};
 
@@ -133,16 +132,16 @@
   function remove() {
     if (!koso.selected) return;
     const toDelete = koso.selected;
-    const toDeleteIndex = $nodes.indexOf(toDelete);
+    const toDeleteIndex = koso.nodes.indexOf(toDelete);
 
     koso.deleteNode(toDelete);
 
     // Select the next (or previous) node following deletion.
-    if ($nodes.size < 2) {
+    if (koso.nodes.size < 2) {
       koso.selected = null;
     } else {
       koso.selected =
-        $nodes.get(Math.min(toDeleteIndex, $nodes.size - 1)) || null;
+        koso.nodes.get(Math.min(toDeleteIndex, koso.nodes.size - 1)) || null;
     }
   }
 
@@ -196,35 +195,35 @@
   }
 
   function showDoneTasks() {
-    koso.setShowDone(true);
+    koso.showDone = true;
   }
 
   function hideDoneTasks() {
-    koso.setShowDone(false);
+    koso.showDone = false;
   }
 
   function selectNext() {
-    if ($nodes.size > 1) {
+    if (koso.nodes.size > 1) {
       if (koso.selected) {
-        $nodes.indexOf(koso.selected);
+        koso.nodes.indexOf(koso.selected);
         const index = Math.min(
-          $nodes.indexOf(koso.selected) + 1,
-          $nodes.size - 1,
+          koso.nodes.indexOf(koso.selected) + 1,
+          koso.nodes.size - 1,
         );
-        koso.selected = $nodes.get(index, null);
+        koso.selected = koso.nodes.get(index, null);
       } else {
-        koso.selected = $nodes.get(1, null);
+        koso.selected = koso.nodes.get(1, null);
       }
     }
   }
 
   function selectPrev() {
-    if ($nodes.size > 1) {
+    if (koso.nodes.size > 1) {
       if (koso.selected) {
-        const index = Math.max($nodes.indexOf(koso.selected) - 1, 1);
-        koso.selected = $nodes.get(index, null);
+        const index = Math.max(koso.nodes.indexOf(koso.selected) - 1, 1);
+        koso.selected = koso.nodes.get(index, null);
       } else {
-        koso.selected = $nodes.get($nodes.size - 1, null);
+        koso.selected = koso.nodes.get(koso.nodes.size - 1, null);
       }
     }
   }
@@ -371,14 +370,14 @@
       title: "Hide Done Tasks",
       icon: EyeOff,
       callback: hideDoneTasks,
-      enabled: () => $showDone,
+      enabled: () => koso.showDone,
       toolbar: true,
     }),
     new Action({
       title: "Show Done Tasks",
       icon: Eye,
       callback: showDoneTasks,
-      enabled: () => !$showDone,
+      enabled: () => !koso.showDone,
       toolbar: true,
     }),
     new Action({
@@ -463,7 +462,7 @@
 <div class="mb-12 p-2 sm:mb-0">
   {#if !koso.syncState.serverSync && !koso.syncState.indexedDbSync}
     <!-- Loading.-->
-  {:else if $nodes.size > 1}
+  {:else if koso.nodes.size > 1}
     <table class="w-full border-separate border-spacing-0 rounded-md border">
       <thead class="text-left text-xs font-bold uppercase">
         <tr>
@@ -484,7 +483,7 @@
         </tr>
       </thead>
 
-      {#each [...$nodes].slice(1) as node, index (node.id)}
+      {#each [...koso.nodes].slice(1) as node, index (node.id)}
         <tbody animate:flip={{ duration: 250 }}>
           <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
           <!-- svelte-ignore binding_property_non_reactive -->
