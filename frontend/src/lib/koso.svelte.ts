@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
-import { load, save, storable } from "./stores.svelte";
+import { storable, useLocalStorage, type Storable } from "./stores.svelte";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -105,7 +105,7 @@ export class Koso {
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
 
-  #debug: boolean = $state(false);
+  #debug: Storable<boolean> = useLocalStorage("debug", false);
   events: Readable<YEvent[]>;
   selected: Node | null = $state(null);
   highlighted: string | null = $state(null);
@@ -158,7 +158,6 @@ export class Koso {
       },
     );
 
-    this.debug = load("debug", false);
     this.events = readable<YEvent[]>([], (set) => {
       const observer = (events: YEvent[]) => set(events);
       this.observe(observer);
@@ -206,12 +205,11 @@ export class Koso {
   }
 
   get debug(): boolean {
-    return this.#debug;
+    return this.#debug.value;
   }
 
   set debug(v: boolean) {
-    this.#debug = v;
-    save("debug", this.#debug);
+    this.#debug.value = v;
   }
 
   observe(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
