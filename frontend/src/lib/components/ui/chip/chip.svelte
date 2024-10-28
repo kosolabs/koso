@@ -10,7 +10,11 @@
   title={description}
 >
   {#if onClick}
-    <Button onclick={onClick}>
+    <Button
+      onclick={onClick}
+      variant="link"
+      class="p-0 text-xs text-secondary-foreground"
+    >
       {title}
     </Button>
   {:else}
