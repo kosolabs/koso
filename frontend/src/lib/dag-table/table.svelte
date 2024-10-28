@@ -439,7 +439,7 @@
 
   onMount(() => {
     const keyDownListener = (event: KeyboardEvent) => {
-      if (koso.debug.value) {
+      if (koso.debug) {
         if (["Alt", "Control", "Meta", "Shift"].includes(event.key)) return;
         console.log(Shortcut.fromEvent(event).toString());
       }
@@ -468,7 +468,7 @@
       <thead class="text-left text-xs font-bold uppercase">
         <tr>
           <th class="w-32 p-2">ID</th>
-          {#if koso.debug.value}
+          {#if koso.debug}
             <th class="border-l p-2">UUID</th>
           {/if}
           <th class="border-l p-2">

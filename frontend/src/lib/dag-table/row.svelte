@@ -32,7 +32,7 @@
   const { index, node, users }: Props = $props();
 
   const koso = getContext<Koso>("koso");
-  let { dropEffect, expanded, highlighted, parents } = koso;
+  let { dropEffect, expanded, parents } = koso;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
@@ -49,7 +49,7 @@
   let open = $derived($expanded.has(node));
   let isDragging = $derived(node.equals(koso.dragged));
   let isMoving = $derived(isDragging && $dropEffect === "move");
-  let isHovered = $derived($highlighted === node.name);
+  let isHovered = $derived(koso.highlighted === node.name);
   let isSelected = $derived(node.equals(koso.selected));
   let progress = $derived(koso.getProgress(task.id));
   let tags = $derived(getTags($parents));
@@ -106,7 +106,7 @@
     if (!dataTransfer || !rowElement || !handleElement || !idCellElement) {
       return;
     }
-    $highlighted = null;
+    koso.highlighted = null;
     koso.selected = null;
     koso.dragged = node;
 
@@ -244,12 +244,12 @@
 
   function handleHighlight() {
     if (koso.dragged) return;
-    $highlighted = node.name;
+    koso.highlighted = node.name;
   }
 
   function handleUnhighlight() {
     if (koso.dragged) return;
-    $highlighted = null;
+    koso.highlighted = null;
   }
 
   function handleRowClick(event: MouseEvent) {
@@ -304,7 +304,7 @@
       </button>
     </div>
   </td>
-  {#if koso.debug.value}
+  {#if koso.debug}
     <td class={cn("border-l border-t p-2 text-xs lg:text-nowrap")}>
       {task.id}
     </td>
@@ -388,7 +388,7 @@
     class={cn(
       "absolute z-50 h-1 cursor-default transition-all",
       koso.dragged ? "-my-3 h-8 " : "",
-      koso.debug.value ? "bg-primary/20" : "",
+      koso.debug ? "bg-primary/20" : "",
     )}
     style="width: {childOffset}px;"
     aria-label={`Task ${task.num} Peer Dropzone`}
@@ -401,7 +401,7 @@
     class={cn(
       "absolute z-50 h-1 cursor-default transition-all",
       koso.dragged ? "-my-3 h-8" : "",
-      koso.debug.value ? "bg-secondary/20" : "",
+      koso.debug ? "bg-secondary/20" : "",
     )}
     style="width: {cellWidth - childOffset}px; margin-left: {childOffset}px;"
     aria-label={`Task ${task.num} Child Dropzone`}

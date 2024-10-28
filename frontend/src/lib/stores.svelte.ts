@@ -29,6 +29,27 @@ export function storable<T>(
   };
 }
 
+export function load<T>(
+  key: string,
+  init: T,
+  parse: (data: string) => T = (data) => (data ? JSON.parse(data) : init),
+): T {
+  const data = localStorage.getItem(key);
+  return data ? parse(data) : init;
+}
+
+export function save<T>(
+  key: string,
+  value: T,
+  serialize: (value: T) => string = (value) => JSON.stringify(value),
+) {
+  if (value) {
+    localStorage.setItem(key, serialize(value));
+  } else {
+    localStorage.removeItem(key);
+  }
+}
+
 export type Storable<T> = {
   value: T;
 };
@@ -39,8 +60,7 @@ export function useLocalStorage<T>(
   parse: (data: string) => T = (data) => (data ? JSON.parse(data) : init),
   serialize: (value: T) => string = (value) => JSON.stringify(value),
 ): Storable<T> {
-  const data = localStorage.getItem(key);
-  let value = $state(data ? parse(data) : init);
+  let value = $state(load(key, init, parse));
 
   return {
     get value() {
@@ -48,11 +68,7 @@ export function useLocalStorage<T>(
     },
     set value(v: T) {
       value = v;
-      if (v) {
-        localStorage.setItem(key, serialize(this.value));
-      } else {
-        localStorage.removeItem(key);
-      }
+      save(key, value, serialize);
     },
   };
 }

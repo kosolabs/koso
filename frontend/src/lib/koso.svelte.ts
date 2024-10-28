@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth";
-import { storable, useLocalStorage, type Storable } from "./stores.svelte";
+import { load, save, storable } from "./stores.svelte";
 
 const MSG_SYNC = 0;
 // const MSG_AWARENESS = 1;
@@ -106,10 +106,10 @@ export class Koso {
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
 
-  debug: Storable<boolean>;
+  #debug: boolean = $state(false);
   events: Readable<YEvent[]>;
   selected: Node | null = $state(null);
-  highlighted: Writable<string | null>;
+  highlighted: string | null = $state(null);
   dropEffect: Writable<"copy" | "move" | "none">;
   dragged: Node | null = $state(null);
   expanded: Writable<Set<Node>>;
@@ -156,7 +156,7 @@ export class Koso {
       },
     );
 
-    this.debug = useLocalStorage("debug", false);
+    this.debug = load("debug", false);
     this.events = readable<YEvent[]>([], (set) => {
       const observer = (events: YEvent[]) => set(events);
       this.observe(observer);
@@ -164,7 +164,6 @@ export class Koso {
     });
     this.parents = derived(this.events, () => Map(this.#toParents()));
 
-    this.highlighted = writable<string | null>(null);
     this.dropEffect = writable<"copy" | "move" | "none">("none");
 
     const expandedLocalStorageKey = `expanded-nodes-${projectId}`;
@@ -211,6 +210,15 @@ export class Koso {
 
   get root(): Node {
     return new Node();
+  }
+
+  get debug(): boolean {
+    return this.#debug;
+  }
+
+  set debug(v: boolean) {
+    this.#debug = v;
+    save("debug", this.#debug);
   }
 
   observe(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
@@ -616,7 +624,7 @@ export class Koso {
 
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      if (this.debug.value) {
+      if (this.debug) {
         console.debug(
           `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
@@ -709,7 +717,7 @@ export class Koso {
 
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      if (this.debug.value) {
+      if (this.debug) {
         console.debug(
           `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
