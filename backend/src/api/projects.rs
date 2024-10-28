@@ -17,6 +17,10 @@ use axum::{
 use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
+use yrs::{
+    types::ToJson, Any, Doc, Map, MapPrelim, ReadTxn as _, StateVector, Transact as _,
+    WriteTxn as _,
+};
 
 use super::model::{ProjectExport, UpdateProjectUsersResponse};
 
@@ -60,7 +64,7 @@ async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>> {
     Ok(projects)
 }
 
-#[tracing::instrument(skip(user, pool))]
+#[tracing::instrument(skip(user, pool, project))]
 async fn create_project_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
@@ -75,6 +79,39 @@ async fn create_project_handler(
         ));
     }
     validate_project_name(&project.name)?;
+
+    tracing::debug!("About to parse data:{:?}", project.import_data);
+    let import_update = if let Some(import_data) = project.import_data {
+        let import_data: ProjectExport = serde_json::from_str(&import_data)?;
+        let Any::Map(import_graph) = import_data.data else {
+            return Err(bad_request_error("MALFORMED_IMPORT", "Malformed import"));
+        };
+
+        let doc: Doc = Doc::new();
+        {
+            let mut txn: yrs::TransactionMut<'_> = doc.transact_mut();
+            let graph = txn.get_or_insert_map("graph");
+            for (id, import_task) in import_graph.iter() {
+                tracing::debug!("Inserting task {}::{}", id, import_task);
+                let Any::Map(import_task) = import_task else {
+                    return Err(bad_request_error("MALFORMED_IMPORT", "Malformed import"));
+                };
+
+                graph.insert(
+                    &mut txn,
+                    id.as_str(),
+                    MapPrelim::from_iter((**import_task).clone().into_iter()),
+                );
+            }
+        }
+
+        let txn = doc.transact();
+
+        tracing::debug!("Encoding update for {}", doc.to_json(&txn));
+        Some(txn.encode_state_as_update_v2(&StateVector::default()))
+    } else {
+        None
+    };
 
     let project = Project {
         project_id: BASE64_URL_SAFE_NO_PAD.encode(Uuid::new_v4()),
@@ -92,6 +129,17 @@ async fn create_project_handler(
         .bind(&user.email)
         .execute(&mut *txn)
         .await?;
+    if let Some(import_update) = import_update {
+        sqlx::query(
+            "
+            INSERT INTO yupdates (project_id, seq, update_v2)
+            VALUES ($1, DEFAULT, $2)",
+        )
+        .bind(&project.project_id)
+        .bind(import_update)
+        .execute(&mut *txn)
+        .await?;
+    }
     txn.commit().await?;
 
     tracing::debug!(

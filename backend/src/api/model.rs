@@ -9,6 +9,7 @@ pub(crate) struct Project {
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub(crate) struct CreateProject {
     pub(crate) name: String,
+    pub(crate) import_data: Option<String>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
@@ -42,7 +43,7 @@ pub(crate) struct User {
     pub(crate) picture: String,
 }
 
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub(crate) struct ProjectExport {
     pub(crate) project_id: ProjectId,
     pub(crate) data: yrs::Any,

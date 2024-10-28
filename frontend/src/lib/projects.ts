@@ -36,14 +36,16 @@ export async function fetchProject(projectId: string): Promise<Project> {
   return parse_response(response);
 }
 
-export async function createProject(): Promise<Project> {
+export async function createProject(
+  import_data: string | null = null,
+): Promise<Project> {
   const response = await fetch("/api/projects", {
     method: "POST",
     headers: {
       ...headers(),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ name: "My Project!" }),
+    body: JSON.stringify({ name: "My Project!", import_data }),
   });
   return parse_response(response);
 }

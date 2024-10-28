@@ -31,6 +31,26 @@
     }
     await goto(`/projects/${project.project_id}`);
   }
+
+  let files: FileList | null = null;
+
+  async function importProject() {
+    const file = files?.item(0) ?? null;
+    if (!file) {
+      errorMessage = "Select a file.";
+      return;
+    }
+
+    errorMessage = null;
+    let project;
+    try {
+      project = await projectsCreateProject(await file.text());
+    } catch (err) {
+      errorMessage = `${err}`;
+      return;
+    }
+    await goto(`/projects/${project.project_id}`);
+  }
 </script>
 
 <Navbar />
@@ -59,6 +79,8 @@
       <div class="text-xl">Create your first Koso project!</div>
       <div>
         <Button onclick={() => createProject()}>New project</Button>
+        <input id="fileInput" type="file" bind:files />
+        <Button onclick={() => importProject()}>Import project</Button>
       </div>
     </div>
   {:else}
@@ -66,6 +88,8 @@
       <div class="flex flex-col items-end p-2">
         <div>
           <Button onclick={() => createProject()}>New project</Button>
+          <input id="fileInput" type="file" bind:files />
+          <Button onclick={() => importProject()}>Import project</Button>
         </div>
       </div>
       <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-muted">
