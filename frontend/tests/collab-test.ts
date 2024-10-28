@@ -35,6 +35,9 @@ test.describe("Collaboration tests", () => {
     await page.getByRole("textbox", { name: "Add people" }).click();
     await page.keyboard.type(email);
     await page.getByText(email).click();
+    await expect(
+      page.getByRole("button", { name: `Remove ${email}` }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "Close" }).click();
   }
 
