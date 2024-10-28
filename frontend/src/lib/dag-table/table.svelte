@@ -44,7 +44,6 @@
     users: User[];
   };
   const { koso, users }: Props = $props();
-  const { debug, nodes, selected, showDone, syncState } = koso;
 
   const rows: { [key: string]: RowType } = {};
 
@@ -72,31 +71,35 @@
 
   function insert() {
     if (!$user) throw new Error("Unauthenticated");
-    if ($selected) {
-      insertAndEdit($selected.parent, koso.getOffset($selected) + 1, $user);
+    if (koso.selected) {
+      insertAndEdit(
+        koso.selected.parent,
+        koso.getOffset(koso.selected) + 1,
+        $user,
+      );
     } else {
       insertAndEdit(koso.root, 0, $user);
     }
   }
 
   function insertAbove() {
-    if (!$selected) return;
+    if (!koso.selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    insertAndEdit($selected.parent, koso.getOffset($selected), $user);
+    insertAndEdit(koso.selected.parent, koso.getOffset(koso.selected), $user);
   }
 
   function insertChild() {
-    if (!$selected) return;
+    if (!koso.selected) return;
     if (!$user) throw new Error("Unauthenticated");
-    koso.expand($selected);
-    insertAndEdit($selected, 0, $user);
+    koso.expand(koso.selected);
+    insertAndEdit(koso.selected, 0, $user);
   }
 
   function insertChildAbove() {
-    if (!$selected) return;
+    if (!koso.selected) return;
     if (!$user) throw new Error("Unauthenticated");
 
-    const previousPeer = koso.getPrevPeer($selected);
+    const previousPeer = koso.getPrevPeer(koso.selected);
     if (!previousPeer) return;
 
     koso.expand(previousPeer);
@@ -105,10 +108,10 @@
   }
 
   function toggleStatus() {
-    if (!$selected) return;
+    if (!koso.selected) return;
     if (!$user) throw new Error("Unauthenticated");
 
-    const task = koso.getTask($selected.name);
+    const task = koso.getTask(koso.selected.name);
     if (task.children.length > 0) {
       toast.warning(
         "Cannot change the status of a composite task. Change the status of the task's children instead.",
@@ -119,104 +122,108 @@
     if (task.status === "Done") {
       return;
     } else if (task.status === "In Progress") {
-      confetti.add(getRow($selected).getStatusPosition());
-      koso.setTaskStatus($selected, "Done", $user);
+      confetti.add(getRow(koso.selected).getStatusPosition());
+      koso.setTaskStatus(koso.selected, "Done", $user);
     } else {
-      koso.setTaskStatus($selected, "In Progress", $user);
+      koso.setTaskStatus(koso.selected, "In Progress", $user);
     }
   }
 
   function remove() {
-    if (!$selected) return;
-    const toDelete = $selected;
-    const toDeleteIndex = $nodes.indexOf(toDelete);
+    if (!koso.selected) return;
+    const toDelete = koso.selected;
+    const toDeleteIndex = koso.nodes.indexOf(toDelete);
 
     koso.deleteNode(toDelete);
 
     // Select the next (or previous) node following deletion.
-    if ($nodes.size < 2) {
-      $selected = null;
+    if (koso.nodes.size < 2) {
+      koso.selected = null;
     } else {
-      $selected = $nodes.get(Math.min(toDeleteIndex, $nodes.size - 1)) || null;
+      koso.selected =
+        koso.nodes.get(Math.min(toDeleteIndex, koso.nodes.size - 1)) || null;
     }
   }
 
   function edit() {
-    if (!$selected) return;
-    getRow($selected).edit(true);
+    if (!koso.selected) return;
+    getRow(koso.selected).edit(true);
   }
 
   function unselect() {
-    $selected = null;
+    koso.selected = null;
   }
 
   function moveUp() {
-    if (!$selected) return;
-    koso.moveNodeUp($selected);
+    if (!koso.selected) return;
+    koso.moveNodeUp(koso.selected);
   }
 
   function moveDown() {
-    if (!$selected) return;
-    koso.moveNodeDown($selected);
+    if (!koso.selected) return;
+    koso.moveNodeDown(koso.selected);
   }
 
   function moveStart() {
-    if (!$selected) return;
-    koso.moveNodeStart($selected);
+    if (!koso.selected) return;
+    koso.moveNodeStart(koso.selected);
   }
 
   function moveEnd() {
-    if (!$selected) return;
-    koso.moveNodeEnd($selected);
+    if (!koso.selected) return;
+    koso.moveNodeEnd(koso.selected);
   }
 
   function indent() {
-    if (!$selected) return;
-    koso.indentNode($selected);
+    if (!koso.selected) return;
+    koso.indentNode(koso.selected);
   }
 
   function undent() {
-    if (!$selected) return;
-    koso.undentNode($selected);
+    if (!koso.selected) return;
+    koso.undentNode(koso.selected);
   }
 
   function expand() {
-    if (!$selected) return;
-    koso.expand($selected);
+    if (!koso.selected) return;
+    koso.expand(koso.selected);
   }
 
   function collapse() {
-    if (!$selected) return;
-    koso.collapse($selected);
+    if (!koso.selected) return;
+    koso.collapse(koso.selected);
   }
 
   function showDoneTasks() {
-    koso.setShowDone(true);
+    koso.showDone = true;
   }
 
   function hideDoneTasks() {
-    koso.setShowDone(false);
+    koso.showDone = false;
   }
 
   function selectNext() {
-    if ($nodes.size > 1) {
-      if ($selected) {
-        $nodes.indexOf($selected);
-        const index = Math.min($nodes.indexOf($selected) + 1, $nodes.size - 1);
-        $selected = $nodes.get(index, null);
+    if (koso.nodes.size > 1) {
+      if (koso.selected) {
+        koso.nodes.indexOf(koso.selected);
+        const index = Math.min(
+          koso.nodes.indexOf(koso.selected) + 1,
+          koso.nodes.size - 1,
+        );
+        koso.selected = koso.nodes.get(index, null);
       } else {
-        $selected = $nodes.get(1, null);
+        koso.selected = koso.nodes.get(1, null);
       }
     }
   }
 
   function selectPrev() {
-    if ($nodes.size > 1) {
-      if ($selected) {
-        const index = Math.max($nodes.indexOf($selected) - 1, 1);
-        $selected = $nodes.get(index, null);
+    if (koso.nodes.size > 1) {
+      if (koso.selected) {
+        const index = Math.max(koso.nodes.indexOf(koso.selected) - 1, 1);
+        koso.selected = koso.nodes.get(index, null);
       } else {
-        $selected = $nodes.get($nodes.size - 1, null);
+        koso.selected = koso.nodes.get(koso.nodes.size - 1, null);
       }
     }
   }
@@ -260,14 +267,14 @@
       icon: ListTree,
       callback: insertChild,
       toolbar: true,
-      enabled: () => !!$selected,
+      enabled: () => !!koso.selected,
       shortcut: Shortcut.INSERT_CHILD_NODE,
     }),
     new Action({
       title: "Add Child Above",
       icon: ListTree,
       callback: insertChildAbove,
-      enabled: () => !!$selected && koso.getOffset($selected) > 0,
+      enabled: () => !!koso.selected && koso.getOffset(koso.selected) > 0,
       shortcut: new Shortcut({
         key: "Enter",
         alt: true,
@@ -280,7 +287,7 @@
       icon: Trash,
       callback: remove,
       toolbar: true,
-      enabled: () => !!$selected,
+      enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
@@ -288,7 +295,7 @@
       icon: MoveUp,
       callback: moveUp,
       toolbar: true,
-      enabled: () => !!$selected,
+      enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowUp", alt: true }),
     }),
     new Action({
@@ -296,7 +303,7 @@
       icon: MoveDown,
       callback: moveDown,
       toolbar: true,
-      enabled: () => !!$selected,
+      enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowDown", alt: true }),
     }),
     new Action({
@@ -304,7 +311,7 @@
       icon: ListStart,
       callback: moveStart,
       toolbar: true,
-      enabled: () => !!$selected,
+      enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowUp", alt: true, shift: true }),
     }),
     new Action({
@@ -312,7 +319,7 @@
       icon: ListEnd,
       callback: moveEnd,
       toolbar: true,
-      enabled: () => !!$selected,
+      enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowDown", alt: true, shift: true }),
     }),
     new Action({
@@ -320,7 +327,7 @@
       icon: IndentDecrease,
       callback: undent,
       toolbar: true,
-      enabled: () => !!$selected,
+      enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowLeft", alt: true }),
     }),
     new Action({
@@ -328,21 +335,21 @@
       icon: IndentIncrease,
       callback: indent,
       toolbar: true,
-      enabled: () => !!$selected,
+      enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
     }),
     new Action({
       title: "Undent",
       icon: IndentDecrease,
       callback: undent,
-      enabled: () => !!$selected,
+      enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowLeft", alt: true, shift: true }),
     }),
     new Action({
       title: "Indent",
       icon: IndentIncrease,
       callback: indent,
-      enabled: () => !!$selected,
+      enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowRight", alt: true, shift: true }),
     }),
     new Action({
@@ -363,14 +370,14 @@
       title: "Hide Done Tasks",
       icon: EyeOff,
       callback: hideDoneTasks,
-      enabled: () => $showDone,
+      enabled: () => koso.showDone,
       toolbar: true,
     }),
     new Action({
       title: "Show Done Tasks",
       icon: Eye,
       callback: showDoneTasks,
-      enabled: () => !$showDone,
+      enabled: () => !koso.showDone,
       toolbar: true,
     }),
     new Action({
@@ -431,7 +438,7 @@
 
   onMount(() => {
     const keyDownListener = (event: KeyboardEvent) => {
-      if ($debug) {
+      if (koso.debug) {
         if (["Alt", "Control", "Meta", "Shift"].includes(event.key)) return;
         console.log(Shortcut.fromEvent(event).toString());
       }
@@ -453,14 +460,14 @@
 <CommandPalette bind:open={commandPaletteOpen} {actions} />
 
 <div class="mb-12 p-2 sm:mb-0">
-  {#if !$syncState.serverSync && !$syncState.indexedDbSync}
+  {#if !koso.syncState.serverSync && !koso.syncState.indexedDbSync}
     <!-- Loading.-->
-  {:else if $nodes.size > 1}
+  {:else if koso.nodes.size > 1}
     <table class="w-full border-separate border-spacing-0 rounded-md border">
       <thead class="text-left text-xs font-bold uppercase">
         <tr>
           <th class="w-32 p-2">ID</th>
-          {#if $debug}
+          {#if koso.debug}
             <th class="border-l p-2">UUID</th>
           {/if}
           <th class="border-l p-2">
@@ -476,7 +483,7 @@
         </tr>
       </thead>
 
-      {#each [...$nodes].slice(1) as node, index (node.id)}
+      {#each [...koso.nodes].slice(1) as node, index (node.id)}
         <tbody animate:flip={{ duration: 250 }}>
           <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
           <!-- svelte-ignore binding_property_non_reactive -->
