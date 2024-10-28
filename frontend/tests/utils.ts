@@ -18,15 +18,6 @@ export function getTaskNumToTaskIdMap(graph: Graph) {
   return result;
 }
 
-export function getTaskId(graph: Graph, num: string): string {
-  for (const [id, task] of Object.entries(graph)) {
-    if (task.num === num) {
-      return id;
-    }
-  }
-  throw new Error(`Could not find Task ID for ${num}`);
-}
-
 export function jwt(email: string) {
   const base64 = (s: string) => Buffer.from(s).toString("base64url");
   const header = {
