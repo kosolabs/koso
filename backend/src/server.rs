@@ -215,6 +215,11 @@ impl<B> MakeSpan<B> for KosoMakeSpan {
             .get::<RequestId>()
             .map(|h| h.header_value().to_str().unwrap_or("INVALID"))
             .unwrap_or("MISSING");
+        let client_version = request
+            .headers()
+            .get("koso-client-version")
+            .map(|h| h.to_str().unwrap_or("INVALID"))
+            .unwrap_or("MISSING");
 
         tracing::span!(
             Level::DEBUG,
@@ -223,6 +228,7 @@ impl<B> MakeSpan<B> for KosoMakeSpan {
             uri = %request.uri(),
             version = ?request.version(),
             request_id = request_id,
+            client_version = client_version,
         )
     }
 }

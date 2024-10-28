@@ -1,4 +1,5 @@
 import { logout_on_authentication_error } from "./errors";
+import { version } from "$app/environment";
 
 export type ErrorResponseBody = {
   status: number;
@@ -27,6 +28,19 @@ export class KosoError extends Error {
   hasReason(reason: string): boolean {
     return this.details.find((d) => d.reason === reason) !== undefined;
   }
+}
+
+export function defHeaders(
+  init: RequestInit,
+  token: string | null,
+): RequestInit {
+  const headers = new Headers(init.headers);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  headers.set("koso-client-version", version);
+  init.headers = headers;
+  return init;
 }
 
 /**
