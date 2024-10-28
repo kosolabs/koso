@@ -25,7 +25,6 @@
   import { getContext } from "svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
-  import { get } from "svelte/store";
 
   type Props = {
     index: number;
@@ -86,13 +85,52 @@
       .map((parent) => {
         const props = parseChipProps(parent.name);
         props.onClick = (event) => {
-          let p = get(koso.nodes)
+          let parentNode = $nodes
             .filter((n) => n.name === parent.id)
+            // Prefer the least nested linkage of the parent.
+            // i.e. the one closed to the root.
             .minBy((n) => n.path.size);
-          if (p) {
-            console.log(`Selecting parent ${p.id}`);
-            $selected = p;
+          if (parentNode) {
+            console.log(`Selecting parent ${parentNode.id}`);
+            $selected = parentNode;
           } else {
+            const root = $nodes.get(0);
+            if (!root) throw new Error("Missing root");
+
+            let queue: Node[] = [root];
+            while (queue.length > 0) {
+              let n = queue.shift();
+              if (!n) throw new Error("Unexpectly found nothing in queue.");
+              if (n.name === parent.id) {
+                console.log(`Selecting previously not shown parent ${n.id}`);
+                $selected = n;
+
+                let t = n;
+                while (t.length) {
+                  koso.expand(t);
+                  t = t.parent;
+                }
+              }
+              for (const child of koso.getChildren(n.name)) {
+                queue.push(n.child(child));
+              }
+            }
+
+            // let stack: List<string>[] = [List.of(parent.id)];
+
+            // while (stack.length > 0) {
+            //   let partialPath = stack.pop();
+            //   if (!partialPath) throw new Error("invalid");
+
+            //   let id = partialPath.get(0);
+            //   if (!id) throw new Error(`Invalid node ${partialPath}`);
+
+            //   let parents = allParents.get(id);
+
+            //   path.splice(0, 0, parents);
+            //   p = allParents.get(parent.id);
+            // }
+
             // TODO: this probably means the linked task is filtered out or collapsed.
             // We could expand nodes to show it or do something else?
             console.log("No parent found");

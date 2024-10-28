@@ -13,5 +13,7 @@
     <Button onclick={onClick}>
       {title}
     </Button>
-  {:else}{/if}
+  {:else}
+    {title}
+  {/if}
 </div>
