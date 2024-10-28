@@ -127,7 +127,7 @@
             console.log(
               `No parent found. ${parent.id} must not be visible or not in this view.`,
             );
-            toast.info(`Could not navigate to "${props.title}""`);
+            toast.info(`Could not navigate to "${props.title}"`);
           };
         }
         return props;
