@@ -51,10 +51,6 @@
 
   async function saveEditedProjectName(name: string) {
     if (!$user || !$token) throw new Error("User is unauthorized");
-    name = name.trim();
-    if (name === "") {
-      return false;
-    }
 
     let updatedProject;
     try {
@@ -63,7 +59,9 @@
         name,
       });
     } catch (err) {
-      if (err instanceof KosoError && err.reason == "LONG_NAME") {
+      if (err instanceof KosoError && err.hasReason("EMPTY_NAME")) {
+        toast.warning("Project name may not be blank.");
+      } else if (err instanceof KosoError && err.hasReason("LONG_NAME")) {
         toast.warning("Project name is too long. Try a shorter one.");
       } else {
         toast.error("Failed to change project name.");
@@ -72,7 +70,7 @@
     }
     let p = await project;
     p.name = updatedProject.name;
-    return true;
+    return p.name;
   }
 
   async function exportProjectToFile() {

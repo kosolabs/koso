@@ -12,10 +12,12 @@
     "aria-label"?: string;
     onclick?: (event: MouseEvent) => void;
     // Callback invoked to apply the edited value.
-    // May return false to revert the edit.
+    // Must return the saved value which may
+    // differ from the original value. For example,
+    // the value might have been trimmed.
     // May throw and allow the user to continue
     // editing but should notify the user.
-    onsave: (value: string) => Promise<boolean>;
+    onsave: (value: string) => Promise<string>;
     ondone?: () => void;
     onkeydown?: (event: KeyboardEvent) => void;
   };
@@ -83,12 +85,9 @@
       return;
     }
 
-    onsave(edited).then((applied) => {
-      if (applied) {
-        value = edited;
-      } else {
-        edited = value;
-      }
+    onsave(edited).then((appliedValue) => {
+      value = appliedValue;
+      edited = appliedValue;
       ondone?.();
       editing = false;
     });
