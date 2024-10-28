@@ -1,4 +1,4 @@
-<script module>
+<script module lang="ts">
   class ConfettiState {
     rects: DOMRect[] = $state([]);
 

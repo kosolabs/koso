@@ -8,13 +8,13 @@
     "dev": "vite dev",
     "build": "svelte-kit sync && vite build",
     "preview": "vite preview",
-    "test": "pnpm run test:unit",
+    "test": "pnpm run \"/^(check|lint|test:unit|test:integration)$/\"",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "prettier --check . && eslint .",
     "format": "prettier --write .",
     "test:integration": "playwright test",
-    "test:unit": "vitest"
+    "test:unit": "vitest run"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.2",

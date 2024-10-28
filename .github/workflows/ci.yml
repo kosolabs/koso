@@ -67,7 +67,7 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install
-      - run: pnpm run "/^(build|check|lint|test)$/"
+      - run: pnpm run "/^(build|check|lint|test:unit)$/"
   playwright:
     runs-on: ubuntu-latest
     defaults:
