@@ -6,7 +6,6 @@ import {
   derived,
   get,
   readable,
-  writable,
   type Readable,
   type Writable,
 } from "svelte/store";
@@ -116,7 +115,10 @@ export class Koso {
   showDone: Writable<boolean>;
   nodes: Readable<List<Node>>;
   parents: Readable<Map<string, string[]>>;
-  syncState: Writable<SyncState>;
+  syncState: SyncState = $state({
+    indexedDbSync: false,
+    serverSync: false,
+  });
 
   constructor(projectId: string, yDoc: Y.Doc) {
     this.yDoc = yDoc;
@@ -195,14 +197,7 @@ export class Koso {
     );
 
     this.yIndexedDb.whenSynced.then(() => {
-      this.syncState.update((s) => {
-        s.indexedDbSync = true;
-        return s;
-      });
-    });
-    this.syncState = writable<SyncState>({
-      indexedDbSync: false,
-      serverSync: false,
+      this.syncState.indexedDbSync = true;
     });
   }
 
@@ -249,10 +244,7 @@ export class Koso {
         if (this.yGraph.size === 0) {
           this.upsertRoot();
         }
-        this.syncState.update((s) => {
-          s.serverSync = true;
-          return s;
-        });
+        this.syncState.serverSync = true;
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdateV2(this.yDoc, message);

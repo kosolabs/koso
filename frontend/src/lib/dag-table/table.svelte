@@ -44,7 +44,7 @@
     users: User[];
   };
   const { koso, users }: Props = $props();
-  const { nodes, showDone, syncState } = koso;
+  const { nodes, showDone } = koso;
 
   const rows: { [key: string]: RowType } = {};
 
@@ -461,7 +461,7 @@
 <CommandPalette bind:open={commandPaletteOpen} {actions} />
 
 <div class="mb-12 p-2 sm:mb-0">
-  {#if !$syncState.serverSync && !$syncState.indexedDbSync}
+  {#if !koso.syncState.serverSync && !koso.syncState.indexedDbSync}
     <!-- Loading.-->
   {:else if $nodes.size > 1}
     <table class="w-full border-separate border-spacing-0 rounded-md border">
