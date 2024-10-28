@@ -32,7 +32,7 @@
   const { index, node, users }: Props = $props();
 
   const koso = getContext<Koso>("koso");
-  let { dropEffect, expanded, parents } = koso;
+  let { expanded, parents } = koso;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
@@ -48,7 +48,7 @@
   let assignee = $derived(getUser(users, task.assignee));
   let open = $derived($expanded.has(node));
   let isDragging = $derived(node.equals(koso.dragged));
-  let isMoving = $derived(isDragging && $dropEffect === "move");
+  let isMoving = $derived(isDragging && koso.dropEffect === "move");
   let isHovered = $derived(koso.highlighted === node.name);
   let isSelected = $derived(node.equals(koso.selected));
   let progress = $derived(koso.getProgress(task.id));
@@ -134,19 +134,19 @@
 
   function handleDropNodePeer(event: DragEvent) {
     event.preventDefault();
-    if (koso.dragged === null || $dropEffect === "none") {
+    if (koso.dragged === null || koso.dropEffect === "none") {
       return;
     }
 
     const dragDestParent = node.parent.name;
     const dragDestOffset = koso.getOffset(node) + 1;
 
-    if ($dropEffect === "copy") {
+    if (koso.dropEffect === "copy") {
       koso.linkNode(koso.dragged, dragDestParent, dragDestOffset);
-    } else if ($dropEffect === "move") {
+    } else if (koso.dropEffect === "move") {
       koso.moveNode(koso.dragged, dragDestParent, dragDestOffset);
     } else {
-      throw new Error(`Invalid dropEffect: ${$dropEffect}`);
+      throw new Error(`Invalid dropEffect: ${koso.dropEffect}`);
     }
     koso.dragged = null;
     dragOverPeer = false;
@@ -155,19 +155,19 @@
 
   function handleDropNodeChild(event: DragEvent) {
     event.preventDefault();
-    if (koso.dragged === null || $dropEffect === "none") {
+    if (koso.dragged === null || koso.dropEffect === "none") {
       return;
     }
 
     const dragDestParent = node.name;
     const dragDestOffset = 0;
 
-    if ($dropEffect === "copy") {
+    if (koso.dropEffect === "copy") {
       koso.linkNode(koso.dragged, dragDestParent, dragDestOffset);
-    } else if ($dropEffect === "move") {
+    } else if (koso.dropEffect === "move") {
       koso.moveNode(koso.dragged, dragDestParent, dragDestOffset);
     } else {
-      throw new Error(`Invalid dropEffect: ${$dropEffect}`);
+      throw new Error(`Invalid dropEffect: ${koso.dropEffect}`);
     }
     koso.dragged = null;
     dragOverPeer = false;
@@ -182,16 +182,16 @@
     }
 
     if (koso.canLink(koso.dragged, node.parent.name)) {
-      $dropEffect = event.altKey ? "copy" : "move";
-      dataTransfer.dropEffect = $dropEffect;
+      koso.dropEffect = event.altKey ? "copy" : "move";
+      dataTransfer.dropEffect = koso.dropEffect;
       dragOverPeer = true;
     } else if (koso.canMove(koso.dragged, node.parent.name)) {
       dataTransfer.dropEffect = "move";
-      $dropEffect = "move";
+      koso.dropEffect = "move";
       dragOverPeer = true;
     } else {
       dataTransfer.dropEffect = "none";
-      $dropEffect = "none";
+      koso.dropEffect = "none";
     }
   }
 
@@ -203,16 +203,16 @@
     }
 
     if (koso.canLink(koso.dragged, node.name)) {
-      $dropEffect = event.altKey ? "copy" : "move";
-      dataTransfer.dropEffect = $dropEffect;
+      koso.dropEffect = event.altKey ? "copy" : "move";
+      dataTransfer.dropEffect = koso.dropEffect;
       dragOverChild = true;
     } else if (koso.canMove(koso.dragged, node.name)) {
       dataTransfer.dropEffect = "move";
-      $dropEffect = "move";
+      koso.dropEffect = "move";
       dragOverChild = true;
     } else {
       dataTransfer.dropEffect = "none";
-      $dropEffect = "none";
+      koso.dropEffect = "none";
     }
   }
 

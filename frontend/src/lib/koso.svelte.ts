@@ -110,7 +110,7 @@ export class Koso {
   events: Readable<YEvent[]>;
   selected: Node | null = $state(null);
   highlighted: string | null = $state(null);
-  dropEffect: Writable<"copy" | "move" | "none">;
+  dropEffect: "copy" | "move" | "none" = $state("none");
   dragged: Node | null = $state(null);
   expanded: Writable<Set<Node>>;
   showDone: Writable<boolean>;
@@ -163,8 +163,6 @@ export class Koso {
       return () => this.unobserve(observer);
     });
     this.parents = derived(this.events, () => Map(this.#toParents()));
-
-    this.dropEffect = writable<"copy" | "move" | "none">("none");
 
     const expandedLocalStorageKey = `expanded-nodes-${projectId}`;
     this.expanded = storable<Set<Node>>(
