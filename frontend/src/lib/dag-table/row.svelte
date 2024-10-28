@@ -344,7 +344,6 @@
         onclick={() => (koso.selected = node)}
         onsave={async (name) => {
           koso.setTaskName(task.id, name);
-          return name;
         }}
         ondone={() => edit(false)}
         onkeydown={(e) => {

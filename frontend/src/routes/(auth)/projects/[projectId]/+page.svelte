@@ -70,7 +70,6 @@
     }
     let p = await project;
     p.name = updatedProject.name;
-    return p.name;
   }
 
   async function exportProjectToFile() {
@@ -137,7 +136,7 @@
           value={project.name}
           aria-label="Set project name"
           onsave={async (name) => {
-            return await saveEditedProjectName(name);
+            await saveEditedProjectName(name);
           }}
           onkeydown={(e) => e.stopPropagation()}
         />
