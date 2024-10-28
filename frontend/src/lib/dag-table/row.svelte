@@ -25,6 +25,7 @@
   import { getContext } from "svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
+  import { toast } from "svelte-sonner";
 
   type Props = {
     index: number;
@@ -85,6 +86,8 @@
       .map((parent) => {
         const props = parseChipProps(parent.name);
         props.onClick = (event) => {
+          event.stopPropagation();
+
           let parentNode = $nodes
             .filter((n) => n.name === parent.id)
             // Prefer the least nested linkage of the parent.
@@ -93,49 +96,37 @@
           if (parentNode) {
             console.log(`Selecting parent ${parentNode.id}`);
             $selected = parentNode;
-          } else {
-            const root = $nodes.get(0);
-            if (!root) throw new Error("Missing root");
-
-            let queue: Node[] = [root];
-            while (queue.length > 0) {
-              let n = queue.shift();
-              if (!n) throw new Error("Unexpectly found nothing in queue.");
-              if (n.name === parent.id) {
-                console.log(`Selecting previously not shown parent ${n.id}`);
-                $selected = n;
-
-                let t = n;
-                while (t.length) {
-                  koso.expand(t);
-                  t = t.parent;
-                }
-              }
-              for (const child of koso.getChildren(n.name)) {
-                queue.push(n.child(child));
-              }
-            }
-
-            // let stack: List<string>[] = [List.of(parent.id)];
-
-            // while (stack.length > 0) {
-            //   let partialPath = stack.pop();
-            //   if (!partialPath) throw new Error("invalid");
-
-            //   let id = partialPath.get(0);
-            //   if (!id) throw new Error(`Invalid node ${partialPath}`);
-
-            //   let parents = allParents.get(id);
-
-            //   path.splice(0, 0, parents);
-            //   p = allParents.get(parent.id);
-            // }
-
-            // TODO: this probably means the linked task is filtered out or collapsed.
-            // We could expand nodes to show it or do something else?
-            console.log("No parent found");
+            return;
           }
-          event.stopPropagation();
+          const root = $nodes.get(0);
+          if (!root) throw new Error("Missing root");
+
+          // All instances of parent are under collapsed nodes or aren't visible.
+          // Do a BFS to find the least nested instance.
+          let queue: Node[] = [root];
+          while (queue.length > 0) {
+            let n = queue.shift();
+            if (!n) throw new Error("Unexpectly found nothing in queue.");
+            if (n.name === parent.id && koso.isVisible(n, $showDone)) {
+              console.log(`Selecting previously not shown parent ${n.id}`);
+              $selected = n;
+
+              let t = n;
+              while (t.length) {
+                koso.expand(t);
+                t = t.parent;
+              }
+              return;
+            }
+            for (const child of koso.getChildren(n.name)) {
+              queue.push(n.child(child));
+            }
+          }
+
+          console.log(
+            `No parent found. ${parent.id} must not be visible or not in this view.`,
+          );
+          toast.info(`Could not navigate to "${props.title}""`);
         };
         return props;
       });
