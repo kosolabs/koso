@@ -24,6 +24,9 @@ pub struct UpdateProjectUsers {
     pub remove_emails: Vec<String>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct UpdateProjectUsersResponse {}
+
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
 pub(crate) struct ProjectUser {
     pub(crate) project_id: ProjectId,

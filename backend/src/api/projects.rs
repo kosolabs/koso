@@ -18,7 +18,7 @@ use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
 
-use super::model::ProjectExport;
+use super::model::{ProjectExport, UpdateProjectUsersResponse};
 
 pub(super) fn projects_router() -> Router {
     Router::new()
@@ -174,7 +174,7 @@ async fn update_project_users_handler(
     Extension(pool): Extension<&'static PgPool>,
     Path(project_id): Path<String>,
     Json(update): Json<UpdateProjectUsers>,
-) -> ApiResult<()> {
+) -> ApiResult<Json<UpdateProjectUsersResponse>> {
     verify_access(pool, user, &project_id).await?;
 
     if project_id != update.project_id {
@@ -187,7 +187,7 @@ async fn update_project_users_handler(
         ));
     }
     if update.add_emails.is_empty() && update.remove_emails.is_empty() {
-        return Ok(());
+        return Ok(Json(UpdateProjectUsersResponse {}));
     }
 
     let add_emails = update
@@ -230,7 +230,7 @@ async fn update_project_users_handler(
 
     txn.commit().await?;
 
-    Ok(())
+    Ok(Json(UpdateProjectUsersResponse {}))
 }
 
 #[tracing::instrument(skip(user, pool, collab))]
