@@ -1,17 +1,17 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { token, user } from "$lib/auth";
+  import { auth } from "$lib/auth.svelte";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { lastVisitedProjectId, popRedirectOnLogin } from "$lib/nav";
   import { fetchProjects } from "$lib/projects";
   import Google from "./google.svelte";
 
-  if ($user) {
+  if (auth.ok()) {
     redirectOnLogin();
   }
 
   async function onsuccess(credential: string) {
-    $token = credential;
+    auth.token = credential;
     await redirectOnLogin();
   }
 
@@ -33,7 +33,7 @@
     }
 
     // If there's only 1 project, go to it.
-    const projects = await fetchProjects($token);
+    const projects = await fetchProjects();
     if (projects.length == 1) {
       const onlyProjectId = projects[0].project_id;
       console.debug(`Going to singular project: ${onlyProjectId}`);
@@ -47,7 +47,7 @@
   }
 </script>
 
-{#if !$user}
+{#if !auth.ok()}
   <div
     class="m-4 flex flex-col gap-8 rounded-xl border bg-card p-10 text-center shadow sm:mx-auto sm:w-96"
   >

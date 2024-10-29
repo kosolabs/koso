@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { user } from "$lib/auth";
+  import { auth } from "$lib/auth.svelte";
   import { Alert } from "$lib/components/ui/alert";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { Settings2 } from "lucide-svelte";
@@ -29,7 +29,7 @@
   }
 
   onMount(() => {
-    if ($user) {
+    if (auth.ok()) {
       return;
     }
 

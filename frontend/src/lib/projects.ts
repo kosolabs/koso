@@ -1,5 +1,5 @@
-import type { User } from "./auth";
 import { parse_response } from "./api";
+import { auth, type User } from "./auth.svelte";
 
 export type Project = {
   project_id: string;
@@ -20,34 +20,27 @@ export type ProjectExport = {
 export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>
   a.name.localeCompare(b.name) || a.email.localeCompare(b.email);
 
-export async function fetchProjects(token: string | null): Promise<Project[]> {
+export async function fetchProjects(): Promise<Project[]> {
   const response = await fetch("/api/projects", {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: auth.headers(),
   });
   return parse_response(response);
 }
 
-export async function fetchProject(
-  token: string | null,
-  projectId: string,
-): Promise<Project> {
+export async function fetchProject(projectId: string): Promise<Project> {
   const response = await fetch(`/api/projects/${projectId}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: auth.headers(),
   });
   return parse_response(response);
 }
 
-export async function createProject(token: string | null): Promise<Project> {
+export async function createProject(): Promise<Project> {
   const response = await fetch("/api/projects", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...auth.headers(),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ name: "My Project!" }),
@@ -55,14 +48,11 @@ export async function createProject(token: string | null): Promise<Project> {
   return parse_response(response);
 }
 
-export async function updateProject(
-  token: string | null,
-  project: Project,
-): Promise<Project> {
+export async function updateProject(project: Project): Promise<Project> {
   const response = await fetch(`/api/projects/${project.project_id}`, {
     method: "PATCH",
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...auth.headers(),
       "Content-Type": "application/json",
     },
     body: JSON.stringify(project),
@@ -70,12 +60,9 @@ export async function updateProject(
   return parse_response(response);
 }
 
-export async function fetchProjectUsers(
-  token: string | null,
-  projectId: string,
-): Promise<User[]> {
+export async function fetchProjectUsers(projectId: string): Promise<User[]> {
   const response = await fetch(`/api/projects/${projectId}/users`, {
-    headers: { Authorization: "Bearer " + token },
+    headers: auth.headers(),
   });
   const users: User[] = await parse_response(response);
   users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
@@ -83,13 +70,12 @@ export async function fetchProjectUsers(
 }
 
 export async function updateProjectUsers(
-  token: string | null,
   update: UpdateProjectUsers,
 ): Promise<void> {
   const response = await fetch(`/api/projects/${update.project_id}/users`, {
     method: "PATCH",
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...auth.headers(),
       "Content-Type": "application/json",
     },
     body: JSON.stringify(update),
@@ -97,12 +83,9 @@ export async function updateProjectUsers(
   await parse_response(response);
 }
 
-export async function exportProject(
-  token: string | null,
-  projectId: string,
-): Promise<ProjectExport> {
+export async function exportProject(projectId: string): Promise<ProjectExport> {
   const response = await fetch(`/api/projects/${projectId}/export`, {
-    headers: { Authorization: "Bearer " + token },
+    headers: auth.headers(),
   });
   return await parse_response(response);
 }

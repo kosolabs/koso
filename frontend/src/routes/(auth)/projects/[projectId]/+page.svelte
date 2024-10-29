@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { token, user, type User } from "$lib/auth";
+  import { KosoError } from "$lib/api";
+  import { type User } from "$lib/auth.svelte";
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import { Editable } from "$lib/components/ui/editable";
@@ -22,7 +23,6 @@
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
   import UnauthorizedModal from "./unauthorized-modal.svelte";
-  import { KosoError } from "$lib/api";
 
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
@@ -36,25 +36,20 @@
   let openShareModal = false;
 
   async function loadProjectUsers() {
-    if (!$user || !$token) throw new Error("User is unauthorized");
-    const users = await fetchProjectUsers($token, projectId);
+    const users = await fetchProjectUsers(projectId);
 
     projectUsers = users;
     return projectUsers;
   }
 
   async function loadProject() {
-    if (!$user || !$token) throw new Error("User is unauthorized");
-
-    return await fetchProject($token, projectId);
+    return await fetchProject(projectId);
   }
 
   async function saveEditedProjectName(name: string) {
-    if (!$user || !$token) throw new Error("User is unauthorized");
-
     let updatedProject;
     try {
-      updatedProject = await updateProject($token, {
+      updatedProject = await updateProject({
         project_id: projectId,
         name,
       });
@@ -73,10 +68,8 @@
   }
 
   async function exportProjectToFile() {
-    if (!$user || !$token) throw new Error("User is unauthorized");
-
     toast.info("Exporting project...");
-    const projectExport = await exportProject($token, projectId);
+    const projectExport = await exportProject(projectId);
 
     let p = await project;
     let projectName = (p.name || "project")
@@ -104,7 +97,6 @@
   const kosoSocket = new KosoSocket(
     koso,
     projectId,
-    () => $token,
     () => {
       showUnauthorizedModal = true;
     },

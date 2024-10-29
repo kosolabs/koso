@@ -6,7 +6,7 @@
 </script>
 
 <script lang="ts">
-  import { user, type User } from "$lib/auth";
+  import { auth, type User } from "$lib/auth.svelte";
   import {
     Chip,
     parseChipProps,
@@ -319,9 +319,8 @@
         statusTime={task.statusTime ? new Date(task.statusTime) : null}
         closeFocus={rowElement}
         onselect={(status) => {
-          if (!$user) throw new Error("Unauthenticated");
           if (status === "Done") confetti.add(getStatusPosition());
-          koso.setTaskStatus(node, status, $user);
+          koso.setTaskStatus(node, status, auth.user);
         }}
       />
     {:else}

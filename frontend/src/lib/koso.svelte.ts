@@ -5,7 +5,7 @@ import { toast } from "svelte-sonner";
 import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
-import type { User } from "./auth";
+import type { User } from "./auth.svelte";
 import { useLocalStorage, type Storable } from "./stores.svelte";
 
 const MSG_SYNC = 0;

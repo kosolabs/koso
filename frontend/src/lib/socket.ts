@@ -1,4 +1,5 @@
 import { Koso } from "$lib/koso.svelte";
+import { auth } from "./auth.svelte";
 
 export class KosoSocket {
   socket: WebSocket | null = null;
@@ -9,7 +10,6 @@ export class KosoSocket {
   offlineHandler: (event: Event) => void;
   onlineHandler: (event: Event) => Promise<void>;
   koso: Koso;
-  token: () => string | null;
   projectId: string;
   onUnauthorized: () => void;
   onOnline: () => void;
@@ -18,14 +18,12 @@ export class KosoSocket {
   constructor(
     koso: Koso,
     projectId: string,
-    token: () => string | null,
     onUnauthorized: () => void,
     onOnline: () => void,
     onOffline: () => void,
   ) {
     this.koso = koso;
     this.projectId = projectId;
-    this.token = token;
     this.onUnauthorized = onUnauthorized;
     this.onOnline = onOnline;
     this.onOffline = onOffline;
@@ -47,8 +45,6 @@ export class KosoSocket {
   }
 
   async openWebSocket() {
-    const token = this.token();
-    if (!token) throw new Error("User is unauthorized");
     if (
       this.socket &&
       (this.socket.readyState == WebSocket.OPEN ||
@@ -63,7 +59,7 @@ export class KosoSocket {
 
     const host = location.origin.replace(/^http/, "ws");
     const wsUrl = `${host}/api/ws/projects/${this.projectId}`;
-    const socket = new WebSocket(wsUrl, ["bearer", token]);
+    const socket = new WebSocket(wsUrl, ["bearer", auth.token]);
     this.socket = socket;
     socket.binaryType = "arraybuffer";
 
