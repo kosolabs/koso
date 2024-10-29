@@ -13,7 +13,7 @@
     <Button
       onclick={onClick}
       variant="link"
-      class="p-0 text-xs text-secondary-foreground"
+      class="h-1 p-0 text-xs text-secondary-foreground"
     >
       {title}
     </Button>
