@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
-  import { pushRedirectOnUserNotAuthenticated } from "$lib/nav";
+  import { nav } from "$lib/nav.svelte";
   import type { Snippet } from "svelte";
 
   type Props = {
@@ -11,7 +11,7 @@
 
   $effect(() => {
     if (!auth.ok()) {
-      pushRedirectOnUserNotAuthenticated();
+      nav.pushRedirectOnUserNotAuthenticated();
       goto("/");
     }
   });

@@ -1,4 +1,5 @@
 import { jwtDecode } from "jwt-decode";
+import { loads, saves } from "./stores.svelte";
 
 const CREDENTIAL_KEY = "credential";
 
@@ -10,7 +11,7 @@ export type User = {
 };
 
 class Auth {
-  #token: string | null = $state(localStorage.getItem(CREDENTIAL_KEY) || null);
+  #token: string | null = $state(loads(CREDENTIAL_KEY, null));
   #user: User | null = $derived.by(() => {
     if (this.#token === null) {
       return null;
@@ -40,9 +41,9 @@ class Auth {
     return this.#token;
   }
 
-  set token(token: string) {
+  set token(token: string | null) {
     this.#token = token;
-    localStorage.setItem(CREDENTIAL_KEY, token);
+    saves(CREDENTIAL_KEY, token);
   }
 
   get user(): User {
@@ -59,8 +60,7 @@ class Auth {
   }
 
   logout() {
-    this.#token = null;
-    localStorage.removeItem(CREDENTIAL_KEY);
+    this.token = null;
   }
 }
 export const auth = new Auth();

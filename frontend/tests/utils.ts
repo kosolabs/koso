@@ -67,7 +67,7 @@ export async function login(page: Page, email: string) {
       Authorization: `Bearer ${token}`,
     },
   });
-  await expect(res.ok()).toBeTruthy();
+  expect(res.ok()).toBeTruthy();
 
   await page.evaluate(
     ([token]) => window.localStorage.setItem("credential", token),
@@ -84,5 +84,5 @@ export async function tearDown() {
       Authorization: `Bearer ${token}`,
     },
   });
-  await expect(res.ok()).toBeTruthy();
+  expect(res.ok()).toBeTruthy();
 }
