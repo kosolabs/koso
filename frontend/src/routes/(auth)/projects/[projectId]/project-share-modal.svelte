@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { token, user, type User } from "$lib/auth";
+  import { auth, type User } from "$lib/auth.svelte";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
@@ -25,10 +25,9 @@
   let cachedAllUsers: User[] | null = null;
   export async function loadAllUsers(): Promise<User[]> {
     if (cachedAllUsers !== null) return cachedAllUsers;
-    if (!$user || !$token) throw new Error("User is unauthorized");
 
     const response = await fetch(`/api/users`, {
-      headers: { Authorization: "Bearer " + $token },
+      headers: auth.headers(),
     });
     if (!response.ok) {
       logout_on_authentication_error(response);
@@ -44,9 +43,7 @@
   }
 
   async function addUser(add: User) {
-    if (!$user) throw new Error("User is unauthorized");
-
-    await updateProjectUsers($token, {
+    await updateProjectUsers({
       project_id: project.project_id,
       add_emails: [add.email],
       remove_emails: [],
@@ -61,9 +58,7 @@
   }
 
   async function removeUser(remove: User, forceRemoveSelf: boolean) {
-    if (!$user) throw new Error("User is unauthorized");
-
-    if ($user.email === remove.email && !forceRemoveSelf) {
+    if (auth.user.email === remove.email && !forceRemoveSelf) {
       openWarnSelfRemovalModal = true;
       return;
     }
@@ -71,7 +66,7 @@
     let i = projectUsers.findIndex((u) => u.email === remove.email);
     if (i == -1) throw new Error("Could not find user");
 
-    await updateProjectUsers($token, {
+    await updateProjectUsers({
       project_id: project.project_id,
       add_emails: [],
       remove_emails: [remove.email],
@@ -202,8 +197,7 @@
       <AlertDialog.AlertDialogAction
         class="bg-destructive text-white"
         on:click={async () => {
-          if (!$user) throw new Error("User is unauthorized");
-          await removeUser($user, true);
+          await removeUser(auth.user, true);
           await goto("/projects");
         }}
       >

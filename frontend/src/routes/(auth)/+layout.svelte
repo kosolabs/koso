@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { user } from "$lib/auth";
+  import { auth } from "$lib/auth.svelte";
   import { pushRedirectOnUserNotAuthenticated } from "$lib/nav";
   import type { Snippet } from "svelte";
 
@@ -10,14 +10,14 @@
   const { children }: Props = $props();
 
   $effect(() => {
-    if (!$user) {
+    if (!auth.ok()) {
       pushRedirectOnUserNotAuthenticated();
       goto("/");
     }
   });
 </script>
 
-{#if $user}
+{#if auth.ok()}
   {@render children()}
 {:else}
   <div class="flex flex-col items-center justify-center rounded border p-4">

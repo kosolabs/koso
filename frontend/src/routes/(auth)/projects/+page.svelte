@@ -1,9 +1,8 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { token } from "$lib/auth";
+  import { KosoError } from "$lib/api";
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
-  import { KosoError } from "$lib/api";
   import Navbar from "$lib/navbar.svelte";
   import {
     fetchProjects,
@@ -13,14 +12,14 @@
   import { Layers } from "lucide-svelte";
 
   let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
-  let projects: Promise<Project[]> = fetchProjects($token);
+  let projects: Promise<Project[]> = fetchProjects();
   let errorMessage: string | null = null;
 
   async function createProject() {
     errorMessage = null;
     let project;
     try {
-      project = await projectsCreateProject($token);
+      project = await projectsCreateProject();
     } catch (err) {
       if (err instanceof KosoError && err.hasReason("TOO_MANY_PROJECTS")) {
         errorMessage =

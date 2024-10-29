@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { user, type User } from "$lib/auth";
+  import { auth, type User } from "$lib/auth.svelte";
   import { Button } from "$lib/components/ui/button";
   import { CommandPalette } from "$lib/components/ui/command-palette";
   import { confetti } from "$lib/components/ui/confetti";
@@ -70,46 +70,45 @@
   }
 
   function insert() {
-    if (!$user) throw new Error("Unauthenticated");
     if (koso.selected) {
       insertAndEdit(
         koso.selected.parent,
         koso.getOffset(koso.selected) + 1,
-        $user,
+        auth.user,
       );
     } else {
-      insertAndEdit(koso.root, 0, $user);
+      insertAndEdit(koso.root, 0, auth.user);
     }
   }
 
   function insertAbove() {
     if (!koso.selected) return;
-    if (!$user) throw new Error("Unauthenticated");
-    insertAndEdit(koso.selected.parent, koso.getOffset(koso.selected), $user);
+    insertAndEdit(
+      koso.selected.parent,
+      koso.getOffset(koso.selected),
+      auth.user,
+    );
   }
 
   function insertChild() {
     if (!koso.selected) return;
-    if (!$user) throw new Error("Unauthenticated");
     koso.expand(koso.selected);
-    insertAndEdit(koso.selected, 0, $user);
+    insertAndEdit(koso.selected, 0, auth.user);
   }
 
   function insertChildAbove() {
     if (!koso.selected) return;
-    if (!$user) throw new Error("Unauthenticated");
 
     const previousPeer = koso.getPrevPeer(koso.selected);
     if (!previousPeer) return;
 
     koso.expand(previousPeer);
     const lastIndex = koso.getChildCount(previousPeer.name);
-    insertAndEdit(previousPeer, lastIndex, $user);
+    insertAndEdit(previousPeer, lastIndex, auth.user);
   }
 
   function toggleStatus() {
     if (!koso.selected) return;
-    if (!$user) throw new Error("Unauthenticated");
 
     const task = koso.getTask(koso.selected.name);
     if (task.children.length > 0) {
@@ -123,9 +122,9 @@
       return;
     } else if (task.status === "In Progress") {
       confetti.add(getRow(koso.selected).getStatusPosition());
-      koso.setTaskStatus(koso.selected, "Done", $user);
+      koso.setTaskStatus(koso.selected, "Done", auth.user);
     } else {
-      koso.setTaskStatus(koso.selected, "In Progress", $user);
+      koso.setTaskStatus(koso.selected, "In Progress", auth.user);
     }
   }
 

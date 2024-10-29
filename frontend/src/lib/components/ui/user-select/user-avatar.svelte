@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { User } from "$lib/auth";
+  import type { User } from "$lib/auth.svelte";
   import {
     Avatar,
     AvatarFallback,

@@ -3,7 +3,7 @@ import * as encoding from "lib0/encoding";
 import MockDate from "mockdate";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import type { User } from "./auth";
+import type { User } from "./auth.svelte";
 import { Koso, Node } from "./koso.svelte";
 
 const USER: User = {

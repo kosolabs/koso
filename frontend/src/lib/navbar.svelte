@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { logout, user } from "$lib/auth";
+  import { auth } from "$lib/auth.svelte";
   import { Avatar, AvatarImage } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { UserAvatar } from "$lib/components/ui/user-select";
@@ -25,13 +25,13 @@
   <div class="ml-auto flex items-center gap-2">
     {@render right?.()}
 
-    {#if $user}
+    {#if auth.ok()}
       <DropdownMenu.Root closeFocus={document.body} portal={null}>
-        <DropdownMenu.Trigger title={$user.email}>
+        <DropdownMenu.Trigger title={auth.user.email}>
           <Avatar
             class="size-9 rounded transition-all hover:brightness-110 active:scale-95"
           >
-            <AvatarImage src={$user.picture} alt={$user.email} />
+            <AvatarImage src={auth.user.picture} alt={auth.user.email} />
           </Avatar>
         </DropdownMenu.Trigger>
         <DropdownMenu.Content
@@ -40,7 +40,7 @@
           }}
         >
           <DropdownMenu.Label>
-            <UserAvatar user={$user} />
+            <UserAvatar user={auth.user} />
           </DropdownMenu.Label>
           <DropdownMenu.Separator />
           <DropdownMenu.Sub>
@@ -58,8 +58,9 @@
             </DropdownMenu.SubContent>
           </DropdownMenu.Sub>
           <DropdownMenu.Item href="/projects">Projects</DropdownMenu.Item>
-          <DropdownMenu.Item on:click={() => logout()}>Logout</DropdownMenu.Item
-          >
+          <DropdownMenu.Item on:click={() => auth.logout()}>
+            Logout
+          </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Root>
     {/if}
