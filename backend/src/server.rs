@@ -26,7 +26,7 @@ use tokio::{net::TcpListener, signal, sync::oneshot::Receiver, task::JoinHandle}
 use tower::builder::ServiceBuilder;
 use tower_http::{
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
-    trace::MakeSpan,
+    trace::{MakeSpan, OnRequest},
 };
 use tower_http::{
     services::{ServeDir, ServeFile},
@@ -83,7 +83,9 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
             PropagateRequestIdLayer::new(HeaderName::from_static("x-request-id")),
             // Enable request tracing. Must enable `tower_http=debug`
-            TraceLayer::new_for_http().make_span_with(KosoMakeSpan {}),
+            TraceLayer::new_for_http()
+                .make_span_with(KosoMakeSpan {})
+                .on_request(KosoOnRequest {}),
             // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
             // requests don't hang forever.
             TimeoutLayer::new(Duration::from_secs(10)),
@@ -215,21 +217,33 @@ impl<B> MakeSpan<B> for KosoMakeSpan {
             .get::<RequestId>()
             .map(|h| h.header_value().to_str().unwrap_or("INVALID"))
             .unwrap_or("MISSING");
+
+        tracing::span!(
+            Level::INFO,
+            "request",
+            method = %request.method(),
+            uri = %request.uri(),
+            request_id = request_id,
+        )
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct KosoOnRequest {}
+
+impl<B> OnRequest<B> for KosoOnRequest {
+    fn on_request(&mut self, request: &Request<B>, _: &Span) {
         let client_version = request
             .headers()
             .get("koso-client-version")
             .map(|h| h.to_str().unwrap_or("INVALID"))
             .unwrap_or("MISSING");
 
-        tracing::span!(
-            Level::DEBUG,
-            "request",
-            method = %request.method(),
-            uri = %request.uri(),
-            version = ?request.version(),
-            request_id = request_id,
+        tracing::event!(
+            tracing::Level::TRACE,
+            http_version = ?request.version(),
             client_version = client_version,
-        )
+        );
     }
 }
 

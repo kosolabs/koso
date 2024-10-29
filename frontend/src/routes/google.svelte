@@ -46,10 +46,12 @@
               console.error("Credential is missing", oneTapResponse);
               return;
             }
-            const loginResponse = await fetch(
-              "/api/auth/login",
-              defHeaders({ method: "POST" }, oneTapResponse.credential),
-            );
+            const loginResponse = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${oneTapResponse.credential}`,
+              },
+            });
             if (loginResponse.ok) {
               onsuccess(oneTapResponse.credential!);
             } else {
