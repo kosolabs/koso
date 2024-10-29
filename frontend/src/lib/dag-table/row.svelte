@@ -85,51 +85,51 @@
       .filter((parent) => parent.name.length > 0)
       .map((parent) => {
         const props = parseChipProps(parent.name);
-        if (parent.id !== koso.nodes.get(0)?.name) {
-          props.onClick = (event) => {
-            event.stopPropagation();
+        props.onClick = (event) => {
+          event.stopPropagation();
 
-            let parentNode = koso.nodes
-              .filter((n) => n.name === parent.id)
-              // Prefer the least nested linkage of the parent.
-              // i.e. the one closed to the root.
-              .minBy((n) => n.path.size);
-            if (parentNode) {
-              console.log(`Selecting parent ${parentNode.id}`);
-              koso.selected = parentNode;
+          let parentNode = koso.nodes
+            .filter((n) => n.name === parent.id)
+            // Prefer the least nested linkage of the parent.
+            // i.e. the one closed to the root.
+            .minBy((n) => n.path.size);
+          if (parentNode) {
+            koso.selected = parentNode.child(node.name);
+            console.log(`Selecting parent ${koso.selected}`);
+            return;
+          }
+          const root = koso.nodes.get(0);
+          if (!root) throw new Error("Missing root");
+
+          // All instances of parent are under collapsed nodes or aren't visible.
+          // Do a BFS to find the least nested instance.
+          let queue: Node[] = [root];
+          while (queue.length > 0) {
+            let n = queue.shift();
+            if (!n) throw new Error("Unexpectly found nothing in queue.");
+            if (n.name === parent.id && koso.isVisible(n, koso.showDone)) {
+              koso.selected = n.child(node.name);
+              console.log(
+                `Selecting previously not shown parent ${koso.selected}`,
+              );
+
+              let t = n;
+              while (t.length) {
+                koso.expand(t);
+                t = t.parent;
+              }
               return;
             }
-            const root = koso.nodes.get(0);
-            if (!root) throw new Error("Missing root");
-
-            // All instances of parent are under collapsed nodes or aren't visible.
-            // Do a BFS to find the least nested instance.
-            let queue: Node[] = [root];
-            while (queue.length > 0) {
-              let n = queue.shift();
-              if (!n) throw new Error("Unexpectly found nothing in queue.");
-              if (n.name === parent.id && koso.isVisible(n, koso.showDone)) {
-                console.log(`Selecting previously not shown parent ${n.id}`);
-                koso.selected = n;
-
-                let t = n;
-                while (t.length) {
-                  koso.expand(t);
-                  t = t.parent;
-                }
-                return;
-              }
-              for (const child of koso.getChildren(n.name)) {
-                queue.push(n.child(child));
-              }
+            for (const child of koso.getChildren(n.name)) {
+              queue.push(n.child(child));
             }
+          }
 
-            console.log(
-              `No parent found. ${parent.id} must not be visible or not in this view.`,
-            );
-            toast.info(`Could not navigate to "${props.title}"`);
-          };
-        }
+          console.log(
+            `No parent found. ${parent.id} must not be visible or not in this view.`,
+          );
+          toast.info(`Could not navigate to "${props.title}"`);
+        };
         return props;
       });
   }
