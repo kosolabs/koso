@@ -1,7 +1,10 @@
-use crate::api::{
-    self,
-    collab::Collab,
-    google::{self, KeySet},
+use crate::{
+    api::{
+        self,
+        collab::Collab,
+        google::{self, KeySet},
+    },
+    healthz,
 };
 use axum::{
     extract::{MatchedPath, Request},
@@ -89,6 +92,8 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             Extension(key_set),
             middleware::from_fn(google::authenticate),
         ))
+        .nest("/healthz", healthz::healthz_router())
+        .layer((TimeoutLayer::new(Duration::from_secs(10)),))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))

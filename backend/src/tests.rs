@@ -55,6 +55,16 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     .await;
     let client = Client::default();
 
+    // Health check
+    {
+        let res = client
+            .get(format!("http://{addr}/healthz"))
+            .send()
+            .await
+            .expect("Failed to check healthz.");
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
     let token: String = encode_token(&Claims::default(), KID_1, PEM_1).unwrap();
     // Log in
     {
