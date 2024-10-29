@@ -45,7 +45,7 @@ test.describe("import export tests", () => {
     // Import the project
     await page.goto("/projects");
     const fileChooserPromise = page.waitForEvent("filechooser");
-    page.locator("#fileInput").click();
+    page.locator("#projectImportFileInput").click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles({
       name: exportedProject.filename,

@@ -77,7 +77,7 @@
       <div class="text-xl">Create your first Koso project!</div>
       <div>
         <Button onclick={() => createProject()}>New project</Button>
-        <input id="fileInput" type="file" bind:files />
+        <input id="projectImportFileInput" type="file" bind:files />
         <Button onclick={() => importProject()}>Import project</Button>
       </div>
     </div>
@@ -86,7 +86,7 @@
       <div class="flex flex-col items-end p-2">
         <div>
           <Button onclick={() => createProject()}>New project</Button>
-          <input id="fileInput" type="file" bind:files />
+          <input id="projectImportFileInput" type="file" bind:files />
           <Button onclick={() => importProject()}>Import project</Button>
         </div>
       </div>
