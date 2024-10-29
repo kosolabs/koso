@@ -1,21 +1,35 @@
+type StoreOpts = {
+  storage?: Storage;
+};
+
+type LoadOpts<T> = {
+  decode?: (data: string) => T;
+};
+
+type SaveOpts<T> = {
+  encode?: (value: T) => string;
+};
+
 export function load<T>(
   key: string,
   init: T,
-  parse: (data: string) => T = (data) => (data ? JSON.parse(data) : init),
+  opts: LoadOpts<T> & StoreOpts,
 ): T {
-  const data = localStorage.getItem(key);
-  return data ? parse(data) : init;
+  const {
+    storage = localStorage,
+    decode = (data) => (data ? JSON.parse(data) : init),
+  } = opts;
+  const data = storage.getItem(key);
+  return data ? decode(data) : init;
 }
 
-export function save<T>(
-  key: string,
-  value: T,
-  serialize: (value: T) => string = (value) => JSON.stringify(value),
-) {
+export function save<T>(key: string, value: T, opts: SaveOpts<T> & StoreOpts) {
+  const { storage = localStorage, encode = (value) => JSON.stringify(value) } =
+    opts;
   if (value) {
-    localStorage.setItem(key, serialize(value));
+    storage.setItem(key, encode(value));
   } else {
-    localStorage.removeItem(key);
+    storage.removeItem(key);
   }
 }
 
@@ -26,10 +40,9 @@ export type Storable<T> = {
 export function useLocalStorage<T>(
   key: string,
   init: T,
-  parse: (data: string) => T = (data) => (data ? JSON.parse(data) : init),
-  serialize: (value: T) => string = (value) => JSON.stringify(value),
+  opts: LoadOpts<T> & SaveOpts<T> & StoreOpts = {},
 ): Storable<T> {
-  let value = $state(load(key, init, parse));
+  let value = $state(load(key, init, opts));
 
   return {
     get value() {
@@ -37,7 +50,19 @@ export function useLocalStorage<T>(
     },
     set value(v: T) {
       value = v;
-      save(key, value, serialize);
+      save(key, value, opts);
     },
   };
 }
+
+export const loads = (
+  key: string,
+  init: string | null,
+  opts: StoreOpts = {},
+): string | null => load(key, init, { decode: (data) => data, ...opts });
+
+export const saves = (
+  key: string,
+  value: string | null,
+  opts: StoreOpts = {},
+) => save(key, value, { encode: (value) => String(value), ...opts });

@@ -2,7 +2,7 @@
   import { goto } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
-  import { lastVisitedProjectId, popRedirectOnLogin } from "$lib/nav";
+  import { nav } from "$lib/nav.svelte";
   import { fetchProjects } from "$lib/projects";
   import Google from "./google.svelte";
 
@@ -18,7 +18,7 @@
   async function redirectOnLogin() {
     // If the user tried to access a page while unauthenticated,
     // clear the redirect and go there.
-    const redirect = popRedirectOnLogin();
+    const redirect = nav.popRedirectOnLogin();
     if (redirect) {
       console.debug(`Going to prior page: ${redirect}`);
       await goto(redirect);
@@ -26,9 +26,11 @@
     }
 
     // Go to the previously viewed project, if there is one.
-    if ($lastVisitedProjectId) {
-      console.debug(`Going to last visited project: ${$lastVisitedProjectId}`);
-      await goto(`/projects/${$lastVisitedProjectId}`);
+    if (nav.lastVisitedProjectId) {
+      console.debug(
+        `Going to last visited project: ${nav.lastVisitedProjectId}`,
+      );
+      await goto(`/projects/${nav.lastVisitedProjectId}`);
       return;
     }
 

@@ -7,7 +7,7 @@
   import { Editable } from "$lib/components/ui/editable";
   import { DagTable } from "$lib/dag-table";
   import { Koso } from "$lib/koso.svelte";
-  import { lastVisitedProjectId } from "$lib/nav";
+  import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
   import {
     exportProject,
@@ -110,7 +110,7 @@
 
   onMount(async () => {
     await kosoSocket.openWebSocket();
-    $lastVisitedProjectId = $page.params.projectId;
+    nav.lastVisitedProjectId = $page.params.projectId;
   });
 
   onDestroy(() => {

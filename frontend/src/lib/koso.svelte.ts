@@ -175,8 +175,10 @@ export class Koso {
     this.#expanded = useLocalStorage<Set<Node>>(
       `expanded-nodes-${projectId}`,
       Set(),
-      (json: string) => Set(JSON.parse(json).map(Node.parse)),
-      (nodes) => JSON.stringify(nodes.map((node) => node.id)),
+      {
+        decode: (json: string) => Set(JSON.parse(json).map(Node.parse)),
+        encode: (nodes) => JSON.stringify(nodes.map((node) => node.id)),
+      },
     );
 
     this.#showDone = useLocalStorage<boolean>(`show-done-${projectId}`, false);
