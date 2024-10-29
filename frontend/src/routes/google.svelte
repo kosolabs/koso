@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { headers } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
   import { Alert } from "$lib/components/ui/alert";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
@@ -46,11 +47,10 @@
               console.error("Credential is missing", oneTapResponse);
               return;
             }
+            auth.token = oneTapResponse.credential;
             const loginResponse = await fetch("/api/auth/login", {
               method: "POST",
-              headers: {
-                Authorization: `Bearer ${oneTapResponse.credential}`,
-              },
+              headers: headers(),
             });
             if (loginResponse.ok) {
               onsuccess(oneTapResponse.credential!);

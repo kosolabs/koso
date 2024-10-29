@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { headers } from "$lib/api";
   import { auth, type User } from "$lib/auth.svelte";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import { Button } from "$lib/components/ui/button";
@@ -27,7 +28,7 @@
     if (cachedAllUsers !== null) return cachedAllUsers;
 
     const response = await fetch(`/api/users`, {
-      headers: auth.headers(),
+      headers: headers(),
     });
     if (!response.ok) {
       logout_on_authentication_error(response);

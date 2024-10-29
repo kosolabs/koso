@@ -219,7 +219,7 @@ impl<B> MakeSpan<B> for KosoMakeSpan {
             .unwrap_or("MISSING");
 
         tracing::span!(
-            Level::INFO,
+            Level::DEBUG,
             "request",
             method = %request.method(),
             uri = %request.uri(),
@@ -240,9 +240,10 @@ impl<B> OnRequest<B> for KosoOnRequest {
             .unwrap_or("MISSING");
 
         tracing::event!(
-            tracing::Level::TRACE,
+            tracing::Level::DEBUG,
             http_version = ?request.version(),
             client_version = client_version,
+            "started processing request",
         );
     }
 }
