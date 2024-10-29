@@ -7,6 +7,7 @@
   import { Node, type Koso } from "$lib/koso.svelte";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import {
+    Cable,
     Check,
     ChevronsDownUp,
     ChevronsUpDown,
@@ -235,6 +236,11 @@
     koso.redo();
   }
 
+  function linkTask() {
+    if (!koso.selected) return;
+    getRow(koso.selected).linkOrMove(true);
+  }
+
   export const actions: Action[] = [
     new Action({
       title: "Add Task",
@@ -430,6 +436,13 @@
       callback: showCommandPalette,
       toolbar: true,
       shortcut: new Shortcut({ key: "p", shift: true, meta: true }),
+    }),
+    new Action({
+      title: "Link to Task",
+      icon: Cable,
+      callback: linkTask,
+      toolbar: true,
+      shortcut: new Shortcut({ key: "/", meta: true }),
     }),
   ];
 

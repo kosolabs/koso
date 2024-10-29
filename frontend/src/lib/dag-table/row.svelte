@@ -2,6 +2,7 @@
   export type RowType = {
     edit(editing: boolean): void;
     getStatusPosition(): DOMRect;
+    linkOrMove(visible: boolean): void;
   };
 </script>
 
@@ -23,6 +24,7 @@
   import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
   import DropIndicator from "./drop-indicator.svelte";
+  import LinkOrMoveCommand from "./link-or-move-command.svelte";
 
   type Props = {
     index: number;
@@ -41,6 +43,7 @@
   let dragOverPeer = $state(false);
   let dragOverChild = $state(false);
   let isEditing = $state(false);
+  let linkOrMoveVisible = $state(false);
 
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
@@ -66,6 +69,10 @@
   export function getStatusPosition(): DOMRect {
     if (!statusElement) throw new Error("Status element is undefined");
     return statusElement.getBoundingClientRect();
+  }
+
+  export function linkOrMove(visible: boolean) {
+    linkOrMoveVisible = visible;
   }
 
   function getTags(allParents: Map<string, string[]>): ChipProps[] {
@@ -332,29 +339,31 @@
     {/if}
   </td>
   <td class={cn("w-full border-l border-t px-2")}>
-    <div class="flex items-center gap-1">
-      {#each tags as tag}
-        <Chip {...tag} />
-      {/each}
-      <Editable
-        value={task.name}
-        aria-label={`Task ${task.num} Edit Name`}
-        editing={isEditing}
-        onclick={() => (koso.selected = node)}
-        onsave={async (name) => {
-          koso.setTaskName(task.id, name);
-        }}
-        ondone={() => edit(false)}
-        onkeydown={(e) => {
-          if (
-            !Shortcut.INSERT_NODE.matches(e) &&
-            !Shortcut.INSERT_CHILD_NODE.matches(e)
-          ) {
-            e.stopPropagation();
-          }
-        }}
-      />
-    </div>
+    <LinkOrMoveCommand bind:visible={linkOrMoveVisible} closeFocus={rowElement}>
+      <div class="flex items-center gap-1">
+        {#each tags as tag}
+          <Chip {...tag} />
+        {/each}
+        <Editable
+          value={task.name}
+          aria-label={`Task ${task.num} Edit Name`}
+          editing={isEditing}
+          onclick={() => (koso.selected = node)}
+          onsave={async (name) => {
+            koso.setTaskName(task.id, name);
+          }}
+          ondone={() => edit(false)}
+          onkeydown={(e) => {
+            if (
+              !Shortcut.INSERT_NODE.matches(e) &&
+              !Shortcut.INSERT_CHILD_NODE.matches(e)
+            ) {
+              e.stopPropagation();
+            }
+          }}
+        />
+      </div>
+    </LinkOrMoveCommand>
   </td>
   <td class={cn("border-l border-t p-2")}>
     <UserSelect
