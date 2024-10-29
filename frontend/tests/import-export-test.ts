@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   getKosoGraph,
   getKosoProjectId,
@@ -9,7 +9,7 @@ import type { Readable } from "stream";
 
 test.describe.configure({ mode: "parallel" });
 
-test.describe("import and export tests", () => {
+test.describe("import export tests", () => {
   test.beforeEach(async ({ page }) => {
     await setupNewProject(page);
   });
@@ -33,17 +33,14 @@ test.describe("import and export tests", () => {
     await expect(page.getByRole("row", { name: "Task 3" })).toBeVisible();
 
     // Export the project
-    let downloadPromise = page.waitForEvent("download");
+    const downloadPromise = download(page);
     await page.getByRole("button", { name: "Export Project" }).click();
-    let download = await downloadPromise;
-    expect(download.suggestedFilename()).toContain("export");
-    let readable = await download.createReadStream();
-    let buf = await streamToBuffer(readable);
-    let exportData = JSON.parse(new TextDecoder().decode(buf));
-    expect(exportData["project_id"]).toEqual(await getKosoProjectId(page));
-    const graph = exportData["data"];
-    expect(graph).toBeTruthy();
-    expect(graph).toEqual(await getKosoGraph(page));
+    const exportedProject = await downloadPromise;
+    expect(exportedProject.filename).toContain("export");
+    expect(exportedProject.data["project_id"]).toEqual(
+      await getKosoProjectId(page),
+    );
+    expect(exportedProject.data["data"]).toEqual(await getKosoGraph(page));
 
     // Import the project
     await page.goto("/projects");
@@ -51,26 +48,43 @@ test.describe("import and export tests", () => {
     page.locator("#fileInput").click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles({
-      name: download.suggestedFilename(),
+      name: exportedProject.filename,
       mimeType: "json",
-      buffer: buf,
+      buffer: exportedProject.dataBuf,
     });
     await page.getByRole("button", { name: "Import Project" }).click();
     await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
 
     // Export the newly imported project.
-    downloadPromise = page.waitForEvent("download");
+    const downloadPromise2 = download(page);
     await page.getByRole("button", { name: "Export Project" }).click();
-    download = await downloadPromise;
-    expect(download.suggestedFilename()).toContain("export");
-    readable = await download.createReadStream();
-    buf = await streamToBuffer(readable);
-    exportData = JSON.parse(new TextDecoder().decode(buf));
-    expect(exportData["project_id"]).toEqual(await getKosoProjectId(page));
-    expect(exportData["data"]).toEqual(await getKosoGraph(page));
-    expect(exportData["data"]).toEqual(graph);
+    const exportedProject2 = await downloadPromise2;
+    expect(exportedProject2.filename).toContain("export");
+    expect(exportedProject2.data["project_id"]).toEqual(
+      await getKosoProjectId(page),
+    );
+    expect(exportedProject2.data["data"]).toEqual(await getKosoGraph(page));
+    expect(exportedProject2.data["data"]).toEqual(exportedProject.data["data"]);
   });
 });
+
+type DownloadedProjectExport = {
+  filename: string;
+  dataBuf: Buffer;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any;
+};
+
+async function download(page: Page): Promise<DownloadedProjectExport> {
+  const download = await page.waitForEvent("download");
+  const readable = await download.createReadStream();
+  const buf = await streamToBuffer(readable);
+  return {
+    filename: download.suggestedFilename(),
+    dataBuf: buf,
+    data: JSON.parse(new TextDecoder().decode(buf)),
+  };
+}
 
 function streamToBuffer(stream: Readable): Promise<Buffer> {
   const chunks: Uint8Array[] = [];
