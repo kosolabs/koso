@@ -2,7 +2,7 @@
   export type RowType = {
     edit(editing: boolean): void;
     getStatusPosition(): DOMRect;
-    linkOrMove(visible: boolean): void;
+    linkPanel(open: boolean): void;
   };
 </script>
 
@@ -24,7 +24,7 @@
   import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
   import DropIndicator from "./drop-indicator.svelte";
-  import LinkCommand from "./link-command.svelte";
+  import LinkPanel from "./link-panel.svelte";
 
   type Props = {
     index: number;
@@ -71,7 +71,7 @@
     return statusElement.getBoundingClientRect();
   }
 
-  export function linkOrMove(visible: boolean) {
+  export function linkPanel(visible: boolean) {
     linkOpen = visible;
   }
 
@@ -361,7 +361,7 @@
           }
         }}
       />
-      <LinkCommand {node} bind:open={linkOpen} closeFocus={rowElement} />
+      <LinkPanel {node} bind:open={linkOpen} closeFocus={rowElement} />
     </div>
   </td>
   <td class={cn("border-l border-t p-2")}>

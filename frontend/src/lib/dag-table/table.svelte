@@ -238,7 +238,7 @@
 
   function linkTask() {
     if (!koso.selected) return;
-    getRow(koso.selected).linkOrMove(true);
+    getRow(koso.selected).linkPanel(true);
   }
 
   export const actions: Action[] = [
