@@ -51,7 +51,7 @@ export async function setupNewProject(page: Page): Promise<Page> {
   await login(page, generateEmail());
 
   await page.goto("/projects");
-  await page.getByRole("button", { name: "New Project" }).click();
+  await page.getByRole("button", { name: "New" }).click();
   await expect(
     page.getByRole("button", { name: "Set Project Name" }),
   ).toBeVisible();

@@ -50,14 +50,13 @@
       currentTarget: EventTarget & HTMLInputElement;
     },
   ) {
-    errorMessage = null;
-
     const files = event.currentTarget.files;
     const file = files && files.item(0);
     if (!file) {
-      errorMessage = "Select a file.";
       return;
     }
+
+    errorMessage = null;
     if (files.length > 1) {
       errorMessage = "Select a single file.";
       return;
@@ -101,10 +100,10 @@
       <div><Layers /></div>
       <div class="text-xl">Create your first Koso project!</div>
       <div>
-        <Button onclick={() => createProject()}>
+        <Button title="New Project" onclick={() => createProject}>
           <PackagePlus class="w-5 sm:me-2" />New
         </Button>
-        <Button onclick={() => triggerFileSelect()}>
+        <Button title="Import Project" onclick={triggerFileSelect}>
           <HardDriveUpload class="w-5 sm:me-2" /> Import
         </Button>
       </div>
@@ -113,10 +112,10 @@
     <div class="m-4 flex flex-col rounded border">
       <div class="flex flex-col items-end p-2">
         <div>
-          <Button onclick={() => createProject()}>
+          <Button title="New Project" onclick={() => createProject()}>
             <PackagePlus class="w-5 sm:me-2" />New
           </Button>
-          <Button onclick={() => triggerFileSelect()}>
+          <Button title="Import Project" onclick={triggerFileSelect}>
             <HardDriveUpload class="w-5 sm:me-2" /> Import
           </Button>
         </div>

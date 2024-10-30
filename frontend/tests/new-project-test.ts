@@ -32,7 +32,7 @@ test.describe("new project", () => {
   });
 
   test("create a project and rename it to Integration Test Project", async () => {
-    await page.getByRole("button", { name: "New Project" }).click();
+    await page.getByRole("button", { name: "New" }).click();
 
     await page.getByRole("button", { name: "Set Project Name" }).click();
     await page.keyboard.press("ControlOrMeta+A");
