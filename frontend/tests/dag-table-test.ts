@@ -1513,4 +1513,64 @@ test.describe("dag table tests", () => {
       });
     });
   });
+
+  test.describe("task tags", () => {
+    test("link panel adds a link to task by name", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2", "f3"] },
+        { id: "m1", name: "Milestone 1", children: ["f1", "f2", "f3"] },
+        { id: "m2", name: "Milestone 2", children: ["f3"] },
+        { id: "c1", name: "Component 1", children: ["f1", "f2", "c2"] },
+        { id: "c2", name: "Component 2", children: ["f2", "f3"] },
+        { id: "f1", name: "Feature 1", children: [] },
+        { id: "f2", name: "Feature 2", children: [] },
+        { id: "f3", name: "Feature 3", children: [] },
+      ]);
+
+      await page
+        .getByLabel("Task f3", { exact: true })
+        .getByRole("button", { name: "Milestone 1" })
+        .click();
+      await expect(
+        page.getByRole("row", { name: "Task f3" }).nth(0),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("row", { name: "Task f3" }).nth(0),
+      ).toBeFocused();
+
+      await page
+        .getByLabel("Task f3", { exact: true })
+        .getByRole("button", { name: "Root" })
+        .click();
+      await expect(
+        page.getByRole("row", { name: "Task f3" }).nth(1),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("row", { name: "Task f3" }).nth(1),
+      ).toBeFocused();
+
+      await page
+        .getByLabel("Task f2", { exact: true })
+        .getByRole("button", { name: "Component 2" })
+        .click();
+      await expect(
+        page.getByRole("row", { name: "Task f2" }).nth(1),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("row", { name: "Task f2" }).nth(1),
+      ).toBeFocused();
+      await expect(
+        page
+          .getByLabel("Task f2", { exact: true })
+          .nth(1)
+          .getByRole("button", { name: "Milestone 1" }),
+      ).toBeVisible();
+      await expect(
+        page
+          .getByLabel("Task f2", { exact: true })
+          .nth(1)
+          .getByRole("button", { name: "Component 1" }),
+      ).toBeVisible();
+    });
+  });
 });
