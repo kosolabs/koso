@@ -44,6 +44,7 @@ test.describe("import export tests", () => {
 
     // Import the project
     await page.goto("/projects");
+    await page.getByRole("button", { name: "Import Project" }).click();
     const fileChooserPromise = page.waitForEvent("filechooser");
     page.locator("#projectImportFileInput").click();
     const fileChooser = await fileChooserPromise;
@@ -52,7 +53,7 @@ test.describe("import export tests", () => {
       mimeType: "json",
       buffer: exportedProject.dataBuf,
     });
-    await page.getByRole("button", { name: "Import Project" }).click();
+    await page.getByRole("button", { name: "Import", exact: true }).click();
     await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
 
     // Export the newly imported project.

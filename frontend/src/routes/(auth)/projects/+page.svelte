@@ -10,10 +10,12 @@
     type Project,
   } from "$lib/projects";
   import { Layers } from "lucide-svelte";
+  import ImportProject from "./import-project.svelte";
 
   let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
   let projects: Promise<Project[]> = fetchProjects();
   let errorMessage: string | null = null;
+  let importProjectDialogOpen: boolean = false;
 
   async function createProject(import_data: string | null = null) {
     errorMessage = null;
@@ -38,16 +40,8 @@
     await goto(`/projects/${project.project_id}`);
   }
 
-  let files: FileList | null = null;
-
-  async function importProject() {
-    const file = files?.item(0) ?? null;
-    if (!file) {
-      errorMessage = "Select a file.";
-      return;
-    }
-
-    await createProject(await file.text());
+  function showImportProjectDialog() {
+    importProjectDialogOpen = true;
   }
 </script>
 
@@ -77,8 +71,9 @@
       <div class="text-xl">Create your first Koso project!</div>
       <div>
         <Button onclick={() => createProject()}>New project</Button>
-        <input id="projectImportFileInput" type="file" bind:files />
-        <Button onclick={() => importProject()}>Import project</Button>
+        <Button onclick={() => showImportProjectDialog()}>
+          Import project
+        </Button>
       </div>
     </div>
   {:else}
@@ -86,8 +81,9 @@
       <div class="flex flex-col items-end p-2">
         <div>
           <Button onclick={() => createProject()}>New project</Button>
-          <input id="projectImportFileInput" type="file" bind:files />
-          <Button onclick={() => importProject()}>Import project</Button>
+          <Button onclick={() => showImportProjectDialog()}>
+            Import project
+          </Button>
         </div>
       </div>
       <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-muted">
@@ -106,3 +102,5 @@
     </div>
   {/if}
 {/await}
+
+<ImportProject bind:open={importProjectDialogOpen} />
