@@ -66,6 +66,11 @@ test.describe("import export tests", () => {
     );
     expect(exportedProject2.data["data"]).toEqual(await getKosoGraph(page));
     expect(exportedProject2.data["data"]).toEqual(exportedProject.data["data"]);
+
+    // Validate that a new task can be created
+    await page.getByRole("button", { name: "Add Task" }).last().click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("row", { name: "Task 4" })).toBeVisible();
   });
 });
 
