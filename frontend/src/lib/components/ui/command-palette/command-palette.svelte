@@ -26,6 +26,7 @@
   onkeydown={(event) => {
     event.stopPropagation();
     if (Shortcut.CANCEL.matches(event)) {
+      filter = "";
       open = false;
     }
   }}
@@ -42,6 +43,7 @@
         value={title}
         onSelect={() => {
           callback();
+          filter = "";
           open = false;
         }}
       >
