@@ -133,7 +133,12 @@
         bind:open={openDropDown}
       >
         <Popover.Trigger>
-          <Input type="text" placeholder="Add people" bind:value={filter} />
+          <Input
+            type="text"
+            placeholder="Add people"
+            name="Add people"
+            bind:value={filter}
+          />
         </Popover.Trigger>
         <Popover.Content sameWidth={true} class="max-h-96 overflow-y-auto">
           {#if filter.length < MIN_FILTER_LEN}

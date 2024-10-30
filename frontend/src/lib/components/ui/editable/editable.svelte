@@ -100,6 +100,7 @@
   <Input
     class={cn("h-auto bg-background p-1", classes)}
     aria-label={ariaLabel}
+    name={ariaLabel}
     onclick={(event) => event.stopPropagation()}
     onblur={save}
     onkeydown={handleInputKeydown}
