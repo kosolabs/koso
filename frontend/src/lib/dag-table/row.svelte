@@ -89,7 +89,7 @@
           event.stopPropagation();
 
           let parentNode = koso.nodes
-            .filter((n) => n.name === parent.id)
+            .filter((n) => n.parent.id === parent.id)
             // Prefer the least nested linkage of the parent.
             // i.e. the one closed to the root.
             .minBy((n) => n.path.size);
