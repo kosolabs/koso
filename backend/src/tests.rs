@@ -2,6 +2,7 @@ use crate::{
     api::{
         collab::msg_sync::{self, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
         google::test_utils::{encode_token, testonly_key_set, Claims, KID_1, PEM_1},
+        model::{CreateProject, Project, ProjectExport},
     },
     server::{self, Config},
 };
@@ -349,7 +350,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     {
         let mut txn = doc_2.transact_mut();
         let graph = txn.get_or_insert_map("graph");
-        graph.insert(&mut txn, "entry1", "value1");
+        graph.insert(&mut txn, "entry1", MapPrelim::from([("inner", "value1")]));
         graph.insert(&mut txn, "entry2", MapPrelim::from([("inner", "value2")]));
     }
 
@@ -425,11 +426,47 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         .unwrap();
     assert_eq!(read_sync_response(socket_3).await, Update::default());
 
+    // Export the project.
+    {
+        let client = Client::default();
+        let res = client
+            .get(format!("http://{addr}/api/projects/{project_id}/export"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let export: ProjectExport =
+            serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        assert_eq!(export.project_id, project_id);
+
+        let create_req = CreateProject {
+            name: "Imported project".to_string(),
+            import_data: Some(serde_json::to_string(&export).unwrap()),
+        };
+        let res = client
+            .post(format!("http://{addr}/api/projects"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&create_req).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let project: Project = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        assert_eq!(project.name, "Imported project");
+        assert!(!project.project_id.is_empty());
+    }
+
     // Apply enough updates to trigger compaction on shutdown.
     for i in 0..10 {
         let mut txn = doc_1.transact_mut();
         let graph = txn.get_or_insert_map("graph");
-        graph.insert(&mut txn, format!("new_entry_{i}"), "value1");
+        graph.insert(
+            &mut txn,
+            format!("new_entry_{i}"),
+            MapPrelim::from([("inner", "value1")]),
+        );
         let update = txn.encode_update_v2();
         socket_1
             .send(Message::Binary(msg_sync::sync_update(&update)))

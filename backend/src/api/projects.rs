@@ -16,7 +16,12 @@ use axum::{
 };
 use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
+use std::collections::HashMap;
 use uuid::Uuid;
+use yrs::{
+    Any, ArrayPrelim, Doc, In, Map, MapPrelim, ReadTxn as _, StateVector, Transact as _,
+    WriteTxn as _,
+};
 
 use super::model::{ProjectExport, UpdateProjectUsersResponse};
 
@@ -76,6 +81,91 @@ async fn create_project_handler(
     }
     validate_project_name(&project.name)?;
 
+    let import_update = if let Some(import_data) = project.import_data {
+        let import_data: ProjectExport = match serde_json::from_str(&import_data) {
+            Ok(import_data) => import_data,
+            Err(err) => {
+                return Err(bad_request_error(
+                    "MALFORMED_IMPORT",
+                    &format!("Failed to parse import data as json: {}", err),
+                ))
+            }
+        };
+
+        let Any::Map(import_graph) = import_data.data else {
+            return Err(bad_request_error(
+                "MALFORMED_IMPORT",
+                "import_data.data must be a map field.",
+            ));
+        };
+
+        let doc: Doc = Doc::new();
+        {
+            let mut txn: yrs::TransactionMut<'_> = doc.transact_mut();
+            let graph = txn.get_or_insert_map("graph");
+            for (id, import_task) in import_graph.iter() {
+                if id.is_empty() {
+                    return Err(bad_request_error(
+                        "MALFORMED_IMPORT",
+                        &format!("task id may not be empty, task: {}", import_task),
+                    ));
+                }
+                let Any::Map(import_task) = import_task else {
+                    return Err(bad_request_error(
+                        "MALFORMED_IMPORT",
+                        &format!("graph.{} mus tbe a map, but got {:?}", id, import_task),
+                    ));
+                };
+
+                // You might wonder, why not just directly turn import_task into a MapPrelim
+                // without handling every case below? Well, when doing so array values,
+                // specifically the "children" field, shows up in the doc as a literal
+                // array rather than a YArray which breaks our expectations in the
+                // frontend. So, instead, we explicitly handle every case here.
+                let mut task = HashMap::new();
+                for (k, v) in (**import_task).clone().into_iter() {
+                    let v = match v {
+                        Any::Null | Any::Bool(_) | Any::Number(_) | Any::String(_) => v.into(),
+                        Any::Array(values) => {
+                            let mut res: Vec<In> = Vec::with_capacity(values.len());
+                            for v in values.iter() {
+                                let Any::String(v) = v else {
+                                    return Err(bad_request_error(
+                                        "MALFORMED_IMPORT",
+                                        &format!(
+                                            "Invalid task {}. Key {} has invalid array value {}",
+                                            id, k, v
+                                        ),
+                                    ));
+                                };
+                                res.push(v.clone().into());
+                            }
+                            In::Array(ArrayPrelim::from(res))
+                        }
+                        _ => {
+                            return Err(bad_request_error(
+                                "MALFORMED_IMPORT",
+                                &format!("Invalid task {}. Key {} has invalid value {}", id, k, v),
+                            ))
+                        }
+                    };
+                    task.insert(k, v);
+                }
+
+                graph.insert(
+                    &mut txn,
+                    id.as_str(),
+                    MapPrelim::from_iter(task.into_iter()),
+                );
+            }
+        }
+
+        let txn = doc.transact();
+        Some(txn.encode_state_as_update_v2(&StateVector::default()))
+    } else {
+        None
+    };
+
     let project = Project {
         project_id: BASE64_URL_SAFE_NO_PAD.encode(Uuid::new_v4()),
         name: project.name,
@@ -92,6 +182,13 @@ async fn create_project_handler(
         .bind(&user.email)
         .execute(&mut *txn)
         .await?;
+    if let Some(import_update) = import_update {
+        sqlx::query("INSERT INTO yupdates (project_id, seq, update_v2) VALUES ($1, DEFAULT, $2)")
+            .bind(&project.project_id)
+            .bind(import_update)
+            .execute(&mut *txn)
+            .await?;
+    }
     txn.commit().await?;
 
     tracing::debug!(

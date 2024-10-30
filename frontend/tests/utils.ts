@@ -5,6 +5,9 @@ export async function getKosoGraph(page: Page): Promise<Graph> {
   return page.evaluate("koso.toJSON()");
 }
 
+export async function getKosoProjectId(page: Page): Promise<Graph> {
+  return page.evaluate("koso.projectId");
+}
 export async function clear(page: Page) {
   await page.evaluate("koso.clear()");
   await page.reload();
@@ -48,7 +51,7 @@ export async function setupNewProject(page: Page): Promise<Page> {
   await login(page, generateEmail());
 
   await page.goto("/projects");
-  await page.getByRole("button", { name: "New Project" }).click();
+  await page.getByRole("button", { name: "New" }).click();
   await expect(
     page.getByRole("button", { name: "Set Project Name" }),
   ).toBeVisible();
