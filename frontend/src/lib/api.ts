@@ -1,4 +1,6 @@
 import { logout_on_authentication_error } from "./errors";
+import { version } from "$app/environment";
+import { auth } from "./auth.svelte";
 
 export type ErrorResponseBody = {
   status: number;
@@ -27,6 +29,13 @@ export class KosoError extends Error {
   hasReason(reason: string): boolean {
     return this.details.find((d) => d.reason === reason) !== undefined;
   }
+}
+
+export function headers() {
+  return {
+    ...auth.headers(),
+    "koso-client-version": version,
+  };
 }
 
 /**

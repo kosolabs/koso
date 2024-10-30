@@ -10,8 +10,7 @@
     redirectOnLogin();
   }
 
-  async function onsuccess(credential: string) {
-    auth.token = credential;
+  async function onsuccess() {
     await redirectOnLogin();
   }
 
