@@ -63,7 +63,11 @@
     }}
   >
     <DropdownMenu.Label>
-      <Input placeholder="Filter users" bind:value={filter} />
+      <Input
+        placeholder="Filter users"
+        name="Filter users"
+        bind:value={filter}
+      />
     </DropdownMenu.Label>
     <DropdownMenu.Separator />
     <DropdownMenu.Group class="max-h-64 overflow-y-auto">
