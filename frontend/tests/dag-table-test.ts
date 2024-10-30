@@ -1566,6 +1566,18 @@ test.describe("dag table tests", () => {
         page.getByRole("row", { name: "Task f3" }).nth(0),
       ).toBeFocused();
 
+      await page.getByRole("button", { name: "Task m1 Drag Handle" }).click();
+      await page
+        .getByLabel("Task f3", { exact: true })
+        .getByRole("button", { name: "Milestone 1" })
+        .click();
+      await expect(
+        page.getByRole("row", { name: "Task f3" }).nth(0),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("row", { name: "Task f3" }).nth(0),
+      ).toBeFocused();
+
       await page
         .getByLabel("Task f3", { exact: true })
         .getByRole("button", { name: "Root" })
