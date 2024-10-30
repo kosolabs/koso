@@ -98,7 +98,10 @@ test.describe("dag table tests", () => {
     test("create a task by presing Shift+Enter on the task", async ({
       page,
     }) => {
-      await init(page, [{ id: "root", children: ["1"] }, { id: "1" }]);
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1" },
+      ]);
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Shift+Enter");
@@ -120,7 +123,10 @@ test.describe("dag table tests", () => {
     test("create a child task by presing Option+Shift+Enter on the task", async ({
       page,
     }) => {
-      await init(page, [{ id: "root", children: ["1"] }, { id: "1" }]);
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1" },
+      ]);
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Alt+Shift+Enter");
@@ -145,7 +151,7 @@ test.describe("dag table tests", () => {
   test.describe("deleting tasks", () => {
     test("delete task 2 by clicking the Delete button", async ({ page }) => {
       await init(page, [
-        { id: "root", children: ["1", "2", "3"] },
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
         { id: "1" },
         { id: "2" },
         { id: "3" },
@@ -167,7 +173,7 @@ test.describe("dag table tests", () => {
       page,
     }) => {
       await init(page, [
-        { id: "root", children: ["1", "2", "3"] },
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
         { id: "1" },
         { id: "2", children: ["4"] },
         { id: "3" },
@@ -191,7 +197,7 @@ test.describe("dag table tests", () => {
       page,
     }) => {
       await init(page, [
-        { id: "root", children: ["1", "2"] },
+        { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", children: ["4"] },
         { id: "2", children: ["3"] },
         { id: "3" },
@@ -226,7 +232,10 @@ test.describe("dag table tests", () => {
     test("create a task by presing Shift+Enter on the task", async ({
       page,
     }) => {
-      await init(page, [{ id: "root", children: ["1"] }, { id: "1" }]);
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1" },
+      ]);
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Shift+Enter");
@@ -240,7 +249,10 @@ test.describe("dag table tests", () => {
 
   test.describe("selecting tasks", () => {
     test("select task 1 by clicking on the drag handle", async ({ page }) => {
-      await init(page, [{ id: "root", children: ["1"] }, { id: "1" }]);
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1" },
+      ]);
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
     });
@@ -248,7 +260,10 @@ test.describe("dag table tests", () => {
 
   test.describe("editing tasks", () => {
     test("set task 1's name by clicking Click to edit", async ({ page }) => {
-      await init(page, [{ id: "root", children: ["1"] }, { id: "1" }]);
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1" },
+      ]);
       await page.getByRole("button", { name: "Task 1 Edit Name" }).click();
       await page.keyboard.type("The 1st Task");
       await page.keyboard.press("Enter");
@@ -260,7 +275,7 @@ test.describe("dag table tests", () => {
 
     test("set task 2's name by pressing Enter", async ({ page }) => {
       await init(page, [
-        { id: "root", children: ["1", "2"] },
+        { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1" },
         { id: "2" },
       ]);
@@ -278,7 +293,7 @@ test.describe("dag table tests", () => {
   test.describe("movement using keyboard bindings", () => {
     test("up and down arrows change the selected row", async ({ page }) => {
       await init(page, [
-        { id: "root", children: ["1", "2", "3"] },
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
         { id: "1" },
         { id: "2" },
         { id: "3" },
@@ -309,7 +324,7 @@ test.describe("dag table tests", () => {
       page,
     }) => {
       await init(page, [
-        { id: "root", children: ["1", "2", "3"] },
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
         { id: "1" },
         { id: "2" },
         { id: "3" },
@@ -345,7 +360,7 @@ test.describe("dag table tests", () => {
 
     test("option left and right change row indentation", async ({ page }) => {
       await init(page, [
-        { id: "root", children: ["1", "2", "3"] },
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
         { id: "1" },
         { id: "2" },
         { id: "3" },
@@ -382,7 +397,7 @@ test.describe("dag table tests", () => {
     test.describe("option up and down arrows change the order of rows", async () => {
       test("option skips past collapsed nodes", async ({ page }) => {
         await init(page, [
-          { id: "root", children: ["1", "2", "3"] },
+          { id: "root", name: "Root", children: ["1", "2", "3"] },
           { id: "1" },
           { id: "2", children: ["4", "5"] },
           { id: "3" },
@@ -437,7 +452,7 @@ test.describe("dag table tests", () => {
 
       test("option moves row by row", async ({ page }) => {
         await init(page, [
-          { id: "root", children: ["1", "2", "3"] },
+          { id: "root", name: "Root", children: ["1", "2", "3"] },
           { id: "1" },
           { id: "2", children: ["4", "5"] },
           { id: "3" },
@@ -543,7 +558,7 @@ test.describe("dag table tests", () => {
 
       test("option moves ignores target descendants", async ({ page }) => {
         await init(page, [
-          { id: "root", children: ["1", "2", "3"] },
+          { id: "root", name: "Root", children: ["1", "2", "3"] },
           { id: "1", children: ["11", "12", "13"] },
           { id: "2", children: ["4", "5"] },
           { id: "3" },
@@ -879,7 +894,7 @@ test.describe("dag table tests", () => {
 
       test("move row past invalid to start", async ({ page }) => {
         await init(page, [
-          { id: "root", children: ["1", "2"] },
+          { id: "root", name: "Root", children: ["1", "2"] },
           { id: "1", children: ["2"] },
           { id: "2" },
         ]);
@@ -918,7 +933,7 @@ test.describe("dag table tests", () => {
 
       test("move row past multiple invalid locations", async ({ page }) => {
         await init(page, [
-          { id: "root", children: ["1"] },
+          { id: "root", name: "Root", children: ["1"] },
           { id: "1", children: ["2", "99"] },
           { id: "2", children: ["99", "3", "4"] },
           { id: "3", children: ["99"] },
@@ -1015,7 +1030,7 @@ test.describe("dag table tests", () => {
 
       test("single row remains unchanged", async ({ page }) => {
         await init(page, [
-          { id: "root", children: ["1"] },
+          { id: "root", name: "Root", children: ["1"] },
           { id: "1", children: ["2", "3"] },
           { id: "2" },
           { id: "3", children: ["4"] },
@@ -1064,7 +1079,7 @@ test.describe("dag table tests", () => {
 
       test("invalid locations are skipped", async ({ page }) => {
         await init(page, [
-          { id: "root", children: ["1", "5", "6"] },
+          { id: "root", name: "Root", children: ["1", "5", "6"] },
           { id: "1", children: ["2", "3"] },
           { id: "2" },
           { id: "3", children: ["4"] },
@@ -1159,7 +1174,7 @@ test.describe("dag table tests", () => {
       page,
     }) => {
       await init(page, [
-        { id: "root", children: ["1"] },
+        { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2"] },
         { id: "2" },
       ]);
@@ -1178,7 +1193,7 @@ test.describe("dag table tests", () => {
       page,
     }) => {
       await init(page, [
-        { id: "root", children: ["1", "2"] },
+        { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1" },
         { id: "2" },
       ]);
@@ -1217,7 +1232,10 @@ test.describe("dag table tests", () => {
     });
 
     test("clicking undo restores selected node", async ({ page }) => {
-      await init(page, [{ id: "root", children: ["1"] }, { id: "1" }]);
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1" },
+      ]);
       page.evaluate(() => {
         window.koso.yUndoManager.captureTimeout = 0;
       });
@@ -1253,7 +1271,7 @@ test.describe("dag table tests", () => {
       page,
     }) => {
       await init(page, [
-        { id: "root", children: ["1", "2", "3"] },
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
         { id: "1" },
         { id: "2" },
         { id: "3" },
@@ -1281,7 +1299,7 @@ test.describe("dag table tests", () => {
       page,
     }) => {
       await init(page, [
-        { id: "root", children: ["1", "2", "3"] },
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
         { id: "1" },
         { id: "2" },
         { id: "3" },
@@ -1309,7 +1327,7 @@ test.describe("dag table tests", () => {
       page,
     }) => {
       await init(page, [
-        { id: "root", children: ["1", "2", "3"] },
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
         { id: "1" },
         { id: "2" },
         { id: "3" },
@@ -1337,7 +1355,7 @@ test.describe("dag table tests", () => {
 
     test("cannot make task 1 child of itself", async ({ page }) => {
       await init(page, [
-        { id: "root", children: ["1", "2", "3"] },
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
         { id: "1" },
         { id: "2" },
         { id: "3" },
@@ -1359,7 +1377,7 @@ test.describe("dag table tests", () => {
 
     test("cannot make task 1 a peer of itself", async ({ page }) => {
       await init(page, [
-        { id: "root", children: ["1", "2", "3"] },
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
         { id: "1" },
         { id: "2" },
         { id: "3" },
@@ -1391,7 +1409,7 @@ test.describe("dag table tests", () => {
 
     test("all tasks not started shows Not Started", async ({ page }) => {
       await init(page, [
-        { id: "root", children: ["1"] },
+        { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3", "4", "5"] },
         { id: "2", status: null, statusTime: now },
         { id: "3", status: null, statusTime: now },
@@ -1408,7 +1426,7 @@ test.describe("dag table tests", () => {
       page,
     }) => {
       await init(page, [
-        { id: "root", children: ["1"] },
+        { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3", "4", "5"] },
         { id: "2", status: null, statusTime: now },
         { id: "3", status: null, statusTime: now },
@@ -1425,7 +1443,7 @@ test.describe("dag table tests", () => {
       page,
     }) => {
       await init(page, [
-        { id: "root", children: ["1"] },
+        { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3", "4", "5"] },
         { id: "2", status: null, statusTime: now },
         { id: "3", status: null, statusTime: now },
@@ -1440,7 +1458,7 @@ test.describe("dag table tests", () => {
 
     test("four out of four tasks complete shows Done", async ({ page }) => {
       await init(page, [
-        { id: "root", children: ["1"] },
+        { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3", "4", "5"] },
         { id: "2", status: "Done", statusTime: now },
         { id: "3", status: "Done", statusTime: now },
@@ -1457,7 +1475,7 @@ test.describe("dag table tests", () => {
   test.describe("link panel", () => {
     test("link panel adds a link to task by name", async ({ page }) => {
       await init(page, [
-        { id: "root", children: ["m1", "m2", "c1", "c2"] },
+        { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2"] },
         { id: "m1", name: "Milestone 1", children: ["f1", "f2"] },
         { id: "m2", name: "Milestone 2", children: [] },
         { id: "c1", name: "Component 1", children: [] },
@@ -1486,7 +1504,7 @@ test.describe("dag table tests", () => {
 
     test("link panel adds a link to task by ID", async ({ page }) => {
       await init(page, [
-        { id: "root", children: ["m1", "m2", "c1", "c2"] },
+        { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2"] },
         { id: "m1", name: "Milestone 1", children: ["f1", "f2"] },
         { id: "m2", name: "Milestone 2", children: [] },
         { id: "c1", name: "Component 1", children: [] },
