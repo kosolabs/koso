@@ -101,10 +101,10 @@
       <div class="text-xl">Create your first Koso project!</div>
       <div>
         <Button title="New Project" onclick={() => createProject()}>
-          <PackagePlus class="w-5 sm:me-2" />New
+          <PackagePlus class="me-2 w-5" />New
         </Button>
         <Button title="Import Project" onclick={triggerFileSelect}>
-          <HardDriveUpload class="w-5 sm:me-2" /> Import
+          <HardDriveUpload class="me-2 w-5" /> Import
         </Button>
       </div>
     </div>
@@ -113,10 +113,10 @@
       <div class="flex flex-col items-end p-2">
         <div>
           <Button title="New Project" onclick={() => createProject()}>
-            <PackagePlus class="w-5 sm:me-2" />New
+            <PackagePlus class="me-2 w-5" />New
           </Button>
           <Button title="Import Project" onclick={triggerFileSelect}>
-            <HardDriveUpload class="w-5 sm:me-2" /> Import
+            <HardDriveUpload class="me-2 w-5" /> Import
           </Button>
         </div>
       </div>
