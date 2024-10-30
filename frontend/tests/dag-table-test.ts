@@ -1491,6 +1491,11 @@ test.describe("dag table tests", () => {
       await page.keyboard.type("Component 2");
       await page.keyboard.press("Enter");
 
+      await page.getByRole("button", { name: "Task c2 Toggle Expand" }).click();
+      await expect(
+        page.getByRole("row", { name: "Task f1" }).nth(1),
+      ).toContainText("Milestone 1");
+
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["m1", "m2", "c1", "c2"] },
         m1: { children: ["f1", "f2"] },
@@ -1519,6 +1524,11 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Meta+/");
       await page.keyboard.type("c1");
       await page.keyboard.press("Enter");
+
+      await page.getByRole("button", { name: "Task c1 Toggle Expand" }).click();
+      await expect(
+        page.getByRole("row", { name: "Task f2" }).nth(1),
+      ).toContainText("Milestone 1");
 
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["m1", "m2", "c1", "c2"] },
