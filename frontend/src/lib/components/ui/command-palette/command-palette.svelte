@@ -2,6 +2,7 @@
   import * as Command from "$lib/components/ui/command";
   import { ShortcutChips } from "$lib/components/ui/shortcut";
   import { Shortcut, type Action } from "$lib/shortcuts";
+  import { match } from "$lib/utils";
 
   type Props = {
     open: boolean;
@@ -9,19 +10,13 @@
   };
   let { open = $bindable(), actions }: Props = $props();
 
-  let filter: string = $state("");
-
+  let query: string = $state("");
   const filteredActions = $derived(
     actions
       .filter((action) => action.enabled())
       .filter(
         (action) =>
-          action.title
-            .toLocaleLowerCase()
-            .includes(filter.toLocaleLowerCase()) ||
-          action.description
-            .toLocaleLowerCase()
-            .includes(filter.toLocaleLowerCase()),
+          match(action.title, query) || match(action.description, query),
       ),
   );
 </script>
@@ -33,15 +28,12 @@
   onkeydown={(event) => {
     event.stopPropagation();
     if (Shortcut.CANCEL.matches(event)) {
-      filter = "";
+      query = "";
       open = false;
     }
   }}
 >
-  <Command.Input
-    bind:value={filter}
-    placeholder="Type a command or search..."
-  />
+  <Command.Input bind:value={query} placeholder="Type a command or search..." />
   <Command.List>
     <Command.Empty>No results found.</Command.Empty>
     {#each filteredActions as action}
@@ -50,7 +42,7 @@
         value={title}
         onSelect={() => {
           callback();
-          filter = "";
+          query = "";
           open = false;
         }}
       >
