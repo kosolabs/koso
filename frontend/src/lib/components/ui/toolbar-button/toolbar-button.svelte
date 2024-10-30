@@ -3,7 +3,13 @@
   import * as Tooltip from "$lib/components/ui/tooltip";
   import type { Action } from "$lib/shortcuts";
 
-  const { icon: Icon, title, shortcut, callback }: Action = $props();
+  const {
+    icon: Icon,
+    title,
+    description,
+    shortcut,
+    callback,
+  }: Action = $props();
 </script>
 
 <Tooltip.Root>
@@ -16,7 +22,7 @@
   <Tooltip.Content>
     <Tooltip.Arrow class="z-50" />
     <div class="flex items-center gap-2">
-      <div class="text-primary-foreground">{title}</div>
+      <div class="text-primary-foreground">{description}</div>
       {#if shortcut}
         <div class="font-bold text-primary-foreground">
           {shortcut.toString()}

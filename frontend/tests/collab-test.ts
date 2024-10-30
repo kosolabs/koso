@@ -46,7 +46,7 @@ test.describe("Collaboration tests", () => {
   });
 
   test("Collaborate to create and delete tasks", async ({ page }) => {
-    await page.getByRole("button", { name: "Add Task" }).first().click();
+    await page.getByRole("button", { name: "Insert" }).first().click();
 
     await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
     let graph = await getKosoGraph(page);
@@ -55,7 +55,7 @@ test.describe("Collaboration tests", () => {
     await expect(otherPage.getByRole("row", { name: "Task 1" })).toBeVisible();
     expect(graph).toStrictEqual(await getKosoGraph(otherPage));
 
-    await otherPage.getByRole("button", { name: "Add Task" }).click();
+    await otherPage.getByRole("button", { name: "Insert" }).click();
 
     await expect(otherPage.getByRole("row", { name: "Task 2" })).toBeVisible();
     graph = await getKosoGraph(otherPage);

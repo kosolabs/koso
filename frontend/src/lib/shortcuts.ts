@@ -102,6 +102,7 @@ export class ShortcutRegistry {
 type ActionProps = {
   callback: () => void;
   title?: string;
+  description?: string;
   icon?: typeof Icon;
   toolbar?: boolean;
   enabled?: () => boolean;
@@ -109,24 +110,27 @@ type ActionProps = {
 };
 
 export class Action {
-  title: string;
-  icon: typeof Icon;
   callback: () => void;
+  title: string;
+  description: string;
+  icon: typeof Icon;
   toolbar: boolean;
   enabled: () => boolean;
   shortcut?: Shortcut;
 
   constructor({
     callback,
-    title = "Untitled Action",
+    title = "Untitled",
+    description,
     icon = CircleSlash,
     toolbar = false,
     enabled = () => true,
     shortcut,
   }: ActionProps) {
-    this.title = title;
-    this.icon = icon;
     this.callback = callback;
+    this.title = title;
+    this.description = description || title;
+    this.icon = icon;
     this.toolbar = toolbar;
     this.enabled = enabled;
     this.shortcut = shortcut;

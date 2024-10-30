@@ -12,10 +12,17 @@
   let filter: string = $state("");
 
   const filteredActions = $derived(
-    actions.filter(
-      (action) =>
-        action.enabled() && action.title.toLocaleLowerCase().includes(filter),
-    ),
+    actions
+      .filter((action) => action.enabled())
+      .filter(
+        (action) =>
+          action.title
+            .toLocaleLowerCase()
+            .includes(filter.toLocaleLowerCase()) ||
+          action.description
+            .toLocaleLowerCase()
+            .includes(filter.toLocaleLowerCase()),
+      ),
   );
 </script>
 
@@ -38,7 +45,7 @@
   <Command.List>
     <Command.Empty>No results found.</Command.Empty>
     {#each filteredActions as action}
-      {@const { title, icon: Icon, callback, shortcut } = action}
+      {@const { title, description, icon: Icon, callback, shortcut } = action}
       <Command.Item
         value={title}
         onSelect={() => {
@@ -48,7 +55,7 @@
         }}
       >
         <Icon class="mr-2 h-4 w-4" />
-        {title}
+        {description}
         {#if shortcut}
           <ShortcutChips class="ml-auto" {shortcut} />
         {/if}
