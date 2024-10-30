@@ -95,7 +95,6 @@
             .minBy((n) => n.path.size);
           if (parentNode) {
             koso.selected = parentNode.child(node.name);
-            console.log(`Selecting parent ${koso.selected}`);
             return;
           }
           const root = koso.nodes.get(0);
@@ -109,9 +108,6 @@
             if (!n) throw new Error("Unexpectly found nothing in queue.");
             if (n.name === parent.id && koso.isVisible(n, koso.showDone)) {
               koso.selected = n.child(node.name);
-              console.log(
-                `Selecting previously not shown parent ${koso.selected}`,
-              );
 
               let t = n;
               while (t.length) {
