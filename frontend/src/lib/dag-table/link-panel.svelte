@@ -30,6 +30,7 @@
 
   function link(taskId: string) {
     koso.linkNode(node, taskId, koso.getChildCount(taskId));
+    query = "";
     open = false;
   }
 </script>
@@ -41,6 +42,7 @@
     onkeydown={(event) => {
       event.stopPropagation();
       if (Shortcut.CANCEL.matches(event)) {
+        query = "";
         open = false;
       }
     }}
