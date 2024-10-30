@@ -3,7 +3,7 @@
   import * as Popover from "$lib/components/ui/popover";
   import type { Koso, Node } from "$lib/koso.svelte";
   import { Shortcut } from "$lib/shortcuts";
-  import { Grip } from "lucide-svelte";
+  import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
 
   type Props = {
@@ -17,15 +17,19 @@
 
   let query = $state("");
   let tasks = $derived(
-    Object.values(koso.graph)
-      .filter(
-        (task) =>
-          task.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()) ||
-          task.num.startsWith(query),
-      )
-      .filter((task) => task.id !== "root")
-      .filter((task) => koso.canLink(node, task.id))
-      .sort((t1, t2) => t2.children.length - t1.children.length),
+    open
+      ? Object.values(koso.graph)
+          .filter(
+            (task) =>
+              task.name
+                .toLocaleLowerCase()
+                .includes(query.toLocaleLowerCase()) ||
+              task.num.startsWith(query),
+          )
+          .filter((task) => task.id !== "root")
+          .filter((task) => koso.canLink(node, task.id))
+          .sort((t1, t2) => t2.children.length - t1.children.length)
+      : [],
   );
 
   function link(taskId: string) {
@@ -36,9 +40,9 @@
 </script>
 
 <Popover.Root bind:open {closeFocus} portal={null}>
-  <Popover.Trigger class="h-auto"></Popover.Trigger>
+  <Popover.Trigger class="absolute left-[calc(100%/2)] h-6" />
   <Popover.Content
-    class="w-[calc(100%-1em)] max-w-2xl"
+    class="w-[calc(100%-2em)] max-w-2xl"
     onkeydown={(event) => {
       event.stopPropagation();
       if (Shortcut.CANCEL.matches(event)) {
@@ -55,12 +59,23 @@
       <Command.List>
         <Command.Empty>No tasks found.</Command.Empty>
         {#each tasks as task (task.id)}
-          <Command.Item class="flex" onSelect={() => link(task.id)}>
-            <Grip size={16} />
-            <div class="w-10 pl-1">{task.num}</div>
-            <div class="w-full">{task.name || "Untitled task"}</div>
-            <div class="ml-auto text-nowrap">
-              ({task.children.length} Children)
+          <Command.Item class="table-row" onSelect={() => link(task.id)}>
+            <div class="table-cell rounded-l px-2 align-middle">
+              <div class="flex items-center gap-1 py-2" title="Task Number">
+                <Clipboard size={16} />
+                {task.num}
+              </div>
+            </div>
+            <div class="table-cell w-full px-2 align-middle">
+              <div class="flex items-center" title="Task Name">
+                {task.name || "Untitled task"}
+              </div>
+            </div>
+            <div class="table-cell text-nowrap rounded-r px-2 align-middle">
+              <div class="flex items-center gap-1" title="Subtasks">
+                {task.children.length}
+                <Network size={16} />
+              </div>
             </div>
           </Command.Item>
         {/each}
