@@ -291,7 +291,7 @@
     }),
     new Action({
       callback: insertChild,
-      title: "Insert Child",
+      title: "Insert Subtask",
       description: "Insert a new task as a child",
       icon: ListTree,
       enabled: () => !!koso.selected,
@@ -299,7 +299,7 @@
     }),
     new Action({
       callback: insertChildAbove,
-      title: "Insert Child Above",
+      title: "Insert Subtask Above",
       description: "Insert a new task as a child of the previous task",
       icon: ListTree,
       enabled: () => !!koso.selected && koso.getOffset(koso.selected) > 0,
@@ -484,7 +484,7 @@
 <Toolbar {actions} />
 <CommandPalette bind:open={commandPaletteOpen} {actions} />
 
-<div class="mb-[50px] p-2 sm:mb-0">
+<div class="p-2">
   {#if !koso.syncState.serverSync && !koso.syncState.indexedDbSync}
     <!-- Loading.-->
   {:else if koso.nodes.size > 1}
