@@ -344,20 +344,6 @@
       shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
     }),
     new Action({
-      title: "Undent",
-      icon: IndentDecrease,
-      callback: undent,
-      enabled: () => !!koso.selected,
-      shortcut: new Shortcut({ key: "ArrowLeft", alt: true, shift: true }),
-    }),
-    new Action({
-      title: "Indent",
-      icon: IndentIncrease,
-      callback: indent,
-      enabled: () => !!koso.selected,
-      shortcut: new Shortcut({ key: "ArrowRight", alt: true, shift: true }),
-    }),
-    new Action({
       title: "Undo",
       icon: Undo,
       callback: undo,
