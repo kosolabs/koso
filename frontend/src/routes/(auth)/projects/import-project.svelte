@@ -1,27 +1,42 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
+  import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
   import { createProject } from "$lib/projects";
   import { Shortcut } from "$lib/shortcuts";
+  import { HardDriveUpload } from "lucide-svelte";
 
   type Props = {
     open: boolean;
   };
   let { open = $bindable(false) }: Props = $props();
 
-  let files: FileList | null = $state(null);
   let errorMessage: string | null = $state(null);
 
-  async function importProject() {
-    const file = files?.item(0) ?? null;
+  function triggerFileSelect() {
+    document.getElementById("projectImportFileInput")?.click();
+  }
+
+  async function importProject(
+    event: Event & {
+      currentTarget: EventTarget & HTMLInputElement;
+    },
+  ) {
+    errorMessage = null;
+
+    const files = event.currentTarget.files;
+    const file = files && files.item(0);
     if (!file) {
       errorMessage = "Select a file.";
       return;
     }
+    if (files.length > 1) {
+      errorMessage = "Select a single file.";
+      return;
+    }
 
-    errorMessage = null;
     let project;
     try {
       project = await createProject(await file.text());
@@ -56,15 +71,29 @@
     <Dialog.Header>
       <Dialog.Title>Import Project</Dialog.Title>
       <Dialog.Description
-        >Import a new project from a project export file.</Dialog.Description
+        >Import a new project from an exported .json file.</Dialog.Description
       >
     </Dialog.Header>
     <div class="flex flex-col gap-2">
-      <input id="projectImportFileInput" type="file" bind:files />
+      <input
+        id="projectImportFileInput"
+        type="file"
+        accept=".json,application/JSON"
+        multiple={false}
+        hidden
+        onchange={importProject}
+      />
+      <Button variant="outline" on:click={triggerFileSelect}>
+        <div class="flex items-center space-x-3">
+          <HardDriveUpload class="w-5" />
+          <span>Upload project .json file</span>
+        </div>
+      </Button>
       {#if errorMessage}
-        <div>{errorMessage}</div>
+        <div class="my-2 flex-grow-0">
+          <Alert variant="destructive">{errorMessage}</Alert>
+        </div>
       {/if}
-      <Button onclick={() => importProject()}>Import</Button>
     </div>
   </Dialog.Content>
 </Dialog.Root>
