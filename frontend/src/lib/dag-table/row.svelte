@@ -87,14 +87,13 @@
         const props = parseChipProps(parent.name);
         props.onClick = (event) => {
           event.stopPropagation();
-
-          let parentNode = koso.nodes
-            .filter((n) => n.parent.id === parent.id)
-            // Prefer the least nested linkage of the parent.
+          let targetNode = koso.nodes
+            .filter((n) => n.name == node.name && n.parent.name === parent.id)
+            // Prefer the least nested linkage of this node under the given parent.
             // i.e. the one closed to the root.
             .minBy((n) => n.path.size);
-          if (parentNode) {
-            koso.selected = parentNode.child(node.name);
+          if (targetNode) {
+            koso.selected = targetNode;
             return;
           }
           const root = koso.nodes.get(0);
@@ -106,10 +105,14 @@
           while (queue.length > 0) {
             let n = queue.shift();
             if (!n) throw new Error("Unexpectly found nothing in queue.");
-            if (n.name === parent.id && koso.isVisible(n, koso.showDone)) {
-              koso.selected = n.child(node.name);
-
-              let t = n;
+            if (
+              n.name === node.name &&
+              n.parent.name === parent.id &&
+              koso.isVisible(n, koso.showDone)
+            ) {
+              koso.selected = n;
+              // Expand all parents of the selected node to ensure it's visible.
+              let t = n.parent;
               while (t.length) {
                 koso.expand(t);
                 t = t.parent;
