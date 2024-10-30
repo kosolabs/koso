@@ -300,8 +300,16 @@ export class Koso {
     return this.yGraph.toJSON();
   }
 
+  canExpand(node: Node) {
+    return !this.expanded.contains(node) && this.getChildCount(node.name) > 0;
+  }
+
   expand(node: Node) {
     this.expanded = this.expanded.add(node);
+  }
+
+  canCollapse(node: Node) {
+    return this.expanded.contains(node) && this.getChildCount(node.name) > 0;
   }
 
   collapse(node: Node) {
@@ -840,9 +848,9 @@ export class Koso {
     this.reorderNode(node, length);
   }
 
-  canIndentNode(node: Node) {
+  canIndentNode(node: Node): boolean {
     const peer = this.getPrevPeer(node);
-    return peer && this.canMove(node, peer.name);
+    return !!peer && this.canMove(node, peer.name);
   }
 
   indentNode(node: Node) {
@@ -853,7 +861,7 @@ export class Koso {
     this.selected = peer.child(node.name);
   }
 
-  canUndentNode(node: Node) {
+  canUndentNode(node: Node): boolean {
     if (node.length < 2) return false;
     return this.canMove(node, node.parent.parent.name);
   }

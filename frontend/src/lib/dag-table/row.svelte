@@ -23,9 +23,9 @@
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
+  import { toast } from "svelte-sonner";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
-  import { toast } from "svelte-sonner";
 
   type Props = {
     index: number;
