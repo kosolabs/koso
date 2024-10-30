@@ -19,7 +19,7 @@
     errorMessage = null;
     let project;
     try {
-      project = await projectsCreateProject(mport_data);
+      project = await projectsCreateProject(import_data);
     } catch (err) {
       if (err instanceof KosoError && err.hasReason("TOO_MANY_PROJECTS")) {
         errorMessage =
