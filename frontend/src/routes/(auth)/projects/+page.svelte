@@ -9,13 +9,12 @@
     createProject as projectsCreateProject,
     type Project,
   } from "$lib/projects";
-  import { Layers } from "lucide-svelte";
-  import ImportProject from "./import-project.svelte";
+  import { Layers, HardDriveUpload, PackagePlus } from "lucide-svelte";
+  import { toast } from "svelte-sonner";
 
   let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
   let projects: Promise<Project[]> = fetchProjects();
   let errorMessage: string | null = null;
-  let importProjectDialogOpen: boolean = false;
 
   async function createProject(import_data: string | null = null) {
     errorMessage = null;
@@ -38,10 +37,33 @@
       return;
     }
     await goto(`/projects/${project.project_id}`);
+
+    toast.info("Project created!");
   }
 
-  function showImportProjectDialog() {
-    importProjectDialogOpen = true;
+  function triggerFileSelect() {
+    document.getElementById("projectImportFileInput")?.click();
+  }
+
+  async function importProject(
+    event: Event & {
+      currentTarget: EventTarget & HTMLInputElement;
+    },
+  ) {
+    errorMessage = null;
+
+    const files = event.currentTarget.files;
+    const file = files && files.item(0);
+    if (!file) {
+      errorMessage = "Select a file.";
+      return;
+    }
+    if (files.length > 1) {
+      errorMessage = "Select a single file.";
+      return;
+    }
+
+    await createProject(await file.text());
   }
 </script>
 
@@ -63,6 +85,15 @@
     </div>
   {/await}
 {:then projects}
+  <input
+    id="projectImportFileInput"
+    type="file"
+    accept=".json,application/JSON"
+    multiple={false}
+    hidden
+    onchange={importProject}
+  />
+
   {#if projects.length === 0}
     <div
       class="m-4 flex flex-col items-center gap-6 rounded border bg-card p-8"
@@ -70,9 +101,11 @@
       <div><Layers /></div>
       <div class="text-xl">Create your first Koso project!</div>
       <div>
-        <Button onclick={() => createProject()}>New project</Button>
-        <Button onclick={() => showImportProjectDialog()}>
-          Import project
+        <Button onclick={() => createProject()}>
+          <PackagePlus class="w-5 sm:me-2" />New
+        </Button>
+        <Button onclick={() => triggerFileSelect()}>
+          <HardDriveUpload class="w-5 sm:me-2" /> Import
         </Button>
       </div>
     </div>
@@ -80,9 +113,11 @@
     <div class="m-4 flex flex-col rounded border">
       <div class="flex flex-col items-end p-2">
         <div>
-          <Button onclick={() => createProject()}>New project</Button>
-          <Button onclick={() => showImportProjectDialog()}>
-            Import project
+          <Button onclick={() => createProject()}>
+            <PackagePlus class="w-5 sm:me-2" />New
+          </Button>
+          <Button onclick={() => triggerFileSelect()}>
+            <HardDriveUpload class="w-5 sm:me-2" /> Import
           </Button>
         </div>
       </div>
@@ -102,5 +137,3 @@
     </div>
   {/if}
 {/await}
-
-<ImportProject bind:open={importProjectDialogOpen} />
