@@ -20,6 +20,7 @@
     ListPlus,
     ListStart,
     ListTree,
+    Moon,
     MoveDown,
     MoveUp,
     Pencil,
@@ -28,6 +29,7 @@
     StepBack,
     StepForward,
     Sun,
+    SunMoon,
     Terminal,
     Trash,
     Undo,
@@ -408,12 +410,12 @@
     }),
     new Action({
       title: "Set Theme to Dark",
-      icon: Sun,
+      icon: Moon,
       callback: () => setMode("dark"),
     }),
     new Action({
       title: "Set Theme to System",
-      icon: Sun,
+      icon: SunMoon,
       callback: () => resetMode(),
     }),
     new Action({
