@@ -2,6 +2,7 @@
   export type RowType = {
     edit(editing: boolean): void;
     getStatusPosition(): DOMRect;
+    linkPanel(open: boolean): void;
   };
 </script>
 
@@ -23,6 +24,7 @@
   import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
   import DropIndicator from "./drop-indicator.svelte";
+  import LinkPanel from "./link-panel.svelte";
 
   type Props = {
     index: number;
@@ -41,6 +43,7 @@
   let dragOverPeer = $state(false);
   let dragOverChild = $state(false);
   let isEditing = $state(false);
+  let linkOpen = $state(false);
 
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
@@ -66,6 +69,10 @@
   export function getStatusPosition(): DOMRect {
     if (!statusElement) throw new Error("Status element is undefined");
     return statusElement.getBoundingClientRect();
+  }
+
+  export function linkPanel(visible: boolean) {
+    linkOpen = visible;
   }
 
   function getTags(allParents: Map<string, string[]>): ChipProps[] {
@@ -354,6 +361,7 @@
           }
         }}
       />
+      <LinkPanel {node} bind:open={linkOpen} closeFocus={rowElement} />
     </div>
   </td>
   <td class={cn("border-l border-t p-2")}>
