@@ -7,7 +7,7 @@
   import { onMount } from "svelte";
 
   type Props = {
-    onsuccess: (token: string) => void;
+    onsuccess: () => void;
   };
   const { onsuccess }: Props = $props();
 
@@ -53,7 +53,7 @@
               headers: headers(),
             });
             if (loginResponse.ok) {
-              onsuccess(oneTapResponse.credential!);
+              onsuccess();
             } else {
               error = "KosoBackendErrored";
               console.error(

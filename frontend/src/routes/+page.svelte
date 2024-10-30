@@ -10,7 +10,7 @@
     redirectOnLogin();
   }
 
-  async function onsuccess(credential: string) {
+  async function onsuccess() {
     await redirectOnLogin();
   }
 
