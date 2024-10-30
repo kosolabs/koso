@@ -24,7 +24,7 @@
   import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
   import DropIndicator from "./drop-indicator.svelte";
-  import LinkOrMoveCommand from "./link-or-move-command.svelte";
+  import LinkCommand from "./link-command.svelte";
 
   type Props = {
     index: number;
@@ -43,7 +43,7 @@
   let dragOverPeer = $state(false);
   let dragOverChild = $state(false);
   let isEditing = $state(false);
-  let linkOrMoveVisible = $state(false);
+  let linkOpen = $state(false);
 
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
@@ -72,7 +72,7 @@
   }
 
   export function linkOrMove(visible: boolean) {
-    linkOrMoveVisible = visible;
+    linkOpen = visible;
   }
 
   function getTags(allParents: Map<string, string[]>): ChipProps[] {
@@ -339,31 +339,30 @@
     {/if}
   </td>
   <td class={cn("w-full border-l border-t px-2")}>
-    <LinkOrMoveCommand bind:visible={linkOrMoveVisible} closeFocus={rowElement}>
-      <div class="flex items-center gap-1">
-        {#each tags as tag}
-          <Chip {...tag} />
-        {/each}
-        <Editable
-          value={task.name}
-          aria-label={`Task ${task.num} Edit Name`}
-          editing={isEditing}
-          onclick={() => (koso.selected = node)}
-          onsave={async (name) => {
-            koso.setTaskName(task.id, name);
-          }}
-          ondone={() => edit(false)}
-          onkeydown={(e) => {
-            if (
-              !Shortcut.INSERT_NODE.matches(e) &&
-              !Shortcut.INSERT_CHILD_NODE.matches(e)
-            ) {
-              e.stopPropagation();
-            }
-          }}
-        />
-      </div>
-    </LinkOrMoveCommand>
+    <div class="flex items-center gap-1">
+      {#each tags as tag}
+        <Chip {...tag} />
+      {/each}
+      <Editable
+        value={task.name}
+        aria-label={`Task ${task.num} Edit Name`}
+        editing={isEditing}
+        onclick={() => (koso.selected = node)}
+        onsave={async (name) => {
+          koso.setTaskName(task.id, name);
+        }}
+        ondone={() => edit(false)}
+        onkeydown={(e) => {
+          if (
+            !Shortcut.INSERT_NODE.matches(e) &&
+            !Shortcut.INSERT_CHILD_NODE.matches(e)
+          ) {
+            e.stopPropagation();
+          }
+        }}
+      />
+      <LinkCommand {node} bind:open={linkOpen} closeFocus={rowElement} />
+    </div>
   </td>
   <td class={cn("border-l border-t p-2")}>
     <UserSelect

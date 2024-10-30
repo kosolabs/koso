@@ -106,6 +106,11 @@ export class Koso {
   #debug: Storable<boolean>;
   #observer: (events: YEvent[]) => void;
   #events: YEvent[] = $state.raw([]);
+  #graph: Graph = $derived.by(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    this.#events;
+    return this.toJSON();
+  });
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
   #parents: Map<string, string[]> = $derived.by(() => {
@@ -202,6 +207,10 @@ export class Koso {
 
   set debug(value: boolean) {
     this.#debug.value = value;
+  }
+
+  get graph(): Graph {
+    return this.#graph;
   }
 
   get expanded(): Set<Node> {
