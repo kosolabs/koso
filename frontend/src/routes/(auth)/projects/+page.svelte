@@ -100,7 +100,7 @@
       <div><Layers /></div>
       <div class="text-xl">Create your first Koso project!</div>
       <div>
-        <Button title="New Project" onclick={() => createProject}>
+        <Button title="New Project" onclick={() => createProject()}>
           <PackagePlus class="w-5 sm:me-2" />New
         </Button>
         <Button title="Import Project" onclick={triggerFileSelect}>
