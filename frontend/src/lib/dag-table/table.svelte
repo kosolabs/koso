@@ -442,6 +442,7 @@
       icon: Cable,
       callback: linkTask,
       toolbar: true,
+      enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "/", meta: true }),
     }),
   ];
