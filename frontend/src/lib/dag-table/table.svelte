@@ -484,7 +484,7 @@
 <Toolbar {actions} />
 <CommandPalette bind:open={commandPaletteOpen} {actions} />
 
-<div class="mb-12 p-2 sm:mb-0">
+<div class="mb-[50px] p-2 sm:mb-0">
   {#if !koso.syncState.serverSync && !koso.syncState.indexedDbSync}
     <!-- Loading.-->
   {:else if koso.nodes.size > 1}
