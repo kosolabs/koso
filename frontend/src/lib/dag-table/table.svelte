@@ -481,10 +481,9 @@
   setContext<Koso>("koso", koso);
 </script>
 
-<Toolbar {actions} />
 <CommandPalette bind:open={commandPaletteOpen} {actions} />
 
-<div class="p-2 max-sm:mb-[50px]">
+<Toolbar {actions}>
   {#if !koso.syncState.serverSync && !koso.syncState.indexedDbSync}
     <!-- Loading.-->
   {:else if koso.nodes.size > 1}
@@ -537,4 +536,4 @@
       </div>
     </div>
   {/if}
-</div>
+</Toolbar>
