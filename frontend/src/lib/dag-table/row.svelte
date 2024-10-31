@@ -58,8 +58,9 @@
   let tags = $derived(getTags(koso.parents));
 
   $effect(() => {
-    if (isSelected) {
-      rowElement?.focus();
+    if (rowElement && isSelected && koso.focus) {
+      rowElement.focus();
+      koso.focus = false;
     }
   });
 
@@ -192,7 +193,7 @@
       return;
     }
 
-    const dragDestParent = node.parent.name;
+    const dragDestParent = node.parent;
     const dragDestOffset = koso.getOffset(node) + 1;
 
     if (koso.dropEffect === "copy") {
@@ -213,7 +214,7 @@
       return;
     }
 
-    const dragDestParent = node.name;
+    const dragDestParent = node;
     const dragDestOffset = 0;
 
     if (koso.dropEffect === "copy") {
@@ -235,11 +236,11 @@
       return;
     }
 
-    if (koso.canLink(koso.dragged, node.parent.name)) {
+    if (koso.canLink(koso.dragged, node.parent)) {
       koso.dropEffect = event.altKey ? "copy" : "move";
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverPeer = true;
-    } else if (koso.canMove(koso.dragged, node.parent.name)) {
+    } else if (koso.canMove(koso.dragged, node.parent)) {
       dataTransfer.dropEffect = "move";
       koso.dropEffect = "move";
       dragOverPeer = true;
@@ -256,11 +257,11 @@
       return;
     }
 
-    if (koso.canLink(koso.dragged, node.name)) {
+    if (koso.canLink(koso.dragged, node)) {
       koso.dropEffect = event.altKey ? "copy" : "move";
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverChild = true;
-    } else if (koso.canMove(koso.dragged, node.name)) {
+    } else if (koso.canMove(koso.dragged, node)) {
       dataTransfer.dropEffect = "move";
       koso.dropEffect = "move";
       dragOverChild = true;
@@ -395,6 +396,7 @@
         value={task.name}
         aria-label={`Task ${task.num} Edit Name`}
         editing={isEditing}
+        closeFocus={rowElement}
         onclick={() => (koso.selected = node)}
         onsave={async (name) => {
           koso.setTaskName(task.id, name);

@@ -10,6 +10,7 @@
     editing?: boolean;
     class?: string;
     "aria-label"?: string;
+    closeFocus?: HTMLElement;
     onclick?: (event: MouseEvent) => void;
     // Callback invoked to apply the edited value.
     // May throw or return a failed promise if save fails
@@ -24,6 +25,7 @@
     placeholder = "Click to edit",
     class: classes,
     "aria-label": ariaLabel,
+    closeFocus,
     onclick,
     onsave,
     ondone,
@@ -77,22 +79,25 @@
     // This occurs as part of the normal flow due to
     // both the onblur and "Save" action callbacks triggering.
     if (value === edited) {
-      ondone?.();
-      editing = false;
+      done();
       return;
     }
 
     onsave(edited).then(() => {
       value = edited;
-      ondone?.();
-      editing = false;
+      done();
     });
+  }
+
+  function done() {
+    ondone?.();
+    closeFocus?.focus();
+    editing = false;
   }
 
   function revert() {
     edited = value;
-    ondone?.();
-    editing = false;
+    done();
   }
 </script>
 
