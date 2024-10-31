@@ -7,6 +7,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function match(text: string, prefix: string): boolean {
+  const words = text.toLocaleLowerCase().split(/\s/);
+  const query = prefix.toLocaleLowerCase();
+  for (const word of words) {
+    if (word.startsWith(query)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 type FlyAndScaleParams = {
   y?: number;
   x?: number;

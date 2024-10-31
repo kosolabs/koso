@@ -3,6 +3,7 @@
   import * as Popover from "$lib/components/ui/popover";
   import type { Koso, Node } from "$lib/koso.svelte";
   import { Shortcut } from "$lib/shortcuts";
+  import { match } from "$lib/utils";
   import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
 
@@ -19,13 +20,7 @@
   let tasks = $derived(
     open
       ? Object.values(koso.graph)
-          .filter(
-            (task) =>
-              task.name
-                .toLocaleLowerCase()
-                .includes(query.toLocaleLowerCase()) ||
-              task.num.startsWith(query),
-          )
+          .filter((task) => match(task.num, query) || match(task.name, query))
           .filter((task) => task.id !== "root")
           .filter((task) => koso.canLink(node, task.id))
           .sort((t1, t2) => t2.children.length - t1.children.length)
