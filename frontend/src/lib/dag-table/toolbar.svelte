@@ -15,7 +15,7 @@
 
 <div
   class={cn(
-    "sticky left-0 top-0 z-10 flex w-full items-center overflow-x-scroll border-b p-2 backdrop-blur-sm sm:gap-2",
+    "fixed bottom-0 left-0 z-10 flex h-[50px] w-full items-center overflow-x-scroll px-2 backdrop-blur-sm max-sm:border-t sm:sticky sm:top-0 sm:gap-2 sm:border-b",
   )}
 >
   {#each toolbarActions as action}
