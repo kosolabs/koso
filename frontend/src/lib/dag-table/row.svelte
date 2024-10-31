@@ -58,8 +58,8 @@
   let tags = $derived(getTags(koso.parents));
 
   $effect(() => {
-    if (rowElement && node.equals(koso.selected)) {
-      rowElement.focus();
+    if (isSelected) {
+      rowElement?.focus();
     }
   });
 
