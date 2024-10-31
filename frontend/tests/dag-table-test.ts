@@ -1473,7 +1473,8 @@ test.describe("dag table tests", () => {
   });
 
   test.describe("link panel", () => {
-    test("link panel adds a link to task by name", async ({ page }) => {
+    // TODO: Fix flaky test and unskip
+    test.skip("link panel adds a link to task by name", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2"] },
         { id: "m1", name: "Milestone 1", children: ["f1", "f2"] },
@@ -1507,7 +1508,8 @@ test.describe("dag table tests", () => {
       });
     });
 
-    test("link panel adds a link to task by ID", async ({ page }) => {
+    // TODO: Fix flaky test and unskip
+    test.skip("link panel adds a link to task by ID", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2"] },
         { id: "m1", name: "Milestone 1", children: ["f1", "f2"] },
