@@ -236,7 +236,7 @@
       return;
     }
 
-    if (koso.canLink(koso.dragged, node.parent)) {
+    if (koso.canLink(koso.dragged.name, node.parent.name)) {
       koso.dropEffect = event.altKey ? "copy" : "move";
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverPeer = true;
@@ -257,7 +257,7 @@
       return;
     }
 
-    if (koso.canLink(koso.dragged, node)) {
+    if (koso.canLink(koso.dragged.name, node.name)) {
       koso.dropEffect = event.altKey ? "copy" : "move";
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverChild = true;

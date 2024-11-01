@@ -1486,8 +1486,7 @@ test.describe("dag table tests", () => {
   });
 
   test.describe("link panel", () => {
-    // TODO: Fix flaky test and unskip
-    test.skip("link panel adds a link to task by name", async ({ page }) => {
+    test("link panel adds a link to task by name", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2"] },
         { id: "m1", name: "Milestone 1", children: ["f1", "f2"] },
@@ -1499,11 +1498,10 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("button", { name: "Task m1 Toggle Expand" }).click();
-      await page.getByRole("row", { name: "Task f1" }).click();
+      await page.getByRole("button", { name: "Task f1 Drag Handle" }).click();
 
       await page.keyboard.press("Meta+/");
-      await page.keyboard.type("Component 2");
-      await page.keyboard.press("Enter");
+      await page.getByRole("button", { name: "Task c2 Command Item" }).click();
 
       await page.getByRole("button", { name: "Task c2 Toggle Expand" }).click();
       await expect(
@@ -1521,8 +1519,7 @@ test.describe("dag table tests", () => {
       });
     });
 
-    // TODO: Fix flaky test and unskip
-    test.skip("link panel adds a link to task by ID", async ({ page }) => {
+    test("link panel adds a link to task by ID", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2"] },
         { id: "m1", name: "Milestone 1", children: ["f1", "f2"] },
@@ -1537,8 +1534,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("row", { name: "Task f2" }).click();
 
       await page.keyboard.press("Meta+/");
-      await page.keyboard.type("c1");
-      await page.keyboard.press("Enter");
+      await page.getByRole("button", { name: "Task c1 Command Item" }).click();
 
       await page.getByRole("button", { name: "Task c1 Toggle Expand" }).click();
       await expect(

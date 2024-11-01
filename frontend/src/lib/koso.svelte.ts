@@ -603,23 +603,26 @@ export class Koso {
     yChildren.insert(offset, [child]);
   }
 
-  canLink(node: Node, parent: Node): boolean {
-    return (
-      !this.#hasCycle(parent.name, node.name) &&
-      !this.#hasChild(parent.name, node.name)
-    );
+  canLink(task: string, parent: string): boolean {
+    return !this.#hasCycle(parent, task) && !this.#hasChild(parent, task);
   }
 
-  linkNode(node: Node, parent: Node, offset: number) {
-    if (!this.canLink(node, parent))
-      throw new Error(`Cannot link ${node.name} to ${parent}`);
+  linkTask(task: string, parent: string, offset: number) {
+    if (!this.canLink(task, parent))
+      throw new Error(`Cannot link ${task} to ${parent}`);
     this.yDoc.transact(() => {
-      this.#insertChild(node.name, parent.name, offset);
+      this.#insertChild(task, parent, offset);
     });
   }
 
+  linkNode(node: Node, parent: Node, offset: number) {
+    this.linkTask(node.name, parent.name, offset);
+  }
+
   canMove(node: Node, parent: Node): boolean {
-    return node.parent.name === parent.name || this.canLink(node, parent);
+    return (
+      node.parent.name === parent.name || this.canLink(node.name, parent.name)
+    );
   }
 
   moveNode(node: Node, parent: Node, offset: number) {
