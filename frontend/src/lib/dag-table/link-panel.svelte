@@ -22,13 +22,13 @@
       ? Object.values(koso.graph)
           .filter((task) => match(task.num, query) || match(task.name, query))
           .filter((task) => task.id !== "root")
-          .filter((task) => koso.canLink(node, task.id))
+          .filter((task) => koso.canLink(node.name, task.id))
           .sort((t1, t2) => t2.children.length - t1.children.length)
       : [],
   );
 
   function link(taskId: string) {
-    koso.linkNode(node, taskId, koso.getChildCount(taskId));
+    koso.linkTask(node.name, taskId, koso.getChildCount(taskId));
     query = "";
     open = false;
   }
@@ -54,7 +54,12 @@
       <Command.List>
         <Command.Empty>No tasks found.</Command.Empty>
         {#each tasks as task (task.id)}
-          <Command.Item class="table-row" onSelect={() => link(task.id)}>
+          <Command.Item
+            class="table-row"
+            onSelect={() => link(task.id)}
+            role="button"
+            aria-label="Task {task.id} Command Item"
+          >
             <div class="table-cell rounded-l px-2 align-middle">
               <div class="flex items-center gap-1 py-2" title="Task Number">
                 <Clipboard size={16} />

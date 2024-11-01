@@ -66,9 +66,11 @@ test.describe("dag table tests", () => {
   }
 
   test.describe("creating tasks", () => {
-    test("create a task by clicking the Add Task button", async ({ page }) => {
-      await page.getByRole("button", { name: "Add Task" }).last().click();
+    test("create a task by clicking the Insert button", async ({ page }) => {
+      await page.getByRole("button", { name: "Insert" }).last().click();
       await page.keyboard.press("Escape");
+
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
 
       const graph = await getKosoGraph(page);
@@ -76,10 +78,10 @@ test.describe("dag table tests", () => {
       expect(graph["root"].children).toStrictEqual([tasks["1"]]);
     });
 
-    test("create a task by clicking the Add Task button and then edit", async ({
+    test("create a task by clicking the Insert button and then edit", async ({
       page,
     }) => {
-      await page.getByRole("button", { name: "Add Task" }).last().click();
+      await page.getByRole("button", { name: "Insert" }).last().click();
 
       await expect(
         page.getByRole("textbox", { name: "Task 1 Edit Name" }),
@@ -130,6 +132,9 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Alt+Shift+Enter");
+      await page.keyboard.type("Task 2 title");
+
+      await expect(page.getByRole("row", { name: "Task 2" })).not.toBeFocused();
       await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
 
       let graph = await getKosoGraph(page);
@@ -138,6 +143,10 @@ test.describe("dag table tests", () => {
       expect(graph[tasks["1"]].children).toStrictEqual([tasks["2"]]);
 
       await page.keyboard.press("Alt+Shift+Enter");
+      await page.keyboard.type("Task 2 title");
+      await page.keyboard.press("Enter");
+
+      await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
       await expect(page.getByRole("row", { name: "Task 3" })).toBeVisible();
 
       graph = await getKosoGraph(page);
@@ -159,9 +168,10 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
       await page.getByRole("button", { name: "Delete" }).click();
-      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
 
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
       await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
+
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "3"] },
         ["1"]: { children: [] },
@@ -183,9 +193,10 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
       await page.keyboard.press("Delete");
-      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
 
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
       await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
+
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "3"] },
         ["1"]: { children: [] },
@@ -208,10 +219,11 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
       await page.keyboard.press("Delete");
+
       await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
       await expect(page.getByRole("row", { name: "Task 3" })).toBeHidden();
-
       await expect(page.getByRole("row", { name: "Task 4" })).toBeFocused();
+
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1"] },
         ["1"]: { children: ["4"] },
@@ -220,13 +232,12 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Delete");
+
       await expect(page.getByRole("row", { name: "Task 1" })).toBeHidden();
       await expect(page.getByRole("row", { name: "Task 4" })).toBeHidden();
-
       await expect(page.getByRole("button", { name: "Delete" })).toBeHidden();
-      expect(await getKosoGraph(page)).toMatchObject({
-        root: {},
-      });
+
+      expect(await getKosoGraph(page)).toMatchObject({ root: {} });
     });
 
     test("create a task by presing Shift+Enter on the task", async ({
@@ -239,6 +250,7 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Shift+Enter");
+
       await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
 
       const graph = await getKosoGraph(page);
@@ -254,6 +266,7 @@ test.describe("dag table tests", () => {
         { id: "1" },
       ]);
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
     });
   });
@@ -1473,8 +1486,7 @@ test.describe("dag table tests", () => {
   });
 
   test.describe("link panel", () => {
-    // TODO: Fix flaky test and unskip
-    test.skip("link panel adds a link to task by name", async ({ page }) => {
+    test("link panel adds a link to task by name", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2"] },
         { id: "m1", name: "Milestone 1", children: ["f1", "f2"] },
@@ -1486,11 +1498,10 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("button", { name: "Task m1 Toggle Expand" }).click();
-      await page.getByRole("row", { name: "Task f1" }).click();
+      await page.getByRole("button", { name: "Task f1 Drag Handle" }).click();
 
       await page.keyboard.press("Meta+/");
-      await page.keyboard.type("Component 2");
-      await page.keyboard.press("Enter");
+      await page.getByRole("button", { name: "Task c2 Command Item" }).click();
 
       await page.getByRole("button", { name: "Task c2 Toggle Expand" }).click();
       await expect(
@@ -1508,8 +1519,7 @@ test.describe("dag table tests", () => {
       });
     });
 
-    // TODO: Fix flaky test and unskip
-    test.skip("link panel adds a link to task by ID", async ({ page }) => {
+    test("link panel adds a link to task by ID", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2"] },
         { id: "m1", name: "Milestone 1", children: ["f1", "f2"] },
@@ -1524,8 +1534,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("row", { name: "Task f2" }).click();
 
       await page.keyboard.press("Meta+/");
-      await page.keyboard.type("c1");
-      await page.keyboard.press("Enter");
+      await page.getByRole("button", { name: "Task c1 Command Item" }).click();
 
       await page.getByRole("button", { name: "Task c1 Toggle Expand" }).click();
       await expect(

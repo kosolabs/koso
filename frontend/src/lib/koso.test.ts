@@ -120,7 +120,7 @@ describe("Koso tests", () => {
     it("doc with two tasks, one linked subtask, and parent is expanded has three nodes", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      koso.linkNode(id2, id1.name, 0);
+      koso.linkNode(id2, id1, 0);
       koso.expanded = Set([id1]);
       const lid = id1.child(id2.name);
       expect(koso.nodes).toStrictEqual(List([root, id1, lid, id2]));
@@ -177,7 +177,7 @@ describe("Koso tests", () => {
     it("link node 2 to node 1 succeeds", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      koso.linkNode(id2, id1.name, 0);
+      koso.linkNode(id2, id1, 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: [id1.name, id2.name] },
@@ -189,7 +189,7 @@ describe("Koso tests", () => {
     it("delete node 2 from node 1 succeeds", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      koso.linkNode(id2, id1.name, 0);
+      koso.linkNode(id2, id1, 0);
       koso.expanded = Set([id1]);
 
       koso.deleteNode(id1.child(id2.name));
@@ -210,7 +210,7 @@ describe("Koso tests", () => {
       const id5 = koso.insertNode(id3, 0, USER, "Task 5");
       koso.insertNode(id4, 0, USER, "Task 6");
       const id7 = koso.insertNode(root, 2, USER, "Task 7");
-      koso.linkNode(id3, id7.name, 0);
+      koso.linkNode(id3, id7, 0);
       koso.deleteNode(id2);
 
       expect(koso.toJSON()).toMatchObject({
@@ -226,7 +226,7 @@ describe("Koso tests", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(root, 1, USER, "Task 2");
       const id3 = koso.insertNode(id2, 0, USER, "Task 3");
-      koso.linkNode(id2, id1.name, 0);
+      koso.linkNode(id2, id1, 0);
       koso.deleteNode(id2);
 
       expect(koso.toJSON()).toMatchObject({
@@ -251,13 +251,13 @@ describe("Koso tests", () => {
 
     it("link node 1 to child of node 1 throws (prevent cycle)", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      expect(() => koso.linkNode(id1, id1.name, 0)).toThrow();
+      expect(() => koso.linkNode(id1, id1, 0)).toThrow();
     });
 
     it("link node 1 to grandchild of node 1 throws (prevent cycle)", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(id1, 0, USER, "Task 1");
-      expect(() => koso.linkNode(id1, id2.name, 0)).toThrow();
+      expect(() => koso.linkNode(id1, id2, 0)).toThrow();
     });
 
     it("move node 3 to child of node 1 as a peer of node 2 succeeds (reparent)", () => {
@@ -266,7 +266,7 @@ describe("Koso tests", () => {
       const id3 = koso.insertNode(root, 1, USER, "Task 3");
       koso.expanded = Set([id1]);
 
-      koso.moveNode(id3, id1.name, 1);
+      koso.moveNode(id3, id1, 1);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: [id1.name] },
@@ -282,7 +282,7 @@ describe("Koso tests", () => {
       const id3 = koso.insertNode(root, 1, USER, "Task 3");
       koso.expanded = Set([id1]);
 
-      koso.moveNode(id3, id1.name, 0);
+      koso.moveNode(id3, id1, 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: [id1.name] },
@@ -299,7 +299,7 @@ describe("Koso tests", () => {
       const id4 = koso.insertNode(id1, 2, USER, "Task 4");
       koso.expanded = Set([id1, id3]);
 
-      koso.moveNode(id4, id3.name, 0);
+      koso.moveNode(id4, id3, 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: [id1.name] },
@@ -313,10 +313,10 @@ describe("Koso tests", () => {
     it("move node 2 to peer of itself throws (prevent duplicate)", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(root, 0, USER, "Task 2");
-      koso.linkNode(id2, id1.name, 0);
+      koso.linkNode(id2, id1, 0);
       koso.expanded = Set([id1.child(id2.name)]);
 
-      expect(() => koso.moveNode(id2, id1.name, 1)).toThrow();
+      expect(() => koso.moveNode(id2, id1, 1)).toThrow();
     });
 
     it("move node 4 to be the peer of node 2 succeeds (reorder)", () => {
@@ -326,7 +326,7 @@ describe("Koso tests", () => {
       const id4 = koso.insertNode(id1, 2, USER, "Task 4");
       koso.expanded = Set([id1]);
 
-      koso.moveNode(id4, id1.name, 1);
+      koso.moveNode(id4, id1, 1);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: [id1.name] },
@@ -344,7 +344,7 @@ describe("Koso tests", () => {
       const id4 = koso.insertNode(id1, 2, USER, "Task 4");
       koso.expanded = Set([id1]);
 
-      koso.moveNode(id3, id1.name, 3);
+      koso.moveNode(id3, id1, 3);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: [id1.name] },

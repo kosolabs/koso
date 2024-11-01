@@ -99,7 +99,8 @@ export class Koso {
   yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
 
-  selected: Node | null = $state(null);
+  #selected: Node | null = $state(null);
+  focus: boolean = $state(false);
   highlighted: string | null = $state(null);
   dragged: Node | null = $state(null);
   dropEffect: "copy" | "move" | "none" = $state("none");
@@ -197,6 +198,15 @@ export class Koso {
 
   destroy() {
     this.unobserve(this.#observer);
+  }
+
+  get selected(): Node | null {
+    return this.#selected;
+  }
+
+  set selected(value: Node | null) {
+    this.#selected = value;
+    this.focus = true;
   }
 
   get root(): Node {
@@ -593,25 +603,29 @@ export class Koso {
     yChildren.insert(offset, [child]);
   }
 
-  canLink(node: Node, parent: string): boolean {
-    return (
-      !this.#hasCycle(parent, node.name) && !this.#hasChild(parent, node.name)
-    );
+  canLink(task: string, parent: string): boolean {
+    return !this.#hasCycle(parent, task) && !this.#hasChild(parent, task);
   }
 
-  linkNode(node: Node, parent: string, offset: number) {
-    if (!this.canLink(node, parent))
-      throw new Error(`Cannot link ${node.name} to ${parent}`);
+  linkTask(task: string, parent: string, offset: number) {
+    if (!this.canLink(task, parent))
+      throw new Error(`Cannot link ${task} to ${parent}`);
     this.yDoc.transact(() => {
-      this.#insertChild(node.name, parent, offset);
+      this.#insertChild(task, parent, offset);
     });
   }
 
-  canMove(node: Node, parent: string): boolean {
-    return node.parent.name === parent || this.canLink(node, parent);
+  linkNode(node: Node, parent: Node, offset: number) {
+    this.linkTask(node.name, parent.name, offset);
   }
 
-  moveNode(node: Node, parent: string, offset: number) {
+  canMove(node: Node, parent: Node): boolean {
+    return (
+      node.parent.name === parent.name || this.canLink(node.name, parent.name)
+    );
+  }
+
+  moveNode(node: Node, parent: Node, offset: number) {
     if (offset < 0) {
       throw new Error(`Cannot move  ${node.name} to negative offset ${offset}`);
     }
@@ -623,15 +637,16 @@ export class Koso {
       const ySrcChildren = this.#getYChildren(srcParentName);
       ySrcChildren.delete(srcOffset);
 
-      if (srcParentName === parent && srcOffset < offset) {
+      if (srcParentName === parent.name && srcOffset < offset) {
         offset -= 1;
       }
-      this.#insertChild(node.name, parent, offset);
+      this.#insertChild(node.name, parent.name, offset);
     });
+    this.selected = parent.child(node.name);
   }
 
   reorderNode(node: Node, offset: number) {
-    this.moveNode(node, node.parent.name, offset);
+    this.moveNode(node, node.parent, offset);
   }
 
   moveNodeUp(node: Node) {
@@ -649,11 +664,11 @@ export class Koso {
           `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
       }
-      if (!this.canMove(node, newParent.name)) {
+      if (!this.canMove(node, newParent)) {
         attempts++;
         return false;
       }
-      this.moveNode(node, newParent.name, newOffset);
+      this.moveNode(node, newParent, newOffset);
       this.selected = newParent.child(node.name);
       if (attempts > 0) {
         toast.info(
@@ -741,11 +756,11 @@ export class Koso {
           `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
       }
-      if (!this.canMove(node, newParent.name)) {
+      if (!this.canMove(node, newParent)) {
         attempts++;
         return false;
       }
-      this.moveNode(node, newParent.name, newOffset);
+      this.moveNode(node, newParent, newOffset);
       this.selected = newParent.child(node.name);
       if (attempts > 0) {
         toast.info(
@@ -852,27 +867,27 @@ export class Koso {
 
   canIndentNode(node: Node): boolean {
     const peer = this.getPrevPeer(node);
-    return !!peer && this.canMove(node, peer.name);
+    return !!peer && this.canMove(node, peer);
   }
 
   indentNode(node: Node) {
     const peer = this.getPrevPeer(node);
     if (!peer || !this.canIndentNode(node)) return;
-    this.moveNode(node, peer.name, this.getChildCount(peer.name));
+    this.moveNode(node, peer, this.getChildCount(peer.name));
     this.expand(peer);
     this.selected = peer.child(node.name);
   }
 
   canUndentNode(node: Node): boolean {
     if (node.length < 2) return false;
-    return this.canMove(node, node.parent.parent.name);
+    return this.canMove(node, node.parent.parent);
   }
 
   undentNode(node: Node) {
     if (!this.canUndentNode(node)) return;
     const parent = node.parent;
     const offset = this.getOffset(parent);
-    this.moveNode(node, parent.parent.name, offset + 1);
+    this.moveNode(node, parent.parent, offset + 1);
     this.selected = parent.parent.child(node.name);
   }
 
