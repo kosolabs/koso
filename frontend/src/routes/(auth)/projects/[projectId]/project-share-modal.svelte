@@ -15,6 +15,7 @@
     type Project,
   } from "$lib/projects";
   import { Shortcut } from "$lib/shortcuts";
+  import { match } from "$lib/utils";
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
@@ -30,10 +31,7 @@
     projectUsers = $bindable(),
   }: Props = $props();
 
-  let cachedAllUsers: User[] | null = null;
-  async function loadAllUsers(): Promise<User[]> {
-    if (cachedAllUsers !== null) return cachedAllUsers;
-
+  let users: Promise<User[]> = $derived.by(async () => {
     const response = await fetch(`/api/users`, {
       headers: headers(),
     });
@@ -45,10 +43,8 @@
     }
     let users: User[] = await response.json();
     users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
-
-    cachedAllUsers = users;
-    return cachedAllUsers;
-  }
+    return users;
+  });
 
   async function addUser(add: User) {
     await updateProjectUsers({
@@ -87,30 +83,20 @@
     toast.success(`Removed ${remove.email}`);
   }
 
-  let openDropDown: boolean = $state(false);
-  let nonProjectUsers: User[] = $state([]);
   let filter: string = $state("");
+  let openDropDown: boolean = $state(false);
   let openWarnSelfRemovalModal = $state(false);
 
-  $effect(() => {
-    loadAllUsers().then(
-      (allUsers) =>
-        (nonProjectUsers = allUsers.filter(
-          (u) => !projectUsers.some((pu) => pu.email === u.email),
-        )),
-    );
-  });
-
   const MIN_FILTER_LEN = 2;
-  let filteredUsers = $derived(
-    filter.length < MIN_FILTER_LEN
-      ? []
-      : nonProjectUsers.filter(
-          (user) =>
-            user.name.toLowerCase().includes(filter.toLowerCase()) ||
-            user.email.toLowerCase().includes(filter.toLowerCase()),
-        ),
-  );
+  let filteredUsers: Promise<User[]> = $derived.by(async () => {
+    if (filter.length < MIN_FILTER_LEN) {
+      return [];
+    }
+    const allUsers = await users;
+    return allUsers
+      .filter((u) => !projectUsers.some((pu) => pu.email === u.email))
+      .filter((u) => match(u.name, filter) || match(u.email, filter));
+  });
 </script>
 
 <Dialog.Root
@@ -150,21 +136,23 @@
           />
         </Popover.Trigger>
         <Popover.Content sameWidth={true} class="max-h-96 overflow-y-auto">
-          {#if filter.length < MIN_FILTER_LEN}
-            Search for people.
-          {:else if filteredUsers.length > 0}
-            {#each filteredUsers as user}
-              <button
-                class="w-full cursor-pointer rounded p-2 hover:bg-accent"
-                title="Add {user.email}"
-                onclick={() => addUser(user)}
-              >
-                <UserAvatar {user} />
-              </button>
-            {/each}
-          {:else}
-            <div>No people found.</div>
-          {/if}
+          {#await filteredUsers then filteredUsers}
+            {#if filter.length < MIN_FILTER_LEN}
+              Search for people.
+            {:else if filteredUsers.length > 0}
+              {#each filteredUsers as user}
+                <button
+                  class="w-full cursor-pointer rounded p-2 hover:bg-accent"
+                  title="Add {user.email}"
+                  onclick={() => addUser(user)}
+                >
+                  <UserAvatar {user} />
+                </button>
+              {/each}
+            {:else}
+              <div>No people found.</div>
+            {/if}
+          {/await}
         </Popover.Content>
       </Popover.Root>
 

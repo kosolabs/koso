@@ -8,7 +8,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function match(text: string, prefix: string): boolean {
-  const words = text.toLocaleLowerCase().split(/\s/);
+  const words = text
+    .toLocaleLowerCase()
+    .split(/[\s.,!?;@]/) // Split on whitespace and punctuation
+    .filter((w) => w); // Filter out empty tokens
   const query = prefix.toLocaleLowerCase();
   for (const word of words) {
     if (word.startsWith(query)) {
