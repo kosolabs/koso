@@ -7,6 +7,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const TOKEN_SPLITTER = /[\s.,!?;@]/;
 export function match(text: string, prefix: string): boolean {
   const textLower = text.toLocaleLowerCase();
   const prefixLower = prefix.toLocaleLowerCase();
@@ -15,16 +16,18 @@ export function match(text: string, prefix: string): boolean {
     return true;
   }
 
-  const words = textLower
-    .toLocaleLowerCase()
-    .split(/[\s.,!?;@]/) // Split on whitespace and punctuation
-    .filter((w) => w); // Filter out empty tokens
-  for (const word of words) {
-    if (word.startsWith(prefixLower)) {
-      return true;
+  const words = textLower.split(TOKEN_SPLITTER).filter((w) => w);
+  const prefixWords = prefixLower.split(TOKEN_SPLITTER).filter((w) => w);
+  for (const prefixWord of prefixWords) {
+    let isPrefix = false;
+    for (const word of words) {
+      if (word.startsWith(prefixWord)) {
+        isPrefix = true;
+      }
     }
+    if (!isPrefix) return false;
   }
-  return false;
+  return true;
 }
 
 type FlyAndScaleParams = {
