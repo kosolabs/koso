@@ -8,10 +8,19 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function match(text: string, prefix: string): boolean {
-  const words = text.toLocaleLowerCase().split(/\s/);
-  const query = prefix.toLocaleLowerCase();
+  const textLower = text.toLocaleLowerCase();
+  const prefixLower = prefix.toLocaleLowerCase();
+
+  if (textLower.startsWith(prefixLower)) {
+    return true;
+  }
+
+  const words = textLower
+    .toLocaleLowerCase()
+    .split(/[\s.,!?;@]/) // Split on whitespace and punctuation
+    .filter((w) => w); // Filter out empty tokens
   for (const word of words) {
-    if (word.startsWith(query)) {
+    if (word.startsWith(prefixLower)) {
       return true;
     }
   }
