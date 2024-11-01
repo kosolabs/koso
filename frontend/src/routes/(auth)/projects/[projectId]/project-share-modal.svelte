@@ -19,12 +19,19 @@
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
 
-  export let open: boolean;
-  export let project: Project;
-  export let projectUsers: User[];
+  type Props = {
+    open: boolean;
+    project: Project;
+    projectUsers: User[];
+  };
+  let {
+    open = $bindable(),
+    project,
+    projectUsers = $bindable(),
+  }: Props = $props();
 
   let cachedAllUsers: User[] | null = null;
-  export async function loadAllUsers(): Promise<User[]> {
+  async function loadAllUsers(): Promise<User[]> {
     if (cachedAllUsers !== null) return cachedAllUsers;
 
     const response = await fetch(`/api/users`, {
@@ -80,28 +87,30 @@
     toast.success(`Removed ${remove.email}`);
   }
 
-  let openDropDown: boolean = false;
-  let nonProjectUsers: User[] = [];
-  let filteredUsers: User[] = [];
-  let filter: string = "";
-  let openWarnSelfRemovalModal = false;
+  let openDropDown: boolean = $state(false);
+  let nonProjectUsers: User[] = $state([]);
+  let filter: string = $state("");
+  let openWarnSelfRemovalModal = $state(false);
 
-  $: loadAllUsers().then(
-    (allUsers) =>
-      (nonProjectUsers = allUsers.filter(
-        (u) => !projectUsers.some((pu) => pu.email === u.email),
-      )),
-  );
+  $effect(() => {
+    loadAllUsers().then(
+      (allUsers) =>
+        (nonProjectUsers = allUsers.filter(
+          (u) => !projectUsers.some((pu) => pu.email === u.email),
+        )),
+    );
+  });
 
   const MIN_FILTER_LEN = 2;
-  $: filteredUsers =
+  let filteredUsers = $derived(
     filter.length < MIN_FILTER_LEN
       ? []
       : nonProjectUsers.filter(
           (user) =>
             user.name.toLowerCase().includes(filter.toLowerCase()) ||
             user.email.toLowerCase().includes(filter.toLowerCase()),
-        );
+        ),
+  );
 </script>
 
 <Dialog.Root
@@ -148,7 +157,7 @@
               <button
                 class="w-full cursor-pointer rounded p-2 hover:bg-accent"
                 title="Add {user.email}"
-                on:click={() => addUser(user)}
+                onclick={() => addUser(user)}
               >
                 <UserAvatar {user} />
               </button>
@@ -173,7 +182,7 @@
               class="ml-auto"
               variant="link"
               title="Remove {projectUser.email}"
-              on:click={async () => {
+              onclick={async () => {
                 await removeUser(projectUser, false);
               }}
             >
@@ -202,7 +211,7 @@
       <AlertDialog.AlertDialogCancel>Cancel</AlertDialog.AlertDialogCancel>
       <AlertDialog.AlertDialogAction
         class="bg-destructive text-white"
-        on:click={async () => {
+        onclick={async () => {
           await removeUser(auth.user, true);
           await goto("/projects");
         }}
