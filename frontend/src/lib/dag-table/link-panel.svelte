@@ -19,11 +19,12 @@
   let query = $state("");
   let tasks = $derived(
     open
-      ? Object.values(koso.graph)
+      ? Array.from(koso.graph.tasks())
           .filter((task) => match(task.num, query) || match(task.name, query))
           .filter((task) => task.id !== "root")
           .filter((task) => koso.canLink(node.name, task.id))
           .sort((t1, t2) => t2.children.length - t1.children.length)
+          .slice(0, 50)
       : [],
   );
 

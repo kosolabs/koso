@@ -41,7 +41,7 @@ describe("Koso tests", () => {
     it("retrieves task 2", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      expect(koso.getTask(id2.name)).toStrictEqual({
+      expect(koso.getTask(id2.name).toJSON()).toStrictEqual({
         id: id2.name,
         num: "2",
         name: "Task 2",
@@ -64,13 +64,13 @@ describe("Koso tests", () => {
     it("retrieves task 1's children", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      expect(koso.getChildren(id1.name)).toStrictEqual([id2.name]);
+      expect(koso.getChildren(id1.name).toJSON()).toStrictEqual([id2.name]);
     });
 
     it("retrieves empty list of children for leaf task", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
       const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      expect(koso.getChildren(id2.name)).toStrictEqual([]);
+      expect(koso.getChildren(id2.name).toJSON()).toStrictEqual([]);
     });
 
     it("invalid task id throws an exception", () => {
@@ -92,7 +92,7 @@ describe("Koso tests", () => {
 
     it("doc with non-visible tasks still returns root", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      koso.yGraph.get(id1.name)?.set("status", "Done");
+      koso.getTask(id1.name).status = "Done";
       expect(koso.nodes).toStrictEqual(List([root]));
     });
 

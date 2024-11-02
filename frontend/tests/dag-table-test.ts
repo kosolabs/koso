@@ -1,4 +1,4 @@
-import type { Status } from "$lib/koso.svelte";
+import type { Status } from "$lib/yproxy";
 import { expect, test, type Page } from "@playwright/test";
 import {
   getKosoGraph,
@@ -42,7 +42,7 @@ test.describe("dag table tests", () => {
           status = null,
           statusTime = null,
         } of tasks) {
-          window.koso.upsert({
+          window.koso.graph.set({
             id,
             num,
             name,
