@@ -1,12 +1,12 @@
 <script lang="ts">
   import * as Tooltip from "$lib/components/ui/tooltip";
   import { cn } from "$lib/utils";
-  import type { YTask } from "$lib/yproxy";
+  import type { YTaskProxy } from "$lib/yproxy";
   import { ArrowBigDown } from "lucide-svelte";
 
   type Props = {
-    src: YTask;
-    dest: YTask;
+    src: YTaskProxy;
+    dest: YTaskProxy;
     width: number;
     offset: number;
     type: "Peer" | "Child";

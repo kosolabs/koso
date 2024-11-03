@@ -31,7 +31,7 @@ test.describe("dag table tests", () => {
 
   async function init(page: Page, tasks: TaskBuilder[]) {
     await page.evaluate((tasks) => {
-      window.koso.yDoc.transact(() => {
+      window.koso.doc.transact(() => {
         for (const {
           id,
           num = id,
@@ -42,7 +42,7 @@ test.describe("dag table tests", () => {
           status = null,
           statusTime = null,
         } of tasks) {
-          window.koso.graph.set({
+          window.koso.upsert({
             id,
             num,
             name,
@@ -1211,7 +1211,7 @@ test.describe("dag table tests", () => {
         { id: "2" },
       ]);
       page.evaluate(() => {
-        window.koso.yUndoManager.captureTimeout = 0;
+        window.koso.undoManager.captureTimeout = 0;
       });
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
@@ -1250,7 +1250,7 @@ test.describe("dag table tests", () => {
         { id: "1" },
       ]);
       page.evaluate(() => {
-        window.koso.yUndoManager.captureTimeout = 0;
+        window.koso.undoManager.captureTimeout = 0;
       });
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();

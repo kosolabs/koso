@@ -8,12 +8,13 @@ import * as Y from "yjs";
 import type { User } from "./auth.svelte";
 import { useLocalStorage, type Storable } from "./stores.svelte";
 import {
-  YChildren,
-  YGraph,
-  YTask,
+  YChildrenProxy,
+  YGraphProxy,
+  YTaskProxy,
   type Status,
   type Task,
   type YEvent,
+  type YTask,
 } from "./yproxy";
 
 const MSG_SYNC = 0;
@@ -71,8 +72,6 @@ export type Progress = {
   lastStatusTime: number | null;
 };
 
-export type YTaskProps = Y.Array<string> | string | number | null;
-
 export type SyncState = {
   // True when the indexed DB is sync'd with the Koso doc.
   indexedDbSync: boolean;
@@ -82,10 +81,10 @@ export type SyncState = {
 
 export class Koso {
   projectId: string;
-  yDoc: Y.Doc;
-  yGraph: YGraph;
-  yUndoManager: Y.UndoManager;
-  yIndexedDb: IndexeddbPersistence;
+  #yDoc: Y.Doc;
+  #yGraph: YGraphProxy;
+  #yUndoManager: Y.UndoManager;
+  #yIndexedDb: IndexeddbPersistence;
   clientMessageHandler: (message: Uint8Array) => void;
 
   #selected: Node | null = $state(null);
@@ -123,14 +122,15 @@ export class Koso {
 
   constructor(projectId: string, yDoc: Y.Doc) {
     this.projectId = projectId;
-    this.yDoc = yDoc;
-    this.yGraph = new YGraph(yDoc.getMap("graph"));
-    this.yUndoManager = new Y.UndoManager(yDoc.getMap("graph"));
+    this.#yDoc = yDoc;
+    const graph = yDoc.getMap<YTask>("graph");
+    this.#yGraph = new YGraphProxy(graph);
+    this.#yUndoManager = new Y.UndoManager(graph);
     // Save and restore node selection on undo/redo.
-    this.yUndoManager.on("stack-item-added", (event) => {
+    this.#yUndoManager.on("stack-item-added", (event) => {
       event.stackItem.meta.set("selected-node", this.selected);
     });
-    this.yUndoManager.on("stack-item-popped", (event) => {
+    this.#yUndoManager.on("stack-item-popped", (event) => {
       const selected = event.stackItem.meta.get("selected-node");
       if (selected === null || selected.constructor === Node) {
         this.selected = selected;
@@ -141,11 +141,11 @@ export class Koso {
         this.selected = null;
       }
     });
-    this.yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.yDoc);
+    this.#yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.doc);
     this.clientMessageHandler = () => {
       throw new Error("Client message handler was invoked but was not set");
     };
-    this.yDoc.on(
+    this.doc.on(
       "updateV2",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (message: Uint8Array, arg1: any, arg2: Y.Doc, txn: Y.Transaction) => {
@@ -175,13 +175,25 @@ export class Koso {
 
     this.#showDone = useLocalStorage<boolean>(`show-done-${projectId}`, false);
 
-    this.yIndexedDb.whenSynced.then(() => {
+    this.#yIndexedDb.whenSynced.then(() => {
       this.#syncState.indexedDbSync = true;
     });
   }
 
   destroy() {
     this.graph.unobserve(this.#observer);
+  }
+
+  get doc(): Y.Doc {
+    return this.#yDoc;
+  }
+
+  get graph(): YGraphProxy {
+    return this.#yGraph;
+  }
+
+  get undoManager(): Y.UndoManager {
+    return this.#yUndoManager;
   }
 
   get selected(): Node | null {
@@ -203,10 +215,6 @@ export class Koso {
 
   set debug(value: boolean) {
     this.#debug.value = value;
-  }
-
-  get graph(): YGraph {
-    return this.yGraph;
   }
 
   get expanded(): Set<Node> {
@@ -250,19 +258,19 @@ export class Koso {
         encoding.writeVarUint(encoder, MSG_SYNC_RESPONSE);
         encoding.writeVarUint8Array(
           encoder,
-          Y.encodeStateAsUpdateV2(this.yDoc, encodedStateVector),
+          Y.encodeStateAsUpdateV2(this.doc, encodedStateVector),
         );
         this.clientMessageHandler(encoding.toUint8Array(encoder));
       } else if (syncType === MSG_SYNC_RESPONSE) {
         const message = decoding.readVarUint8Array(decoder);
-        Y.applyUpdateV2(this.yDoc, message);
-        if (this.yGraph.size === 0) {
+        Y.applyUpdateV2(this.doc, message);
+        if (this.graph.size === 0) {
           this.upsertRoot();
         }
         this.#syncState.serverSync = true;
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
-        Y.applyUpdateV2(this.yDoc, message);
+        Y.applyUpdateV2(this.doc, message);
       } else {
         throw new Error(`Unknown sync type: ${syncType}`);
       }
@@ -279,33 +287,33 @@ export class Koso {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_SYNC);
     encoding.writeVarUint(encoder, MSG_SYNC_REQUEST);
-    const sv = Y.encodeStateVector(this.yDoc);
+    const sv = Y.encodeStateVector(this.doc);
     encoding.writeVarUint8Array(encoder, sv);
     this.clientMessageHandler(encoding.toUint8Array(encoder));
   }
 
-  toJSON(): { [id: string]: Task } {
-    return this.yGraph.toJSON();
-  }
-
-  getTask(taskId: string): YTask {
+  getTask(taskId: string): YTaskProxy {
     return this.graph.get(taskId);
   }
 
-  canExpand(node: Node) {
-    return !this.expanded.contains(node) && this.getChildCount(node.name) > 0;
+  toJSON(): { [id: string]: Task } {
+    return this.graph.toJSON();
   }
 
-  expand(node: Node) {
-    this.expanded = this.expanded.add(node);
+  getTasks(): YTaskProxy[] {
+    return Array.from(this.graph.values());
   }
 
-  canCollapse(node: Node) {
-    return this.expanded.contains(node) && this.getChildCount(node.name) > 0;
+  getChildren(taskId: string): YChildrenProxy {
+    return this.getTask(taskId).children;
   }
 
-  collapse(node: Node) {
-    this.expanded = this.expanded.delete(node);
+  getChildCount(taskId: string): number {
+    return this.getChildren(taskId).length;
+  }
+
+  upsert(task: Task) {
+    this.graph.set(task);
   }
 
   #flatten(
@@ -331,7 +339,7 @@ export class Koso {
 
   #toParents(): Map<string, string[]> {
     return Map<string, string[]>().withMutations((parents) => {
-      for (const task of this.graph.tasks()) {
+      for (const task of this.graph.values()) {
         for (const childId of task.children) {
           const children = parents.get<string[]>(childId, []);
           children.push(task.id);
@@ -339,6 +347,39 @@ export class Koso {
         }
       }
     });
+  }
+
+  upsertRoot() {
+    this.doc.transact(() => {
+      this.upsert({
+        id: "root",
+        num: "0",
+        name: "Root",
+        children: [],
+        reporter: null,
+        assignee: null,
+        status: null,
+        statusTime: null,
+      });
+    });
+    // Prevent undoing creation of the root task.
+    this.undoManager.clear();
+  }
+
+  canExpand(node: Node) {
+    return !this.expanded.contains(node) && this.getChildCount(node.name) > 0;
+  }
+
+  expand(node: Node) {
+    this.expanded = this.expanded.add(node);
+  }
+
+  canCollapse(node: Node) {
+    return this.expanded.contains(node) && this.getChildCount(node.name) > 0;
+  }
+
+  collapse(node: Node) {
+    this.expanded = this.expanded.delete(node);
   }
 
   getOffset(node: Node): number {
@@ -389,64 +430,6 @@ export class Koso {
     return null;
   }
 
-  getChildren(taskId: string): YChildren {
-    return this.getTask(taskId).children;
-  }
-
-  getChildCount(taskId: string): number {
-    return this.getChildren(taskId).length;
-  }
-
-  getOrphanedTaskIds() {
-    const allChildTaskIds = Set<string>().withMutations((allChildTaskIds) => {
-      for (const task of this.graph.tasks()) {
-        for (const childTaskId of task.children) {
-          allChildTaskIds.add(childTaskId);
-        }
-      }
-    });
-
-    const allTaskIds = Set<string>().withMutations((allTaskIds) => {
-      for (const taskId of this.graph.taskIds()) {
-        allTaskIds.add(taskId);
-      }
-    });
-
-    return allTaskIds.subtract(allChildTaskIds).toArray();
-  }
-
-  newId(): string {
-    return uuidv4();
-  }
-
-  newNum(): string {
-    let max = 0;
-    for (const task of this.graph.tasks()) {
-      const curr = parseInt(task.num);
-      if (curr > max) {
-        max = curr;
-      }
-    }
-    return `${max + 1}`;
-  }
-
-  upsertRoot() {
-    this.yDoc.transact(() => {
-      this.graph.set({
-        id: "root",
-        num: "0",
-        name: "Root",
-        children: [],
-        reporter: null,
-        assignee: null,
-        status: null,
-        statusTime: null,
-      });
-    });
-    // Prevent undoing creation of the root task.
-    this.yUndoManager.clear();
-  }
-
   deleteNode(node: Node) {
     const subtreeTaskIds = this.#collectSubtreeTaskIds(node.name);
 
@@ -482,7 +465,7 @@ export class Koso {
       }
     }
 
-    this.yDoc.transact(() => {
+    this.doc.transact(() => {
       // Unlink the target node.
       const yParent = this.getTask(node.parent.name);
       const yParentsChildren = yParent.children;
@@ -555,7 +538,7 @@ export class Koso {
   linkTask(task: string, parent: string, offset: number) {
     if (!this.canLink(task, parent))
       throw new Error(`Cannot link ${task} to ${parent}`);
-    this.yDoc.transact(() => {
+    this.doc.transact(() => {
       this.#insertChild(task, parent, offset);
     });
   }
@@ -577,7 +560,7 @@ export class Koso {
     if (!this.canMove(node, parent))
       throw new Error(`Cannot move ${node.name} to ${parent}`);
     const srcOffset = this.getOffset(node);
-    this.yDoc.transact(() => {
+    this.doc.transact(() => {
       const srcParentName = node.parent.name;
       const ySrcChildren = this.getChildren(srcParentName);
       ySrcChildren.delete(srcOffset);
@@ -836,6 +819,21 @@ export class Koso {
     this.selected = parent.parent.child(node.name);
   }
 
+  newId(): string {
+    return uuidv4();
+  }
+
+  newNum(): string {
+    let max = 0;
+    for (const task of this.graph.values()) {
+      const curr = parseInt(task.num);
+      if (curr > max) {
+        max = curr;
+      }
+    }
+    return `${max + 1}`;
+  }
+
   insertNode(
     parent: Node,
     offset: number,
@@ -843,8 +841,8 @@ export class Koso {
     name: string = "",
   ): Node {
     const taskId = this.newId();
-    this.yDoc.transact(() => {
-      this.graph.set({
+    this.doc.transact(() => {
+      this.upsert({
         id: taskId,
         num: this.newNum(),
         name: name,
@@ -862,7 +860,7 @@ export class Koso {
   }
 
   setTaskName(taskId: string, newName: string) {
-    this.yDoc.transact(() => {
+    this.doc.transact(() => {
       const task = this.getTask(taskId);
       if (task.name !== newName) {
         task.name = newName;
@@ -871,7 +869,7 @@ export class Koso {
   }
 
   setAssignee(taskId: string, assignee: User | null) {
-    this.yDoc.transact(() => {
+    this.doc.transact(() => {
       const task = this.getTask(taskId);
       if (assignee === null && task.assignee !== null) {
         task.assignee = null;
@@ -882,7 +880,7 @@ export class Koso {
   }
 
   setReporter(taskId: string, reporter: User | null) {
-    this.yDoc.transact(() => {
+    this.doc.transact(() => {
       const task = this.getTask(taskId);
       if (reporter === null && task.reporter !== null) {
         task.reporter = null;
@@ -894,7 +892,7 @@ export class Koso {
 
   setTaskStatus(node: Node, status: Status, user: User) {
     const taskId = node.name;
-    this.yDoc.transact(() => {
+    this.doc.transact(() => {
       const task = this.getTask(taskId);
       if (task.status === status) return;
 
@@ -910,9 +908,9 @@ export class Koso {
 
         // If scanning all tasks ever gets slow, we could always
         // maintain a by-parent index. The same applies below.
-        for (const parentTask of this.graph.tasks()) {
+        for (const parentTask of this.graph.values()) {
           const children = parentTask.children;
-          const index = children.slice().indexOf(taskId);
+          const index = children.indexOf(taskId);
           if (index !== -1) {
             children.delete(index);
             children.push([taskId]);
@@ -922,9 +920,9 @@ export class Koso {
       // When a task is marked in progress, make it the first child
       // and, if unassigned, assign to the current user
       else if (status === "In Progress") {
-        for (const parentTask of this.graph.tasks()) {
+        for (const parentTask of this.graph.values()) {
           const children = parentTask.children;
-          const index = children.slice().indexOf(taskId);
+          const index = children.indexOf(taskId);
           if (index !== -1) {
             children.delete(index);
             children.insert(0, [taskId]);
@@ -998,14 +996,6 @@ export class Koso {
     return result;
   }
 
-  undo() {
-    this.yUndoManager.undo();
-  }
-
-  redo() {
-    this.yUndoManager.redo();
-  }
-
   isVisible(node: Node, showDone: boolean) {
     if (!showDone) {
       const progress = this.getProgress(node.name);
@@ -1019,5 +1009,13 @@ export class Koso {
       }
     }
     return true;
+  }
+
+  undo() {
+    this.undoManager.undo();
+  }
+
+  redo() {
+    this.undoManager.redo();
   }
 }

@@ -19,7 +19,8 @@
   let query = $state("");
   let tasks = $derived(
     open
-      ? Array.from(koso.graph.tasks())
+      ? koso
+          .getTasks()
           .filter((task) => match(task.num, query) || match(task.name, query))
           .filter((task) => task.id !== "root")
           .filter((task) => koso.canLink(node.name, task.id))

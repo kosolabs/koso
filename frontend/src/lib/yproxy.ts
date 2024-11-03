@@ -2,7 +2,10 @@ import * as Y from "yjs";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type YEvent = Y.YEvent<any>;
-export type YTaskProps = Y.Array<string> | string | number | null;
+export type YGraph = Y.Map<YTask>;
+export type YTask = Y.Map<YTaskProps>;
+export type YTaskProps = YChildren | string | number | null;
+export type YChildren = Y.Array<string>;
 
 export type Graph = { [id: string]: Task };
 export type Task = {
@@ -19,10 +22,10 @@ export type Task = {
 };
 export type Status = "Not Started" | "In Progress" | "Done";
 
-export class YGraph {
-  #yGraph: Y.Map<Y.Map<YTaskProps>>;
+export class YGraphProxy {
+  #yGraph: YGraph;
 
-  constructor(yGraph: Y.Map<Y.Map<YTaskProps>>) {
+  constructor(yGraph: YGraph) {
     this.#yGraph = yGraph;
   }
 
@@ -30,12 +33,12 @@ export class YGraph {
     return this.#yGraph.size;
   }
 
-  taskIds(): IterableIterator<string> {
+  keys(): IterableIterator<string> {
     return this.#yGraph.keys();
   }
 
-  *tasks(): IterableIterator<YTask> {
-    for (const taskId of this.taskIds()) {
+  *values(): IterableIterator<YTaskProxy> {
+    for (const taskId of this.keys()) {
       yield this.get(taskId);
     }
   }
@@ -44,7 +47,7 @@ export class YGraph {
     this.#yGraph.delete(taskId);
   }
 
-  set(task: Task): YTask {
+  set(task: Task): YTaskProxy {
     const newTask = new Y.Map<YTaskProps>([
       ["id", task.id],
       ["num", task.num],
@@ -56,17 +59,17 @@ export class YGraph {
       ["statusTime", task.statusTime],
     ]);
     this.#yGraph.set(task.id, newTask);
-    return new YTask(newTask);
+    return new YTaskProxy(newTask);
   }
 
   has(taskId: string): boolean {
     return this.#yGraph.has(taskId);
   }
 
-  get(taskId: string): YTask {
+  get(taskId: string): YTaskProxy {
     const yTask = this.#yGraph.get(taskId);
     if (!yTask) throw new Error(`Unknown Task ID: ${taskId}`);
-    return new YTask(yTask);
+    return new YTaskProxy(yTask);
   }
 
   toJSON(): Graph {
@@ -82,10 +85,10 @@ export class YGraph {
   }
 }
 
-export class YTask {
-  #yTask: Y.Map<YTaskProps>;
+export class YTaskProxy {
+  #yTask: YTask;
 
-  constructor(yTask: Y.Map<YTaskProps>) {
+  constructor(yTask: YTask) {
     this.#yTask = yTask;
   }
 
@@ -109,10 +112,10 @@ export class YTask {
     this.#yTask.set("name", value);
   }
 
-  get children(): YChildren {
-    const yChildren = this.#yTask.get("children") as Y.Array<string>;
+  get children(): YChildrenProxy {
+    const yChildren = this.#yTask.get("children") as YChildren;
     if (!yChildren) throw new Error("yChildren is undefined");
-    return new YChildren(yChildren);
+    return new YChildrenProxy(yChildren);
   }
 
   get assignee(): string | null {
@@ -152,10 +155,10 @@ export class YTask {
   }
 }
 
-export class YChildren {
-  #yChildren: Y.Array<string>;
+export class YChildrenProxy {
+  #yChildren: YChildren;
 
-  constructor(yChildren: Y.Array<string>) {
+  constructor(yChildren: YChildren) {
     this.#yChildren = yChildren;
   }
 
@@ -196,7 +199,7 @@ export class YChildren {
     return -1;
   }
 
-  forEach(f: (arg0: string, arg1: number, arg2: Y.Array<string>) => void) {
+  forEach(f: (arg0: string, arg1: number, arg2: YChildren) => void) {
     this.#yChildren.forEach(f);
   }
 
