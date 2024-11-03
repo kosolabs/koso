@@ -80,18 +80,20 @@ export type SyncState = {
 };
 
 export class Koso {
-  projectId: string;
+  #projectId: string;
   #yDoc: Y.Doc;
   #yGraph: YGraphProxy;
   #yUndoManager: Y.UndoManager;
   #yIndexedDb: IndexeddbPersistence;
-  clientMessageHandler: (message: Uint8Array) => void;
+  #clientMessageHandler: (message: Uint8Array) => void = () => {
+    throw new Error("Client message handler was invoked but was not set");
+  };
 
   #selected: Node | null = $state(null);
-  focus: boolean = $state(false);
-  highlighted: string | null = $state(null);
-  dragged: Node | null = $state(null);
-  dropEffect: "copy" | "move" | "none" = $state("none");
+  #focus: boolean = $state(false);
+  #highlighted: string | null = $state(null);
+  #dragged: Node | null = $state(null);
+  #dropEffect: "copy" | "move" | "none" = $state("none");
 
   #debug: Storable<boolean>;
   #observer: (events: YEvent[]) => void;
@@ -120,8 +122,11 @@ export class Koso {
     serverSync: false,
   });
 
+  // lifecycle functions
+  // i.e., init functions and helpers, event handlers, and destructors
+
   constructor(projectId: string, yDoc: Y.Doc) {
-    this.projectId = projectId;
+    this.#projectId = projectId;
     this.#yDoc = yDoc;
     const graph = yDoc.getMap<YTask>("graph");
     this.#yGraph = new YGraphProxy(graph);
@@ -142,9 +147,6 @@ export class Koso {
       }
     });
     this.#yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.doc);
-    this.clientMessageHandler = () => {
-      throw new Error("Client message handler was invoked but was not set");
-    };
     this.doc.on(
       "updateV2",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -154,7 +156,7 @@ export class Koso {
           encoding.writeVarUint(encoder, MSG_SYNC);
           encoding.writeVarUint(encoder, MSG_SYNC_UPDATE);
           encoding.writeVarUint8Array(encoder, message);
-          this.clientMessageHandler(encoding.toUint8Array(encoder));
+          this.#clientMessageHandler(encoding.toUint8Array(encoder));
         }
       },
     );
@@ -184,6 +186,92 @@ export class Koso {
     this.graph.unobserve(this.#observer);
   }
 
+  handleServerMessage(message: Uint8Array) {
+    const decoder = decoding.createDecoder(message);
+    const messageType = decoding.readVarUint(decoder);
+    if (messageType === MSG_SYNC) {
+      const syncType = decoding.readVarUint(decoder);
+
+      if (syncType === MSG_SYNC_REQUEST) {
+        const encoder = encoding.createEncoder();
+        const encodedStateVector = decoding.readVarUint8Array(decoder);
+        encoding.writeVarUint(encoder, MSG_SYNC);
+        encoding.writeVarUint(encoder, MSG_SYNC_RESPONSE);
+        encoding.writeVarUint8Array(
+          encoder,
+          Y.encodeStateAsUpdateV2(this.doc, encodedStateVector),
+        );
+        this.#clientMessageHandler(encoding.toUint8Array(encoder));
+      } else if (syncType === MSG_SYNC_RESPONSE) {
+        const message = decoding.readVarUint8Array(decoder);
+        Y.applyUpdateV2(this.doc, message);
+        if (this.graph.size === 0) {
+          this.upsertRoot();
+        }
+        this.#syncState.serverSync = true;
+      } else if (syncType === MSG_SYNC_UPDATE) {
+        const message = decoding.readVarUint8Array(decoder);
+        Y.applyUpdateV2(this.doc, message);
+      } else {
+        throw new Error(`Unknown sync type: ${syncType}`);
+      }
+    } else {
+      throw new Error(
+        `Expected message type to be Sync (0) but was: ${messageType}`,
+      );
+    }
+  }
+
+  handleClientMessage(f: (message: Uint8Array) => void) {
+    this.#clientMessageHandler = f;
+
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, MSG_SYNC);
+    encoding.writeVarUint(encoder, MSG_SYNC_REQUEST);
+    const sv = Y.encodeStateVector(this.doc);
+    encoding.writeVarUint8Array(encoder, sv);
+    this.#clientMessageHandler(encoding.toUint8Array(encoder));
+  }
+
+  #flatten(
+    node: Node,
+    expanded: Set<Node>,
+    showDone: boolean,
+    nodes: List<Node> = List(),
+  ): List<Node> {
+    const task = this.getTask(node.name);
+    nodes = nodes.push(node);
+    if (node.length < 1 || expanded.has(node)) {
+      task.children.forEach((name) => {
+        const childNode = node.child(name);
+        // Apply visibility filtering here instead of at the start of #flatten
+        // to ensure that the root node is always present.
+        if (this.isVisible(childNode, showDone)) {
+          nodes = this.#flatten(childNode, expanded, showDone, nodes);
+        }
+      });
+    }
+    return nodes;
+  }
+
+  #toParents(): Map<string, string[]> {
+    return Map<string, string[]>().withMutations((parents) => {
+      for (const task of this.graph.values()) {
+        for (const childId of task.children) {
+          const children = parents.get<string[]>(childId, []);
+          children.push(task.id);
+          parents.set(childId, children);
+        }
+      }
+    });
+  }
+
+  // koso getters and setters
+
+  get projectId(): string {
+    return this.#projectId;
+  }
+
   get doc(): Y.Doc {
     return this.#yDoc;
   }
@@ -202,7 +290,39 @@ export class Koso {
 
   set selected(value: Node | null) {
     this.#selected = value;
-    this.focus = true;
+    this.#focus = true;
+  }
+
+  get focus(): boolean {
+    return this.#focus;
+  }
+
+  set focus(value: boolean) {
+    this.#focus = value;
+  }
+
+  get highlighted(): string | null {
+    return this.#highlighted;
+  }
+
+  set highlighted(value: string | null) {
+    this.#highlighted = value;
+  }
+
+  get dragged(): Node | null {
+    return this.#dragged;
+  }
+
+  set dragged(value: Node | null) {
+    this.#dragged = value;
+  }
+
+  get dropEffect(): "copy" | "move" | "none" {
+    return this.#dropEffect;
+  }
+
+  set dropEffect(value: "copy" | "move" | "none") {
+    this.#dropEffect = value;
   }
 
   get root(): Node {
@@ -245,59 +365,14 @@ export class Koso {
     return this.#syncState;
   }
 
-  handleServerMessage(message: Uint8Array) {
-    const decoder = decoding.createDecoder(message);
-    const messageType = decoding.readVarUint(decoder);
-    if (messageType === MSG_SYNC) {
-      const syncType = decoding.readVarUint(decoder);
+  // composable functions that primarily operate on Tasks
 
-      if (syncType === MSG_SYNC_REQUEST) {
-        const encoder = encoding.createEncoder();
-        const encodedStateVector = decoding.readVarUint8Array(decoder);
-        encoding.writeVarUint(encoder, MSG_SYNC);
-        encoding.writeVarUint(encoder, MSG_SYNC_RESPONSE);
-        encoding.writeVarUint8Array(
-          encoder,
-          Y.encodeStateAsUpdateV2(this.doc, encodedStateVector),
-        );
-        this.clientMessageHandler(encoding.toUint8Array(encoder));
-      } else if (syncType === MSG_SYNC_RESPONSE) {
-        const message = decoding.readVarUint8Array(decoder);
-        Y.applyUpdateV2(this.doc, message);
-        if (this.graph.size === 0) {
-          this.upsertRoot();
-        }
-        this.#syncState.serverSync = true;
-      } else if (syncType === MSG_SYNC_UPDATE) {
-        const message = decoding.readVarUint8Array(decoder);
-        Y.applyUpdateV2(this.doc, message);
-      } else {
-        throw new Error(`Unknown sync type: ${syncType}`);
-      }
-    } else {
-      throw new Error(
-        `Expected message type to be Sync (0) but was: ${messageType}`,
-      );
-    }
-  }
-
-  handleClientMessage(f: (message: Uint8Array) => void) {
-    this.clientMessageHandler = f;
-
-    const encoder = encoding.createEncoder();
-    encoding.writeVarUint(encoder, MSG_SYNC);
-    encoding.writeVarUint(encoder, MSG_SYNC_REQUEST);
-    const sv = Y.encodeStateVector(this.doc);
-    encoding.writeVarUint8Array(encoder, sv);
-    this.clientMessageHandler(encoding.toUint8Array(encoder));
+  toJSON(): { [id: string]: Task } {
+    return this.graph.toJSON();
   }
 
   getTask(taskId: string): YTaskProxy {
     return this.graph.get(taskId);
-  }
-
-  toJSON(): { [id: string]: Task } {
-    return this.graph.toJSON();
   }
 
   getTasks(): YTaskProxy[] {
@@ -316,39 +391,6 @@ export class Koso {
     this.graph.set(task);
   }
 
-  #flatten(
-    node: Node,
-    expanded: Set<Node>,
-    showDone: boolean,
-    nodes: List<Node> = List(),
-  ): List<Node> {
-    const task = this.getTask(node.name);
-    nodes = nodes.push(node);
-    if (node.length < 1 || expanded.has(node)) {
-      task.children.forEach((name) => {
-        const childNode = node.child(name);
-        // Apply visibility filtering here instead of at the start of #flatten
-        // to ensure that the root node is always present.
-        if (this.isVisible(childNode, showDone)) {
-          nodes = this.#flatten(childNode, expanded, showDone, nodes);
-        }
-      });
-    }
-    return nodes;
-  }
-
-  #toParents(): Map<string, string[]> {
-    return Map<string, string[]>().withMutations((parents) => {
-      for (const task of this.graph.values()) {
-        for (const childId of task.children) {
-          const children = parents.get<string[]>(childId, []);
-          children.push(task.id);
-          parents.set(childId, children);
-        }
-      }
-    });
-  }
-
   upsertRoot() {
     this.doc.transact(() => {
       this.upsert({
@@ -365,6 +407,8 @@ export class Koso {
     // Prevent undoing creation of the root task.
     this.undoManager.clear();
   }
+
+  // composable functions that operate on Nodes
 
   canExpand(node: Node) {
     return !this.expanded.contains(node) && this.getChildCount(node.name) > 0;

@@ -48,7 +48,7 @@ export class YGraphProxy {
   }
 
   set(task: Task): YTaskProxy {
-    const newTask = new Y.Map<YTaskProps>([
+    const value = new Y.Map<YTaskProps>([
       ["id", task.id],
       ["num", task.num],
       ["name", task.name],
@@ -58,8 +58,8 @@ export class YGraphProxy {
       ["status", task.status],
       ["statusTime", task.statusTime],
     ]);
-    this.#yGraph.set(task.id, newTask);
-    return new YTaskProxy(newTask);
+    this.#yGraph.set(task.id, value);
+    return new YTaskProxy(value);
   }
 
   has(taskId: string): boolean {
