@@ -447,7 +447,11 @@ export class Koso {
     });
   }
 
-  // composable functions that operate on Nodes
+  canMove(task: string, src: string, dest: string): boolean {
+    return src === dest || this.canLink(task, dest);
+  }
+
+  // business logic that operate on Nodes
 
   canExpand(node: Node) {
     return !this.expanded.contains(node) && this.getChildCount(node.name) > 0;
@@ -589,17 +593,15 @@ export class Koso {
     this.link(node.name, parent.name, offset);
   }
 
-  canMove(node: Node, parent: Node): boolean {
-    return (
-      node.parent.name === parent.name || this.canLink(node.name, parent.name)
-    );
+  canMoveNode(node: Node, parent: Node): boolean {
+    return this.canMove(node.name, node.parent.name, parent.name);
   }
 
   moveNode(node: Node, parent: Node, offset: number) {
     if (offset < 0) {
       throw new Error(`Cannot move  ${node.name} to negative offset ${offset}`);
     }
-    if (!this.canMove(node, parent))
+    if (!this.canMoveNode(node, parent))
       throw new Error(`Cannot move ${node.name} to ${parent}`);
     const srcOffset = this.getOffset(node);
     this.doc.transact(() => {
@@ -634,7 +636,7 @@ export class Koso {
           `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
       }
-      if (!this.canMove(node, newParent)) {
+      if (!this.canMoveNode(node, newParent)) {
         attempts++;
         return false;
       }
@@ -726,7 +728,7 @@ export class Koso {
           `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
       }
-      if (!this.canMove(node, newParent)) {
+      if (!this.canMoveNode(node, newParent)) {
         attempts++;
         return false;
       }
@@ -837,7 +839,7 @@ export class Koso {
 
   canIndentNode(node: Node): boolean {
     const peer = this.getPrevPeer(node);
-    return !!peer && this.canMove(node, peer);
+    return !!peer && this.canMoveNode(node, peer);
   }
 
   indentNode(node: Node) {
@@ -850,7 +852,7 @@ export class Koso {
 
   canUndentNode(node: Node): boolean {
     if (node.length < 2) return false;
-    return this.canMove(node, node.parent.parent);
+    return this.canMoveNode(node, node.parent.parent);
   }
 
   undentNode(node: Node) {
