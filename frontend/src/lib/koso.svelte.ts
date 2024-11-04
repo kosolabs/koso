@@ -366,7 +366,6 @@ export class Koso {
   }
 
   // composable functions that primarily operate on Tasks
-  // function should be private if it should be used in a transaction
 
   toJSON(): { [id: string]: Task } {
     return this.graph.toJSON();
@@ -429,7 +428,7 @@ export class Koso {
     return !this.#hasCycle(parent, task) && !this.hasChild(parent, task);
   }
 
-  #link(task: string, parent: string, offset: number) {
+  link(task: string, parent: string, offset: number) {
     if (this.#hasCycle(parent, task)) {
       throw new Error(`Inserting ${task} under ${parent} introduces a cycle`);
     }
@@ -439,12 +438,6 @@ export class Koso {
     }
 
     this.getChildren(parent).insert(offset, [task]);
-  }
-
-  link(task: string, parent: string, offset: number) {
-    this.doc.transact(() => {
-      this.#link(task, parent, offset);
-    });
   }
 
   canMove(task: string, src: string, dest: string): boolean {
@@ -612,7 +605,7 @@ export class Koso {
       if (srcParentName === parent.name && srcOffset < offset) {
         offset -= 1;
       }
-      this.#link(node.name, parent.name, offset);
+      this.link(node.name, parent.name, offset);
     });
     this.selected = parent.child(node.name);
   }
@@ -896,7 +889,7 @@ export class Koso {
         status: null,
         statusTime: null,
       });
-      this.#link(taskId, parent.name, offset);
+      this.link(taskId, parent.name, offset);
     });
     const node = parent.child(taskId);
     this.selected = node;
