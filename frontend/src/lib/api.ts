@@ -40,6 +40,7 @@ export function headers() {
 
 /**
  * Returns the response body as json or throws if the response is not OK.
+ *
  * @throws {KosoError}
  */
 export async function parse_response<T>(response: Response): Promise<T> {
