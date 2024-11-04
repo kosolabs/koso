@@ -1,4 +1,4 @@
-/** @type {import('@sveltejs/kit').HandleClientError} */
+/** @type {import("@sveltejs/kit").HandleClientError} */
 export async function handleError({ error, event, status, message }) {
   const errorId = Date.now().toString(16);
   console.error(

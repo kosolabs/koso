@@ -26,8 +26,8 @@ class Nav {
   }
 
   /**
-   * Call this when a user becomes non-authenticated, whether by accessing a page
-   * without being logged in or their credentials expiring.
+   * Call this when a user becomes non-authenticated, whether by accessing a
+   * page without being logged in or their credentials expiring.
    */
   pushRedirectOnUserNotAuthenticated() {
     const redirect = get(page).url.pathname;
