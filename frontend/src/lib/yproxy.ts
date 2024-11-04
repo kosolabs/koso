@@ -199,6 +199,10 @@ export class YChildrenProxy {
     return -1;
   }
 
+  includes(content: string): boolean {
+    return this.indexOf(content) !== -1;
+  }
+
   forEach(f: (arg0: string, arg1: number, arg2: YChildren) => void) {
     this.#yChildren.forEach(f);
   }

@@ -366,6 +366,7 @@ export class Koso {
   }
 
   // composable functions that primarily operate on Tasks
+  // function should be private if it should be used in a transaction
 
   toJSON(): { [id: string]: Task } {
     return this.graph.toJSON();
@@ -387,6 +388,10 @@ export class Koso {
     return this.getChildren(taskId).length;
   }
 
+  hasChild(parent: string, child: string): boolean {
+    return this.getChildren(parent).includes(child);
+  }
+
   upsert(task: Task) {
     this.graph.set(task);
   }
@@ -406,6 +411,40 @@ export class Koso {
     });
     // Prevent undoing creation of the root task.
     this.undoManager.clear();
+  }
+
+  #hasCycle(parent: string, child: string): boolean {
+    if (child === parent) {
+      return true;
+    }
+    for (const next of this.getChildren(child)) {
+      if (this.#hasCycle(parent, next)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  canLink(task: string, parent: string): boolean {
+    return !this.#hasCycle(parent, task) && !this.hasChild(parent, task);
+  }
+
+  #link(task: string, parent: string, offset: number) {
+    if (this.#hasCycle(parent, task)) {
+      throw new Error(`Inserting ${task} under ${parent} introduces a cycle`);
+    }
+
+    if (this.hasChild(parent, task)) {
+      throw new Error(`Parent task ${parent} already contains ${task}`);
+    }
+
+    this.getChildren(parent).insert(offset, [task]);
+  }
+
+  link(task: string, parent: string, offset: number) {
+    this.doc.transact(() => {
+      this.#link(task, parent, offset);
+    });
   }
 
   // composable functions that operate on Nodes
@@ -546,49 +585,8 @@ export class Koso {
     });
   }
 
-  #hasCycle(parent: string, child: string): boolean {
-    if (child === parent) {
-      return true;
-    }
-    for (const next of this.getChildren(child)) {
-      if (this.#hasCycle(parent, next)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  #hasChild(parent: string, child: string): boolean {
-    return this.getChildren(parent).indexOf(child) !== -1;
-  }
-
-  #insertChild(child: string, parent: string, offset: number) {
-    if (this.#hasCycle(parent, child)) {
-      throw new Error(`Inserting ${child} under ${parent} introduces a cycle`);
-    }
-
-    if (this.#hasChild(parent, child)) {
-      throw new Error(`Parent task ${parent} already contains ${child}`);
-    }
-
-    const yChildren = this.getChildren(parent);
-    yChildren.insert(offset, [child]);
-  }
-
-  canLink(task: string, parent: string): boolean {
-    return !this.#hasCycle(parent, task) && !this.#hasChild(parent, task);
-  }
-
-  linkTask(task: string, parent: string, offset: number) {
-    if (!this.canLink(task, parent))
-      throw new Error(`Cannot link ${task} to ${parent}`);
-    this.doc.transact(() => {
-      this.#insertChild(task, parent, offset);
-    });
-  }
-
   linkNode(node: Node, parent: Node, offset: number) {
-    this.linkTask(node.name, parent.name, offset);
+    this.link(node.name, parent.name, offset);
   }
 
   canMove(node: Node, parent: Node): boolean {
@@ -612,7 +610,7 @@ export class Koso {
       if (srcParentName === parent.name && srcOffset < offset) {
         offset -= 1;
       }
-      this.#insertChild(node.name, parent.name, offset);
+      this.#link(node.name, parent.name, offset);
     });
     this.selected = parent.child(node.name);
   }
@@ -896,7 +894,7 @@ export class Koso {
         status: null,
         statusTime: null,
       });
-      this.#insertChild(taskId, parent.name, offset);
+      this.#link(taskId, parent.name, offset);
     });
     const node = parent.child(taskId);
     this.selected = node;

@@ -30,7 +30,7 @@
   );
 
   function link(taskId: string) {
-    koso.linkTask(node.name, taskId, koso.getChildCount(taskId));
+    koso.link(node.name, taskId, koso.getChildCount(taskId));
     query = "";
     open = false;
   }
