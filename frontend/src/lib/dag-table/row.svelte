@@ -240,7 +240,7 @@
       koso.dropEffect = event.altKey ? "copy" : "move";
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverPeer = true;
-    } else if (koso.canMove(koso.dragged, node.parent)) {
+    } else if (koso.canMoveNode(koso.dragged, node.parent)) {
       dataTransfer.dropEffect = "move";
       koso.dropEffect = "move";
       dragOverPeer = true;
@@ -261,7 +261,7 @@
       koso.dropEffect = event.altKey ? "copy" : "move";
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverChild = true;
-    } else if (koso.canMove(koso.dragged, node)) {
+    } else if (koso.canMoveNode(koso.dragged, node)) {
       dataTransfer.dropEffect = "move";
       koso.dropEffect = "move";
       dragOverChild = true;

@@ -1,4 +1,4 @@
-import type { Graph } from "$lib/koso.svelte";
+import type { Graph } from "$lib/yproxy";
 import { expect, request, type Page } from "@playwright/test";
 
 export async function getKosoGraph(page: Page): Promise<Graph> {
@@ -8,6 +8,7 @@ export async function getKosoGraph(page: Page): Promise<Graph> {
 export async function getKosoProjectId(page: Page): Promise<Graph> {
   return page.evaluate("koso.projectId");
 }
+
 export async function clear(page: Page) {
   await page.evaluate("koso.clear()");
   await page.reload();
