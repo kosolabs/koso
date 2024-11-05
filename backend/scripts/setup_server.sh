@@ -51,6 +51,8 @@ systemctl restart caddy.service
 
 # Install Postgresql
 sudo apt update
+sudo apt install -y postgresql-common
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 apt install postgresql-17
 systemctl start postgresql.service
 systemctl enable postgresql.service
