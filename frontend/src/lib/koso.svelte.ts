@@ -7,6 +7,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { User } from "./auth.svelte";
 import { useLocalStorage, type Storable } from "./stores.svelte";
+import { findEntryIndex } from "./utils";
 import {
   YChildrenProxy,
   YGraphProxy,
@@ -379,6 +380,12 @@ export class Koso {
     return Array.from(this.graph.values());
   }
 
+  getParents(taskId: string): string[] {
+    const parents = this.#parents.get(taskId);
+    if (!parents) throw new Error(`No parents entry found for ${taskId}`);
+    return parents;
+  }
+
   getChildren(taskId: string): YChildrenProxy {
     return this.getTask(taskId).children;
   }
@@ -508,6 +515,27 @@ export class Koso {
 
   canMove(task: string, src: string, dest: string): boolean {
     return src === dest || this.canLink(task, dest);
+  }
+
+  reorder(task: string, parent: string, offset: number) {
+    if (offset < 0) {
+      throw new Error(`Offset ${offset} is negative`);
+    }
+
+    const peers = this.getChildren(parent);
+    const srcOffset = peers.indexOf(task);
+
+    if (srcOffset === -1) {
+      throw new Error(`Parent ${parent} does not contain ${task}`);
+    }
+
+    this.doc.transact(() => {
+      peers.delete(srcOffset);
+      if (srcOffset < offset) {
+        offset -= 1;
+      }
+      this.link(task, parent, offset);
+    });
   }
 
   // business logic that operate on Nodes
@@ -1031,30 +1059,31 @@ export class Koso {
           this.selected = peer;
         }
 
-        // If scanning all tasks ever gets slow, we could always
-        // maintain a by-parent index. The same applies below.
-        for (const parentTask of this.graph.values()) {
-          const children = parentTask.children;
-          const index = children.indexOf(taskId);
-          if (index !== -1) {
-            children.delete(index);
-            children.push([taskId]);
-          }
+        for (const parentId of this.getParents(taskId)) {
+          const peers = this.getChildren(parentId);
+          const index = findEntryIndex(
+            peers.entries({ start: peers.indexOf(taskId) + 1 }),
+            (peerId) => this.getStatus(peerId) === "Done",
+            peers.length,
+          );
+          this.reorder(taskId, parentId, index);
         }
       }
       // When a task is marked in progress, make it the first child
       // and, if unassigned, assign to the current user
       else if (status === "In Progress") {
-        for (const parentTask of this.graph.values()) {
-          const children = parentTask.children;
-          const index = children.indexOf(taskId);
-          if (index !== -1) {
-            children.delete(index);
-            children.insert(0, [taskId]);
-          }
-        }
         if (!task.assignee) {
           task.assignee = user.email;
+        }
+
+        for (const parentId of this.getParents(taskId)) {
+          const peers = this.getChildren(parentId);
+          const index = findEntryIndex(
+            peers.entries({ start: peers.indexOf(taskId) - 1, step: -1 }),
+            (peerId) => this.getStatus(peerId) === "In Progress",
+            -1,
+          );
+          this.reorder(taskId, parentId, index + 1);
         }
       }
     });

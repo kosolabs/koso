@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { match } from "./utils";
+import { findEntryIndex, match } from "./utils";
 
 describe("utils tests", () => {
   describe("match", () => {
@@ -45,6 +45,38 @@ describe("utils tests", () => {
 
     it("multiple prefixes of multiple words in an email matches", () => {
       expect(match("my.email@gmail.com", "gmail email my")).toBeTruthy();
+    });
+  });
+
+  describe("findEntryIndex", () => {
+    it("finds the index of the first matching entry", () => {
+      const entries = ["apple", "banana", "cherry"].entries();
+      const predicate = (value: string) => value.startsWith("b");
+      expect(findEntryIndex(entries, predicate, -1)).toBe(1);
+    });
+
+    it("returns the missing value if no entry matches", () => {
+      const entries = ["apple", "banana", "cherry"].entries();
+      const predicate = (value: string) => value.startsWith("d");
+      expect(findEntryIndex(entries, predicate, -1)).toBe(-1);
+    });
+
+    it("works with different types of values", () => {
+      const entries = [10, 20, 30].entries();
+      const predicate = (value: number) => value > 15;
+      expect(findEntryIndex(entries, predicate, -1)).toBe(1);
+    });
+
+    it("returns the first matching index when multiple entries match", () => {
+      const entries = ["apple", "banana", "cherry"].entries();
+      const predicate = (value: string) => value.startsWith("b");
+      expect(findEntryIndex(entries, predicate, -1)).toBe(1);
+    });
+
+    it("handles empty iterables", () => {
+      const entries = ["apple", "banana", "cherry"].entries();
+      const predicate = (value: string) => value.startsWith("d");
+      expect(findEntryIndex(entries, predicate, -1)).toBe(-1);
     });
   });
 });

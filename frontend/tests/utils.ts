@@ -1,5 +1,16 @@
-import type { Graph } from "$lib/yproxy";
+import type { Graph, Status } from "$lib/yproxy";
 import { expect, request, type Page } from "@playwright/test";
+
+export type TaskBuilder = {
+  id: string;
+  num?: string;
+  name?: string;
+  children?: string[];
+  assignee?: string | null;
+  reporter?: string | null;
+  status?: Status | null;
+  statusTime?: number | null;
+};
 
 export async function getKosoGraph(page: Page): Promise<Graph> {
   return page.evaluate("koso.toJSON()");
