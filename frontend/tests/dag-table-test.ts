@@ -31,26 +31,34 @@ test.describe("dag table tests", () => {
 
   async function init(page: Page, tasks: TaskBuilder[]) {
     await page.evaluate((tasks) => {
+      const upsertedTaskIds = new Set<string>(tasks.map((task) => task.id));
+      const childTaskIds = new Set<string>(
+        tasks.flatMap((task) => task.children ?? []),
+      );
+      const remainingTaskIds = childTaskIds.difference(upsertedTaskIds);
       window.koso.doc.transact(() => {
-        for (const {
-          id,
-          num = id,
-          name = "",
-          children = [],
-          assignee = null,
-          reporter = null,
-          status = null,
-          statusTime = null,
-        } of tasks) {
+        for (const task of tasks) {
           window.koso.upsert({
-            id,
-            num,
-            name,
-            children,
-            assignee,
-            reporter,
-            status,
-            statusTime,
+            id: task.id,
+            num: task.num ?? task.id,
+            name: task.name ?? "",
+            children: task.children ?? [],
+            assignee: task.assignee ?? null,
+            reporter: task.reporter ?? null,
+            status: task.status ?? null,
+            statusTime: task.statusTime ?? null,
+          });
+        }
+        for (const taskId of remainingTaskIds) {
+          window.koso.upsert({
+            id: taskId,
+            num: taskId,
+            name: `Task ${taskId}`,
+            children: [],
+            assignee: null,
+            reporter: null,
+            status: null,
+            statusTime: null,
           });
         }
       });

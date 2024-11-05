@@ -3,6 +3,7 @@ import * as encoding from "lib0/encoding";
 import MockDate from "mockdate";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
+import { type TaskBuilder } from "../../tests/utils";
 import type { User } from "./auth.svelte";
 import { Koso, Node } from "./koso.svelte";
 
@@ -31,6 +32,39 @@ const EMPTY_SYNC_RESPONSE = (() => {
 describe("Koso tests", () => {
   const root = new Node();
   let koso: Koso;
+
+  const init = (tasks: TaskBuilder[]) => {
+    const upsertedTaskIds = Set<string>(tasks.map((t) => t.id));
+    const childTaskIds = Set<string>(tasks.flatMap((t) => t.children ?? []));
+    const remainingTaskIds = childTaskIds.subtract(upsertedTaskIds);
+    koso.doc.transact(() => {
+      for (const task of tasks) {
+        koso.upsert({
+          id: task.id,
+          num: task.num ?? task.id,
+          name: task.name ?? `Task ${task.id}`,
+          children: task.children ?? [],
+          assignee: task.assignee ?? null,
+          reporter: task.reporter ?? null,
+          status: task.status ?? null,
+          statusTime: task.statusTime ?? null,
+        });
+      }
+      for (const taskId of remainingTaskIds) {
+        koso.upsert({
+          id: taskId,
+          num: taskId,
+          name: `Task ${taskId}`,
+          children: [],
+          assignee: null,
+          reporter: null,
+          status: null,
+          statusTime: null,
+        });
+      }
+    });
+  };
+
   beforeEach(() => {
     koso = new Koso("project-id", new Y.Doc());
     koso.handleClientMessage(() => {});
@@ -470,6 +504,68 @@ describe("Koso tests", () => {
           assignee: OTHER_USER.email,
         },
       });
+    });
+
+    it("setting a task to Done moves task to the bottom", () => {
+      init([
+        { id: "root", name: "Root", children: ["t1", "t2", "t3", "t4", "t5"] },
+      ]);
+
+      koso.setTaskStatus(Node.parse("t2"), "Done", USER);
+      const children = koso.toJSON().root.children;
+
+      expect(children).toEqual(["t1", "t3", "t4", "t5", "t2"]);
+    });
+
+    it("setting a task to In Progress moves task to the top", () => {
+      init([
+        { id: "root", name: "Root", children: ["t1", "t2", "t3", "t4", "t5"] },
+      ]);
+
+      koso.setTaskStatus(Node.parse("t4"), "In Progress", USER);
+      const children = koso.toJSON().root.children;
+
+      expect(children).toEqual(["t4", "t1", "t2", "t3", "t5"]);
+    });
+
+    it("setting task to In Progress moves next to the last In Progress task", () => {
+      init([
+        { id: "root", name: "Root", children: ["t1", "t2", "t3", "t4", "t5"] },
+        { id: "t2", status: "In Progress" },
+        { id: "t5", status: "Done" },
+      ]);
+
+      koso.setTaskStatus(Node.parse("t4"), "In Progress", USER);
+      const children = koso.toJSON().root.children;
+
+      expect(children).toEqual(["t1", "t2", "t4", "t3", "t5"]);
+    });
+
+    it("setting task to Done moves next to the first Done task", () => {
+      init([
+        { id: "root", name: "Root", children: ["t1", "t2", "t3", "t4", "t5"] },
+        { id: "t1", status: "In Progress" },
+        { id: "t4", status: "Done" },
+      ]);
+
+      koso.setTaskStatus(Node.parse("t2"), "Done", USER);
+      const children = koso.toJSON().root.children;
+
+      expect(children).toEqual(["t1", "t3", "t2", "t4", "t5"]);
+    });
+
+    it("setting a Done task to In Progress moves up", () => {
+      init([
+        { id: "root", name: "Root", children: ["t1", "t2", "t3", "t4", "t5"] },
+        { id: "t1", status: "In Progress" },
+        { id: "t4", status: "Done" },
+        { id: "t5", status: "Done" },
+      ]);
+
+      koso.setTaskStatus(Node.parse("t5"), "In Progress", USER);
+      const children = koso.toJSON().root.children;
+
+      expect(children).toEqual(["t1", "t5", "t2", "t3", "t4"]);
     });
   });
 
