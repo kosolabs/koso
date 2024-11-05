@@ -53,7 +53,7 @@ test.describe("dag table tests", () => {
           window.koso.upsert({
             id: taskId,
             num: taskId,
-            name: `Task ${taskId}`,
+            name: "",
             children: [],
             assignee: null,
             reporter: null,
@@ -108,10 +108,7 @@ test.describe("dag table tests", () => {
     test("create a task by presing Shift+Enter on the task", async ({
       page,
     }) => {
-      await init(page, [
-        { id: "root", name: "Root", children: ["1"] },
-        { id: "1" },
-      ]);
+      await init(page, [{ id: "root", name: "Root", children: ["1"] }]);
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Shift+Enter");
@@ -133,10 +130,7 @@ test.describe("dag table tests", () => {
     test("create a child task by presing Option+Shift+Enter on the task", async ({
       page,
     }) => {
-      await init(page, [
-        { id: "root", name: "Root", children: ["1"] },
-        { id: "1" },
-      ]);
+      await init(page, [{ id: "root", name: "Root", children: ["1"] }]);
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Alt+Shift+Enter");
@@ -169,9 +163,6 @@ test.describe("dag table tests", () => {
     test("delete task 2 by clicking the Delete button", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3"] },
-        { id: "1" },
-        { id: "2" },
-        { id: "3" },
       ]);
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
@@ -192,10 +183,7 @@ test.describe("dag table tests", () => {
     }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3"] },
-        { id: "1" },
         { id: "2", children: ["4"] },
-        { id: "3" },
-        { id: "4" },
       ]);
       await page.getByRole("button", { name: "Task 2 Toggle Expand" }).click();
 
@@ -219,8 +207,6 @@ test.describe("dag table tests", () => {
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", children: ["4"] },
         { id: "2", children: ["3"] },
-        { id: "3" },
-        { id: "4" },
       ]);
       await page.getByRole("button", { name: "Task 1 Toggle Expand" }).click();
       await page.getByRole("button", { name: "Task 2 Toggle Expand" }).click();
@@ -251,10 +237,7 @@ test.describe("dag table tests", () => {
     test("create a task by presing Shift+Enter on the task", async ({
       page,
     }) => {
-      await init(page, [
-        { id: "root", name: "Root", children: ["1"] },
-        { id: "1" },
-      ]);
+      await init(page, [{ id: "root", name: "Root", children: ["1"] }]);
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Shift+Enter");
@@ -269,55 +252,15 @@ test.describe("dag table tests", () => {
 
   test.describe("selecting tasks", () => {
     test("select task 1 by clicking on the drag handle", async ({ page }) => {
-      await init(page, [
-        { id: "root", name: "Root", children: ["1"] },
-        { id: "1" },
-      ]);
+      await init(page, [{ id: "root", name: "Root", children: ["1"] }]);
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
 
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
     });
-  });
 
-  test.describe("editing tasks", () => {
-    test("set task 1's name by clicking Click to edit", async ({ page }) => {
-      await init(page, [
-        { id: "root", name: "Root", children: ["1"] },
-        { id: "1" },
-      ]);
-      await page.getByRole("button", { name: "Task 1 Edit Name" }).click();
-      await page.keyboard.type("The 1st Task");
-      await page.keyboard.press("Enter");
-
-      await expect(
-        page.getByRole("button", { name: "Task 1 Edit Name" }),
-      ).toHaveText("The 1st Task");
-    });
-
-    test("set task 2's name by pressing Enter", async ({ page }) => {
-      await init(page, [
-        { id: "root", name: "Root", children: ["1", "2"] },
-        { id: "1" },
-        { id: "2" },
-      ]);
-      await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
-      await page.keyboard.press("Enter");
-      await page.keyboard.type("The 2nd Task");
-      await page.keyboard.press("Enter");
-
-      await expect(
-        page.getByRole("button", { name: "Task 2 Edit Name" }),
-      ).toHaveText("The 2nd Task");
-    });
-  });
-
-  test.describe("moving tasks", () => {
     test("up and down arrows change the selected row", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3"] },
-        { id: "1" },
-        { id: "2" },
-        { id: "3" },
       ]);
 
       await expect(
@@ -340,143 +283,34 @@ test.describe("dag table tests", () => {
         ["3"]: { children: [] },
       });
     });
+  });
 
-    test.describe("⌥+⇧+(↑/↓) - moving within contiguous groups", () => {
-      const now = Date.now();
+  test.describe("editing tasks", () => {
+    test("set task 1's name by clicking Click to edit", async ({ page }) => {
+      await init(page, [{ id: "root", name: "Root", children: ["1"] }]);
+      await page.getByRole("button", { name: "Task 1 Edit Name" }).click();
+      await page.keyboard.type("The 1st Task");
+      await page.keyboard.press("Enter");
 
-      test("⌥+⇧+↓ all tasks same status moves task to the bottom", async ({
-        page,
-      }) => {
-        await init(page, [
-          { id: "root", name: "Root", children: ["1", "2", "3"] },
-          { id: "1" },
-          { id: "2" },
-          { id: "3" },
-        ]);
-
-        await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
-
-        await page.keyboard.press("Alt+Shift+ArrowDown");
-        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-
-        expect(await getKosoGraph(page)).toMatchObject({
-          root: { children: ["2", "3", "1"] },
-          ["1"]: { children: [] },
-          ["2"]: { children: [] },
-          ["3"]: { children: [] },
-        });
-      });
-
-      test("⌥+⇧+↑ all tasks same status moves task to the top", async ({
-        page,
-      }) => {
-        await init(page, [
-          { id: "root", name: "Root", children: ["1", "2", "3"] },
-          { id: "1" },
-          { id: "2" },
-          { id: "3" },
-        ]);
-
-        await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
-
-        await page.keyboard.press("Alt+Shift+ArrowUp");
-        await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
-
-        expect(await getKosoGraph(page)).toMatchObject({
-          root: { children: ["3", "1", "2"] },
-          ["1"]: { children: [] },
-          ["2"]: { children: [] },
-          ["3"]: { children: [] },
-        });
-      });
-
-      test("⌥+⇧+↓ moves task to the top of the next group", async ({
-        page,
-      }) => {
-        await init(page, [
-          { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
-          { id: "1" },
-          { id: "2" },
-          { id: "3" },
-          { id: "4", status: "Done", statusTime: now },
-        ]);
-
-        await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
-
-        await page.keyboard.press("Alt+Shift+ArrowDown");
-        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-
-        expect(await getKosoGraph(page)).toMatchObject({
-          root: { children: ["2", "3", "1", "4"] },
-          ["1"]: { children: [] },
-          ["2"]: { children: [] },
-          ["3"]: { children: [] },
-          ["4"]: { children: [] },
-        });
-      });
-
-      test("⌥+⇧+↑ moves task on the edge to the top of the group", async ({
-        page,
-      }) => {
-        await init(page, [
-          { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
-          { id: "1", status: "In Progress", statusTime: now },
-          { id: "2" },
-          { id: "3" },
-          { id: "4", status: "Done", statusTime: now },
-        ]);
-
-        await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
-
-        await page.keyboard.press("Alt+Shift+ArrowUp");
-        await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
-
-        expect(await getKosoGraph(page)).toMatchObject({
-          root: { children: ["2", "1", "3", "4"] },
-          ["1"]: { children: [] },
-          ["2"]: { children: [] },
-          ["3"]: { children: [] },
-          ["4"]: { children: [] },
-        });
-      });
+      await expect(
+        page.getByRole("button", { name: "Task 1 Edit Name" }),
+      ).toHaveText("The 1st Task");
     });
 
-    test("option left and right change row indentation", async ({ page }) => {
-      await init(page, [
-        { id: "root", name: "Root", children: ["1", "2", "3"] },
-        { id: "1" },
-        { id: "2" },
-        { id: "3" },
-      ]);
-
+    test("set task 2's name by pressing Enter", async ({ page }) => {
+      await init(page, [{ id: "root", name: "Root", children: ["1", "2"] }]);
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
-      await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
-      await page.keyboard.press("Alt+ArrowRight");
+      await page.keyboard.press("Enter");
+      await page.keyboard.type("The 2nd Task");
+      await page.keyboard.press("Enter");
 
-      await page.keyboard.press("ArrowDown");
-      await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
-      await page.keyboard.press("Alt+ArrowRight");
-      await page.keyboard.press("Alt+ArrowRight");
-
-      expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["1"] },
-        ["1"]: { children: ["2"] },
-        ["2"]: { children: ["3"] },
-        ["3"]: { children: [] },
-      });
-
-      await page.keyboard.press("ArrowUp");
-      await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
-      await page.keyboard.press("Alt+ArrowLeft");
-
-      expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["1", "2"] },
-        ["1"]: { children: [] },
-        ["2"]: { children: ["3"] },
-        ["3"]: { children: [] },
-      });
+      await expect(
+        page.getByRole("button", { name: "Task 2 Edit Name" }),
+      ).toHaveText("The 2nd Task");
     });
+  });
 
+  test.describe("moving tasks", () => {
     test.describe("option up and down arrows change the order of rows", async () => {
       test("option skips past collapsed nodes", async ({ page }) => {
         await init(page, [
@@ -1250,6 +1084,123 @@ test.describe("dag table tests", () => {
         });
       });
     });
+
+    test.describe("within contiguous groups", () => {
+      const now = Date.now();
+
+      test("all tasks same status moves task to the bottom", async ({
+        page,
+      }) => {
+        await init(page, [
+          { id: "root", name: "Root", children: ["1", "2", "3"] },
+        ]);
+
+        await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+
+        expect(await getKosoGraph(page)).toMatchObject({
+          root: { children: ["2", "3", "1"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: [] },
+          ["3"]: { children: [] },
+        });
+      });
+
+      test("all tasks same status moves task to the top", async ({ page }) => {
+        await init(page, [
+          { id: "root", name: "Root", children: ["1", "2", "3"] },
+        ]);
+
+        await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
+
+        expect(await getKosoGraph(page)).toMatchObject({
+          root: { children: ["3", "1", "2"] },
+        });
+      });
+
+      test("moves task to the top of the next group", async ({ page }) => {
+        await init(page, [
+          { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+          { id: "4", status: "Done", statusTime: now },
+        ]);
+
+        await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+
+        expect(await getKosoGraph(page)).toMatchObject({
+          root: { children: ["2", "3", "1", "4"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: [] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+        });
+      });
+
+      test("moves task on the edge to the top of the group", async ({
+        page,
+      }) => {
+        await init(page, [
+          { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+          { id: "1", status: "In Progress", statusTime: now },
+          { id: "4", status: "Done", statusTime: now },
+        ]);
+
+        await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
+
+        expect(await getKosoGraph(page)).toMatchObject({
+          root: { children: ["2", "1", "3", "4"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: [] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+        });
+      });
+    });
+  });
+
+  test.describe("indenting tasks", () => {
+    test("option left and right change row indentation", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
+      ]);
+
+      await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
+      await page.keyboard.press("Alt+ArrowRight");
+
+      await page.keyboard.press("ArrowDown");
+      await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
+      await page.keyboard.press("Alt+ArrowRight");
+      await page.keyboard.press("Alt+ArrowRight");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2"] },
+        ["2"]: { children: ["3"] },
+        ["3"]: { children: [] },
+      });
+
+      await page.keyboard.press("ArrowUp");
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
+      await page.keyboard.press("Alt+ArrowLeft");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1", "2"] },
+        ["1"]: { children: [] },
+        ["2"]: { children: ["3"] },
+        ["3"]: { children: [] },
+      });
+    });
   });
 
   test.describe("expand and collapse", () => {
@@ -1259,7 +1210,6 @@ test.describe("dag table tests", () => {
       await init(page, [
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2"] },
-        { id: "2" },
       ]);
       await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
 
@@ -1275,11 +1225,7 @@ test.describe("dag table tests", () => {
     test("clicking the undo and redo restores and deletes a task", async ({
       page,
     }) => {
-      await init(page, [
-        { id: "root", name: "Root", children: ["1", "2"] },
-        { id: "1" },
-        { id: "2" },
-      ]);
+      await init(page, [{ id: "root", name: "Root", children: ["1", "2"] }]);
       page.evaluate(() => {
         window.koso.undoManager.captureTimeout = 0;
       });
@@ -1315,10 +1261,7 @@ test.describe("dag table tests", () => {
     });
 
     test("clicking undo restores selected node", async ({ page }) => {
-      await init(page, [
-        { id: "root", name: "Root", children: ["1"] },
-        { id: "1" },
-      ]);
+      await init(page, [{ id: "root", name: "Root", children: ["1"] }]);
       page.evaluate(() => {
         window.koso.undoManager.captureTimeout = 0;
       });
@@ -1355,9 +1298,6 @@ test.describe("dag table tests", () => {
     }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3"] },
-        { id: "1" },
-        { id: "2" },
-        { id: "3" },
       ]);
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).hover();
@@ -1383,9 +1323,6 @@ test.describe("dag table tests", () => {
     }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3"] },
-        { id: "1" },
-        { id: "2" },
-        { id: "3" },
       ]);
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).hover();
@@ -1411,9 +1348,6 @@ test.describe("dag table tests", () => {
     }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3"] },
-        { id: "1" },
-        { id: "2" },
-        { id: "3" },
       ]);
 
       await page
@@ -1439,9 +1373,6 @@ test.describe("dag table tests", () => {
     test("cannot make task 1 child of itself", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3"] },
-        { id: "1" },
-        { id: "2" },
-        { id: "3" },
       ]);
 
       await page.keyboard.down("Alt");
@@ -1461,9 +1392,6 @@ test.describe("dag table tests", () => {
     test("cannot make task 1 a peer of itself", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3"] },
-        { id: "1" },
-        { id: "2" },
-        { id: "3" },
       ]);
 
       await page.keyboard.down("Alt");

@@ -71,46 +71,132 @@ describe("Koso tests", () => {
     koso.handleServerMessage(EMPTY_SYNC_RESPONSE);
   });
 
-  describe("getTask", () => {
-    it("retrieves task 2", () => {
+  describe("insertNode", () => {
+    it("creates a child of root", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      expect(koso.getTask(id2.name).toJSON()).toStrictEqual({
-        id: id2.name,
-        num: "2",
-        name: "Task 2",
-        children: [],
-        reporter: "t@koso.app",
-        assignee: null,
-        status: null,
-        statusTime: null,
+      expect(koso.toJSON()).toEqual({
+        root: {
+          id: "root",
+          num: "0",
+          name: "Root",
+          children: [id1.name],
+          assignee: null,
+          reporter: null,
+          status: null,
+          statusTime: null,
+        },
+        [id1.name]: {
+          id: id1.name,
+          num: "1",
+          name: "Task 1",
+          children: [],
+          assignee: null,
+          reporter: "t@koso.app",
+          status: null,
+          statusTime: null,
+        },
+      });
+    });
+  });
+
+  describe("getTask", () => {
+    it("retrieves task 1", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        {
+          id: "1",
+          num: "num",
+          name: "Task 1",
+          children: ["2"],
+          reporter: "r@koso.app",
+          assignee: "a@koso.app",
+          status: "In Progress",
+          statusTime: 123,
+        },
+      ]);
+
+      expect(koso.getTask("1").toJSON()).toStrictEqual({
+        id: "1",
+        num: "num",
+        name: "Task 1",
+        children: ["2"],
+        reporter: "r@koso.app",
+        assignee: "a@koso.app",
+        status: "In Progress",
+        statusTime: 123,
       });
     });
 
     it("invalid task id throws an exception", () => {
-      koso.insertNode(root, 0, USER, "Task 1");
-      koso.insertNode(root, 1, USER, "Task 2");
+      init([{ id: "root", name: "Root", children: ["1"] }]);
       expect(() => koso.getTask("non-existant-task")).toThrow();
     });
   });
 
+  describe("getTasks", () => {
+    it("fetches all tasks", () => {
+      init([{ id: "root", name: "Root", children: ["1", "2", "3", "4"] }]);
+
+      expect(koso.getTasks().map((task) => task.toJSON())).toMatchObject([
+        { id: "root" },
+        { id: "1" },
+        { id: "2" },
+        { id: "3" },
+        { id: "4" },
+      ]);
+    });
+  });
+
+  describe("getParents", () => {
+    beforeEach(() => {
+      init([
+        { id: "root", name: "Root", children: ["1", "3"] },
+        { id: "1", name: "Task 1", children: ["2", "3"] },
+        { id: "2", name: "Task 2", children: ["4"] },
+        { id: "3", name: "Task 3", children: ["4"] },
+      ]);
+    });
+
+    it("parents of 1 is root", () => {
+      expect(koso.getParents("1")).toEqual(["root"]);
+    });
+
+    it("parents of 2 is 1", () => {
+      expect(koso.getParents("2")).toEqual(["1"]);
+    });
+
+    it("parents of 3 are 1 and root", () => {
+      expect(koso.getParents("3")).toEqual(["root", "1"]);
+    });
+
+    it("parents of 4 are 2 and 3", () => {
+      expect(koso.getParents("4")).toEqual(["2", "3"]);
+    });
+
+    it("parents of root throws", () => {
+      expect(() => koso.getParents("root")).toThrow();
+    });
+  });
+
   describe("getChildren", () => {
+    beforeEach(() => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2", children: [] },
+      ]);
+    });
+
     it("retrieves task 1's children", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      expect(koso.getChildren(id1.name).toJSON()).toStrictEqual([id2.name]);
+      expect(koso.getChildren("1").toJSON()).toStrictEqual(["2"]);
     });
 
     it("retrieves empty list of children for leaf task", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      expect(koso.getChildren(id2.name).toJSON()).toStrictEqual([]);
+      expect(koso.getChildren("2").toJSON()).toStrictEqual([]);
     });
 
     it("invalid task id throws an exception", () => {
-      koso.insertNode(root, 0, USER, "Task 1");
-      koso.insertNode(root, 1, USER, "Task 2");
-      expect(() => koso.getChildren("id3")).toThrow();
+      expect(() => koso.getChildren("3")).toThrow();
     });
   });
 
