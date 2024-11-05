@@ -303,7 +303,7 @@ test.describe("dag table tests", () => {
     });
   });
 
-  test.describe("movement using keyboard bindings", () => {
+  test.describe("moving tasks", () => {
     test("up and down arrows change the selected row", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3"] },
@@ -333,41 +333,103 @@ test.describe("dag table tests", () => {
       });
     });
 
-    test("option+shift up and down arrows change the order of rows", async ({
-      page,
-    }) => {
-      await init(page, [
-        { id: "root", name: "Root", children: ["1", "2", "3"] },
-        { id: "1" },
-        { id: "2" },
-        { id: "3" },
-      ]);
+    test.describe("⌥+⇧+(↑/↓) - moving within contiguous groups", () => {
+      const now = Date.now();
 
-      await expect(
-        page.getByRole("button", { name: "Task 1 Drag Handle" }),
-      ).toBeVisible();
+      test("⌥+⇧+↓ all tasks same status moves task to the bottom", async ({
+        page,
+      }) => {
+        await init(page, [
+          { id: "root", name: "Root", children: ["1", "2", "3"] },
+          { id: "1" },
+          { id: "2" },
+          { id: "3" },
+        ]);
 
-      await page.keyboard.press("ArrowDown");
-      await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
 
-      await page.keyboard.press("Alt+Shift+ArrowDown");
-      await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
 
-      expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["2", "3", "1"] },
-        ["1"]: { children: [] },
-        ["2"]: { children: [] },
-        ["3"]: { children: [] },
+        expect(await getKosoGraph(page)).toMatchObject({
+          root: { children: ["2", "3", "1"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: [] },
+          ["3"]: { children: [] },
+        });
       });
 
-      await page.keyboard.press("Alt+Shift+ArrowUp");
-      await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+      test("⌥+⇧+↑ all tasks same status moves task to the top", async ({
+        page,
+      }) => {
+        await init(page, [
+          { id: "root", name: "Root", children: ["1", "2", "3"] },
+          { id: "1" },
+          { id: "2" },
+          { id: "3" },
+        ]);
 
-      expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["1", "2", "3"] },
-        ["1"]: { children: [] },
-        ["2"]: { children: [] },
-        ["3"]: { children: [] },
+        await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
+
+        expect(await getKosoGraph(page)).toMatchObject({
+          root: { children: ["3", "1", "2"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: [] },
+          ["3"]: { children: [] },
+        });
+      });
+
+      test("⌥+⇧+↓ moves task to the top of the next group", async ({
+        page,
+      }) => {
+        await init(page, [
+          { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+          { id: "1" },
+          { id: "2" },
+          { id: "3" },
+          { id: "4", status: "Done", statusTime: now },
+        ]);
+
+        await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+
+        await page.keyboard.press("Alt+Shift+ArrowDown");
+        await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
+
+        expect(await getKosoGraph(page)).toMatchObject({
+          root: { children: ["2", "3", "1", "4"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: [] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+        });
+      });
+
+      test("⌥+⇧+↑ moves task on the edge to the top of the group", async ({
+        page,
+      }) => {
+        await init(page, [
+          { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+          { id: "1", status: "In Progress", statusTime: now },
+          { id: "2" },
+          { id: "3" },
+          { id: "4", status: "Done", statusTime: now },
+        ]);
+
+        await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
+
+        await page.keyboard.press("Alt+Shift+ArrowUp");
+        await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
+
+        expect(await getKosoGraph(page)).toMatchObject({
+          root: { children: ["2", "1", "3", "4"] },
+          ["1"]: { children: [] },
+          ["2"]: { children: [] },
+          ["3"]: { children: [] },
+          ["4"]: { children: [] },
+        });
       });
     });
 

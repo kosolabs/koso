@@ -168,12 +168,12 @@
 
   function moveStart() {
     if (!koso.selected) return;
-    koso.moveNodeStart(koso.selected);
+    koso.moveNodeUpBoundary(koso.selected);
   }
 
   function moveEnd() {
     if (!koso.selected) return;
-    koso.moveNodeEnd(koso.selected);
+    koso.moveNodeDownBoundary(koso.selected);
   }
 
   function indent() {

@@ -22,6 +22,12 @@ export type Task = {
 };
 export type Status = "Not Started" | "In Progress" | "Done";
 
+export type Slice = {
+  start?: number;
+  end?: number;
+  step?: number;
+};
+
 export class YGraphProxy {
   #yGraph: YGraph;
 
@@ -174,8 +180,39 @@ export class YChildrenProxy {
     return this.#yChildren.get(index);
   }
 
-  slice(start?: number | undefined, end?: number | undefined): string[] {
-    return this.#yChildren.slice(start, end);
+  *slice(slice: Slice = {}): IterableIterator<string> {
+    for (const entry of this.entries(slice)) {
+      yield entry[1];
+    }
+  }
+
+  *entries(slice: Slice = {}): IterableIterator<[number, string]> {
+    const step = slice.step ?? 1;
+    if (step === 0) throw new Error("Step size should not be zero");
+
+    let start = slice.start;
+    if (start === null || start === undefined) {
+      start = step > 0 ? 0 : this.length - 1;
+    } else if (start < 0) {
+      start = Math.max(start + this.length, 0);
+    }
+
+    let end = slice.end;
+    if (end === null || end === undefined) {
+      end = step > 0 ? this.length : -1;
+    } else if (end < 0) {
+      end += this.length;
+    } else if (end > this.length) {
+      end = this.length;
+    }
+
+    for (
+      let i = start;
+      (step > 0 && i < end) || (step < 0 && i > end);
+      i += step
+    ) {
+      yield [i, this.get(i)];
+    }
   }
 
   insert(index: number, content: string[]) {
