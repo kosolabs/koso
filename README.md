@@ -61,6 +61,7 @@
    In the `frontend` folder, run:
 
    ```sh
+   corepack enable
    pnpm install
    ```
 
@@ -280,7 +281,9 @@ ssh -T git@github.com && echo "Github auth works"
 
 Rather than using our personal key and since we only need read access, we use [Github Deploy Keys](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#deploy-keys) to authenticate with Github from our server.
 
-## Backups
+## Postgres
+
+### Backups
 
 [psql_backup.sh](backend/scripts/psql_backup.sh) exports backups of our Postgresql DB to cloud storage.
 
@@ -290,7 +293,7 @@ Backups are stored in a GCP cloud storage bucket named `koso-psql-backups`. The 
 soft deletion and object versioning configured, along with lifecycle rules to
 auto-delete objects after 30 days.
 
-### Restore
+#### Restore
 
 Identify the backup to restore in the cloud console and update `backup_name` below with the target object name.
 
@@ -317,3 +320,47 @@ PGPASSWORD=$PSQL_PASSWORD pg_restore \
    -f \
    $backup_name
 ```
+
+### Upgrade
+
+Upgrade Postgres to a new major version. In the example below, from 16 to 17.
+
+1. Update the postgres image version from postgres:16 to postgres:17 in ci.yml and merge.
+
+1. Install the new version of posgres:
+
+   ```bash
+   sudo apt update
+   sudo apt install postgresql-17
+   pg_lsclusters
+   ```
+
+1. Backup the cluster just in case:
+
+   ```bash
+   pg_dumpall > ~/postgres-dump-$(date -u "+%Y-%m-%dT%H-%M-%S-%3NZ")
+   ```
+
+1. Upgrade the cluster:
+
+   ```
+   sudo service postgresql stop
+   sudo pg_renamecluster 17 main main_pristine
+   sudo pg_upgradecluster 16 main
+   sudo service postgresql start
+
+   pg_lsclusters
+   ```
+
+1. Verify the new cluster is working by visiting our app and verifying things work. Look at backend logs as well for anything suspicious.
+
+   ```bash
+   pg_lsclusters
+   ```
+
+1. Drop the old and transition version:
+
+   ```bash
+   sudo pg_dropcluster 16 main --stop
+   sudo pg_dropcluster 17 main_pristine --stop
+   ```
