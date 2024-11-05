@@ -1,7 +1,6 @@
 import { List, Set } from "immutable";
 import * as encoding from "lib0/encoding";
-import MockDate from "mockdate";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { type TaskBuilder } from "../../tests/utils";
 import type { User } from "./auth.svelte";
@@ -96,6 +95,227 @@ describe("Koso tests", () => {
           statusTime: null,
         },
       });
+    });
+  });
+
+  describe("linkNode", () => {
+    it("link node 2 to node 1 succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
+      koso.linkNode(Node.parse("2"), Node.parse("1"), 0);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "2"] },
+        ["1"]: { id: "1", children: ["2"] },
+        ["2"]: { id: "2", children: [] },
+      });
+    });
+
+    it("link node 1 to child of node 1 throws (prevent cycle)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+      expect(() =>
+        koso.linkNode(Node.parse("1"), Node.parse("1"), 0),
+      ).toThrow();
+    });
+
+    it("link node 1 to grandchild of node 1 throws (prevent cycle)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+      expect(() =>
+        koso.linkNode(Node.parse("1"), Node.parse("2"), 0),
+      ).toThrow();
+    });
+  });
+
+  describe("moveNode", () => {
+    it("move node 3 to child of node 1 as a peer of node 2 succeeds (reparent)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "3"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      koso.moveNode(Node.parse("3"), Node.parse("1"), 1);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "3"] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+      });
+    });
+
+    it("move node 3 to immediate child of node 1 succeeds (reparent)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "3"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      koso.moveNode(Node.parse("3"), Node.parse("1"), 0);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["3", "2"] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+      });
+    });
+
+    it("move node 4 to be a child of node 3 succeeds (reparent)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2", "3", "4"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+        { id: "4", name: "Task 4" },
+      ]);
+
+      koso.moveNode(Node.parse("1/4"), Node.parse("1/3"), 0);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "3"] },
+        ["2"]: { children: [] },
+        ["3"]: { children: ["4"] },
+        ["4"]: { children: [] },
+      });
+    });
+
+    it("move node 2 to peer of itself throws (prevent duplicate)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+
+      expect(() =>
+        koso.moveNode(Node.parse("2"), Node.parse("1"), 1),
+      ).toThrow();
+    });
+
+    it("move node 4 to be the peer of node 2 succeeds (reorder)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2", "3", "4"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+        { id: "4", name: "Task 4" },
+      ]);
+
+      koso.moveNode(Node.parse("1/4"), Node.parse("1"), 1);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "4", "3"] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+    });
+
+    it("move node 3 to be the peer of node 4 succeeds (reorder)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2", "3", "4"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+        { id: "4", name: "Task 4" },
+      ]);
+
+      koso.moveNode(Node.parse("1/3"), Node.parse("1"), 3);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "4", "3"] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+    });
+  });
+
+  describe("deleteNode", () => {
+    it("delete node 2 from node 1 succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+
+      koso.deleteNode(Node.parse("1/2"));
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "2"] },
+        ["1"]: { id: "1", children: [] },
+        ["2"]: { id: "2", children: [] },
+      });
+    });
+
+    it("delete node 2 from node 1 succeeds and unlinks node 2 and deletes nodes 2, 4 and 6", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2", "7"] },
+        { id: "1", name: "Task 1", children: [] },
+        { id: "2", name: "Task 2", children: ["3", "4"] },
+        { id: "3", name: "Task 3", children: ["5"] },
+        { id: "4", name: "Task 4", children: ["6"] },
+        { id: "5", name: "Task 5", children: [] },
+        { id: "6", name: "Task 6", children: [] },
+        { id: "7", name: "Task 7", children: ["3"] },
+      ]);
+
+      koso.deleteNode(Node.parse("2"));
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "7"] },
+        ["1"]: { id: "1", children: [] },
+        ["3"]: { id: "3", children: ["5"] },
+        ["5"]: { id: "5", children: [] },
+        ["7"]: { id: "7", children: ["3"] },
+      });
+    });
+
+    it("delete node 2 from root succeeds and unlinks node 2", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2", children: ["3"] },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      koso.deleteNode(Node.parse("2"));
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { id: "1", children: ["2"] },
+        ["2"]: { id: "2", children: ["3"] },
+        ["3"]: { id: "3", children: [] },
+      });
+    });
+
+    it("delete node 2 succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+
+      koso.deleteNode(Node.parse("1/2"));
+
+      expect(koso.toJSON()).toHaveProperty("root");
+      expect(koso.toJSON()).toHaveProperty("1");
+      expect(koso.toJSON()).not.toHaveProperty("2");
     });
   });
 
@@ -200,54 +420,286 @@ describe("Koso tests", () => {
     });
   });
 
+  describe("getChildCount", () => {
+    beforeEach(() => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: [] },
+        { id: "2", name: "Task 2", children: [] },
+      ]);
+    });
+
+    it("returns correct child count for a node with children", () => {
+      expect(koso.getChildCount("root")).toBe(2);
+    });
+
+    it("returns zero for a node with no children", () => {
+      expect(koso.getChildCount("1")).toBe(0);
+    });
+
+    it("throws an exception for an invalid task id", () => {
+      expect(() => koso.getChildCount("non-existant-task")).toThrow();
+    });
+  });
+
+  describe("hasChild", () => {
+    beforeEach(() => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: [] },
+        { id: "2", name: "Task 2", children: [] },
+      ]);
+    });
+
+    it("returns true if task has the given child", () => {
+      expect(koso.hasChild("root", "1")).toBe(true);
+    });
+
+    it("returns false if task does not have the given child", () => {
+      expect(koso.hasChild("1", "2")).toBe(false);
+    });
+
+    it("throws an exception for an invalid task id", () => {
+      expect(() => koso.hasChild("non-existant-task", "1")).toThrow();
+    });
+  });
+
+  describe("getStatus", () => {
+    it("returns Not Started for a task with no children and status Not Started", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
+        { id: "1", status: "Not Started" },
+        { id: "2", status: "In Progress" },
+        { id: "3", status: "Done" },
+      ]);
+      expect(koso.getStatus("1")).toBe("Not Started");
+    });
+
+    it("returns In Progress for a task with no children and status In Progress", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
+        { id: "1", status: "Not Started" },
+        { id: "2", status: "In Progress" },
+        { id: "3", status: "Done" },
+      ]);
+      expect(koso.getStatus("2")).toBe("In Progress");
+    });
+
+    it("returns Done for a task with no children and status Done", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
+        { id: "1", status: "Not Started" },
+        { id: "2", status: "In Progress" },
+        { id: "3", status: "Done" },
+      ]);
+      expect(koso.getStatus("3")).toBe("Done");
+    });
+
+    it("returns In Progress for a task with children in various states", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3"] },
+        { id: "2", status: "In Progress" },
+        { id: "3", status: "Done" },
+      ]);
+      expect(koso.getStatus("1")).toBe("In Progress");
+    });
+
+    it("returns Done for a task with all children done", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3"] },
+        { id: "2", status: "Done" },
+        { id: "3", status: "Done" },
+      ]);
+      expect(koso.getStatus("1")).toBe("Done");
+    });
+
+    it("returns Not Started for a task with all children not started", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3"] },
+        { id: "2", status: "Not Started" },
+        { id: "3", status: "Not Started" },
+      ]);
+      expect(koso.getStatus("1")).toBe("Not Started");
+    });
+  });
+
+  describe("getProgress", () => {
+    const now = Date.now();
+
+    it("parent node with all children done has 2 of 2 progress", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3"] },
+        { id: "2", status: "Done", statusTime: now },
+        { id: "3", status: "Done", statusTime: now },
+      ]);
+
+      expect(koso.getProgress("1")).toEqual({
+        inProgress: 0,
+        done: 2,
+        total: 2,
+        lastStatusTime: now,
+      });
+    });
+
+    it("parent node with one child in progress and one done has 1 of 2 progress", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3"] },
+        { id: "2", status: "In Progress", statusTime: now },
+        { id: "3", status: "Done", statusTime: now },
+      ]);
+
+      expect(koso.getProgress("1")).toEqual({
+        inProgress: 1,
+        done: 1,
+        total: 2,
+        lastStatusTime: now,
+      });
+    });
+
+    it("parent node with all children not started has 0 of 2 progress", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3"] },
+        { id: "2", status: "Not Started", statusTime: now },
+        { id: "3", status: "Not Started", statusTime: now },
+      ]);
+
+      expect(koso.getProgress("1")).toEqual({
+        inProgress: 0,
+        done: 0,
+        total: 2,
+        lastStatusTime: now,
+      });
+    });
+
+    it("parent node with mixed children statuses has correct progress", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3", "4"] },
+        { id: "2", status: "Not Started", statusTime: now },
+        { id: "3", status: "In Progress", statusTime: now },
+        { id: "4", status: "Done", statusTime: now },
+      ]);
+
+      expect(koso.getProgress("1")).toEqual({
+        inProgress: 1,
+        done: 1,
+        total: 3,
+        lastStatusTime: now,
+      });
+    });
+
+    it("parent node with nested children has correct progress", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2"] },
+        { id: "2", children: ["3"] },
+        { id: "3", status: "Done", statusTime: now },
+      ]);
+
+      expect(koso.getProgress("1")).toEqual({
+        inProgress: 0,
+        done: 1,
+        total: 1,
+        lastStatusTime: now,
+      });
+    });
+
+    it("parent node with multiple levels of nested children has correct progress", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2"] },
+        { id: "2", children: ["3", "4"] },
+        { id: "3", status: "In Progress", statusTime: now },
+        { id: "4", status: "Done", statusTime: now },
+      ]);
+
+      expect(koso.getProgress("1")).toEqual({
+        inProgress: 1,
+        done: 1,
+        total: 2,
+        lastStatusTime: now,
+      });
+    });
+  });
+
   describe("toNodes", () => {
+    beforeEach(() => {
+      koso.expanded = Set([]);
+    });
+
     it("empty doc has no nodes", () => {
       expect(koso.nodes).toStrictEqual(List([root]));
     });
 
     it("doc with one task has one node", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      expect(koso.nodes).toStrictEqual(List([root, id1]));
+      init([{ id: "root", name: "Root", children: ["1"] }]);
+      expect(koso.nodes).toStrictEqual(List([root, Node.parse("1")]));
     });
 
-    it("doc with non-visible tasks still returns root", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      koso.getTask(id1.name).status = "Done";
+    it("doc with non-visible tasks returns root", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", status: "Done" },
+      ]);
       expect(koso.nodes).toStrictEqual(List([root]));
     });
 
     it("doc with two tasks has two nodes", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      expect(koso.nodes).toStrictEqual(List([root, id1, id2]));
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
+      expect(koso.nodes).toStrictEqual(
+        List([root, Node.parse("1"), Node.parse("2")]),
+      );
     });
 
     it("doc with two tasks and one subtask has two nodes", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      koso.insertNode(id1, 0, USER, "Task 3");
-      expect(koso.nodes).toStrictEqual(List([root, id1, id2]));
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["3"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+      expect(koso.nodes).toStrictEqual(
+        List([root, Node.parse("1"), Node.parse("2")]),
+      );
     });
 
     it("doc with two tasks, one subtask, and parent is expanded has three nodes", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      const id3 = koso.insertNode(id1, 0, USER, "Task 3");
-      koso.expanded = Set([id1]);
-      expect(koso.nodes).toStrictEqual(List([root, id1, id3, id2]));
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["3"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+      koso.expanded = Set([Node.parse("1")]);
+      expect(koso.nodes).toStrictEqual(
+        List([root, Node.parse("1"), Node.parse("1/3"), Node.parse("2")]),
+      );
     });
 
     it("doc with two tasks, one linked subtask, and parent is expanded has three nodes", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      koso.linkNode(id2, id1, 0);
-      koso.expanded = Set([id1]);
-      const lid = id1.child(id2.name);
-      expect(koso.nodes).toStrictEqual(List([root, id1, lid, id2]));
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+      koso.expanded = Set([Node.parse("1")]);
+      expect(koso.nodes).toStrictEqual(
+        List([root, Node.parse("1"), Node.parse("1/2"), Node.parse("2")]),
+      );
     });
   });
 
-  describe("graph", () => {
+  describe("toJSON", () => {
     it("empty graph renders successfully", () => {
       expect(koso.toJSON()).toMatchObject({
         root: {
@@ -261,13 +713,16 @@ describe("Koso tests", () => {
       });
     });
 
-    it("graph with one root node renders to json successfully", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
+    it("graph with one task renders to json successfully", () => {
+      init([
+        { id: "root", num: "0", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", reporter: "t@koso.app" },
+      ]);
 
       expect(koso.toJSON()).toMatchObject({
-        root: { id: "root", num: "0", name: "Root", children: [id1.name] },
-        [id1.name]: {
-          id: id1.name,
+        root: { id: "root", num: "0", name: "Root", children: ["1"] },
+        ["1"]: {
+          id: "1",
           num: "1",
           name: "Task 1",
           children: [],
@@ -279,239 +734,65 @@ describe("Koso tests", () => {
     });
 
     it("populated graph renders to json successfully", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
 
       expect(koso.toJSON()).toMatchObject({
-        root: { id: "root", num: "0", name: "Root", children: [id1.name] },
-        [id1.name]: {
-          id: id1.name,
-          num: "1",
-          name: "Task 1",
-          children: [id2.name],
-        },
-        [id2.name]: { id: id2.name, num: "2", name: "Task 2", children: [] },
-      });
-    });
-
-    it("link node 2 to node 1 succeeds", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      koso.linkNode(id2, id1, 0);
-
-      expect(koso.toJSON()).toMatchObject({
-        root: { children: [id1.name, id2.name] },
-        [id1.name]: { id: id1.name, children: [id2.name] },
-        [id2.name]: { id: id2.name, children: [] },
-      });
-    });
-
-    it("delete node 2 from node 1 succeeds", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      koso.linkNode(id2, id1, 0);
-      koso.expanded = Set([id1]);
-
-      koso.deleteNode(id1.child(id2.name));
-
-      expect(koso.toJSON()).toMatchObject({
-        root: { children: [id1.name, id2.name] },
-        [id1.name]: { id: id1.name, children: [] },
-        [id2.name]: { id: id2.name, children: [] },
-      });
-    });
-
-    it("delete node 2 from node 1 succeeds and unlinks node 2 and deletes nodes 2, 4 and 6", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      const id3 = koso.insertNode(id2, 0, USER, "Task 3");
-      const id4 = koso.insertNode(id2, 1, USER, "Task 4");
-      koso.expanded = Set([id1, id2, id3, id4]);
-      const id5 = koso.insertNode(id3, 0, USER, "Task 5");
-      koso.insertNode(id4, 0, USER, "Task 6");
-      const id7 = koso.insertNode(root, 2, USER, "Task 7");
-      koso.linkNode(id3, id7, 0);
-      koso.deleteNode(id2);
-
-      expect(koso.toJSON()).toMatchObject({
-        root: { children: [id1.name, id7.name] },
-        [id1.name]: { id: id1.name, children: [] },
-        [id7.name]: { id: id7.name, children: [id3.name] },
-        [id3.name]: { id: id3.name, children: [id5.name] },
-        [id5.name]: { id: id5.name, children: [] },
-      });
-    });
-
-    it("delete node 2 from root succeeds and unlinks node 2", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 1, USER, "Task 2");
-      const id3 = koso.insertNode(id2, 0, USER, "Task 3");
-      koso.linkNode(id2, id1, 0);
-      koso.deleteNode(id2);
-
-      expect(koso.toJSON()).toMatchObject({
-        root: { children: [id1.name] },
-        [id1.name]: { id: id1.name, children: [id2.name] },
-        [id2.name]: { id: id2.name, children: [id3.name] },
-        [id3.name]: { id: id3.name, children: [] },
-      });
-    });
-
-    it("delete node 2 succeeds", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      koso.expanded = Set([id1]);
-
-      koso.deleteNode(id2);
-
-      expect(koso.toJSON()).toHaveProperty("root");
-      expect(koso.toJSON()).toHaveProperty(id1.name);
-      expect(koso.toJSON()).not.toHaveProperty(id2.name);
-    });
-
-    it("link node 1 to child of node 1 throws (prevent cycle)", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      expect(() => koso.linkNode(id1, id1, 0)).toThrow();
-    });
-
-    it("link node 1 to grandchild of node 1 throws (prevent cycle)", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 1");
-      expect(() => koso.linkNode(id1, id2, 0)).toThrow();
-    });
-
-    it("move node 3 to child of node 1 as a peer of node 2 succeeds (reparent)", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      const id3 = koso.insertNode(root, 1, USER, "Task 3");
-      koso.expanded = Set([id1]);
-
-      koso.moveNode(id3, id1, 1);
-
-      expect(koso.toJSON()).toMatchObject({
-        root: { children: [id1.name] },
-        [id1.name]: { children: [id2.name, id3.name] },
-        [id2.name]: { children: [] },
-        [id3.name]: { children: [] },
-      });
-    });
-
-    it("move node 3 to immediate child of node 1 succeeds (reparent)", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      const id3 = koso.insertNode(root, 1, USER, "Task 3");
-      koso.expanded = Set([id1]);
-
-      koso.moveNode(id3, id1, 0);
-
-      expect(koso.toJSON()).toMatchObject({
-        root: { children: [id1.name] },
-        [id1.name]: { children: [id3.name, id2.name] },
-        [id2.name]: { children: [] },
-        [id3.name]: { children: [] },
-      });
-    });
-
-    it("move node 4 to be a child of node 3 succeeds (reparent)", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      const id3 = koso.insertNode(id1, 1, USER, "Task 3");
-      const id4 = koso.insertNode(id1, 2, USER, "Task 4");
-      koso.expanded = Set([id1, id3]);
-
-      koso.moveNode(id4, id3, 0);
-
-      expect(koso.toJSON()).toMatchObject({
-        root: { children: [id1.name] },
-        [id1.name]: { children: [id2.name, id3.name] },
-        [id2.name]: { children: [] },
-        [id3.name]: { children: [id4.name] },
-        [id4.name]: { children: [] },
-      });
-    });
-
-    it("move node 2 to peer of itself throws (prevent duplicate)", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 0, USER, "Task 2");
-      koso.linkNode(id2, id1, 0);
-      koso.expanded = Set([id1.child(id2.name)]);
-
-      expect(() => koso.moveNode(id2, id1, 1)).toThrow();
-    });
-
-    it("move node 4 to be the peer of node 2 succeeds (reorder)", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      const id3 = koso.insertNode(id1, 1, USER, "Task 3");
-      const id4 = koso.insertNode(id1, 2, USER, "Task 4");
-      koso.expanded = Set([id1]);
-
-      koso.moveNode(id4, id1, 1);
-
-      expect(koso.toJSON()).toMatchObject({
-        root: { children: [id1.name] },
-        [id3.name]: { children: [id2.name, id4.name, id3.name] },
-        [id2.name]: { children: [] },
-        [id3.name]: { children: [] },
-        [id4.name]: { children: [] },
-      });
-    });
-
-    it("move node 3 to be the peer of node 4 succeeds (reorder)", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      const id3 = koso.insertNode(id1, 1, USER, "Task 3");
-      const id4 = koso.insertNode(id1, 2, USER, "Task 4");
-      koso.expanded = Set([id1]);
-
-      koso.moveNode(id3, id1, 3);
-
-      expect(koso.toJSON()).toMatchObject({
-        root: { children: [id1.name] },
-        [id1.name]: { children: [id2.name, id4.name, id3.name] },
-        [id2.name]: { children: [] },
-        [id3.name]: { children: [] },
-        [id4.name]: { children: [] },
+        root: { id: "root", name: "Root", children: ["1", "2"] },
+        ["1"]: { id: "1", name: "Task 1", children: ["2"] },
+        ["2"]: { id: "2", name: "Task 2", children: [] },
       });
     });
   });
 
   describe("setTaskName", () => {
     it("set node 2's name succeeds", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 0, USER, "Task 2");
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
 
-      koso.setTaskName(id2.name, "Edited Task 2");
+      koso.setTaskName("2", "Edited Task 2");
 
       expect(koso.toJSON()).toMatchObject({
         root: { name: "Root" },
-        [id1.name]: { name: "Task 1" },
-        [id2.name]: { name: "Edited Task 2" },
+        ["1"]: { name: "Task 1" },
+        ["2"]: { name: "Edited Task 2" },
       });
     });
   });
 
   describe("setAssignee", () => {
     it("set node 2's assignee succeeds", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 0, USER, "Task 2");
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
 
-      koso.setAssignee(id2.name, USER);
+      koso.setAssignee("2", USER);
 
       expect(koso.toJSON()).toMatchObject({
         root: { assignee: null },
-        [id1.name]: { assignee: null },
-        [id2.name]: { assignee: "t@koso.app" },
+        ["1"]: { assignee: null },
+        ["2"]: { assignee: "t@koso.app" },
       });
     });
   });
 
   describe("setReporter", () => {
     it("set node 2's reporter succeeds", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 0, USER, "Task 2");
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", reporter: "t@koso.app" },
+        { id: "2", name: "Task 2" },
+      ]);
 
-      koso.setReporter(id2.name, {
+      koso.setReporter("2", {
         email: "new@koso.app",
         name: "New Test User",
         picture: "",
@@ -520,49 +801,62 @@ describe("Koso tests", () => {
 
       expect(koso.toJSON()).toMatchObject({
         root: { reporter: null },
-        [id1.name]: { reporter: "t@koso.app" },
-        [id2.name]: { reporter: "new@koso.app" },
+        ["1"]: { reporter: "t@koso.app" },
+        ["2"]: { reporter: "new@koso.app" },
       });
     });
   });
 
   describe("setTaskStatus", () => {
     it("set node 2's status to done succeeds", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 0, USER, "Task 2");
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
 
-      koso.setTaskStatus(id2, "Done", USER);
+      koso.setTaskStatus(Node.parse("2"), "Done", USER);
 
       expect(koso.toJSON()).toMatchObject({
-        root: { status: null, children: [id1.name, id2.name], assignee: null },
-        [id1.name]: { status: null, children: [], assignee: null },
-        [id2.name]: { status: "Done", children: [], assignee: null },
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: null, children: [], assignee: null },
+        ["2"]: { status: "Done", children: [], assignee: null },
       });
     });
 
     it("set non-trailing node status to done succeeds and moves done task to end", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 0, USER, "Task 2");
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
 
-      koso.setTaskStatus(id1, "Done", USER);
+      koso.setTaskStatus(Node.parse("1"), "Done", USER);
 
       expect(koso.toJSON()).toMatchObject({
-        root: { status: null, children: [id2.name, id1.name], assignee: null },
-        [id1.name]: { status: "Done", children: [], assignee: null },
-        [id2.name]: { status: null, children: [], assignee: null },
+        root: { status: null, children: ["2", "1"], assignee: null },
+        ["1"]: { status: "Done", children: [], assignee: null },
+        ["2"]: { status: null, children: [], assignee: null },
       });
     });
 
     it("set node status to in-progress succeeds and moves done task to front and assigns to user", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 0, USER, "Task 2");
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
 
-      koso.setTaskStatus(id2, "In Progress", USER);
+      koso.setTaskStatus(Node.parse("2"), "In Progress", USER);
 
       expect(koso.toJSON()).toMatchObject({
-        root: { status: null, children: [id2.name, id1.name], assignee: null },
-        [id1.name]: { status: null, children: [], assignee: null },
-        [id2.name]: {
+        root: {
+          status: null,
+          children: ["2", "1"],
+          assignee: null,
+        },
+        ["1"]: { status: null, children: [], assignee: null },
+        ["2"]: {
           status: "In Progress",
           children: [],
           assignee: USER.email,
@@ -571,20 +865,22 @@ describe("Koso tests", () => {
     });
 
     it("set node status to in-progress succeeds and moves done task to front and assigns to user", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(root, 0, USER, "Task 2");
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
 
-      koso.setAssignee(id2.name, OTHER_USER);
-      koso.setTaskStatus(id2, "In Progress", USER);
+      koso.setTaskStatus(Node.parse("2"), "In Progress", OTHER_USER);
 
       expect(koso.toJSON()).toMatchObject({
         root: {
           status: null,
-          children: [id2.name, id1.name],
+          children: ["2", "1"],
           assignee: null,
         },
-        [id1.name]: { status: null, children: [], assignee: null },
-        [id2.name]: {
+        ["1"]: { status: null, children: [], assignee: null },
+        ["2"]: {
           status: "In Progress",
           children: [],
           assignee: OTHER_USER.email,
@@ -652,96 +948,6 @@ describe("Koso tests", () => {
       const children = koso.toJSON().root.children;
 
       expect(children).toEqual(["t1", "t5", "t2", "t3", "t4"]);
-    });
-  });
-
-  describe("getProgress", () => {
-    const initDate = new Date();
-
-    beforeEach(() => {
-      MockDate.set(initDate);
-    });
-
-    afterEach(() => {
-      MockDate.reset();
-    });
-
-    it("leaf node that is not started has 0 of 1 progress", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-
-      expect(koso.getProgress(id1.name)).toEqual({
-        inProgress: 0,
-        done: 0,
-        total: 1,
-        lastStatusTime: null,
-      });
-    });
-
-    it("leaf node that is in progress has 0 done and 1 inProgress of 1 progress", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      koso.setTaskStatus(id1, "In Progress", USER);
-
-      expect(koso.getProgress(id1.name)).toEqual({
-        inProgress: 1,
-        done: 0,
-        total: 1,
-        lastStatusTime: initDate.valueOf(),
-      });
-    });
-
-    it("leaf node that is done has 1 of 1 progress", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      koso.setTaskStatus(id1, "Done", USER);
-
-      expect(koso.getProgress(id1.name)).toEqual({
-        inProgress: 0,
-        done: 1,
-        total: 1,
-        lastStatusTime: initDate.valueOf(),
-      });
-    });
-
-    it("parent node with 2 not started children has 0 of 2 progress", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      koso.insertNode(id1, 0, USER, "Task 2");
-      koso.insertNode(id1, 0, USER, "Task 3");
-
-      expect(koso.getProgress(id1.name)).toEqual({
-        inProgress: 0,
-        done: 0,
-        total: 2,
-        lastStatusTime: null,
-      });
-    });
-
-    it("parent node with 2 in progress children has 0 of 2 progress", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      const id3 = koso.insertNode(id1, 0, USER, "Task 3");
-      koso.setTaskStatus(id2, "In Progress", USER);
-      koso.setTaskStatus(id3, "In Progress", USER);
-
-      expect(koso.getProgress(id1.name)).toEqual({
-        inProgress: 2,
-        done: 0,
-        total: 2,
-        lastStatusTime: initDate.valueOf(),
-      });
-    });
-
-    it("parent node with 1 done and 1 in progress children has 1 of 2 progress", () => {
-      const id1 = koso.insertNode(root, 0, USER, "Task 1");
-      const id2 = koso.insertNode(id1, 0, USER, "Task 2");
-      const id3 = koso.insertNode(id1, 0, USER, "Task 3");
-      koso.setTaskStatus(id2, "Done", USER);
-      koso.setTaskStatus(id3, "In Progress", USER);
-
-      expect(koso.getProgress(id1.name)).toEqual({
-        inProgress: 1,
-        done: 1,
-        total: 2,
-        lastStatusTime: initDate.valueOf(),
-      });
     });
   });
 });

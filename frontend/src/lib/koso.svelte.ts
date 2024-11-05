@@ -368,36 +368,48 @@ export class Koso {
 
   // composable functions that primarily operate on Tasks
 
+  /** Converts the graph to JSON. */
   toJSON(): { [id: string]: Task } {
     return this.graph.toJSON();
   }
 
+  /** Retrieves a task by task ID. */
   getTask(taskId: string): YTaskProxy {
     return this.graph.get(taskId);
   }
 
+  /** Retrieves all tasks in the graph. */
   getTasks(): YTaskProxy[] {
     return Array.from(this.graph.values());
   }
 
+  /** Retrieves the parent task IDs of the given task ID. */
   getParents(taskId: string): string[] {
     const parents = this.#parents.get(taskId);
     if (!parents) throw new Error(`No parents entry found for ${taskId}`);
     return parents;
   }
 
+  /** Retrieves the children of a given task ID. */
   getChildren(taskId: string): YChildrenProxy {
     return this.getTask(taskId).children;
   }
 
+  /** Retrieves the number of child tasks for a given task ID. */
   getChildCount(taskId: string): number {
     return this.getChildren(taskId).length;
   }
 
+  /** Checks if a given task is the parent of the given child. */
   hasChild(parent: string, child: string): boolean {
     return this.getChildren(parent).includes(child);
   }
 
+  /**
+   * Determines the status of a task. If the task has no children, the status is
+   * derived directly from the task's status field. If the task has children,
+   * the status is derived from the progress of its children.
+   */
   getStatus(taskId: string): Status {
     const progress = this.getProgress(taskId);
     if (progress.done === progress.total) {
@@ -409,6 +421,21 @@ export class Koso {
     }
   }
 
+  /**
+   * Calculates the progress of a task. If the task has no children, the
+   * progress is derived from the task's status field. If the task has children,
+   * the progress is derived from the progress of its children.
+   *
+   * @param taskId - The unique identifier of the task.
+   * @returns An object representing the progress of the task, including:
+   *
+   *   - `inProgress`: The number of tasks that are in progress.
+   *   - `done`: The number of tasks that are done.
+   *   - `total`: The total number of tasks.
+   *   - `lastStatusTime`: The most recent status time of its children.
+   *
+   * @throws Will throw an error if the task status is invalid.
+   */
   getProgress(taskId: string): Progress {
     const task = this.getTask(taskId);
     if (task.children.length === 0) {
@@ -464,10 +491,17 @@ export class Koso {
     return result;
   }
 
+  /** Inserts or updates a task in the graph. */
   upsert(task: Task) {
     this.graph.set(task);
   }
 
+  /**
+   * Upserts the root task into the document. This method ensures that the root
+   * task with a predefined structure is present in the document. After the root
+   * task is upserted, the undo manager is cleared to prevent undoing the
+   * creation of the root task.
+   */
   upsertRoot() {
     this.doc.transact(() => {
       this.upsert({
@@ -481,7 +515,6 @@ export class Koso {
         statusTime: null,
       });
     });
-    // Prevent undoing creation of the root task.
     this.undoManager.clear();
   }
 
@@ -497,10 +530,16 @@ export class Koso {
     return false;
   }
 
+  /** Determines if a task can be linked to a parent task. */
   canLink(task: string, parent: string): boolean {
     return !this.#hasCycle(parent, task) && !this.hasChild(parent, task);
   }
 
+  /**
+   * Links a task to a parent task at the specified offset.
+   *
+   * @throws If the task cannot be linked to the parent.
+   */
   link(task: string, parent: string, offset: number) {
     if (this.#hasCycle(parent, task)) {
       throw new Error(`Inserting ${task} under ${parent} introduces a cycle`);
