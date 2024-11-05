@@ -391,6 +391,72 @@ export class Koso {
     return this.getChildren(parent).includes(child);
   }
 
+  getStatus(taskId: string): Status {
+    const progress = this.getProgress(taskId);
+    if (progress.done === progress.total) {
+      return "Done";
+    } else if (progress.inProgress > 0 || progress.done > 0) {
+      return "In Progress";
+    } else {
+      return "Not Started";
+    }
+  }
+
+  getProgress(taskId: string): Progress {
+    const task = this.getTask(taskId);
+    if (task.children.length === 0) {
+      switch (task.status || "Not Started") {
+        case "Done":
+          return {
+            inProgress: 0,
+            done: 1,
+            total: 1,
+            lastStatusTime: task.statusTime,
+          };
+        case "In Progress":
+          return {
+            inProgress: 1,
+            done: 0,
+            total: 1,
+            lastStatusTime: task.statusTime,
+          };
+        case "Not Started":
+          return {
+            inProgress: 0,
+            done: 0,
+            total: 1,
+            lastStatusTime: task.statusTime,
+          };
+        default:
+          throw new Error(
+            `Invalid status ${task.status} for task ${task.name}`,
+          );
+      }
+    }
+    const result: Progress = {
+      inProgress: 0,
+      done: 0,
+      total: 0,
+      lastStatusTime: null,
+    };
+    task.children.forEach((taskId) => {
+      // If performance is ever an issue for large, nested graphs,
+      // we can memoize the recursive call and trade memory for time.
+      const childProgress = this.getProgress(taskId);
+      result.inProgress += childProgress.inProgress;
+      result.done += childProgress.done;
+      result.total += childProgress.total;
+      if (
+        childProgress.lastStatusTime &&
+        (!result.lastStatusTime ||
+          childProgress.lastStatusTime > result.lastStatusTime)
+      ) {
+        result.lastStatusTime = childProgress.lastStatusTime;
+      }
+    });
+    return result;
+  }
+
   upsert(task: Task) {
     this.graph.set(task);
   }
@@ -479,7 +545,7 @@ export class Koso {
     }
 
     // Find the nearest prior peer that isn't filtered out.
-    for (const peer of peers.slice(0, prevPeerOffset + 1).reverse()) {
+    for (const peer of peers.slice({ start: prevPeerOffset, step: -1 })) {
       const peerNode = parent.child(peer);
       // TODO: This call to includes, and the one in getNextPeer, could be optimized
       // to avoid iterating over the entire nodes list repeatedly.
@@ -501,7 +567,7 @@ export class Koso {
     }
 
     // Find the nearest next peer that isn't filtered out.
-    for (const peer of peers.slice(nextPeerOffset)) {
+    for (const peer of peers.slice({ start: nextPeerOffset })) {
       const peerNode = parent.child(peer);
       if (this.nodes.includes(peerNode)) {
         return peerNode;
@@ -809,25 +875,47 @@ export class Koso {
     }
   }
 
-  moveNodeStart(node: Node) {
-    const offset = this.getOffset(node);
+  moveNodeUpBoundary(node: Node) {
+    const taskIds = this.getChildren(node.parent.name);
+    const offset = taskIds.indexOf(node.name);
+
     if (offset === 0) {
-      const task = this.getTask(node.name);
-      toast.warning(`Task ${task.num} is already at the top`);
+      toast.warning(`This task is already at the top`);
       return;
+    }
+
+    const prev = this.getStatus(taskIds.get(offset - 1));
+    for (const [index, taskId] of taskIds.entries({
+      start: offset - 1,
+      step: -1,
+    })) {
+      const curr = this.getStatus(taskId);
+      if (curr !== prev) {
+        this.reorderNode(node, index + 1);
+        return;
+      }
     }
     this.reorderNode(node, 0);
   }
 
-  moveNodeEnd(node: Node) {
-    const offset = this.getOffset(node);
-    const length = this.getChildCount(node.parent.name);
-    if (offset === length - 1) {
-      const task = this.getTask(node.name);
-      toast.warning(`Task ${task.num} is already at the bottom`);
+  moveNodeDownBoundary(node: Node) {
+    const taskIds = this.getChildren(node.parent.name);
+    const offset = taskIds.indexOf(node.name);
+
+    if (offset === taskIds.length - 1) {
+      toast.warning(`This task is already at the bottom`);
       return;
     }
-    this.reorderNode(node, length);
+
+    const prev = this.getStatus(taskIds.get(offset + 1));
+    for (const [index, taskId] of taskIds.entries({ start: offset + 1 })) {
+      const curr = this.getStatus(taskId);
+      if (curr !== prev) {
+        this.reorderNode(node, index);
+        return;
+      }
+    }
+    this.reorderNode(node, taskIds.length);
   }
 
   canIndentNode(node: Node): boolean {
@@ -970,67 +1058,6 @@ export class Koso {
         }
       }
     });
-  }
-
-  getProgress(taskId: string): Progress {
-    const task = this.getTask(taskId);
-    if (task.children.length === 0) {
-      switch (task.status) {
-        case "Done":
-          return {
-            inProgress: 0,
-            done: 1,
-            total: 1,
-            lastStatusTime: task.statusTime,
-          };
-        case "In Progress":
-          return {
-            inProgress: 1,
-            done: 0,
-            total: 1,
-            lastStatusTime: task.statusTime,
-          };
-        case "Not Started":
-        case null:
-        case undefined:
-          return {
-            inProgress: 0,
-            done: 0,
-            total: 1,
-            lastStatusTime: task.statusTime,
-          };
-        default:
-          console.log(`Invalid status ${task.status} for task ${task.name}`);
-          return {
-            inProgress: 0,
-            done: 0,
-            total: 1,
-            lastStatusTime: task.statusTime,
-          };
-      }
-    }
-    const result: Progress = {
-      lastStatusTime: null,
-      inProgress: 0,
-      done: 0,
-      total: 0,
-    };
-    task.children.forEach((taskId) => {
-      // If performance is ever an issue for large, nested graphs,
-      // we can memoize the recursive call and trade memory for time.
-      const childProgress = this.getProgress(taskId);
-      result.inProgress += childProgress.inProgress;
-      result.done += childProgress.done;
-      result.total += childProgress.total;
-      if (
-        childProgress.lastStatusTime &&
-        (!result.lastStatusTime ||
-          childProgress.lastStatusTime > result.lastStatusTime)
-      ) {
-        result.lastStatusTime = childProgress.lastStatusTime;
-      }
-    });
-    return result;
   }
 
   isVisible(node: Node, showDone: boolean) {
