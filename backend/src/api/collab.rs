@@ -20,8 +20,8 @@ use crate::api::{
     self,
     collab::{
         client::{from_socket, CLOSE_UNAUTHORIZED},
-        client_message_handler::YrsMessage,
-        doc_observer::YrsUpdate,
+        client_message_handler::ClientMessage,
+        doc_observer::DocUpdate,
         doc_update_processor::DocUpdateProcessor,
         projects_state::ProjectsState,
         yrs_message_processor::YrsMessageProcessor,
@@ -55,8 +55,8 @@ struct Inner {
 
 impl Collab {
     pub(crate) fn new(pool: &'static PgPool) -> Collab {
-        let (process_msg_tx, process_msg_rx) = mpsc::channel::<YrsMessage>(1);
-        let (doc_update_tx, doc_update_rx) = mpsc::channel::<YrsUpdate>(50);
+        let (process_msg_tx, process_msg_rx) = mpsc::channel::<ClientMessage>(1);
+        let (doc_update_tx, doc_update_rx) = mpsc::channel::<DocUpdate>(50);
         let tracker = tokio_util::task::TaskTracker::new();
         let collab = Collab {
             inner: Arc::new(Inner {

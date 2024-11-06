@@ -6,12 +6,12 @@ use tokio_util::task::TaskTracker;
 // Handles updates applied to a project doc and forward them to the doc_update_tx
 // for handling by the `DocUpdateProcessor`.
 pub(super) struct DocObserver {
-    doc_update_tx: Sender<YrsUpdate>,
+    doc_update_tx: Sender<DocUpdate>,
     tracker: TaskTracker,
 }
 
 impl DocObserver {
-    pub(super) fn new(doc_update_tx: Sender<YrsUpdate>, tracker: TaskTracker) -> Self {
+    pub(super) fn new(doc_update_tx: Sender<DocUpdate>, tracker: TaskTracker) -> Self {
         DocObserver {
             doc_update_tx,
             tracker,
@@ -34,7 +34,7 @@ impl DocObserver {
                 return;
             }
         };
-        let update = YrsUpdate {
+        let update = DocUpdate {
             who: origin.who,
             project,
             id: origin.id,
@@ -50,16 +50,21 @@ impl DocObserver {
     }
 }
 
-pub(super) struct YrsUpdate {
+/// An update that has been successfully applied to the doc.
+pub(super) struct DocUpdate {
     pub(super) who: String,
     pub(super) project: Arc<ProjectState>,
+    /// Unique ID associated with this update.
+    /// Piped through from the triggering YrsMessage::id.
     pub(super) id: String,
+    /// A yrs Update in the v2 encoding.
+    /// Can be decoded via Update::decode_v2.
     pub(super) data: Vec<u8>,
 }
 
-impl fmt::Debug for YrsUpdate {
+impl fmt::Debug for DocUpdate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("YrsUpdate")
+        f.debug_struct("DocUpdate")
             .field("project_id", &self.project.project_id)
             .field("who", &self.who)
             .field("id", &self.id)

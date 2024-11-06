@@ -1,4 +1,4 @@
-use crate::api::collab::{doc_observer::YrsUpdate, msg_sync::sync_update, storage};
+use crate::api::collab::{doc_observer::DocUpdate, msg_sync::sync_update, storage};
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use tokio::sync::mpsc::Receiver;
@@ -8,11 +8,11 @@ use tokio::sync::mpsc::Receiver;
 /// to other clients connected for the given project.
 pub(super) struct DocUpdateProcessor {
     pool: &'static PgPool,
-    doc_update_rx: Receiver<YrsUpdate>,
+    doc_update_rx: Receiver<DocUpdate>,
 }
 
 impl DocUpdateProcessor {
-    pub(super) fn new(pool: &'static PgPool, doc_update_rx: Receiver<YrsUpdate>) -> Self {
+    pub(super) fn new(pool: &'static PgPool, doc_update_rx: Receiver<DocUpdate>) -> Self {
         DocUpdateProcessor {
             pool,
             doc_update_rx,
@@ -33,7 +33,7 @@ impl DocUpdateProcessor {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn process_doc_update(&self, update: YrsUpdate) -> Result<()> {
+    async fn process_doc_update(&self, update: DocUpdate) -> Result<()> {
         if let Err(e) =
             storage::persist_update(&update.project.project_id, &update.data, self.pool).await
         {

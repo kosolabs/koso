@@ -4,8 +4,8 @@ use crate::{
             client::{
                 ClientClosure, ClientReceiver, ClientSender, CLOSE_ERROR, CLOSE_RESTART, OVERLOADED,
             },
-            client_message_handler::{ClientMessageHandler, YrsMessage},
-            doc_observer::{DocObserver, YrsUpdate},
+            client_message_handler::{ClientMessage, ClientMessageHandler},
+            doc_observer::{DocObserver, DocUpdate},
             msg_sync::sync_request,
             storage,
             txn_origin::YOrigin,
@@ -29,16 +29,16 @@ use yrs::{Doc, ReadTxn as _, StateVector, Transact as _, Update};
 
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
-    process_msg_tx: Sender<YrsMessage>,
-    doc_update_tx: Sender<YrsUpdate>,
+    process_msg_tx: Sender<ClientMessage>,
+    doc_update_tx: Sender<DocUpdate>,
     pool: &'static PgPool,
     tracker: tokio_util::task::TaskTracker,
 }
 
 impl ProjectsState {
     pub(super) fn new(
-        process_msg_tx: Sender<YrsMessage>,
-        doc_update_tx: Sender<YrsUpdate>,
+        process_msg_tx: Sender<ClientMessage>,
+        doc_update_tx: Sender<DocUpdate>,
         pool: &'static PgPool,
         tracker: tokio_util::task::TaskTracker,
     ) -> Self {
@@ -161,7 +161,7 @@ pub(super) struct ProjectState {
     clients: Mutex<HashMap<String, ClientSender>>,
     doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
-    doc_update_tx: Sender<YrsUpdate>,
+    doc_update_tx: Sender<DocUpdate>,
     pool: &'static PgPool,
     tracker: tokio_util::task::TaskTracker,
 }
