@@ -16,14 +16,14 @@ use uuid::Uuid;
 /// we'll recieve a Close message and remove the client.
 pub(super) struct ClientMessageHandler {
     project: Arc<ProjectState>,
-    process_msg_tx: Sender<YrsMessage>,
+    process_msg_tx: Sender<ClientMessage>,
     receiver: ClientReceiver,
 }
 
 impl ClientMessageHandler {
     pub(super) fn new(
         project: Arc<ProjectState>,
-        process_msg_tx: Sender<YrsMessage>,
+        process_msg_tx: Sender<ClientMessage>,
         receiver: ClientReceiver,
     ) -> Self {
         ClientMessageHandler {
@@ -74,7 +74,7 @@ impl ClientMessageHandler {
             Ok(Message::Binary(data)) => {
                 if let Err(e) = self
                     .process_msg_tx
-                    .send(YrsMessage {
+                    .send(ClientMessage {
                         who: self.receiver.who.clone(),
                         project: Arc::clone(&self.project),
                         id: Uuid::new_v4().to_string(),
@@ -120,14 +120,16 @@ impl ClientMessageHandler {
     }
 }
 
-pub(super) struct YrsMessage {
+pub(super) struct ClientMessage {
     pub(super) who: String,
     pub(super) project: Arc<ProjectState>,
+    /// Unique ID associated with this update.
     pub(super) id: String,
+    /// Binary contents of the client message.
     pub(super) data: Vec<u8>,
 }
 
-impl fmt::Debug for YrsMessage {
+impl fmt::Debug for ClientMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("YrsMessage")
             .field("project_id", &self.project.project_id)

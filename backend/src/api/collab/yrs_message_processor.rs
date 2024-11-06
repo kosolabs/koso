@@ -1,5 +1,5 @@
 use crate::api::collab::{
-    client_message_handler::YrsMessage,
+    client_message_handler::ClientMessage,
     msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
     txn_origin::YOrigin,
 };
@@ -14,11 +14,11 @@ use yrs::{
 /// YrsMessageProcessor processes messages sent by ClientMessageHandlers.
 /// See the `api::collab::Collab` documentation for details on the protocol.
 pub(super) struct YrsMessageProcessor {
-    process_msg_rx: Receiver<YrsMessage>,
+    process_msg_rx: Receiver<ClientMessage>,
 }
 
 impl YrsMessageProcessor {
-    pub(super) fn new(process_msg_rx: Receiver<YrsMessage>) -> Self {
+    pub(super) fn new(process_msg_rx: Receiver<ClientMessage>) -> Self {
         YrsMessageProcessor { process_msg_rx }
     }
 
@@ -36,7 +36,7 @@ impl YrsMessageProcessor {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn process_message(&self, msg: YrsMessage) -> Result<()> {
+    async fn process_message(&self, msg: ClientMessage) -> Result<()> {
         let mut decoder = DecoderV1::from(msg.data.as_slice());
         match decoder.read_var()? {
             MSG_SYNC => {
