@@ -4,8 +4,8 @@ use crate::{
             client::{
                 ClientClosure, ClientReceiver, ClientSender, CLOSE_ERROR, CLOSE_RESTART, OVERLOADED,
             },
-            client_message_handler::{ClientMessage, ClientMessageHandler},
-            doc_observer::{DocObserver, DocUpdate},
+            client_messages::{ClientMessage, ClientMessageReceiver},
+            doc_updates::{DocObserver, DocUpdate},
             msg_sync::sync_request,
             storage,
             txn_origin::YOrigin,
@@ -102,7 +102,7 @@ impl ProjectsState {
 
         // Listen for messages on the read side of the socket.
         let handler =
-            ClientMessageHandler::new(Arc::clone(&project), self.process_msg_tx.clone(), receiver);
+            ClientMessageReceiver::new(Arc::clone(&project), self.process_msg_tx.clone(), receiver);
         self.tracker.spawn(handler.receive_messages_from_client());
 
         Ok(())

@@ -7,24 +7,22 @@
 //!
 
 pub(crate) mod client;
-pub(crate) mod client_message_handler;
-pub(crate) mod doc_observer;
-pub(crate) mod doc_update_processor;
+pub(crate) mod client_messages;
+pub(crate) mod doc_updates;
 pub(crate) mod msg_sync;
 pub(crate) mod projects_state;
 pub(crate) mod storage;
 pub(crate) mod txn_origin;
-pub(crate) mod yrs_message_processor;
 
 use crate::api::{
     self,
     collab::{
         client::{from_socket, CLOSE_UNAUTHORIZED},
-        client_message_handler::ClientMessage,
-        doc_observer::DocUpdate,
-        doc_update_processor::DocUpdateProcessor,
+        client_messages::ClientMessage,
+        client_messages::ClientMessageProcessor,
+        doc_updates::DocUpdate,
+        doc_updates::DocUpdateProcessor,
         projects_state::ProjectsState,
-        yrs_message_processor::YrsMessageProcessor,
     },
     google::User,
     model::ProjectId,
@@ -66,17 +64,15 @@ impl Collab {
             }),
         };
 
-        let doc_update_processor = DocUpdateProcessor::new(pool, doc_update_rx);
         collab
             .inner
             .tracker
-            .spawn(doc_update_processor.process_doc_updates());
+            .spawn(DocUpdateProcessor::new(pool, doc_update_rx).process_doc_updates());
 
-        let yrs_message_processor = YrsMessageProcessor::new(process_msg_rx);
         collab
             .inner
             .tracker
-            .spawn(yrs_message_processor.process_messages());
+            .spawn(ClientMessageProcessor::new(process_msg_rx).process_messages());
 
         collab
     }
