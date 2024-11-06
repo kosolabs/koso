@@ -322,7 +322,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         assert_eq!(read_sync_request(socket).await, StateVector::default());
         close_socket(socket).await;
 
-        // Abruptly close the socket, this'll trigger the error handling in client_message_handler
+        // Abruptly close the socket, this'll trigger the error handling in ClientMessageReceiver
         let (_socket, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
         assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
     }

@@ -1,5 +1,9 @@
+use crate::api::collab::{msg_sync::sync_update, storage};
 use crate::api::collab::{projects_state::ProjectState, txn_origin::from_origin};
+use anyhow::{anyhow, Result};
+use sqlx::PgPool;
 use std::{fmt, sync::Arc};
+use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
 
@@ -47,6 +51,51 @@ impl DocObserver {
                 tracing::error!("Failed to send to doc_update channel: {e}");
             }
         });
+    }
+}
+
+/// DocUpdateProcessor receives doc updates from a channel
+/// and 1) persists them to the DB, and 2) broadcasts them
+/// to other clients connected for the given project.
+pub(super) struct DocUpdateProcessor {
+    pool: &'static PgPool,
+    doc_update_rx: Receiver<DocUpdate>,
+}
+
+impl DocUpdateProcessor {
+    pub(super) fn new(pool: &'static PgPool, doc_update_rx: Receiver<DocUpdate>) -> Self {
+        DocUpdateProcessor {
+            pool,
+            doc_update_rx,
+        }
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub(super) async fn process_doc_updates(mut self) {
+        loop {
+            let Some(update) = self.doc_update_rx.recv().await else {
+                break;
+            };
+            if let Err(e) = self.process_doc_update(update).await {
+                tracing::warn!("Failed to process doc update: {e}");
+            }
+        }
+        tracing::info!("Stopped processing doc updates");
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn process_doc_update(&self, update: DocUpdate) -> Result<()> {
+        if let Err(e) =
+            storage::persist_update(&update.project.project_id, &update.data, self.pool).await
+        {
+            return Err(anyhow!("Failed to persist update: {e}"));
+        }
+        update
+            .project
+            .broadcast_msg(&update.who, sync_update(&update.data))
+            .await;
+
+        Ok(())
     }
 }
 
