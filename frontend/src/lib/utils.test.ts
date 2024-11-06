@@ -46,6 +46,10 @@ describe("utils tests", () => {
     it("multiple prefixes of multiple words in an email matches", () => {
       expect(match("my.email@gmail.com", "gmail email my")).toBeTruthy();
     });
+
+    it("prefix of title following task tag matches", () => {
+      expect(match("Reliability:Break everything", "Break")).toBeTruthy();
+    });
   });
 
   describe("findEntryIndex", () => {
