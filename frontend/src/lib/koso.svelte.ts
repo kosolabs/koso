@@ -70,7 +70,7 @@ export type Progress = {
   inProgress: number;
   done: number;
   total: number;
-  lastStatusTime: number | null;
+  lastStatusTime: number;
 };
 
 export type SyncState = {
@@ -445,21 +445,21 @@ export class Koso {
             inProgress: 0,
             done: 1,
             total: 1,
-            lastStatusTime: task.statusTime,
+            lastStatusTime: task.statusTime ?? 0,
           };
         case "In Progress":
           return {
             inProgress: 1,
             done: 0,
             total: 1,
-            lastStatusTime: task.statusTime,
+            lastStatusTime: task.statusTime ?? 0,
           };
         case "Not Started":
           return {
             inProgress: 0,
             done: 0,
             total: 1,
-            lastStatusTime: task.statusTime,
+            lastStatusTime: task.statusTime ?? 0,
           };
         default:
           throw new Error(
@@ -471,7 +471,7 @@ export class Koso {
       inProgress: 0,
       done: 0,
       total: 0,
-      lastStatusTime: null,
+      lastStatusTime: 0,
     };
     task.children.forEach((taskId) => {
       // If performance is ever an issue for large, nested graphs,
@@ -480,20 +480,17 @@ export class Koso {
       result.inProgress += childProgress.inProgress;
       result.done += childProgress.done;
       result.total += childProgress.total;
-      if (
-        childProgress.lastStatusTime &&
-        (!result.lastStatusTime ||
-          childProgress.lastStatusTime > result.lastStatusTime)
-      ) {
-        result.lastStatusTime = childProgress.lastStatusTime;
-      }
+      result.lastStatusTime = Math.max(
+        result.lastStatusTime,
+        childProgress.lastStatusTime,
+      );
     });
     return result;
   }
 
   /** Inserts or updates a task in the graph. */
-  upsert(task: Task) {
-    this.graph.set(task);
+  upsert(task: Task): YTaskProxy {
+    return this.graph.set(task);
   }
 
   /**
@@ -530,17 +527,34 @@ export class Koso {
     return false;
   }
 
+  getBestLinkOffset(taskId: string, parent: string): number {
+    if (this.getStatus(taskId) === "In Progress") {
+      return findEntryIndex(
+        this.getChildren(parent).entries(),
+        (peerId) => this.getStatus(peerId) !== "In Progress",
+        0,
+      );
+    }
+    return (
+      findEntryIndex(
+        this.getChildren(parent).entries({ step: -1 }),
+        (peerId) => this.getStatus(peerId) !== "Done",
+        this.getChildCount(parent) - 1,
+      ) + 1
+    );
+  }
+
   /** Determines if a task can be linked to a parent task. */
   canLink(task: string, parent: string): boolean {
     return !this.#hasCycle(parent, task) && !this.hasChild(parent, task);
   }
 
   /**
-   * Links a task to a parent task at the specified offset.
-   *
-   * @throws If the task cannot be linked to the parent.
+   * Links a task to a parent task. If the task introduces a cycle or is already
+   * a child of the parent, an error is thrown. If an offset is not provided,
+   * the best offset is determined based on the task's status.
    */
-  link(task: string, parent: string, offset: number) {
+  link(task: string, parent: string, offset?: number) {
     if (this.#hasCycle(parent, task)) {
       throw new Error(`Inserting ${task} under ${parent} introduces a cycle`);
     }
@@ -549,6 +563,7 @@ export class Koso {
       throw new Error(`Parent task ${parent} already contains ${task}`);
     }
 
+    offset = offset ?? this.getBestLinkOffset(task, parent);
     this.getChildren(parent).insert(offset, [task]);
   }
 
@@ -1132,10 +1147,7 @@ export class Koso {
     if (!showDone) {
       const progress = this.getProgress(node.name);
       if (progress.total === progress.done) {
-        // Tasks marked done prior to the addition of statusTime
-        // won't have a statusTime set. Assume they were all marked done
-        // a long time ago.
-        const doneTime = progress.lastStatusTime ? progress.lastStatusTime : 0;
+        const doneTime = progress.lastStatusTime;
         const threeDays = 3 * 24 * 60 * 60 * 1000;
         return Date.now() - doneTime < threeDays;
       }
