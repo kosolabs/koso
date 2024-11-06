@@ -2,7 +2,10 @@ use std::{mem, net::SocketAddr, time::Duration};
 
 use crate::{
     api::{
-        collab::msg_sync::{self, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
+        collab::{
+            msg_sync::{self, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
+            projects_state::ProjectVersion,
+        },
         google::test_utils::{encode_token, testonly_key_set, Claims, KID_1, PEM_1},
         model::{CreateProject, Project, ProjectExport, Task},
         yproxy::YDocProxy,
@@ -459,6 +462,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let socket_1 = &mut socket_1;
     assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
     let ydoc_1 = YDocProxy::new();
+    const VERSION: ProjectVersion = 1;
 
     let (mut socket_2, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
     let socket_2 = &mut socket_2;
@@ -500,6 +504,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     socket_1
         .send(Message::Binary(msg_sync::sync_request(
             &ydoc_1.transact().state_vector(),
+            0,
         )))
         .await
         .unwrap();
@@ -509,6 +514,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     socket_1
         .send(Message::Binary(msg_sync::sync_response(
             &Update::default().encode_v2(),
+            0,
         )))
         .await
         .unwrap();
@@ -521,6 +527,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
             &ydoc_2
                 .transact()
                 .encode_state_as_update_v2(&StateVector::default()),
+            VERSION,
         )))
         .await
         .unwrap();
@@ -546,6 +553,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     socket_3
         .send(Message::Binary(msg_sync::sync_request(
             &ydoc_3.transact().state_vector(),
+            VERSION,
         )))
         .await
         .unwrap();
@@ -560,10 +568,55 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     socket_3
         .send(Message::Binary(msg_sync::sync_request(
             &ydoc_3.transact().state_vector(),
+            VERSION,
         )))
         .await
         .unwrap();
     assert_eq!(read_sync_response(socket_3).await, Update::default());
+
+    // But with a different version number, we'll get back everything
+    // despite the SV sent.
+    socket_3
+        .send(Message::Binary(msg_sync::sync_request(
+            &ydoc_3.transact().state_vector(),
+            VERSION + 1,
+        )))
+        .await
+        .unwrap();
+    assert_eq!(
+        read_sync_response(socket_3).await,
+        Update::decode_v2(
+            &ydoc_3
+                .transact()
+                .encode_state_as_update_v2(&StateVector::default())
+        )
+        .unwrap()
+    );
+
+    // Send an update with a differing version number.
+    // It'll be rejected without being persisted or broadcast.
+    {
+        let ydoc = YDocProxy::new();
+        let mut txn = ydoc.transact_mut();
+        ydoc.set(
+            &mut txn,
+            &Task {
+                id: "id22".to_string(),
+                num: "22".to_string(),
+                name: "Task 22 rejected".to_string(),
+                children: vec![],
+                assignee: None,
+                reporter: None,
+                status: None,
+                status_time: None,
+            },
+        );
+        let update = txn.encode_update_v2();
+        socket_3
+            .send(Message::Binary(msg_sync::sync_update(&update, VERSION + 2)))
+            .await
+            .unwrap();
+    }
 
     // Export the project.
     {
@@ -614,7 +667,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         );
         let update = txn.encode_update_v2();
         socket_1
-            .send(Message::Binary(msg_sync::sync_update(&update)))
+            .send(Message::Binary(msg_sync::sync_update(&update, VERSION)))
             .await
             .unwrap();
     }

@@ -26,6 +26,7 @@ const EMPTY_SYNC_RESPONSE = (() => {
   encoding.writeVarUint(encoder, 0);
   encoding.writeVarUint(encoder, 1);
   encoding.writeVarUint8Array(encoder, Y.encodeStateAsUpdateV2(new Y.Doc()));
+  encoding.writeVarUint(encoder, 0);
   return encoding.toUint8Array(encoder);
 })();
 

@@ -29,6 +29,8 @@ use yrs::{ReadTxn as _, StateVector, Update};
 
 use super::YDocProxy;
 
+pub type ProjectVersion = u32;
+
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
     process_msg_tx: Sender<ClientMessage>,
@@ -59,7 +61,7 @@ impl ProjectsState {
         mut sender: ClientSender,
         receiver: ClientReceiver,
     ) -> Result<()> {
-        // Get of insert the project state.
+        // Get or insert the project state.
         let (project, sv) = match self.get_or_init(project_id).await {
             Ok(r) => r,
             Err(e) => {
@@ -86,7 +88,10 @@ impl ProjectsState {
 
         // Send the entire state vector to the client.
         tracing::debug!("Sending sync_request message to client");
-        if let Err(e) = project.send_msg(&receiver.who, sync_request(&sv)).await {
+        if let Err(e) = project
+            .send_msg(&receiver.who, sync_request(&sv, project.version))
+            .await
+        {
             project
                 .remove_and_close_client(
                     &receiver.who,
@@ -138,6 +143,7 @@ impl ProjectsState {
     fn new_project(&self, project_id: &String) -> Arc<ProjectState> {
         Arc::new(ProjectState {
             project_id: project_id.to_string(),
+            version: self.project_version(project_id),
             clients: Mutex::new(HashMap::new()),
             doc_box: Mutex::new(None),
             doc_update_tx: self.doc_update_tx.clone(),
@@ -145,6 +151,25 @@ impl ProjectsState {
             pool: self.pool,
             tracker: self.tracker.clone(),
         })
+    }
+
+    /// Returns the given projects current version number.
+    ///
+    /// Take care when modifying this. Increasing a project, or projects,
+    /// version number will cause all clients to discard their locally
+    /// persisted state. This may result in dataloss if a client has applied
+    /// offline changes.
+    ///
+    /// Must NOT return 0 which represents the default, unitialized
+    /// client state.
+    ///
+    /// Important - modifications here MUST not cause a lesser
+    /// version number to be returned for any given project.
+    /// That is - a caller of this function must observe that
+    /// the returned version number is monotonically increasing
+    /// for any given project.
+    fn project_version(&self, _project_id: &str) -> ProjectVersion {
+        1
     }
 
     pub(super) async fn close_all_project_clients(&self) {
@@ -160,6 +185,7 @@ impl ProjectsState {
 
 pub(crate) struct ProjectState {
     pub(crate) project_id: ProjectId,
+    pub(super) version: ProjectVersion,
     clients: Mutex<HashMap<String, ClientSender>>,
     pub(crate) doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
@@ -193,7 +219,10 @@ impl ProjectState {
         // Load the doc if it wasn't already loaded by another client.
         tracing::debug!("Initializing new YDoc");
         let (doc, update_count) = storage::load_doc(&project.project_id, project.pool).await?;
-        tracing::debug!("Initialized new YDoc with {update_count} updates");
+        tracing::debug!(
+            "Initialized new YDoc with {update_count} updates at version {}",
+            project.version
+        );
         project.updates.store(update_count, Relaxed);
 
         // Persist and broadcast update events by subscribing to the callback.

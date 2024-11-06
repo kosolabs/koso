@@ -1,9 +1,7 @@
 use crate::api::collab::{
     client::{ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL},
-    projects_state::ProjectState,
-};
-use crate::api::collab::{
     msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
+    projects_state::{ProjectState, ProjectVersion},
     txn_origin::YOrigin,
 };
 use anyhow::{anyhow, Result};
@@ -163,17 +161,27 @@ impl ClientMessageProcessor {
                 match decoder.read_var()? {
                     MSG_SYNC_REQUEST => {
                         tracing::debug!("Handling sync_request message");
-                        let update = msg
-                            .project
-                            .encode_state_as_update(&StateVector::decode_v1(decoder.read_buf()?)?)
-                            .await?;
+                        let sv = StateVector::decode_v1(decoder.read_buf()?)?;
+
+                        let client_version = read_project_version(&mut decoder)?.unwrap_or(0);
+                        let expected_version = msg.project.version;
+                        let update = if client_version != expected_version {
+                            if client_version != 0 {
+                                tracing::debug!("Message version {client_version} does not match project version {expected_version}, sending all state");
+                            }
+                            msg.project
+                                .encode_state_as_update(&StateVector::default())
+                                .await?
+                        } else {
+                            msg.project.encode_state_as_update(&sv).await?
+                        };
 
                         // Respond to the client with a sync_response message containing
                         // changes known to the server but not the client.
                         // There's no need to broadcast such updates to others or perist them.
                         tracing::debug!("Sending synce_response message to client.");
                         msg.project
-                            .send_msg(&msg.who, sync_response(&update))
+                            .send_msg(&msg.who, sync_response(&update, expected_version))
                             .await?;
 
                         Ok(())
@@ -181,6 +189,14 @@ impl ClientMessageProcessor {
                     MSG_SYNC_RESPONSE | MSG_SYNC_UPDATE => {
                         tracing::debug!("Handling sync_update|sync_response message");
                         let update = Update::decode_v2(decoder.read_buf()?)?;
+                        let client_version = read_project_version(&mut decoder)?.unwrap_or(0);
+                        let expected_version = msg.project.version;
+                        if client_version != 0 && client_version != expected_version {
+                            return Err(anyhow!(
+                                "Discarding update, client version {client_version} does not match project version {}",
+                                expected_version
+                            ));
+                        }
                         msg.project
                             .apply_doc_update(
                                 YOrigin {
@@ -201,6 +217,15 @@ impl ClientMessageProcessor {
     }
 }
 
+// TODO: After rollout remove the Option wrapper and make version mandatory.
+fn read_project_version(decoder: &mut DecoderV1) -> Result<Option<ProjectVersion>> {
+    match decoder.read_var() {
+        Ok(version) => Ok(Some(version)),
+        Err(yrs::encoding::read::Error::EndOfBuffer(_)) => Ok(None),
+        Err(e) => Err(anyhow!("Failed to read version: {e}")),
+    }
+}
+
 pub(super) struct ClientMessage {
     pub(super) who: String,
     pub(super) project: Arc<ProjectState>,
@@ -214,6 +239,7 @@ impl fmt::Debug for ClientMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("YrsMessage")
             .field("project_id", &self.project.project_id)
+            .field("project_version", &self.project.version)
             .field("who", &self.who)
             .field("id", &self.id)
             .field("data.len()", &self.data.len())

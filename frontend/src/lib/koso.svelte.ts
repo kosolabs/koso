@@ -125,6 +125,7 @@ export class Koso {
     indexedDbSync: false,
     serverSync: false,
   });
+  #currentProjectVersion: Storable<number>;
 
   // lifecycle functions
   // i.e., init functions and helpers, event handlers, and destructors
@@ -160,6 +161,7 @@ export class Koso {
           encoding.writeVarUint(encoder, MSG_SYNC);
           encoding.writeVarUint(encoder, MSG_SYNC_UPDATE);
           encoding.writeVarUint8Array(encoder, message);
+          encoding.writeVarUint(encoder, this.#currentProjectVersion.value);
           this.#clientMessageHandler(encoding.toUint8Array(encoder));
         }
       },
@@ -181,6 +183,10 @@ export class Koso {
 
     this.#showDone = useLocalStorage<boolean>(`show-done-${projectId}`, false);
 
+    this.#currentProjectVersion = useLocalStorage<number>(
+      `project-version-${projectId}`,
+      0,
+    );
     this.#yIndexedDb.whenSynced.then(() => {
       this.#syncState.indexedDbSync = true;
     });
@@ -196,26 +202,40 @@ export class Koso {
     if (messageType === MSG_SYNC) {
       const syncType = decoding.readVarUint(decoder);
 
+      const currentProjectVersion = this.#currentProjectVersion.value;
       if (syncType === MSG_SYNC_REQUEST) {
         const encoder = encoding.createEncoder();
         const encodedStateVector = decoding.readVarUint8Array(decoder);
+        const projectVersion = decoding.readVarUint(decoder);
+        if (projectVersion !== currentProjectVersion) {
+          // TODO
+        }
         encoding.writeVarUint(encoder, MSG_SYNC);
         encoding.writeVarUint(encoder, MSG_SYNC_RESPONSE);
         encoding.writeVarUint8Array(
           encoder,
-          Y.encodeStateAsUpdateV2(this.doc, encodedStateVector),
+          Y.encodeStateAsUpdateV2(this.#yDoc, encodedStateVector),
         );
+        encoding.writeVarUint(encoder, projectVersion);
         this.#clientMessageHandler(encoding.toUint8Array(encoder));
       } else if (syncType === MSG_SYNC_RESPONSE) {
         const message = decoding.readVarUint8Array(decoder);
-        Y.applyUpdateV2(this.doc, message);
-        if (this.graph.size === 0) {
+        const projectVersion = decoding.readVarUint(decoder);
+        if (projectVersion !== currentProjectVersion) {
+          // TODO: Wipe the stored doc and apply the provided response.
+        }
+        Y.applyUpdateV2(this.#yDoc, message);
+        if (this.#yGraph.size === 0) {
           this.upsertRoot();
         }
         this.#syncState.serverSync = true;
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
-        Y.applyUpdateV2(this.doc, message);
+        const projectVersion = decoding.readVarUint(decoder);
+        if (projectVersion !== currentProjectVersion) {
+          // TODO: Force a reload of the page which will resolve the discrepancy.
+        }
+        Y.applyUpdateV2(this.#yDoc, message);
       } else {
         throw new Error(`Unknown sync type: ${syncType}`);
       }
@@ -232,8 +252,9 @@ export class Koso {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_SYNC);
     encoding.writeVarUint(encoder, MSG_SYNC_REQUEST);
-    const sv = Y.encodeStateVector(this.doc);
+    const sv = Y.encodeStateVector(this.#yDoc);
     encoding.writeVarUint8Array(encoder, sv);
+    encoding.writeVarUint(encoder, this.#currentProjectVersion.value);
     this.#clientMessageHandler(encoding.toUint8Array(encoder));
   }
 
