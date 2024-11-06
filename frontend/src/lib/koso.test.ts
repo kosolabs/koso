@@ -70,6 +70,155 @@ describe("Koso tests", () => {
     koso.handleServerMessage(EMPTY_SYNC_RESPONSE);
   });
 
+  describe("link", () => {
+    it("links two nodes successfully", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
+
+      koso.link("2", "1", 0);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { id: "1", children: ["2"] },
+        ["2"]: { id: "2", children: [] },
+      });
+    });
+
+    it("linking a node to itself throws an error", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      expect(() => koso.link("1", "1", 0)).toThrow();
+    });
+
+    it("linking a node to its parent throws an error", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+
+      expect(() => koso.link("2", "1", 0)).toThrow();
+    });
+
+    it("linking a node to its child throws an error", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+
+      expect(() => koso.link("1", "2", 0)).toThrow();
+    });
+
+    it("linking a node to a non-existent node throws an error", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      expect(() => koso.link("1", "non-existent", 0)).toThrow();
+    });
+
+    it("linking a non-existent node to an existing node throws an error", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      expect(() => koso.link("non-existent", "1", 0)).toThrow();
+    });
+
+    it("links a task after another task successfully", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "3"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      koso.link("2", "root", 1);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "2", "3"] },
+        ["1"]: { id: "1", children: [] },
+        ["2"]: { id: "2", children: [] },
+        ["3"]: { id: "3", children: [] },
+      });
+    });
+
+    it("links a task as the last task successfully", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      koso.link("3", "root", 2);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "2", "3"] },
+      });
+    });
+
+    it("links a not started task at the top of the done stack", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+        { id: "1", name: "Task 1", status: "In Progress" },
+        { id: "2", name: "Task 2", status: "In Progress" },
+        { id: "3", name: "Task 3" },
+        { id: "4", name: "Task 4", status: "Done" },
+        { id: "l", name: "Link Task" },
+      ]);
+
+      koso.link("l", "root");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "2", "3", "l", "4"] },
+      });
+    });
+
+    it("links an in progress task at the bottom of the in progress stack", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+        { id: "1", name: "Task 1", status: "In Progress" },
+        { id: "2", name: "Task 2", status: "In Progress" },
+        { id: "3", name: "Task 3" },
+        { id: "4", name: "Task 4" },
+        { id: "l", name: "Link Task", status: "In Progress" },
+      ]);
+
+      koso.link("l", "root");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "2", "l", "3", "4"] },
+      });
+    });
+
+    it("links a done task at the top of the done stack", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+        { id: "1", name: "Task 1", status: "In Progress" },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3", status: "Done" },
+        { id: "4", name: "Task 4", status: "Done" },
+        { id: "l", name: "Link Task", status: "Done" },
+      ]);
+
+      koso.link("l", "root");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "2", "l", "3", "4"] },
+      });
+    });
+  });
+
   describe("insertNode", () => {
     it("creates a child of root", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");
@@ -529,11 +678,39 @@ describe("Koso tests", () => {
   describe("getProgress", () => {
     const now = Date.now();
 
-    it("parent node with all children done has 2 of 2 progress", () => {
+    it("task with no children and null status time has 0 of 1 progress", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: [] },
+      ]);
+
+      expect(koso.getProgress("1")).toEqual({
+        inProgress: 0,
+        done: 0,
+        total: 1,
+        lastStatusTime: 0,
+      });
+    });
+
+    it("task with no children and status time of now has 0 of 1 progress", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: [], statusTime: now },
+      ]);
+
+      expect(koso.getProgress("1")).toEqual({
+        inProgress: 0,
+        done: 0,
+        total: 1,
+        lastStatusTime: now,
+      });
+    });
+
+    it("parent task with all children done has 2 of 2 progress", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3"] },
-        { id: "2", status: "Done", statusTime: now },
+        { id: "2", status: "Done", statusTime: 0 },
         { id: "3", status: "Done", statusTime: now },
       ]);
 
@@ -545,7 +722,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("parent node with one child in progress and one done has 1 of 2 progress", () => {
+    it("parent task with one child in progress and one done has 1 of 2 progress", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3"] },
@@ -561,11 +738,11 @@ describe("Koso tests", () => {
       });
     });
 
-    it("parent node with all children not started has 0 of 2 progress", () => {
+    it("parent task with all children not started has 0 of 2 progress", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3"] },
-        { id: "2", status: "Not Started", statusTime: now },
+        { id: "2", status: "Not Started" },
         { id: "3", status: "Not Started", statusTime: now },
       ]);
 
@@ -577,11 +754,11 @@ describe("Koso tests", () => {
       });
     });
 
-    it("parent node with mixed children statuses has correct progress", () => {
+    it("parent task with mixed children statuses has correct progress", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3", "4"] },
-        { id: "2", status: "Not Started", statusTime: now },
+        { id: "2", status: "Not Started" },
         { id: "3", status: "In Progress", statusTime: now },
         { id: "4", status: "Done", statusTime: now },
       ]);
@@ -594,7 +771,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("parent node with nested children has correct progress", () => {
+    it("parent task with nested children has correct progress", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2"] },
@@ -610,7 +787,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("parent node with multiple levels of nested children has correct progress", () => {
+    it("parent task with multiple levels of nested children has correct progress", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2"] },
