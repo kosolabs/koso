@@ -6,6 +6,7 @@ export class KosoSocket {
   shutdown: boolean = false;
   socketPingInterval: ReturnType<typeof setTimeout> | null = null;
   reconnectBackoffMs: number | null = null;
+  lastReconnectTime: number | null = null;
   offlineTimeout: ReturnType<typeof setTimeout> | null = null;
   offlineHandler: (event: Event) => void;
   onlineHandler: (event: Event) => Promise<void>;
@@ -195,7 +196,6 @@ export class KosoSocket {
   }
 
   #setOnline() {
-    this.reconnectBackoffMs = null;
     if (this.offlineTimeout) {
       clearTimeout(this.offlineTimeout);
       this.offlineTimeout = null;
@@ -204,11 +204,20 @@ export class KosoSocket {
   }
 
   #backoffOnReconnect(min: number = 0): number {
+    const maxBackoffMs = 60 * 1000;
+    // Reset the backoff time if the last backoff attempt was long ago,
+    // removing any memory of long past strings of failures and allowing
+    // clients to rapidly reconnect when interrupted.
+    if (Date.now() - (this.lastReconnectTime || 0) > maxBackoffMs * 4) {
+      this.reconnectBackoffMs = null;
+    }
+
     let base = this.reconnectBackoffMs ? this.reconnectBackoffMs * 1.5 : 400;
     // Don't let backoff get too big (or too small).
-    base = Math.max(Math.min(60000, base), min);
+    base = Math.max(Math.min(maxBackoffMs, base), min);
     // Add some jitter
     this.reconnectBackoffMs = base + base * 0.3 * Math.random();
+    this.lastReconnectTime = Date.now();
     return this.reconnectBackoffMs;
   }
 }
