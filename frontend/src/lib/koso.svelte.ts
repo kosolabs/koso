@@ -80,6 +80,13 @@ export type SyncState = {
   serverSync: boolean;
 };
 
+// Sentinel version set by the client, never the server,
+// when a version bump was detected.
+// If this version is observed during initialization in Koso's constructor,
+// it indicates a wipe was performed previously and initialization should
+// set the version to zero and proceed as normal.
+// Otherwise, at runtime, it indicates a reload is pending and in the interim,
+// any received messages should be discarded.
 const RESET_VERSION = -1;
 
 export class Koso {
@@ -218,7 +225,7 @@ export class Koso {
         const encoder = encoding.createEncoder();
         const encodedStateVector = decoding.readVarUint8Array(decoder);
         const serverProjectVersion = decoding.readVarUint(decoder);
-        if (!this.maybeHandleProjectVersionBump(serverProjectVersion)) {
+        if (!this.maybeResetLocalProjectState(serverProjectVersion)) {
           return;
         }
         encoding.writeVarUint(encoder, MSG_SYNC);
@@ -232,7 +239,7 @@ export class Koso {
       } else if (syncType === MSG_SYNC_RESPONSE) {
         const message = decoding.readVarUint8Array(decoder);
         const serverProjectVersion = decoding.readVarUint(decoder);
-        if (!this.maybeHandleProjectVersionBump(serverProjectVersion)) {
+        if (!this.maybeResetLocalProjectState(serverProjectVersion)) {
           return;
         }
         Y.applyUpdateV2(this.doc, message);
@@ -243,7 +250,7 @@ export class Koso {
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
         const serverProjectVersion = decoding.readVarUint(decoder);
-        if (!this.maybeHandleProjectVersionBump(serverProjectVersion)) {
+        if (!this.maybeResetLocalProjectState(serverProjectVersion)) {
           return;
         }
         Y.applyUpdateV2(this.doc, message);
@@ -262,7 +269,7 @@ export class Koso {
   //
   // Returns true if the message should be processed or false if the
   // message should be discarded.
-  maybeHandleProjectVersionBump(serverProjectVersion: number): boolean {
+  maybeResetLocalProjectState(serverProjectVersion: number): boolean {
     const currentProjectVersion = this.#currentProjectVersion.value;
     if (serverProjectVersion === currentProjectVersion) {
       return true;
@@ -278,15 +285,8 @@ export class Koso {
     console.log(
       `Version mismatch, clearing local indexedDB. Current version ${currentProjectVersion}, server version ${serverProjectVersion}`,
     );
-    this.destroy();
-    this.#yDoc = new Y.Doc();
-    this.#yGraph = new YGraphProxy(this.#yDoc.getMap<YTask>("graph"));
     this.#currentProjectVersion.value = RESET_VERSION;
-
-    setTimeout(async () => {
-      await this.#yIndexedDb.clearData();
-      window.location.reload();
-    }, 0);
+    this.#yIndexedDb.clearData().then(() => window.location.reload());
 
     return false;
   }
