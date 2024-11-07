@@ -23,13 +23,14 @@
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
   import UnauthorizedModal from "./unauthorized-modal.svelte";
+  import { Action } from "$lib/shortcuts";
 
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
   window.koso = koso;
   window.Y = Y;
 
-  let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
+  let deflicker: Promise<void> = new Promise((r) => setTimeout(r, 50));
   let project: Promise<Project> = loadProject();
   let projectUsersPromise: Promise<User[]> = loadProjectUsers();
   let projectUsers: User[] = [];
@@ -117,6 +118,16 @@
     kosoSocket.closeAndShutdown(1000, "Closed in onDestroy.");
     koso.destroy();
   });
+
+  export const extraActions: Action[] = [
+    new Action({
+      callback: exportProjectToFile,
+      title: "Export Project",
+      description: "Export project to JSON",
+      icon: FileDown,
+      toolbar: false,
+    }),
+  ];
 </script>
 
 <Navbar>
@@ -172,5 +183,5 @@
     <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
   {/await}
 
-  <DagTable {koso} users={projectUsers} />
+  <DagTable {koso} users={projectUsers} {extraActions} />
 {/await}

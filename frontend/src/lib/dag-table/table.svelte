@@ -45,8 +45,9 @@
   type Props = {
     koso: Koso;
     users: User[];
+    extraActions: Action[];
   };
-  const { koso, users }: Props = $props();
+  const { koso, users, extraActions }: Props = $props();
 
   const rows: { [key: string]: RowType } = {};
 
@@ -457,6 +458,7 @@
       enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "/", meta: true }),
     }),
+    ...extraActions,
   ];
 
   const shortcutRegistry = new ShortcutRegistry(actions);
