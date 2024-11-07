@@ -86,6 +86,11 @@
       .filter((parent) => parent.name.length > 0)
       .map((parent) => {
         const props = parseChipProps(parent.name);
+        props.onDelete = (event) => {
+          console.log(event);
+          event.stopPropagation();
+          koso.unlink(node.name, parent.id);
+        };
         props.onClick = (event) => {
           event.stopPropagation();
           let targetNode = koso.nodes

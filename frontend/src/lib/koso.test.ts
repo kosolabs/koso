@@ -219,6 +219,78 @@ describe("Koso tests", () => {
     });
   });
 
+  describe("unlink", () => {
+    it("unlinks a task successfully", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+
+      koso.unlink("2", "1");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { id: "1", children: [] },
+        ["2"]: { id: "2", children: [] },
+      });
+    });
+
+    it("unlinking a non-existent task throws an error", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      expect(() => koso.unlink("non-existent", "1")).toThrow();
+    });
+
+    it("unlinking a task with multiple parents succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["3"] },
+        { id: "2", name: "Task 2", children: ["3"] },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      koso.unlink("3", "1");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "2"] },
+        ["1"]: { id: "1", children: [] },
+        ["2"]: { id: "2", children: ["3"] },
+        ["3"]: { id: "3", children: [] },
+      });
+    });
+
+    it("unlinking a task with non-existent parent throws an error", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      expect(() => koso.unlink("1", "non-existent")).toThrow();
+    });
+
+    it("unlinking a task among multiple peers succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2", "3"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      koso.unlink("2", "1");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { id: "1", children: ["3"] },
+        ["2"]: { id: "2", children: [] },
+        ["3"]: { id: "3", children: [] },
+      });
+    });
+  });
+
   describe("insertNode", () => {
     it("creates a child of root", () => {
       const id1 = koso.insertNode(root, 0, USER, "Task 1");

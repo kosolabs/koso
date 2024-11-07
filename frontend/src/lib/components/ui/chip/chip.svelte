@@ -1,23 +1,29 @@
 <script lang="ts">
+  import { X } from "lucide-svelte";
   import type { ChipProps } from ".";
-  import { Button } from "$lib/components/ui/button";
 
-  let { title, description = "", onClick }: ChipProps = $props();
+  let { title, description = "", onClick, onDelete }: ChipProps = $props();
 </script>
 
 <div
-  class="text-nowrap rounded border bg-secondary px-1 text-xs text-secondary-foreground max-sm:hidden"
+  class="flex items-center gap-1 text-nowrap rounded border bg-secondary px-1 text-xs text-secondary-foreground max-sm:hidden"
   title={description}
 >
   {#if onClick}
-    <Button
-      onclick={onClick}
-      variant="link"
-      class="h-1 p-0 text-xs text-secondary-foreground"
-    >
+    <button aria-label="Jump to {title}" onclick={onClick}>
       {title}
-    </Button>
+    </button>
   {:else}
     {title}
+  {/if}
+
+  {#if onDelete}
+    <button
+      aria-label="Delete {title}"
+      class="rounded border border-transparent hover:border-primary-foreground active:scale-95"
+      onclick={onDelete}
+    >
+      <X size={12} />
+    </button>
   {/if}
 </div>

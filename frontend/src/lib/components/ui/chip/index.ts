@@ -4,6 +4,7 @@ export type ChipProps = {
   title: string;
   description?: string;
   onClick?: (event: MouseEvent) => void;
+  onDelete?: (event: MouseEvent) => void;
 };
 
 export function parseChipProps(name: string): ChipProps {
