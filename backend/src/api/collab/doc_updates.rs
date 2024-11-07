@@ -118,7 +118,6 @@ impl fmt::Debug for DocUpdate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DocUpdate")
             .field("project_id", &self.project.project_id)
-            .field("project_version", &self.project.version)
             .field("who", &self.who)
             .field("id", &self.id)
             .field("data.len()", &self.data.len())
