@@ -567,6 +567,24 @@ export class Koso {
     this.getChildren(parent).insert(offset, [task]);
   }
 
+  /**
+   * Unlinks a task from a parent task. Note that this method does not ensure
+   * that the task is deleted from the graph and as a result may produce
+   * orphaned tasks. To safely unlink a task, use {@link deleteNode} instead.
+   *
+   * @param taskId - The ID of the task to be unlinked.
+   * @param parentId - The ID of the parent task.
+   * @throws Will throw an error if the task is not found in the parent's
+   *   children.
+   */
+  unlink(taskId: string, parentId: string) {
+    const parent = this.getTask(parentId);
+    const index = parent.children.indexOf(taskId);
+    if (index < 0)
+      throw new Error(`Task ${taskId} is not in the children of ${parentId}`);
+    parent.children.delete(index);
+  }
+
   canMove(task: string, src: string, dest: string): boolean {
     return src === dest || this.canLink(task, dest);
   }
@@ -608,6 +626,29 @@ export class Koso {
 
   collapse(node: Node) {
     this.expanded = this.expanded.delete(node);
+  }
+
+  #expandAll(
+    node: Node = new Node(),
+    accumulator: Set<Node> = Set(),
+  ): Set<Node> {
+    const task = this.getTask(node.name);
+    if (task.children.length > 0) {
+      accumulator = accumulator.add(node);
+      task.children.forEach((name) => {
+        const childNode = node.child(name);
+        accumulator = this.#expandAll(childNode, accumulator);
+      });
+    }
+    return accumulator;
+  }
+
+  expandAll() {
+    this.expanded = this.#expandAll();
+  }
+
+  collapseAll() {
+    this.expanded = this.expanded.clear();
   }
 
   getOffset(node: Node): number {
@@ -694,17 +735,7 @@ export class Koso {
     }
 
     this.doc.transact(() => {
-      // Unlink the target node.
-      const yParent = this.getTask(node.parent.name);
-      const yParentsChildren = yParent.children;
-      const childIndex = yParentsChildren.toArray().indexOf(node.name);
-      if (childIndex < 0)
-        throw new Error(
-          `Task ${node.name} is not in the children of ${node.parent.name}`,
-        );
-      yParentsChildren.delete(childIndex);
-
-      // Delete all of the now orphaned tasks.
+      this.unlink(node.name, node.parent.name);
       for (const taskId of orphanTaskIds) {
         this.graph.delete(taskId);
       }

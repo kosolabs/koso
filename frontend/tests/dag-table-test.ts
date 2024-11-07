@@ -29,46 +29,55 @@ test.describe("dag table tests", () => {
     statusTime?: number | null;
   };
 
-  async function init(page: Page, tasks: TaskBuilder[]) {
-    await page.evaluate((tasks) => {
-      const upsertedTaskIds = new Set<string>(tasks.map((task) => task.id));
-      const childTaskIds = new Set<string>(
-        tasks.flatMap((task) => task.children ?? []),
-      );
-      const remainingTaskIds = childTaskIds.difference(upsertedTaskIds);
-      window.koso.doc.transact(() => {
-        for (const task of tasks) {
-          window.koso.upsert({
-            id: task.id,
-            num: task.num ?? task.id,
-            name: task.name ?? "",
-            children: task.children ?? [],
-            assignee: task.assignee ?? null,
-            reporter: task.reporter ?? null,
-            status: task.status ?? null,
-            statusTime: task.statusTime ?? null,
-          });
+  async function init(
+    page: Page,
+    tasks: TaskBuilder[],
+    expandAll: boolean = false,
+  ) {
+    await page.evaluate(
+      ({ tasks, expandAll }) => {
+        const koso = window.koso;
+
+        const upsertedTaskIds = new Set<string>(tasks.map((task) => task.id));
+        const childTaskIds = new Set<string>(
+          tasks.flatMap((task) => task.children ?? []),
+        );
+        const remainingTaskIds = childTaskIds.difference(upsertedTaskIds);
+
+        koso.doc.transact(() => {
+          for (const task of tasks) {
+            koso.upsert({
+              id: task.id,
+              num: task.num ?? task.id,
+              name: task.name ?? "",
+              children: task.children ?? [],
+              assignee: task.assignee ?? null,
+              reporter: task.reporter ?? null,
+              status: task.status ?? null,
+              statusTime: task.statusTime ?? null,
+            });
+          }
+          for (const taskId of remainingTaskIds) {
+            koso.upsert({
+              id: taskId,
+              num: taskId,
+              name: "",
+              children: [],
+              assignee: null,
+              reporter: null,
+              status: null,
+              statusTime: null,
+            });
+          }
+        });
+        if (expandAll) {
+          koso.expandAll();
+        } else {
+          koso.collapseAll();
         }
-        for (const taskId of remainingTaskIds) {
-          window.koso.upsert({
-            id: taskId,
-            num: taskId,
-            name: "",
-            children: [],
-            assignee: null,
-            reporter: null,
-            status: null,
-            statusTime: null,
-          });
-        }
-      });
-      for (let i = 0; i < window.localStorage.length; i++) {
-        const key = window.localStorage.key(i);
-        if (key && key.startsWith("expanded-nodes-")) {
-          window.localStorage.removeItem(key);
-        }
-      }
-    }, tasks);
+      },
+      { tasks, expandAll },
+    );
     await page.reload();
     await page.getByLabel("Home").focus();
   }
@@ -1552,7 +1561,7 @@ test.describe("dag table tests", () => {
   });
 
   test.describe("task tags", () => {
-    test("link panel adds a link to task by name", async ({ page }) => {
+    test("clicking tags jump to the corresponding node", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2", "f3"] },
         { id: "m1", name: "Milestone 1", children: ["f1", "f2", "f3"] },
@@ -1566,7 +1575,7 @@ test.describe("dag table tests", () => {
 
       await page
         .getByLabel("Task f3", { exact: true })
-        .getByRole("button", { name: "Milestone 1" })
+        .getByRole("button", { name: "Jump to Milestone 1" })
         .click();
       await expect(
         page.getByRole("row", { name: "Task f3" }).nth(0),
@@ -1578,7 +1587,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Task m1 Drag Handle" }).click();
       await page
         .getByLabel("Task f3", { exact: true })
-        .getByRole("button", { name: "Milestone 1" })
+        .getByRole("button", { name: "Jump to Milestone 1" })
         .click();
       await expect(
         page.getByRole("row", { name: "Task f3" }).nth(0),
@@ -1589,7 +1598,7 @@ test.describe("dag table tests", () => {
 
       await page
         .getByLabel("Task f3", { exact: true })
-        .getByRole("button", { name: "Root" })
+        .getByRole("button", { name: "Jump to Root" })
         .click();
       await expect(
         page.getByRole("row", { name: "Task f3" }).nth(1),
@@ -1600,7 +1609,7 @@ test.describe("dag table tests", () => {
 
       await page
         .getByLabel("Task f2", { exact: true })
-        .getByRole("button", { name: "Component 2" })
+        .getByRole("button", { name: "Jump to Component 2" })
         .click();
       await expect(
         page.getByRole("row", { name: "Task f2" }).nth(1),
@@ -1612,14 +1621,36 @@ test.describe("dag table tests", () => {
         page
           .getByLabel("Task f2", { exact: true })
           .nth(1)
-          .getByRole("button", { name: "Milestone 1" }),
+          .getByRole("button", { name: "Jump to Milestone 1" }),
       ).toBeVisible();
       await expect(
         page
           .getByLabel("Task f2", { exact: true })
           .nth(1)
-          .getByRole("button", { name: "Component 1" }),
+          .getByRole("button", { name: "Jump to Component 1" }),
       ).toBeVisible();
     });
+  });
+
+  test("clicking the delete button removes tags", async ({ page }) => {
+    await init(
+      page,
+      [
+        { id: "root", name: "Root", children: ["m1", "m2", "f3"] },
+        { id: "m1", name: "Milestone 1", children: ["f1", "f2", "f3"] },
+        { id: "m2", name: "Milestone 2", children: ["f3"] },
+        { id: "f1", name: "Feature 1", children: [] },
+        { id: "f2", name: "Feature 2", children: [] },
+        { id: "f3", name: "Feature 3", children: [] },
+      ],
+      true,
+    );
+
+    await page
+      .getByLabel("Task f3", { exact: true })
+      .nth(1)
+      .getByRole("button", { name: "Delete Milestone 1" })
+      .click();
+    await expect(page.getByRole("row", { name: "Task f3" })).toHaveCount(2);
   });
 });
