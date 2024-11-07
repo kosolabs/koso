@@ -80,6 +80,8 @@ export type SyncState = {
   serverSync: boolean;
 };
 
+const RESET_VERSION = -1;
+
 export class Koso {
   #projectId: string;
   #yDoc: Y.Doc;
@@ -187,6 +189,9 @@ export class Koso {
       `project-version-${projectId}`,
       0,
     );
+    if (this.#currentProjectVersion.value === RESET_VERSION) {
+      this.#currentProjectVersion.value = 0;
+    }
     this.#yIndexedDb.whenSynced.then(() => {
       this.#syncState.indexedDbSync = true;
     });
@@ -197,18 +202,24 @@ export class Koso {
   }
 
   handleServerMessage(message: Uint8Array) {
+    if (this.#currentProjectVersion.value === RESET_VERSION) {
+      console.debug(
+        "Discarding server message while waiting for forced reload.",
+      );
+      return;
+    }
+
     const decoder = decoding.createDecoder(message);
     const messageType = decoding.readVarUint(decoder);
     if (messageType === MSG_SYNC) {
       const syncType = decoding.readVarUint(decoder);
 
-      const currentProjectVersion = this.#currentProjectVersion.value;
       if (syncType === MSG_SYNC_REQUEST) {
         const encoder = encoding.createEncoder();
         const encodedStateVector = decoding.readVarUint8Array(decoder);
-        const projectVersion = decoding.readVarUint(decoder);
-        if (projectVersion !== currentProjectVersion) {
-          // TODO
+        const serverProjectVersion = decoding.readVarUint(decoder);
+        if (!this.maybeHandleProjectVersionBump(serverProjectVersion)) {
+          return;
         }
         encoding.writeVarUint(encoder, MSG_SYNC);
         encoding.writeVarUint(encoder, MSG_SYNC_RESPONSE);
@@ -216,13 +227,13 @@ export class Koso {
           encoder,
           Y.encodeStateAsUpdateV2(this.#yDoc, encodedStateVector),
         );
-        encoding.writeVarUint(encoder, projectVersion);
+        encoding.writeVarUint(encoder, serverProjectVersion);
         this.#clientMessageHandler(encoding.toUint8Array(encoder));
       } else if (syncType === MSG_SYNC_RESPONSE) {
         const message = decoding.readVarUint8Array(decoder);
-        const projectVersion = decoding.readVarUint(decoder);
-        if (projectVersion !== currentProjectVersion) {
-          // TODO: Wipe the stored doc and apply the provided response.
+        const serverProjectVersion = decoding.readVarUint(decoder);
+        if (!this.maybeHandleProjectVersionBump(serverProjectVersion)) {
+          return;
         }
         Y.applyUpdateV2(this.#yDoc, message);
         if (this.#yGraph.size === 0) {
@@ -231,9 +242,9 @@ export class Koso {
         this.#syncState.serverSync = true;
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
-        const projectVersion = decoding.readVarUint(decoder);
-        if (projectVersion !== currentProjectVersion) {
-          // TODO: Force a reload of the page which will resolve the discrepancy.
+        const serverProjectVersion = decoding.readVarUint(decoder);
+        if (!this.maybeHandleProjectVersionBump(serverProjectVersion)) {
+          return;
         }
         Y.applyUpdateV2(this.#yDoc, message);
       } else {
@@ -244,6 +255,40 @@ export class Koso {
         `Expected message type to be Sync (0) but was: ${messageType}`,
       );
     }
+  }
+
+  // Examines a message's server project version and decides whether
+  // to throw out local state or not.
+  //
+  // Returns true if the message should be processed or false if the
+  // message should be discarded.
+  maybeHandleProjectVersionBump(serverProjectVersion: number): boolean {
+    const currentProjectVersion = this.#currentProjectVersion.value;
+    if (serverProjectVersion === currentProjectVersion) {
+      return true;
+    }
+
+    // currentProjectVersion is initially 0.
+    // Store the server version and continue processing the message.
+    if (currentProjectVersion === 0) {
+      this.#currentProjectVersion.value = serverProjectVersion;
+      return true;
+    }
+
+    console.log(
+      `Version mismatch, clearing local indexedDB. Current version ${currentProjectVersion}, server version ${serverProjectVersion}`,
+    );
+    this.destroy();
+    this.#yDoc = new Y.Doc();
+    this.#yGraph = new YGraphProxy(this.#yDoc.getMap<YTask>("graph"));
+    this.#currentProjectVersion.value = RESET_VERSION;
+
+    setTimeout(async () => {
+      await this.#yIndexedDb.clearData();
+      window.location.reload();
+    }, 0);
+
+    return false;
   }
 
   handleClientMessage(f: (message: Uint8Array) => void) {
