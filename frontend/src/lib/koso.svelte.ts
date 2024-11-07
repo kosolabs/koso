@@ -225,7 +225,7 @@ export class Koso {
         encoding.writeVarUint(encoder, MSG_SYNC_RESPONSE);
         encoding.writeVarUint8Array(
           encoder,
-          Y.encodeStateAsUpdateV2(this.#yDoc, encodedStateVector),
+          Y.encodeStateAsUpdateV2(this.doc, encodedStateVector),
         );
         encoding.writeVarUint(encoder, serverProjectVersion);
         this.#clientMessageHandler(encoding.toUint8Array(encoder));
@@ -235,7 +235,7 @@ export class Koso {
         if (!this.maybeHandleProjectVersionBump(serverProjectVersion)) {
           return;
         }
-        Y.applyUpdateV2(this.#yDoc, message);
+        Y.applyUpdateV2(this.doc, message);
         if (this.#yGraph.size === 0) {
           this.upsertRoot();
         }
@@ -246,7 +246,7 @@ export class Koso {
         if (!this.maybeHandleProjectVersionBump(serverProjectVersion)) {
           return;
         }
-        Y.applyUpdateV2(this.#yDoc, message);
+        Y.applyUpdateV2(this.doc, message);
       } else {
         throw new Error(`Unknown sync type: ${syncType}`);
       }
