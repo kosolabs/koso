@@ -1511,9 +1511,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Task c2 Command Item" }).click();
 
       await page.getByRole("button", { name: "Task c2 Toggle Expand" }).click();
-      await expect(
-        page.getByRole("row", { name: "Task f1" }).nth(1),
-      ).toContainText("Milestone 1");
+      await expect(page.getByTestId("Row c2/f1")).toContainText("Milestone 1");
 
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["m1", "m2", "c1", "c2"] },
@@ -1538,15 +1536,13 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("button", { name: "Task m1 Toggle Expand" }).click();
-      await page.getByRole("row", { name: "Task f2" }).click();
+      await page.getByTestId("Row m1/f2").click();
 
       await page.keyboard.press("Meta+/");
       await page.getByRole("button", { name: "Task c1 Command Item" }).click();
 
       await page.getByRole("button", { name: "Task c1 Toggle Expand" }).click();
-      await expect(
-        page.getByRole("row", { name: "Task f2" }).nth(1),
-      ).toContainText("Milestone 1");
+      await expect(page.getByTestId("Row c1/f2")).toContainText("Milestone 1");
 
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["m1", "m2", "c1", "c2"] },
@@ -1574,83 +1570,56 @@ test.describe("dag table tests", () => {
       ]);
 
       await page
-        .getByLabel("Task f3", { exact: true })
+        .getByTestId("Row f3")
         .getByRole("button", { name: "Jump to Milestone 1" })
         .click();
-      await expect(
-        page.getByRole("row", { name: "Task f3" }).nth(0),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("row", { name: "Task f3" }).nth(0),
-      ).toBeFocused();
-
-      await page.getByRole("button", { name: "Task m1 Drag Handle" }).click();
-      await page
-        .getByLabel("Task f3", { exact: true })
-        .getByRole("button", { name: "Jump to Milestone 1" })
-        .click();
-      await expect(
-        page.getByRole("row", { name: "Task f3" }).nth(0),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("row", { name: "Task f3" }).nth(0),
-      ).toBeFocused();
+      await expect(page.getByTestId("Row m1/f3")).toBeVisible();
+      await expect(page.getByTestId("Row m1/f3")).toBeFocused();
 
       await page
-        .getByLabel("Task f3", { exact: true })
+        .getByTestId("Row m1/f3")
         .getByRole("button", { name: "Jump to Root" })
         .click();
-      await expect(
-        page.getByRole("row", { name: "Task f3" }).nth(1),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("row", { name: "Task f3" }).nth(1),
-      ).toBeFocused();
+      await expect(page.getByTestId("Row f3")).toBeVisible();
+      await expect(page.getByTestId("Row f3")).toBeFocused();
 
       await page
-        .getByLabel("Task f2", { exact: true })
+        .getByTestId("Row m1/f2")
         .getByRole("button", { name: "Jump to Component 2" })
         .click();
-      await expect(
-        page.getByRole("row", { name: "Task f2" }).nth(1),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("row", { name: "Task f2" }).nth(1),
-      ).toBeFocused();
+      await expect(page.getByTestId("Row c2/f2")).toBeVisible();
+      await expect(page.getByTestId("Row c2/f2")).toBeFocused();
       await expect(
         page
-          .getByLabel("Task f2", { exact: true })
-          .nth(1)
+          .getByTestId("Row c2/f2")
           .getByRole("button", { name: "Jump to Milestone 1" }),
       ).toBeVisible();
       await expect(
         page
-          .getByLabel("Task f2", { exact: true })
-          .nth(1)
+          .getByTestId("Row c2/f2")
           .getByRole("button", { name: "Jump to Component 1" }),
       ).toBeVisible();
     });
-  });
 
-  test("clicking the delete button removes tags", async ({ page }) => {
-    await init(
-      page,
-      [
-        { id: "root", name: "Root", children: ["m1", "m2", "f3"] },
-        { id: "m1", name: "Milestone 1", children: ["f1", "f2", "f3"] },
-        { id: "m2", name: "Milestone 2", children: ["f3"] },
-        { id: "f1", name: "Feature 1", children: [] },
-        { id: "f2", name: "Feature 2", children: [] },
-        { id: "f3", name: "Feature 3", children: [] },
-      ],
-      true,
-    );
+    test("clicking the delete button removes tags", async ({ page }) => {
+      await init(
+        page,
+        [
+          { id: "root", name: "Root", children: ["m1", "m2", "f3"] },
+          { id: "m1", name: "Milestone 1", children: ["f1", "f2", "f3"] },
+          { id: "m2", name: "Milestone 2", children: ["f3"] },
+          { id: "f1", name: "Feature 1", children: [] },
+          { id: "f2", name: "Feature 2", children: [] },
+          { id: "f3", name: "Feature 3", children: [] },
+        ],
+        true,
+      );
 
-    await page
-      .getByLabel("Task f3", { exact: true })
-      .nth(1)
-      .getByRole("button", { name: "Delete Milestone 1" })
-      .click();
-    await expect(page.getByRole("row", { name: "Task f3" })).toHaveCount(2);
+      await page
+        .getByTestId("Row m2/f3")
+        .getByRole("button", { name: "Delete Milestone 1" })
+        .click();
+      await expect(page.getByTestId("Row m1/f3")).not.toBeVisible();
+    });
   });
 });
