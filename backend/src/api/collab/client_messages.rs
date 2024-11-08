@@ -167,9 +167,9 @@ impl ClientMessageProcessor {
                         let sv = StateVector::decode_v1(decoder.read_buf()?)?;
 
                         let client_version = read_project_version(&mut decoder)?.unwrap_or(0);
-                        let expected_version = msg.project.version;
-                        let update = if client_version != expected_version && client_version != 0 {
-                            tracing::debug!("Message version {client_version} does not match project version {expected_version}, sending empty update");
+                        let server_version = msg.project.version;
+                        let update = if client_version != server_version && client_version != 0 {
+                            tracing::debug!("Message version {client_version} does not match project version {server_version}, sending empty update");
                             Update::default().encode_v2()
                         } else {
                             msg.project.encode_state_as_update(&sv).await?
@@ -180,7 +180,7 @@ impl ClientMessageProcessor {
                         // There's no need to broadcast such updates to others or perist them.
                         tracing::debug!("Sending synce_response message to client.");
                         msg.project
-                            .send_msg(&msg.who, sync_response(&update, expected_version))
+                            .send_msg(&msg.who, sync_response(&update, server_version))
                             .await?;
 
                         Ok(())
@@ -189,11 +189,11 @@ impl ClientMessageProcessor {
                         tracing::debug!("Handling sync_update|sync_response message");
                         let update = Update::decode_v2(decoder.read_buf()?)?;
                         let client_version = read_project_version(&mut decoder)?.unwrap_or(0);
-                        let expected_version = msg.project.version;
-                        if client_version != 0 && client_version != expected_version {
+                        let server_version = msg.project.version;
+                        if client_version != 0 && client_version != server_version {
                             return Err(anyhow!(
                                 "Discarding update, client version {client_version} does not match project version {}",
-                                expected_version
+                                server_version
                             ));
                         }
                         msg.project
