@@ -1325,14 +1325,19 @@ export class ProjectVersion {
       `project-version-${projectId}`,
       UNINITIALIZED_VERSION,
     );
-    this.#version = this.#storedVersion.value;
-    if (this.#version === RESET_VERSION) {
-      this.#storedVersion.value = UNINITIALIZED_VERSION;
+    const storedVersion = this.#storedVersion.value;
+    if (storedVersion === RESET_VERSION) {
       this.#version = UNINITIALIZED_VERSION;
+      this.#storedVersion.value = this.#version;
+    } else {
+      this.#version = storedVersion;
     }
   }
 
   get value(): number {
+    if (this.#version === RESET_VERSION) {
+      throw new Error("Version is reset");
+    }
     return this.#version;
   }
 
@@ -1349,22 +1354,28 @@ export class ProjectVersion {
   }
 
   startReset() {
+    if (this.#version === RESET_VERSION) {
+      throw new Error("Version already resetting");
+    }
     this.#version = RESET_VERSION;
   }
 
   finishReset() {
+    if (this.#version !== RESET_VERSION) {
+      throw new Error("Version isn't resetting yet");
+    }
     this.#storedVersion.value = RESET_VERSION;
   }
 
   state(
     serverVersion: number,
   ): "Uninitialized" | "Normal" | "Mismatch" | "Resetting" | "Reset" {
-    if (this.#version === UNINITIALIZED_VERSION) {
-      return "Uninitialized";
-    } else if (this.#storedVersion.value === RESET_VERSION) {
+    if (this.#storedVersion.value === RESET_VERSION) {
       return "Reset";
     } else if (this.#version === RESET_VERSION) {
       return "Resetting";
+    } else if (this.#version === UNINITIALIZED_VERSION) {
+      return "Uninitialized";
     } else {
       if (serverVersion === this.#version) {
         return "Normal";

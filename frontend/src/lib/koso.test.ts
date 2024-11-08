@@ -6,6 +6,7 @@ import { type TaskBuilder } from "../../tests/utils";
 import type { User } from "./auth.svelte";
 import { Koso, Node } from "./koso.svelte";
 import { uuidv4 } from "lib0/random.js";
+import * as decoding from "lib0/decoding";
 
 const USER: User = {
   email: "t@koso.app",
@@ -21,12 +22,13 @@ const OTHER_USER: User = {
   exp: 0,
 };
 
+const INIT_VERSION = 42;
 const EMPTY_SYNC_RESPONSE = (() => {
   const encoder = encoding.createEncoder();
   encoding.writeVarUint(encoder, 0);
   encoding.writeVarUint(encoder, 1);
   encoding.writeVarUint8Array(encoder, Y.encodeStateAsUpdateV2(new Y.Doc()));
-  encoding.writeVarUint(encoder, 0);
+  encoding.writeVarUint(encoder, INIT_VERSION);
   return encoding.toUint8Array(encoder);
 })();
 
@@ -1325,6 +1327,50 @@ describe("Koso tests", () => {
       ]);
 
       expect(koso.getNextLink(Node.parse("t2"))).toBeNull();
+    });
+  });
+
+  describe("versionResetTests", () => {
+    it("set node 2's status to done succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
+      let lastMsg = null;
+      koso.handleClientMessage((message) => {
+        lastMsg = message;
+      });
+      const message = lastMsg;
+      lastMsg = null;
+      expect(message).not.toBeNull();
+
+      const decoder = decoding.createDecoder(message || new Uint8Array());
+      decoding.readVarUint(decoder);
+      decoding.readVarUint(decoder);
+      decoding.readVarUint8Array(decoder);
+      expect(decoding.readVarUint(decoder)).toEqual(INIT_VERSION);
+
+      const encoder = encoding.createEncoder();
+      encoding.writeVarUint(encoder, 0);
+      encoding.writeVarUint(encoder, 1);
+      encoding.writeVarUint8Array(
+        encoder,
+        Y.encodeStateAsUpdateV2(new Y.Doc()),
+      );
+      const newVersion = INIT_VERSION + 1;
+      encoding.writeVarUint(encoder, newVersion);
+      const syncResponse = encoding.toUint8Array(encoder);
+      koso.handleServerMessage(syncResponse);
+      expect(lastMsg).toBeNull();
+
+      koso.setTaskStatus(Node.parse("2"), "Done", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: null, children: [], assignee: null },
+        ["2"]: { status: "Done", children: [], assignee: null },
+      });
     });
   });
 });
