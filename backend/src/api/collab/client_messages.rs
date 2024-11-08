@@ -168,7 +168,7 @@ impl ClientMessageProcessor {
 
                         let client_version = read_project_version(&mut decoder)?.unwrap_or(0);
                         let server_version = msg.project.version;
-                        let update = if client_version != server_version && client_version != 0 {
+                        let update = if client_version != 0 && client_version != server_version {
                             tracing::debug!("Message version {client_version} does not match project version {server_version}, sending empty update");
                             Update::default().encode_v2()
                         } else {
