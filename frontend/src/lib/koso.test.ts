@@ -69,7 +69,7 @@ describe("Koso tests", () => {
   beforeEach(() => {
     koso = new Koso("project-id-" + uuidv4(), new Y.Doc());
     koso.handleClientMessage(() => {});
-    await koso.handleServerMessage(EMPTY_SYNC_RESPONSE);
+    koso.handleServerMessage(EMPTY_SYNC_RESPONSE);
   });
 
   describe("link", () => {

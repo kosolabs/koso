@@ -282,7 +282,7 @@ export class Koso {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_SYNC);
     encoding.writeVarUint(encoder, MSG_SYNC_REQUEST);
-    const sv = Y.encodeStateVector(this.#yDoc);
+    const sv = Y.encodeStateVector(this.doc);
     encoding.writeVarUint8Array(encoder, sv);
     encoding.writeVarUint(encoder, this.#version.value);
     this.#clientMessageHandler(encoding.toUint8Array(encoder));
