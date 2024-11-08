@@ -1228,6 +1228,42 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Task 1 Toggle Expand" }).click();
       await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
     });
+
+    test("expand all reveals all children", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2"] },
+        { id: "2", children: ["3"] },
+      ]);
+      await expect(page.getByTestId("Row 1/2/3")).not.toBeVisible();
+
+      await page.getByRole("button", { name: "Palette" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+
+      await page.keyboard.type("Expand All");
+      await page.keyboard.press("Enter");
+      await expect(page.getByTestId("Row 1/2/3")).toBeVisible();
+    });
+
+    test("collapse all hides all children", async ({ page }) => {
+      await init(
+        page,
+        [
+          { id: "root", name: "Root", children: ["1"] },
+          { id: "1", children: ["2"] },
+          { id: "2", children: ["3"] },
+        ],
+        true,
+      );
+      await expect(page.getByTestId("Row 1/2/3")).toBeVisible();
+
+      await page.getByRole("button", { name: "Palette" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+
+      await page.keyboard.type("Collapse All");
+      await page.keyboard.press("Enter");
+      await expect(page.getByTestId("Row 1/2/3")).not.toBeVisible();
+    });
   });
 
   test.describe("undo and redo", () => {

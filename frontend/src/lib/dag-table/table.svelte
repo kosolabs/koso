@@ -276,6 +276,20 @@
       shortcut: new Shortcut({ key: "ArrowLeft" }),
     }),
     new Action({
+      callback: () => koso.expandAll(),
+      title: "Expand All",
+      description: "Expand all tasks",
+      icon: ChevronsUpDown,
+      enabled: () => true,
+    }),
+    new Action({
+      callback: () => koso.collapseAll(),
+      title: "Collapse All",
+      description: "Collapse all tasks",
+      icon: ChevronsDownUp,
+      enabled: () => true,
+    }),
+    new Action({
       callback: insert,
       title: "Insert",
       description: "Insert a new task",
