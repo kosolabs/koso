@@ -13,7 +13,10 @@ use tokio::{sync::mpsc::Sender, time::timeout};
 use uuid::Uuid;
 use yrs::{
     encoding::read::Read as _,
-    updates::decoder::{Decode as _, DecoderV1},
+    updates::{
+        decoder::{Decode as _, DecoderV1},
+        encoder::Encode,
+    },
     StateVector, Update,
 };
 
@@ -165,13 +168,9 @@ impl ClientMessageProcessor {
 
                         let client_version = read_project_version(&mut decoder)?.unwrap_or(0);
                         let expected_version = msg.project.version;
-                        let update = if client_version != expected_version {
-                            if client_version != 0 {
-                                tracing::debug!("Message version {client_version} does not match project version {expected_version}, sending all state");
-                            }
-                            msg.project
-                                .encode_state_as_update(&StateVector::default())
-                                .await?
+                        let update = if client_version != expected_version && client_version != 0 {
+                            tracing::debug!("Message version {client_version} does not match project version {expected_version}, sending empty update");
+                            Update::default().encode_v2()
                         } else {
                             msg.project.encode_state_as_update(&sv).await?
                         };
