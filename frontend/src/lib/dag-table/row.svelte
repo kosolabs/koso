@@ -328,6 +328,7 @@
     isSelected ? "outline-primary" : "",
   )}
   aria-label={`Task ${task.num}`}
+  data-testid={`Row ${node.id}`}
   onmouseout={handleUnhighlight}
   onmouseover={handleHighlight}
   onblur={handleUnhighlight}
