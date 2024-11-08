@@ -628,6 +628,10 @@ export class Koso {
     this.expanded = this.expanded.delete(node);
   }
 
+  /**
+   * Recursively accumulates all nodes with children and returns them in a
+   * format that is suitable to be assigned to {@link expanded}.
+   */
   #expandAll(
     node: Node = new Node(),
     accumulator: Set<Node> = Set(),
@@ -643,10 +647,12 @@ export class Koso {
     return accumulator;
   }
 
+  /** Expands all tasks. */
   expandAll() {
     this.expanded = this.#expandAll();
   }
 
+  /** Collapses all tasks. */
   collapseAll() {
     this.expanded = this.expanded.clear();
   }
