@@ -64,8 +64,9 @@ export async function setupNewProject(page: Page): Promise<Page> {
 
   await page.goto("/projects");
   await page.getByRole("button", { name: "New" }).click();
+  // Make sure things are initialized before proceeding
   await expect(
-    page.getByRole("button", { name: "Set Project Name" }),
+    await page.getByRole("button", { name: "Add Task" }),
   ).toBeVisible();
 
   return page;
