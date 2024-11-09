@@ -1370,12 +1370,14 @@ describe("Koso tests", () => {
         expect(version.value).toBeTruthy();
       }).toThrow("Version is not normal");
     });
+
     it("prior version returns resetting", () => {
       expect(version.checkVersion(1)).toEqual("resetting");
       expect(() => {
         expect(version.value).toBeTruthy();
       }).toThrow("Version is not normal");
     });
+
     it("another mismatch returns resetting", () => {
       expect(version.checkVersion(2)).toEqual("resetting");
       expect(() => {

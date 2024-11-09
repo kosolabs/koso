@@ -68,10 +68,6 @@ export async function setupNewProject(page: Page): Promise<Page> {
   await expect(
     await page.getByRole("button", { name: "Add Task" }),
   ).toBeVisible();
-  // Make sure things are initialized before proceeding
-  await expect(
-    await page.getByRole("button", { name: "Add Task" }),
-  ).toBeVisible();
 
   return page;
 }

@@ -271,6 +271,7 @@ export class Koso {
     if (res === "mismatch") {
       // Tear down observers to stop processing updates.
       this.doc.destroy();
+      // Delete the database, including version.
       this.#yIndexedDb.clearData().then(() => {
         window.location.reload();
       });
