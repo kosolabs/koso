@@ -87,7 +87,10 @@ export class Koso {
   #yUndoManager: Y.UndoManager;
   #yIndexedDb: IndexeddbPersistence;
   #clientMessageHandler: (message: Uint8Array) => void = () => {
-    throw new Error("Client message handler was invoked but was not set");
+    // Until we connect to the server and invoke handleClientMessage,
+    // there's nothing else to do with client messages, so we simply discard them.
+    // Any dropped changes will be sync'd to the server later.
+    console.debug("Client message handler was invoked but was not set");
   };
 
   #selected: Node | null = $state(null);
