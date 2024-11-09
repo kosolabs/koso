@@ -5,7 +5,7 @@ WORKDIR /app
 # of copying in our code. This speeds up re-builds
 # triggered by changes to src/ by keeping dependencies
 # in a separate layer.
-COPY backend/Cargo.toml backend/Cargo.lock ./
+COPY backend/Cargo.toml backend/Cargo.lock backend/rust-toolchain.toml ./
 COPY backend/build/dummy.rs build/dummy.rs
 RUN cargo build --release --lib
 
