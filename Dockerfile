@@ -7,6 +7,7 @@ WORKDIR /app
 # in a separate layer.
 COPY backend/Cargo.toml backend/Cargo.lock backend/rust-toolchain.toml ./
 COPY backend/build/dummy.rs build/dummy.rs
+RUN cargo --version
 RUN cargo build --release --lib
 
 # Build the backend.

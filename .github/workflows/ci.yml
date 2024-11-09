@@ -50,6 +50,7 @@ jobs:
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
       - run: cargo test
+      - run: cargo version
       - run: cargo clippy -- -D warnings
       - run: cargo fmt -- --check
   npm:
