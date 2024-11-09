@@ -574,8 +574,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         .unwrap();
     assert_eq!(read_sync_response(socket_3).await, Update::default());
 
-    // But with a different version number, we'll get back everything
-    // despite the SV sent.
+    // When the version number is different, we'll get back an empty update.
     socket_3
         .send(Message::Binary(msg_sync::sync_request(
             &ydoc_3.transact().state_vector(),
@@ -583,15 +582,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         )))
         .await
         .unwrap();
-    assert_eq!(
-        read_sync_response(socket_3).await,
-        Update::decode_v2(
-            &ydoc_3
-                .transact()
-                .encode_state_as_update_v2(&StateVector::default())
-        )
-        .unwrap()
-    );
+    assert_eq!(read_sync_response(socket_3).await, Update::default());
 
     // Send an update with a differing version number.
     // It'll be rejected without being persisted or broadcast.
