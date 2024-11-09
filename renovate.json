@@ -3,7 +3,7 @@
   "extends": ["config:recommended", "group:all"],
 
   "schedule": ["before 4am on Monday"],
-  "minimumReleaseAge": "4 days",
+  "minimumReleaseAge": "6 days",
   "internalChecksFilter": "strict",
   "pinDigests": true
 }
