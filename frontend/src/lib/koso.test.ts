@@ -4,9 +4,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { type TaskBuilder } from "../../tests/utils";
 import type { User } from "./auth.svelte";
-import { Koso, Node } from "./koso.svelte";
+import { Koso, Node, ProjectVersion } from "./koso.svelte";
 import { uuidv4 } from "lib0/random.js";
-import * as decoding from "lib0/decoding";
 
 const USER: User = {
   email: "t@koso.app",
@@ -1330,47 +1329,97 @@ describe("Koso tests", () => {
     });
   });
 
-  describe("versionResetTests", () => {
-    it("set node 2's status to done succeeds", () => {
-      init([
-        { id: "root", name: "Root", children: ["1", "2"] },
-        { id: "1", name: "Task 1" },
-        { id: "2", name: "Task 2" },
-      ]);
-      let lastMsg = null;
-      koso.handleClientMessage((message) => {
-        lastMsg = message;
+  describe("projectVersion", { sequential: true }, () => {
+    const neverCalled = () => {
+      expect("neverCalled").toBeUndefined();
+    };
+    const neverCalledPromise = async () => {
+      expect("neverCalled").toBeUndefined();
+    };
+    let captureResolve = () => {};
+    let captureVal = false;
+    const capture = () => {
+      captureVal = true;
+      return new Promise<void>((r) => {
+        captureResolve = r;
       });
-      const message = lastMsg;
-      lastMsg = null;
-      expect(message).not.toBeNull();
+    };
 
-      const decoder = decoding.createDecoder(message || new Uint8Array());
-      decoding.readVarUint(decoder);
-      decoding.readVarUint(decoder);
-      decoding.readVarUint8Array(decoder);
-      expect(decoding.readVarUint(decoder)).toEqual(INIT_VERSION);
+    beforeEach(() => {
+      captureVal = false;
+      captureResolve = () => {
+        expect("neverCalled").toBeUndefined();
+      };
+    });
 
-      const encoder = encoding.createEncoder();
-      encoding.writeVarUint(encoder, 0);
-      encoding.writeVarUint(encoder, 1);
-      encoding.writeVarUint8Array(
-        encoder,
-        Y.encodeStateAsUpdateV2(new Y.Doc()),
+    const version = new ProjectVersion("id123");
+
+    it("initliaze version", () => {
+      expect(version.value).toEqual(0);
+    });
+
+    it("normal version requests", () => {
+      expect(version.checkVersion(1, neverCalled, neverCalledPromise)).toEqual(
+        true,
       );
-      const newVersion = INIT_VERSION + 1;
-      encoding.writeVarUint(encoder, newVersion);
-      const syncResponse = encoding.toUint8Array(encoder);
-      koso.handleServerMessage(syncResponse);
-      expect(lastMsg).toBeNull();
+      expect(version.value).toEqual(1);
+      // Subsequent successful request at same version
+      expect(version.checkVersion(1, neverCalled, neverCalledPromise)).toEqual(
+        true,
+      );
+      expect(version.value).toEqual(1);
+    });
 
-      koso.setTaskStatus(Node.parse("2"), "Done", USER);
+    it("version bump", () => {
+      expect(version.checkVersion(2, neverCalled, capture)).toEqual(false);
+      expect(captureVal).toEqual(true);
+      expect(() => {
+        expect(version.value).toBeTruthy();
+      }).toThrow("Version is reset");
+      // interleaved prior version after bump before finishReset
+      expect(version.checkVersion(1, neverCalled, neverCalledPromise)).toEqual(
+        false,
+      );
+      expect(() => {
+        expect(version.value).toBeTruthy();
+      }).toThrow("Version is reset");
+      // subsequent bumped version request before finishReset
+      expect(version.checkVersion(2, neverCalled, neverCalledPromise)).toEqual(
+        false,
+      );
+      expect(() => {
+        expect(version.value).toBeTruthy();
+      }).toThrow("Version is reset");
 
-      expect(koso.toJSON()).toMatchObject({
-        root: { status: null, children: ["1", "2"], assignee: null },
-        ["1"]: { status: null, children: [], assignee: null },
-        ["2"]: { status: "Done", children: [], assignee: null },
-      });
+      // Will trigger finishReset
+      captureResolve();
+    });
+
+    it("finish reset", () => {
+      //version.finishReset();
+      expect(() => {
+        expect(version.value).toBeTruthy();
+      }).toThrow("Version is reset");
+    });
+
+    it("post reset triggers onResetting at bumped version", () => {
+      expect(version.checkVersion(2, capture, neverCalledPromise)).toEqual(
+        false,
+      );
+      expect(captureVal).toEqual(true);
+      expect(() => {
+        expect(version.value).toBeTruthy();
+      }).toThrow("Version is reset");
+    });
+
+    it("post reset triggers onResetting at prior version", () => {
+      expect(version.checkVersion(1, capture, neverCalledPromise)).toEqual(
+        false,
+      );
+      expect(captureVal).toEqual(true);
+      expect(() => {
+        expect(version.value).toBeTruthy();
+      }).toThrow("Version is reset");
     });
   });
 });

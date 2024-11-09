@@ -154,6 +154,8 @@ export class Koso {
     // #version must be instantiated before yIndexedDb to avoid races.
     this.#version = new ProjectVersion(projectId);
     this.#yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.doc);
+    this.#yIndexedDb.get("version")
+
     this.doc.on(
       "updateV2",
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -249,31 +251,22 @@ export class Koso {
   // Returns true if the message should be processed or false if the
   // message should be discarded.
   maybeResetLocalProjectState(serverProjectVersion: number): boolean {
-    switch (this.#version.state(serverProjectVersion)) {
-      case "Uninitialized":
-        this.#version.apply(serverProjectVersion);
-        return true;
-      case "Normal":
-        return true;
-      case "Mismatch":
-        console.log(
-          `Version mismatch, clearing local indexedDB. Current version ${this.#version.value}, server version ${serverProjectVersion}`,
-        );
-        this.#version.startReset();
+    return this.#version.checkVersion(
+      serverProjectVersion,
+      // onResetting - reload.
+      () => {
+        window.location.reload();
+      },
+      // onMismatch - clear the local state and then reload.
+      () => {
+        // Tear down observers to stop processing updates.
         this.doc.destroy();
-        this.#yIndexedDb.clearData().then(() => {
+        return this.#yIndexedDb.clearData().then(() => {
           this.#version.finishReset();
           window.location.reload();
         });
-        return false;
-      case "Resetting":
-        console.debug("Discarding server message while waiting for reset.");
-        return false;
-      case "Reset":
-        console.debug("Discarding server message while waiting for reload.");
-        window.location.reload();
-        return false;
-    }
+      },
+    );
   }
 
   handleClientMessage(f: (message: Uint8Array) => void) {
@@ -1341,25 +1334,6 @@ export class ProjectVersion {
     return this.#version;
   }
 
-  apply(version: number) {
-    if (version <= 0) {
-      throw new Error(`Invalid version ${version}`);
-    }
-    if (this.#version !== UNINITIALIZED_VERSION) {
-      throw new Error("Version already initialized.");
-    }
-
-    this.#version = version;
-    this.#storedVersion.value = version;
-  }
-
-  startReset() {
-    if (this.#version === RESET_VERSION) {
-      throw new Error("Version already resetting");
-    }
-    this.#version = RESET_VERSION;
-  }
-
   finishReset() {
     if (this.#version !== RESET_VERSION) {
       throw new Error("Version isn't resetting yet");
@@ -1367,20 +1341,32 @@ export class ProjectVersion {
     this.#storedVersion.value = RESET_VERSION;
   }
 
-  state(
+  checkVersion(
     serverVersion: number,
-  ): "Uninitialized" | "Normal" | "Mismatch" | "Resetting" | "Reset" {
+    onResetting: () => void,
+    onMismatch: () => Promise<void>,
+  ): boolean {
     if (this.#storedVersion.value === RESET_VERSION) {
-      return "Reset";
+      onResetting();
+      return false;
     } else if (this.#version === RESET_VERSION) {
-      return "Resetting";
+      return false;
     } else if (this.#version === UNINITIALIZED_VERSION) {
-      return "Uninitialized";
+      this.#version = serverVersion;
+      this.#storedVersion.value = serverVersion;
+      return true;
     } else {
       if (serverVersion === this.#version) {
-        return "Normal";
+        return true;
       }
-      return "Mismatch";
+      console.log(
+        `Version mismatch detected, triggering onMismatch. Version: ${this.#version}, server version ${serverVersion}`,
+      );
+      this.#version = RESET_VERSION;
+      onMismatch().then(() => {
+        this.finishReset();
+      });
+      return false;
     }
   }
 }
