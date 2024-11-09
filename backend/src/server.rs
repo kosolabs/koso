@@ -77,7 +77,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
     };
 
     let app = Router::new()
-        .nest("/api", api::api_router().fallback(api::handler_404))
+        .nest("/api", api::router().fallback(api::handler_404))
         .layer((
             middleware::from_fn(emit_request_metrics),
             SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
@@ -94,7 +94,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             Extension(key_set),
             middleware::from_fn(google::authenticate),
         ))
-        .nest("/healthz", healthz::healthz_router())
+        .nest("/healthz", healthz::router())
         .layer((TimeoutLayer::new(Duration::from_secs(10)),))
         .fallback_service(
             ServiceBuilder::new()

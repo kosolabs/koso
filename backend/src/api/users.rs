@@ -2,7 +2,7 @@ use crate::api::{model::User, ApiResult};
 use axum::{routing::get, Extension, Json, Router};
 use sqlx::postgres::PgPool;
 
-pub(super) fn users_router() -> Router {
+pub(super) fn router() -> Router {
     Router::new().route("/", get(list_users_handler))
 }
 

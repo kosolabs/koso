@@ -4,7 +4,7 @@ use sqlx::PgPool;
 
 use crate::api::google::User;
 
-pub(super) fn auth_router() -> Router {
+pub(super) fn router() -> Router {
     Router::new().route("/login", post(login_handler))
 }
 #[tracing::instrument(skip(user, pool))]

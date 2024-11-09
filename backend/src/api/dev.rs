@@ -6,7 +6,7 @@ use sqlx::PgPool;
 
 use super::google;
 
-pub(super) fn dev_router() -> Router {
+pub(super) fn router() -> Router {
     let enable_dev = std::env::var("TESTONLY_ENABLE_DEV").map_or(false, |v| v == "true");
     if enable_dev {
         tracing::info!("Enable dev mode. Something is WRONG if you see this in production.");

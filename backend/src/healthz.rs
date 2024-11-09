@@ -7,7 +7,7 @@ struct Healthz {
     status: String,
 }
 
-pub(super) fn healthz_router() -> Router {
+pub(super) fn router() -> Router {
     Router::new().route("/", get(healthz_handler))
 }
 
