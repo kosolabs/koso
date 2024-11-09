@@ -9,18 +9,15 @@
 
   "customManagers": [
     {
+      "description": "Update Rust stable version in rust-toolchain.toml",
+      "customType": "regex",
       "fileMatch": ["(^|/)rust-toolchain\\.toml?$"],
       "matchStrings": [
         "channel\\s*=\\s*\"(?<currentValue>\\d+\\.\\d+(\\.\\d+)?)\""
       ],
-      "depNameTemplate": "rust-lang/rust",
+      "depNameTemplate": "rust",
+      "packageNameTemplate": "rust-lang/rust",
       "datasourceTemplate": "github-releases"
-    }
-  ],
-  "packageRules": [
-    {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust-lang/rust"]
     }
   ]
 }
