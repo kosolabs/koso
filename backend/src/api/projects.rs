@@ -25,7 +25,7 @@ use yrs::{
 
 use super::model::{ProjectExport, UpdateProjectUsersResponse};
 
-pub(super) fn projects_router() -> Router {
+pub(super) fn router() -> Router {
     Router::new()
         .route("/", get(list_projects_handler))
         .route("/", post(create_project_handler))

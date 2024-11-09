@@ -19,13 +19,13 @@ pub(crate) mod ws;
 
 pub(crate) type ApiResult<T> = Result<T, ErrorResponse>;
 
-pub(crate) fn api_router() -> Router {
+pub(crate) fn router() -> Router {
     Router::new()
-        .nest("/projects", projects::projects_router())
-        .nest("/auth", auth::auth_router())
-        .nest("/ws", ws::ws_router())
-        .nest("/users", users::users_router())
-        .nest("/dev", dev::dev_router())
+        .nest("/projects", projects::router())
+        .nest("/auth", auth::router())
+        .nest("/ws", ws::router())
+        .nest("/users", users::router())
+        .nest("/dev", dev::router())
 }
 
 pub(crate) async fn verify_access(
