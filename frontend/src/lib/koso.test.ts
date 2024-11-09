@@ -5,6 +5,7 @@ import * as Y from "yjs";
 import { type TaskBuilder } from "../../tests/utils";
 import type { User } from "./auth.svelte";
 import { Koso, Node } from "./koso.svelte";
+import { uuidv4 } from "lib0/random.js";
 
 const USER: User = {
   email: "t@koso.app",
@@ -65,7 +66,7 @@ describe("Koso tests", () => {
   };
 
   beforeEach(() => {
-    koso = new Koso("project-id", new Y.Doc());
+    koso = new Koso("project-id-" + uuidv4(), new Y.Doc());
     koso.handleClientMessage(() => {});
     koso.handleServerMessage(EMPTY_SYNC_RESPONSE);
   });
