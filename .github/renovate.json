@@ -14,7 +14,7 @@
         "channel\\s*=\\s*\"(?<currentValue>\\d+\\.\\d+(\\.\\d+)?)\""
       ],
       "depNameTemplate": "rust-lang/rust",
-      "datasourceTemplate": "github-tags"
+      "datasourceTemplate": "github-releases"
     }
   ],
   "packageRules": [
