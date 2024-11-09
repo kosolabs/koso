@@ -5,161 +5,161 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  cookie: ^1.0.0
+  cookie: 1.0.1
 
 importers:
 
   .:
     devDependencies:
       '@playwright/test':
-        specifier: ^1.48.2
+        specifier: 1.48.2
         version: 1.48.2
       '@sveltejs/adapter-static':
-        specifier: ^3.0.6
+        specifier: 3.0.6
         version: 3.0.6(@sveltejs/kit@2.7.7(@sveltejs/vite-plugin-svelte@4.0.0(svelte@5.1.9)(vite@5.4.10(@types/node@22.9.0)))(svelte@5.1.9)(vite@5.4.10(@types/node@22.9.0)))
       '@sveltejs/kit':
-        specifier: ^2.7.7
+        specifier: 2.7.7
         version: 2.7.7(@sveltejs/vite-plugin-svelte@4.0.0(svelte@5.1.9)(vite@5.4.10(@types/node@22.9.0)))(svelte@5.1.9)(vite@5.4.10(@types/node@22.9.0))
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^4.0.0
+        specifier: 4.0.0
         version: 4.0.0(svelte@5.1.9)(vite@5.4.10(@types/node@22.9.0))
       '@types/eslint':
-        specifier: ^9.6.1
+        specifier: 9.6.1
         version: 9.6.1
       '@types/node':
-        specifier: ^22.9.0
+        specifier: 22.9.0
         version: 22.9.0
       '@types/uuid':
-        specifier: ^10.0.0
+        specifier: 10.0.0
         version: 10.0.0
       autoprefixer:
-        specifier: ^10.4.20
+        specifier: 10.4.20
         version: 10.4.20(postcss@8.4.47)
       bits-ui:
-        specifier: ^0.21.16
+        specifier: 0.21.16
         version: 0.21.16(svelte@5.1.9)
       clsx:
-        specifier: ^2.1.1
+        specifier: 2.1.1
         version: 2.1.1
       cmdk-sv:
-        specifier: ^0.0.18
+        specifier: 0.0.18
         version: 0.0.18(svelte@5.1.9)
       eslint:
-        specifier: ^9.14.0
+        specifier: 9.14.0
         version: 9.14.0(jiti@1.21.6)
       eslint-config-prettier:
-        specifier: ^9.1.0
+        specifier: 9.1.0
         version: 9.1.0(eslint@9.14.0(jiti@1.21.6))
       eslint-plugin-svelte:
-        specifier: ^2.46.0
+        specifier: 2.46.0
         version: 2.46.0(eslint@9.14.0(jiti@1.21.6))(svelte@5.1.9)
       fake-indexeddb:
-        specifier: ^6.0.0
+        specifier: 6.0.0
         version: 6.0.0
       globals:
-        specifier: ^15.12.0
+        specifier: 15.12.0
         version: 15.12.0
       google-oauth-gsi:
-        specifier: ^4.0.1
+        specifier: 4.0.1
         version: 4.0.1
       immutable:
-        specifier: ^5.0.0
+        specifier: 5.0.2
         version: 5.0.2
       jsdom:
-        specifier: ^25.0.1
+        specifier: 25.0.1
         version: 25.0.1
       jwt-decode:
-        specifier: ^4.0.0
+        specifier: 4.0.0
         version: 4.0.0
       lib0:
-        specifier: ^0.2.98
+        specifier: 0.2.98
         version: 0.2.98
       lucide-svelte:
-        specifier: ^0.454.0
+        specifier: 0.454.0
         version: 0.454.0(svelte@5.1.9)
       mockdate:
-        specifier: ^3.0.5
+        specifier: 3.0.5
         version: 3.0.5
       mode-watcher:
-        specifier: ^0.4.1
+        specifier: 0.4.1
         version: 0.4.1(svelte@5.1.9)
       postcss:
-        specifier: ^8.4.47
+        specifier: 8.4.47
         version: 8.4.47
       prettier:
-        specifier: ^3.3.3
+        specifier: 3.3.3
         version: 3.3.3
       prettier-plugin-jsdoc:
-        specifier: ^1.3.0
+        specifier: 1.3.0
         version: 1.3.0(prettier@3.3.3)
       prettier-plugin-svelte:
-        specifier: ^3.2.7
+        specifier: 3.2.7
         version: 3.2.7(prettier@3.3.3)(svelte@5.1.9)
       prettier-plugin-tailwindcss:
-        specifier: ^0.6.8
+        specifier: 0.6.8
         version: 0.6.8(prettier-plugin-jsdoc@1.3.0(prettier@3.3.3))(prettier-plugin-svelte@3.2.7(prettier@3.3.3)(svelte@5.1.9))(prettier@3.3.3)
       svelte:
-        specifier: ^5.1.9
+        specifier: 5.1.9
         version: 5.1.9
       svelte-check:
-        specifier: ^4.0.5
+        specifier: 4.0.5
         version: 4.0.5(svelte@5.1.9)(typescript@5.6.3)
       svelte-confetti:
-        specifier: ^2.1.2
+        specifier: 2.1.2
         version: 2.1.2(svelte@5.1.9)
       svelte-radix:
-        specifier: ^2.0.1
+        specifier: 2.0.1
         version: 2.0.1(svelte@5.1.9)
       svelte-sonner:
-        specifier: ^0.3.28
+        specifier: 0.3.28
         version: 0.3.28(svelte@5.1.9)
       tailwind-merge:
-        specifier: ^2.5.4
+        specifier: 2.5.4
         version: 2.5.4
       tailwind-variants:
-        specifier: ^0.2.1
+        specifier: 0.2.1
         version: 0.2.1(tailwindcss@3.4.14)
       tailwindcss:
-        specifier: ^3.4.14
+        specifier: 3.4.14
         version: 3.4.14
       tslib:
-        specifier: ^2.8.1
+        specifier: 2.8.1
         version: 2.8.1
       typescript:
-        specifier: ^5.6.3
+        specifier: 5.6.3
         version: 5.6.3
       typescript-eslint:
-        specifier: ^8.13.0
+        specifier: 8.13.0
         version: 8.13.0(eslint@9.14.0(jiti@1.21.6))(typescript@5.6.3)
       uuid:
-        specifier: ^11.0.2
+        specifier: 11.0.2
         version: 11.0.2
       vite:
-        specifier: ^5.4.10
+        specifier: 5.4.10
         version: 5.4.10(@types/node@22.9.0)
       vitest:
-        specifier: ^2.1.4
+        specifier: 2.1.4
         version: 2.1.4(@types/node@22.9.0)(jsdom@25.0.1)
       workbox-core:
-        specifier: ^7.3.0
+        specifier: 7.3.0
         version: 7.3.0
       workbox-precaching:
-        specifier: ^7.3.0
+        specifier: 7.3.0
         version: 7.3.0
       workbox-routing:
-        specifier: ^7.3.0
+        specifier: 7.3.0
         version: 7.3.0
       workbox-strategies:
-        specifier: ^7.3.0
+        specifier: 7.3.0
         version: 7.3.0
       workbox-window:
-        specifier: ^7.3.0
+        specifier: 7.3.0
         version: 7.3.0
       y-indexeddb:
-        specifier: ^9.0.12
+        specifier: 9.0.12
         version: 9.0.12(yjs@13.6.20)
       yjs:
-        specifier: ^13.6.20
+        specifier: 13.6.20
         version: 13.6.20
 
 packages:
@@ -309,12 +309,6 @@ packages:
     engines: {node: '>=12'}
     cpu: [x64]
     os: [win32]
-
-  '@eslint-community/eslint-utils@4.4.0':
-    resolution: {integrity: sha512-1/sA4dwrzBAyeUoQ6oxahHKmrZvsnLCg4RfxW3ZFGGmQkSNQPFNLV9CUEFQP1x9EYXHTo5p6xdhZM1Ne9p/AfA==}
-    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
-    peerDependencies:
-      eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
 
   '@eslint-community/eslint-utils@4.4.1':
     resolution: {integrity: sha512-s3O3waFUrMV8P/XaF/+ZTp1X9XBZW1a4B97ZnjQF2KYWaFD2A8KyFBsrsfSjEmjn3RGWAIuvlneuZm3CUK3jbA==}
@@ -2195,11 +2189,6 @@ snapshots:
   '@esbuild/win32-x64@0.21.5':
     optional: true
 
-  '@eslint-community/eslint-utils@4.4.0(eslint@9.14.0(jiti@1.21.6))':
-    dependencies:
-      eslint: 9.14.0(jiti@1.21.6)
-      eslint-visitor-keys: 3.4.3
-
   '@eslint-community/eslint-utils@4.4.1(eslint@9.14.0(jiti@1.21.6))':
     dependencies:
       eslint: 9.14.0(jiti@1.21.6)
@@ -2838,7 +2827,7 @@ snapshots:
 
   eslint-plugin-svelte@2.46.0(eslint@9.14.0(jiti@1.21.6))(svelte@5.1.9):
     dependencies:
-      '@eslint-community/eslint-utils': 4.4.0(eslint@9.14.0(jiti@1.21.6))
+      '@eslint-community/eslint-utils': 4.4.1(eslint@9.14.0(jiti@1.21.6))
       '@jridgewell/sourcemap-codec': 1.5.0
       eslint: 9.14.0(jiti@1.21.6)
       eslint-compat-utils: 0.5.1(eslint@9.14.0(jiti@1.21.6))

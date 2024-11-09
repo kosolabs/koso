@@ -28,8 +28,8 @@ jobs:
     env:
       KOSO_IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: appleboy/ssh-action@v1.1.0
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: appleboy/ssh-action@25ce8cbbcb08177468c7ff7ec5cbfa236f9341e1 # v1.1.0
         env:
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -67,7 +67,7 @@ jobs:
             echo EOFEOFMSGOUTPUT
           } >> "$GITHUB_OUTPUT"
       - name: Notify telegram
-        uses: appleboy/telegram-action@v1.0.0
+        uses: appleboy/telegram-action@a77dd3e42f32216ac2df808866c70b5aa41e6e75 # v1.0.0
         if: always()
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
