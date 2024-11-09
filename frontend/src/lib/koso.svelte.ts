@@ -73,12 +73,24 @@ export type Progress = {
   lastStatusTime: number;
 };
 
-export type SyncState = {
+export class SyncState {
   // True when the indexed DB is sync'd with the Koso doc.
-  indexedDbSync: boolean;
+  #indexedDbSync: boolean = false;
   // True when state from the server is sync'd with the Koso doc.
-  serverSync: boolean;
-};
+  #serverSync: boolean = false;
+
+  set indexedDbSync(indexedDbSync: boolean) {
+    this.#indexedDbSync = indexedDbSync;
+  }
+
+  set serverSync(serverSync: boolean) {
+    this.#serverSync = serverSync;
+  }
+
+  ready(): boolean {
+    return this.#indexedDbSync || this.#serverSync;
+  }
+}
 
 export class Koso {
   #projectId: string;
@@ -122,10 +134,7 @@ export class Koso {
     }
     return this.#flatten(new Node(), this.expanded, this.showDone);
   });
-  #syncState: SyncState = $state({
-    indexedDbSync: false,
-    serverSync: false,
-  });
+  #syncState: SyncState = $state(new SyncState());
 
   // lifecycle functions
   // i.e., init functions and helpers, event handlers, and destructors
@@ -154,7 +163,7 @@ export class Koso {
     // #version must be instantiated before yIndexedDb to avoid races.
     this.#version = new ProjectVersion(projectId);
     this.#yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.doc);
-    this.#yIndexedDb.get("version")
+    this.#yIndexedDb.get("version");
 
     this.doc.on(
       "updateV2",
