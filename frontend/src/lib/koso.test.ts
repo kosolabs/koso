@@ -67,10 +67,10 @@ describe("Koso tests", () => {
     });
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     koso = new Koso("project-id-" + uuidv4(), new Y.Doc());
-    koso.handleClientMessage(() => {});
-    koso.handleServerMessage(EMPTY_SYNC_RESPONSE);
+    await koso.handleClientMessage(() => {});
+    await koso.handleServerMessage(EMPTY_SYNC_RESPONSE);
   });
 
   describe("link", () => {
@@ -1330,96 +1330,57 @@ describe("Koso tests", () => {
   });
 
   describe("projectVersion", { sequential: true }, () => {
-    const neverCalled = () => {
-      expect("neverCalled").toBeUndefined();
+    let storedVersion: number | null = null;
+    const storeVersion = async (v: number) => {
+      storedVersion = v;
     };
-    const neverCalledPromise = async () => {
-      expect("neverCalled").toBeUndefined();
+    let ready = false;
+    const onReady = () => {
+      ready = true;
     };
-    let captureResolve = () => {};
-    let captureVal = false;
-    const capture = () => {
-      captureVal = true;
-      return new Promise<void>((r) => {
-        captureResolve = r;
-      });
-    };
+    const { promise, resolve } = Promise.withResolvers<number>();
+    const version = new ProjectVersion(promise, storeVersion, onReady);
 
-    beforeEach(() => {
-      captureVal = false;
-      captureResolve = () => {
-        expect("neverCalled").toBeUndefined();
-      };
-    });
+    it("initialize version", async () => {
+      expect(() => {
+        expect(version.value).toBeNull();
+      }).toThrow("Version is not normal");
+      expect(() => {
+        version.checkVersion(55);
+      }).toThrow("Version is initializing");
 
-    const version = new ProjectVersion("id123");
+      resolve(0);
+      await version.ready();
 
-    it("initliaze version", () => {
       expect(version.value).toEqual(0);
+      expect(ready).toEqual(true);
+      expect(storedVersion).toEqual(null);
     });
 
     it("normal version requests", () => {
-      expect(version.checkVersion(1, neverCalled, neverCalledPromise)).toEqual(
-        true,
-      );
+      expect(version.checkVersion(1)).toEqual("normal");
       expect(version.value).toEqual(1);
-      // Subsequent successful request at same version
-      expect(version.checkVersion(1, neverCalled, neverCalledPromise)).toEqual(
-        true,
-      );
+      expect(version.checkVersion(1)).toEqual("normal");
       expect(version.value).toEqual(1);
     });
 
     it("version bump", () => {
-      expect(version.checkVersion(2, neverCalled, capture)).toEqual(false);
-      expect(captureVal).toEqual(true);
+      expect(version.checkVersion(2)).toEqual("mismatch");
       expect(() => {
         expect(version.value).toBeTruthy();
-      }).toThrow("Version is reset");
-      // interleaved prior version after bump before finishReset
-      expect(version.checkVersion(1, neverCalled, neverCalledPromise)).toEqual(
-        false,
-      );
-      expect(() => {
-        expect(version.value).toBeTruthy();
-      }).toThrow("Version is reset");
-      // subsequent bumped version request before finishReset
-      expect(version.checkVersion(2, neverCalled, neverCalledPromise)).toEqual(
-        false,
-      );
-      expect(() => {
-        expect(version.value).toBeTruthy();
-      }).toThrow("Version is reset");
-
-      // Will trigger finishReset
-      captureResolve();
+      }).toThrow("Version is not normal");
     });
-
-    it("finish reset", () => {
-      //version.finishReset();
+    it("prior version returns resetting", () => {
+      expect(version.checkVersion(1)).toEqual("resetting");
       expect(() => {
         expect(version.value).toBeTruthy();
-      }).toThrow("Version is reset");
+      }).toThrow("Version is not normal");
     });
-
-    it("post reset triggers onResetting at bumped version", () => {
-      expect(version.checkVersion(2, capture, neverCalledPromise)).toEqual(
-        false,
-      );
-      expect(captureVal).toEqual(true);
+    it("another mismatch returns resetting", () => {
+      expect(version.checkVersion(2)).toEqual("resetting");
       expect(() => {
         expect(version.value).toBeTruthy();
-      }).toThrow("Version is reset");
-    });
-
-    it("post reset triggers onResetting at prior version", () => {
-      expect(version.checkVersion(1, capture, neverCalledPromise)).toEqual(
-        false,
-      );
-      expect(captureVal).toEqual(true);
-      expect(() => {
-        expect(version.value).toBeTruthy();
-      }).toThrow("Version is reset");
+      }).toThrow("Version is not normal");
     });
   });
 });

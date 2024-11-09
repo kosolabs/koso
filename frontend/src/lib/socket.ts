@@ -64,10 +64,10 @@ export class KosoSocket {
     this.socket = socket;
     socket.binaryType = "arraybuffer";
 
-    socket.onopen = (event) => {
+    socket.onopen = async (event) => {
       console.debug("WebSocket opened", event);
       this.#setOnline();
-      this.koso.handleClientMessage((update) => {
+      await this.koso.handleClientMessage((update) => {
         if (socket.readyState == WebSocket.OPEN) {
           socket.send(update);
         } else {
@@ -79,9 +79,9 @@ export class KosoSocket {
       });
     };
 
-    socket.onmessage = (event) => {
+    socket.onmessage = async (event) => {
       if (event.data instanceof ArrayBuffer) {
-        this.koso.handleServerMessage(new Uint8Array(event.data));
+        await this.koso.handleServerMessage(new Uint8Array(event.data));
       } else {
         console.debug("Received text frame from server:", event.data);
       }

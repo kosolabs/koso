@@ -169,7 +169,7 @@ impl ProjectsState {
     /// the returned version number is monotonically increasing
     /// for any given project.
     fn project_version(&self, _project_id: &str) -> ProjectVersion {
-        1
+        2
     }
 
     pub(super) async fn close_all_project_clients(&self) {

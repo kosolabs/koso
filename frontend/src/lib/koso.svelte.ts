@@ -73,24 +73,15 @@ export type Progress = {
   lastStatusTime: number;
 };
 
-export class SyncState {
+export type SyncState = {
   // True when the indexed DB is sync'd with the Koso doc.
-  #indexedDbSync: boolean = false;
+  indexedDbSync: boolean;
   // True when state from the server is sync'd with the Koso doc.
-  #serverSync: boolean = false;
-
-  set indexedDbSync(indexedDbSync: boolean) {
-    this.#indexedDbSync = indexedDbSync;
-  }
-
-  set serverSync(serverSync: boolean) {
-    this.#serverSync = serverSync;
-  }
-
-  ready(): boolean {
-    return this.#indexedDbSync || this.#serverSync;
-  }
-}
+  serverSync: boolean;
+  // True when project version is loaded from indexed DB.
+  // Corresponds to koso.#version.ready() resolving.
+  versionSync: boolean;
+};
 
 export class Koso {
   #projectId: string;
@@ -134,7 +125,11 @@ export class Koso {
     }
     return this.#flatten(new Node(), this.expanded, this.showDone);
   });
-  #syncState: SyncState = $state(new SyncState());
+  #syncState: SyncState = $state({
+    serverSync: false,
+    indexedDbSync: false,
+    versionSync: false,
+  });
 
   // lifecycle functions
   // i.e., init functions and helpers, event handlers, and destructors
@@ -160,10 +155,20 @@ export class Koso {
         this.selected = null;
       }
     });
-    // #version must be instantiated before yIndexedDb to avoid races.
-    this.#version = new ProjectVersion(projectId);
     this.#yIndexedDb = new IndexeddbPersistence(`koso-${projectId}`, this.doc);
-    this.#yIndexedDb.get("version");
+
+    const versionKey = "koso-version";
+    this.#version = new ProjectVersion(
+      this.#yIndexedDb.get(versionKey).then((v) => {
+        return v || 0;
+      }),
+      (version) => {
+        return this.#yIndexedDb.set(versionKey, version).then(() => {});
+      },
+      () => {
+        this.syncState.versionSync = true;
+      },
+    );
 
     this.doc.on(
       "updateV2",
@@ -205,7 +210,9 @@ export class Koso {
     this.graph.unobserve(this.#observer);
   }
 
-  handleServerMessage(message: Uint8Array) {
+  async handleServerMessage(message: Uint8Array) {
+    await this.#version.ready();
+
     const decoder = decoding.createDecoder(message);
     const messageType = decoding.readVarUint(decoder);
     if (messageType === MSG_SYNC) {
@@ -260,25 +267,23 @@ export class Koso {
   // Returns true if the message should be processed or false if the
   // message should be discarded.
   maybeResetLocalProjectState(serverProjectVersion: number): boolean {
-    return this.#version.checkVersion(
-      serverProjectVersion,
-      // onResetting - reload.
-      () => {
+    const res = this.#version.checkVersion(serverProjectVersion);
+    if (res === "mismatch") {
+      // Tear down observers to stop processing updates.
+      this.doc.destroy();
+      this.#yIndexedDb.clearData().then(() => {
         window.location.reload();
-      },
-      // onMismatch - clear the local state and then reload.
-      () => {
-        // Tear down observers to stop processing updates.
-        this.doc.destroy();
-        return this.#yIndexedDb.clearData().then(() => {
-          this.#version.finishReset();
-          window.location.reload();
-        });
-      },
-    );
+      });
+      return false;
+    } else if (res === "resetting") {
+      return false;
+    }
+    return true;
   }
 
-  handleClientMessage(f: (message: Uint8Array) => void) {
+  async handleClientMessage(f: (message: Uint8Array) => void) {
+    await this.#version.ready();
+
     this.#clientMessageHandler = f;
 
     const encoder = encoding.createEncoder();
@@ -1307,75 +1312,66 @@ export class Koso {
   }
 }
 
-// Sentinel version set by the client, never the server,
-// when a version bump was detected.
-// If this version is observed during initialization in Koso's constructor,
-// it indicates a wipe was performed previously and initialization should
-// set the version to zero and proceed as normal.
-// Otherwise, at runtime, it indicates a reload is pending and in the interim,
-// any received messages should be discarded.
-const RESET_VERSION = -1;
-
 const UNINITIALIZED_VERSION = 0;
 
 export class ProjectVersion {
-  #storedVersion: Storable<number>;
   #version: number;
+  #state: "initializing" | "normal" | "resetting";
+  // Callback invoked to persist a new version.
+  #storeVersion: (version: number) => Promise<void>;
+  // Promise resolved when #version is initialized as normal.
+  #whenReady: Promise<void>;
 
-  constructor(projectId: string) {
-    this.#storedVersion = useLocalStorage<number>(
-      `project-version-${projectId}`,
-      UNINITIALIZED_VERSION,
-    );
-    const storedVersion = this.#storedVersion.value;
-    if (storedVersion === RESET_VERSION) {
-      this.#version = UNINITIALIZED_VERSION;
-      this.#storedVersion.value = this.#version;
-    } else {
-      this.#version = storedVersion;
-    }
+  constructor(
+    version: Promise<number>,
+    storeVersion: (version: number) => Promise<void>,
+    onReady: () => void,
+  ) {
+    this.#storeVersion = storeVersion;
+    this.#state = "initializing";
+    this.#version = -1;
+    this.#whenReady = version.then((version) => {
+      if (version < 0) throw new Error(`Invalid version ${version}`);
+      this.#version = version;
+      this.#state = "normal";
+      onReady();
+    });
   }
 
   get value(): number {
-    if (this.#version === RESET_VERSION) {
-      throw new Error("Version is reset");
+    if (this.#state !== "normal") {
+      throw new Error(`Version is not normal: ${this.#state}`);
     }
     return this.#version;
   }
 
-  finishReset() {
-    if (this.#version !== RESET_VERSION) {
-      throw new Error("Version isn't resetting yet");
-    }
-    this.#storedVersion.value = RESET_VERSION;
+  ready(): Promise<void> {
+    return this.#whenReady;
   }
 
-  checkVersion(
-    serverVersion: number,
-    onResetting: () => void,
-    onMismatch: () => Promise<void>,
-  ): boolean {
-    if (this.#storedVersion.value === RESET_VERSION) {
-      onResetting();
-      return false;
-    } else if (this.#version === RESET_VERSION) {
-      return false;
+  // Returns true if the given version matches the local ones.
+  // When a mismatch occurs
+  checkVersion(version: number): "mismatch" | "resetting" | "normal" {
+    if (this.#state === "initializing") {
+      throw new Error("Version is initializing");
+    } else if (this.#state === "resetting") {
+      return "resetting";
     } else if (this.#version === UNINITIALIZED_VERSION) {
-      this.#version = serverVersion;
-      this.#storedVersion.value = serverVersion;
-      return true;
+      if (version <= 0) {
+        throw new Error(`Invalid server version: ${version}`);
+      }
+      this.#storeVersion(version);
+      this.#version = version;
+      return "normal";
     } else {
-      if (serverVersion === this.#version) {
-        return true;
+      if (version === this.#version) {
+        return "normal";
       }
       console.log(
-        `Version mismatch detected, triggering onMismatch. Version: ${this.#version}, server version ${serverVersion}`,
+        `Version mismatch detected, triggering onMismatch. Version: ${this.#version}, server version ${version}`,
       );
-      this.#version = RESET_VERSION;
-      onMismatch().then(() => {
-        this.finishReset();
-      });
-      return false;
+      this.#state = "resetting";
+      return "mismatch";
     }
   }
 }
