@@ -3,8 +3,10 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use anyhow::Result;
+use yrs::types::ToJson;
 use yrs::Out;
-use yrs::{Any, ArrayPrelim, Doc, In, Map, MapPrelim, MapRef, ReadTxn, Transact, WriteTxn};
+use yrs::ReadTxn;
+use yrs::{Any, ArrayPrelim, In, Map, MapPrelim, MapRef, WriteTxn};
 
 pub(crate) struct Task<'a> {
     id: &'a str,
@@ -17,31 +19,22 @@ pub(crate) struct Task<'a> {
     status_time: Option<i64>,
 }
 
-pub(crate) struct YDocProxy<'a> {
-    doc: &'a Doc,
+pub(crate) struct YGraphProxy {
+    graph: MapRef,
 }
 
-impl<'a> YDocProxy<'a> {
-    pub fn transact(&self) -> YGraphProxy<'a> {
-        let txn: yrs::TransactionMut<'a> = self.doc.transact_mut();
-        YGraphProxy { txn }
-    }
-}
-
-pub(crate) struct YGraphProxy<'a> {
-    txn: yrs::TransactionMut<'a>,
-}
-
-impl<'a> YGraphProxy<'a> {
-    fn graph(&mut self) -> MapRef {
-        self.txn.get_or_insert_map("graph")
+impl YGraphProxy {
+    pub fn new(txn: &mut yrs::TransactionMut) -> Self {
+        YGraphProxy {
+            graph: txn.get_or_insert_map("graph"),
+        }
     }
 
-    pub fn size(&mut self) -> u32 {
-        self.graph().len(&self.txn)
+    pub fn size<T: ReadTxn>(&self, txn: &T) -> u32 {
+        self.graph.len(txn)
     }
 
-    pub fn set(&mut self, task: &Task) {
+    pub fn set(&self, txn: &mut yrs::TransactionMut, task: &Task) {
         let mut y_task: HashMap<String, In> = HashMap::new();
 
         y_task.insert("id".into(), task.id.into());
@@ -56,39 +49,42 @@ impl<'a> YGraphProxy<'a> {
         y_task.insert("status".into(), or_else_null(task.status));
         y_task.insert("statusTime".into(), or_else_null(task.status_time));
 
-        self.graph()
-            .insert(&mut self.txn, task.id, MapPrelim::from_iter(y_task));
+        self.graph
+            .insert(txn, task.id, MapPrelim::from_iter(y_task));
     }
 
-    pub fn has(&mut self, id: &str) -> bool {
-        let graph = self.txn.get_or_insert_map("graph");
-        let result = graph.get(&self.txn, id);
+    pub fn has<T: ReadTxn>(&self, txn: &T, id: &str) -> bool {
+        let result = self.graph.get(txn, id);
         result.is_some()
     }
 
-    pub fn get(&'a mut self, id: &str) -> Result<YTaskProxy<'a>> {
-        let Some(y_task) = self.graph().get(&self.txn, id) else {
+    pub fn get<T: ReadTxn>(&self, txn: &T, id: &str) -> Result<YTaskProxy> {
+        let Some(y_task) = self.graph.get(txn, id) else {
             return Err(anyhow!("task is missing: {id}"));
         };
         let y_task = match y_task {
             Out::YMap(map_ref) => map_ref,
             _ => return Err(anyhow!("task {id} is not a map")),
         };
-        Ok(YTaskProxy {
-            txn: &self.txn,
-            y_task,
-        })
+        Ok(YTaskProxy::new(y_task))
+    }
+
+    pub fn json<T: ReadTxn>(&self, txn: &T) -> Any {
+        self.graph.to_json(txn)
     }
 }
 
-pub(crate) struct YTaskProxy<'a> {
-    txn: &'a yrs::TransactionMut<'a>,
+pub(crate) struct YTaskProxy {
     y_task: MapRef,
 }
 
-impl<'a> YTaskProxy<'a> {
-    fn get_optional_string(self, field: &str) -> Result<Option<Arc<str>>> {
-        let Some(result) = self.y_task.get(self.txn, field) else {
+impl YTaskProxy {
+    pub fn new(y_task: MapRef) -> Self {
+        YTaskProxy { y_task }
+    }
+
+    fn get_optional_string<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<Arc<str>>> {
+        let Some(result) = self.y_task.get(txn, field) else {
             return Ok(None);
         };
         let Out::Any(Any::String(result)) = result else {
@@ -97,39 +93,39 @@ impl<'a> YTaskProxy<'a> {
         Ok(Some(result))
     }
 
-    fn get_string(self, field: &str) -> Result<Arc<str>> {
-        let Some(result) = self.get_optional_string(field)? else {
+    fn get_string<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Arc<str>> {
+        let Some(result) = self.get_optional_string(txn, field)? else {
             return Err(anyhow!("field is missing: {field}"));
         };
         Ok(result)
     }
 
-    pub fn get_id(self) -> Result<Arc<str>> {
-        self.get_string("id")
+    pub fn get_id<T: ReadTxn>(&self, txn: &T) -> Result<Arc<str>> {
+        self.get_string(txn, "id")
     }
 
-    pub fn get_num(self) -> Result<Arc<str>> {
-        self.get_string("num")
+    pub fn get_num<T: ReadTxn>(&self, txn: &T) -> Result<Arc<str>> {
+        self.get_string(txn, "num")
     }
 
-    pub fn get_name(self) -> Result<Arc<str>> {
-        self.get_string("name")
+    pub fn get_name<T: ReadTxn>(&self, txn: &T) -> Result<Arc<str>> {
+        self.get_string(txn, "name")
     }
 
-    pub fn get_assignee(self) -> Result<Option<Arc<str>>> {
-        self.get_optional_string("assignee")
+    pub fn get_assignee<T: ReadTxn>(&self, txn: &T) -> Result<Option<Arc<str>>> {
+        self.get_optional_string(txn, "assignee")
     }
 
-    pub fn get_reporter(self) -> Result<Option<Arc<str>>> {
-        self.get_optional_string("reporter")
+    pub fn get_reporter<T: ReadTxn>(&self, txn: &T) -> Result<Option<Arc<str>>> {
+        self.get_optional_string(txn, "reporter")
     }
 
-    pub fn get_status(self) -> Result<Option<Arc<str>>> {
-        self.get_optional_string("status")
+    pub fn get_status<T: ReadTxn>(&self, txn: &T) -> Result<Option<Arc<str>>> {
+        self.get_optional_string(txn, "status")
     }
 
-    pub fn get_status_time(self, field: &str) -> Result<Option<f64>> {
-        let Some(result) = self.y_task.get(self.txn, field) else {
+    pub fn get_status_time<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<f64>> {
+        let Some(result) = self.y_task.get(txn, field) else {
             return Ok(None);
         };
         let Out::Any(Any::Number(result)) = result else {
@@ -148,7 +144,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use yrs::{types::ToJson, Transact};
+    use yrs::{Doc, Transact};
 
     use super::*;
 
@@ -156,10 +152,11 @@ mod tests {
     fn it_works() {
         let doc = Doc::new();
 
-        {
-            let y_doc = YDocProxy { doc: &doc };
-            let mut y_graph = y_doc.transact();
-            y_graph.set(&Task {
+        let mut txn = doc.transact_mut();
+        let y_graph = YGraphProxy::new(&mut txn);
+        y_graph.set(
+            &mut txn,
+            &Task {
                 id: "1",
                 num: "1",
                 name: "Task 1",
@@ -168,26 +165,18 @@ mod tests {
                 reporter: Some("reporter@gmail.com"),
                 status: Some("Done"),
                 status_time: Some(23),
-            });
-        }
+            },
+        );
 
-        let graph = doc
-            .get_or_insert_map("graph")
-            .get(&doc.transact(), "1")
-            .unwrap()
-            .to_json(&doc.transact());
+        let graph = y_graph.json(&txn);
         println!("{:?}", graph);
 
-        {
-            let y_doc = YDocProxy { doc: &doc };
-            let mut y_graph = y_doc.transact();
-            let y_task = match y_graph.get("1") {
-                Ok(y_task) => y_task,
-                Err(e) => {
-                    panic!("Error getting task: {e}");
-                }
-            };
-            println!("{:?}", y_task.get_id());
-        }
+        let y_task = match y_graph.get(&txn, "1") {
+            Ok(y_task) => y_task,
+            Err(e) => {
+                panic!("Error getting task: {e}");
+            }
+        };
+        println!("{:?}", y_task.get_id(&txn));
     }
 }
