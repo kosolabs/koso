@@ -16,6 +16,7 @@ pub(crate) mod model;
 pub(crate) mod projects;
 pub(crate) mod users;
 pub(crate) mod ws;
+pub(crate) mod yproxy;
 
 pub(crate) type ApiResult<T> = Result<T, ErrorResponse>;
 
