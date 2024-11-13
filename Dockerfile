@@ -1,4 +1,4 @@
-FROM rust:1.82.0@sha256:33a0ea4769482be860174e1139c457bdcb2a236a988580a28c3a48824cbc17d6 AS backend
+FROM rust:1.82.0@sha256:3da385318a04f89f7a8e5d12b0c7091f1cafc5805e160451394926c12101cd7b AS backend
 WORKDIR /app
 
 # Setup dependencies and run a dummy build ahead
@@ -14,11 +14,11 @@ COPY backend/src ./src
 RUN cargo build --release
 
 # Build the sqlx binary, used to apply database migrations.
-FROM rust:1.82.0@sha256:33a0ea4769482be860174e1139c457bdcb2a236a988580a28c3a48824cbc17d6 AS sqlx
+FROM rust:1.82.0@sha256:3da385318a04f89f7a8e5d12b0c7091f1cafc5805e160451394926c12101cd7b AS sqlx
 WORKDIR /app
 RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres --root ./
 
-FROM node:23.1.0@sha256:840dad0077213cadd2d734d542ae11cd0f648200be29504eb1b6e2c995d2b75a AS frontend
+FROM node:23.1.0@sha256:99c5f40071f14c686b62d108a440aed65b786b8c928eb885ca16ca5685e5e33a AS frontend
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -38,7 +38,7 @@ RUN pnpm run build
 #
 # Use the :debug image to debug
 # https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images
-FROM gcr.io/distroless/cc-debian12@sha256:6f05aba4de16e89f8d879bf2a1364de3e41aba04f1dcbba8c75494f6134b4b13 AS runtime
+FROM gcr.io/distroless/cc-debian12@sha256:2fb69596e692931f909c4c69ab09e50608959eaf8898c44fa64db741a23588b0 AS runtime
 WORKDIR /app
 
 COPY --from=sqlx /app/bin/sqlx ./
