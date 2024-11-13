@@ -70,5 +70,6 @@ pub(crate) struct Task {
     pub(crate) assignee: Option<String>,
     pub(crate) reporter: Option<String>,
     pub(crate) status: Option<String>,
+    #[serde(rename(serialize = "statusTime", deserialize = "statusTime"))]
     pub(crate) status_time: Option<i64>,
 }

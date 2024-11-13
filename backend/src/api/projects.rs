@@ -20,10 +20,7 @@ use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
-use yrs::{
-    Any, ArrayPrelim, Doc, In, Map, MapPrelim, ReadTxn as _, StateVector, Transact as _,
-    WriteTxn as _,
-};
+use yrs::{Doc, ReadTxn as _, StateVector, Transact as _};
 
 use super::model::{Graph, ProjectExport, UpdateProjectUsersResponse};
 
@@ -295,9 +292,7 @@ async fn export_project(
 ) -> ApiResult<Json<ProjectExport>> {
     verify_access(pool, user, &project_id).await?;
 
-    let doc = collab.get_doc(&project_id).await?;
-    let mut graph = HashMap::new();
-    // TODO
+    let graph = collab.get_graph(&project_id).await?;
     Ok(Json(ProjectExport { project_id, graph }))
 }
 
