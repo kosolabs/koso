@@ -1,9 +1,9 @@
-use std::iter::zip;
 use std::sync::Arc;
 
 use anyhow::anyhow;
 use anyhow::Result;
 use similar::capture_diff_slices;
+use similar::Algorithm;
 use yrs::types::ToJson;
 use yrs::{Any, Array, ArrayRef, Map, MapRef, Out, ReadTxn, TransactionMut, WriteTxn};
 
@@ -33,69 +33,17 @@ impl YGraphProxy {
         self.graph.len(txn)
     }
 
-    pub fn set(&self, txn: &mut yrs::TransactionMut, task: Task) {
+    pub fn set(&self, txn: &mut yrs::TransactionMut, task: &Task) {
         let y_task: MapRef = self.graph.get_or_init(txn, task.id.as_ref());
-
-        y_task.try_update(txn, "id", task.id);
-        y_task.try_update(txn, "num", task.num);
-        y_task.try_update(txn, "name", task.name);
-
-        let y_children: ArrayRef = y_task.get_or_init(txn, "children");
-        let current_children: Vec<String> = y_children
-            .iter(txn)
-            .filter_map(|item| match item {
-                Out::Any(Any::String(s)) => Some(s.to_string()),
-                _ => None,
-            })
-            .collect();
-
-        if current_children != task.children {
-            let ops =
-                capture_diff_slices(similar::Algorithm::Myers, &current_children, &task.children)
-                    .into_iter()
-                    .rev()
-                    .collect::<Vec<_>>();
-
-            for ops in ops {
-                match ops {
-                    similar::DiffOp::Delete {
-                        old_index, old_len, ..
-                    } => {
-                        y_children.remove_range(txn, old_index as u32, old_len as u32);
-                    }
-                    similar::DiffOp::Insert {
-                        old_index,
-                        new_index,
-                        new_len,
-                    } => {
-                        y_children.insert_range(
-                            txn,
-                            old_index as u32,
-                            task.children[new_index..(new_index + new_len)].to_vec(),
-                        );
-                    }
-                    similar::DiffOp::Replace {
-                        old_index,
-                        old_len,
-                        new_index,
-                        new_len,
-                    } => {
-                        y_children.remove_range(txn, old_index as u32, old_len as u32);
-                        y_children.insert_range(
-                            txn,
-                            old_index as u32,
-                            task.children[new_index..(new_index + new_len)].to_vec(),
-                        );
-                    }
-                    _ => (),
-                }
-            }
-        }
-
-        y_task.try_update(txn, "assignee", or_else_null(task.assignee));
-        y_task.try_update(txn, "reporter", or_else_null(task.reporter));
-        y_task.try_update(txn, "status", or_else_null(task.status));
-        y_task.try_update(txn, "statusTime", or_else_null(task.status_time));
+        let y_task = YTaskProxy::new(y_task);
+        y_task.set_id(txn, &task.id);
+        y_task.set_num(txn, &task.num);
+        y_task.set_name(txn, &task.name);
+        y_task.set_children(txn, &task.children);
+        y_task.set_assignee(txn, task.assignee.as_deref());
+        y_task.set_reporter(txn, task.reporter.as_deref());
+        y_task.set_status(txn, task.status.as_deref());
+        y_task.set_status_time(txn, task.status_time);
     }
 
     pub fn has<T: ReadTxn>(&self, txn: &T, id: &str) -> bool {
@@ -128,14 +76,15 @@ impl YTaskProxy {
         YTaskProxy { y_task }
     }
 
-    fn get_optional_number<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<f64>> {
+    fn get_optional_number<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<i64>> {
         let Some(result) = self.y_task.get(txn, field) else {
             return Ok(None);
         };
         let Out::Any(Any::Number(result)) = result else {
             return Err(anyhow!("invalid field: {field}: {result}"));
         };
-        Ok(Some(result))
+
+        Ok(Some(result as i64))
     }
 
     fn get_optional_string<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<Arc<str>>> {
@@ -159,11 +108,15 @@ impl YTaskProxy {
         self.get_string(txn, "id")
     }
 
+    fn set_id(&self, txn: &mut TransactionMut, id: &str) {
+        self.y_task.try_update(txn, "id", id);
+    }
+
     pub fn get_num<T: ReadTxn>(&self, txn: &T) -> Result<Arc<str>> {
         self.get_string(txn, "num")
     }
 
-    pub fn set_num(&self, txn: &mut TransactionMut, num: Option<&str>) {
+    pub fn set_num(&self, txn: &mut TransactionMut, num: &str) {
         self.y_task.try_update(txn, "num", num);
     }
 
@@ -171,8 +124,80 @@ impl YTaskProxy {
         self.get_string(txn, "name")
     }
 
-    pub fn set_name(&self, txn: &mut TransactionMut, name: Option<&str>) {
+    pub fn set_name(&self, txn: &mut TransactionMut, name: &str) {
         self.y_task.try_update(txn, "name", name);
+    }
+
+    pub fn get_children<T: ReadTxn>(&self, txn: &T) -> Result<Vec<String>> {
+        let Some(y_children) = self.y_task.get(txn, "children") else {
+            return Ok(Vec::new());
+        };
+        let Out::YArray(y_children) = y_children else {
+            return Err(anyhow!("invalid field: children: {y_children}"));
+        };
+        y_children
+            .iter(txn)
+            .map(|item| match item {
+                Out::Any(Any::String(s)) => Ok(s.to_string()),
+                e => Err(anyhow!("invalid child: {e}")),
+            })
+            .collect()
+    }
+
+    pub fn set_children(&self, txn: &mut TransactionMut, new_children: &[String]) {
+        let y_children: ArrayRef = self.y_task.get_or_init(txn, "children");
+
+        let old_children = match self.get_children(txn) {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::warn!("invalid children: {e}, clobbering children");
+                y_children.remove_range(txn, 0, y_children.len(txn));
+                y_children.insert_range(txn, 0, new_children.to_vec());
+                return;
+            }
+        };
+
+        if old_children != *new_children {
+            let ops = capture_diff_slices(Algorithm::Myers, &old_children, new_children)
+                .into_iter()
+                .rev()
+                .collect::<Vec<_>>();
+
+            for ops in ops {
+                match ops {
+                    similar::DiffOp::Delete {
+                        old_index, old_len, ..
+                    } => {
+                        y_children.remove_range(txn, old_index as u32, old_len as u32);
+                    }
+                    similar::DiffOp::Insert {
+                        old_index,
+                        new_index,
+                        new_len,
+                    } => {
+                        y_children.insert_range(
+                            txn,
+                            old_index as u32,
+                            new_children[new_index..(new_index + new_len)].to_vec(),
+                        );
+                    }
+                    similar::DiffOp::Replace {
+                        old_index,
+                        old_len,
+                        new_index,
+                        new_len,
+                    } => {
+                        y_children.remove_range(txn, old_index as u32, old_len as u32);
+                        y_children.insert_range(
+                            txn,
+                            old_index as u32,
+                            new_children[new_index..(new_index + new_len)].to_vec(),
+                        );
+                    }
+                    _ => (),
+                }
+            }
+        }
     }
 
     pub fn get_assignee<T: ReadTxn>(&self, txn: &T) -> Result<Option<Arc<str>>> {
@@ -199,11 +224,11 @@ impl YTaskProxy {
         self.y_task.try_update(txn, "status", status);
     }
 
-    pub fn get_status_time<T: ReadTxn>(&self, txn: &T) -> Result<Option<f64>> {
+    pub fn get_status_time<T: ReadTxn>(&self, txn: &T) -> Result<Option<i64>> {
         self.get_optional_number(txn, "status_time")
     }
 
-    pub fn set_status_time(&self, txn: &mut TransactionMut, status_time: f64) {
+    pub fn set_status_time(&self, txn: &mut TransactionMut, status_time: Option<i64>) {
         self.y_task.try_update(txn, "status_time", status_time);
     }
 }
@@ -230,7 +255,7 @@ mod tests {
             let mut txn = doc.transact_mut();
             y_graph.set(
                 &mut txn,
-                Task {
+                &Task {
                     id: "1".into(),
                     num: "1".into(),
                     name: "Task 1".into(),
@@ -257,7 +282,7 @@ mod tests {
             let mut txn = doc.transact_mut();
             y_graph.set(
                 &mut txn,
-                Task {
+                &Task {
                     id: "1".into(),
                     num: "1".into(),
                     name: "Task 1-edited".into(),
