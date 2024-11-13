@@ -18,7 +18,6 @@ use axum::{
 };
 use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
-use std::collections::HashMap;
 use uuid::Uuid;
 use yrs::{Doc, ReadTxn as _, StateVector, Transact as _};
 

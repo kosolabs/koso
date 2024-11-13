@@ -1,11 +1,11 @@
-use std::sync::Arc;
-
+use super::model::Graph;
 use crate::api::model::Task;
 use anyhow::anyhow;
 use anyhow::Result;
 use similar::capture_diff_slices;
 use similar::Algorithm;
-use yrs::types::ToJson;
+use std::collections::HashMap;
+use std::sync::Arc;
 use yrs::{Any, Array, ArrayRef, Map, MapRef, Out, ReadTxn, TransactionMut, WriteTxn};
 
 pub(crate) struct YGraphProxy {
@@ -19,8 +19,12 @@ impl YGraphProxy {
         }
     }
 
-    pub fn size<T: ReadTxn>(&self, txn: &T) -> u32 {
-        self.graph.len(txn)
+    pub fn get_graph<T: ReadTxn>(&self, txn: &T) -> Result<Graph> {
+        let mut graph: Graph = HashMap::new();
+        for id in self.graph.keys(txn) {
+            graph.insert(id.to_string(), self.get(txn, id)?.get_task(txn)?);
+        }
+        Ok(graph)
     }
 
     pub fn set(&self, txn: &mut yrs::TransactionMut, task: &Task) {
@@ -36,11 +40,6 @@ impl YGraphProxy {
         y_task.set_status_time(txn, task.status_time);
     }
 
-    pub fn has<T: ReadTxn>(&self, txn: &T, id: &str) -> bool {
-        let result = self.graph.get(txn, id);
-        result.is_some()
-    }
-
     pub fn get<T: ReadTxn>(&self, txn: &T, id: &str) -> Result<YTaskProxy> {
         let Some(y_task) = self.graph.get(txn, id) else {
             return Err(anyhow!("task is missing: {id}"));
@@ -50,10 +49,6 @@ impl YGraphProxy {
             _ => return Err(anyhow!("task {id} is not a map")),
         };
         Ok(YTaskProxy::new(y_task))
-    }
-
-    pub fn json<T: ReadTxn>(&self, txn: &T) -> Any {
-        self.graph.to_json(txn)
     }
 }
 
@@ -66,25 +61,39 @@ impl YTaskProxy {
         YTaskProxy { y_task }
     }
 
+    pub fn get_task<T: ReadTxn>(&self, txn: &T) -> Result<Task> {
+        Ok(Task {
+            id: self.get_id(txn)?.to_string(),
+            num: self.get_num(txn)?.to_string(),
+            name: self.get_name(txn)?.to_string(),
+            children: self.get_children(txn)?,
+            assignee: self.get_assignee(txn)?.map(|s| s.to_string()),
+            reporter: self.get_reporter(txn)?.map(|s| s.to_string()),
+            status: self.get_status(txn)?.map(|s| s.to_string()),
+            status_time: self.get_status_time(txn)?,
+        })
+    }
+
     fn get_optional_number<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<i64>> {
         let Some(result) = self.y_task.get(txn, field) else {
             return Ok(None);
         };
-        let Out::Any(Any::Number(result)) = result else {
-            return Err(anyhow!("invalid field: {field}: {result}"));
-        };
-
-        Ok(Some(result as i64))
+        match result {
+            Out::Any(Any::Number(result)) => Ok(Some(result as i64)),
+            Out::Any(Any::Null) => Ok(None),
+            _ => Err(anyhow!("invalid field: {field}: {result:?}")),
+        }
     }
 
     fn get_optional_string<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<Arc<str>>> {
         let Some(result) = self.y_task.get(txn, field) else {
             return Ok(None);
         };
-        let Out::Any(Any::String(result)) = result else {
-            return Err(anyhow!("invalid field: {field}: {result}"));
-        };
-        Ok(Some(result))
+        match result {
+            Out::Any(Any::String(result)) => Ok(Some(result)),
+            Out::Any(Any::Null) => Ok(None),
+            _ => Err(anyhow!("invalid field: {field}: {result:?}")),
+        }
     }
 
     fn get_string<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Arc<str>> {
@@ -215,20 +224,17 @@ impl YTaskProxy {
     }
 
     pub fn get_status_time<T: ReadTxn>(&self, txn: &T) -> Result<Option<i64>> {
-        self.get_optional_number(txn, "status_time")
+        self.get_optional_number(txn, "statusTime")
     }
 
     pub fn set_status_time(&self, txn: &mut TransactionMut, status_time: Option<i64>) {
-        self.y_task.try_update(txn, "status_time", status_time);
+        self.y_task.try_update(txn, "statusTime", status_time);
     }
-}
-
-fn or_else_null<T: Into<Any>>(v: Option<T>) -> Any {
-    v.map(|v| v.into()).unwrap_or(Any::Null)
 }
 
 #[cfg(test)]
 mod tests {
+    use yrs::types::ToJson;
     use yrs::{updates::decoder::Decode, Doc, StateVector, Transact, Update};
 
     use super::*;
@@ -309,103 +315,5 @@ mod tests {
             }
         };
         println!("{:?}", y_task.y_task.to_json(&txn));
-    }
-
-    #[test]
-    fn sequence_diff_2() {
-        let a = vec!["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
-        let b = vec!["1", "2", "6", "7", "8", "9", "10", "3", "4", "5"];
-        let ops = capture_diff_slices(similar::Algorithm::Myers, &a, &b)
-            .into_iter()
-            .rev()
-            .collect::<Vec<_>>();
-        println!("{ops:?}");
-        let mut r: Vec<&str> = a.clone();
-        for op in ops {
-            match op {
-                similar::DiffOp::Delete {
-                    old_index,
-                    old_len,
-                    new_index,
-                } => {
-                    for _ in 0..old_len {
-                        r.remove(old_index);
-                    }
-                }
-                similar::DiffOp::Insert {
-                    old_index,
-                    new_index,
-                    new_len,
-                } => {
-                    for i in 0..new_len {
-                        r.insert(old_index + i, b[new_index + i]);
-                    }
-                }
-                similar::DiffOp::Replace {
-                    old_index,
-                    old_len,
-                    new_index,
-                    new_len,
-                } => {
-                    for _ in 0..old_len {
-                        r.remove(old_index);
-                    }
-                    for i in 0..new_len {
-                        r.insert(old_index + i, b[new_index + i]);
-                    }
-                }
-                _ => (),
-            }
-        }
-        println!("{r:?}")
-    }
-
-    #[test]
-    fn sequence_diff() {
-        let a = vec!["1", "2", "3", "4", "5", "6", "9", "10"];
-        let b = vec!["1", "3", "4", "7", "8", "10", "11", "12"];
-        let ops = capture_diff_slices(similar::Algorithm::Myers, &a, &b)
-            .into_iter()
-            .rev()
-            .collect::<Vec<_>>();
-        println!("{ops:?}");
-        let mut r: Vec<&str> = a.clone();
-        for op in ops {
-            match op {
-                similar::DiffOp::Delete {
-                    old_index,
-                    old_len,
-                    new_index,
-                } => {
-                    for _ in 0..old_len {
-                        r.remove(old_index);
-                    }
-                }
-                similar::DiffOp::Insert {
-                    old_index,
-                    new_index,
-                    new_len,
-                } => {
-                    for i in 0..new_len {
-                        r.insert(old_index + i, b[new_index + i]);
-                    }
-                }
-                similar::DiffOp::Replace {
-                    old_index,
-                    old_len,
-                    new_index,
-                    new_len,
-                } => {
-                    for _ in 0..old_len {
-                        r.remove(old_index);
-                    }
-                    for i in 0..new_len {
-                        r.insert(old_index + i, b[new_index + i]);
-                    }
-                }
-                _ => (),
-            }
-        }
-        println!("{r:?}")
     }
 }
