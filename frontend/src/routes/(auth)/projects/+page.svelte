@@ -9,7 +9,7 @@
     createProject as projectsCreateProject,
     type Project,
   } from "$lib/projects";
-  import { Layers, HardDriveUpload, PackagePlus } from "lucide-svelte";
+  import { HardDriveUpload, Layers, PackagePlus } from "lucide-svelte";
   import { toast } from "svelte-sonner";
 
   let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
@@ -27,6 +27,7 @@
           "Cannot create new project, you already have too many. Contact us for more!";
       } else if (
         err instanceof KosoError &&
+        // TODO: make this work, malformed_import is no longer returned
         err.hasReason("MALFORMED_IMPORT")
       ) {
         errorMessage =

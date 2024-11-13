@@ -4,7 +4,9 @@ use crate::{
         collab::{storage, Collab},
         google::User,
         model::{CreateProject, Project, ProjectUser, UpdateProjectUsers},
-        verify_access, ApiResult,
+        verify_access,
+        yproxy::YGraphProxy,
+        ApiResult,
     },
     postgres::list_project_users,
 };
@@ -23,7 +25,7 @@ use yrs::{
     WriteTxn as _,
 };
 
-use super::model::{ProjectExport, UpdateProjectUsersResponse};
+use super::model::{Graph, ProjectExport, UpdateProjectUsersResponse};
 
 pub(super) fn router() -> Router {
     Router::new()
@@ -82,85 +84,12 @@ async fn create_project_handler(
     validate_project_name(&project.name)?;
 
     let import_update = if let Some(import_data) = project.import_data {
-        let import_data: ProjectExport = match serde_json::from_str(&import_data) {
-            Ok(import_data) => import_data,
-            Err(err) => {
-                return Err(bad_request_error(
-                    "MALFORMED_IMPORT",
-                    &format!("Failed to parse import data as json: {}", err),
-                ))
-            }
-        };
-
-        let Any::Map(import_graph) = import_data.data else {
-            return Err(bad_request_error(
-                "MALFORMED_IMPORT",
-                "import_data.data must be a map field.",
-            ));
-        };
-
         let doc: Doc = Doc::new();
-        {
-            let mut txn: yrs::TransactionMut<'_> = doc.transact_mut();
-            let graph = txn.get_or_insert_map("graph");
-            for (id, import_task) in import_graph.iter() {
-                if id.is_empty() {
-                    return Err(bad_request_error(
-                        "MALFORMED_IMPORT",
-                        &format!("task id may not be empty, task: {}", import_task),
-                    ));
-                }
-                let Any::Map(import_task) = import_task else {
-                    return Err(bad_request_error(
-                        "MALFORMED_IMPORT",
-                        &format!("graph.{} mus tbe a map, but got {:?}", id, import_task),
-                    ));
-                };
-
-                // You might wonder, why not just directly turn import_task into a MapPrelim
-                // without handling every case below? Well, when doing so array values,
-                // specifically the "children" field, shows up in the doc as a literal
-                // array rather than a YArray which breaks our expectations in the
-                // frontend. So, instead, we explicitly handle every case here.
-                let mut task = HashMap::new();
-                for (k, v) in (**import_task).clone().into_iter() {
-                    let v = match v {
-                        Any::Null | Any::Bool(_) | Any::Number(_) | Any::String(_) => v.into(),
-                        Any::Array(values) => {
-                            let mut res: Vec<In> = Vec::with_capacity(values.len());
-                            for v in values.iter() {
-                                let Any::String(v) = v else {
-                                    return Err(bad_request_error(
-                                        "MALFORMED_IMPORT",
-                                        &format!(
-                                            "Invalid task {}. Key {} has invalid array value {}",
-                                            id, k, v
-                                        ),
-                                    ));
-                                };
-                                res.push(v.clone().into());
-                            }
-                            In::Array(ArrayPrelim::from(res))
-                        }
-                        _ => {
-                            return Err(bad_request_error(
-                                "MALFORMED_IMPORT",
-                                &format!("Invalid task {}. Key {} has invalid value {}", id, k, v),
-                            ))
-                        }
-                    };
-                    task.insert(k, v);
-                }
-
-                graph.insert(
-                    &mut txn,
-                    id.as_str(),
-                    MapPrelim::from_iter(task.into_iter()),
-                );
-            }
+        let mut txn: yrs::TransactionMut<'_> = doc.transact_mut();
+        let ygraph = YGraphProxy::new(&mut txn);
+        for import_task in import_data.graph.values() {
+            ygraph.set(&mut txn, import_task);
         }
-
-        let txn = doc.transact();
         Some(txn.encode_state_as_update_v2(&StateVector::default()))
     } else {
         None
@@ -336,10 +265,9 @@ async fn get_project_doc_handler(
     Extension(pool): Extension<&'static PgPool>,
     Extension(collab): Extension<Collab>,
     Path(project_id): Path<String>,
-) -> ApiResult<Json<yrs::Any>> {
+) -> ApiResult<Json<Graph>> {
     verify_access(pool, user, &project_id).await?;
-
-    Ok(Json(collab.get_doc(&project_id).await?))
+    Ok(Json(collab.get_graph(&project_id).await?))
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -368,10 +296,9 @@ async fn export_project(
     verify_access(pool, user, &project_id).await?;
 
     let doc = collab.get_doc(&project_id).await?;
-    Ok(Json(ProjectExport {
-        project_id,
-        data: doc,
-    }))
+    let mut graph = HashMap::new();
+    // TODO
+    Ok(Json(ProjectExport { project_id, graph }))
 }
 
 fn validate_project_name(name: &str) -> ApiResult<()> {

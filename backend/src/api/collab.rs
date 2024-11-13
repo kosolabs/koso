@@ -18,14 +18,12 @@ use crate::api::{
     self,
     collab::{
         client::{from_socket, CLOSE_UNAUTHORIZED},
-        client_messages::ClientMessage,
-        client_messages::ClientMessageProcessor,
-        doc_updates::DocUpdate,
-        doc_updates::DocUpdateProcessor,
+        client_messages::{ClientMessage, ClientMessageProcessor},
+        doc_updates::{DocUpdate, DocUpdateProcessor},
         projects_state::ProjectsState,
     },
     google::User,
-    model::ProjectId,
+    model::{Graph, ProjectId},
 };
 use anyhow::anyhow;
 use anyhow::Error;
@@ -146,5 +144,16 @@ impl Collab {
             return Err(anyhow!("No graph present in doc"));
         };
         Ok(graph.to_json(&txn))
+    }
+
+    pub(super) async fn get_graph(&self, project_id: &ProjectId) -> Result<Graph, Error> {
+        let (doc, _) = storage::load_doc(project_id, self.inner.pool).await?;
+        let txn = doc.transact();
+        let Some(graph) = txn.get_map("graph") else {
+            return Err(anyhow!("No graph present in doc"));
+        };
+        Ok(serde_json::from_str(&serde_json::to_string(
+            &graph.to_json(&txn),
+        )?)?)
     }
 }

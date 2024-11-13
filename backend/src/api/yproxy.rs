@@ -1,22 +1,12 @@
 use std::sync::Arc;
 
+use crate::api::model::Task;
 use anyhow::anyhow;
 use anyhow::Result;
 use similar::capture_diff_slices;
 use similar::Algorithm;
 use yrs::types::ToJson;
 use yrs::{Any, Array, ArrayRef, Map, MapRef, Out, ReadTxn, TransactionMut, WriteTxn};
-
-pub(crate) struct Task {
-    id: String,
-    num: String,
-    name: String,
-    children: Vec<String>,
-    assignee: Option<String>,
-    reporter: Option<String>,
-    status: Option<String>,
-    status_time: Option<i64>,
-}
 
 pub(crate) struct YGraphProxy {
     graph: MapRef,
