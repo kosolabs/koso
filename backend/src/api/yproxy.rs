@@ -1,21 +1,19 @@
-use std::collections::HashMap;
+use std::iter::zip;
 use std::sync::Arc;
 
 use anyhow::anyhow;
 use anyhow::Result;
 use yrs::types::ToJson;
-use yrs::Out;
-use yrs::ReadTxn;
-use yrs::{Any, ArrayPrelim, In, Map, MapPrelim, MapRef, WriteTxn};
+use yrs::{Any, Array, ArrayRef, Map, MapRef, Out, ReadTxn, TransactionMut, WriteTxn};
 
-pub(crate) struct Task<'a> {
-    id: &'a str,
-    num: &'a str,
-    name: &'a str,
-    children: Vec<&'a str>,
-    assignee: Option<&'a str>,
-    reporter: Option<&'a str>,
-    status: Option<&'a str>,
+pub(crate) struct Task {
+    id: String,
+    num: String,
+    name: String,
+    children: Vec<String>,
+    assignee: Option<String>,
+    reporter: Option<String>,
+    status: Option<String>,
     status_time: Option<i64>,
 }
 
@@ -34,23 +32,41 @@ impl YGraphProxy {
         self.graph.len(txn)
     }
 
-    pub fn set(&self, txn: &mut yrs::TransactionMut, task: &Task) {
-        let mut y_task: HashMap<String, In> = HashMap::new();
+    pub fn set(&self, txn: &mut yrs::TransactionMut, task: Task) {
+        let y_task: MapRef = self.graph.get_or_init(txn, task.id.as_ref());
 
-        y_task.insert("id".into(), task.id.into());
-        y_task.insert("num".into(), task.num.into());
-        y_task.insert("name".into(), task.name.into());
-        y_task.insert(
-            "children".into(),
-            In::Array(ArrayPrelim::from(task.children.clone())),
-        );
-        y_task.insert("assignee".into(), or_else_null(task.assignee));
-        y_task.insert("reporter".into(), or_else_null(task.reporter));
-        y_task.insert("status".into(), or_else_null(task.status));
-        y_task.insert("statusTime".into(), or_else_null(task.status_time));
+        y_task.try_update(txn, "id", task.id);
+        y_task.try_update(txn, "num", task.num);
+        y_task.try_update(txn, "name", task.name);
 
-        self.graph
-            .insert(txn, task.id, MapPrelim::from_iter(y_task));
+        let y_children: ArrayRef = y_task.get_or_init(txn, "children");
+        if y_children.len(txn) != task.children.len() as u32
+            || !zip(y_children.iter(txn), task.children.iter()).all(|(c, t)| match c {
+                Out::Any(Any::String(cv)) => cv.as_ref() == *t,
+                _ => false,
+            })
+        {
+            y_children.remove_range(txn, 0, y_children.len(txn));
+            y_children.insert_range(txn, 0, task.children.clone());
+        }
+
+        let current_children: Vec<String> = y_children
+            .iter(txn)
+            .filter_map(|item| match item {
+                Out::Any(Any::String(s)) => Some(s.to_string()),
+                _ => None,
+            })
+            .collect();
+
+        if current_children != task.children {
+            y_children.remove_range(txn, 0, y_children.len(txn));
+            y_children.insert_range(txn, 0, task.children);
+        }
+
+        y_task.try_update(txn, "assignee", or_else_null(task.assignee));
+        y_task.try_update(txn, "reporter", or_else_null(task.reporter));
+        y_task.try_update(txn, "status", or_else_null(task.status));
+        y_task.try_update(txn, "statusTime", or_else_null(task.status_time));
     }
 
     pub fn has<T: ReadTxn>(&self, txn: &T, id: &str) -> bool {
@@ -83,6 +99,16 @@ impl YTaskProxy {
         YTaskProxy { y_task }
     }
 
+    fn get_optional_number<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<f64>> {
+        let Some(result) = self.y_task.get(txn, field) else {
+            return Ok(None);
+        };
+        let Out::Any(Any::Number(result)) = result else {
+            return Err(anyhow!("invalid field: {field}: {result}"));
+        };
+        Ok(Some(result))
+    }
+
     fn get_optional_string<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<Arc<str>>> {
         let Some(result) = self.y_task.get(txn, field) else {
             return Ok(None);
@@ -108,69 +134,130 @@ impl YTaskProxy {
         self.get_string(txn, "num")
     }
 
+    pub fn set_num(&self, txn: &mut TransactionMut, num: Option<&str>) {
+        self.y_task.try_update(txn, "num", num);
+    }
+
     pub fn get_name<T: ReadTxn>(&self, txn: &T) -> Result<Arc<str>> {
         self.get_string(txn, "name")
+    }
+
+    pub fn set_name(&self, txn: &mut TransactionMut, name: Option<&str>) {
+        self.y_task.try_update(txn, "name", name);
     }
 
     pub fn get_assignee<T: ReadTxn>(&self, txn: &T) -> Result<Option<Arc<str>>> {
         self.get_optional_string(txn, "assignee")
     }
 
+    pub fn set_assignee(&self, txn: &mut TransactionMut, assignee: Option<&str>) {
+        self.y_task.try_update(txn, "assignee", assignee);
+    }
+
     pub fn get_reporter<T: ReadTxn>(&self, txn: &T) -> Result<Option<Arc<str>>> {
         self.get_optional_string(txn, "reporter")
+    }
+
+    pub fn set_reporter(&self, txn: &mut TransactionMut, reporter: Option<&str>) {
+        self.y_task.try_update(txn, "reporter", reporter);
     }
 
     pub fn get_status<T: ReadTxn>(&self, txn: &T) -> Result<Option<Arc<str>>> {
         self.get_optional_string(txn, "status")
     }
 
-    pub fn get_status_time<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<f64>> {
-        let Some(result) = self.y_task.get(txn, field) else {
-            return Ok(None);
-        };
-        let Out::Any(Any::Number(result)) = result else {
-            return Err(anyhow!("invalid field: {field}: {result}"));
-        };
-        Ok(Some(result))
+    pub fn set_status(&self, txn: &mut TransactionMut, status: Option<&str>) {
+        self.y_task.try_update(txn, "status", status);
+    }
+
+    pub fn get_status_time<T: ReadTxn>(&self, txn: &T) -> Result<Option<f64>> {
+        self.get_optional_number(txn, "status_time")
+    }
+
+    pub fn set_status_time(&self, txn: &mut TransactionMut, status_time: f64) {
+        self.y_task.try_update(txn, "status_time", status_time);
     }
 }
 
-fn or_else_null<T>(v: Option<T>) -> In
-where
-    T: Into<In>,
-{
-    v.map(|v| v.into()).unwrap_or(Any::Null.into())
+fn or_else_null<T: Into<Any>>(v: Option<T>) -> Any {
+    v.map(|v| v.into()).unwrap_or(Any::Null)
 }
 
 #[cfg(test)]
 mod tests {
-    use yrs::{Doc, Transact};
+    use yrs::{updates::decoder::Decode, Doc, StateVector, Transact, Update};
 
     use super::*;
 
     #[test]
     fn it_works() {
         let doc = Doc::new();
+        let y_graph = {
+            let mut txn = doc.transact_mut();
+            YGraphProxy::new(&mut txn)
+        };
 
-        let mut txn = doc.transact_mut();
-        let y_graph = YGraphProxy::new(&mut txn);
-        y_graph.set(
-            &mut txn,
-            &Task {
-                id: "1",
-                num: "1",
-                name: "Task 1",
-                children: vec!["2"],
-                assignee: Some("assigneed@gmail.com"),
-                reporter: Some("reporter@gmail.com"),
-                status: Some("Done"),
-                status_time: Some(23),
-            },
+        {
+            let mut txn = doc.transact_mut();
+            y_graph.set(
+                &mut txn,
+                Task {
+                    id: "1".into(),
+                    num: "1".into(),
+                    name: "Task 1".into(),
+                    children: vec!["2".into()],
+                    assignee: Some("assigneed@gmail.com".into()),
+                    reporter: Some("reporter@gmail.com".into()),
+                    status: Some("Done".into()),
+                    status_time: Some(23),
+                },
+            );
+
+            // let graph = y_graph.json(&txn);
+            // println!("{:?}", graph);
+        }
+
+        let sv: StateVector = doc.transact().state_vector();
+        let update = Update::decode_v2(
+            &doc.transact()
+                .encode_state_as_update_v2(&StateVector::default()),
         );
+        println!("1st update all: {update:?}");
 
-        let graph = y_graph.json(&txn);
-        println!("{:?}", graph);
+        {
+            let mut txn = doc.transact_mut();
+            y_graph.set(
+                &mut txn,
+                Task {
+                    id: "1".into(),
+                    num: "1".into(),
+                    name: "Task 1-edited".into(),
+                    children: vec!["2".into(), "3".into()],
+                    assignee: Some("assigneed@gmail.com".into()),
+                    reporter: Some("reporter@gmail.com".into()),
+                    status: Some("Done".into()),
+                    status_time: Some(23),
+                },
+            );
 
+            // let graph = y_graph.json(&txn);
+            // println!("{:?}", graph);
+        }
+
+        // {
+        //     let mut txn = doc.transact_mut();
+        //     let y_task = y_graph.get(&txn, "1").unwrap();
+        //     y_task.set_name(&mut txn, "Task 1-edited");
+        // }
+        {
+            let txn = doc.transact();
+            let update = Update::decode_v2(&txn.encode_state_as_update_v2(&StateVector::default()));
+            println!("2nd update all: {update:?}");
+            let update = Update::decode_v2(&txn.encode_state_as_update_v2(&sv));
+            println!("2nd update incremental: {update:?}");
+        }
+
+        let txn = doc.transact();
         let y_task = match y_graph.get(&txn, "1") {
             Ok(y_task) => y_task,
             Err(e) => {
