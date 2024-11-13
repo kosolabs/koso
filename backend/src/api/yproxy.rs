@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use anyhow::Result;
+use similar::capture_diff_slices;
 use yrs::types::ToJson;
 use yrs::{Any, Array, ArrayRef, Map, MapRef, Out, ReadTxn, TransactionMut, WriteTxn};
 
@@ -40,16 +41,6 @@ impl YGraphProxy {
         y_task.try_update(txn, "name", task.name);
 
         let y_children: ArrayRef = y_task.get_or_init(txn, "children");
-        if y_children.len(txn) != task.children.len() as u32
-            || !zip(y_children.iter(txn), task.children.iter()).all(|(c, t)| match c {
-                Out::Any(Any::String(cv)) => cv.as_ref() == *t,
-                _ => false,
-            })
-        {
-            y_children.remove_range(txn, 0, y_children.len(txn));
-            y_children.insert_range(txn, 0, task.children.clone());
-        }
-
         let current_children: Vec<String> = y_children
             .iter(txn)
             .filter_map(|item| match item {
@@ -59,8 +50,46 @@ impl YGraphProxy {
             .collect();
 
         if current_children != task.children {
-            y_children.remove_range(txn, 0, y_children.len(txn));
-            y_children.insert_range(txn, 0, task.children);
+            let ops =
+                capture_diff_slices(similar::Algorithm::Myers, &current_children, &task.children)
+                    .into_iter()
+                    .rev()
+                    .collect::<Vec<_>>();
+
+            for ops in ops {
+                match ops {
+                    similar::DiffOp::Delete {
+                        old_index, old_len, ..
+                    } => {
+                        y_children.remove_range(txn, old_index as u32, old_len as u32);
+                    }
+                    similar::DiffOp::Insert {
+                        old_index,
+                        new_index,
+                        new_len,
+                    } => {
+                        y_children.insert_range(
+                            txn,
+                            old_index as u32,
+                            task.children[new_index..(new_index + new_len)].to_vec(),
+                        );
+                    }
+                    similar::DiffOp::Replace {
+                        old_index,
+                        old_len,
+                        new_index,
+                        new_len,
+                    } => {
+                        y_children.remove_range(txn, old_index as u32, old_len as u32);
+                        y_children.insert_range(
+                            txn,
+                            old_index as u32,
+                            task.children[new_index..(new_index + new_len)].to_vec(),
+                        );
+                    }
+                    _ => (),
+                }
+            }
         }
 
         y_task.try_update(txn, "assignee", or_else_null(task.assignee));
@@ -264,6 +293,104 @@ mod tests {
                 panic!("Error getting task: {e}");
             }
         };
-        println!("{:?}", y_task.get_id(&txn));
+        println!("{:?}", y_task.y_task.to_json(&txn));
+    }
+
+    #[test]
+    fn sequence_diff_2() {
+        let a = vec!["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+        let b = vec!["1", "2", "6", "7", "8", "9", "10", "3", "4", "5"];
+        let ops = capture_diff_slices(similar::Algorithm::Myers, &a, &b)
+            .into_iter()
+            .rev()
+            .collect::<Vec<_>>();
+        println!("{ops:?}");
+        let mut r: Vec<&str> = a.clone();
+        for op in ops {
+            match op {
+                similar::DiffOp::Delete {
+                    old_index,
+                    old_len,
+                    new_index,
+                } => {
+                    for _ in 0..old_len {
+                        r.remove(old_index);
+                    }
+                }
+                similar::DiffOp::Insert {
+                    old_index,
+                    new_index,
+                    new_len,
+                } => {
+                    for i in 0..new_len {
+                        r.insert(old_index + i, b[new_index + i]);
+                    }
+                }
+                similar::DiffOp::Replace {
+                    old_index,
+                    old_len,
+                    new_index,
+                    new_len,
+                } => {
+                    for _ in 0..old_len {
+                        r.remove(old_index);
+                    }
+                    for i in 0..new_len {
+                        r.insert(old_index + i, b[new_index + i]);
+                    }
+                }
+                _ => (),
+            }
+        }
+        println!("{r:?}")
+    }
+
+    #[test]
+    fn sequence_diff() {
+        let a = vec!["1", "2", "3", "4", "5", "6", "9", "10"];
+        let b = vec!["1", "3", "4", "7", "8", "10", "11", "12"];
+        let ops = capture_diff_slices(similar::Algorithm::Myers, &a, &b)
+            .into_iter()
+            .rev()
+            .collect::<Vec<_>>();
+        println!("{ops:?}");
+        let mut r: Vec<&str> = a.clone();
+        for op in ops {
+            match op {
+                similar::DiffOp::Delete {
+                    old_index,
+                    old_len,
+                    new_index,
+                } => {
+                    for _ in 0..old_len {
+                        r.remove(old_index);
+                    }
+                }
+                similar::DiffOp::Insert {
+                    old_index,
+                    new_index,
+                    new_len,
+                } => {
+                    for i in 0..new_len {
+                        r.insert(old_index + i, b[new_index + i]);
+                    }
+                }
+                similar::DiffOp::Replace {
+                    old_index,
+                    old_len,
+                    new_index,
+                    new_len,
+                } => {
+                    for _ in 0..old_len {
+                        r.remove(old_index);
+                    }
+                    for i in 0..new_len {
+                        r.insert(old_index + i, b[new_index + i]);
+                    }
+                }
+                _ => (),
+            }
+        }
+        println!("{r:?}")
     }
 }
