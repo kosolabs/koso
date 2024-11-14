@@ -1,11 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
+import type { Readable } from "stream";
 import {
   getKosoGraph,
   getKosoProjectId,
   setupNewProject,
   tearDown,
 } from "./utils";
-import type { Readable } from "stream";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -35,12 +35,12 @@ test.describe("import export tests", () => {
     // Export the project
     const downloadPromise = download(page);
     await page.getByRole("button", { name: "Export Project" }).click();
-    const exportedProject = await downloadPromise;
-    expect(exportedProject.filename).toContain("export");
-    expect(exportedProject.data["project_id"]).toEqual(
+    const projectExport1 = await downloadPromise;
+    expect(projectExport1.filename).toContain("export");
+    expect(projectExport1.data["project_id"]).toEqual(
       await getKosoProjectId(page),
     );
-    expect(exportedProject.data["data"]).toEqual(await getKosoGraph(page));
+    expect(projectExport1.data["graph"]).toEqual(await getKosoGraph(page));
 
     // Import the project
     await page.goto("/projects");
@@ -48,22 +48,22 @@ test.describe("import export tests", () => {
     await page.getByRole("button", { name: "Import" }).click();
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles({
-      name: exportedProject.filename,
+      name: projectExport1.filename,
       mimeType: "json",
-      buffer: exportedProject.dataBuf,
+      buffer: projectExport1.dataBuf,
     });
     await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
 
     // Export the newly imported project.
     const downloadPromise2 = download(page);
     await page.getByRole("button", { name: "Export Project" }).click();
-    const exportedProject2 = await downloadPromise2;
-    expect(exportedProject2.filename).toContain("export");
-    expect(exportedProject2.data["project_id"]).toEqual(
+    const projectExport2 = await downloadPromise2;
+    expect(projectExport2.filename).toContain("export");
+    expect(projectExport2.data["project_id"]).toEqual(
       await getKosoProjectId(page),
     );
-    expect(exportedProject2.data["data"]).toEqual(await getKosoGraph(page));
-    expect(exportedProject2.data["data"]).toEqual(exportedProject.data["data"]);
+    expect(projectExport2.data["graph"]).toEqual(await getKosoGraph(page));
+    expect(projectExport2.data["graph"]).toEqual(projectExport1.data["graph"]);
 
     // Validate that a new task can be created
     await page.getByRole("button", { name: "Insert" }).last().click();
