@@ -53,7 +53,7 @@ pub(crate) struct User {
     pub(crate) picture: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
 pub(crate) struct ProjectExport {
     pub(crate) project_id: ProjectId,
     pub(crate) graph: Graph,
@@ -61,7 +61,7 @@ pub(crate) struct ProjectExport {
 
 pub(crate) type Graph = HashMap<String, Task>;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
 pub(crate) struct Task {
     pub(crate) id: String,
     pub(crate) num: String,

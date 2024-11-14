@@ -1,11 +1,9 @@
-use super::model::Graph;
-use crate::api::model::Task;
+use crate::api::model::{Graph, Task};
 use anyhow::anyhow;
 use anyhow::Result;
 use similar::capture_diff_slices;
 use similar::Algorithm;
 use std::collections::HashMap;
-use std::sync::Arc;
 use yrs::{Any, Array, ArrayRef, Map, MapRef, Out, ReadTxn, TransactionMut, WriteTxn};
 
 pub(crate) struct YGraphProxy {
@@ -63,13 +61,13 @@ impl YTaskProxy {
 
     pub fn get_task<T: ReadTxn>(&self, txn: &T) -> Result<Task> {
         Ok(Task {
-            id: self.get_id(txn)?.to_string(),
-            num: self.get_num(txn)?.to_string(),
-            name: self.get_name(txn)?.to_string(),
+            id: self.get_id(txn)?,
+            num: self.get_num(txn)?,
+            name: self.get_name(txn)?,
             children: self.get_children(txn)?,
-            assignee: self.get_assignee(txn)?.map(|s| s.to_string()),
-            reporter: self.get_reporter(txn)?.map(|s| s.to_string()),
-            status: self.get_status(txn)?.map(|s| s.to_string()),
+            assignee: self.get_assignee(txn)?,
+            reporter: self.get_reporter(txn)?,
+            status: self.get_status(txn)?,
             status_time: self.get_status_time(txn)?,
         })
     }
@@ -85,25 +83,25 @@ impl YTaskProxy {
         }
     }
 
-    fn get_optional_string<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<Arc<str>>> {
+    fn get_optional_string<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<String>> {
         let Some(result) = self.y_task.get(txn, field) else {
             return Ok(None);
         };
         match result {
-            Out::Any(Any::String(result)) => Ok(Some(result)),
+            Out::Any(Any::String(result)) => Ok(Some(result.to_string())),
             Out::Any(Any::Null) => Ok(None),
             _ => Err(anyhow!("invalid field: {field}: {result:?}")),
         }
     }
 
-    fn get_string<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Arc<str>> {
+    fn get_string<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<String> {
         let Some(result) = self.get_optional_string(txn, field)? else {
             return Err(anyhow!("field is missing: {field}"));
         };
         Ok(result)
     }
 
-    pub fn get_id<T: ReadTxn>(&self, txn: &T) -> Result<Arc<str>> {
+    pub fn get_id<T: ReadTxn>(&self, txn: &T) -> Result<String> {
         self.get_string(txn, "id")
     }
 
@@ -111,7 +109,7 @@ impl YTaskProxy {
         self.y_task.try_update(txn, "id", id);
     }
 
-    pub fn get_num<T: ReadTxn>(&self, txn: &T) -> Result<Arc<str>> {
+    pub fn get_num<T: ReadTxn>(&self, txn: &T) -> Result<String> {
         self.get_string(txn, "num")
     }
 
@@ -119,7 +117,7 @@ impl YTaskProxy {
         self.y_task.try_update(txn, "num", num);
     }
 
-    pub fn get_name<T: ReadTxn>(&self, txn: &T) -> Result<Arc<str>> {
+    pub fn get_name<T: ReadTxn>(&self, txn: &T) -> Result<String> {
         self.get_string(txn, "name")
     }
 
@@ -199,7 +197,7 @@ impl YTaskProxy {
         }
     }
 
-    pub fn get_assignee<T: ReadTxn>(&self, txn: &T) -> Result<Option<Arc<str>>> {
+    pub fn get_assignee<T: ReadTxn>(&self, txn: &T) -> Result<Option<String>> {
         self.get_optional_string(txn, "assignee")
     }
 
@@ -207,7 +205,7 @@ impl YTaskProxy {
         self.y_task.try_update(txn, "assignee", assignee);
     }
 
-    pub fn get_reporter<T: ReadTxn>(&self, txn: &T) -> Result<Option<Arc<str>>> {
+    pub fn get_reporter<T: ReadTxn>(&self, txn: &T) -> Result<Option<String>> {
         self.get_optional_string(txn, "reporter")
     }
 
@@ -215,7 +213,7 @@ impl YTaskProxy {
         self.y_task.try_update(txn, "reporter", reporter);
     }
 
-    pub fn get_status<T: ReadTxn>(&self, txn: &T) -> Result<Option<Arc<str>>> {
+    pub fn get_status<T: ReadTxn>(&self, txn: &T) -> Result<Option<String>> {
         self.get_optional_string(txn, "status")
     }
 
@@ -234,13 +232,11 @@ impl YTaskProxy {
 
 #[cfg(test)]
 mod tests {
-    use yrs::types::ToJson;
-    use yrs::{updates::decoder::Decode, Doc, StateVector, Transact, Update};
-
     use super::*;
+    use yrs::{Doc, Transact};
 
     #[test]
-    fn it_works() {
+    fn set_and_get_task_succeeds() {
         let doc = Doc::new();
         let y_graph = {
             let mut txn = doc.transact_mut();
@@ -252,68 +248,49 @@ mod tests {
             y_graph.set(
                 &mut txn,
                 &Task {
-                    id: "1".into(),
-                    num: "1".into(),
-                    name: "Task 1".into(),
-                    children: vec!["2".into()],
-                    assignee: Some("assigneed@gmail.com".into()),
-                    reporter: Some("reporter@gmail.com".into()),
-                    status: Some("Done".into()),
-                    status_time: Some(23),
+                    id: "id1".to_string(),
+                    num: "1".to_string(),
+                    name: "Task 1".to_string(),
+                    children: vec!["2".to_string()],
+                    assignee: Some("a@gmail.com".to_string()),
+                    reporter: Some("r@gmail.com".to_string()),
+                    status: Some("Done".to_string()),
+                    status_time: Some(1),
                 },
             );
-
-            // let graph = y_graph.json(&txn);
-            // println!("{:?}", graph);
         }
-
-        let sv: StateVector = doc.transact().state_vector();
-        let update = Update::decode_v2(
-            &doc.transact()
-                .encode_state_as_update_v2(&StateVector::default()),
-        );
-        println!("1st update all: {update:?}");
 
         {
             let mut txn = doc.transact_mut();
             y_graph.set(
                 &mut txn,
                 &Task {
-                    id: "1".into(),
-                    num: "1".into(),
-                    name: "Task 1-edited".into(),
-                    children: vec!["2".into(), "3".into()],
-                    assignee: Some("assigneed@gmail.com".into()),
-                    reporter: Some("reporter@gmail.com".into()),
-                    status: Some("Done".into()),
-                    status_time: Some(23),
+                    id: "id1".to_string(),
+                    num: "1".to_string(),
+                    name: "Task 1-edited".to_string(),
+                    children: vec!["2".to_string(), "3".to_string()],
+                    assignee: Some("a@gmail.com".to_string()),
+                    reporter: Some("r@gmail.com".to_string()),
+                    status: Some("Done".to_string()),
+                    status_time: Some(1),
                 },
             );
-
-            // let graph = y_graph.json(&txn);
-            // println!("{:?}", graph);
-        }
-
-        // {
-        //     let mut txn = doc.transact_mut();
-        //     let y_task = y_graph.get(&txn, "1").unwrap();
-        //     y_task.set_name(&mut txn, "Task 1-edited");
-        // }
-        {
-            let txn = doc.transact();
-            let update = Update::decode_v2(&txn.encode_state_as_update_v2(&StateVector::default()));
-            println!("2nd update all: {update:?}");
-            let update = Update::decode_v2(&txn.encode_state_as_update_v2(&sv));
-            println!("2nd update incremental: {update:?}");
         }
 
         let txn = doc.transact();
-        let y_task = match y_graph.get(&txn, "1") {
-            Ok(y_task) => y_task,
-            Err(e) => {
-                panic!("Error getting task: {e}");
+        let y_task = y_graph.get(&txn, "id1").unwrap();
+        assert_eq!(
+            y_task.get_task(&txn).unwrap(),
+            Task {
+                id: "id1".to_string(),
+                num: "1".to_string(),
+                name: "Task 1-edited".to_string(),
+                children: vec!["2".to_string(), "3".to_string()],
+                assignee: Some("a@gmail.com".to_string()),
+                reporter: Some("r@gmail.com".to_string()),
+                status: Some("Done".to_string()),
+                status_time: Some(1),
             }
-        };
-        println!("{:?}", y_task.y_task.to_json(&txn));
+        )
     }
 }

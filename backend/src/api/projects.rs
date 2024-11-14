@@ -3,7 +3,10 @@ use crate::{
         bad_request_error,
         collab::{storage, Collab},
         google::User,
-        model::{CreateProject, Project, ProjectUser, UpdateProjectUsers},
+        model::{
+            CreateProject, Graph, Project, ProjectExport, ProjectUser, UpdateProjectUsers,
+            UpdateProjectUsersResponse,
+        },
         verify_access,
         yproxy::YGraphProxy,
         ApiResult,
@@ -20,8 +23,6 @@ use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
 use yrs::{Doc, ReadTxn as _, StateVector, Transact as _};
-
-use super::model::{Graph, ProjectExport, UpdateProjectUsersResponse};
 
 pub(super) fn router() -> Router {
     Router::new()
