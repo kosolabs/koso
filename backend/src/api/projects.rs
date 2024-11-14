@@ -8,7 +8,7 @@ use crate::{
             UpdateProjectUsersResponse,
         },
         verify_access,
-        yproxy::YGraphProxy,
+        yproxy::YDocProxy,
         ApiResult,
     },
     postgres::list_project_users,
@@ -22,7 +22,7 @@ use axum::{
 use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
-use yrs::{Doc, ReadTxn as _, StateVector, Transact as _};
+use yrs::{ReadTxn as _, StateVector};
 
 pub(super) fn router() -> Router {
     Router::new()
@@ -80,11 +80,10 @@ async fn create_project_handler(
     validate_project_name(&project.name)?;
 
     let import_update = if let Some(import_data) = project.project_export {
-        let doc: Doc = Doc::new();
-        let mut txn: yrs::TransactionMut<'_> = doc.transact_mut();
-        let ygraph = YGraphProxy::new(&mut txn);
+        let ydoc = YDocProxy::new();
+        let mut txn: yrs::TransactionMut<'_> = ydoc.transact_mut();
         for import_task in import_data.graph.values() {
-            ygraph.set(&mut txn, import_task);
+            ydoc.set(&mut txn, import_task);
         }
         Some(txn.encode_state_as_update_v2(&StateVector::default()))
     } else {

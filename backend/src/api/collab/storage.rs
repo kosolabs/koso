@@ -1,7 +1,9 @@
 use crate::api::model::ProjectId;
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
-use yrs::{updates::decoder::Decode as _, Doc, Transact as _, Update};
+use yrs::{updates::decoder::Decode as _, Update};
+
+use super::YDocProxy;
 
 pub(super) async fn persist_update(
     project_id: &ProjectId,
@@ -20,20 +22,20 @@ pub(super) async fn persist_update(
     Ok(())
 }
 
-pub(super) async fn load_doc(project_id: &ProjectId, pool: &PgPool) -> Result<(Doc, usize)> {
+pub(super) async fn load_doc(project_id: &ProjectId, pool: &PgPool) -> Result<(YDocProxy, usize)> {
     let updates = load_raw_updates(project_id, pool).await?;
     let update_count = updates.len();
 
-    let doc = Doc::new();
+    let ydoc = YDocProxy::new();
     {
-        let mut txn = doc.transact_mut();
+        let mut txn = ydoc.transact_mut();
         for (update,) in updates {
             if let Err(e) = txn.apply_update(Update::decode_v2(&update)?) {
                 return Err(anyhow!("Failed to apply loaded update: {e}"));
             }
         }
     }
-    Result::Ok((doc, update_count))
+    Result::Ok((ydoc, update_count))
 }
 
 pub async fn load_updates(project_id: &ProjectId, pool: &PgPool) -> Result<Vec<Update>> {

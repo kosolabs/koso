@@ -1,20 +1,24 @@
 use crate::api::model::{Graph, Task};
-use anyhow::anyhow;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use similar::capture_diff_slices;
 use similar::Algorithm;
 use std::collections::HashMap;
-use yrs::{Any, Array, ArrayRef, Map, MapRef, Out, ReadTxn, TransactionMut, WriteTxn};
+use yrs::types::ToJson;
+use yrs::{
+    Any, Array, ArrayRef, Doc, Map, MapRef, Origin, Out, ReadTxn, Subscription, Transact,
+    TransactionAcqError, TransactionMut, UpdateEvent,
+};
 
-pub(crate) struct YGraphProxy {
+pub(crate) struct YDocProxy {
+    doc: Doc,
     graph: MapRef,
 }
 
-impl YGraphProxy {
-    pub fn new(txn: &mut yrs::TransactionMut) -> Self {
-        YGraphProxy {
-            graph: txn.get_or_insert_map("graph"),
-        }
+impl YDocProxy {
+    pub fn new() -> Self {
+        let doc = Doc::new();
+        let graph = doc.get_or_insert_map("graph");
+        YDocProxy { doc, graph }
     }
 
     pub fn get_graph<T: ReadTxn>(&self, txn: &T) -> Result<Graph> {
@@ -47,6 +51,29 @@ impl YGraphProxy {
             _ => return Err(anyhow!("task {id} is not a map")),
         };
         Ok(YTaskProxy::new(y_task))
+    }
+
+    pub fn observe_update_v2<F>(&self, f: F) -> Result<Subscription, TransactionAcqError>
+    where
+        F: Fn(&TransactionMut, &UpdateEvent) + Send + Sync + 'static,
+    {
+        self.doc.observe_update_v2(f)
+    }
+
+    pub fn to_json<T: ReadTxn>(&self, txn: &T) -> Any {
+        self.doc.to_json(txn)
+    }
+
+    pub fn transact(&self) -> yrs::Transaction<'_> {
+        self.doc.transact()
+    }
+
+    pub fn transact_mut(&self) -> TransactionMut<'_> {
+        self.doc.transact_mut()
+    }
+
+    pub fn transact_mut_with<T: Into<Origin>>(&self, origin: T) -> TransactionMut {
+        self.doc.transact_mut_with(origin)
     }
 }
 
@@ -233,19 +260,14 @@ impl YTaskProxy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use yrs::{Doc, Transact};
 
     #[test]
     fn set_and_get_task_succeeds() {
-        let doc = Doc::new();
-        let y_graph = {
-            let mut txn = doc.transact_mut();
-            YGraphProxy::new(&mut txn)
-        };
+        let ydoc = YDocProxy::new();
 
         {
-            let mut txn = doc.transact_mut();
-            y_graph.set(
+            let mut txn = ydoc.transact_mut();
+            ydoc.set(
                 &mut txn,
                 &Task {
                     id: "id1".to_string(),
@@ -261,8 +283,8 @@ mod tests {
         }
 
         {
-            let mut txn = doc.transact_mut();
-            y_graph.set(
+            let mut txn = ydoc.transact_mut();
+            ydoc.set(
                 &mut txn,
                 &Task {
                     id: "id1".to_string(),
@@ -277,8 +299,8 @@ mod tests {
             );
         }
 
-        let txn = doc.transact();
-        let y_task = y_graph.get(&txn, "id1").unwrap();
+        let txn = ydoc.transact();
+        let y_task = ydoc.get(&txn, "id1").unwrap();
         assert_eq!(
             y_task.get_task(&txn).unwrap(),
             Task {

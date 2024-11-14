@@ -25,7 +25,9 @@ use std::{
     },
 };
 use tokio::sync::{mpsc::Sender, Mutex};
-use yrs::{Doc, ReadTxn as _, StateVector, Transact as _, Update};
+use yrs::{ReadTxn as _, StateVector, Update};
+
+use super::YDocProxy;
 
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
@@ -185,7 +187,7 @@ impl ProjectState {
     async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {
         let mut doc_box = project.doc_box.lock().await;
         if let Some(doc_box) = doc_box.as_ref() {
-            return Ok(doc_box.doc.transact().state_vector());
+            return Ok(doc_box.ydoc.transact().state_vector());
         }
 
         // Load the doc if it wasn't already loaded by another client.
@@ -214,22 +216,22 @@ impl ProjectState {
             Err(e) => return Err(anyhow!("Failed to create observer: {e}")),
         };
 
-        let db = DocBox { doc, sub };
-        let sv = db.doc.transact().state_vector();
+        let db = DocBox { ydoc: doc, sub };
+        let sv = db.ydoc.transact().state_vector();
         *doc_box = Some(db);
         Ok(sv)
     }
 
     pub(super) async fn encode_state_as_update(&self, sv: &StateVector) -> Result<Vec<u8>> {
         let update = DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
-            .doc
+            .ydoc
             .transact()
             .encode_state_as_update_v2(sv);
         Ok(update)
     }
     pub(super) async fn apply_doc_update(&self, origin: YOrigin, update: Update) -> Result<()> {
         if let Err(e) = DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
-            .doc
+            .ydoc
             .transact_mut_with(origin.as_origin())
             .apply_update(update)
         {
@@ -317,7 +319,7 @@ impl Drop for ProjectState {
 }
 
 pub(crate) struct DocBox {
-    pub(crate) doc: Doc,
+    pub(crate) ydoc: YDocProxy,
     /// Subscription to observe changes to doc.
     #[allow(dead_code)]
     sub: Box<dyn Send>,
