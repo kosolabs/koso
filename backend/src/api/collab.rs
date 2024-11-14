@@ -138,6 +138,6 @@ impl Collab {
     pub(super) async fn get_graph(&self, project_id: &ProjectId) -> Result<Graph, Error> {
         let (ydoc, _) = storage::load_doc(project_id, self.inner.pool).await?;
         let txn = ydoc.transact();
-        ydoc.get_graph(&txn)
+        ydoc.to_graph(&txn)
     }
 }

@@ -1,9 +1,7 @@
 use crate::api::model::{Graph, Task};
 use anyhow::{anyhow, Result};
-use similar::capture_diff_slices;
-use similar::Algorithm;
+use similar::{capture_diff_slices, Algorithm};
 use std::collections::HashMap;
-use yrs::types::ToJson;
 use yrs::{
     Any, Array, ArrayRef, Doc, Map, MapRef, Origin, Out, ReadTxn, Subscription, Transact,
     TransactionAcqError, TransactionMut, UpdateEvent,
@@ -21,10 +19,10 @@ impl YDocProxy {
         YDocProxy { doc, graph }
     }
 
-    pub fn get_graph<T: ReadTxn>(&self, txn: &T) -> Result<Graph> {
+    pub fn to_graph<T: ReadTxn>(&self, txn: &T) -> Result<Graph> {
         let mut graph: Graph = HashMap::new();
         for id in self.graph.keys(txn) {
-            graph.insert(id.to_string(), self.get(txn, id)?.get_task(txn)?);
+            graph.insert(id.to_string(), self.get(txn, id)?.to_task(txn)?);
         }
         Ok(graph)
     }
@@ -60,10 +58,6 @@ impl YDocProxy {
         self.doc.observe_update_v2(f)
     }
 
-    pub fn to_json<T: ReadTxn>(&self, txn: &T) -> Any {
-        self.doc.to_json(txn)
-    }
-
     pub fn transact(&self) -> yrs::Transaction<'_> {
         self.doc.transact()
     }
@@ -86,7 +80,7 @@ impl YTaskProxy {
         YTaskProxy { y_task }
     }
 
-    pub fn get_task<T: ReadTxn>(&self, txn: &T) -> Result<Task> {
+    pub fn to_task<T: ReadTxn>(&self, txn: &T) -> Result<Task> {
         Ok(Task {
             id: self.get_id(txn)?,
             num: self.get_num(txn)?,
@@ -302,7 +296,7 @@ mod tests {
         let txn = ydoc.transact();
         let y_task = ydoc.get(&txn, "id1").unwrap();
         assert_eq!(
-            y_task.get_task(&txn).unwrap(),
+            y_task.to_task(&txn).unwrap(),
             Task {
                 id: "id1".to_string(),
                 num: "1".to_string(),

@@ -410,8 +410,8 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let sync_update = read_sync_update(socket_1).await;
     ydoc_1.transact_mut().apply_update(sync_update).unwrap();
     assert_eq!(
-        ydoc_1.to_json(&ydoc_1.transact()),
-        ydoc_2.to_json(&ydoc_2.transact())
+        ydoc_1.to_graph(&ydoc_1.transact()).unwrap(),
+        ydoc_2.to_graph(&ydoc_2.transact()).unwrap()
     );
 
     // Open a third socket and verify the sync
@@ -433,8 +433,8 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let sync_response = read_sync_response(socket_3).await;
     ydoc_3.transact_mut().apply_update(sync_response).unwrap();
     assert_eq!(
-        ydoc_1.to_json(&ydoc_1.transact()),
-        ydoc_3.to_json(&ydoc_3.transact())
+        ydoc_1.to_graph(&ydoc_1.transact()).unwrap(),
+        ydoc_3.to_graph(&ydoc_3.transact()).unwrap()
     );
 
     // Everything is up to date, subsequent syncs should yield empty updates.
@@ -511,12 +511,12 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
             .unwrap();
     }
     assert_eq!(
-        ydoc_1.to_json(&ydoc_1.transact()),
-        ydoc_3.to_json(&ydoc_3.transact())
+        ydoc_1.to_graph(&ydoc_1.transact()).unwrap(),
+        ydoc_3.to_graph(&ydoc_3.transact()).unwrap()
     );
     assert_eq!(
-        ydoc_1.to_json(&ydoc_1.transact()),
-        ydoc_2.to_json(&ydoc_2.transact())
+        ydoc_1.to_graph(&ydoc_1.transact()).unwrap(),
+        ydoc_2.to_graph(&ydoc_2.transact()).unwrap()
     );
 
     // Test other valid and invalid message types.
