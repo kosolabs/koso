@@ -26,8 +26,12 @@
       if (err instanceof KosoError && err.hasReason("TOO_MANY_PROJECTS")) {
         errorMessage =
           "Cannot create new project, you already have too many. Contact us for more!";
+      } else if (err instanceof KosoError && err.status === 422) {
+        errorMessage =
+          "The Koso export file is malformed. Verify the correct file was selected and try again.";
       } else {
         errorMessage = "Something went wrong. Please try again.";
+        console.warn(err);
       }
       return;
     }
@@ -75,7 +79,7 @@
 <Navbar />
 
 {#if errorMessage}
-  <div class="my-2 flex-grow-0">
+  <div class="m-4 flex-grow-0">
     <Alert variant="destructive">{errorMessage}</Alert>
   </div>
 {/if}
