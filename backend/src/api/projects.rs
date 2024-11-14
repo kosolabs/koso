@@ -79,7 +79,7 @@ async fn create_project_handler(
     }
     validate_project_name(&project.name)?;
 
-    let import_update = if let Some(import_data) = project.import_data {
+    let import_update = if let Some(import_data) = project.project_export {
         let doc: Doc = Doc::new();
         let mut txn: yrs::TransactionMut<'_> = doc.transact_mut();
         let ygraph = YGraphProxy::new(&mut txn);

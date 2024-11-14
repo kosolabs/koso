@@ -123,7 +123,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
         let project = project.as_object().unwrap();
         assert_eq!(project.get("name").unwrap().as_str().unwrap(), project_name);
         project
-            .get("project_id")
+            .get("projectId")
             .unwrap()
             .as_str()
             .unwrap()
@@ -142,7 +142,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
         let project: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
         let project = project.as_object().unwrap();
         assert_eq!(
-            project.get("project_id").unwrap().as_str().unwrap(),
+            project.get("projectId").unwrap().as_str().unwrap(),
             project_id
         );
         assert_eq!(project.get("name").unwrap().as_str().unwrap(), project_name);
@@ -156,7 +156,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .bearer_auth(&token)
             .header("Content-Type", "application/json")
             .body(format!(
-                "{{\"name\":\"{project_name}\", \"project_id\":\"{project_id}\"}}"
+                "{{\"name\":\"{project_name}\", \"projectId\":\"{project_id}\"}}"
             ))
             .send()
             .await
@@ -166,7 +166,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
         let project = project.as_object().unwrap();
         assert_eq!(project.get("name").unwrap().as_str().unwrap(), project_name);
         assert_eq!(
-            project.get("project_id").unwrap().as_str().unwrap(),
+            project.get("projectId").unwrap().as_str().unwrap(),
             project_id
         );
         project_name
@@ -181,7 +181,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .bearer_auth(&token)
             .header("Content-Type", "application/json")
             .body(format!(
-                "{{\"project_id\":\"{project_id}\", \"add_emails\":[\"{OTHER_USER_EMAIL}\"], \"remove_emails\":[\"does-not-exist@koso.app\"]}}"
+                "{{\"projectId\":\"{project_id}\", \"addEmails\":[\"{OTHER_USER_EMAIL}\"], \"removeEmails\":[\"does-not-exist@koso.app\"]}}"
             ))
             .send()
             .await
@@ -203,7 +203,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
         assert_eq!(projects.len(), 1);
         let project = projects.first().unwrap().as_object().unwrap();
         assert_eq!(
-            project.get("project_id").unwrap().as_str().unwrap(),
+            project.get("projectId").unwrap().as_str().unwrap(),
             project_id
         );
         assert_eq!(project.get("name").unwrap().as_str().unwrap(), project_name);
@@ -472,7 +472,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 
         let create_req = CreateProject {
             name: "Imported project".to_string(),
-            import_data: Some(export),
+            project_export: Some(export),
         };
         let res = client
             .post(format!("http://{addr}/api/projects"))

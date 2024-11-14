@@ -35,7 +35,7 @@
       }
       return;
     }
-    await goto(`/projects/${project.project_id}`);
+    await goto(`/projects/${project.projectId}`);
 
     toast.info("Project created!");
   }
@@ -50,6 +50,9 @@
     } catch (e) {
       errorMessage =
         "The Koso export file is malformed. Verify the correct file was selected and try again.";
+      toast.error(
+        "The Koso export file is malformed. Verify the correct file was selected and try again.",
+      );
       throw e;
     }
   }
@@ -136,7 +139,7 @@
             <Button
               variant="link"
               class="text-lg"
-              href="projects/{project.project_id}"
+              href="projects/{project.projectId}"
             >
               {project.name}
             </Button>

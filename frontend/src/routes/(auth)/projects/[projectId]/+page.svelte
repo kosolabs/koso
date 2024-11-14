@@ -16,6 +16,7 @@
     type Project,
     updateProject,
   } from "$lib/projects";
+  import { Action } from "$lib/shortcuts";
   import { KosoSocket } from "$lib/socket";
   import { FileDown, UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
@@ -23,7 +24,6 @@
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
   import UnauthorizedModal from "./unauthorized-modal.svelte";
-  import { Action } from "$lib/shortcuts";
 
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
@@ -50,10 +50,7 @@
   async function saveEditedProjectName(name: string) {
     let updatedProject;
     try {
-      updatedProject = await updateProject({
-        project_id: projectId,
-        name,
-      });
+      updatedProject = await updateProject({ projectId, name });
     } catch (err) {
       if (err instanceof KosoError && err.hasReason("EMPTY_NAME")) {
         toast.warning("Project name may not be blank.");

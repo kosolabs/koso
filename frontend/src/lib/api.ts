@@ -1,6 +1,6 @@
-import { logout_on_authentication_error } from "./errors";
 import { version } from "$app/environment";
 import { auth } from "./auth.svelte";
+import { logout_on_authentication_error } from "./errors";
 
 export type ErrorResponseBody = {
   status: number;
@@ -45,8 +45,7 @@ export function headers() {
  */
 export async function parse_response<T>(response: Response): Promise<T> {
   if (response.ok) {
-    const ret: T = await response.json();
-    return ret;
+    return response.json();
   }
 
   logout_on_authentication_error(response);
