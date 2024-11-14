@@ -1,0 +1,1 @@
+-- Do nothing here. The corresponding "up" file will handle presence of tables.
