@@ -18,16 +18,13 @@ use crate::api::{
     self,
     collab::{
         client::{from_socket, CLOSE_UNAUTHORIZED},
-        client_messages::ClientMessage,
-        client_messages::ClientMessageProcessor,
-        doc_updates::DocUpdate,
-        doc_updates::DocUpdateProcessor,
+        client_messages::{ClientMessage, ClientMessageProcessor},
+        doc_updates::{DocUpdate, DocUpdateProcessor},
         projects_state::ProjectsState,
     },
     google::User,
-    model::ProjectId,
+    model::{Graph, ProjectId},
 };
-use anyhow::anyhow;
 use anyhow::Error;
 use anyhow::Result;
 use axum::extract::ws::WebSocket;
@@ -37,8 +34,9 @@ use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
 use uuid::Uuid;
-use yrs::types::ToJson;
-use yrs::{ReadTxn, Transact};
+use yrs::Transact;
+
+use super::yproxy::YGraphProxy;
 
 #[derive(Clone)]
 pub(crate) struct Collab {
@@ -139,12 +137,10 @@ impl Collab {
         }
     }
 
-    pub(super) async fn get_doc(&self, project_id: &ProjectId) -> Result<yrs::Any, Error> {
+    pub(super) async fn get_graph(&self, project_id: &ProjectId) -> Result<Graph, Error> {
         let (doc, _) = storage::load_doc(project_id, self.inner.pool).await?;
-        let txn = doc.transact();
-        let Some(graph) = txn.get_map("graph") else {
-            return Err(anyhow!("No graph present in doc"));
-        };
-        Ok(graph.to_json(&txn))
+        let mut txn = doc.transact_mut();
+        let y_graph = YGraphProxy::new(&mut txn);
+        y_graph.get_graph(&txn)
     }
 }

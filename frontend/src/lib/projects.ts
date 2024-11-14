@@ -1,4 +1,4 @@
-import { parse_response, headers } from "./api";
+import { headers, parse_response } from "./api";
 import { type User } from "./auth.svelte";
 
 export type Project = {
@@ -14,7 +14,7 @@ export type UpdateProjectUsers = {
 
 export type ProjectExport = {
   project_id: string;
-  data: unknown;
+  graph: unknown;
 };
 
 export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>
@@ -37,7 +37,7 @@ export async function fetchProject(projectId: string): Promise<Project> {
 }
 
 export async function createProject(
-  import_data: string | null = null,
+  projectExport: ProjectExport | null = null,
 ): Promise<Project> {
   const response = await fetch("/api/projects", {
     method: "POST",
@@ -45,7 +45,7 @@ export async function createProject(
       ...headers(),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ name: "My Project!", import_data }),
+    body: JSON.stringify({ name: "My Project!", import_data: projectExport }),
   });
   return parse_response(response);
 }

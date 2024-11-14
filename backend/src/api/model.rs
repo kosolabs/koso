@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 pub(crate) type ProjectId = String;
 
@@ -11,7 +11,7 @@ pub(crate) struct Project {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct CreateProject {
     pub(crate) name: String,
-    pub(crate) import_data: Option<String>,
+    pub(crate) import_data: Option<ProjectExport>,
 }
 
 impl fmt::Debug for CreateProject {
@@ -53,8 +53,23 @@ pub(crate) struct User {
     pub(crate) picture: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
 pub(crate) struct ProjectExport {
     pub(crate) project_id: ProjectId,
-    pub(crate) data: yrs::Any,
+    pub(crate) graph: Graph,
+}
+
+pub(crate) type Graph = HashMap<String, Task>;
+
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+pub(crate) struct Task {
+    pub(crate) id: String,
+    pub(crate) num: String,
+    pub(crate) name: String,
+    pub(crate) children: Vec<String>,
+    pub(crate) assignee: Option<String>,
+    pub(crate) reporter: Option<String>,
+    pub(crate) status: Option<String>,
+    #[serde(rename(serialize = "statusTime", deserialize = "statusTime"))]
+    pub(crate) status_time: Option<i64>,
 }

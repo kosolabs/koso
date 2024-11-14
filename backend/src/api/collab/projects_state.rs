@@ -156,10 +156,10 @@ impl ProjectsState {
     }
 }
 
-pub(super) struct ProjectState {
-    pub(super) project_id: ProjectId,
+pub(crate) struct ProjectState {
+    pub(crate) project_id: ProjectId,
     clients: Mutex<HashMap<String, ClientSender>>,
-    doc_box: Mutex<Option<DocBox>>,
+    pub(crate) doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
     doc_update_tx: Sender<DocUpdate>,
     pool: &'static PgPool,
@@ -316,8 +316,8 @@ impl Drop for ProjectState {
     }
 }
 
-struct DocBox {
-    doc: Doc,
+pub(crate) struct DocBox {
+    pub(crate) doc: Doc,
     /// Subscription to observe changes to doc.
     #[allow(dead_code)]
     sub: Box<dyn Send>,

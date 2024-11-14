@@ -2,7 +2,8 @@ use crate::{
     api::{
         collab::msg_sync::{self, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
         google::test_utils::{encode_token, testonly_key_set, Claims, KID_1, PEM_1},
-        model::{CreateProject, Project, ProjectExport},
+        model::{CreateProject, Project, ProjectExport, Task},
+        yproxy::YGraphProxy,
     },
     server::{self, Config},
 };
@@ -340,18 +341,44 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let socket_1 = &mut socket_1;
     assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
     let doc_1: Doc = Doc::new();
-    doc_1.transact_mut().get_or_insert_map("graph");
+    {
+        let mut txn_1 = doc_1.transact_mut();
+        YGraphProxy::new(&mut txn_1);
+    }
 
     let (mut socket_2, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
     let socket_2 = &mut socket_2;
     assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
     let doc_2: Doc = Doc::new();
-    doc_2.transact_mut().get_or_insert_map("graph");
     {
-        let mut txn = doc_2.transact_mut();
-        let graph = txn.get_or_insert_map("graph");
-        graph.insert(&mut txn, "entry1", MapPrelim::from([("inner", "value1")]));
-        graph.insert(&mut txn, "entry2", MapPrelim::from([("inner", "value2")]));
+        let mut txn_2 = doc_2.transact_mut();
+        let y_graph_2 = YGraphProxy::new(&mut txn_2);
+        y_graph_2.set(
+            &mut txn_2,
+            &Task {
+                id: "id1".to_string(),
+                num: "1".to_string(),
+                name: "Task 1".to_string(),
+                children: vec!["id2".to_string()],
+                assignee: Some("a@koso.app".to_string()),
+                reporter: Some("r@koso.app".to_string()),
+                status: None,
+                status_time: None,
+            },
+        );
+        y_graph_2.set(
+            &mut txn_2,
+            &Task {
+                id: "id2".to_string(),
+                num: "2".to_string(),
+                name: "Task 2".to_string(),
+                children: vec![],
+                assignee: Some("a@koso.app".to_string()),
+                reporter: Some("r@koso.app".to_string()),
+                status: None,
+                status_time: None,
+            },
+        );
     }
 
     // Read the initial sync_request.
@@ -398,7 +425,10 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let socket_3 = &mut socket_3;
     assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
     let doc_3: Doc = Doc::new();
-    doc_3.transact_mut().get_or_insert_map("graph");
+    {
+        let mut txn_3 = doc_3.transact_mut();
+        YGraphProxy::new(&mut txn_3);
+    }
     assert_eq!(
         read_sync_request(socket_3).await,
         doc_1.transact().state_vector()
@@ -442,7 +472,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 
         let create_req = CreateProject {
             name: "Imported project".to_string(),
-            import_data: Some(serde_json::to_string(&export).unwrap()),
+            import_data: Some(export),
         };
         let res = client
             .post(format!("http://{addr}/api/projects"))

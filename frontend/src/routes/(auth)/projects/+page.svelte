@@ -8,31 +8,30 @@
     fetchProjects,
     createProject as projectsCreateProject,
     type Project,
+    type ProjectExport,
   } from "$lib/projects";
-  import { Layers, HardDriveUpload, PackagePlus } from "lucide-svelte";
+  import { HardDriveUpload, Layers, PackagePlus } from "lucide-svelte";
   import { toast } from "svelte-sonner";
 
   let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
   let projects: Promise<Project[]> = fetchProjects();
   let errorMessage: string | null = null;
 
-  async function createProject(import_data: string | null = null) {
+  async function createProject(projectExport: ProjectExport | null = null) {
     errorMessage = null;
     let project;
     try {
-      project = await projectsCreateProject(import_data);
+      project = await projectsCreateProject(projectExport);
     } catch (err) {
       if (err instanceof KosoError && err.hasReason("TOO_MANY_PROJECTS")) {
         errorMessage =
           "Cannot create new project, you already have too many. Contact us for more!";
-      } else if (
-        err instanceof KosoError &&
-        err.hasReason("MALFORMED_IMPORT")
-      ) {
+      } else if (err instanceof KosoError && err.status === 422) {
         errorMessage =
-          "The selected import file is malformed. Verify the correct file was selected and try again.";
+          "The Koso export file is malformed. Verify the correct file was selected and try again.";
       } else {
         errorMessage = "Something went wrong. Please try again.";
+        console.warn(err);
       }
       return;
     }
@@ -43,6 +42,16 @@
 
   function triggerFileSelect() {
     document.getElementById("projectImportFileInput")?.click();
+  }
+
+  function parseProjectExport(data: string) {
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      errorMessage =
+        "The Koso export file is malformed. Verify the correct file was selected and try again.";
+      throw e;
+    }
   }
 
   async function importProject(
@@ -62,14 +71,15 @@
       return;
     }
 
-    await createProject(await file.text());
+    let projectExport = parseProjectExport(await file.text());
+    await createProject(projectExport);
   }
 </script>
 
 <Navbar />
 
 {#if errorMessage}
-  <div class="my-2 flex-grow-0">
+  <div class="m-4 flex-grow-0">
     <Alert variant="destructive">{errorMessage}</Alert>
   </div>
 {/if}
