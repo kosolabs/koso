@@ -4,3 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.93"
+jsonwebtoken = "9.3.0"
+octocrab = "0.42.0"
+test-log = { version = "0.2.16", features = ["trace"] }
+tokio = { version = "1.41.1", features = ["macros"] }
+tracing = "0.1.40"
