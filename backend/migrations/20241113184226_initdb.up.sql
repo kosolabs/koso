@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS users (
     email varchar(320) NOT NULL,
     name varchar(255) NOT NULL,
-    picture varchar(2048),
+    picture varchar(2048) NOT NULL,
     PRIMARY KEY (email)
 );
 

@@ -10,8 +10,8 @@ VALUES
   ('koso-staging', 'shadanan@gmail.com');
 
 INSERT INTO users
-  (email, name)
+  (email, name, picture)
 VALUES
-  ('leonhard.kyle@gmail.com', 'Kyle Leonhard'),
-  ('shadanan@gmail.com', 'Shad Sharma')
+  ('leonhard.kyle@gmail.com', 'Kyle Leonhard', 'https://lh3.googleusercontent.com/a/ACg8ocIIqNHG-bPON1NKXNOCiJR8fCS_ze3iIAsCvunJ4_kyhKJXFA=s96-c'),
+  ('shadanan@gmail.com', 'Shad Sharma', 'https://lh3.googleusercontent.com/a/ACg8ocIRfl1MJrdKF_V8e46SQijmFzs1JoEaQLogCsOEIYC-T2Hk2xcPKw=s96-c')
 ON CONFLICT DO NOTHING;
