@@ -4,7 +4,7 @@ use crate::{
         collab::{storage, Collab},
         google::User,
         model::{
-            CreateProject, Graph, Project, ProjectExport, ProjectUser, UpdateProjectUsers,
+            CreateProject, Project, ProjectExport, ProjectUser, UpdateProjectUsers,
             UpdateProjectUsersResponse,
         },
         verify_access,
@@ -32,7 +32,6 @@ pub(super) fn router() -> Router {
         .route("/:project_id", patch(update_project_handler))
         .route("/:project_id/users", patch(update_project_users_handler))
         .route("/:project_id/users", get(list_project_users_handler))
-        .route("/:project_id/doc", get(get_project_doc_handler))
         .route("/:project_id/updates", get(get_project_doc_updates_handler))
         .route("/:project_id/export", get(export_project))
 }
@@ -254,17 +253,6 @@ async fn update_project_users_handler(
     txn.commit().await?;
 
     Ok(Json(UpdateProjectUsersResponse {}))
-}
-
-#[tracing::instrument(skip(user, pool, collab))]
-async fn get_project_doc_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-    Extension(collab): Extension<Collab>,
-    Path(project_id): Path<String>,
-) -> ApiResult<Json<Graph>> {
-    verify_access(pool, user, &project_id).await?;
-    Ok(Json(collab.get_graph(&project_id).await?))
 }
 
 #[tracing::instrument(skip(user, pool))]
