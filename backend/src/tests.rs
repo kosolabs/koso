@@ -479,14 +479,14 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     }
 
     // Apply enough updates to trigger compaction on shutdown.
-    for _ in 0..10 {
+    for i in 0..10 {
         let mut txn = ydoc_1.transact_mut();
         ydoc_1.set(
             &mut txn,
             &Task {
-                id: "id1".to_string(),
-                num: "1".to_string(),
-                name: "Task 1".to_string(),
+                id: format!("id{i}"),
+                num: format!("{i}"),
+                name: format!("Task {i}"),
                 children: vec![],
                 assignee: None,
                 reporter: None,
