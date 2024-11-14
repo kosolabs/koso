@@ -1,20 +1,21 @@
-import { headers, parse_response } from "./api";
-import { type User } from "./auth.svelte";
+import { headers, parse_response } from "$lib/api";
+import { type User } from "$lib/auth.svelte";
+import type { Graph } from "$lib/yproxy";
 
 export type Project = {
-  project_id: string;
+  projectId: string;
   name: string;
 };
 
 export type UpdateProjectUsers = {
-  project_id: string;
-  add_emails: string[];
-  remove_emails: string[];
+  projectId: string;
+  addEmails: string[];
+  removeEmails: string[];
 };
 
 export type ProjectExport = {
-  project_id: string;
-  graph: unknown;
+  projectId: string;
+  graph: Graph;
 };
 
 export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>
@@ -45,13 +46,13 @@ export async function createProject(
       ...headers(),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ name: "My Project!", import_data: projectExport }),
+    body: JSON.stringify({ name: "My Project!", projectExport }),
   });
   return parse_response(response);
 }
 
 export async function updateProject(project: Project): Promise<Project> {
-  const response = await fetch(`/api/projects/${project.project_id}`, {
+  const response = await fetch(`/api/projects/${project.projectId}`, {
     method: "PATCH",
     headers: {
       ...headers(),
@@ -74,7 +75,7 @@ export async function fetchProjectUsers(projectId: string): Promise<User[]> {
 export async function updateProjectUsers(
   update: UpdateProjectUsers,
 ): Promise<void> {
-  const response = await fetch(`/api/projects/${update.project_id}/users`, {
+  const response = await fetch(`/api/projects/${update.projectId}/users`, {
     method: "PATCH",
     headers: {
       ...headers(),

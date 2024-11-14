@@ -1,3 +1,4 @@
+import type { ProjectExport } from "$lib/projects";
 import { expect, test, type Page } from "@playwright/test";
 import type { Readable } from "stream";
 import {
@@ -37,10 +38,8 @@ test.describe("import export tests", () => {
     await page.getByRole("button", { name: "Export Project" }).click();
     const projectExport1 = await downloadPromise;
     expect(projectExport1.filename).toContain("export");
-    expect(projectExport1.data["project_id"]).toEqual(
-      await getKosoProjectId(page),
-    );
-    expect(projectExport1.data["graph"]).toEqual(await getKosoGraph(page));
+    expect(projectExport1.data.projectId).toEqual(await getKosoProjectId(page));
+    expect(projectExport1.data.graph).toEqual(await getKosoGraph(page));
 
     // Import the project
     await page.goto("/projects");
@@ -59,11 +58,9 @@ test.describe("import export tests", () => {
     await page.getByRole("button", { name: "Export Project" }).click();
     const projectExport2 = await downloadPromise2;
     expect(projectExport2.filename).toContain("export");
-    expect(projectExport2.data["project_id"]).toEqual(
-      await getKosoProjectId(page),
-    );
-    expect(projectExport2.data["graph"]).toEqual(await getKosoGraph(page));
-    expect(projectExport2.data["graph"]).toEqual(projectExport1.data["graph"]);
+    expect(projectExport2.data.projectId).toEqual(await getKosoProjectId(page));
+    expect(projectExport2.data.graph).toEqual(await getKosoGraph(page));
+    expect(projectExport2.data.graph).toEqual(projectExport1.data.graph);
 
     // Validate that a new task can be created
     await page.getByRole("button", { name: "Insert" }).last().click();
@@ -75,8 +72,7 @@ test.describe("import export tests", () => {
 type DownloadedProjectExport = {
   filename: string;
   dataBuf: Buffer;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: any;
+  data: ProjectExport;
 };
 
 async function download(page: Page): Promise<DownloadedProjectExport> {

@@ -36,7 +36,7 @@
     // If there's only 1 project, go to it.
     const projects = await fetchProjects();
     if (projects.length == 1) {
-      const onlyProjectId = projects[0].project_id;
+      const onlyProjectId = projects[0].projectId;
       console.debug(`Going to singular project: ${onlyProjectId}`);
       await goto(`/projects/${onlyProjectId}`);
       return;

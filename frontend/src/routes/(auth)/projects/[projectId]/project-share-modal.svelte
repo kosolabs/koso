@@ -48,9 +48,9 @@
 
   async function addUser(add: User) {
     await updateProjectUsers({
-      project_id: project.project_id,
-      add_emails: [add.email],
-      remove_emails: [],
+      projectId: project.projectId,
+      addEmails: [add.email],
+      removeEmails: [],
     });
 
     projectUsers.push(add);
@@ -71,9 +71,9 @@
     if (i == -1) throw new Error("Could not find user");
 
     await updateProjectUsers({
-      project_id: project.project_id,
-      add_emails: [],
-      remove_emails: [remove.email],
+      projectId: project.projectId,
+      addEmails: [],
+      removeEmails: [remove.email],
     });
 
     projectUsers.splice(i, 1);
