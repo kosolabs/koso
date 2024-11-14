@@ -24,6 +24,7 @@ use crate::api::{
     },
     google::User,
     model::{Graph, ProjectId},
+    yproxy::YDocProxy,
 };
 use anyhow::Error;
 use anyhow::Result;
@@ -34,9 +35,6 @@ use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
 use uuid::Uuid;
-use yrs::Transact;
-
-use super::yproxy::YGraphProxy;
 
 #[derive(Clone)]
 pub(crate) struct Collab {
@@ -138,9 +136,8 @@ impl Collab {
     }
 
     pub(super) async fn get_graph(&self, project_id: &ProjectId) -> Result<Graph, Error> {
-        let (doc, _) = storage::load_doc(project_id, self.inner.pool).await?;
-        let mut txn = doc.transact_mut();
-        let y_graph = YGraphProxy::new(&mut txn);
-        y_graph.get_graph(&txn)
+        let (ydoc, _) = storage::load_doc(project_id, self.inner.pool).await?;
+        let txn = ydoc.transact();
+        ydoc.to_graph(&txn)
     }
 }
