@@ -78,6 +78,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
+        set_user_invited(&claims.email, &pool).await.unwrap();
     }
 
     // Log in a second user
@@ -96,6 +97,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
+        set_user_invited(&claims.email, &pool).await.unwrap();
     }
 
     // Try a request without any credentials attached.
@@ -271,6 +273,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
+        set_user_invited(&claims.email, &pool).await.unwrap();
 
         let project_id = {
             let res = client
@@ -755,4 +758,12 @@ async fn next_with_timeout(socket: &mut Socket) -> Result<Option<Message>> {
             "Timed out reading from socket after 30 seconds: {e}"
         )),
     }
+}
+
+async fn set_user_invited(email: &str, pool: &PgPool) -> Result<()> {
+    sqlx::query("UPDATE users SET invited=TRUE WHERE email=$1")
+        .bind(email)
+        .execute(pool)
+        .await?;
+    Ok(())
 }

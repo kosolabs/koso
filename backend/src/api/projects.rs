@@ -258,7 +258,7 @@ async fn update_project_users_handler(
             "
             UPDATE users
             SET invited=TRUE
-            WHERE email in (SELECT * FROM unnest($2)) and NOT invited",
+            WHERE email in (SELECT * FROM unnest($1)) and NOT invited",
         )
         .bind(add_emails)
         .execute(&mut *txn)
