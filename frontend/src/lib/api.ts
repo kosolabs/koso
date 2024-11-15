@@ -1,5 +1,5 @@
 import { version } from "$app/environment";
-import { goto } from "$app/navigation";
+import { toast } from "svelte-sonner";
 import { auth } from "./auth.svelte";
 import { logout_on_authentication_error } from "./errors";
 
@@ -50,6 +50,7 @@ export async function parse_response<T>(response: Response): Promise<T> {
   }
 
   logout_on_authentication_error(response);
+
   if (response.headers.get("Content-Type") === "application/json") {
     const error: ErrorResponseBody = await response.json();
     if (error.status !== response.status) {
@@ -65,8 +66,13 @@ export async function parse_response<T>(response: Response): Promise<T> {
     });
 
     if (err.hasReason("NOT_INVITED")) {
-      console.warn("Not invited, going to stay-tuned", err);
-      await goto("/stay-tuned");
+      console.debug(
+        "Response failed, user is not invited. Logging user out.",
+        response,
+        err,
+      );
+      toast.warning("You don't have access to Koso.");
+      auth.logout();
     }
 
     throw err;
