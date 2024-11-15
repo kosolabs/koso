@@ -29,16 +29,10 @@ pub(crate) fn router() -> Router {
         .nest("/dev", dev::router())
 }
 
+/// Verify that the user is invited and allowed to access Koso.
+/// Typically this permission is granted via another invited user sharing
+/// one of their projects with another user that has already logged in.
 pub(crate) async fn verify_invited(pool: &PgPool, user: &User) -> Result<(), ErrorResponse> {
-    let mut txn = match pool.begin().await {
-        Ok(txn) => txn,
-        Err(e) => {
-            return Err(internal_error(&format!(
-                "Failed to check user permission: {e}"
-            )))
-        }
-    };
-
     match sqlx::query_as(
         "
         SELECT invited
@@ -47,7 +41,7 @@ pub(crate) async fn verify_invited(pool: &PgPool, user: &User) -> Result<(), Err
         ",
     )
     .bind(&user.email)
-    .fetch_optional(&mut *txn)
+    .fetch_optional(pool)
     .await
     {
         Ok(Some((true,))) => Ok(()),
@@ -61,6 +55,7 @@ pub(crate) async fn verify_invited(pool: &PgPool, user: &User) -> Result<(), Err
     }
 }
 
+/// Verify that the user has access to the given project.
 pub(crate) async fn verify_project_access(
     pool: &PgPool,
     user: User,

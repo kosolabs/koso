@@ -7,7 +7,7 @@ use crate::{
             CreateProject, Project, ProjectExport, ProjectUser, UpdateProjectUsers,
             UpdateProjectUsersResponse,
         },
-        verify_project_access,
+        verify_invited, verify_project_access,
         yproxy::YDocProxy,
         ApiResult,
     },
@@ -23,8 +23,6 @@ use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
 use yrs::{ReadTxn as _, StateVector};
-
-use super::verify_invited;
 
 pub(super) fn router() -> Router {
     Router::new()

@@ -1,8 +1,6 @@
-use crate::api::{model::User, ApiResult};
+use crate::api::{google, model::User, verify_invited, ApiResult};
 use axum::{routing::get, Extension, Json, Router};
 use sqlx::postgres::PgPool;
-
-use super::{google, verify_invited};
 
 pub(super) fn router() -> Router {
     Router::new().route("/", get(list_users_handler))
