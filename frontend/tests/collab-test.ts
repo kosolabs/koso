@@ -18,11 +18,11 @@ test.describe("Collaboration tests", () => {
 
     otherPage = await browser.newPage();
     const otherEmail = generateEmail();
-    await login(otherPage, otherEmail);
+    await login(otherPage, otherEmail, false);
 
-    await page.reload();
     await shareProject(page, otherEmail);
 
+    await login(otherPage, otherEmail, false);
     await otherPage.goto("/projects");
     await otherPage.getByRole("link", { name: "My Project!" }).click();
     await expect(

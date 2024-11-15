@@ -14,8 +14,8 @@ async fn login_handler(
 ) -> ApiResult<()> {
     if let Err(e) = sqlx::query(
         "
-        INSERT INTO users (email, name, picture)
-        VALUES ($1, $2, $3)
+        INSERT INTO users (email, name, picture, invited)
+        VALUES ($1, $2, $3, false)
         ON CONFLICT (email)
         DO UPDATE SET name = EXCLUDED.name, picture = EXCLUDED.picture;",
     )

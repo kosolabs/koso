@@ -54,6 +54,10 @@
   >
     <KosoLogo class="m-auto w-20" />
     <h1 class="text-4xl text-primary">Koso</h1>
+    <div class="text-primary">
+      We're not generally available quite yet, but if you have a pre-launch
+      invite, you can login with Google.
+    </div>
     <Google {onsuccess} />
   </div>
 {/if}

@@ -12,7 +12,7 @@ use crate::{
 use anyhow::{anyhow, Result};
 use axum::http::HeaderValue;
 use futures::{stream::FusedStream, SinkExt, StreamExt};
-use reqwest::{Client, StatusCode};
+use reqwest::{Client, Response, StatusCode};
 use serde_json::Value;
 use sqlx::PgPool;
 use tokio::{net::TcpStream, sync::oneshot::channel};
@@ -78,6 +78,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
+        set_user_invited(&claims.email, &pool).await.unwrap();
     }
 
     // Log in a second user
@@ -96,6 +97,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
+        set_user_invited(&claims.email, &pool).await.unwrap();
     }
 
     // Try a request without any credentials attached.
@@ -248,6 +250,77 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
 }
 
 #[test_log::test(sqlx::test)]
+async fn not_invite_user(pool: PgPool) -> sqlx::Result<()> {
+    let (closer, close_signal) = channel::<()>();
+    let (addr, serve) = server::start_main_server(Config {
+        pool: Some(Box::leak(Box::new(pool.clone()))),
+        port: Some(0),
+        shutdown_signal: Some(close_signal),
+        key_set: Some(testonly_key_set().await.unwrap()),
+    })
+    .await;
+    let client = Client::default();
+
+    let claims = Claims::default();
+    let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
+
+    // Log in a user
+    {
+        let res = client
+            .post(format!("http://{addr}/api/auth/login"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+    };
+
+    // Check that create projects rejects the not invited user.
+    {
+        let res = client
+            .post(format!("http://{addr}/api/projects"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body("{\"name\":\"Test Project\"}")
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_not_invited(res).await;
+    }
+
+    // Check that list projects rejects the not invited user.
+    {
+        let res = client
+            .get(format!("http://{addr}/api/projects"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_not_invited(res).await;
+    }
+
+    closer.send(()).unwrap();
+    serve.await.unwrap();
+    Ok(())
+}
+
+async fn assert_not_invited(res: Response) {
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+    let error: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+    let error = error.as_object().unwrap();
+    assert_eq!(error.get("status").unwrap().as_i64().unwrap(), 403);
+    let details = error.get("details").unwrap().as_array().unwrap();
+    assert_eq!(details.len(), 1);
+    let detail = details.first().unwrap().as_object().unwrap();
+    assert_eq!(
+        detail.get("reason").unwrap().as_str().unwrap(),
+        "NOT_INVITED"
+    );
+    assert!(!detail.get("msg").unwrap().as_str().unwrap().is_empty());
+}
+
+#[test_log::test(sqlx::test)]
 async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let (closer, close_signal) = channel::<()>();
     let (addr, serve) = server::start_main_server(Config {
@@ -271,6 +344,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
+        set_user_invited(&claims.email, &pool).await.unwrap();
 
         let project_id = {
             let res = client
@@ -755,4 +829,12 @@ async fn next_with_timeout(socket: &mut Socket) -> Result<Option<Message>> {
             "Timed out reading from socket after 30 seconds: {e}"
         )),
     }
+}
+
+async fn set_user_invited(email: &str, pool: &PgPool) -> Result<()> {
+    sqlx::query("UPDATE users SET invited=TRUE WHERE email=$1")
+        .bind(email)
+        .execute(pool)
+        .await?;
+    Ok(())
 }

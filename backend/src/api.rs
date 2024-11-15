@@ -29,7 +29,34 @@ pub(crate) fn router() -> Router {
         .nest("/dev", dev::router())
 }
 
-pub(crate) async fn verify_access(
+/// Verify that the user is invited and allowed to access Koso.
+/// Typically this permission is granted via another invited user sharing
+/// one of their projects with another user that has already logged in.
+pub(crate) async fn verify_invited(pool: &PgPool, user: &User) -> Result<(), ErrorResponse> {
+    match sqlx::query_as(
+        "
+        SELECT invited
+        FROM users
+        WHERE email = $1;
+        ",
+    )
+    .bind(&user.email)
+    .fetch_optional(pool)
+    .await
+    {
+        Ok(Some((true,))) => Ok(()),
+        Ok(None | Some((false,))) => Err(not_invited_error(&format!(
+            "User {} is not invited",
+            user.email
+        ))),
+        Err(e) => Err(internal_error(&format!(
+            "Failed to check user permission: {e}"
+        ))),
+    }
+}
+
+/// Verify that the user has access to the given project.
+pub(crate) async fn verify_project_access(
     pool: &PgPool,
     user: User,
     project_id: &ProjectId,
@@ -94,6 +121,10 @@ pub(crate) fn unauthenticated_error(msg: &str) -> ErrorResponse {
 
 pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
     error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", msg)
+}
+
+pub(crate) fn not_invited_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::FORBIDDEN, "NOT_INVITED", msg)
 }
 
 pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorResponse {
