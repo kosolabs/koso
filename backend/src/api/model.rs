@@ -51,6 +51,7 @@ pub(crate) struct ProjectUser {
     pub(crate) email: String,
     pub(crate) name: String,
     pub(crate) picture: String,
+    pub(crate) invited: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
@@ -58,6 +59,7 @@ pub(crate) struct User {
     pub(crate) email: String,
     pub(crate) name: String,
     pub(crate) picture: String,
+    pub(crate) invited: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]

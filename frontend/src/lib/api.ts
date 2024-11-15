@@ -1,4 +1,5 @@
 import { version } from "$app/environment";
+import { goto } from "$app/navigation";
 import { auth } from "./auth.svelte";
 import { logout_on_authentication_error } from "./errors";
 
@@ -58,10 +59,17 @@ export async function parse_response<T>(response: Response): Promise<T> {
         response,
       );
     }
-    throw new KosoError({
+    const err = new KosoError({
       status: error.status,
       details: error.details,
     });
+
+    if (err.hasReason("NOT_INVITED")) {
+      console.warn("Not invited, going to stay-tuned", err);
+      await goto("/stay-tuned");
+    }
+
+    throw err;
   }
   throw new KosoError({
     status: response.status,

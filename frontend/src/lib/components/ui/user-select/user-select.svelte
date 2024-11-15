@@ -73,7 +73,13 @@
     <DropdownMenu.Group class="max-h-64 overflow-y-auto">
       <DropdownMenu.Item on:click={() => select(null)}>
         <UserAvatar
-          user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
+          user={{
+            name: "Unassigned",
+            email: "",
+            picture: "",
+            invited: false,
+            exp: 0,
+          }}
         />
       </DropdownMenu.Item>
       {#each filteredUsers as user}

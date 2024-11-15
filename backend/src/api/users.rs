@@ -2,6 +2,8 @@ use crate::api::{model::User, ApiResult};
 use axum::{routing::get, Extension, Json, Router};
 use sqlx::postgres::PgPool;
 
+use super::{google, verify_invited};
+
 pub(super) fn router() -> Router {
     Router::new().route("/", get(list_users_handler))
 }
@@ -9,8 +11,11 @@ pub(super) fn router() -> Router {
 #[tracing::instrument(skip(pool))]
 async fn list_users_handler(
     Extension(pool): Extension<&'static PgPool>,
+    Extension(user): Extension<google::User>,
 ) -> ApiResult<Json<Vec<User>>> {
-    let mut users: Vec<User> = sqlx::query_as("SELECT email, name, picture FROM users;")
+    verify_invited(pool, &user).await?;
+
+    let mut users: Vec<User> = sqlx::query_as("SELECT email, name, picture, invited FROM users;")
         .fetch_all(pool)
         .await?;
     users.sort_by(|a, b| a.name.cmp(&b.name).then(a.email.cmp(&b.email)));

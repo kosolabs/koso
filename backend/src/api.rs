@@ -29,7 +29,39 @@ pub(crate) fn router() -> Router {
         .nest("/dev", dev::router())
 }
 
-pub(crate) async fn verify_access(
+pub(crate) async fn verify_invited(pool: &PgPool, user: &User) -> Result<(), ErrorResponse> {
+    let mut txn = match pool.begin().await {
+        Ok(txn) => txn,
+        Err(e) => {
+            return Err(internal_error(&format!(
+                "Failed to check user permission: {e}"
+            )))
+        }
+    };
+
+    match sqlx::query_as(
+        "
+        SELECT invited
+        FROM users
+        WHERE email = $1;
+        ",
+    )
+    .bind(&user.email)
+    .fetch_optional(&mut *txn)
+    .await
+    {
+        Ok(Some((true,))) => Ok(()),
+        Ok(None | Some((false,))) => Err(not_invited_error(&format!(
+            "User {} is not invited",
+            user.email
+        ))),
+        Err(e) => Err(internal_error(&format!(
+            "Failed to check user permission: {e}"
+        ))),
+    }
+}
+
+pub(crate) async fn verify_project_access(
     pool: &PgPool,
     user: User,
     project_id: &ProjectId,
@@ -94,6 +126,10 @@ pub(crate) fn unauthenticated_error(msg: &str) -> ErrorResponse {
 
 pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
     error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", msg)
+}
+
+pub(crate) fn not_invited_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::FORBIDDEN, "NOT_INVITED", msg)
 }
 
 pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorResponse {
