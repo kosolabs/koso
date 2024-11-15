@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{mem, net::SocketAddr, time::Duration};
 
 use crate::{
     api::{
@@ -15,7 +15,14 @@ use futures::{stream::FusedStream, SinkExt, StreamExt};
 use reqwest::{Client, Response, StatusCode};
 use serde_json::Value;
 use sqlx::PgPool;
-use tokio::{net::TcpStream, sync::oneshot::channel};
+use tokio::{
+    net::TcpStream,
+    sync::{
+        oneshot::{self, channel},
+        Mutex,
+    },
+    task::JoinHandle,
+};
 use tokio_tungstenite::{
     tungstenite::{
         protocol::{frame::coding::CloseCode, CloseFrame},
@@ -47,14 +54,7 @@ type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 #[test_log::test(sqlx::test)]
 async fn api_test(pool: PgPool) -> sqlx::Result<()> {
-    let (closer, close_signal) = channel::<()>();
-    let (addr, serve) = server::start_main_server(Config {
-        pool: Some(Box::leak(Box::new(pool.clone()))),
-        port: Some(0),
-        shutdown_signal: Some(close_signal),
-        key_set: Some(testonly_key_set().await.unwrap()),
-    })
-    .await;
+    let (server, addr) = start_server(&pool).await;
     let client = Client::default();
 
     // Health check
@@ -240,25 +240,13 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
         assert_eq!(users.len(), 2);
     }
 
-    // Initated server shutdown.
-    tracing::info!("Sending server shutdown signal...");
-    closer.send(()).unwrap();
-    // Finally, the server should gracefully stop.
-    serve.await.unwrap();
-
+    server.shutdown_and_wait().await.unwrap();
     Ok(())
 }
 
 #[test_log::test(sqlx::test)]
 async fn not_invite_user(pool: PgPool) -> sqlx::Result<()> {
-    let (closer, close_signal) = channel::<()>();
-    let (addr, serve) = server::start_main_server(Config {
-        pool: Some(Box::leak(Box::new(pool.clone()))),
-        port: Some(0),
-        shutdown_signal: Some(close_signal),
-        key_set: Some(testonly_key_set().await.unwrap()),
-    })
-    .await;
+    let (server, addr) = start_server(&pool).await;
     let client = Client::default();
 
     let claims = Claims::default();
@@ -300,8 +288,7 @@ async fn not_invite_user(pool: PgPool) -> sqlx::Result<()> {
         assert_not_invited(res).await;
     }
 
-    closer.send(()).unwrap();
-    serve.await.unwrap();
+    server.shutdown_and_wait().await.unwrap();
     Ok(())
 }
 
@@ -322,14 +309,7 @@ async fn assert_not_invited(res: Response) {
 
 #[test_log::test(sqlx::test)]
 async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
-    let (closer, close_signal) = channel::<()>();
-    let (addr, serve) = server::start_main_server(Config {
-        pool: Some(Box::leak(Box::new(pool.clone()))),
-        port: Some(0),
-        shutdown_signal: Some(close_signal),
-        key_set: Some(testonly_key_set().await.unwrap()),
-    })
-    .await;
+    let (mut server, addr) = start_server(&pool).await;
     let client = Client::default();
 
     let claims = Claims::default();
@@ -704,17 +684,13 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         close_socket(sockets.next().unwrap()).await;
     }
 
-    // Initated server shutdown.
-    tracing::info!("Sending server shutdown signal...");
-    closer.send(()).unwrap();
+    server.start_shutdown().await;
     // The server will close the client, but we need to respond.
     respond_closed_socket(socket_2).await;
     for socket in sockets {
         respond_closed_socket(socket).await;
     }
-
-    // Finally, the server should gracefully stop.
-    serve.await.unwrap();
+    server.wait_for_shutdown().await.unwrap();
     Ok(())
 }
 
@@ -826,7 +802,7 @@ async fn next_with_timeout(socket: &mut Socket) -> Result<Option<Message>> {
         Ok(None) => Ok(None),
         Ok(Some(Err(e))) => Err(anyhow!("error reading from socket: {e}")),
         Err(e) => Err(anyhow!(
-            "Timed out reading from socket after 30 seconds: {e}"
+            "Timed out reading from socket after 22 seconds: {e}"
         )),
     }
 }
@@ -837,4 +813,50 @@ async fn set_user_invited(email: &str, pool: &PgPool) -> Result<()> {
         .execute(pool)
         .await?;
     Ok(())
+}
+
+struct ServerHandle {
+    closer: Mutex<oneshot::Sender<()>>,
+    serve: JoinHandle<()>,
+}
+
+impl ServerHandle {
+    async fn shutdown_and_wait(mut self) -> Result<()> {
+        self.start_shutdown().await;
+        self.wait_for_shutdown().await
+    }
+
+    async fn start_shutdown(&mut self) {
+        tracing::info!("Sending server shutdown signal...");
+        let closer = mem::replace(&mut *self.closer.lock().await, channel::<()>().0);
+        closer.send(()).unwrap();
+    }
+
+    async fn wait_for_shutdown(self) -> Result<()> {
+        match tokio::time::timeout(Duration::from_secs(20), self.serve).await {
+            Ok(_) => Ok(()),
+            Err(e) => Err(anyhow!(
+                "Timed out waiting for shutdown after 20 seconds: {e}"
+            )),
+        }
+    }
+}
+
+async fn start_server(pool: &PgPool) -> (ServerHandle, SocketAddr) {
+    let (closer, close_signal) = channel::<()>();
+    let (addr, serve) = server::start_main_server(Config {
+        pool: Some(Box::leak(Box::new(pool.clone()))),
+        port: Some(0),
+        shutdown_signal: Some(close_signal),
+        key_set: Some(testonly_key_set().await.unwrap()),
+    })
+    .await;
+
+    (
+        ServerHandle {
+            closer: Mutex::new(closer),
+            serve,
+        },
+        addr,
+    )
 }
