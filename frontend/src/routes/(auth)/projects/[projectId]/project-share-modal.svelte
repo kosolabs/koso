@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { headers } from "$lib/api";
+  import { headers, parse_response } from "$lib/api";
   import { auth, type User } from "$lib/auth.svelte";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
   import { Button } from "$lib/components/ui/button";
@@ -8,7 +8,6 @@
   import { Input } from "$lib/components/ui/input";
   import * as Popover from "$lib/components/ui/popover";
   import { UserAvatar } from "$lib/components/ui/user-select";
-  import { logout_on_authentication_error } from "$lib/errors";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectUsers,
@@ -35,13 +34,7 @@
     const response = await fetch(`/api/users`, {
       headers: headers(),
     });
-    if (!response.ok) {
-      logout_on_authentication_error(response);
-      throw new Error(
-        `Failed to fetch all users: ${response.statusText} (${response.status})`,
-      );
-    }
-    let users: User[] = await response.json();
+    let users: User[] = await parse_response(response);
     users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
     return users;
   });
