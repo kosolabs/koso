@@ -49,7 +49,7 @@ jobs:
           version: latest
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
-      - run: cargo test
+      - run: RUST_BACKTRACE=full RUST_BACKTRACE=1 cargo test
       - run: cargo clippy -- -D warnings
       - run: cargo fmt -- --check
   npm:

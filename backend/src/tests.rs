@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{
     api::{
         collab::msg_sync::{self, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
@@ -7,6 +9,7 @@ use crate::{
     },
     server::{self, Config},
 };
+use anyhow::{anyhow, Result};
 use axum::http::HeaderValue;
 use futures::{stream::FusedStream, SinkExt, StreamExt};
 use reqwest::{Client, StatusCode};
@@ -295,14 +298,14 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         );
         let (mut socket, response) = tokio_tungstenite::connect_async(req).await.unwrap();
         assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
-        let close = socket.next().await.unwrap().unwrap();
+        let close = next_with_timeout(&mut socket).await.unwrap().unwrap();
         let Message::Close(Some(close)) = close else {
             panic!("Expected close frame, got: {close:?}");
         };
         assert_eq!(close.code, CloseCode::Iana(3000));
         assert_eq!(close.reason, "Unauthorized.");
         futures::SinkExt::close(&mut socket).await.unwrap();
-        assert!(socket.next().await.is_none());
+        assert!(next_with_timeout(&mut socket).await.unwrap().is_none());
         assert!(socket.is_terminated());
     }
 
@@ -571,7 +574,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     // And then verify the next one is rejected.
     let (mut socket_4, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
     assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
-    let close = socket_4.next().await.unwrap().unwrap();
+    let close = next_with_timeout(&mut socket_4).await.unwrap().unwrap();
     let Message::Close(Some(close)) = close else {
         panic!("Expected overload close, got: {close:?}");
     };
@@ -579,7 +582,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(close.reason, "Too many active clients.");
     futures::SinkExt::close(&mut socket_4).await.unwrap();
     // Validate the socket is terminated
-    assert!(socket_4.next().await.is_none());
+    assert!(next_with_timeout(&mut socket_4).await.unwrap().is_none());
     assert!(socket_4.is_terminated());
 
     // Close the sockets.
@@ -605,7 +608,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 }
 
 async fn read_sync_request(socket: &mut Socket) -> StateVector {
-    let sync_request = socket.next().await.unwrap().unwrap();
+    let sync_request = next_with_timeout(socket).await.unwrap().unwrap();
 
     let Message::Binary(sync_request) = sync_request else {
         panic!("Expected binary sync_request, got: {sync_request:?}");
@@ -624,7 +627,7 @@ async fn read_sync_request(socket: &mut Socket) -> StateVector {
 }
 
 async fn read_sync_response(socket: &mut Socket) -> Update {
-    let sync_response = socket.next().await.unwrap().unwrap();
+    let sync_response = next_with_timeout(socket).await.unwrap().unwrap();
     let Message::Binary(sync_response) = sync_response else {
         panic!("Expected binary sync_response, got: {sync_response:?}");
     };
@@ -642,7 +645,7 @@ async fn read_sync_response(socket: &mut Socket) -> Update {
 }
 
 async fn read_sync_update(socket: &mut Socket) -> Update {
-    let sync_update = socket.next().await.unwrap().unwrap();
+    let sync_update = next_with_timeout(socket).await.unwrap().unwrap();
     let Message::Binary(sync_update) = sync_update else {
         panic!("Expected binary sync_update, got: {sync_update:?}");
     };
@@ -668,7 +671,7 @@ async fn close_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
         .await
         .unwrap();
     // Read the final close message.
-    let close = socket.next().await.unwrap().unwrap();
+    let close = next_with_timeout(socket).await.unwrap().unwrap();
     let Message::Close(Some(close)) = close else {
         panic!("Expected close frame, got: {close:?}");
     };
@@ -676,25 +679,25 @@ async fn close_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
     assert_eq!(close.reason, "all done");
 
     // Validate the socket is terminated
-    assert!(socket.next().await.is_none());
+    assert!(next_with_timeout(socket).await.unwrap().is_none());
     assert!(socket.is_terminated());
 }
 
 async fn close_socket_without_details(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
     socket.close(None).await.unwrap();
     // Read the final close message.
-    let close = socket.next().await.unwrap().unwrap();
+    let close = next_with_timeout(socket).await.unwrap().unwrap();
     let Message::Close(None) = close else {
         panic!("Expected close frame, got: {close:?}");
     };
 
     // Validate the socket is terminated
-    assert!(socket.next().await.is_none());
+    assert!(next_with_timeout(socket).await.unwrap().is_none());
     assert!(socket.is_terminated());
 }
 
 async fn respond_closed_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
-    let close = socket.next().await.unwrap().unwrap();
+    let close = next_with_timeout(socket).await.unwrap().unwrap();
     let Message::Close(Some(close)) = close else {
         panic!("Expected close frame, got: {close:?}");
     };
@@ -702,6 +705,17 @@ async fn respond_closed_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpSt
     assert_eq!(close.reason, "The server is shutting down.");
     futures::SinkExt::close(socket).await.unwrap();
     // Validate the socket is terminated
-    assert!(socket.next().await.is_none());
+    assert!(next_with_timeout(socket).await.unwrap().is_none());
     assert!(socket.is_terminated());
+}
+
+async fn next_with_timeout(socket: &mut Socket) -> Result<Option<Message>> {
+    match tokio::time::timeout(Duration::from_secs(22), socket.next()).await {
+        Ok(Some(Ok(msg))) => Ok(Some(msg)),
+        Ok(None) => Ok(None),
+        Ok(Some(Err(e))) => Err(anyhow!("error reading from socket: {e}")),
+        Err(e) => Err(anyhow!(
+            "Timed out reading from socket after 30 seconds: {e}"
+        )),
+    }
 }
