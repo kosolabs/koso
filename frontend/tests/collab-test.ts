@@ -20,7 +20,6 @@ test.describe("Collaboration tests", () => {
     const otherEmail = generateEmail();
     await login(otherPage, otherEmail, false);
 
-    await page.reload();
     await shareProject(page, otherEmail);
 
     await login(otherPage, otherEmail, false);
