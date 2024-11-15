@@ -310,7 +310,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 
     // Test that unauthenticated users are rejected.
     {
-        let req = format!("ws://{addr}/api/ws/projects/some-project")
+        let req = format!("ws://{addr}/api/ws/projects/{project_id}")
             .into_client_request()
             .unwrap();
         let err = tokio_tungstenite::connect_async(req).await.unwrap_err();
