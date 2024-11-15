@@ -34,14 +34,12 @@ use yrs::{
 };
 
 #[test_log::test(sqlx::test)]
-async fn basic_test(pool: PgPool) -> sqlx::Result<()> {
-    let projects: Vec<(String,)> = sqlx::query_as("SELECT project_id FROM projects")
+async fn database_connectivity_test(pool: PgPool) -> sqlx::Result<()> {
+    let users: Vec<(String,)> = sqlx::query_as("SELECT email FROM users")
         .fetch_all(&pool)
         .await
         .unwrap();
-    tracing::info!("test");
-    assert_eq!(projects.len(), 1);
-    assert_eq!(projects.first().unwrap().0, "koso-staging");
+    assert_eq!(users.len(), 0);
     Ok(())
 }
 
@@ -51,7 +49,7 @@ type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 async fn api_test(pool: PgPool) -> sqlx::Result<()> {
     let (closer, close_signal) = channel::<()>();
     let (addr, serve) = server::start_main_server(Config {
-        pool: Some(Box::leak(Box::new(pool))),
+        pool: Some(Box::leak(Box::new(pool.clone()))),
         port: Some(0),
         shutdown_signal: Some(close_signal),
         key_set: Some(testonly_key_set().await.unwrap()),
@@ -69,7 +67,8 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
         assert_eq!(res.status(), StatusCode::OK);
     }
 
-    let token: String = encode_token(&Claims::default(), KID_1, PEM_1).unwrap();
+    let claims = Claims::default();
+    let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
     // Log in
     {
         let res = client
@@ -252,27 +251,66 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
 async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let (closer, close_signal) = channel::<()>();
     let (addr, serve) = server::start_main_server(Config {
-        pool: Some(Box::leak(Box::new(pool))),
+        pool: Some(Box::leak(Box::new(pool.clone()))),
         port: Some(0),
         shutdown_signal: Some(close_signal),
         key_set: Some(testonly_key_set().await.unwrap()),
     })
     .await;
+    let client = Client::default();
 
-    let project_id = "koso-staging";
-    let token: String = encode_token(
-        &Claims {
-            email: "leonhard.kyle@gmail.com".to_string(),
-            ..Default::default()
-        },
-        KID_1,
-        PEM_1,
-    )
-    .unwrap();
+    let claims = Claims::default();
+    let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
+
+    // Log in and share the project
+    let project_id = {
+        let res = client
+            .post(format!("http://{addr}/api/auth/login"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+
+        let project_id = {
+            let res = client
+                .post(format!("http://{addr}/api/projects"))
+                .bearer_auth(&token)
+                .header("Content-Type", "application/json")
+                .body("{\"name\":\"Test Project\"}")
+                .send()
+                .await
+                .expect("Failed to send request.");
+            assert_eq!(res.status(), StatusCode::OK);
+            let project: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+            let project = project.as_object().unwrap();
+            project
+                .get("projectId")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .to_string()
+        };
+
+        let res = client
+            .patch(format!("http://{addr}/api/projects/{project_id}/users"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(format!(
+                "{{\"projectId\":\"{project_id}\", \"addEmails\":[\"{}\"], \"removeEmails\":[]}}",
+                claims.email
+            ))
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+
+        project_id
+    };
 
     // Test that unauthenticated users are rejected.
     {
-        let req = format!("ws://{addr}/api/ws/projects/koso-staging")
+        let req = format!("ws://{addr}/api/ws/projects/{project_id}")
             .into_client_request()
             .unwrap();
         let err = tokio_tungstenite::connect_async(req).await.unwrap_err();
@@ -451,7 +489,6 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 
     // Export the project.
     {
-        let client = Client::default();
         let res = client
             .get(format!("http://{addr}/api/projects/{project_id}/export"))
             .bearer_auth(&token)
