@@ -257,7 +257,7 @@ async fn update_project_users_handler(
         sqlx::query(
             "
             UPDATE users
-            SET invited=true
+            SET invited=TRUE
             WHERE email in (SELECT * FROM unnest($2)) and NOT invited",
         )
         .bind(add_emails)
