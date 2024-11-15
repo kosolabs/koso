@@ -1,7 +1,6 @@
 import { version } from "$app/environment";
 import { toast } from "svelte-sonner";
 import { auth } from "./auth.svelte";
-import { logout_on_authentication_error } from "./errors";
 
 export type ErrorResponseBody = {
   status: number;
@@ -49,8 +48,7 @@ export async function parse_response<T>(response: Response): Promise<T> {
     return response.json();
   }
 
-  logout_on_authentication_error(response);
-
+  let err: KosoError;
   if (response.headers.get("Content-Type") === "application/json") {
     const error: ErrorResponseBody = await response.json();
     if (error.status !== response.status) {
@@ -60,30 +58,43 @@ export async function parse_response<T>(response: Response): Promise<T> {
         response,
       );
     }
-    const err = new KosoError({
+    err = new KosoError({
       status: error.status,
       details: error.details,
     });
-
-    if (err.hasReason("NOT_INVITED")) {
-      console.debug(
-        "Response failed, user is not invited. Logging user out.",
-        response,
-        err,
-      );
-      toast.warning("You don't have access to Koso.");
-      auth.logout();
-    }
-
-    throw err;
+  } else {
+    err = new KosoError({
+      status: response.status,
+      details: [
+        {
+          reason: "UNKNOWN",
+          msg: "No error details present.",
+        },
+      ],
+    });
   }
-  throw new KosoError({
-    status: response.status,
-    details: [
-      {
-        reason: "UNKNOWN",
-        msg: "No error details present.",
-      },
-    ],
-  });
+
+  handle_auth_errors(err, response);
+
+  throw err;
+}
+
+function handle_auth_errors(err: KosoError, response: Response) {
+  const AUTHENTICATION_ERROR = 401;
+  if (response.status === AUTHENTICATION_ERROR) {
+    console.debug(
+      "Response failed with an unathentication error (401). Logging user out.",
+      response,
+      err,
+    );
+    auth.logout();
+  } else if (err.hasReason("NOT_INVITED")) {
+    console.debug(
+      "Response failed, user is not invited. Logging user out.",
+      response,
+      err,
+    );
+    toast.warning("You don't have access to Koso.");
+    auth.logout();
+  }
 }
