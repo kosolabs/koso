@@ -1,19 +1,50 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use super::{bad_request_error, google, User};
 use crate::api::{internal_error, ApiResult};
+use anyhow::anyhow;
 use axum::{routing::post, Extension, Router};
 use sqlx::PgPool;
-
-use super::google;
 
 pub(super) fn router() -> Router {
     let enable_dev = std::env::var("TESTONLY_ENABLE_DEV").map_or(false, |v| v == "true");
     if enable_dev {
         tracing::info!("Enable dev mode. Something is WRONG if you see this in production.");
-        return Router::new().route("/cleanup_test_data", post(cleanup_test_data_handler));
+        return Router::new()
+            .route("/cleanup_test_data", post(cleanup_test_data_handler))
+            .route("/invite_test_user", post(invite_test_user_handler));
     }
 
     Router::new()
+}
+
+/// Endpoint used by playwright tests to invite test users.
+/// This avoids the need to bootstrap some intial user with invite permission.
+#[tracing::instrument(skip(pool))]
+async fn invite_test_user_handler(
+    Extension(pool): Extension<&'static PgPool>,
+    Extension(user): Extension<User>,
+) -> ApiResult<()> {
+    if !user.email.ends_with(google::TEST_USER_SUFFIX) {
+        return Err(bad_request_error(
+            "NON_TEST_USER",
+            &format!(
+                "User {} is not a test user. Expected suffix: {}",
+                user.email,
+                google::TEST_USER_SUFFIX
+            ),
+        ));
+    }
+    sqlx::query(
+        "
+        UPDATE users
+        SET invited=TRUE
+        WHERE email = $1 and NOT invited",
+    )
+    .bind(user.email)
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 #[tracing::instrument(skip(pool))]

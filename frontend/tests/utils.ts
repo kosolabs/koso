@@ -85,6 +85,14 @@ export async function login(page: Page, email: string) {
   });
   expect(res.ok()).toBeTruthy();
 
+  const inviteRes = await apiContext.post("/api/dev/invite_test_user", {
+    data: {},
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  expect(inviteRes.ok()).toBeTruthy();
+
   await page.evaluate(
     ([token]) => window.localStorage.setItem("credential", token),
     [token],
