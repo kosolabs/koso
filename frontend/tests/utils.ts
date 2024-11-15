@@ -72,7 +72,7 @@ export async function setupNewProject(page: Page): Promise<Page> {
   return page;
 }
 
-export async function login(page: Page, email: string) {
+export async function login(page: Page, email: string, invite: boolean = true) {
   await page.goto("/");
   const loginUrl = `/api/auth/login`;
   const apiContext = await request.newContext({});
@@ -85,13 +85,15 @@ export async function login(page: Page, email: string) {
   });
   expect(res.ok()).toBeTruthy();
 
-  const inviteRes = await apiContext.post("/api/dev/invite_test_user", {
-    data: {},
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  expect(inviteRes.ok()).toBeTruthy();
+  if (invite) {
+    const inviteRes = await apiContext.post("/api/dev/invite_test_user", {
+      data: {},
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    expect(inviteRes.ok()).toBeTruthy();
+  }
 
   await page.evaluate(
     ([token]) => window.localStorage.setItem("credential", token),

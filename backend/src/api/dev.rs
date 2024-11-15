@@ -2,7 +2,6 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::{bad_request_error, google, User};
 use crate::api::{internal_error, ApiResult};
-use anyhow::anyhow;
 use axum::{routing::post, Extension, Router};
 use sqlx::PgPool;
 
