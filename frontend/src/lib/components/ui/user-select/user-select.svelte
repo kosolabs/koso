@@ -77,7 +77,6 @@
             name: "Unassigned",
             email: "",
             picture: "",
-            invited: false,
             exp: 0,
           }}
         />

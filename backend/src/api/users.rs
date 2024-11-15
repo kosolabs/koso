@@ -15,7 +15,7 @@ async fn list_users_handler(
 ) -> ApiResult<Json<Vec<User>>> {
     verify_invited(pool, &user).await?;
 
-    let mut users: Vec<User> = sqlx::query_as("SELECT email, name, picture, invited FROM users;")
+    let mut users: Vec<User> = sqlx::query_as("SELECT email, name, picture FROM users;")
         .fetch_all(pool)
         .await?;
     users.sort_by(|a, b| a.name.cmp(&b.name).then(a.email.cmp(&b.email)));

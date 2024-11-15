@@ -11,7 +11,6 @@ const USER: User = {
   email: "t@koso.app",
   name: "Test User",
   picture: "",
-  invited: true,
   exp: 0,
 };
 
@@ -19,7 +18,6 @@ const OTHER_USER: User = {
   email: "t2@koso.app",
   name: "Test2 User",
   picture: "",
-  invited: true,
   exp: 0,
 };
 
@@ -1048,7 +1046,6 @@ describe("Koso tests", () => {
         email: "new@koso.app",
         name: "New Test User",
         picture: "",
-        invited: true,
         exp: 0,
       });
 
