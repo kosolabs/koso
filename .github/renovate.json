@@ -21,5 +21,6 @@
   ],
   "cargo": {
     "rangeStrategy": "bump"
-  }
+  },
+  "lockFileMaintenance": { "enabled": true }
 }
