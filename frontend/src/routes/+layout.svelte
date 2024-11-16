@@ -34,6 +34,6 @@
 </script>
 
 <ModeWatcher />
-<Toaster />
+<Toaster richColors />
 <Confetti />
 {@render children()}

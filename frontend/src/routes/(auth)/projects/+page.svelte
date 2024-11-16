@@ -7,10 +7,11 @@
   import {
     fetchProjects,
     createProject as projectsCreateProject,
+    deleteProject as projectsDeleteProject,
     type Project,
     type ProjectExport,
   } from "$lib/projects";
-  import { HardDriveUpload, Layers, PackagePlus } from "lucide-svelte";
+  import { HardDriveUpload, Layers, PackagePlus, Trash2 } from "lucide-svelte";
   import { toast } from "svelte-sonner";
 
   let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
@@ -42,6 +43,24 @@
 
   function triggerFileSelect() {
     document.getElementById("projectImportFileInput")?.click();
+  }
+
+  async function deleteProject(project: Project) {
+    toast.promise(projectsDeleteProject(project), {
+      duration: 10000,
+      loading: `Moving ${project.name} to the trash...`,
+      success: (project) => {
+        projects = fetchProjects();
+        return `${project.name} has been placed in the trash and will be permanently deleted in 30 days.`;
+      },
+      error: (err) => {
+        if (err instanceof KosoError) {
+          return `Could not move ${project.name} to the trash: ${err.message}`;
+        }
+        console.warn(err);
+        return "Something went wrong. Please try again.";
+      },
+    });
   }
 
   function parseProjectExport(data: string) {
@@ -97,6 +116,7 @@
     </div>
   {/await}
 {:then projects}
+  {@const filteredProjects = projects.filter((p) => !p.deletedOn)}
   <input
     id="projectImportFileInput"
     type="file"
@@ -108,7 +128,7 @@
 
   {#if projects.length === 0}
     <div
-      class="m-4 flex flex-col items-center gap-6 rounded border bg-card p-8"
+      class="m-2 flex flex-col items-center gap-6 rounded border bg-card p-8"
     >
       <div><Layers /></div>
       <div class="text-xl">Create your first Koso project!</div>
@@ -122,26 +142,34 @@
       </div>
     </div>
   {:else}
-    <div class="m-4 flex flex-col rounded border">
+    <div class="m-2 flex flex-col rounded border">
       <div class="flex flex-col items-end p-2">
         <div>
           <Button title="New Project" onclick={() => createProject()}>
             <PackagePlus class="me-2 w-5" />New
           </Button>
           <Button title="Import Project" onclick={triggerFileSelect}>
-            <HardDriveUpload class="me-2 w-5" /> Import
+            <HardDriveUpload class="me-2 w-5" />Import
           </Button>
         </div>
       </div>
       <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-muted">
-        {#each projects as project}
-          <div class="border-t p-2">
+        {#each filteredProjects as project}
+          <div class="flex items-center border-t p-2">
             <Button
               variant="link"
               class="text-lg"
               href="projects/{project.projectId}"
             >
               {project.name}
+            </Button>
+            <Button
+              title="Move Project to Trash"
+              class="ml-auto"
+              variant="outline"
+              onclick={() => deleteProject(project)}
+            >
+              <Trash2 class="me-2 w-5" />Trash
             </Button>
           </div>
         {/each}
