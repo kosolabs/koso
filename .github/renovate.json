@@ -22,5 +22,10 @@
   "cargo": {
     "rangeStrategy": "bump"
   },
-  "lockFileMaintenance": { "enabled": true }
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first Thursday of the month"],
+    "automerge": true,
+    "automergeSchedule": ["* 7-14 * * 1-5"]
+  }
 }
