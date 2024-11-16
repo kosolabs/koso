@@ -2,9 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "group:all"],
 
-  "schedule": ["before 4am on Monday"],
-  "minimumReleaseAge": "2 days",
-  "internalChecksFilter": "strict",
+  "timezone": "America/Los_Angeles",
+  "schedule": ["before 6am on Monday"],
   "pinDigests": true,
 
   "customManagers": [
