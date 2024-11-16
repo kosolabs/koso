@@ -18,5 +18,8 @@
       "packageNameTemplate": "rust-lang/rust",
       "datasourceTemplate": "github-releases"
     }
-  ]
+  ],
+  "cargo": {
+    "rangeStrategy": "bump"
+  }
 }
