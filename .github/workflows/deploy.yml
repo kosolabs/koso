@@ -67,7 +67,7 @@ jobs:
             echo EOFEOFMSGOUTPUT
           } >> "$GITHUB_OUTPUT"
       - name: Notify telegram
-        uses: appleboy/telegram-action@a77dd3e42f32216ac2df808866c70b5aa41e6e75 # v1.0.0
+        uses: appleboy/telegram-action@221e6b684967abe813051ee4a37dd61770a83ad3 # v1.0.1
         if: always()
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
