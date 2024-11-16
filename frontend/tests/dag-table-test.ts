@@ -1266,6 +1266,185 @@ test.describe("dag table tests", () => {
     });
   });
 
+  test.describe("changing task status", () => {
+    test("change status to in progress with space key", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+        { id: "1", children: [] },
+        { id: "2", children: [] },
+        { id: "3", children: [] },
+        { id: "4", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+
+      await expect(
+        page
+          .getByRole("row", { name: "Task 3" })
+          .getByRole("button", { name: "In Progress" }),
+      ).toBeVisible();
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["3", "1", "2", "4"] },
+        ["1"]: { children: [] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [], status: "In Progress" },
+        ["4"]: { children: [] },
+      });
+
+      await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+      await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["3", "2", "1", "4"] },
+        ["1"]: { children: [], status: "In Progress" },
+        ["2"]: { children: [], status: "In Progress" },
+        ["3"]: { children: [], status: "In Progress" },
+        ["4"]: { children: [] },
+      });
+    });
+
+    test("change status to done with space key", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+        { id: "1", children: [], status: "In Progress" },
+        { id: "2", children: [], status: "In Progress" },
+        { id: "3", children: [] },
+        { id: "4", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1", "3", "4", "2"] },
+        ["1"]: { children: [], status: "In Progress" },
+        ["2"]: { children: [], status: "Done" },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+
+      await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["3", "4", "1", "2"] },
+        ["1"]: { children: [], status: "Done" },
+        ["2"]: { children: [], status: "Done" },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+
+      // Clicking space doesn't toggle back to not started
+      await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["3", "4", "1", "2"] },
+        ["1"]: { children: [], status: "Done" },
+        ["2"]: { children: [], status: "Done" },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+    });
+
+    test("change status to in progress by clicking", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+        { id: "1", children: [] },
+        { id: "2", children: [] },
+        { id: "3", children: [] },
+        { id: "4", children: [] },
+      ]);
+
+      page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("button", { name: "Not Started" })
+        .click();
+      page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("menuitem", { name: "In Progress" })
+        .click();
+      await expect(
+        page
+          .getByRole("row", { name: "Task 3" })
+          .getByRole("button", { name: "In Progress" }),
+      ).toBeVisible();
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["3", "1", "2", "4"] },
+        ["1"]: { children: [] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [], status: "In Progress" },
+        ["4"]: { children: [] },
+      });
+    });
+
+    test("change status to done by clicking", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["3", "1", "2", "4"] },
+        { id: "1", children: [] },
+        { id: "2", children: [] },
+        { id: "3", children: [], status: "In Progress" },
+        { id: "4", children: [] },
+      ]);
+      page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("button", { name: "In Progress" })
+        .click();
+      page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("menuitem", { name: "Done" })
+        .click();
+      await expect(
+        page
+          .getByRole("row", { name: "Task 3" })
+          .getByRole("button", { name: "Done" }),
+      ).toBeVisible();
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1", "2", "4", "3"] },
+        ["1"]: { children: [] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [], status: "Done" },
+        ["4"]: { children: [] },
+      });
+    });
+
+    test("change status to not started by clicking", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+        { id: "1", children: [] },
+        { id: "2", children: [] },
+        { id: "3", children: [], status: "Done", statusTime: Date.now() },
+        { id: "4", children: [] },
+      ]);
+      page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("button", { name: "Done" })
+        .click();
+      page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("menuitem", { name: "Not Started" })
+        .click();
+      await expect(
+        page
+          .getByRole("row", { name: "Task 3" })
+          .getByRole("button", { name: "Not Started" }),
+      ).toBeVisible();
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1", "2", "3", "4"] },
+        ["1"]: { children: [] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [], status: "Not Started" },
+        ["4"]: { children: [] },
+      });
+    });
+  });
+
   test.describe("undo and redo", () => {
     test("clicking the undo and redo restores and deletes a task", async ({
       page,
