@@ -24,8 +24,8 @@
   },
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["before 6am on the first Thursday of the month"],
+    "schedule": ["* * 1 * *"],
     "automerge": true,
-    "automergeSchedule": ["* 7-14 * * 1-5"]
+    "automergeSchedule": ["* 8-14 * * 1-5"]
   }
 }
