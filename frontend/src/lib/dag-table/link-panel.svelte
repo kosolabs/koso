@@ -22,7 +22,6 @@
       ? koso
           .getTasks()
           .filter((task) => match(task.num, query) || match(task.name, query))
-          .filter((task) => task.id !== "root")
           .filter((task) => koso.canLink(node.name, task.id))
           .sort((t1, t2) => t2.children.length - t1.children.length)
           .slice(0, 50)
