@@ -29,7 +29,7 @@ jobs:
       KOSO_IMAGE_DIGEST: ${{ needs.build.outputs.image_digest }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: appleboy/ssh-action@25ce8cbbcb08177468c7ff7ec5cbfa236f9341e1 # v1.1.0
+      - uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         env:
           GHCR_USER: ${{ github.actor }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -38,19 +38,7 @@ jobs:
           username: root
           key: ${{ secrets.KOSO_KEY }}
           envs: GHCR_USER,GHCR_TOKEN,GITHUB_SHA,KOSO_IMAGE_DIGEST
-          script: |
-            set -e
-            echo "Deploying commit ${GITHUB_SHA}, image digest ${KOSO_IMAGE_DIGEST}"
-            cd /root/koso
-
-            git status
-            git reset --hard
-            git clean -f -d
-            git fetch
-            git checkout $GITHUB_SHA
-            git status
-
-            ./deploy.sh
+          script_path: deploy.sh
       - name: Craft the success message
         id: success-message
         run: |
@@ -72,5 +60,5 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: | 
+          message: |
             ${{ steps.failure-message.outputs.MSG || steps.success-message.outputs.MSG }}
