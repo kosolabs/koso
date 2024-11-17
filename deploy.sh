@@ -6,6 +6,29 @@ if [ -z "${KOSO_IMAGE_DIGEST}" ]; then
     echo "KOSO_IMAGE_DIGEST variable must be set."
     exit 1
 fi
+if [ -z "${GITHUB_SHA}" ]; then
+    echo "GITHUB_SHA variable must be set."
+    exit 1
+fi
+if [ -z "${GHCR_USER}" ]; then
+    echo "GHCR_USER variable must be set."
+    exit 1
+fi
+if [ -z "${GHCR_TOKEN}" ]; then
+    echo "GHCR_TOKEN variable must be set."
+    exit 1
+fi
+
+echo "Deploying commit ${GITHUB_SHA}, image digest ${KOSO_IMAGE_DIGEST}"
+cd /root/koso
+
+# Checkout the repo at the given commit.
+git status
+git reset --hard
+git clean -f -d
+git fetch
+git checkout $GITHUB_SHA
+git status
 
 # Cleanup old images and containers
 echo "Cleaning up stale images and containers..."
