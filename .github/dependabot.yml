@@ -8,7 +8,7 @@ updates:
   - package-ecosystem: "cargo"
     directory: "/backend"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       cargo-deps:
         patterns:
@@ -16,7 +16,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       npm-deps:
         patterns:
@@ -24,7 +24,7 @@ updates:
   - package-ecosystem: "github-actions" 
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       github-actions-deps:
         patterns:
@@ -32,7 +32,7 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       docker-deps:
         patterns:
