@@ -1,44 +1,48 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
-  import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import Navbar from "$lib/navbar.svelte";
-  import {
-    fetchProjects,
-    createProject as projectsCreateProject,
-    deleteProject as projectsDeleteProject,
-    type Project,
-    type ProjectExport,
-  } from "$lib/projects";
+  import * as rest from "$lib/projects";
+  import { type Project, type ProjectExport } from "$lib/projects";
   import { HardDriveUpload, Layers, PackagePlus, Trash2 } from "lucide-svelte";
   import { toast } from "svelte-sonner";
 
   let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
-  let projects: Promise<Project[]> = fetchProjects();
-  let errorMessage: string | null = null;
+  let projects: Promise<Project[]> = rest.fetchProjects();
 
   async function createProject(projectExport: ProjectExport | null = null) {
-    errorMessage = null;
-    let project;
+    const toastId = toast.loading(
+      projectExport
+        ? `Importing project ${projectExport.projectId}...`
+        : `Creating project...`,
+    );
     try {
-      project = await projectsCreateProject(projectExport);
+      let project = await rest.createProject(projectExport);
+      await goto(`/projects/${project.projectId}`);
+      toast.success(projectExport ? "Project imported!" : "Project created!", {
+        id: toastId,
+      });
     } catch (err) {
       if (err instanceof KosoError && err.hasReason("TOO_MANY_PROJECTS")) {
-        errorMessage =
-          "Cannot create new project, you already have too many. Contact us for more!";
+        toast.error(
+          "Cannot create new project, you already have too many. Contact us for more!",
+          { id: toastId, duration: 10000 },
+        );
       } else if (err instanceof KosoError && err.status === 422) {
-        errorMessage =
-          "The Koso export file is malformed. Verify the correct file was selected and try again.";
+        toast.error(
+          "The Koso export file is malformed. Verify the correct file was selected and try again.",
+          { id: toastId, duration: 10000 },
+        );
       } else {
-        errorMessage = "Something went wrong. Please try again.";
         console.warn(err);
+        toast.error("Something went wrong. Please try again.", {
+          id: toastId,
+          duration: 10000,
+        });
       }
       return;
     }
-    await goto(`/projects/${project.projectId}`);
-
-    toast.info("Project created!");
   }
 
   function triggerFileSelect() {
@@ -46,31 +50,36 @@
   }
 
   async function deleteProject(project: Project) {
-    toast.promise(projectsDeleteProject(project), {
-      duration: 10000,
-      loading: `Moving ${project.name} to the trash...`,
-      success: (project) => {
-        projects = fetchProjects();
-        return `${project.name} has been placed in the trash and will be permanently deleted in 30 days.`;
-      },
-      error: (err) => {
-        if (err instanceof KosoError) {
-          return `Could not move ${project.name} to the trash: ${err.message}`;
-        }
-        console.warn(err);
-        return "Something went wrong. Please try again.";
-      },
-    });
+    const toastId = toast.loading(`Moving ${project.name} to the trash...`);
+    try {
+      await rest.deleteProject(project);
+      projects = rest.fetchProjects();
+      toast.success(
+        `${project.name} has been placed in the trash and will be permanently deleted in 30 days.`,
+        { id: toastId },
+      );
+    } catch (err) {
+      if (err instanceof KosoError) {
+        toast.error(
+          `Could not move ${project.name} to the trash: ${err.message}`,
+          { id: toastId, duration: 10000 },
+        );
+      }
+      console.warn(err);
+      toast.error("Something went wrong. Please try again.", {
+        id: toastId,
+        duration: 10000,
+      });
+    }
   }
 
   function parseProjectExport(data: string) {
     try {
       return JSON.parse(data);
     } catch (e) {
-      errorMessage =
-        "The Koso export file is malformed. Verify the correct file was selected and try again.";
       toast.error(
         "The Koso export file is malformed. Verify the correct file was selected and try again.",
+        { duration: 10000 },
       );
       throw e;
     }
@@ -87,9 +96,10 @@
       return;
     }
 
-    errorMessage = null;
+    event.currentTarget.value = "";
+
     if (files.length > 1) {
-      errorMessage = "Select a single file.";
+      toast.error("Select a single file.", { duration: 10000 });
       return;
     }
 
@@ -99,12 +109,6 @@
 </script>
 
 <Navbar />
-
-{#if errorMessage}
-  <div class="m-4 flex-grow-0">
-    <Alert variant="destructive">{errorMessage}</Alert>
-  </div>
-{/if}
 
 {#await projects}
   {#await deflicker}
