@@ -271,7 +271,7 @@ jobs:
         with:
           package-name: "koso"
           package-type: "container"
-          min-versions-to-keep: 50
+          min-versions-to-keep: 150
           delete-only-untagged-versions: "true"
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       - name: Cleanup old dev images
@@ -279,12 +279,12 @@ jobs:
         with:
           package-name: "koso/dev"
           package-type: "container"
-          min-versions-to-keep: 50
+          min-versions-to-keep: 200
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       - name: Cleanup old buildcache images
         uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
         with:
           package-name: "koso/buildcache"
           package-type: "container"
-          min-versions-to-keep: 150
+          min-versions-to-keep: 200
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
