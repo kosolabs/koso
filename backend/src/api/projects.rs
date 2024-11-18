@@ -16,7 +16,7 @@ use crate::{
 use anyhow::Result;
 use axum::{
     extract::Path,
-    routing::{get, patch, post},
+    routing::{delete, get, patch, post},
     Extension, Json, Router,
 };
 use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
@@ -30,6 +30,7 @@ pub(super) fn router() -> Router {
         .route("/", post(create_project_handler))
         .route("/:project_id", get(get_project_handler))
         .route("/:project_id", patch(update_project_handler))
+        .route("/:project_id", delete(delete_project_handler))
         .route("/:project_id/users", patch(update_project_users_handler))
         .route("/:project_id/users", get(list_project_users_handler))
         .route("/:project_id/updates", get(get_project_doc_updates_handler))
@@ -53,7 +54,8 @@ async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>> {
         "
         SELECT
           project_id,
-          projects.name
+          projects.name,
+          projects.deleted_on
         FROM project_permissions 
         JOIN projects USING(project_id)
         WHERE email = $1",
@@ -97,6 +99,7 @@ async fn create_project_handler(
     let project = Project {
         project_id: BASE64_URL_SAFE_NO_PAD.encode(Uuid::new_v4()),
         name: project.name,
+        deleted_on: None,
     };
 
     let mut txn = pool.begin().await?;
@@ -149,19 +152,7 @@ async fn get_project_handler(
 ) -> ApiResult<Json<Project>> {
     verify_project_access(pool, user, &project_id).await?;
 
-    let project: Project = sqlx::query_as(
-        "
-        SELECT
-          project_id,
-          projects.name
-        FROM projects
-        WHERE project_id = $1",
-    )
-    .bind(project_id)
-    .fetch_one(pool)
-    .await?;
-
-    Ok(Json(project))
+    Ok(Json(fetch_project(pool, &project_id).await?))
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -191,6 +182,27 @@ async fn update_project_handler(
         .execute(pool)
         .await?;
     Ok(Json(project))
+}
+
+#[tracing::instrument(skip(user, pool))]
+async fn delete_project_handler(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+    Path(project_id): Path<String>,
+) -> ApiResult<Json<Project>> {
+    verify_project_access(pool, user, &project_id).await?;
+
+    sqlx::query(
+        "
+        UPDATE projects
+        SET deleted_on = LOCALTIMESTAMP
+        WHERE project_id = $1",
+    )
+    .bind(&project_id)
+    .execute(pool)
+    .await?;
+
+    Ok(Json(fetch_project(pool, &project_id).await?))
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -282,6 +294,21 @@ async fn get_project_doc_updates_handler(
         .map(|u| u.to_string())
         .collect();
     Ok(Json(updates))
+}
+
+async fn fetch_project(pool: &PgPool, project_id: &str) -> Result<Project> {
+    Ok(sqlx::query_as(
+        "
+        SELECT
+            project_id,
+            projects.name,
+            projects.deleted_on
+        FROM projects
+        WHERE project_id = $1",
+    )
+    .bind(project_id)
+    .fetch_one(pool)
+    .await?)
 }
 
 #[tracing::instrument(skip(user, pool, collab))]

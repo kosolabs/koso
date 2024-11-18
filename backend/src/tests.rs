@@ -308,6 +308,30 @@ async fn assert_not_invited(res: Response) {
 }
 
 #[test_log::test(sqlx::test)]
+async fn create_and_delete_project(pool: PgPool) -> sqlx::Result<()> {
+    let (mut server, addr) = start_server(&pool).await;
+    let client = Client::default();
+
+    let token = login(&client, &addr, &pool).await.unwrap();
+
+    let project = create_project(&client, &addr, &token, "A Project to Delete")
+        .await
+        .unwrap();
+    assert_eq!(project.name, "A Project to Delete");
+    assert_eq!(project.deleted_on, None);
+
+    let project = delete_project(&client, &addr, &token, &project.project_id)
+        .await
+        .unwrap();
+    assert_eq!(project.name, "A Project to Delete");
+    assert_ne!(project.deleted_on, None);
+
+    server.start_shutdown().await;
+    server.wait_for_shutdown().await.unwrap();
+    Ok(())
+}
+
+#[test_log::test(sqlx::test)]
 async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let (mut server, addr) = start_server(&pool).await;
     let client = Client::default();
@@ -805,6 +829,57 @@ async fn next_with_timeout(socket: &mut Socket) -> Result<Option<Message>> {
             "Timed out reading from socket after 22 seconds: {e}"
         )),
     }
+}
+
+async fn delete_project(
+    client: &Client,
+    addr: &SocketAddr,
+    token: &str,
+    project_id: &str,
+) -> Result<Project> {
+    let res = client
+        .delete(format!("http://{addr}/api/projects/{project_id}"))
+        .bearer_auth(token)
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .expect("Failed to send request.");
+    assert_eq!(res.status(), StatusCode::OK);
+    Ok(serde_json::from_str(res.text().await.unwrap().as_str()).unwrap())
+}
+
+async fn create_project(
+    client: &Client,
+    addr: &SocketAddr,
+    token: &str,
+    name: &str,
+) -> Result<Project> {
+    let res = client
+        .post(format!("http://{addr}/api/projects"))
+        .bearer_auth(token)
+        .header("Content-Type", "application/json")
+        .body(format!("{{\"name\":\"{name}\"}}"))
+        .send()
+        .await
+        .expect("Failed to send request.");
+    assert_eq!(res.status(), StatusCode::OK);
+    Ok(serde_json::from_str(res.text().await.unwrap().as_str()).unwrap())
+}
+
+async fn login(client: &Client, addr: &SocketAddr, pool: &PgPool) -> Result<String> {
+    let claims = Claims::default();
+    let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
+
+    // Login
+    let res = client
+        .post(format!("http://{addr}/api/auth/login"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .expect("Failed to send request.");
+    assert_eq!(res.status(), StatusCode::OK);
+    set_user_invited(&claims.email, pool).await.unwrap();
+    Ok(token)
 }
 
 async fn set_user_invited(email: &str, pool: &PgPool) -> Result<()> {

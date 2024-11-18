@@ -1,18 +1,20 @@
+use sqlx::types::chrono::{self, Utc};
 use std::{collections::HashMap, fmt};
 
 pub(crate) type ProjectId = String;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct Project {
-    #[serde(rename(serialize = "projectId", deserialize = "projectId"))]
     pub(crate) project_id: String,
     pub(crate) name: String,
+    pub(crate) deleted_on: Option<chrono::DateTime<Utc>>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct CreateProject {
     pub(crate) name: String,
-    #[serde(rename(serialize = "projectExport", deserialize = "projectExport"))]
     pub(crate) project_export: Option<ProjectExport>,
 }
 
@@ -25,19 +27,17 @@ impl fmt::Debug for CreateProject {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct ProjectPermission {
-    #[serde(rename(serialize = "projectId", deserialize = "projectId"))]
     pub(crate) project_id: ProjectId,
     pub(crate) email: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateProjectUsers {
-    #[serde(rename(serialize = "projectId", deserialize = "projectId"))]
     pub project_id: ProjectId,
-    #[serde(rename(serialize = "addEmails", deserialize = "addEmails"))]
     pub add_emails: Vec<String>,
-    #[serde(rename(serialize = "removeEmails", deserialize = "removeEmails"))]
     pub remove_emails: Vec<String>,
 }
 
@@ -45,8 +45,8 @@ pub struct UpdateProjectUsers {
 pub struct UpdateProjectUsersResponse {}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct ProjectUser {
-    #[serde(rename(serialize = "projectId", deserialize = "projectId"))]
     pub(crate) project_id: ProjectId,
     pub(crate) email: String,
     pub(crate) name: String,
@@ -54,6 +54,7 @@ pub(crate) struct ProjectUser {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct User {
     pub(crate) email: String,
     pub(crate) name: String,
@@ -61,8 +62,8 @@ pub(crate) struct User {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct ProjectExport {
-    #[serde(rename(serialize = "projectId", deserialize = "projectId"))]
     pub(crate) project_id: ProjectId,
     pub(crate) graph: Graph,
 }
@@ -70,6 +71,7 @@ pub(crate) struct ProjectExport {
 pub(crate) type Graph = HashMap<String, Task>;
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct Task {
     pub(crate) id: String,
     pub(crate) num: String,
@@ -78,6 +80,5 @@ pub(crate) struct Task {
     pub(crate) assignee: Option<String>,
     pub(crate) reporter: Option<String>,
     pub(crate) status: Option<String>,
-    #[serde(rename(serialize = "statusTime", deserialize = "statusTime"))]
     pub(crate) status_time: Option<i64>,
 }

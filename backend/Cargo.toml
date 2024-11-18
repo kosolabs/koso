@@ -25,12 +25,7 @@ tower-http = { version = "0.6.1", features = [
     "timeout",
     "request-id",
 ] }
-sqlx = { version = "0.8.2", features = [
-    "runtime-tokio-rustls",
-    "any",
-    "postgres",
-    "macros",
-] }
+sqlx = { version = "0.8.2", features = ["runtime-tokio-rustls", "any", "postgres", "macros", "chrono"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 listenfd = "1.0.1"
@@ -49,6 +44,7 @@ anyhow = "1.0.93"
 rand = "0.8.5"
 tower = "0.5.1"
 similar = "2.6.0"
+chrono = { version = "0.4.38", features = ["serde"] }
 
 [dev-dependencies]
 test-log = { version = "0.2.16", features = ["trace", "color"] }

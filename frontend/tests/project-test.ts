@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { generateEmail, login, tearDown } from "./utils";
 
-test.describe("new project", () => {
+test.describe("project tests", () => {
   test.describe.configure({ mode: "serial" });
 
   let page: Page;
@@ -42,5 +42,17 @@ test.describe("new project", () => {
     await expect(
       page.getByRole("button", { name: "Set Project Name" }),
     ).toHaveText("Integration Test Project");
+  });
+
+  test("return to projects view and delete Integration Test Project", async () => {
+    await page.getByRole("link", { name: "Home" }).click();
+
+    await page
+      .getByRole("button", { name: "Delete Integration Test Project" })
+      .click();
+
+    await expect(
+      page.getByText("Create your first Koso project!"),
+    ).toBeVisible();
   });
 });

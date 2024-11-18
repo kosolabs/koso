@@ -1,10 +1,11 @@
-import { headers, parse_response } from "$lib/api";
+import { headers, parse_response as parseResponse } from "$lib/api";
 import { type User } from "$lib/auth.svelte";
 import type { Graph } from "$lib/yproxy";
 
 export type Project = {
   projectId: string;
   name: string;
+  deletedOn?: string;
 };
 
 export type UpdateProjectUsers = {
@@ -26,7 +27,7 @@ export async function fetchProjects(): Promise<Project[]> {
     method: "GET",
     headers: headers(),
   });
-  return parse_response(response);
+  return parseResponse(response);
 }
 
 export async function fetchProject(projectId: string): Promise<Project> {
@@ -34,7 +35,7 @@ export async function fetchProject(projectId: string): Promise<Project> {
     method: "GET",
     headers: headers(),
   });
-  return parse_response(response);
+  return parseResponse(response);
 }
 
 export async function createProject(
@@ -48,7 +49,7 @@ export async function createProject(
     },
     body: JSON.stringify({ name: "My Project!", projectExport }),
   });
-  return parse_response(response);
+  return parseResponse(response);
 }
 
 export async function updateProject(project: Project): Promise<Project> {
@@ -60,14 +61,22 @@ export async function updateProject(project: Project): Promise<Project> {
     },
     body: JSON.stringify(project),
   });
-  return parse_response(response);
+  return parseResponse(response);
+}
+
+export async function deleteProject(project: Project): Promise<Project> {
+  const response = await fetch(`/api/projects/${project.projectId}`, {
+    method: "DELETE",
+    headers: headers(),
+  });
+  return parseResponse(response);
 }
 
 export async function fetchProjectUsers(projectId: string): Promise<User[]> {
   const response = await fetch(`/api/projects/${projectId}/users`, {
     headers: headers(),
   });
-  const users: User[] = await parse_response(response);
+  const users: User[] = await parseResponse(response);
   users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
   return users;
 }
@@ -83,12 +92,12 @@ export async function updateProjectUsers(
     },
     body: JSON.stringify(update),
   });
-  await parse_response(response);
+  await parseResponse(response);
 }
 
 export async function exportProject(projectId: string): Promise<ProjectExport> {
   const response = await fetch(`/api/projects/${projectId}/export`, {
     headers: headers(),
   });
-  return await parse_response(response);
+  return await parseResponse(response);
 }
