@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-set -ep pipefail
+set -eo pipefail
 
 if [ -z "${KOSO_IMAGE_DIGEST}" ]; then
     echo "KOSO_IMAGE_DIGEST variable must be set."
