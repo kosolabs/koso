@@ -1590,6 +1590,37 @@ test.describe("dag table tests", () => {
         f2: { children: [] },
       });
     });
+
+    test("link panel adds a link root", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2"] },
+        { id: "m1", name: "Milestone 1", children: ["f1", "f2"] },
+        { id: "m2", name: "Milestone 2", children: [] },
+        { id: "c1", name: "Component 1", children: [] },
+        { id: "c2", name: "Component 2", children: [] },
+        { id: "f1", name: "Feature 1", children: [] },
+        { id: "f2", name: "Feature 2", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Task m1 Toggle Expand" }).click();
+      await page.getByRole("button", { name: "Task f1 Drag Handle" }).click();
+
+      await page.keyboard.press("Meta+/");
+      await page
+        .getByRole("button", { name: "Task root Command Item" })
+        .click();
+      await expect(page.getByTestId("Row f1")).toContainText("Milestone 1");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["m1", "m2", "c1", "c2", "f1"] },
+        m1: { children: ["f1", "f2"] },
+        m2: { children: [] },
+        c1: { children: [] },
+        c2: { children: [] },
+        f1: { children: [] },
+        f2: { children: [] },
+      });
+    });
   });
 
   test.describe("task tags", () => {
