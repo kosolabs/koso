@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-set -ep pipefail
+set -eo pipefail
 
 # NOTE - this script was pieced together from history and is currently untested.
 # Be long the look out for MANUAL steps. Good luck
