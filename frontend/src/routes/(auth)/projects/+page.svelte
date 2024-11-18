@@ -126,7 +126,7 @@
     onchange={importProject}
   />
 
-  {#if projects.length === 0}
+  {#if filteredProjects.length === 0}
     <div
       class="m-2 flex flex-col items-center gap-6 rounded border bg-card p-8"
     >
@@ -167,6 +167,7 @@
               title="Move Project to Trash"
               class="ml-auto"
               variant="outline"
+              aria-label="Delete {project.name}"
               onclick={() => deleteProject(project)}
             >
               <Trash2 class="me-2 w-5" />Trash
