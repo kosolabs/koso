@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 
-set -e
+set -ep pipefail
 
 # NOTE - this script was pieced together from history and is currently untested.
 # Be long the look out for MANUAL steps. Good luck
@@ -54,6 +54,12 @@ sudo apt update
 sudo apt install -y postgresql-common
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 apt install postgresql-17
+cat >>/etc/postgresql/16/main/postgresql.conf <<EOL
+
+# Commit asynchronously for better performance
+synchronous_commit = off
+EOL
+
 systemctl start postgresql.service
 systemctl enable postgresql.service
 systemctl status postgresql.service
