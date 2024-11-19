@@ -4,43 +4,46 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  cookie: 1.0.1
+
 importers:
 
   .:
     dependencies:
       '@tauri-apps/api':
-        specifier: ^2.1.1
+        specifier: 2.1.1
         version: 2.1.1
       '@tauri-apps/plugin-shell':
-        specifier: ^2.0.1
+        specifier: 2.0.1
         version: 2.0.1
     devDependencies:
       '@sveltejs/adapter-static':
-        specifier: ^3.0.6
+        specifier: 3.0.6
         version: 3.0.6(@sveltejs/kit@2.8.1(@sveltejs/vite-plugin-svelte@4.0.1(svelte@5.2.3)(vite@5.4.11))(svelte@5.2.3)(vite@5.4.11))
       '@sveltejs/kit':
-        specifier: ^2.8.1
+        specifier: 2.8.1
         version: 2.8.1(@sveltejs/vite-plugin-svelte@4.0.1(svelte@5.2.3)(vite@5.4.11))(svelte@5.2.3)(vite@5.4.11)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^4.0.1
+        specifier: 4.0.1
         version: 4.0.1(svelte@5.2.3)(vite@5.4.11)
       '@tauri-apps/cli':
-        specifier: ^2.1.0
+        specifier: 2.1.0
         version: 2.1.0
       svelte:
-        specifier: ^5.2.3
+        specifier: 5.2.3
         version: 5.2.3
       svelte-check:
-        specifier: ^4.0.9
+        specifier: 4.0.9
         version: 4.0.9(svelte@5.2.3)(typescript@5.6.3)
       tslib:
-        specifier: ^2.8.1
+        specifier: 2.8.1
         version: 2.8.1
       typescript:
-        specifier: ^5.6.3
+        specifier: 5.6.3
         version: 5.6.3
       vite:
-        specifier: ^5.4.11
+        specifier: 5.4.11
         version: 5.4.11
 
 packages:
@@ -426,9 +429,9 @@ packages:
     resolution: {integrity: sha512-n8enUVCED/KVRQlab1hr3MVpcVMvxtZjmEa956u+4YijlmQED223XMSYj2tLuKvr4jcCTzNNMpQDUer72MMmzA==}
     engines: {node: '>= 14.16.0'}
 
-  cookie@0.6.0:
-    resolution: {integrity: sha512-U71cyTamuh1CRNCfpGY6to28lxvNwPG4Guz/EVjgf3Jmzv0vlDp1atT9eS5dDjMYHucpHbWns6Lwf3BKz6svdw==}
-    engines: {node: '>= 0.6'}
+  cookie@1.0.1:
+    resolution: {integrity: sha512-Xd8lFX4LM9QEEwxQpF9J9NTUh8pmdJO0cyRJhFiDoLTk2eH8FXlRv2IFGYVadZpqI3j8fhNrSdKCeYPxiAhLXw==}
+    engines: {node: '>=18'}
 
   debug@4.3.7:
     resolution: {integrity: sha512-Er2nc/H7RrMXZBFCEim6TCmMk02Z8vLC2Rbi1KEBggpo0fS6l0S1nnapwmIi3yW/+GOJap1Krg4w0Hg80oCqgQ==}
@@ -765,7 +768,7 @@ snapshots:
     dependencies:
       '@sveltejs/vite-plugin-svelte': 4.0.1(svelte@5.2.3)(vite@5.4.11)
       '@types/cookie': 0.6.0
-      cookie: 0.6.0
+      cookie: 1.0.1
       devalue: 5.1.1
       esm-env: 1.1.4
       import-meta-resolve: 4.1.0
@@ -868,7 +871,7 @@ snapshots:
     dependencies:
       readdirp: 4.0.2
 
-  cookie@0.6.0: {}
+  cookie@1.0.1: {}
 
   debug@4.3.7:
     dependencies:
