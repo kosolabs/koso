@@ -6,7 +6,7 @@
 </script>
 
 <div
-  class="flex items-center gap-1 text-nowrap rounded border bg-secondary px-1 text-xs text-secondary-foreground max-sm:hidden"
+  class="flex items-center gap-1 text-nowrap rounded border bg-secondary px-1 text-xs text-secondary-foreground"
   title={description}
 >
   {#if onClick}

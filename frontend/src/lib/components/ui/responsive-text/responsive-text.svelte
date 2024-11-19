@@ -5,6 +5,6 @@
   const { children }: Props = $props();
 </script>
 
-<div class="whitespace-nowrap text-sm max-sm:hidden">
+<div class="whitespace-nowrap text-sm max-md:hidden">
   {@render children()}
 </div>
