@@ -80,7 +80,7 @@ jobs:
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: pnpm install
 
-      - run: pnpm run "/^(build|check|lint)$/"
+      - run: pnpm test
 
       - name: Build tauri app
         id: build-tauri
