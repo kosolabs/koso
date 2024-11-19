@@ -12,7 +12,7 @@
   }
 </script>
 
-<main class="flex flex-col gap-16 items-center mt-auto p-20">
+<main class="mt-auto flex flex-col items-center gap-16 p-20">
   <h1 class="text-4xl">Welcome to Koso Zero</h1>
 
   <img src="/logo.svg" class="w-20" alt="Koso Logo" />
