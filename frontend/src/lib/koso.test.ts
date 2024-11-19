@@ -1200,4 +1200,130 @@ describe("Koso tests", () => {
       expect(children).toEqual(["t1", "t5", "t2", "t3", "t4"]);
     });
   });
+
+  describe("getPrevLink", { sequential: true }, () => {
+    it("loops through expanded nodes", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5", "t6"],
+        },
+        { id: "t2" },
+        { id: "t4", children: ["t2"] },
+        { id: "t6", children: ["t2"] },
+      ]);
+      koso.expanded = Set([Node.parse("t4"), Node.parse("t6")]);
+
+      let node: Node | null = Node.parse("t2");
+      node = koso.getPrevLink(node);
+      expect(node).toEqual(Node.parse("t6/t2"));
+      if (!node) throw new Error();
+
+      node = koso.getPrevLink(node);
+      expect(node).toEqual(Node.parse("t4/t2"));
+      if (!node) throw new Error();
+
+      node = koso.getPrevLink(node);
+      expect(node).toEqual(Node.parse("t2"));
+    });
+
+    it("ignores collapsed nodes", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5", "t6"],
+        },
+        { id: "t2" },
+        { id: "t4", children: ["t2"] },
+        { id: "t6", children: ["t2"] },
+      ]);
+      koso.expanded = Set([Node.parse("t4")]);
+
+      let node: Node | null = Node.parse("t2");
+      node = koso.getPrevLink(node);
+      expect(node).toEqual(Node.parse("t4/t2"));
+      if (!node) throw new Error();
+
+      node = koso.getPrevLink(node);
+      expect(node).toEqual(Node.parse("t2"));
+    });
+
+    it("does not repeat single node", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3"],
+        },
+        { id: "t2" },
+      ]);
+
+      expect(koso.getPrevLink(Node.parse("t2"))).toBeNull();
+    });
+  });
+
+  describe("getNextLink", { sequential: true }, () => {
+    it("loops through expanded nodes", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5", "t6"],
+        },
+        { id: "t2" },
+        { id: "t4", children: ["t2"] },
+        { id: "t6", children: ["t2"] },
+      ]);
+      koso.expanded = Set([Node.parse("t4"), Node.parse("t6")]);
+
+      let node: Node | null = Node.parse("t2");
+      node = koso.getNextLink(node);
+      expect(node).toEqual(Node.parse("t4/t2"));
+      if (!node) throw new Error();
+
+      node = koso.getNextLink(node);
+      expect(node).toEqual(Node.parse("t6/t2"));
+      if (!node) throw new Error();
+
+      node = koso.getNextLink(node);
+      expect(node).toEqual(Node.parse("t2"));
+    });
+
+    it("ignores collapsed nodes", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5", "t6"],
+        },
+        { id: "t2" },
+        { id: "t4", children: ["t2"] },
+        { id: "t6", children: ["t2"] },
+      ]);
+      koso.expanded = Set([Node.parse("t4")]);
+
+      let node: Node | null = Node.parse("t2");
+      node = koso.getNextLink(node);
+      expect(node).toEqual(Node.parse("t4/t2"));
+      if (!node) throw new Error();
+
+      node = koso.getNextLink(node);
+      expect(node).toEqual(Node.parse("t2"));
+    });
+
+    it("does not repeat single node", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3"],
+        },
+        { id: "t2" },
+      ]);
+
+      expect(koso.getNextLink(Node.parse("t2"))).toBeNull();
+    });
+  });
 });

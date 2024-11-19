@@ -708,6 +708,56 @@ export class Koso {
     return null;
   }
 
+  getPrevLink(node: Node): Node | null {
+    const curr = this.nodes.indexOf(node);
+    for (let i = curr - 1; i > 0; i--) {
+      const n = this.#nodes.get(i);
+      if (!n) throw new Error(`Node at ${i} does not exist.`);
+
+      if (n.name === node.name) {
+        return n;
+      }
+    }
+    // Loop around from the end.
+    for (let i = this.#nodes.size - 1; i > curr; i--) {
+      const n = this.#nodes.get(i);
+      if (!n) throw new Error(`Node at ${i} does not exist.`);
+
+      if (n.name === node.name) {
+        return n;
+      }
+    }
+
+    return null;
+  }
+
+  getNextLink(node: Node): Node | null {
+    const curr = this.nodes.indexOf(node);
+    if (curr <= 1) {
+      return null;
+    }
+
+    for (let i = curr + 1; i < this.nodes.size; i++) {
+      const n = this.#nodes.get(i);
+      if (!n) throw new Error(`Node at ${i} does not exist.`);
+
+      if (n.name === node.name) {
+        return n;
+      }
+    }
+    // Loop around from the start
+    for (let i = 1; i < curr; i++) {
+      const n = this.#nodes.get(i);
+      if (!n) throw new Error(`Node at ${i} does not exist.`);
+
+      if (n.name === node.name) {
+        return n;
+      }
+    }
+
+    return null;
+  }
+
   deleteNode(node: Node) {
     const subtreeTaskIds = this.#collectSubtreeTaskIds(node.name);
 

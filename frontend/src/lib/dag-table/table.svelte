@@ -26,6 +26,8 @@
     Pencil,
     Redo,
     SquarePen,
+    SkipBack,
+    SkipForward,
     StepBack,
     StepForward,
     Sun,
@@ -227,6 +229,24 @@
         koso.selected = koso.nodes.get(index, null);
       } else {
         koso.selected = koso.nodes.get(koso.nodes.size - 1, null);
+      }
+    }
+  }
+
+  function selectNextLink() {
+    if (koso.selected) {
+      const next = koso.getNextLink(koso.selected);
+      if (next) {
+        koso.selected = next;
+      }
+    }
+  }
+
+  function selectPrevLink() {
+    if (koso.selected) {
+      const prev = koso.getPrevLink(koso.selected);
+      if (prev) {
+        koso.selected = prev;
       }
     }
   }
@@ -471,6 +491,24 @@
       toolbar: true,
       enabled: () => !!koso.selected,
       shortcut: new Shortcut({ key: "/", meta: true }),
+    }),
+    new Action({
+      callback: selectNextLink,
+      title: "Next Link",
+      description: "Select next link to current task",
+      icon: SkipForward,
+      toolbar: false,
+      enabled: () => !!koso.selected,
+      shortcut: new Shortcut({ key: "ArrowDown", meta: true }),
+    }),
+    new Action({
+      callback: selectPrevLink,
+      title: "Previous Link",
+      description: "Select previous link to current task",
+      icon: SkipBack,
+      toolbar: false,
+      enabled: () => !!koso.selected,
+      shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
     }),
     ...extraActions,
   ];
