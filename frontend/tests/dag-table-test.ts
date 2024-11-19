@@ -1,10 +1,8 @@
 import type { Status } from "$lib/yproxy";
 import { expect, test, type Page } from "@playwright/test";
 import {
-  generateEmail,
   getKosoGraph,
   getTaskNumToTaskIdMap,
-  login,
   setupNewProject,
   tearDown,
 } from "./utils";
