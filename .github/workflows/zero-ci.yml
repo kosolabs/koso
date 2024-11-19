@@ -73,6 +73,13 @@ jobs:
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: pnpm install
 
+      - run: RUST_BACKTRACE=full RUST_BACKTRACE=1 cargo test
+        working-directory: ./zero/src-tauri
+      - run: cargo clippy -- -D warnings
+        working-directory: ./zero/src-tauri
+      - run: cargo fmt -- --check
+        working-directory: ./zero/src-tauri
+
       - name: Build tauri app
         id: build-tauri
         uses: tauri-apps/tauri-action@8c3e0753aa015d00d03631d6d4f64ad59489251d # v0.5.15
