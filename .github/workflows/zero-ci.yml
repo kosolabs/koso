@@ -69,16 +69,18 @@ jobs:
         with:
           workspaces: "./zero/src-tauri -> target"
 
-      - name: Install frontend dependencies
-        # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
-        run: pnpm install
-
       - run: RUST_BACKTRACE=full RUST_BACKTRACE=1 cargo test
         working-directory: ./zero/src-tauri
       - run: cargo clippy -- -D warnings
         working-directory: ./zero/src-tauri
       - run: cargo fmt -- --check
         working-directory: ./zero/src-tauri
+  
+      - name: Install frontend dependencies
+        # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
+        run: pnpm install
+
+      - run: pnpm run "/^(build|check|lint)$/"
 
       - name: Build tauri app
         id: build-tauri
