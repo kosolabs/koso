@@ -511,15 +511,15 @@
             <th class="border-l p-2">UUID</th>
           {/if}
           <th class="border-l p-2">
-            <SquarePen class="h-4 sm:hidden" />
-            <div class="max-sm:hidden">Status</div></th
+            <SquarePen class="h-4 md:hidden" />
+            <div class="max-md:hidden">Status</div></th
           >
           <th class="border-l p-2">Name</th>
           <th class="border-l p-2">
-            <UserRoundPlus class="h-4 sm:hidden" />
-            <div class="max-sm:hidden">Assignee</div>
+            <UserRoundPlus class="h-4 md:hidden" />
+            <div class="max-md:hidden">Assignee</div>
           </th>
-          <th class="border-l p-2 max-sm:hidden">Reporter</th>
+          <th class="border-l p-2 max-md:hidden">Reporter</th>
         </tr>
       </thead>
 

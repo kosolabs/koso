@@ -394,10 +394,12 @@
     {/if}
   </td>
   <td class={cn("w-full border-l border-t px-2")}>
-    <div class="flex items-center gap-1">
-      {#each tags as tag}
-        <Chip {...tag} />
-      {/each}
+    <div class="flex flex-wrap-reverse gap-x-1">
+      <div class="flex flex-wrap items-center gap-x-1">
+        {#each tags as tag}
+          <Chip {...tag} />
+        {/each}
+      </div>
       <Editable
         value={task.name}
         aria-label={`Task ${task.num} Edit Name`}
@@ -430,7 +432,7 @@
       }}
     />
   </td>
-  <td class={cn("border-l border-t p-2 max-sm:hidden")}>
+  <td class={cn("border-l border-t p-2 max-md:hidden")}>
     <UserSelect
       {users}
       closeFocus={rowElement}

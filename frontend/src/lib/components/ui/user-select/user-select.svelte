@@ -9,6 +9,7 @@
   import { Input } from "$lib/components/ui/input";
   import { UserRound } from "lucide-svelte";
   import { UserAvatar } from ".";
+  import ResponsiveText from "../responsive-text/responsive-text.svelte";
 
   type Props = {
     users: User[];
@@ -52,9 +53,7 @@
         <UserRound />
       </AvatarFallback>
     </Avatar>
-    <div class="whitespace-nowrap max-sm:hidden">
-      {value?.name || unassigned}
-    </div>
+    <ResponsiveText>{value?.name || unassigned}</ResponsiveText>
   </DropdownMenu.Trigger>
   <DropdownMenu.Content
     class="min-w-64"
