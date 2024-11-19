@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "zero",
+  "productName": "Zero",
   "version": "0.1.0",
   "identifier": "app.koso.zero",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "zero",
+        "title": "Zero",
         "width": 800,
         "height": 600
       }
