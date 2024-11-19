@@ -9,11 +9,15 @@
     },
     {
       "path": "backend"
+    },
+    {
+      "path": "zero"
     }
   ],
   "settings": {
     "rust-analyzer.check.command": "clippy",
     "css.lint.validProperties": ["cx", "cy", "r"],
+    "svelte.enable-ts-plugin": true,
     "tailwindCSS.classAttributes": [
       "class",
       "className",
