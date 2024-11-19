@@ -19,12 +19,16 @@ jobs:
       matrix:
         include:
           - platform: "macos-latest" # for Arm based macs (M1 and above).
+            target: "aarch64-apple-darwin"
             args: "--target aarch64-apple-darwin"
           # - platform: "macos-latest" # for Intel based macs.
+          #   target: "x86_64-apple-darwin"
           #   args: "--target x86_64-apple-darwin"
           # - platform: "ubuntu-22.04"
+          #   target: "x86_64-unknown-linux-gnu"
           #   args: ""
           # - platform: "windows-latest"
+          #   target: "x86_64-pc-windows-msvc"
           #   args: ""
 
     runs-on: ${{ matrix.platform }}
@@ -70,6 +74,7 @@ jobs:
         run: pnpm install
 
       - name: Build tauri app
+        id: build-tauri
         uses: tauri-apps/tauri-action@8c3e0753aa015d00d03631d6d4f64ad59489251d # v0.5.15
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -81,3 +86,9 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Archive tauri artifacts
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: tauri-app-${{ matrix.target }}
+          path: ${{ join(fromJson(steps.build-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
