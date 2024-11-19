@@ -1868,4 +1868,89 @@ test.describe("dag table tests", () => {
       await expect(page.getByTestId("Row m1/f3")).not.toBeVisible();
     });
   });
+
+  test.describe("changing assignee", () => {
+    test("assign and unassign", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Unassigned" }).first().click();
+      await page.getByRole("menuitem", { name: "-test" }).click();
+
+      expect((await getKosoGraph(page))["1"].assignee).toContain(
+        "-test@test.koso.app",
+      );
+
+      await page
+        .getByRole("button", { name: "Pointy-Haired Boss" })
+        .first()
+        .click();
+      await page.getByRole("menuitem", { name: "-test" }).isHidden();
+      await page.getByRole("menuitem", { name: "Unassigned" }).click();
+
+      expect((await getKosoGraph(page))["1"].assignee).toBeNull();
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: [], assignee: null },
+      });
+    });
+
+    test("search and assign", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Unassigned" }).first().click();
+      await page.getByRole("menuitem", { name: "Unassigned" }).isVisible();
+      await page.getByRole("menuitem", { name: "-test" }).isVisible();
+      // Query a user that doesn't exist.
+      const notExistentQuery = "not";
+      await page.keyboard.type(notExistentQuery);
+      await page.getByRole("menuitem", { name: "Unassigned" }).isVisible();
+      await page.getByRole("menuitem", { name: "-test" }).isHidden();
+      // Clear the query
+      [...notExistentQuery].forEach(() => page.keyboard.press("Backspace"));
+      await page.getByRole("menuitem", { name: "Unassigned" }).isVisible();
+      await page.getByRole("menuitem", { name: "-test" }).isVisible();
+
+      // Query for the user that does exist
+      await page.keyboard.type("pointy");
+      await page.getByRole("menuitem", { name: "Unassigned" }).isVisible();
+      await page.getByRole("menuitem", { name: "-test" }).isVisible();
+    });
+  });
+
+  test.describe("changing reporter", () => {
+    test("assign and unassign", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Unassigned" }).nth(1).click();
+      await page.getByRole("menuitem", { name: "-test" }).click();
+
+      expect((await getKosoGraph(page))["1"].reporter).toContain(
+        "-test@test.koso.app",
+      );
+
+      await page
+        .getByRole("button", { name: "Pointy-Haired Boss" })
+        .first()
+        .click();
+      await page.getByRole("menuitem", { name: "-test" }).isHidden();
+      await page.getByRole("menuitem", { name: "Unassigned" }).click();
+
+      expect((await getKosoGraph(page))["1"].reporter).toBeNull();
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: [], reporter: null },
+      });
+    });
+  });
 });
