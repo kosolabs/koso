@@ -1,15 +1,11 @@
 name: Zero CI
 on:
   pull_request:
-    paths:
-      - zero/**
   push:
     tags:
       - 'zero-v*'
     branches:
       - main
-    paths:
-      - zero/**
 concurrency:
   group: zero-ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}
   # Cancel in-progress workflows for PRs (but not main).

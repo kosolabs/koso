@@ -1,10 +1,6 @@
 name: CI
 on:
   pull_request:
-    paths:
-      - frontend/**
-      - backend/**
-      - Dockerfile
   workflow_dispatch:
   workflow_call:
     outputs:
