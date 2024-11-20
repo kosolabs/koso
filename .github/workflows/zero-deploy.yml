@@ -1,0 +1,23 @@
+name: Zero Deploy
+on:
+  push:
+    tags:
+      - "zero-v*"
+
+concurrency:
+  group: zero-deploy-workflow-${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  build-and-test-tauri:
+    uses: ./.github/workflows/zero-ci.yml
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build-and-test-tauri
+    permissions:
+      contents: write
+    steps:
+      - name: Test
+        run: echo "${{ needs.build-and-test-tauri.outputs.artifacts-x86_64-unknown-linux-gnu }}"
+      - name: Test2
+        run: echo "${{ toJson(needs.build-and-test-tauri.outputs) }}"
