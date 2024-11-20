@@ -22,5 +22,3 @@ jobs:
         run: echo "${{ needs.build-and-test-tauri.outputs.artifacts-x86_64-unknown-linux-gnu }}"
       - name: Test2
         run: echo "${{ toJson(needs.build-and-test-tauri.outputs) }}"
-      - name: Test3
-        run: echo "${{ needs.build-and-test-tauri.outputs.x86_64-unknown-linux-gnu }}"

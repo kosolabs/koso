@@ -149,4 +149,4 @@ jobs:
         run: |
           target="${{ matrix.target }}"
           paths="${{ steps.build-tauri.outputs.artifactPaths }}"
-          echo "artifacts-${target}=something" >> "$GITHUB_OUTPUT"
+          echo "artifacts-${target}=${paths}" >> "$GITHUB_OUTPUT"
