@@ -1,0 +1,24 @@
+name: Zero Deploy
+on:
+  push:
+    tags:
+      - "zero-v*"
+  pull_request:
+
+concurrency:
+  group: workflow-${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  build-and-test-tauri:
+    uses: ./.github/workflows/zero-ci.yml
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build-and-test-tauri
+    permissions:
+      contents: write
+    steps:
+      - name: Test
+        run: echo "${{ needs.build-and-test-tauri.outputs.x86_64-unknown-linux-gnu }}"
+      - name: Test2
+        run: echo "${{ needs.build-and-test-tauri.outputs }}"

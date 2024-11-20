@@ -1,6 +1,20 @@
 name: Zero CI
 on:
   workflow_call:
+    outputs:
+      aarch64-apple-darwin:
+        description: "Build for aarch64-apple-darwin"
+        value: ${{ jobs.build-and-test-tauri.outputs.aarch64-apple-darwin }}
+      x86_64-apple-darwin:
+        description: "Build for x86_64-apple-darwin"
+        value: ${{ jobs.build-and-test-tauri.outputs.x86_64-apple-darwin }}
+      x86_64-unknown-linux-gnu:
+        description: "Build for x86_64-unknown-linux-gnu"
+        value: ${{ jobs.build-and-test-tauri.outputs.x86_64-unknown-linux-gnu }}
+      x86_64-pc-windows-msvc:
+        description: "Build for x86_64-pc-windows-msvc"
+        value: ${{ jobs.build-and-test-tauri.outputs.x86_64-pc-windows-msvc }}
+
   pull_request:
   push:
     branches:
