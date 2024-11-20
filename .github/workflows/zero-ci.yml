@@ -1,35 +1,72 @@
 name: Zero CI
 on:
+  workflow_call:
   pull_request:
   push:
-    tags:
-      - "zero-v*"
     branches:
       - main
 concurrency:
   group: zero-ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}
   # Cancel in-progress workflows for PRs (but not main).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
-  publish-tauri:
+  define-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.result }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v2
+      - id: set-matrix
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            if (context.eventName == "pull_request") {
+              return [
+                {
+                  platform: "ubuntu-22.04",
+                  target: "x86_64-unknown-linux-gnu",
+                  args: "",
+                },
+              ];
+            } else {
+              return [
+                {
+                  platform: "macos-latest",
+                  target: "aarch64-apple-darwin",
+                  args: "--target aarch64-apple-darwin",
+                },
+                {
+                  platform: "macos-latest",
+                  target: "x86_64-apple-darwin",
+                  args: "--target x86_64-apple-darwin",
+                },
+                {
+                  platform: "ubuntu-22.04",
+                  target: "x86_64-unknown-linux-gnu",
+                  args: "",
+                },
+                {
+                  platform: "windows-latest",
+                  target: "x86_64-pc-windows-msvc",
+                  args: "",
+                },
+              ];
+            }
+
+  build-and-test-tauri:
     permissions:
       contents: write
+    needs: define-matrix
+    outputs:
+      aarch64-apple-darwin: ${{ steps.build-tauri.outputs.aarch64-apple-darwin }}
+      x86_64-apple-darwin: ${{ steps.build-tauri.outputs.x86_64-apple-darwin }}
+      x86_64-unknown-linux-gnu: ${{ steps.build-tauri.outputs.x86_64-unknown-linux-gnu }}
+      x86_64-pc-windows-msvc: ${{ steps.build-tauri.outputs.x86_64-pc-windows-msvc }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: "macos-latest" # for Arm based macs (M1 and above).
-            target: "aarch64-apple-darwin"
-            args: "--target aarch64-apple-darwin"
-          # - platform: "macos-latest" # for Intel based macs.
-          #   target: "x86_64-apple-darwin"
-          #   args: "--target x86_64-apple-darwin"
-          # - platform: "ubuntu-22.04"
-          #   target: "x86_64-unknown-linux-gnu"
-          #   args: ""
-          # - platform: "windows-latest"
-          #   target: "x86_64-pc-windows-msvc"
-          #   args: ""
+        include: ${{ fromJSON(needs.define-matrix.outputs.matrix) }}
 
     runs-on: ${{ matrix.platform }}
     defaults:
@@ -68,18 +105,16 @@ jobs:
         uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
         with:
           workspaces: "./zero/src-tauri -> target"
-
       - run: RUST_BACKTRACE=full RUST_BACKTRACE=1 cargo test
         working-directory: ./zero/src-tauri
       - run: cargo clippy -- -D warnings
         working-directory: ./zero/src-tauri
       - run: cargo fmt -- --check
         working-directory: ./zero/src-tauri
-  
+
       - name: Install frontend dependencies
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: pnpm install
-
       - run: pnpm test
 
       - name: Build tauri app
@@ -89,11 +124,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: "./zero"
-          tagName: ${{ (startsWith(github.ref, 'refs/tags/zero-v') && github.ref) || ''}}
-          releaseName: "Zero v__VERSION__"
-          releaseBody: "See the assets to download this version and install."
-          releaseDraft: false
-          prerelease: false
           args: ${{ matrix.args }}
 
       - name: Archive tauri artifacts
@@ -101,3 +131,10 @@ jobs:
         with:
           name: tauri-app-${{ matrix.target }}
           path: ${{ join(fromJson(steps.build-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
+
+      - name: Output artifact paths
+        id: output-artifact-paths
+        run: |
+          target="${{ matrix.target }}"
+          paths="${{ steps.build-tauri.outputs.artifactPaths }}"
+          echo "${target}=${paths}" >> "$GITHUB_OUTPUT"
