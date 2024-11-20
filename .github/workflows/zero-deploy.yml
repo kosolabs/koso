@@ -3,10 +3,9 @@ on:
   push:
     tags:
       - "zero-v*"
-  pull_request:
 
 concurrency:
-  group: workflow-${{ github.workflow }}
+  group: zero-deploy-workflow-${{ github.workflow }}
   cancel-in-progress: false
 jobs:
   build-and-test-tauri:

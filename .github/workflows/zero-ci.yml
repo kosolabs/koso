@@ -79,7 +79,6 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.define-matrix.outputs.matrix) }}
-
     runs-on: ${{ matrix.platform }}
     defaults:
       run:
