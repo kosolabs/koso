@@ -170,18 +170,9 @@ jobs:
           path: ${{ join(fromJson(steps.build-release-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
 
   build-and-test-tauri-complete:
-    needs: [build-and-test-tauri]
+    needs: [build-and-test-tauri, changes]
+    if: ${{ needs.changes.outputs.zero != 'false' }}
     runs-on: ubuntu-latest
-    if: ${{ always() }}
     steps:
-      - name: Failed
-        if: ${{ needs.build-and-test-tauri.result != 'success' && needs.build-and-test-tauri.result != 'skipped' }}
-        run: |
-          echo "build-and-test-tauri-complete failed"
-          exit 1
-      - name: Successful
-        if: ${{ needs.build-and-test-tauri.result == 'success' }}
-        run: echo "build-and-test-tauri-complete success"
-      - name: Skipped
-        if: ${{ needs.build-and-test-tauri.result == 'skipped' }}
-        run: echo "build-and-test-tauri-complete skipped"
+      - name: Complete
+        run: echo "build-and-test-tauri-complete"
