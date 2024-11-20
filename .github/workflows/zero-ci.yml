@@ -28,7 +28,7 @@ jobs:
           filters: |
             zero:
               - 'zero/**'
-              - ''.github/zero-ci.yml'
+              - '.github/zero-ci.yml'
 
   # Generate matrix configurations for the build-and-test-tauri job.
   # This allows for a reduced configuration set for pull requests, optimizing build times
