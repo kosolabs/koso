@@ -126,10 +126,11 @@ jobs:
           args: ${{ matrix.args }}
 
       - name: Tar tauri artifacts
-        run: tar -cvf tauri-app-${{ matrix.target }}.tar ${{ join(fromJson(steps.build-tauri.outputs.artifactPaths), ' ') }}
+        run: tar -cvf ~/tauri-app-${{ matrix.target }}.tar ${{ join(fromJson(steps.build-tauri.outputs.artifactPaths), ' ') }}
 
       - name: Archive tauri artifacts
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: tauri-app-${{ matrix.target }}
-          path: tauri-app-${{ matrix.target }}.tar
+          path: ~/tauri-app-${{ matrix.target }}.tar
+          if-no-files-found: error
