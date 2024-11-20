@@ -26,7 +26,7 @@ jobs:
         with:
           result-encoding: string
           script: |
-            const outputs = ${{ fromJson(needs.build-and-test-tauri.outputs) }};
+            const outputs = ${{ needs.build-and-test-tauri.outputs }};
             Object.values(outputs).flatMap((paths) => {
               if (paths) {
                 return JSON.parse(paths);
