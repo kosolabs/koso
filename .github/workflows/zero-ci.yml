@@ -69,8 +69,6 @@ jobs:
             }
 
   build-and-test-tauri:
-    permissions:
-      contents: write
     needs: define-matrix
     outputs:
       aarch64-apple-darwin: ${{ steps.build-tauri.outputs.aarch64-apple-darwin }}
