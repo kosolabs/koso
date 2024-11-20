@@ -4,6 +4,7 @@ on:
     tags:
       - "zero-v*"
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: workflow-${{ github.workflow }}
