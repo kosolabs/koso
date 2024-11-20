@@ -13,7 +13,6 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
 jobs:
   changes:
-    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
