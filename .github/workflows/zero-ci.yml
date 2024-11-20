@@ -1,21 +1,6 @@
 name: Zero CI
 on:
-  workflow_call:
-    # This workflow produces an output containing a JSON array of artifact paths,
-    # one for each built architecture.
-    outputs:
-      artifacts-aarch64-apple-darwin:
-        description: "Build for aarch64-apple-darwin"
-        value: ${{ jobs.build-and-test-tauri.outputs.artifacts-aarch64-apple-darwin }}
-      artifacts-x86_64-apple-darwin:
-        description: "Build for x86_64-apple-darwin"
-        value: ${{ jobs.build-and-test-tauri.outputs.artifacts-x86_64-apple-darwin }}
-      artifacts-x86_64-unknown-linux-gnu:
-        description: "Build for x86_64-unknown-linux-gnu"
-        value: ${{ jobs.build-and-test-tauri.outputs.artifacts-x86_64-unknown-linux-gnu }}
-      artifacts-x86_64-pc-windows-msvc:
-        description: "Build for x86_64-pc-windows-msvc"
-        value: ${{ jobs.build-and-test-tauri.outputs.artifacts-x86_64-pc-windows-msvc }}
+  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -24,9 +9,9 @@ on:
       - zero/**
 
 concurrency:
-  group: zero-ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}
+  group: zero-ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}-${{ github.event_name }}
   # Cancel in-progress workflows for PRs (but not main or tag builds).
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' &&  github.event_name != 'workflow_dispatch' }}
 
 jobs:
   # Generate matrix configurations for the build-and-test-tauri job.
@@ -73,11 +58,8 @@ jobs:
 
   build-and-test-tauri:
     needs: define-matrix
-    outputs:
-      artifacts-aarch64-apple-darwin: ${{ steps.artifacts.outputs.artifacts-aarch64-apple-darwin }}
-      artifacts-x86_64-apple-darwin: ${{ steps.artifacts.outputs.artifacts-x86_64-apple-darwin }}
-      artifacts-x86_64-unknown-linux-gnu: ${{ steps.artifacts.outputs.artifacts-x86_64-unknown-linux-gnu }}
-      artifacts-x86_64-pc-windows-msvc: ${{ steps.artifacts.outputs.artifacts-x86_64-pc-windows-msvc }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -130,26 +112,42 @@ jobs:
         run: pnpm install
       - run: pnpm test
 
-      # TODO: consider running debug builds on PRs to speed things up.
-      - name: Build tauri app
-        id: build-tauri
+      # Build the tauri app when we are NOT performing a release.
+      # Mutually exclusive with the build/archive steps below.
+      - name: Build tauri app (non-release)
+        id: build-non-release-tauri
         uses: tauri-apps/tauri-action@8c3e0753aa015d00d03631d6d4f64ad59489251d # v0.5.15
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: "./zero"
           args: ${{ matrix.args }}
-
       - name: Archive tauri artifacts
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         with:
           name: tauri-app-${{ matrix.target }}
-          path: ${{ join(fromJson(steps.build-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
+          path: ${{ join(fromJson(steps.build-non-release-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
 
-      # Produce an output for consumption by the zero-deploy workflow.
-      - name: Output artifact paths
-        id: artifacts
-        run: |
-          target="${{ matrix.target }}"
-          paths="${{ steps.build-tauri.outputs.artifactPaths }}"
-          echo "artifacts-${target}=${paths}" >> "$GITHUB_OUTPUT"
+      # Build the tauri app when we are performing a release.
+      # Mutually exclusive with the build/archive steps above.
+      - name: Build and publish tauri app (release)
+        id: build-release-tauri
+        uses: tauri-apps/tauri-action@8c3e0753aa015d00d03631d6d4f64ad59489251d # v0.5.15
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: "./zero"
+          args: ${{ matrix.args }}
+          tagName: zero-v__VERSION__
+          releaseName: "Zero v__VERSION__"
+          releaseDraft: true
+          prerelease: true
+      - name: Archive tauri artifacts
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        with:
+          name: tauri-app-${{ matrix.target }}
+          path: ${{ join(fromJson(steps.build-release-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
