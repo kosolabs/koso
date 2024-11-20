@@ -3,8 +3,4 @@ name = "kosolib"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-name = "build_dummy"
-path = "build/dummy.rs"
-
 [dependencies]
