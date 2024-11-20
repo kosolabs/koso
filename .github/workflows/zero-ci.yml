@@ -71,10 +71,10 @@ jobs:
   build-and-test-tauri:
     needs: define-matrix
     outputs:
-      artifacts-aarch64-apple-darwin: ${{ steps.build-tauri.outputs.artifacts-aarch64-apple-darwin }}
-      artifacts-x86_64-apple-darwin: ${{ steps.build-tauri.outputs.artifacts-x86_64-apple-darwin }}
-      artifacts-x86_64-unknown-linux-gnu: ${{ steps.build-tauri.outputs.artifacts-x86_64-unknown-linux-gnu }}
-      artifacts-x86_64-pc-windows-msvc: ${{ steps.build-tauri.outputs.artifacts-x86_64-pc-windows-msvc }}
+      artifacts-aarch64-apple-darwin: ${{ steps.artifacts.outputs.artifacts-aarch64-apple-darwin }}
+      artifacts-x86_64-apple-darwin: ${{ steps.artifacts.outputs.artifacts-x86_64-apple-darwin }}
+      artifacts-x86_64-unknown-linux-gnu: ${{ steps.artifacts.outputs.artifacts-x86_64-unknown-linux-gnu }}
+      artifacts-x86_64-pc-windows-msvc: ${{ steps.artifacts.outputs.artifacts-x86_64-pc-windows-msvc }}
     strategy:
       fail-fast: false
       matrix:
@@ -125,7 +125,6 @@ jobs:
         working-directory: ./zero/src-tauri
 
       - name: Install frontend dependencies
-        # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: pnpm install
       - run: pnpm test
 
@@ -145,7 +144,7 @@ jobs:
           path: ${{ join(fromJson(steps.build-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
 
       - name: Output artifact paths
-        id: output-artifact-paths
+        id: artifacts
         run: |
           target="${{ matrix.target }}"
           paths="${{ steps.build-tauri.outputs.artifactPaths }}"
