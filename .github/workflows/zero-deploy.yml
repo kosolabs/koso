@@ -30,7 +30,7 @@ jobs:
               'artifacts-x86_64-pc-windows-msvc'
             ];
             targets.flatMap((t) => {
-              const paths = context.needs.build-and-test-tauri.outputs[t];
+              const paths = context.needs['build-and-test-tauri'].outputs[t];
               if (paths) {
                 return JSON.parse(paths);
               }
