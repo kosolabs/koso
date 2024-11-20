@@ -151,3 +151,10 @@ jobs:
         with:
           name: tauri-app-${{ matrix.target }}
           path: ${{ join(fromJson(steps.build-release-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
+
+  build-and-test-tauri-complete:
+    needs: [build-and-test-tauri]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Complete
+        run: echo "build-and-test-tauri-complete"
