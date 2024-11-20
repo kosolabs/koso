@@ -1,6 +1,8 @@
 name: Zero CI
 on:
   workflow_call:
+    # This workflow produces an output containing a JSON array of artifact paths,
+    # one for each built architecture.
     outputs:
       artifacts-aarch64-apple-darwin:
         description: "Build for aarch64-apple-darwin"
@@ -24,6 +26,9 @@ concurrency:
   # Cancel in-progress workflows for PRs (but not main).
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
+  # Generate matrix configurations for the build-and-test-tauri job.
+  # This allows for a reduced configuration set for pull requests, optimizing build times
+  # while building all platforms for release.
   define-matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -35,38 +40,33 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
+            let res = [
+              {
+                platform: "ubuntu-22.04",
+                target: "x86_64-unknown-linux-gnu",
+                args: "",
+              },
+            ];
             if (context.eventName == "pull_request") {
-              return [
-                {
-                  platform: "ubuntu-22.04",
-                  target: "x86_64-unknown-linux-gnu",
-                  args: "",
-                },
-              ];
-            } else {
-              return [
-                {
-                  platform: "macos-latest",
-                  target: "aarch64-apple-darwin",
-                  args: "--target aarch64-apple-darwin",
-                },
-                {
-                  platform: "macos-latest",
-                  target: "x86_64-apple-darwin",
-                  args: "--target x86_64-apple-darwin",
-                },
-                {
-                  platform: "ubuntu-22.04",
-                  target: "x86_64-unknown-linux-gnu",
-                  args: "",
-                },
-                {
-                  platform: "windows-latest",
-                  target: "x86_64-pc-windows-msvc",
-                  args: "",
-                },
-              ];
+              return res;
             }
+            return res.concat([
+              {
+                platform: "macos-latest",
+                target: "aarch64-apple-darwin",
+                args: "--target aarch64-apple-darwin",
+              },
+              {
+                platform: "macos-latest",
+                target: "x86_64-apple-darwin",
+                args: "--target x86_64-apple-darwin",
+              },
+              {
+                platform: "windows-latest",
+                target: "x86_64-pc-windows-msvc",
+                args: "",
+              },
+            ]);
 
   build-and-test-tauri:
     needs: define-matrix
@@ -127,6 +127,7 @@ jobs:
         run: pnpm install
       - run: pnpm test
 
+      # TODO: consider running debug builds on PRs to speed things up.
       - name: Build tauri app
         id: build-tauri
         uses: tauri-apps/tauri-action@8c3e0753aa015d00d03631d6d4f64ad59489251d # v0.5.15
@@ -142,6 +143,7 @@ jobs:
           name: tauri-app-${{ matrix.target }}
           path: ${{ join(fromJson(steps.build-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
 
+      # Produce an output for consumption by the zero-deploy workflow.
       - name: Output artifact paths
         id: artifacts
         run: |
