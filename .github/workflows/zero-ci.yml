@@ -112,6 +112,8 @@ jobs:
         run: pnpm install
       - run: pnpm test
 
+      # Build the tauri app when we are NOT performing a release.
+      # Mutually exclusive with the build/archive steps below.
       - name: Build tauri app (non-release)
         id: build-non-release-tauri
         uses: tauri-apps/tauri-action@8c3e0753aa015d00d03631d6d4f64ad59489251d # v0.5.15
@@ -128,6 +130,8 @@ jobs:
           name: tauri-app-${{ matrix.target }}
           path: ${{ join(fromJson(steps.build-non-release-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
 
+      # Build the tauri app when we are performing a release.
+      # Mutually exclusive with the build/archive steps above.
       - name: Build and publish tauri app (release)
         id: build-release-tauri
         uses: tauri-apps/tauri-action@8c3e0753aa015d00d03631d6d4f64ad59489251d # v0.5.15
