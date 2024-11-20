@@ -1,16 +1,22 @@
 FROM rust:1.82.0@sha256:d9c3c6f1264a547d84560e06ffd79ed7a799ce0bff0980b26cf10d29af888377 AS backend
-WORKDIR /app
 
 # Setup dependencies and run a dummy build ahead
 # of copying in our code. This speeds up re-builds
 # triggered by changes to src/ by keeping dependencies
 # in a separate layer.
-COPY backend/Cargo.toml backend/Cargo.lock backend/rust-toolchain.toml ./
-COPY backend/build/dummy.rs build/dummy.rs
+WORKDIR /app
+COPY kosolib/Cargo.toml kosolib/Cargo.lock kosolib/rust-toolchain.toml ./kosolib/
+COPY backend/build/dummy.rs kosolib/src/lib.rs
+COPY backend/Cargo.toml backend/Cargo.lock backend/rust-toolchain.toml ./backend/
+COPY backend/build/dummy.rs backend/build/dummy.rs
+WORKDIR /app/backend
 RUN cargo build --release --lib
 
 # Build the backend.
-COPY backend/src ./src
+WORKDIR /app
+COPY kosolib/src/ ./kosolib/src/
+COPY backend/src/ ./backend/src/
+WORKDIR /app/backend
 RUN cargo build --release
 
 # Build the sqlx binary, used to apply database migrations.
@@ -43,7 +49,7 @@ WORKDIR /app
 
 COPY --from=sqlx /app/bin/sqlx ./
 COPY backend/migrations ./migrations
-COPY --from=backend /app/target/release/koso ./
+COPY --from=backend /app/backend/target/release/koso ./
 COPY --from=frontend /app/build ./static
 
 ENV DATABASE_URL=postgresql://koso:koso@localhost/koso

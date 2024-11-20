@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - zero/**
+      - kosolib/**
       - .github/workflows/zero-ci.yml
 concurrency:
   group: zero-ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}-${{ github.event_name }}
@@ -29,6 +30,7 @@ jobs:
           filters: |
             zero:
               - 'zero/**'
+              - 'kosolib/**'
               - '.github/workflows/zero-ci.yml'
 
   # Generate matrix configurations for the build-and-test-tauri job.
