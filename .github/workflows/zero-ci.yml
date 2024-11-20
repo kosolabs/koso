@@ -1,21 +1,6 @@
 name: Zero CI
 on:
   workflow_call:
-    # This workflow produces an output containing a JSON array of artifact paths,
-    # one for each built architecture.
-    outputs:
-      artifacts-aarch64-apple-darwin:
-        description: "Build for aarch64-apple-darwin"
-        value: ${{ jobs.build-and-test-tauri.outputs.artifacts-aarch64-apple-darwin }}
-      artifacts-x86_64-apple-darwin:
-        description: "Build for x86_64-apple-darwin"
-        value: ${{ jobs.build-and-test-tauri.outputs.artifacts-x86_64-apple-darwin }}
-      artifacts-x86_64-unknown-linux-gnu:
-        description: "Build for x86_64-unknown-linux-gnu"
-        value: ${{ jobs.build-and-test-tauri.outputs.artifacts-x86_64-unknown-linux-gnu }}
-      artifacts-x86_64-pc-windows-msvc:
-        description: "Build for x86_64-pc-windows-msvc"
-        value: ${{ jobs.build-and-test-tauri.outputs.artifacts-x86_64-pc-windows-msvc }}
   pull_request:
   push:
     branches:
@@ -145,11 +130,3 @@ jobs:
         with:
           name: tauri-app-${{ matrix.target }}
           path: ${{ join(fromJson(steps.build-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
-
-      # Produce an output for consumption by the zero-deploy workflow.
-      - name: Output artifact paths
-        id: artifacts
-        run: |
-          target="${{ matrix.target }}"
-          paths="${{ steps.build-tauri.outputs.artifactPaths }}"
-          echo "artifacts-${target}=${paths}" >> "$GITHUB_OUTPUT"
