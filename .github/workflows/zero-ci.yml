@@ -7,7 +7,7 @@ on:
       - main
     paths:
       - zero/**
-
+      - .github/zero-ci.yml
 concurrency:
   group: zero-ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}-${{ github.event_name }}
   # Cancel in-progress workflows for PRs (but not main or tag builds).

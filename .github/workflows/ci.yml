@@ -28,6 +28,7 @@ jobs:
               - 'frontend/**'
               - 'backend/**'
               - 'Dockerfile'
+              - '.github/ci.yml'
 
   cargo:
     needs: changes
