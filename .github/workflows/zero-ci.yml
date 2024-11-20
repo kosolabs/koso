@@ -7,13 +7,29 @@ on:
       - main
     paths:
       - zero/**
-
+      - .github/workflows/zero-ci.yml
 concurrency:
   group: zero-ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}-${{ github.event_name }}
   # Cancel in-progress workflows for PRs (but not main or tag builds).
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' &&  github.event_name != 'workflow_dispatch' }}
 
 jobs:
+  changes:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      zero: ${{ steps.filter.outputs.zero }}
+    steps:
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            zero:
+              - 'zero/**'
+              - '.github/workflows/zero-ci.yml'
+
   # Generate matrix configurations for the build-and-test-tauri job.
   # This allows for a reduced configuration set for pull requests, optimizing build times
   # while building all platforms for release.
@@ -57,7 +73,8 @@ jobs:
             ]);
 
   build-and-test-tauri:
-    needs: define-matrix
+    needs: [define-matrix, changes]
+    if: ${{ needs.changes.outputs.zero != 'false' }}
     permissions:
       contents: write
     strategy:
@@ -153,7 +170,8 @@ jobs:
           path: ${{ join(fromJson(steps.build-release-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
 
   build-and-test-tauri-complete:
-    needs: [build-and-test-tauri]
+    needs: [build-and-test-tauri, changes]
+    if: ${{ needs.changes.outputs.zero != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Complete
