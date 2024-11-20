@@ -20,6 +20,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - zero/**
 
 concurrency:
   group: zero-ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}
