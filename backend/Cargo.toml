@@ -45,6 +45,7 @@ rand = "0.8.5"
 tower = "0.5.1"
 similar = "2.6.0"
 chrono = { version = "0.4.38", features = ["serde"] }
+kosolib = { version = "0.1.0", path = "../kosolib" }
 
 [dev-dependencies]
 test-log = { version = "0.2.16", features = ["trace", "color"] }

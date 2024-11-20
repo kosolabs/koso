@@ -1282,6 +1282,7 @@ dependencies = [
  "dashmap",
  "futures",
  "jsonwebtoken",
+ "kosolib",
  "listenfd",
  "metrics",
  "metrics-exporter-prometheus",
@@ -1305,6 +1306,10 @@ dependencies = [
  "uuid",
  "yrs",
 ]
+
+[[package]]
+name = "kosolib"
+version = "0.1.0"
 
 [[package]]
 name = "lazy_static"

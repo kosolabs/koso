@@ -1,4 +1,4 @@
-name: CI
+name: Koso CI
 on:
   pull_request:
   workflow_dispatch:
@@ -26,6 +26,7 @@ jobs:
             koso:
               - 'frontend/**'
               - 'backend/**'
+              - 'kosolib/**'
               - 'Dockerfile'
               - '.github/workflows/ci.yml'
 

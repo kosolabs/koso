@@ -1,7 +1,8 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+    let sum = kosolib::add(1, 1);
+    format!("Hello, {name}! kosolib says 1 + 1 = {sum}")
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

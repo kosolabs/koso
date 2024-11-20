@@ -1637,6 +1637,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "kosolib"
+version = "0.1.0"
+
+[[package]]
 name = "kuchikiki"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4498,6 +4502,7 @@ dependencies = [
 name = "zero"
 version = "0.1.0"
 dependencies = [
+ "kosolib",
  "serde",
  "serde_json",
  "tauri",
