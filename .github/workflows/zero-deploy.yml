@@ -17,20 +17,17 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Echo artifact paths
+        run: echo "${{ toJson(needs.build-and-test-tauri.outputs) }}"
+
       - name: Extract artifact paths
         id: extract
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           result-encoding: string
           script: |
-            const targets =[
-              'artifacts-aarch64-apple-darwin',
-              'artifacts-x86_64-apple-darwin',
-              'artifacts-x86_64-unknown-linux-gnu',
-              'artifacts-x86_64-pc-windows-msvc'
-            ];
-            targets.flatMap((t) => {
-              const paths = context.needs['build-and-test-tauri'].outputs[t];
+            const outputs = ${{ fromJson(needs.build-and-test-tauri.outputs) }};
+            Object.values(outputs).flatMap((paths) => {
               if (paths) {
                 return JSON.parse(paths);
               }
