@@ -113,7 +113,7 @@ jobs:
       - run: pnpm test
 
       - name: Build tauri app (non-release)
-        id: build-debug-tauri
+        id: build-non-release-tauri
         uses: tauri-apps/tauri-action@8c3e0753aa015d00d03631d6d4f64ad59489251d # v0.5.15
         if: ${{ github.event_name != 'workflow_dispatch' }}
         env:
@@ -121,14 +121,12 @@ jobs:
         with:
           projectPath: "./zero"
           args: ${{ matrix.args }}
-          includeDebug: true
-          includeRelease: false
       - name: Archive tauri artifacts
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         if: ${{ github.event_name != 'workflow_dispatch' }}
         with:
           name: tauri-app-${{ matrix.target }}
-          path: ${{ join(fromJson(steps.build-debug-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
+          path: ${{ join(fromJson(steps.build-non-release-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
 
       - name: Build and publish tauri app (release)
         id: build-release-tauri
@@ -139,9 +137,13 @@ jobs:
         with:
           projectPath: "./zero"
           args: ${{ matrix.args }}
-          includeDebug: false
-          includeRelease: true
           tagName: zero-v__VERSION__
           releaseName: "Zero v__VERSION__"
           releaseDraft: true
           prerelease: true
+      - name: Archive tauri artifacts
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        with:
+          name: tauri-app-${{ matrix.target }}
+          path: ${{ join(fromJson(steps.build-release-tauri.outputs.artifactPaths), fromJson('"\n"')) }}
