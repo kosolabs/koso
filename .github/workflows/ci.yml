@@ -12,7 +12,26 @@ concurrency:
   # Cancel in-progress workflows for PRs (but not main).
   cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
 jobs:
+  changes:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      koso: ${{ steps.filter.outputs.koso }}
+    steps:
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            koso:
+              - 'frontend/**'
+              - 'backend/**'
+              - 'Dockerfile'
+
   cargo:
+    needs: changes
+    if: ${{ needs.changes.outputs.koso != 'false' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,6 +75,8 @@ jobs:
       - run: cargo clippy -- -D warnings
       - run: cargo fmt -- --check
   npm:
+    needs: changes
+    if: ${{ needs.changes.outputs.koso != 'false' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -76,6 +97,8 @@ jobs:
       - run: pnpm install
       - run: pnpm run "/^(build|check|lint|test:unit)$/"
   playwright:
+    needs: changes
+    if: ${{ needs.changes.outputs.koso != 'false' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -176,6 +199,8 @@ jobs:
         run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} pnpm exec playwright test --workers=4
 
   build-and-push-image:
+    needs: changes
+    if: ${{ needs.changes.outputs.koso != 'false' }}
     env:
       # Container registry domain
       REGISTRY: ghcr.io
@@ -288,3 +313,20 @@ jobs:
           package-type: "container"
           min-versions-to-keep: 200
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+
+  koso-ci-complete:
+    needs: [cargo, npm, playwright, build-and-push-image]
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - name: Failed
+        if: ${{ (needs.cargo.result != 'success' && needs.cargo.result != 'skipped') || (needs.npm.result != 'success' && needs.npm.result != 'skipped') || (needs.playwright.result != 'success' && needs.playwright.result != 'skipped') || (needs.build-and-push-image.result != 'success' && needs.build-and-push-image.result != 'skipped') }}
+        run: |
+          echo "koso-ci-complete failed"
+          exit 1
+      - name: Successful
+        if: ${{ (needs.cargo.result == 'failed') || (needs.npm.result == 'failed') || (needs.playwright.result == 'failed') || (needs.build-and-push-image.result == 'failed') }}
+        run: echo "koso-ci-complete success"
+      - name: Skipped
+        if: ${{ (needs.cargo.result == 'skipped') || (needs.npm.result == 'skipped') || (needs.playwright.result == 'skipped') || (needs.build-and-push-image.result == 'skipped') }}
+        run: echo "koso-ci-complete skipped"

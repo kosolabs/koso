@@ -14,6 +14,21 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' &&  github.event_name != 'workflow_dispatch' }}
 
 jobs:
+  changes:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      zero: ${{ steps.filter.outputs.zero }}
+    steps:
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            zero:
+              - 'zero/**'
+
   # Generate matrix configurations for the build-and-test-tauri job.
   # This allows for a reduced configuration set for pull requests, optimizing build times
   # while building all platforms for release.
@@ -57,7 +72,8 @@ jobs:
             ]);
 
   build-and-test-tauri:
-    needs: define-matrix
+    needs: [define-matrix, changes]
+    if: ${{ needs.changes.outputs.zero != 'false' }}
     permissions:
       contents: write
     strategy:
@@ -155,6 +171,16 @@ jobs:
   build-and-test-tauri-complete:
     needs: [build-and-test-tauri]
     runs-on: ubuntu-latest
+    if: ${{ always() }}
     steps:
-      - name: Complete
-        run: echo "build-and-test-tauri-complete"
+      - name: Failed
+        if: ${{ needs.build-and-test-tauri.result != 'success' && needs.build-and-test-tauri.result != 'skipped' }}
+        run: |
+          echo "build-and-test-tauri-complete failed"
+          exit 1
+      - name: Successful
+        if: ${{ needs.build-and-test-tauri.result == 'success' }}
+        run: echo "build-and-test-tauri-complete success"
+      - name: Skipped
+        if: ${{ needs.build-and-test-tauri.result == 'skipped' }}
+        run: echo "build-and-test-tauri-complete skipped"
