@@ -6,6 +6,7 @@ FROM rust:1.82.0@sha256:d9c3c6f1264a547d84560e06ffd79ed7a799ce0bff0980b26cf10d29
 # in a separate layer.
 WORKDIR /app
 COPY kosolib/Cargo.toml kosolib/Cargo.lock kosolib/rust-toolchain.toml ./kosolib/
+COPY backend/build/dummy.rs kosolib/build/dummy.rs
 COPY backend/Cargo.toml backend/Cargo.lock backend/rust-toolchain.toml ./backend/
 COPY backend/build/dummy.rs backend/build/dummy.rs
 WORKDIR /app/backend
