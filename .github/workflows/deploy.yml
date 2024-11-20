@@ -24,6 +24,7 @@ jobs:
       packages: write
       attestations: write
       id-token: write
+      pull-requests: read
   deploy:
     runs-on: ubuntu-latest
     needs: build
