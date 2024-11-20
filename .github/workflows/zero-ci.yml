@@ -7,7 +7,7 @@ on:
       - main
     paths:
       - zero/**
-      - .github/zero-ci.yml
+      - .github/workflows/zero-ci.yml
 concurrency:
   group: zero-ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}-${{ github.event_name }}
   # Cancel in-progress workflows for PRs (but not main or tag builds).
@@ -28,7 +28,7 @@ jobs:
           filters: |
             zero:
               - 'zero/**'
-              - '.github/zero-ci.yml'
+              - '.github/workflows/zero-ci.yml'
 
   # Generate matrix configurations for the build-and-test-tauri job.
   # This allows for a reduced configuration set for pull requests, optimizing build times
