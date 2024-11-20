@@ -8,6 +8,8 @@ on:
       - backend/**
       - Dockerfile
       - deploy.sh
+      - .github/deploy.yml
+
   workflow_dispatch:
 concurrency:
   group: workflow-${{ github.workflow }}
