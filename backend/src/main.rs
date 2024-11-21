@@ -3,6 +3,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod api;
 mod healthz;
 mod metrics_server;
+mod plugins;
 mod postgres;
 mod server;
 
