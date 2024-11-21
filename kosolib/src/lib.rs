@@ -1,39 +1,84 @@
-use std::fs;
-
 use anyhow::Result;
+use jsonwebtoken::EncodingKey;
 use octocrab::{
-    models::{pulls::PullRequest, AppId},
+    models::{pulls::PullRequest, AppId, InstallationId},
     params::{pulls::Sort, Direction, State},
-    OctocrabBuilder,
+    Octocrab, OctocrabBuilder,
 };
+use std::fs;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
 
-pub async fn fetch_pull_requests() -> Result<Vec<PullRequest>> {
-    let pem = fs::read("koso-github.2024-11-14.private-key.pem").unwrap();
-    let key = jsonwebtoken::EncodingKey::from_rsa_pem(&pem).unwrap();
-    let crab = OctocrabBuilder::new()
-        .app(AppId::from(1053272), key)
-        .build()
-        .unwrap();
-    let installation = crab
-        .apps()
-        .get_repository_installation("kosolabs", "koso")
-        .await
-        .unwrap();
-    let crab = crab.installation(installation.id).unwrap();
+const APP_ID: u64 = 1053272;
 
-    Ok(crab
-        .pulls("kosolabs", "secret")
-        .list()
-        .state(State::Closed)
-        .sort(Sort::Updated)
-        .direction(Direction::Descending)
-        .send()
-        .await?
-        .items)
+pub enum InstallationRef<'a> {
+    Org { owner: &'a str },
+    Repo { owner: &'a str, repo: &'a str },
+    InstallationId { id: u64 },
+}
+
+pub struct AppGithub {
+    pub app_crab: Octocrab,
+}
+
+impl AppGithub {
+    pub async fn new(app_key_path: &str) -> Result<AppGithub> {
+        let app_crab = OctocrabBuilder::new()
+            .app(AppId::from(APP_ID), AppGithub::read_app_key(app_key_path)?)
+            .build()?;
+        Ok(AppGithub { app_crab })
+    }
+
+    fn read_app_key(key_path: &str) -> Result<EncodingKey> {
+        let pem = fs::read(key_path)?;
+        Ok(jsonwebtoken::EncodingKey::from_rsa_pem(&pem)?)
+    }
+
+    pub async fn installation_github(
+        self,
+        installation_ref: InstallationRef<'_>,
+    ) -> Result<InstallationGithub> {
+        let installation_id = match installation_ref {
+            InstallationRef::Org { owner } => {
+                self.app_crab.apps().get_org_installation(owner).await?.id
+            }
+            InstallationRef::Repo { owner, repo } => {
+                self.app_crab
+                    .apps()
+                    .get_repository_installation(owner, repo)
+                    .await?
+                    .id
+            }
+            InstallationRef::InstallationId { id } => InstallationId::from(id),
+        };
+
+        let (installation_crab, _) = self
+            .app_crab
+            .installation_and_token(installation_id)
+            .await?;
+        Ok(InstallationGithub { installation_crab })
+    }
+}
+
+pub struct InstallationGithub {
+    pub installation_crab: Octocrab,
+}
+
+impl InstallationGithub {
+    pub async fn fetch_pull_requests(self, owner: &str, repo: &str) -> Result<Vec<PullRequest>> {
+        Ok(self
+            .installation_crab
+            .pulls(owner, repo)
+            .list()
+            .state(State::Closed)
+            .sort(Sort::Updated)
+            .direction(Direction::Descending)
+            .send()
+            .await?
+            .items)
+    }
 }
 
 #[cfg(test)]
@@ -42,7 +87,10 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn pulls() {
-        let pulls = fetch_pull_requests().await.unwrap();
-        println!("Got pulls: {pulls:#?}");
+        let gh = InstallationGithub {
+            installation_crab: Octocrab::default(),
+        };
+        let pulls = gh.fetch_pull_requests("kosolabs", "koso").await.unwrap();
+        assert!(!pulls.is_empty());
     }
 }
