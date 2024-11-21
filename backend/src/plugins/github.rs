@@ -6,7 +6,7 @@ pub async fn shad() -> Result<String> {
         .unwrap_or_else(|_| "../.secrets/koso-github.2024-11-14.private-key.pem".to_string());
     let client = AppGithub::new(&key_path).await?;
     let client = client
-        .installation_github(&InstallationRef::Org { owner: "kosolabs" })
+        .installation_github(InstallationRef::Org { owner: "kosolabs" })
         .await?;
     let prs = client.fetch_pull_requests("kosolabs", "secret").await?;
 

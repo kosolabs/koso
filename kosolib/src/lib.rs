@@ -1,4 +1,5 @@
 use anyhow::Result;
+use jsonwebtoken::EncodingKey;
 use octocrab::{
     models::{pulls::PullRequest, AppId, InstallationId},
     params::{pulls::Sort, Direction, State},
@@ -10,40 +11,36 @@ pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
 
+const APP_ID: u64 = 1053272;
+
 pub enum InstallationRef<'a> {
     Org { owner: &'a str },
     Repo { owner: &'a str, repo: &'a str },
     InstallationId { id: u64 },
-    Unauthenticated,
 }
 
 pub struct AppGithub {
     pub app_crab: Octocrab,
 }
 
-const APP_ID: u64 = 1053272;
-
 impl AppGithub {
-    pub async fn new(key_path: &str) -> Result<AppGithub> {
-        let pem = fs::read(key_path)?;
-        let key = jsonwebtoken::EncodingKey::from_rsa_pem(&pem)?;
+    pub async fn new(app_key_path: &str) -> Result<AppGithub> {
         let app_crab = OctocrabBuilder::new()
-            .app(AppId::from(APP_ID), key)
+            .app(AppId::from(APP_ID), AppGithub::read_app_key(app_key_path)?)
             .build()?;
         Ok(AppGithub { app_crab })
     }
 
+    fn read_app_key(key_path: &str) -> Result<EncodingKey> {
+        let pem = fs::read(key_path)?;
+        Ok(jsonwebtoken::EncodingKey::from_rsa_pem(&pem)?)
+    }
+
     pub async fn installation_github(
         self,
-        installation_ref: &InstallationRef<'_>,
+        installation_ref: InstallationRef<'_>,
     ) -> Result<InstallationGithub> {
         let installation_id = match installation_ref {
-            InstallationRef::Unauthenticated => {
-                return Ok(InstallationGithub {
-                    installation_crab: Octocrab::default(),
-                })
-            }
-
             InstallationRef::Org { owner } => {
                 self.app_crab.apps().get_org_installation(owner).await?.id
             }
@@ -54,7 +51,7 @@ impl AppGithub {
                     .await?
                     .id
             }
-            InstallationRef::InstallationId { id } => InstallationId::from(*id),
+            InstallationRef::InstallationId { id } => InstallationId::from(id),
         };
 
         let (installation_crab, _) = self
@@ -90,18 +87,10 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn pulls() {
-        let app = AppGithub::new("src/testdata/test_app_key.pem")
-            .await
-            .unwrap();
-        let installation = app
-            .installation_github(&InstallationRef::Unauthenticated {})
-            .await
-            .unwrap();
-
-        let pulls = installation
-            .fetch_pull_requests("kosolabs", "koso")
-            .await
-            .unwrap();
+        let gh = InstallationGithub {
+            installation_crab: Octocrab::default(),
+        };
+        let pulls = gh.fetch_pull_requests("kosolabs", "koso").await.unwrap();
         assert!(!pulls.is_empty());
     }
 }
