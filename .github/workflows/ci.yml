@@ -199,7 +199,10 @@ jobs:
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
       - name: Run Playwright tests
-        run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} pnpm exec playwright test --workers=4
+        run: |
+          core.setSecret "$GH_APP_KEY"
+          echo "::add-mask::${{ secrets.GH_APP_KEY }}" > gh_app_key.pem
+          CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} GH_APP_KEY_PATH=${pwd}/gh_app_key.pem  pnpm exec playwright test --workers=4
 
   build-and-push-image:
     needs: changes
