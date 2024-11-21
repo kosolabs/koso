@@ -9,7 +9,7 @@ on:
       - kosolib/**
       - Dockerfile
       - deploy.sh
-      - .github/deploy.yml
+      - .github/workflows/deploy.yml
 
   workflow_dispatch:
 concurrency:
