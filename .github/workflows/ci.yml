@@ -74,7 +74,9 @@ jobs:
           version: latest
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
-      - run: RUST_BACKTRACE=full RUST_BACKTRACE=1 cargo test
+      - run: |
+          echo "::add-mask::${{ secrets.GH_APP_KEY }}" > gh_app_key.pem
+          RUST_BACKTRACE=full RUST_BACKTRACE=1 GH_APP_KEY_PATH=${pwd}/gh_app_key.pem cargo test
       - run: cargo clippy -- -D warnings
       - run: cargo fmt -- --check
   npm:
