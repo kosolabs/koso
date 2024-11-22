@@ -219,8 +219,8 @@ Run the server:
 ```bash
 DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
    --env DATABASE_URL=postgresql://$USER@localhost/$USER \
-    --env GH_APP_KEY_PATH=/.secrets/github/key.pem \
-    -v $HOME/.secrets/github/key.pem:/.secrets/github/key.pem \
+    --env SECRETS_DIR=/.secrets \
+    -v $HOME/.secrets:/.secrets \
    --network=host \
    --rm -it \
    ghcr.io/kosolabs/koso:latest
