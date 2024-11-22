@@ -220,7 +220,7 @@ Run the server:
 DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
    --env DATABASE_URL=postgresql://$USER@localhost/$USER \
     --env GH_APP_KEY_PATH=/.secrets/github/key.pem \
-    -v $HOME/.secrets/github:/.secrets/github \
+    -v $HOME/.secrets/github/key.pem:/.secrets/github/key.pem \
    --network=host \
    --rm -it \
    ghcr.io/kosolabs/koso:latest

@@ -11,7 +11,7 @@ Environment="KOSO_IMAGE_DIGEST=main"
 ExecStart=docker run \
     --env DATABASE_URL=postgresql://koso:koso@localhost/koso \
     --env GH_APP_KEY_PATH=/.secrets/github/key.pem \
-    -v $HOME/.secrets/github:/.secrets/github \
+    -v $HOME/.secrets/github/key.pem:/.secrets/github/key.pem \
     --network=host \
     --rm \
     ghcr.io/kosolabs/koso@${KOSO_IMAGE_DIGEST}
