@@ -5,6 +5,7 @@ use crate::{
         google::{self, KeySet},
     },
     healthz,
+    plugins::github,
 };
 use axum::{
     extract::{MatchedPath, Request},
@@ -78,6 +79,18 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
 
     let app = Router::new()
         .nest("/api", api::router().fallback(api::handler_404))
+        // Apply these layers only to /api routes.
+        .layer((
+            Extension(pool),
+            Extension(collab.clone()),
+            Extension(key_set),
+            middleware::from_fn(google::authenticate),
+        ))
+        // NOTE: the following routes are not subject to the
+        // google authentication middleware above.
+        .nest("/healthz", healthz::router())
+        .nest("/plugins/github", github::router().unwrap())
+        // Apply these layers to all non-static routes.
         .layer((
             middleware::from_fn(emit_request_metrics),
             SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
@@ -86,16 +99,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             TraceLayer::new_for_http()
                 .make_span_with(KosoMakeSpan {})
                 .on_request(KosoOnRequest {}),
-            // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
-            // requests don't hang forever.
-            TimeoutLayer::new(Duration::from_secs(10)),
-            Extension(pool),
-            Extension(collab.clone()),
-            Extension(key_set),
-            middleware::from_fn(google::authenticate),
         ))
-        .nest("/healthz", healthz::router())
-        .layer((TimeoutLayer::new(Duration::from_secs(10)),))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
@@ -105,7 +109,10 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
                         .precompressed_br()
                         .fallback(ServeFile::new("static/index.html")),
                 ),
-        );
+        )
+        // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
+        // requests don't hang forever.
+        .layer((TimeoutLayer::new(Duration::from_secs(10)),));
 
     // We can either use a listener provided by the environment by ListenFd or
     // listen on a local port. The former is convenient when using `cargo watch`
