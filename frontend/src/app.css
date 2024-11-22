@@ -6,7 +6,6 @@
 
 @layer base {
   :root {
-    --hue: 175deg;
     --background: 0deg 0% 100%;
     --foreground: 175deg 10% 5%;
     --card: 0deg 0% 100%;
