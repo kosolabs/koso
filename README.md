@@ -366,3 +366,28 @@ Upgrade Postgres to a new major version. In the example below, from 16 to 17.
    sudo pg_dropcluster 16 main --stop
    sudo pg_dropcluster 17 main_pristine --stop
    ```
+
+## Github Webhooks
+
+References:
+
+- https://docs.github.com/en/webhooks/webhook-events-and-payloads
+- https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/using-webhooks-with-github-apps
+- https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/testing-webhooks
+
+### One-time setup
+
+Install [Smee](https://smee.io/)
+
+```bash
+npm install --global smee-client
+```
+
+### Testing locally
+
+After starting your local server:
+
+1. Configure your development webhook secret in: `koso/.secrets/github/webhook_secret`
+1. Start a new Smee channel: https://smee.io/
+1. Start smee locally with the new channel `smee -u $CHANNEL_URL --port 3000 --path /plugins/github/app/webhook`
+1. Trigger or [redeliver](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/redelivering-webhooks#redelivering-github-app-webhooks) some events
