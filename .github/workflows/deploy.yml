@@ -26,6 +26,7 @@ jobs:
       attestations: write
       id-token: write
       pull-requests: read
+    secrets: inherit
   deploy:
     runs-on: ubuntu-latest
     needs: build
