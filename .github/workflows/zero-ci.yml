@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: read
     outputs:
@@ -37,7 +37,7 @@ jobs:
   # This allows for a reduced configuration set for pull requests, optimizing build times
   # while building all platforms for release.
   define-matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.result }}
     steps:
@@ -59,7 +59,7 @@ jobs:
             }
             return res.concat([
                {
-                platform: "ubuntu-22.04",
+                platform: "ubuntu-24.04",
                 target: "x86_64-unknown-linux-gnu",
                 args: "",
               }
@@ -175,7 +175,7 @@ jobs:
   build-and-test-tauri-complete:
     needs: [build-and-test-tauri, changes]
     if: ${{ needs.changes.outputs.zero != 'false' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Complete
         run: echo "build-and-test-tauri-complete"

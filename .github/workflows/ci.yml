@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: read
     outputs:
@@ -35,7 +35,7 @@ jobs:
   cargo:
     needs: changes
     if: ${{ needs.changes.outputs.koso != 'false' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./backend
@@ -76,7 +76,7 @@ jobs:
   npm:
     needs: changes
     if: ${{ needs.changes.outputs.koso != 'false' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./frontend
@@ -98,7 +98,7 @@ jobs:
   playwright:
     needs: changes
     if: ${{ needs.changes.outputs.koso != 'false' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./frontend
@@ -210,7 +210,7 @@ jobs:
       # name for the Docker image that this workflow builds
       # "kosolabs/koso" or, for PRs, "kosolabs/koso/dev"
       IMAGE_NAME: ${{ (github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'kosolabs/koso') || 'kosolabs/koso/dev'}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
       contents: read
