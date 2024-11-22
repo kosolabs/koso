@@ -69,6 +69,7 @@ jobs:
       - run: |
           mkdir -p ~/.secrets/github
           echo "::add-mask::${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
+          echo "::add-mask::${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           RUST_BACKTRACE=full RUST_BACKTRACE=1 SECRETS_DIR=$(realpath ~/.secrets) cargo test
       - run: cargo clippy -- -D warnings
       - run: cargo fmt -- --check
@@ -197,6 +198,7 @@ jobs:
         run: |
           mkdir -p ~/.secrets/github
           echo "::add-mask::${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
+          echo "::add-mask::${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} SECRETS_DIR=$(realpath ~/.secrets)  pnpm exec playwright test --workers=4
 
   build-and-push-image:
