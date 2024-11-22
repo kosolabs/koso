@@ -58,13 +58,13 @@ async fn github_webhook(
     body: Body,
 ) -> ApiResult<String> {
     let headers = parse_headers(&parts.headers)?;
-    tracing::Span::current().record("gh_event", headers.event);
-    tracing::Span::current().record("gh_delivery_id", headers.delivery_id);
-
     let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
         .await
         .map_err(|_| bad_request_error("INVALID_BODY", "Invalid body"))?;
     validate_signature(headers.signature, &body, secret)?;
+
+    tracing::Span::current().record("gh_delivery_id", headers.delivery_id);
+    tracing::Span::current().record("gh_event", headers.event);
 
     // TODO: Do great things with the event!
     let event = WebhookEvent::try_from_header_and_body(headers.event, &body).unwrap();
@@ -79,6 +79,7 @@ async fn github_webhook(
     Ok("OK".to_string())
 }
 
+// See https://docs.github.com/en/webhooks/webhook-events-and-payloads#delivery-headers.
 fn parse_headers(headers: &HeaderMap) -> ApiResult<WebhookHeaders> {
     let Some(header) = headers.get("X-GitHub-Event") else {
         return Err(bad_request_error(
@@ -140,6 +141,8 @@ fn validate_signature(
     }
 }
 
+/// Read the webhook secret from $secrets_dir/github/webhook_secret.
+/// The default is `../.secrets/github/webhook_secret`, unless `SECRETS_DIR` is set.
 fn read_webhook_secret() -> Result<WebhookSecret> {
     let dir = std::env::var("SECRETS_DIR").unwrap_or_else(|_| DEFAULT_SECRETS_DIR.to_string());
     let path = Path::new(&dir)
