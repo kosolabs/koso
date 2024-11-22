@@ -31,6 +31,7 @@ jobs:
               - 'kosolib/**'
               - 'Dockerfile'
               - '.github/workflows/ci.yml'
+              - ${{ (github.ref == 'main' && '**') || '' }}
 
   cargo:
     needs: changes

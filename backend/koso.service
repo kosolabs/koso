@@ -12,7 +12,7 @@ ExecStart=docker run \
     --env DATABASE_URL=postgresql://koso:koso@localhost/koso \
     --env SECRETS_DIR=/.secrets \
     --env GH_APP_ENV=prod \
-    -v $HOME/.secrets:/.secrets \
+    -v /root/.secrets:/.secrets \
     --network=host \
     --rm \
     ghcr.io/kosolabs/koso@${KOSO_IMAGE_DIGEST}
