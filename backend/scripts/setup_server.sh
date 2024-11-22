@@ -82,5 +82,11 @@ sudo apt-get update && sudo apt-get install google-cloud-cli
 # Manual - auth with a SA
 gcloud auth activate-service-account --project=$PROJECT --key-file=sa.json
 
+# Create secrets
+mkdir -p /root/.secrets/github
+touch /root/.secrets/github/key.pem
+touch /root/.secrets/github/webhook_secret
+# MANUAL - place secrets in those files
+
 # Finally, run the Deploy action to start the backend.
 # https://github.com/kosolabs/koso/actions/workflows/deploy.yml
