@@ -66,14 +66,6 @@ jobs:
         with:
           workspaces: "backend"
           shared-key: "backend-build"
-      - name: Install sqlx-cli
-        uses: baptiste0928/cargo-install@904927dbe77864e0f2281519fe9d5bd097a220b3 # v3.1.1
-        with:
-          crate: sqlx-cli
-          args: --no-default-features --features rustls,postgres
-          version: latest
-      - name: Migrate database
-        run: SKIP_DOCKER=true ./scripts/init_db.sh
       - run: |
           mkdir -p ~/.secrets/github
           echo "::add-mask::${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
