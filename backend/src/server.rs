@@ -4,7 +4,7 @@ use crate::{
         collab::Collab,
         google::{self, KeySet},
     },
-    healthz,
+    healthz, push,
 };
 use axum::{
     extract::{MatchedPath, Request},
@@ -86,6 +86,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             middleware::from_fn(google::authenticate),
         ))
         .nest("/healthz", healthz::router())
+        .nest("/push", push::router())
         // Apply these layers to all non-static routes.
         .layer((
             middleware::from_fn(emit_request_metrics),
