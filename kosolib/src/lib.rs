@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use jsonwebtoken::EncodingKey;
 use octocrab::{
     models::{pulls::PullRequest, AppId, InstallationId},
@@ -32,7 +32,8 @@ impl AppGithub {
     }
 
     fn read_app_key(key_path: &str) -> Result<EncodingKey> {
-        let pem = fs::read(key_path)?;
+        let pem =
+            fs::read(key_path).map_err(|e| anyhow!("Failed to read filed {key_path}: {e}"))?;
         Ok(jsonwebtoken::EncodingKey::from_rsa_pem(&pem)?)
     }
 
