@@ -70,9 +70,9 @@ jobs:
           mkdir -p ~/.secrets/github
           echo "::add-mask::${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
           echo "::add-mask::${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
-          RUST_BACKTRACE=full RUST_BACKTRACE=1 SECRETS_DIR=$(realpath ~/.secrets) cargo test
+          RUST_BACKTRACE=full RUST_BACKTRACE=1 SECRETS_DIR=$(realpath ~/.secrets) cargo test --package kosolib --package koso
       - run: cargo clippy -- -D warnings
-      - run: cargo fmt -- --check
+      - run: cargo fmt --all -- --check
   npm:
     needs: changes
     if: ${{ needs.changes.outputs.koso != 'false' }}
