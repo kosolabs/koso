@@ -5,7 +5,6 @@ mod healthz;
 mod metrics_server;
 mod plugins;
 mod postgres;
-mod push;
 mod server;
 
 #[cfg(test)]

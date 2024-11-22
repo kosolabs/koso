@@ -4,7 +4,8 @@ use crate::{
         collab::Collab,
         google::{self, KeySet},
     },
-    healthz, push,
+    healthz,
+    plugins::github,
 };
 use axum::{
     extract::{MatchedPath, Request},
@@ -85,8 +86,10 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             Extension(key_set),
             middleware::from_fn(google::authenticate),
         ))
+        // NOTE: the following routes are not subject to the
+        // google authentication middleware above.
         .nest("/healthz", healthz::router())
-        .nest("/push", push::router())
+        .nest("/plugins/github", github::router().unwrap())
         // Apply these layers to all non-static routes.
         .layer((
             middleware::from_fn(emit_request_metrics),
