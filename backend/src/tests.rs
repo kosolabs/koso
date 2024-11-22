@@ -337,6 +337,29 @@ async fn create_and_delete_project(pool: PgPool) -> sqlx::Result<()> {
 }
 
 #[test_log::test(sqlx::test)]
+async fn gh_poll_test(pool: PgPool) -> sqlx::Result<()> {
+    let (mut server, addr) = start_server(&pool).await;
+    let client = Client::default();
+
+    let token = login(&client, &addr, &pool).await.unwrap();
+
+    let res = client
+        .get(format!("http://{addr}/api/poll/github/prs"))
+        .bearer_auth(token)
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .expect("Failed to send request.");
+    assert_eq!(res.status(), StatusCode::OK);
+    let value: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+    assert!(value.is_array());
+
+    server.start_shutdown().await;
+    server.wait_for_shutdown().await.unwrap();
+    Ok(())
+}
+
+#[test_log::test(sqlx::test)]
 async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let (mut server, addr) = start_server(&pool).await;
     let client = Client::default();

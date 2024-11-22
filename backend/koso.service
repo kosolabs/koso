@@ -10,6 +10,9 @@ WorkingDirectory=/root/koso/backend
 Environment="KOSO_IMAGE_DIGEST=main"
 ExecStart=docker run \
     --env DATABASE_URL=postgresql://koso:koso@localhost/koso \
+    --env SECRETS_DIR=/.secrets \
+    --env GH_APP_ENV=prod \
+    -v $HOME/.secrets:/.secrets \
     --network=host \
     --rm \
     ghcr.io/kosolabs/koso@${KOSO_IMAGE_DIGEST}

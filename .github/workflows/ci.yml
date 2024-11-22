@@ -74,7 +74,10 @@ jobs:
           version: latest
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
-      - run: RUST_BACKTRACE=full RUST_BACKTRACE=1 cargo test
+      - run: |
+          mkdir -p ~/.secrets/github
+          echo "::add-mask::${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
+          RUST_BACKTRACE=full RUST_BACKTRACE=1 SECRETS_DIR=$(realpath ~/.secrets) cargo test
       - run: cargo clippy -- -D warnings
       - run: cargo fmt -- --check
   npm:
@@ -199,7 +202,10 @@ jobs:
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
       - name: Run Playwright tests
-        run: CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} pnpm exec playwright test --workers=4
+        run: |
+          mkdir -p ~/.secrets/github
+          echo "::add-mask::${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
+          CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} SECRETS_DIR=$(realpath ~/.secrets)  pnpm exec playwright test --workers=4
 
   build-and-push-image:
     needs: changes
