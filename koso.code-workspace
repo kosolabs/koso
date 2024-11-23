@@ -11,6 +11,9 @@
       "path": "backend"
     },
     {
+      "path": "healthz"
+    },
+    {
       "path": "zero"
     },
     {

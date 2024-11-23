@@ -2,6 +2,7 @@
   "files.exclude": {
     "backend/": true,
     "frontend/": true,
+    "healthz/": true,
     "zero/": true,
     "kosolib/": true
   }
