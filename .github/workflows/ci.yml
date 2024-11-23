@@ -17,7 +17,7 @@ jobs:
     permissions:
       pull-requests: read
     outputs:
-      koso: ${{ steps.filter.outputs.koso }}
+      koso: ${{ steps.filter.outputs.changes }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -34,7 +34,7 @@ jobs:
 
   cargo:
     needs: changes
-    if: ${{ needs.changes.outputs.koso != 'false' }}
+    if: ${{ needs.changes.outputs.koso != '[]' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -75,7 +75,7 @@ jobs:
       - run: cargo fmt --all -- --check
   npm:
     needs: changes
-    if: ${{ needs.changes.outputs.koso != 'false' }}
+    if: ${{ needs.changes.outputs.koso != '[]' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -97,7 +97,7 @@ jobs:
       - run: pnpm run "/^(build|check|lint|test:unit)$/"
   playwright:
     needs: changes
-    if: ${{ needs.changes.outputs.koso != 'false' }}
+    if: ${{ needs.changes.outputs.koso != '[]' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -203,7 +203,7 @@ jobs:
 
   build-and-push-image:
     needs: changes
-    if: ${{ needs.changes.outputs.koso != 'false' }}
+    if: ${{ needs.changes.outputs.koso != '[]' }}
     env:
       # Container registry domain
       REGISTRY: ghcr.io
