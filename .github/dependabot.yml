@@ -6,7 +6,10 @@
 version: 2
 updates:
   - package-ecosystem: "cargo"
-    directory: "/backend"
+    directories:
+     - "/backend"
+     - "/kosolib"
+     - "/zero/src-tauri"
     schedule:
       interval: "monthly"
     groups:
@@ -14,7 +17,9 @@ updates:
         patterns:
           - '*'
   - package-ecosystem: "npm"
-    directory: "/frontend"
+    directories:
+     - "/frontend"
+     - "/zero"
     schedule:
       interval: "monthly"
     groups:
