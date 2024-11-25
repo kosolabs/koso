@@ -47,7 +47,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17.1@sha256:163763c8afd28cae69035ce84b12d8180179559c747c0701b3cad17818a0dbc5
+        image: postgres:17.2@sha256:994cc3113ce004ae73df11f0dbc5088cbe6bb0da1691dd7e6f55474202a4f211
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -111,7 +111,7 @@ jobs:
       REGISTRY: ghcr.io
     services:
       postgres:
-        image: postgres:17.1@sha256:163763c8afd28cae69035ce84b12d8180179559c747c0701b3cad17818a0dbc5
+        image: postgres:17.2@sha256:994cc3113ce004ae73df11f0dbc5088cbe6bb0da1691dd7e6f55474202a4f211
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -237,7 +237,7 @@ jobs:
       - name: Extract metadata (tags, labels) for Docker
         # allows the output of this step to be referenced in a subsequent step.
         id: meta
-        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
+        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5.6.1
         with:
           # Base name for the tags and labels.
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
