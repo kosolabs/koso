@@ -75,11 +75,13 @@ async fn main() {
         healthz_status,
         last_update,
     };
-    let mut req = bot.set_chat_description(chat_id.to_string());
-    serde_json::to_string(&curr_status).expect("Failed to serialize updated status");
-    req.description =
-        Some(serde_json::to_string(&curr_status).expect("Failed to serialize updated status"));
-    req.await.expect("Failed to update status");
+
+    let serialized_status =
+        serde_json::to_string(&curr_status).expect("Failed to serialize updated status");
+    bot.set_chat_description(chat_id.to_string())
+        .description(serialized_status)
+        .await
+        .expect("Failed to update status");
 
     println!("prev: {prev_status:?}, curr: {curr_status:?}");
     if curr_status.healthz_status == prev_status.healthz_status {
@@ -99,6 +101,7 @@ async fn main() {
         .expect("Failed to unpin all chat messages");
 
     bot.pin_chat_message(chat_id.to_string(), message.id)
+        .disable_notification(true)
         .await
         .expect("Failed to pin updated message");
 }
