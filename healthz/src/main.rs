@@ -6,6 +6,7 @@ use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use teloxide::{prelude::*, types::Chat};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 struct Status {
@@ -22,12 +23,12 @@ fn client() -> ClientWithMiddleware {
 
 fn get_status(chat: &Chat) -> Status {
     let Some(description) = chat.description() else {
-        println!("Failed to load chat description. Resetting.");
+        tracing::info!("Failed to load chat description. Resetting.");
         return Status::default();
     };
 
     let Ok(status) = serde_json::from_str(description) else {
-        println!("Failed to parse status from description. Resetting.");
+        tracing::info!("Failed to parse status from description. Resetting.");
         return Status::default();
     };
 
@@ -41,7 +42,7 @@ struct HealthZ {
 
 async fn check_healthz(url: &str) -> Result<HealthZ> {
     let healthz: HealthZ = client().get(url).send().await?.json().await?;
-    println!("check_healthz: {healthz:?}");
+    tracing::info!("check_healthz: {healthz:?}");
     Ok(healthz)
 }
 
@@ -55,8 +56,17 @@ struct Cli {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     let cli = Cli::parse();
     let chat_id = cli.chat_id.to_string();
+
+    tracing::info!("Checking status of: {}", &cli.url);
 
     let bot = Bot::from_env();
 
@@ -83,7 +93,7 @@ async fn main() {
         .await
         .expect("Failed to update status");
 
-    println!("prev: {prev_status:?}, curr: {curr_status:?}");
+    tracing::info!("prev: {prev_status:?}, curr: {curr_status:?}");
     if curr_status.healthz_status == prev_status.healthz_status {
         return;
     }
