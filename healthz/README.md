@@ -7,7 +7,7 @@ This is a cronjob that checks the status of Koso.
 1. Build and tag the Docker image.
 
    ```shell
-   docker build --platform linux/amd64 -t us-west1-docker.pkg.dev/koso-429022/healthz/healthz .
+   docker build --platform linux/amd64 -t us-west1-docker.pkg.dev/koso-429022/healthz/healthz -f healthz/Dockerfile .
    ```
 
 1. Authenticate.
