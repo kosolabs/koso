@@ -5,13 +5,13 @@ FROM rust:1.82.0@sha256:d9c3c6f1264a547d84560e06ffd79ed7a799ce0bff0980b26cf10d29
 # triggered by changes to src/ by keeping dependencies
 # in a separate layer.
 WORKDIR /app
-COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
-COPY kosolib/Cargo.toml ./kosolib/
-COPY backend/build/dummy.rs kosolib/src/lib.rs
 COPY backend/Cargo.toml ./backend/
 COPY healthz/Cargo.toml ./healthz/
 COPY zero/src-tauri/Cargo.toml ./zero/src-tauri/
-COPY zero/src-tauri/src/lib.rs zero/src-tauri/src/
+COPY zero/src-tauri/src/lib.rs ./zero/src-tauri/src/
+COPY kosolib/Cargo.toml ./kosolib/
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY backend/build/dummy.rs kosolib/src/lib.rs
 COPY backend/build/dummy.rs backend/build/dummy.rs
 WORKDIR /app/backend
 RUN cargo build --release --lib --locked

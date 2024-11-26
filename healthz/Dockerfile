@@ -5,12 +5,19 @@ WORKDIR /app
 # of copying in our code. This speeds up re-builds
 # triggered by changes to src/ by keeping dependencies
 # in a separate layer.
-COPY ./Cargo.toml ../Cargo.lock ../rust-toolchain.toml ./
-COPY ./build/dummy.rs ./build/dummy.rs
+COPY backend/Cargo.toml ./backend/
+COPY healthz/Cargo.toml ./healthz/
+COPY zero/src-tauri/Cargo.toml ./zero/src-tauri/
+COPY zero/src-tauri/src/lib.rs ./zero/src-tauri/src/
+COPY kosolib/Cargo.toml ./kosolib/
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY backend/build/dummy.rs ./kosolib/src/lib.rs
+COPY ./healthz/build/dummy.rs ./healthz/build/dummy.rs
+WORKDIR /app/healthz
 RUN cargo build --release --lib
 
 # Build the backend.
-COPY ./src/ ./src/
+COPY ./healthz/src/ ./src/
 RUN cargo build --release
 
 # Assemble the app.
