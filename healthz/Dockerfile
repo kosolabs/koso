@@ -5,13 +5,7 @@ WORKDIR /app
 # of copying in our code. This speeds up re-builds
 # triggered by changes to src/ by keeping dependencies
 # in a separate layer.
-COPY backend/Cargo.toml ./backend/
-COPY healthz/Cargo.toml ./healthz/
-COPY zero/src-tauri/Cargo.toml ./zero/src-tauri/
-COPY zero/src-tauri/src/lib.rs ./zero/src-tauri/src/
-COPY kosolib/Cargo.toml ./kosolib/
-COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
-COPY backend/build/dummy.rs ./kosolib/src/lib.rs
+COPY healthz/Cargo.toml Cargo.lock rust-toolchain.toml  ./healthz/
 COPY ./healthz/build/dummy.rs ./healthz/build/dummy.rs
 WORKDIR /app/healthz
 RUN cargo build --release --lib
@@ -27,6 +21,6 @@ RUN cargo build --release
 FROM gcr.io/distroless/cc-debian12@sha256:2fb69596e692931f909c4c69ab09e50608959eaf8898c44fa64db741a23588b0 AS runtime
 WORKDIR /app
 
-COPY --from=build /app/target/release/healthz ./
+COPY --from=build /app/healthz/target/release/healthz ./
 ENV RUST_BACKTRACE=1
 ENTRYPOINT ["./healthz"]
