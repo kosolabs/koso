@@ -120,7 +120,7 @@ jobs:
       - name: Rust build cache
         uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
         with:
-          workspaces: "./zero/src-tauri -> target"
+          workspaces: "./ -> target"
       - run: RUST_BACKTRACE=full RUST_BACKTRACE=1 cargo test
         working-directory: ./zero/src-tauri
       - run: cargo clippy -- -D warnings
