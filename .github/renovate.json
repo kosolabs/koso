@@ -19,9 +19,6 @@
       "datasourceTemplate": "github-releases"
     }
   ],
-  "cargo": {
-    "rangeStrategy": "bump"
-  },
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["* * 1 * *"],
