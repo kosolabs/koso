@@ -1,10 +1,9 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
-  import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { nav } from "$lib/nav.svelte";
   import { fetchProjects } from "$lib/projects";
-  import Google from "./google.svelte";
+  import Landing from "./landing.svelte";
 
   if (auth.ok()) {
     redirectOnLogin();
@@ -49,15 +48,5 @@
 </script>
 
 {#if !auth.ok()}
-  <div
-    class="m-4 flex flex-col gap-8 rounded-xl border bg-card p-10 text-center shadow sm:mx-auto sm:w-96"
-  >
-    <KosoLogo class="m-auto w-20" />
-    <h1 class="text-4xl text-primary">Koso</h1>
-    <div class="text-primary">
-      Thank you for your interest! We're not quite ready for prime time just
-      yet, but if you have a pre-launch invite, you can login with Google.
-    </div>
-    <Google {onsuccess} />
-  </div>
+  <Landing {onsuccess} />
 {/if}

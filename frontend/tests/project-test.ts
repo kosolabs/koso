@@ -16,7 +16,7 @@ test.describe("project tests", () => {
 
   test("home page presents login header and button", async () => {
     await page.goto("/");
-    await expect(page.locator("h1")).toHaveText("Koso");
+    await expect(page.getByRole("heading", { name: "koso" })).toBeVisible();
   });
 
   test("log user in and view projects", async () => {

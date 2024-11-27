@@ -3,7 +3,7 @@ import { generateEmail, jwt, login, tearDown } from "./utils";
 
 test.describe.configure({ mode: "parallel" });
 
-test.describe("import export tests", () => {
+test.describe("poll github tests", () => {
   test.beforeEach(async ({ page }) => {
     await login(page, generateEmail());
   });
