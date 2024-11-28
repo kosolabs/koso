@@ -103,7 +103,7 @@
 
 {#if editing}
   <Input
-    class={cn("h-auto bg-background p-1", classes)}
+    class={cn("my-1 h-auto bg-background p-1", classes)}
     aria-label={ariaLabel}
     name={ariaLabel}
     onclick={(event) => event.stopPropagation()}
