@@ -1,12 +1,11 @@
 <script lang="ts">
-  import { mode } from "mode-watcher";
   import {
     Toaster as Sonner,
     type ToasterProps as SonnerProps,
   } from "svelte-sonner";
+  import { mode } from "mode-watcher";
 
-  type Props = SonnerProps;
-  const { ...props }: Props = $props();
+  let restProps: SonnerProps = $props();
 </script>
 
 <Sonner
@@ -23,5 +22,5 @@
         "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
     },
   }}
-  {...props}
+  {...restProps}
 />

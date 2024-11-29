@@ -60,6 +60,7 @@ class Auth {
   }
 
   logout() {
+    console.log("logging out");
     this.token = null;
   }
 }

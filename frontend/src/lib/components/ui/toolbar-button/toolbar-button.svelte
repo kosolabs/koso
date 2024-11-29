@@ -12,22 +12,28 @@
   }: Action = $props();
 </script>
 
-<Tooltip.Root>
-  <Tooltip.Trigger asChild let:builder>
-    <Button builders={[builder]} variant="ghost" size="sm" onclick={callback}>
-      <Icon class="w-4 sm:me-2" />
-      <div class="text-xs max-sm:hidden">{title}</div>
-    </Button>
-  </Tooltip.Trigger>
-  <Tooltip.Content>
-    <Tooltip.Arrow class="z-50" />
-    <div class="flex items-center gap-2">
-      <div class="text-primary-foreground">{description}</div>
-      {#if shortcut}
-        <div class="font-bold text-primary-foreground">
-          {shortcut.toString()}
+<Tooltip.Provider>
+  <Tooltip.Root>
+    <Tooltip.Trigger>
+      {#snippet child({ props })}
+        <Button {...props} variant="ghost" size="sm" onclick={callback}>
+          <Icon class="w-4" />
+          <div class="text-xs max-sm:hidden">{title}</div>
+        </Button>
+      {/snippet}
+    </Tooltip.Trigger>
+    <Tooltip.Portal>
+      <Tooltip.Content>
+        <Tooltip.Arrow />
+        <div class="z-0 flex items-center gap-2">
+          <div class="text-primary-foreground">{description}</div>
+          {#if shortcut}
+            <div class="font-bold text-primary-foreground">
+              {shortcut.toString()}
+            </div>
+          {/if}
         </div>
-      {/if}
-    </div>
-  </Tooltip.Content>
-</Tooltip.Root>
+      </Tooltip.Content>
+    </Tooltip.Portal>
+  </Tooltip.Root>
+</Tooltip.Provider>

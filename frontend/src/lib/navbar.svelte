@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
   import { Avatar, AvatarImage } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
@@ -26,7 +27,13 @@
     {@render right?.()}
 
     {#if auth.ok()}
-      <DropdownMenu.Root closeFocus={document.body} portal={null}>
+      <DropdownMenu.Root
+        onOpenChange={(open) => {
+          if (!open) {
+            document.body.focus();
+          }
+        }}
+      >
         <DropdownMenu.Trigger title={auth.user.email}>
           <Avatar
             class="size-9 rounded transition-all hover:brightness-110 active:scale-95"
@@ -34,34 +41,38 @@
             <AvatarImage src={auth.user.picture} alt={auth.user.email} />
           </Avatar>
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content
-          onkeydown={(event) => {
-            event.stopPropagation();
-          }}
-        >
-          <DropdownMenu.Label>
-            <UserAvatar user={auth.user} />
-          </DropdownMenu.Label>
-          <DropdownMenu.Separator />
-          <DropdownMenu.Sub>
-            <DropdownMenu.SubTrigger>Theme</DropdownMenu.SubTrigger>
-            <DropdownMenu.SubContent>
-              <DropdownMenu.Item on:click={() => setMode("light")}>
-                Light
-              </DropdownMenu.Item>
-              <DropdownMenu.Item on:click={() => setMode("dark")}>
-                Dark
-              </DropdownMenu.Item>
-              <DropdownMenu.Item on:click={() => resetMode()}>
-                System
-              </DropdownMenu.Item>
-            </DropdownMenu.SubContent>
-          </DropdownMenu.Sub>
-          <DropdownMenu.Item href="/projects">Projects</DropdownMenu.Item>
-          <DropdownMenu.Item on:click={() => auth.logout()}>
-            Logout
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            onkeydown={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <DropdownMenu.Label>
+              <UserAvatar user={auth.user} />
+            </DropdownMenu.Label>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Sub>
+              <DropdownMenu.SubTrigger>Theme</DropdownMenu.SubTrigger>
+              <DropdownMenu.SubContent>
+                <DropdownMenu.Item onSelect={() => setMode("light")}>
+                  Light
+                </DropdownMenu.Item>
+                <DropdownMenu.Item onSelect={() => setMode("dark")}>
+                  Dark
+                </DropdownMenu.Item>
+                <DropdownMenu.Item onSelect={() => resetMode()}>
+                  System
+                </DropdownMenu.Item>
+              </DropdownMenu.SubContent>
+            </DropdownMenu.Sub>
+            <DropdownMenu.Item onSelect={() => goto("/projects")}>
+              Projects
+            </DropdownMenu.Item>
+            <DropdownMenu.Item onSelect={() => auth.logout()}>
+              Logout
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
       </DropdownMenu.Root>
     {/if}
   </div>

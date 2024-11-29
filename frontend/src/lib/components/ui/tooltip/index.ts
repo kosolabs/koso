@@ -4,15 +4,21 @@ import Content from "./tooltip-content.svelte";
 
 const Root = TooltipPrimitive.Root;
 const Trigger = TooltipPrimitive.Trigger;
+const Provider = TooltipPrimitive.Provider;
+const Portal = TooltipPrimitive.Portal;
 
 export {
-  Root,
-  Trigger,
-  Content,
   Arrow,
+  Content,
+  Portal,
+  Provider,
+  Root,
   //
   Root as Tooltip,
-  Content as TooltipContent,
-  Trigger as TooltipTrigger,
   Arrow as TooltipArrow,
+  Content as TooltipContent,
+  Portal as TooltipPortal,
+  Provider as TooltipProvider,
+  Trigger as TooltipTrigger,
+  Trigger,
 };
