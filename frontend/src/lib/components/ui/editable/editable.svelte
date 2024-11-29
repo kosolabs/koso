@@ -3,6 +3,7 @@
   import { Input } from "$lib/components/ui/input";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
+  import { tick } from "svelte";
 
   type Props = {
     value: string;
@@ -66,7 +67,7 @@
     event.stopPropagation();
     event.preventDefault();
     onclick?.(event);
-    edit();
+    tick().then(edit);
   }
 
   export function edit() {
@@ -103,6 +104,7 @@
 
 {#if editing}
   <Input
+    bind:value={edited}
     class={cn("my-1 h-auto bg-background p-1", classes)}
     aria-label={ariaLabel}
     name={ariaLabel}
@@ -111,7 +113,6 @@
     onkeydown={handleInputKeydown}
     autofocus={true}
     autocomplete="off"
-    bind:value={edited}
   />
 {:else}
   <Button
