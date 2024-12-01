@@ -21,7 +21,7 @@
   ],
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["* 5-10 1 * *"],
+    "schedule": ["* 1-6 1 * *"],
     "automerge": true,
     "platformAutomerge": false,
     "automergeSchedule": ["* 8-14 * * 1-5"]
