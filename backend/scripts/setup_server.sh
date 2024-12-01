@@ -10,7 +10,7 @@ cd /root
 # Install tools
 sudo apt update
 sudo apt upgrade
-apt install git tmux zsh vim
+apt install git tmux zsh vim unattended-upgrades
 
 # Setup SSH auth
 cat >> /root/.ssh/authorized_keys <<EOL
@@ -84,7 +84,9 @@ gcloud auth activate-service-account --project=$PROJECT --key-file=sa.json
 
 # Create secrets
 mkdir -p /root/.secrets/github
+# The Github app's key
 touch /root/.secrets/github/key.pem
+# The Github app's webhook secret
 touch /root/.secrets/github/webhook_secret
 # MANUAL - place secrets in those files
 
