@@ -1,10 +1,19 @@
-use super::config::ConfigStorage;
-use super::{new_task, Collab, ExternalTask, PARENT_ID};
-use crate::api::collab::projects_state::DocBox;
-use crate::api::collab::txn_origin::YOrigin;
-use crate::api::yproxy::{YDocProxy, YTaskProxy};
-use crate::api::{bad_request_error, unauthorized_error, ApiResult};
-use crate::plugins::github::{get_or_create_plugin_parent, resolve_task, update_task, KIND};
+use crate::{
+    api::{
+        bad_request_error,
+        collab::{projects_state::DocBox, txn_origin::YOrigin, Collab},
+        unauthorized_error,
+        yproxy::{YDocProxy, YTaskProxy},
+        ApiResult,
+    },
+    plugins::{
+        config::ConfigStorage,
+        github::{
+            get_or_create_plugin_parent, new_task, resolve_task, update_task, ExternalTask,
+            GithubConfig, KIND, PARENT_ID,
+        },
+    },
+};
 use anyhow::anyhow;
 use anyhow::Result;
 use axum::http::HeaderMap;
@@ -283,11 +292,14 @@ impl Webhook {
 
     async fn process_koso_event(&self, event: KosoGithubEvent) -> Result<()> {
         tracing::debug!("Processing Koso event: {event:?}");
-        let config = self.config_storage.get(event.installation_id).await?;
+        let config: GithubConfig = self
+            .config_storage
+            .get(KIND, &event.installation_id.to_string())
+            .await?;
 
         let client = self
             .collab
-            .register_local_client(&config.project_id)
+            .register_local_client(&config.config.project_id)
             .await?;
         let doc_box = client.project.doc_box.lock().await;
         let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;

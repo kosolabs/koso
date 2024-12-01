@@ -1,27 +1,29 @@
-use crate::api::{
-    collab::Collab,
-    model::Task,
-    yproxy::{YDocProxy, YTaskProxy},
+use crate::{
+    api::{
+        collab::Collab,
+        model::Task,
+        yproxy::{YDocProxy, YTaskProxy},
+    },
+    plugins::config::{self, ConfigStorage},
 };
 use anyhow::Result;
 use axum::Router;
-use config::ConfigStorage;
 use kosolib::{AppGithub, AppGithubConfig};
 use poller::Poller;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::time::SystemTime;
 use tokio::task::JoinHandle;
 use webhook::{read_webhook_secret, Webhook, WebhookSecret};
 use yrs::TransactionMut;
 
-mod config;
 mod poller;
 mod webhook;
 
-pub(super) const KIND: &str = "github_pr";
+pub(super) const KIND: &str = "github";
 pub(super) const NAME: &str = "Github Plugin";
 /// Constant task ID of this plugin's container task.
-pub(super) const PARENT_ID: &str = "plugin_github_pr";
+pub(super) const PARENT_ID: &str = "plugin_github";
 
 #[derive(Clone)]
 pub(crate) struct Plugin {
@@ -30,6 +32,13 @@ pub(crate) struct Plugin {
     secret: WebhookSecret,
     client: AppGithub,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub(super) struct GithubSpecificConfig {
+    pub(super) project_id: String,
+}
+
+type GithubConfig = config::Config<GithubSpecificConfig>;
 
 impl Plugin {
     pub(crate) async fn new(collab: Collab, pool: &'static PgPool) -> Result<Plugin> {

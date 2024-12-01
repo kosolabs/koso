@@ -1,15 +1,15 @@
-use super::{
-    config::{ConfigStorage, InstallationConfig},
-    ExternalTask,
-};
 use crate::{
     api::{
         collab::{projects_state::DocBox, txn_origin::YOrigin, Collab},
         yproxy::{YDocProxy, YTaskProxy},
         ApiResult,
     },
-    plugins::github::{
-        get_or_create_plugin_parent, new_task, resolve_task, update_task, KIND, PARENT_ID,
+    plugins::{
+        config::ConfigStorage,
+        github::{
+            get_or_create_plugin_parent, new_task, resolve_task, update_task, ExternalTask,
+            GithubConfig, KIND, PARENT_ID,
+        },
     },
 };
 use anyhow::Result;
@@ -63,7 +63,7 @@ impl Poller {
     }
 
     async fn poll_all_installations(&self) -> Result<()> {
-        let configs = self.config_storage.list().await?;
+        let configs: Vec<GithubConfig> = self.config_storage.list(KIND).await?;
         tracing::trace!("Polling: {configs:?}");
         futures::future::join_all(
             configs
@@ -78,9 +78,9 @@ impl Poller {
 
     #[tracing::instrument(
         skip(self, config),
-        fields(gh_installation_id=config.installation_id, project_id=config.project_id)
+        fields(gh_installation_id=config.external_id, project_id=config.config.project_id)
     )]
-    async fn poll_installation(&self, config: InstallationConfig) -> Result<()> {
+    async fn poll_installation(&self, config: GithubConfig) -> Result<()> {
         if let Err(e) = self.poll_installation_internal(config).await {
             tracing::warn!("Failed installation poll: {e:?}");
             return Err(e);
@@ -88,7 +88,7 @@ impl Poller {
         Ok(())
     }
 
-    async fn poll_installation_internal(&self, config: InstallationConfig) -> Result<()> {
+    async fn poll_installation_internal(&self, config: GithubConfig) -> Result<()> {
         tracing::debug!("Polling installation");
 
         let github_tasks_by_url = self.fetch_tasks_from_github(&config).await?;
@@ -96,7 +96,7 @@ impl Poller {
 
         let client = self
             .collab
-            .register_local_client(&config.project_id)
+            .register_local_client(&config.config.project_id)
             .await?;
         let doc_box = client.project.doc_box.lock().await;
         let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;
@@ -149,12 +149,12 @@ impl Poller {
 
     async fn fetch_tasks_from_github(
         &self,
-        config: &InstallationConfig,
+        config: &GithubConfig,
     ) -> Result<HashMap<String, ExternalTask>> {
         let client = self
             .client
             .installation_github(InstallationRef::InstallationId {
-                id: config.installation_id,
+                id: config.external_id.parse::<u64>()?,
             })
             .await?;
         let prs: Vec<octocrab::models::pulls::PullRequest> =
@@ -197,10 +197,10 @@ impl Poller {
     }
 }
 
-fn origin(config: &InstallationConfig) -> Origin {
+fn origin(config: &GithubConfig) -> Origin {
     YOrigin {
         who: "github_poller".to_string(),
-        id: format!("install_{}", config.installation_id),
+        id: format!("install_{}", config.external_id),
     }
     .as_origin()
 }
