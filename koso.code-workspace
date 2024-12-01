@@ -6,18 +6,6 @@
     },
     {
       "path": "frontend"
-    },
-    {
-      "path": "backend"
-    },
-    {
-      "path": "healthz"
-    },
-    {
-      "path": "zero"
-    },
-    {
-      "path": "kosolib"
     }
   ],
   "settings": {
@@ -35,7 +23,8 @@
     "rust-analyzer.runnables.extraEnv": {
       "RUST_BACKTRACE": "1",
       "RUST_LOG": "trace",
-      "DATABASE_URL":"postgresql://localhost"
+      "DATABASE_URL": "postgresql://localhost",
+      "TESTONLY_ENABLE_DEV": true
     },
     "[json]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -46,5 +35,12 @@
     "[github-actions-workflow]": {
       "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
+    "[rust]": {
+      "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    },
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "search.exclude": {
+      "backend/static/": true
+    }
   }
 }
