@@ -29,6 +29,7 @@ use crate::api::{
 use anyhow::Error;
 use anyhow::Result;
 use axum::extract::ws::WebSocket;
+use projects_state::ProjectState;
 use sqlx::PgPool;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::mpsc::{self};
@@ -101,6 +102,19 @@ impl Collab {
         Ok(())
     }
 
+    pub(crate) async fn register_local_client(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<LocalClient> {
+        let project = self
+            .inner
+            .state
+            .add_and_init_local_client(project_id)
+            .await?;
+
+        Ok(LocalClient { project })
+    }
+
     #[tracing::instrument(skip(self))]
     pub(crate) async fn stop(self) {
         tracing::debug!("Closing all clients...");
@@ -140,4 +154,8 @@ impl Collab {
         let txn = ydoc.transact();
         ydoc.to_graph(&txn)
     }
+}
+
+pub struct LocalClient {
+    pub project: Arc<ProjectState>,
 }

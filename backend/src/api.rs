@@ -13,7 +13,6 @@ pub(crate) mod collab;
 pub(crate) mod dev;
 pub(crate) mod google;
 pub(crate) mod model;
-pub(crate) mod poll;
 pub(crate) mod projects;
 pub(crate) mod users;
 pub(crate) mod ws;
@@ -28,7 +27,6 @@ pub(crate) fn router() -> Router {
         .nest("/ws", ws::router())
         .nest("/users", users::router())
         .nest("/dev", dev::router())
-        .nest("/poll", poll::router())
 }
 
 /// Verify that the user is invited and allowed to access Koso.

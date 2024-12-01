@@ -81,4 +81,6 @@ pub(crate) struct Task {
     pub(crate) reporter: Option<String>,
     pub(crate) status: Option<String>,
     pub(crate) status_time: Option<i64>,
+    pub(crate) url: Option<String>,
+    pub(crate) kind: Option<String>,
 }

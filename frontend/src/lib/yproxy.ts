@@ -19,6 +19,13 @@ export type Task = {
   // Time, in milliseconds since the unix epoch,
   // when the `status` field was last modified.
   statusTime: number | null;
+  // The kind of task, either directly associated with Koso
+  // or a plugin. e.g. github.
+  kind: string | null;
+  // URL associated with the task. Typically provided by a plugin
+  // to associate this task with some external entity.
+  // e.g. a Github PR URL.
+  url: string | null;
 };
 export type Status = "Not Started" | "In Progress" | "Done";
 
@@ -63,6 +70,8 @@ export class YGraphProxy {
       ["assignee", task.assignee],
       ["status", task.status],
       ["statusTime", task.statusTime],
+      ["kind", task.kind],
+      ["url", task.url],
     ]);
     this.#yGraph.set(task.id, value);
     return new YTaskProxy(value);

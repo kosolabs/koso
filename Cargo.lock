@@ -2580,6 +2580,7 @@ name = "kosolib"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "futures",
  "jsonwebtoken",
  "octocrab",
  "test-log",

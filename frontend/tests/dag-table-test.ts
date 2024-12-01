@@ -27,6 +27,8 @@ test.describe("dag table tests", () => {
     reporter?: string | null;
     status?: Status | null;
     statusTime?: number | null;
+    kind?: string | null;
+    url?: string | null;
   };
 
   async function init(
@@ -55,6 +57,8 @@ test.describe("dag table tests", () => {
               reporter: task.reporter ?? null,
               status: task.status ?? null,
               statusTime: task.statusTime ?? null,
+              kind: task.kind ?? null,
+              url: task.url ?? null,
             });
           }
           for (const taskId of remainingTaskIds) {
@@ -67,6 +71,8 @@ test.describe("dag table tests", () => {
               reporter: null,
               status: null,
               statusTime: null,
+              kind: null,
+              url: null,
             });
           }
         });

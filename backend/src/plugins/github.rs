@@ -1,159 +1,160 @@
-use std::fs;
-use std::path::Path;
-use std::sync::Arc;
-
-use crate::api::{bad_request_error, unauthorized_error, ApiResult};
-use anyhow::anyhow;
-use anyhow::Result;
-use axum::http::HeaderMap;
-use axum::Extension;
-use axum::{
-    body::{Body, Bytes},
-    http::request::Parts,
-    routing::post,
-    Router,
+use crate::api::{
+    collab::Collab,
+    model::Task,
+    yproxy::{YDocProxy, YTaskProxy},
 };
-use hmac::{Hmac, Mac};
-use kosolib::{AppGithub, AppGithubConfig, InstallationRef};
-use octocrab::models::webhook_events::{WebhookEvent, WebhookEventType};
-use sha2::Sha256;
+use anyhow::Result;
+use axum::Router;
+use config::ConfigStorage;
+use kosolib::{AppGithub, AppGithubConfig};
+use poller::Poller;
+use sqlx::PgPool;
+use std::time::SystemTime;
+use tokio::task::JoinHandle;
+use webhook::{read_webhook_secret, Webhook, WebhookSecret};
+use yrs::TransactionMut;
 
-const DEFAULT_SECRETS_DIR: &str = "../.secrets";
+mod config;
+mod poller;
+mod webhook;
 
-/// Maximum size of request body in bytes.
-const BODY_LIMIT: usize = 10 * 1024 * 1024;
+pub(super) const KIND: &str = "github_pr";
+pub(super) const NAME: &str = "Github Plugin";
+/// Constant task ID of this plugin's container task.
+pub(super) const PARENT_ID: &str = "plugin_github_pr";
 
 #[derive(Clone)]
-struct WebhookSecret {
-    secret: Arc<Vec<u8>>,
-}
-
-struct WebhookHeaders<'a> {
-    delivery_id: &'a str,
-    event: &'a str,
-    signature: &'a [u8],
-}
-
-pub async fn shad() -> Result<String> {
-    let client = AppGithub::new(&AppGithubConfig::default()).await?;
-    let client = client
-        .installation_github(InstallationRef::Org { owner: "kosolabs" })
-        .await?;
-    let prs = client.fetch_pull_requests("kosolabs", "secret").await?;
-
-    Ok(serde_json::to_string(&prs)?)
-}
-
-pub(crate) fn router() -> Result<Router> {
-    let secret = read_webhook_secret()?;
-    Ok(Router::new()
-        .route("/app/webhook", post(github_webhook))
-        .layer((Extension(secret),)))
-}
-
-#[tracing::instrument(skip(parts, body, secret), fields(gh_delivery_id, gh_event))]
-async fn github_webhook(
-    Extension(secret): Extension<WebhookSecret>,
-    parts: Parts,
-    body: Body,
-) -> ApiResult<String> {
-    let headers = parse_headers(&parts.headers)?;
-    let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
-        .await
-        .map_err(|_| bad_request_error("INVALID_BODY", "Invalid body"))?;
-    validate_signature(headers.signature, &body, secret)?;
-
-    tracing::Span::current().record("gh_delivery_id", headers.delivery_id);
-    tracing::Span::current().record("gh_event", headers.event);
-
-    // TODO: Do great things with the event!
-    let event = WebhookEvent::try_from_header_and_body(headers.event, &body).unwrap();
-    match event.kind {
-        WebhookEventType::Ping => tracing::info!("Received Ping event: {event:?}"),
-        WebhookEventType::PullRequest => {
-            tracing::info!("Received PR event: {event:?}");
-        }
-        _ => tracing::warn!("Discarding unhandled event: {event:?}"),
-    };
-
-    Ok("OK".to_string())
-}
-
-// See https://docs.github.com/en/webhooks/webhook-events-and-payloads#delivery-headers.
-fn parse_headers(headers: &HeaderMap) -> ApiResult<WebhookHeaders> {
-    let Some(header) = headers.get("X-GitHub-Event") else {
-        return Err(bad_request_error(
-            "MISSING_HEADER",
-            "Missing X-GitHub-Event header",
-        ));
-    };
-    let event = header.to_str()?;
-
-    let Some(header) = headers.get("X-Hub-Signature-256") else {
-        return Err(bad_request_error(
-            "MISSING_HEADER",
-            "Missing X-Hub-Signature-256 header",
-        ));
-    };
-    let signature: &[u8] = header.as_bytes();
-
-    let Some(header) = headers.get("X-GitHub-Delivery") else {
-        return Err(bad_request_error(
-            "MISSING_HEADER",
-            "Missing X-GitHub-Delivery header",
-        ));
-    };
-    let delivery_id = header.to_str()?;
-
-    Ok(WebhookHeaders {
-        delivery_id,
-        event,
-        signature,
-    })
-}
-
-type HmacSha256 = Hmac<Sha256>;
-
-/// Validate the authenticity of the event.
-/// See https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries#validating-webhook-deliveries
-fn validate_signature(
-    signature_header: &[u8],
-    body: &[u8],
+pub(crate) struct Plugin {
+    collab: Collab,
+    config_storage: ConfigStorage,
     secret: WebhookSecret,
-) -> ApiResult<()> {
-    let Some(signature) = signature_header
-        .get(b"sha256=".len()..)
-        .and_then(|v| hex::decode(v).ok())
-    else {
-        return Err(unauthorized_error("Invalid signature."));
-    };
+    client: AppGithub,
+}
 
-    let mut mac = HmacSha256::new_from_slice(&secret.secret)?;
-    mac.update(body);
-    match mac.verify_slice(&signature) {
-        Ok(_) => Ok(()),
-        Err(err) => {
-            tracing::warn!("Received webhook event with invalid signature: {err}");
-            Err(unauthorized_error(
-                format!("Invalid signature: {signature_header:?}").as_str(),
-            ))
-        }
+impl Plugin {
+    pub(crate) async fn new(collab: Collab, pool: &'static PgPool) -> Result<Plugin> {
+        let secret = read_webhook_secret()?;
+        let client = AppGithub::new(&AppGithubConfig::default()).await?;
+        let config_storage = ConfigStorage::new(pool)?;
+        Ok(Plugin {
+            collab,
+            secret,
+            client,
+            config_storage,
+        })
+    }
+
+    /// Start a background task that polls github periodically.
+    /// Return a handle to the task, useful for aborting the task on shutdown.
+    pub(crate) fn start_polling(&self) -> JoinHandle<()> {
+        tokio::spawn(self.poller().poll())
+    }
+
+    /// Returns a router that binds webhook (push) and poll endpoints.
+    pub(crate) fn router(&self) -> Router {
+        Router::merge(
+            Webhook::new(
+                self.collab.clone(),
+                self.config_storage.clone(),
+                self.secret.clone(),
+            )
+            .router(),
+            self.poller().router(),
+        )
+    }
+
+    fn poller(&self) -> Poller {
+        poller::Poller::new(
+            self.collab.clone(),
+            self.client.clone(),
+            self.config_storage.clone(),
+        )
     }
 }
 
-/// Read the webhook secret from $secrets_dir/github/webhook_secret.
-/// The default is `../.secrets/github/webhook_secret`, unless `SECRETS_DIR` is set.
-fn read_webhook_secret() -> Result<WebhookSecret> {
-    let dir = std::env::var("SECRETS_DIR").unwrap_or_else(|_| DEFAULT_SECRETS_DIR.to_string());
-    let path = Path::new(&dir)
-        .join("github/webhook_secret")
-        .into_os_string()
-        .into_string()
-        .map_err(|e| anyhow!("Invalid github secret path in {dir}: {e:?}"))?;
-    tracing::info!("Using github webhook secret at {path}");
-    let secret =
-        fs::read(&path).map_err(|e| anyhow!("Failed to read github secret from {path}: {e}"))?;
-    Ok(WebhookSecret {
-        secret: Arc::new(secret),
+fn get_or_create_plugin_parent(txn: &mut TransactionMut, doc: &YDocProxy) -> Result<YTaskProxy> {
+    if let Ok(parent) = doc.get(txn, PARENT_ID) {
+        return Ok(parent);
+    }
+
+    tracing::debug!("Creating new parent task: {PARENT_ID}");
+    let root = doc.get(txn, "root")?;
+    let mut root_children = root.get_children(txn)?;
+    root_children.push(PARENT_ID.to_string());
+
+    let parent = doc.set(
+        txn,
+        &Task {
+            id: PARENT_ID.to_string(),
+            num: doc.next_num(txn)?.to_string(),
+            name: NAME.to_string(),
+            children: Vec::with_capacity(0),
+            assignee: None,
+            reporter: None,
+            status: None,
+            status_time: None,
+            url: None,
+            kind: None,
+        },
+    );
+    root.set_children(txn, &root_children);
+
+    Ok(parent)
+}
+
+#[derive(Debug)]
+struct ExternalTask {
+    url: String,
+    name: String,
+}
+
+fn new_task(external_task: &ExternalTask, num: u64) -> Result<Task> {
+    let id = uuid::Uuid::new_v4().to_string();
+    tracing::trace!("Creating new task {} ({num}): {}", id, external_task.url);
+    Ok(Task {
+        id,
+        num: num.to_string(),
+        name: external_task.name.clone(),
+        children: Vec::with_capacity(0),
+        assignee: None,
+        reporter: None,
+        status: Some("In Progress".to_string()),
+        status_time: Some(now()?),
+        url: Some(external_task.url.clone()),
+        kind: Some(KIND.to_string()),
     })
+}
+
+fn update_task(
+    txn: &mut TransactionMut,
+    task: &YTaskProxy,
+    external_task: &ExternalTask,
+) -> Result<()> {
+    tracing::trace!("Updating task {}: {}", task.get_id(txn)?, external_task.url);
+    task.set_name(txn, &external_task.name);
+    if task.get_status(txn)?.unwrap_or_default() != "In Progress" {
+        task.set_status(txn, Some("In Progress"));
+        task.set_status_time(txn, Some(now()?));
+    }
+    Ok(())
+}
+
+fn resolve_task(txn: &mut TransactionMut, task: &YTaskProxy) -> Result<()> {
+    tracing::trace!(
+        "Resolving task {}: {}",
+        task.get_id(txn)?,
+        task.get_url(txn)?.unwrap_or_default()
+    );
+    if task.get_status(txn)?.unwrap_or_default() != "Done" {
+        task.set_status(txn, Some("Done"));
+        task.set_status_time(txn, Some(now()?));
+    }
+    Ok(())
+}
+
+fn now() -> Result<i64> {
+    Ok(SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)?
+        .as_millis()
+        .try_into()?)
 }

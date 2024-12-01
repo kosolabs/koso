@@ -53,6 +53,14 @@ impl ProjectsState {
         }
     }
 
+    pub(super) async fn add_and_init_local_client(
+        &self,
+        project_id: &ProjectId,
+    ) -> Result<Arc<ProjectState>> {
+        let (project, _) = self.get_or_init(project_id).await?;
+        Ok(project)
+    }
+
     pub(super) async fn add_and_init_client(
         &self,
         project_id: &ProjectId,
@@ -326,7 +334,7 @@ pub(crate) struct DocBox {
 }
 
 impl DocBox {
-    fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox> {
+    pub(crate) fn doc_or_error(doc_box: Option<&DocBox>) -> Result<&DocBox> {
         match doc_box {
             Some(db) => Ok(db),
             None => Err(anyhow!("DocBox is absent")),
