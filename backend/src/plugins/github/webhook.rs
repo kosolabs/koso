@@ -238,15 +238,7 @@ impl Webhook {
                         installation_id,
                     ) => *installation_id.id,
                 };
-                let pr = pr_event.pull_request;
-                let pr_title: String = pr.title.unwrap_or_default();
-                let pr_url: String = pr.html_url.map(Into::into).unwrap_or_default();
-                if pr_url.is_empty() {
-                    return Err(bad_request_error(
-                        "BAD_EVENT",
-                        "Event empty pr.html_url field",
-                    ));
-                }
+                let task = ExternalTask::new(pr_event.pull_request)?;
                 let action = match pr_event.action {
                     PullRequestWebhookEventAction::Opened
                     | PullRequestWebhookEventAction::Reopened => KosoGithubEventAction::Opened,
@@ -260,16 +252,13 @@ impl Webhook {
                         return Ok(());
                     }
                 };
-                tracing::Span::current().record("target", &pr_url);
+                tracing::Span::current().record("target", &task.url);
 
                 let event = KosoGithubEvent {
                     request_id,
                     installation_id,
                     action,
-                    task: ExternalTask {
-                        url: pr_url,
-                        name: pr_title,
-                    },
+                    task,
                 };
 
                 tokio::spawn(

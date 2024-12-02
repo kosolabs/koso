@@ -167,13 +167,14 @@ impl Poller {
 
         let mut results = HashMap::with_capacity(prs.len());
         for pr in prs {
-            let name = pr.title.unwrap_or_default();
-            let url: String = pr.html_url.map(Into::into).unwrap_or_default();
-            if url.is_empty() {
-                tracing::warn!("Omitting task with empty html_url: {}", pr.url);
-                continue;
+            match ExternalTask::new(pr) {
+                Ok(task) => {
+                    if results.insert(task.url.clone(), task).is_some() {
+                        tracing::warn!("Found multiple PRs with same url");
+                    }
+                }
+                Err(e) => tracing::warn!("Skipping malformed PR: {e}"),
             }
-            results.insert(url.clone(), ExternalTask { url, name });
         }
         Ok(results)
     }
@@ -193,7 +194,9 @@ impl Poller {
                     tracing::warn!("Omitting doc task with empty URL: {child_id}");
                     continue;
                 }
-                results.insert(url, child);
+                if results.insert(url, child).is_some() {
+                    tracing::warn!("Found multiple tasks with same url: {child_id}");
+                }
             }
         }
         Ok(results)

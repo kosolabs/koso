@@ -6,9 +6,10 @@ use crate::{
     },
     plugins::config::{self, ConfigStorage},
 };
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use axum::Router;
 use kosolib::{AppGithub, AppGithubConfig};
+use octocrab::models::pulls::PullRequest;
 use poller::Poller;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -120,6 +121,17 @@ fn get_or_create_plugin_parent(txn: &mut TransactionMut, doc: &YDocProxy) -> Res
 struct ExternalTask {
     url: String,
     name: String,
+}
+
+impl ExternalTask {
+    fn new(pr: PullRequest) -> Result<ExternalTask> {
+        let name = pr.title.unwrap_or_default();
+        let url: String = pr.html_url.map(Into::into).unwrap_or_default();
+        if url.is_empty() {
+            return Err(anyhow!("Found PR with empty html_url: {}", pr.url));
+        }
+        Ok(ExternalTask { url, name })
+    }
 }
 
 fn new_task(external_task: &ExternalTask, num: u64) -> Result<Task> {
