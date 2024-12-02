@@ -513,6 +513,8 @@ export class Koso {
         assignee: null,
         status: null,
         statusTime: null,
+        kind: null,
+        url: null,
       });
     });
     this.undoManager.clear();
@@ -1148,6 +1150,8 @@ export class Koso {
         assignee: null,
         status: null,
         statusTime: null,
+        kind: null,
+        url: null,
       });
       this.link(taskId, parent.name, offset);
     });

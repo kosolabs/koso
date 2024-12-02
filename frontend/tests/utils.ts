@@ -10,6 +10,8 @@ export type TaskBuilder = {
   reporter?: string | null;
   status?: Status | null;
   statusTime?: number | null;
+  url?: string | null;
+  kind?: string | null;
 };
 
 export async function getKosoGraph(page: Page): Promise<Graph> {

@@ -5,7 +5,7 @@ use crate::{
         google::{self, KeySet},
     },
     healthz,
-    plugins::github,
+    plugins::github::{self},
 };
 use axum::{
     extract::{MatchedPath, Request},
@@ -77,21 +77,22 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         None => google::KeySet::new().await.unwrap(),
     };
 
+    let github_plugin = github::Plugin::new(collab.clone(), pool).await.unwrap();
+    let github_poll_handle = github_plugin.start_polling();
+
     let app = Router::new()
         .nest("/api", api::router().fallback(api::handler_404))
         // Apply these layers only to /api routes.
+        .layer((middleware::from_fn(google::authenticate),))
+        // NOTE: the following routes are not subject to the
+        // google authentication middleware above.
+        .nest("/healthz", healthz::router())
+        .nest("/plugins/github", github_plugin.router())
+        // Apply these layers to all non-static routes.
         .layer((
             Extension(pool),
             Extension(collab.clone()),
             Extension(key_set),
-            middleware::from_fn(google::authenticate),
-        ))
-        // NOTE: the following routes are not subject to the
-        // google authentication middleware above.
-        .nest("/healthz", healthz::router())
-        .nest("/plugins/github", github::router().unwrap())
-        // Apply these layers to all non-static routes.
-        .layer((
             middleware::from_fn(emit_request_metrics),
             SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
             PropagateRequestIdLayer::new(HeaderName::from_static("x-request-id")),
@@ -133,7 +134,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
     };
 
     let addr = listener.local_addr().unwrap();
-    let serve = tokio::spawn(async {
+    let serve = tokio::spawn(async move {
         tracing::info!("server listening on {}", listener.local_addr().unwrap());
         axum::serve(
             listener,
@@ -144,6 +145,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         .unwrap();
 
         // Now that the server is shutdown, it's safe to clean things up.
+        github_poll_handle.abort();
         collab.stop().await;
         tracing::info!("Closing database pool...");
         pool.close().await;

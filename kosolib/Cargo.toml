@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.93"
+futures = "0.3.31"
 jsonwebtoken = "9.3.0"
 octocrab = "0.42.1"
 test-log = { version = "0.2.16", features = ["trace"] }

@@ -27,7 +27,7 @@ impl YDocProxy {
         Ok(graph)
     }
 
-    pub fn set(&self, txn: &mut yrs::TransactionMut, task: &Task) {
+    pub fn set(&self, txn: &mut yrs::TransactionMut, task: &Task) -> YTaskProxy {
         let y_task: MapRef = self.graph.get_or_init(txn, task.id.as_ref());
         let y_task = YTaskProxy::new(y_task);
         y_task.set_id(txn, &task.id);
@@ -38,6 +38,9 @@ impl YDocProxy {
         y_task.set_reporter(txn, task.reporter.as_deref());
         y_task.set_status(txn, task.status.as_deref());
         y_task.set_status_time(txn, task.status_time);
+        y_task.set_url(txn, task.url.as_deref());
+        y_task.set_kind(txn, task.kind.as_deref());
+        y_task
     }
 
     pub fn get<T: ReadTxn>(&self, txn: &T, id: &str) -> Result<YTaskProxy> {
@@ -69,6 +72,18 @@ impl YDocProxy {
     pub fn transact_mut_with<T: Into<Origin>>(&self, origin: T) -> TransactionMut {
         self.doc.transact_mut_with(origin)
     }
+
+    /// Returns the next available task number. i.e max(num)+1
+    pub fn next_num<T: ReadTxn>(&self, txn: &T) -> Result<u64> {
+        let mut max_num = 0;
+        for id in self.graph.keys(txn) {
+            let num = self.get(txn, id)?.get_num(txn)?.parse::<u64>()?;
+            if num > max_num {
+                max_num = num;
+            }
+        }
+        Ok(max_num + 1)
+    }
 }
 
 pub(crate) struct YTaskProxy {
@@ -90,6 +105,8 @@ impl YTaskProxy {
             reporter: self.get_reporter(txn)?,
             status: self.get_status(txn)?,
             status_time: self.get_status_time(txn)?,
+            url: self.get_url(txn)?,
+            kind: self.get_kind(txn)?,
         })
     }
 
@@ -249,6 +266,22 @@ impl YTaskProxy {
     pub fn set_status_time(&self, txn: &mut TransactionMut, status_time: Option<i64>) {
         self.y_task.try_update(txn, "statusTime", status_time);
     }
+
+    pub fn get_url<T: ReadTxn>(&self, txn: &T) -> Result<Option<String>> {
+        self.get_optional_string(txn, "url")
+    }
+
+    pub fn set_url(&self, txn: &mut TransactionMut, url: Option<&str>) {
+        self.y_task.try_update(txn, "url", url);
+    }
+
+    pub fn get_kind<T: ReadTxn>(&self, txn: &T) -> Result<Option<String>> {
+        self.get_optional_string(txn, "kind")
+    }
+
+    pub fn set_kind(&self, txn: &mut TransactionMut, kind: Option<&str>) {
+        self.y_task.try_update(txn, "kind", kind);
+    }
 }
 
 #[cfg(test)]
@@ -272,6 +305,8 @@ mod tests {
                     reporter: Some("r@gmail.com".to_string()),
                     status: Some("Done".to_string()),
                     status_time: Some(1),
+                    url: Some("https://example.com/1".to_string()),
+                    kind: Some("Kind1".to_string()),
                 },
             );
         }
@@ -289,6 +324,8 @@ mod tests {
                     reporter: Some("r@gmail.com".to_string()),
                     status: Some("Done".to_string()),
                     status_time: Some(1),
+                    url: Some("https://example.com/1".to_string()),
+                    kind: Some("Kind1".to_string()),
                 },
             );
         }
@@ -306,6 +343,8 @@ mod tests {
                 reporter: Some("r@gmail.com".to_string()),
                 status: Some("Done".to_string()),
                 status_time: Some(1),
+                url: Some("https://example.com/1".to_string()),
+                kind: Some("Kind1".to_string()),
             }
         )
     }

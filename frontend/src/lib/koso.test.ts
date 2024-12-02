@@ -48,6 +48,8 @@ describe("Koso tests", () => {
           reporter: task.reporter ?? null,
           status: task.status ?? null,
           statusTime: task.statusTime ?? null,
+          kind: task.kind ?? null,
+          url: task.url ?? null,
         });
       }
       for (const taskId of remainingTaskIds) {
@@ -60,6 +62,8 @@ describe("Koso tests", () => {
           reporter: null,
           status: null,
           statusTime: null,
+          kind: null,
+          url: null,
         });
       }
     });
@@ -305,6 +309,8 @@ describe("Koso tests", () => {
           reporter: null,
           status: null,
           statusTime: null,
+          kind: null,
+          url: null,
         },
         [id1.name]: {
           id: id1.name,
@@ -315,6 +321,8 @@ describe("Koso tests", () => {
           reporter: "t@koso.app",
           status: null,
           statusTime: null,
+          kind: null,
+          url: null,
         },
       });
     });
@@ -554,6 +562,8 @@ describe("Koso tests", () => {
           assignee: "a@koso.app",
           status: "In Progress",
           statusTime: 123,
+          kind: "github",
+          url: "http://example.com/foo/bar",
         },
       ]);
 
@@ -566,6 +576,8 @@ describe("Koso tests", () => {
         assignee: "a@koso.app",
         status: "In Progress",
         statusTime: 123,
+        kind: "github",
+        url: "http://example.com/foo/bar",
       });
     });
 
