@@ -788,6 +788,8 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         .await
         .unwrap();
 
+    // Send a PR event that will open a new task.
+    // Send it several times to flex the dedupe funtionality.
     for _ in 1..3 {
         let res = client
             .post(format!("http://{addr}/plugins/github/app/webhook"))
@@ -816,7 +818,9 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
             .apply_update(read_sync_update(socket).await)
             .unwrap();
         let graph = doc.to_graph(&doc.transact()).unwrap();
+        let root = graph.get("root").unwrap();
         let parent = graph.get("plugin_github").unwrap();
+        assert!(root.children.contains(&parent.id));
         let task = graph
             .values()
             .find(|t| {
@@ -830,6 +834,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         assert!(parent.children.contains(&task.id));
     }
 
+    // Send a CLOSED event that will close the task created above.
     let res = client
         .post(format!("http://{addr}/plugins/github/app/webhook"))
         .header("Content-Type", "application/json")

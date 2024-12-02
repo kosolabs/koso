@@ -199,7 +199,7 @@ fn validate_signature(
         Err(err) => {
             tracing::warn!("Received webhook event with invalid signature: {err}");
             Err(unauthorized_error(
-                format!("Invalid signature: {signature_header:?}").as_str(),
+                format!("Invalid signature: {}", hex::encode(signature)).as_str(),
             ))
         }
     }
