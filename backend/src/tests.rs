@@ -756,9 +756,7 @@ async fn read_sync_request(socket: &mut Socket) -> StateVector {
     let mut decoder = DecoderV1::from(sync_request.as_slice());
     match decoder.read_var().unwrap() {
         MSG_SYNC => match decoder.read_var().unwrap() {
-            MSG_SYNC_REQUEST => {
-                return StateVector::decode_v1(decoder.read_buf().unwrap()).unwrap();
-            }
+            MSG_SYNC_REQUEST => StateVector::decode_v1(decoder.read_buf().unwrap()).unwrap(),
             invalid_type => panic!("Invalid sync type: {invalid_type}"),
         },
         invalid_type => panic!("Invalid message protocol type: {invalid_type}"),
@@ -774,9 +772,7 @@ async fn read_sync_response(socket: &mut Socket) -> Update {
     let mut decoder = DecoderV1::from(sync_response.as_slice());
     match decoder.read_var().unwrap() {
         MSG_SYNC => match decoder.read_var().unwrap() {
-            MSG_SYNC_RESPONSE => {
-                return Update::decode_v2(decoder.read_buf().unwrap()).unwrap();
-            }
+            MSG_SYNC_RESPONSE => Update::decode_v2(decoder.read_buf().unwrap()).unwrap(),
             invalid_type => panic!("Invalid sync type: {invalid_type}"),
         },
         invalid_type => panic!("Invalid message protocol type: {invalid_type}"),
@@ -792,9 +788,7 @@ async fn read_sync_update(socket: &mut Socket) -> Update {
     let mut decoder = DecoderV1::from(sync_update.as_slice());
     match decoder.read_var().unwrap() {
         MSG_SYNC => match decoder.read_var().unwrap() {
-            MSG_SYNC_UPDATE => {
-                return Update::decode_v2(decoder.read_buf().unwrap()).unwrap();
-            }
+            MSG_SYNC_UPDATE => Update::decode_v2(decoder.read_buf().unwrap()).unwrap(),
             invalid_type => panic!("Invalid sync type: {invalid_type}"),
         },
         invalid_type => panic!("Invalid message protocol type: {invalid_type}"),

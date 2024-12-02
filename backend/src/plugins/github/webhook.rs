@@ -9,8 +9,8 @@ use crate::{
     plugins::{
         config::ConfigStorage,
         github::{
-            get_or_create_plugin_parent, new_task, resolve_task, update_task, ExternalTask,
-            GithubConfig, KIND, PARENT_ID,
+            get_or_create_plugin_parent, get_plugin_parent, new_task, resolve_task, update_task,
+            ExternalTask, GithubConfig, KIND,
         },
     },
 };
@@ -325,7 +325,7 @@ impl Webhook {
 }
 
 fn get_doc_task<T: ReadTxn>(txn: &T, doc: &YDocProxy, url: &str) -> Result<Option<YTaskProxy>> {
-    let Ok(parent) = doc.get(txn, PARENT_ID) else {
+    let Ok(parent) = get_plugin_parent(txn, doc) else {
         return Ok(None);
     };
 

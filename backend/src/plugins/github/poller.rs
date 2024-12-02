@@ -8,7 +8,7 @@ use crate::{
         config::ConfigStorage,
         github::{
             get_or_create_plugin_parent, new_task, resolve_task, update_task, ExternalTask,
-            GithubConfig, KIND, PARENT_ID,
+            GithubConfig, KIND,
         },
     },
 };
@@ -16,7 +16,10 @@ use anyhow::Result;
 use axum::{routing::post, Extension, Router};
 use kosolib::{AppGithub, InstallationRef};
 use std::{collections::HashMap, time::Duration};
-use yrs::Origin;
+use yrs::{Origin, ReadTxn};
+
+const INIT_POLL_DELAY: Duration = Duration::from_secs(2 * 60);
+const POLL_DELAY: Duration = Duration::from_secs(16 * 60);
 
 #[derive(Clone)]
 pub(super) struct Poller {
@@ -53,12 +56,14 @@ impl Poller {
 
     #[tracing::instrument(skip(self))]
     pub(super) async fn poll(self) {
-        tokio::time::sleep(Duration::from_secs(30)).await;
+        // Wait awhile before starting polling to avoid
+        // competing with client reconnections after a server restart.
+        tokio::time::sleep(INIT_POLL_DELAY).await;
         loop {
             if let Err(e) = self.poll_all_installations().await {
                 tracing::warn!("Failed poll: {e}");
             }
-            tokio::time::sleep(Duration::from_secs(16 * 60)).await;
+            tokio::time::sleep(POLL_DELAY).await;
         }
     }
 
@@ -102,8 +107,10 @@ impl Poller {
         let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;
         let doc = &doc_box.ydoc;
 
-        let doc_tasks_by_url = self.list_doc_tasks(doc)?;
         let mut txn = doc.transact_mut_with(origin(&config));
+
+        let parent = get_or_create_plugin_parent(&mut txn, doc)?;
+        let doc_tasks_by_url = self.list_doc_tasks(&txn, doc, &parent)?;
         tracing::trace!(
             "Found existing tasks in doc: {:?}",
             doc_tasks_by_url
@@ -119,8 +126,6 @@ impl Poller {
                 None => resolve_task(&mut txn, task)?,
             }
         }
-
-        let parent = get_or_create_plugin_parent(&mut txn, doc)?;
 
         // Create any new tasks that don't already exist.
         let mut next_num: u64 = doc.next_num(&txn)?;
@@ -175,22 +180,22 @@ impl Poller {
         Ok(results)
     }
 
-    fn list_doc_tasks(&self, doc: &YDocProxy) -> Result<HashMap<String, YTaskProxy>> {
-        let txn: yrs::Transaction<'_> = doc.transact();
-        let Ok(parent) = doc.get(&txn, PARENT_ID) else {
-            return Ok(HashMap::with_capacity(0));
-        };
-
+    fn list_doc_tasks<T: ReadTxn>(
+        &self,
+        txn: &T,
+        doc: &YDocProxy,
+        parent: &YTaskProxy,
+    ) -> Result<HashMap<String, YTaskProxy>> {
         let mut results = HashMap::new();
-        for child_id in parent.get_children(&txn)? {
-            let child = doc.get(&txn, &child_id)?;
-            if child.get_kind(&txn)?.unwrap_or_default() == KIND {
-                let url = child.get_url(&txn)?.unwrap_or_default();
+        for child_id in parent.get_children(txn)? {
+            let child = doc.get(txn, &child_id)?;
+            if child.get_kind(txn)?.unwrap_or_default() == KIND {
+                let url = child.get_url(txn)?.unwrap_or_default();
                 if url.is_empty() {
                     tracing::warn!("Omitting doc task with empty URL: {child_id}");
                     continue;
                 }
-                results.insert(child.get_url(&txn)?.unwrap_or_default(), child);
+                results.insert(child.get_url(txn)?.unwrap_or_default(), child);
             }
         }
         Ok(results)

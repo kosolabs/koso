@@ -6,7 +6,7 @@ use crate::{
     },
     plugins::config::{self, ConfigStorage},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::Router;
 use kosolib::{AppGithub, AppGithubConfig};
 use poller::Poller;
@@ -15,15 +15,15 @@ use sqlx::PgPool;
 use std::time::SystemTime;
 use tokio::task::JoinHandle;
 use webhook::{read_webhook_secret, Webhook, WebhookSecret};
-use yrs::TransactionMut;
+use yrs::{ReadTxn, TransactionMut};
 
 mod poller;
 mod webhook;
 
 pub(super) const KIND: &str = "github";
-pub(super) const NAME: &str = "Github Plugin";
+const NAME: &str = "Github Plugin";
 /// Constant task ID of this plugin's container task.
-pub(super) const PARENT_ID: &str = "plugin_github";
+const PARENT_ID: &str = "plugin_github";
 
 #[derive(Clone)]
 pub(crate) struct Plugin {
@@ -79,6 +79,11 @@ impl Plugin {
             self.config_storage.clone(),
         )
     }
+}
+
+fn get_plugin_parent<T: ReadTxn>(txn: &T, doc: &YDocProxy) -> Result<YTaskProxy> {
+    doc.get(txn, PARENT_ID)
+        .with_context(|| "Missing plugin parent")
 }
 
 fn get_or_create_plugin_parent(txn: &mut TransactionMut, doc: &YDocProxy) -> Result<YTaskProxy> {
