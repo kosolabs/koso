@@ -61,9 +61,8 @@ struct WebhookHeaders<'a> {
 struct KosoGithubEvent {
     request_id: String,
     installation_id: u64,
-    pr_url: String,
-    pr_title: String,
     action: KosoGithubEventAction,
+    task: ExternalTask,
 }
 
 #[derive(Debug)]
@@ -240,18 +239,14 @@ impl Webhook {
                     ) => *installation_id.id,
                 };
                 let pr = pr_event.pull_request;
-                let Some(pr_title) = pr.title else {
+                let pr_title: String = pr.title.unwrap_or_default();
+                let pr_url: String = pr.html_url.map(Into::into).unwrap_or_default();
+                if pr_url.is_empty() {
                     return Err(bad_request_error(
                         "BAD_EVENT",
-                        "Event missing pr.title field",
+                        "Event empty pr.html_url field",
                     ));
-                };
-                let Some(pr_url) = pr.html_url.map(|u| u.to_string()) else {
-                    return Err(bad_request_error(
-                        "BAD_EVENT",
-                        "Event missing pr.html_url field",
-                    ));
-                };
+                }
                 let action = match pr_event.action {
                     PullRequestWebhookEventAction::Opened
                     | PullRequestWebhookEventAction::Reopened => KosoGithubEventAction::Opened,
@@ -268,11 +263,13 @@ impl Webhook {
                 tracing::Span::current().record("target", &pr_url);
 
                 let event = KosoGithubEvent {
-                    installation_id,
-                    pr_url,
-                    pr_title,
-                    action,
                     request_id,
+                    installation_id,
+                    action,
+                    task: ExternalTask {
+                        url: pr_url,
+                        name: pr_title,
+                    },
                 };
 
                 tokio::spawn(
@@ -306,12 +303,12 @@ impl Webhook {
         let doc = &doc_box.ydoc;
 
         let mut txn = doc.transact_mut_with(origin(&event));
-        match (get_doc_task(&txn, doc, &event.pr_url)?, &event.action) {
+        match (get_doc_task(&txn, doc, &event.task.url)?, &event.action) {
             (Some(task), KosoGithubEventAction::Opened | KosoGithubEventAction::Edited) => {
-                update_task(&mut txn, &task, &to_external_task(event))?;
+                update_task(&mut txn, &task, &event.task)?;
             }
             (None, KosoGithubEventAction::Opened | KosoGithubEventAction::Edited) => {
-                create_task(&mut txn, doc, &to_external_task(event))?;
+                create_task(&mut txn, doc, &event.task)?;
             }
             (Some(task), KosoGithubEventAction::Closed) => {
                 resolve_task(&mut txn, &task)?;
@@ -331,20 +328,13 @@ fn get_doc_task<T: ReadTxn>(txn: &T, doc: &YDocProxy, url: &str) -> Result<Optio
 
     for child in parent.get_children(txn)? {
         let child = doc.get(txn, &child)?;
-        if child.get_url(txn)?.unwrap_or_default() == url
-            && child.get_kind(txn)?.unwrap_or_default() == KIND
+        if child.get_url(txn)?.map_or(false, |u| u == url)
+            && child.get_kind(txn)?.map_or(false, |k| k == KIND)
         {
             return Ok(Some(child));
         }
     }
     Ok(None)
-}
-
-fn to_external_task(event: KosoGithubEvent) -> ExternalTask {
-    ExternalTask {
-        url: event.pr_url,
-        name: event.pr_title,
-    }
 }
 
 fn create_task(

@@ -167,15 +167,13 @@ impl Poller {
 
         let mut results = HashMap::with_capacity(prs.len());
         for pr in prs {
-            let task = ExternalTask {
-                url: pr.url,
-                name: pr.title.unwrap_or_default(),
-            };
-            if task.url.is_empty() {
-                tracing::warn!("Omitting task with empty URL: {task:?}");
+            let name = pr.title.unwrap_or_default();
+            let url: String = pr.html_url.map(Into::into).unwrap_or_default();
+            if url.is_empty() {
+                tracing::warn!("Omitting task with empty html_url: {}", pr.url);
                 continue;
             }
-            results.insert(task.url.clone(), task);
+            results.insert(url.clone(), ExternalTask { url, name });
         }
         Ok(results)
     }
@@ -189,13 +187,13 @@ impl Poller {
         let mut results = HashMap::new();
         for child_id in parent.get_children(txn)? {
             let child = doc.get(txn, &child_id)?;
-            if child.get_kind(txn)?.unwrap_or_default() == KIND {
+            if child.get_kind(txn)?.map_or(false, |k| k == KIND) {
                 let url = child.get_url(txn)?.unwrap_or_default();
                 if url.is_empty() {
                     tracing::warn!("Omitting doc task with empty URL: {child_id}");
                     continue;
                 }
-                results.insert(child.get_url(txn)?.unwrap_or_default(), child);
+                results.insert(url, child);
             }
         }
         Ok(results)
