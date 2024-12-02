@@ -7,6 +7,7 @@ use crate::{
         model::{CreateProject, Project, ProjectExport, Task},
         yproxy::YDocProxy,
     },
+    plugins::github::GithubSpecificConfig,
     server::{self, Config},
 };
 use anyhow::{anyhow, Result};
@@ -14,7 +15,7 @@ use axum::http::HeaderValue;
 use futures::{stream::FusedStream, SinkExt, StreamExt};
 use reqwest::{Client, Response, StatusCode};
 use serde_json::Value;
-use sqlx::PgPool;
+use sqlx::{types::Json, PgPool};
 use tokio::{
     net::TcpStream,
     sync::{
@@ -733,6 +734,143 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 async fn plugin_test(pool: PgPool) -> Result<()> {
     let (server, addr) = start_server(&pool).await;
     let client = Client::default();
+
+    // Setup the project.
+    let token = login(&client, &addr, &pool).await.unwrap();
+    let project = create_project(&client, &addr, &token, "plugin_test")
+        .await
+        .unwrap();
+    let config = GithubSpecificConfig {
+        project_id: project.project_id.clone(),
+    };
+    sqlx::query("INSERT INTO plugin_configs (plugin_id, external_id, config) VALUES ($1, $2, $3)")
+        .bind("github")
+        .bind("57461190")
+        .bind(Json(config))
+        .execute(&pool)
+        .await?;
+
+    // Open a socket.
+    let mut req = format!("ws://{addr}/api/ws/projects/{}", project.project_id)
+        .into_client_request()
+        .unwrap();
+    req.headers_mut().insert(
+        "authorization",
+        HeaderValue::from_str(format!("Bearer {token}").as_str()).unwrap(),
+    );
+    let (mut socket, response) = tokio_tungstenite::connect_async(req).await.unwrap();
+    let socket = &mut socket;
+    assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
+    assert_eq!(read_sync_request(socket).await, StateVector::default());
+
+    // Create the root node.
+    let doc: YDocProxy = YDocProxy::new();
+    doc.set(
+        &mut doc.transact_mut(),
+        &Task {
+            id: "root".to_string(),
+            num: "0".to_string(),
+            name: "root".to_string(),
+            children: Vec::with_capacity(0),
+            assignee: None,
+            reporter: None,
+            status: None,
+            status_time: None,
+            url: None,
+            kind: None,
+        },
+    );
+    socket
+        .send(Message::Binary(msg_sync::sync_response(
+            &doc.transact()
+                .encode_state_as_update_v2(&StateVector::default()),
+        )))
+        .await
+        .unwrap();
+
+    for _ in 1..3 {
+        let res = client
+            .post(format!("http://{addr}/plugins/github/app/webhook"))
+            .header("Content-Type", "application/json")
+            .header("X-GitHub-Delivery", "bfa00450-b01d-11ef-9d28-d6e110293b37")
+            .header("X-GitHub-Event", "pull_request")
+            .header("X-GitHub-Hook-ID", "514610970")
+            .header("X-GitHub-Hook-Installation-Target-ID", "1066302")
+            .header("X-GitHub-Hook-Installation-Target-Type", "integration")
+            .header(
+                "X-Hub-Signature",
+                "sha1=57894d8a5337c78aaf414f8aecbad90ccaf4e403",
+            )
+            .header(
+                "X-Hub-Signature-256",
+                "sha256=60e886c4a3ab162e7a7880c3aa163bbaaed45391f143d08f36abef55d6e6d1dc",
+            )
+            .body(include_str!("testdata/opened_pr.json"))
+            .send()
+            .await
+            .expect("Failed to post event.");
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+    {
+        doc.transact_mut()
+            .apply_update(read_sync_update(socket).await)
+            .unwrap();
+        let graph = doc.to_graph(&doc.transact()).unwrap();
+        let parent = graph.get("plugin_github").unwrap();
+        let task = graph
+            .values()
+            .find(|t| {
+                t.url.clone().unwrap_or_default() == "https://github.com/kosolabs/koso/pull/611"
+            })
+            .unwrap();
+        assert_eq!(task.kind.as_ref().unwrap(), "github");
+        assert_eq!(task.name, "Tweak VSCode workspace to play nice with rust");
+        assert_eq!(task.status.as_ref().unwrap(), "In Progress");
+        assert!(task.num.parse::<u64>().unwrap() > 0);
+        assert!(parent.children.contains(&task.id));
+    }
+
+    let res = client
+        .post(format!("http://{addr}/plugins/github/app/webhook"))
+        .header("Content-Type", "application/json")
+        .header("X-GitHub-Delivery", "fdedb950-b01d-11ef-8975-dcfebc6c537c")
+        .header("X-GitHub-Event", "pull_request")
+        .header("X-GitHub-Hook-ID", "514610970")
+        .header("X-GitHub-Hook-Installation-Target-ID", "1066302")
+        .header("X-GitHub-Hook-Installation-Target-Type", "integration")
+        .header(
+            "X-Hub-Signature",
+            "sha1=f1dd270abccfffec89f3839e45484442cd2f2ed7",
+        )
+        .header(
+            "X-Hub-Signature-256",
+            "sha256=1059f4421e942ae78e1daa557e139b23b8a31be79a8b2c3eba95d17530646b2f",
+        )
+        .body(include_str!("testdata/closed_pr.json"))
+        .send()
+        .await
+        .expect("Failed to post event.");
+    assert_eq!(res.status(), StatusCode::OK);
+    {
+        doc.transact_mut()
+            .apply_update(read_sync_update(socket).await)
+            .unwrap();
+        let graph = doc.to_graph(&doc.transact()).unwrap();
+        let parent = graph.get("plugin_github").unwrap();
+        let task = graph
+            .values()
+            .find(|t| {
+                t.url.clone().unwrap_or_default() == "https://github.com/kosolabs/koso/pull/611"
+            })
+            .unwrap();
+        assert_eq!(task.kind.as_ref().unwrap(), "github");
+        assert_eq!(task.name, "Tweak VSCode workspace to play nice with rust");
+        assert_eq!(task.status.as_ref().unwrap(), "Done");
+        assert!(task.num.parse::<u64>().unwrap() > 0);
+        assert!(parent.children.contains(&task.id));
+    }
+
+    close_socket(socket).await;
 
     let res = client
         .post(format!("http://{addr}/plugins/github/poll"))

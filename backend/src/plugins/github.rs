@@ -35,8 +35,8 @@ pub(crate) struct Plugin {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub(super) struct GithubSpecificConfig {
-    pub(super) project_id: String,
+pub(crate) struct GithubSpecificConfig {
+    pub(crate) project_id: String,
 }
 
 type GithubConfig = config::Config<GithubSpecificConfig>;
