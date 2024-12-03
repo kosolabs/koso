@@ -215,8 +215,11 @@ pub(super) fn read_webhook_secret() -> Result<WebhookSecret> {
         .into_string()
         .map_err(|e| anyhow!("Invalid github secret path in {dir}: {e:?}"))?;
     tracing::info!("Using github webhook secret at {path}");
-    let secret =
-        fs::read(&path).map_err(|e| anyhow!("Failed to read github secret from {path}: {e}"))?;
+    let secret = fs::read_to_string(&path)
+        .map_err(|e| anyhow!("Failed to read github secret from {path}: {e}"))?
+        .trim()
+        .as_bytes()
+        .to_owned();
     Ok(WebhookSecret {
         secret: Arc::new(secret),
     })
