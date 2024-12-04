@@ -155,6 +155,11 @@
     >
       <UserPlus />
     </Button>
+    <!-- TODO: Configure app for prod-->
+    <Button
+      href="https://github.com/apps/development-koso/installations/new?state=project_{projectId}"
+      >Connect Github</Button
+    >
   {/snippet}
 </Navbar>
 
