@@ -7,12 +7,8 @@ use crate::{
     plugins::github::{read_secret, GithubSpecificConfig, Secret},
 };
 use anyhow::{anyhow, Context, Result};
-use axum::{
-    middleware,
-    routing::{get, post},
-    Extension, Json, Router,
-};
-use octocrab::OctocrabBuilder;
+use axum::{middleware, routing::post, Extension, Json, Router};
+use octocrab::{models::Installation, OctocrabBuilder};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -63,18 +59,6 @@ struct OAuthError {
     error_description: String,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct InstallationsResponse {
-    installations: Vec<Installation>,
-}
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Installation {
-    installation_id: String,
-    name: String,
-}
-
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ConnectRequest {
@@ -110,7 +94,6 @@ impl Auth {
     pub(super) fn router(self) -> Router {
         Router::new()
             .route("/auth", post(Self::auth_handler))
-            .route("/installations", get(Self::installations_handler))
             .route("/connect", post(Self::connect_project_handler))
             .layer((Extension(self), middleware::from_fn(google::authenticate)))
     }
@@ -176,14 +159,6 @@ impl Auth {
         .to_string())
     }
 
-    async fn installations_handler(
-        Extension(user): Extension<User>,
-        Extension(auth): Extension<Auth>,
-    ) -> ApiResult<Json<InstallationsResponse>> {
-        let installations = auth.fetch_installations(&user).await?;
-        Ok(Json(InstallationsResponse { installations }))
-    }
-
     async fn connect_project_handler(
         Extension(user): Extension<User>,
         Extension(auth): Extension<Auth>,
@@ -193,7 +168,7 @@ impl Auth {
         let installations = auth.fetch_installations(&user).await?;
         let installation_authorized = installations
             .into_iter()
-            .any(|installation| installation.installation_id == request.installation_id);
+            .any(|installation| installation.id.0.to_string() == request.installation_id);
         if !installation_authorized {
             return Err(unauthorized_error(&format!(
                 "Not authorized to access installation {}",
@@ -258,13 +233,6 @@ impl Auth {
         if installations.total_count.unwrap_or_default() > installations.items.len().try_into()? {
             tracing::warn!("Need to paginate installations");
         }
-        Ok(installations
-            .items
-            .into_iter()
-            .map(|installation| Installation {
-                installation_id: installation.id.0.to_string(),
-                name: installation.html_url.unwrap_or_default(),
-            })
-            .collect::<Vec<_>>())
+        Ok(installations.items)
     }
 }

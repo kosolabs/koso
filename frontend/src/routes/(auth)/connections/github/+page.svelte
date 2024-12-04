@@ -21,14 +21,6 @@
 
     const code = urlParams.get("code");
     if (!code) {
-      // if (github.hasValidGithubSessionAuth()) {
-      //   console.log(`User is already authenticated with Github`);
-      //   return true;
-      // }
-      // TODO: Decide whether to persist in the session + redirect to github
-      // toast.info("Redirecting to Github for authorization.");
-      // github.redirectToGitubOAuth(state || github.generateCsrfState());
-
       toast.warning(
         "No Github auth code is present.  Connect via the 'Connect' button on your project page",
       );
@@ -63,7 +55,7 @@
     }
 
     console.log(
-      `Connecting installtino '${installationId}' and project '${projectId}'`,
+      `Connecting installation '${installationId}' and project '${projectId}'`,
     );
     await connectProject(projectId, installationId);
     toast.info("Project connected to Github!");
@@ -92,7 +84,6 @@
     } catch (e) {
       if (e instanceof KosoError && e.hasReason("GITHUB_UNAUTHENTICATED")) {
         toast.error("Github authentication expired. Please try again");
-        github.clearGithubSessionAuth();
         await goto("/");
       }
       throw e;
