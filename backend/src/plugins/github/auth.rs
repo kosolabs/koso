@@ -1,17 +1,11 @@
 use crate::{
-    api::{
-        self, bad_request_error,
-        google::{self, User},
-        unauthorized_error, ApiResult,
-    },
-    plugins::github::{read_secret, GithubSpecificConfig, Secret},
+    api::{bad_request_error, google::User, ApiResult},
+    plugins::github::{read_secret, Secret},
 };
 use anyhow::{anyhow, Context, Result};
-use axum::{middleware, routing::post, Extension, Json, Router};
-use octocrab::{models::Installation, OctocrabBuilder};
+use axum::{routing::post, Extension, Json, Router};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use std::{
     collections::HashMap,
     sync::Arc,
@@ -42,8 +36,8 @@ enum GithubOAuthResponse {
 }
 
 #[derive(Deserialize, Clone)]
-struct OAuth {
-    access_token: String,
+pub(super) struct OAuth {
+    pub(super) access_token: String,
     // token_type: String,
     // scope: String,
     expires_in: Option<u64>,
@@ -58,17 +52,6 @@ struct OAuthError {
     error: String,
     error_description: String,
 }
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ConnectRequest {
-    project_id: String,
-    installation_id: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ConnectResponse {}
 
 #[derive(Clone)]
 pub(super) struct Auth {
@@ -91,11 +74,8 @@ impl Auth {
         })
     }
 
-    pub(super) fn router(self) -> Router {
-        Router::new()
-            .route("/auth", post(Self::auth_handler))
-            .route("/connect", post(Self::connect_project_handler))
-            .layer((Extension(self), middleware::from_fn(google::authenticate)))
+    pub(super) fn router(&self) -> Router {
+        Router::new().route("/auth", post(Self::auth_handler))
     }
 
     #[tracing::instrument(skip(request, user, auth))]
@@ -159,44 +139,7 @@ impl Auth {
         .to_string())
     }
 
-    async fn connect_project_handler(
-        Extension(user): Extension<User>,
-        Extension(auth): Extension<Auth>,
-        Extension(pool): Extension<&'static PgPool>,
-        Json(request): Json<ConnectRequest>,
-    ) -> ApiResult<Json<ConnectResponse>> {
-        let installations = auth.fetch_installations(&user).await?;
-        let installation_authorized = installations
-            .into_iter()
-            .any(|installation| installation.id.0.to_string() == request.installation_id);
-        if !installation_authorized {
-            return Err(unauthorized_error(&format!(
-                "Not authorized to access installation {}",
-                request.installation_id
-            )));
-        }
-        api::verify_project_access(pool, user, &request.project_id).await?;
-
-        let config = GithubSpecificConfig {
-            project_id: request.project_id,
-        };
-        sqlx::query(
-            "
-            INSERT INTO plugin_configs (plugin_id, external_id, config)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (plugin_id, external_id)
-            DO UPDATE SET config = EXCLUDED.config;",
-        )
-        .bind("github")
-        .bind(request.installation_id)
-        .bind(sqlx::types::Json(&config))
-        .execute(pool)
-        .await?;
-
-        Ok(Json(ConnectResponse {}))
-    }
-
-    async fn user_github_token(&self, user: &User) -> ApiResult<OAuth> {
+    pub(super) async fn user_github_token(&self, user: &User) -> ApiResult<OAuth> {
         let token = {
             let tokens = self.tokens.lock().await;
             tokens.get(&user.email).cloned()
@@ -217,22 +160,5 @@ impl Auth {
             ));
         }
         Ok(token)
-    }
-
-    async fn fetch_installations(&self, user: &User) -> ApiResult<Vec<Installation>> {
-        let token = self.user_github_token(user).await?;
-        let crab = OctocrabBuilder::new()
-            .user_access_token(token.access_token.as_str())
-            .build()?;
-        let installations = crab
-            .current()
-            .list_app_installations_accessible_to_user()
-            .per_page(100)
-            .send()
-            .await?;
-        if installations.total_count.unwrap_or_default() > installations.items.len().try_into()? {
-            tracing::warn!("Need to paginate installations");
-        }
-        Ok(installations.items)
     }
 }

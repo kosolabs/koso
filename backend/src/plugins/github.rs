@@ -1,6 +1,7 @@
 use crate::{
     api::{
         collab::Collab,
+        google,
         model::Task,
         yproxy::{YDocProxy, YTaskProxy},
     },
@@ -8,7 +9,7 @@ use crate::{
 };
 use anyhow::{anyhow, Context, Result};
 use auth::Auth;
-use axum::Router;
+use axum::{middleware, Extension, Router};
 use core::fmt;
 use kosolib::{AppGithub, AppGithubConfig};
 use octocrab::models::pulls::PullRequest;
@@ -21,6 +22,7 @@ use webhook::Webhook;
 use yrs::{ReadTxn, TransactionMut};
 
 mod auth;
+mod connect;
 mod poller;
 mod webhook;
 
@@ -62,13 +64,14 @@ impl Plugin {
 
     /// Returns a router that binds webhook (push) and poll endpoints.
     pub(crate) fn router(&self) -> Result<Router> {
-        Ok(Router::merge(
-            Router::merge(
-                Webhook::new(self.collab.clone(), self.config_storage.clone())?.router(),
-                self.poller().router(),
-            ),
-            Auth::new()?.router(),
-        ))
+        let auth = Auth::new()?;
+        Ok(Router::new()
+            .merge(self.poller().router())
+            .merge(auth.router())
+            .merge(connect::router())
+            .layer((Extension(auth), middleware::from_fn(google::authenticate)))
+            // Webhook is unauthenticated, so add it AFTER adding the authentication layers.
+            .merge(Webhook::new(self.collab.clone(), self.config_storage.clone())?.router()))
     }
 
     fn poller(&self) -> Poller {
