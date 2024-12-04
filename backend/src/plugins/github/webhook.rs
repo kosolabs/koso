@@ -9,44 +9,33 @@ use crate::{
     plugins::{
         config::ConfigStorage,
         github::{
-            get_or_create_plugin_parent, get_plugin_parent, new_task, resolve_task, update_task,
-            ExternalTask, GithubConfig, KIND,
+            get_or_create_plugin_parent, get_plugin_parent, new_task, read_secret, resolve_task,
+            update_task, ExternalTask, GithubConfig, Secret, KIND,
         },
     },
 };
-use anyhow::anyhow;
-use anyhow::Result;
-use axum::http::HeaderMap;
-use axum::Extension;
+use anyhow::{anyhow, Result};
 use axum::{
     body::{Body, Bytes},
-    http::request::Parts,
+    http::{request::Parts, HeaderMap},
     routing::post,
-    Router,
+    Extension, Router,
 };
 use hmac::{Hmac, Mac};
-use octocrab::models::webhook_events::payload::PullRequestWebhookEventAction;
-use octocrab::models::webhook_events::WebhookEvent;
-use octocrab::models::webhook_events::WebhookEventPayload;
+use octocrab::models::webhook_events::{
+    payload::PullRequestWebhookEventAction, WebhookEvent, WebhookEventPayload,
+};
 use sha2::Sha256;
-use std::fs;
-use std::path::Path;
-use std::sync::Arc;
 use tower_http::request_id::RequestId;
 use tracing::Instrument as _;
 use yrs::{Origin, ReadTxn, TransactionMut};
-
-const DEFAULT_SECRETS_DIR: &str = "../.secrets";
 
 /// Maximum size of request body in bytes.
 const BODY_LIMIT: usize = 10 * 1024 * 1024;
 
 /// Contains the secret used to validate webhook deliveries.
 /// See https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries#creating-a-secret-token
-#[derive(Clone)]
-pub(super) struct WebhookSecret {
-    secret: Arc<Vec<u8>>,
-}
+type WebhookSecret = Secret<Vec<u8>>;
 
 /// Encapsulates several Github webhook headers.
 /// See https://docs.github.com/en/webhooks/webhook-events-and-payloads#delivery-headers
@@ -80,16 +69,12 @@ pub(super) struct Webhook {
 }
 
 impl Webhook {
-    pub(super) fn new(
-        collab: Collab,
-        config_storage: ConfigStorage,
-        secret: WebhookSecret,
-    ) -> Webhook {
-        Webhook {
+    pub(super) fn new(collab: Collab, config_storage: ConfigStorage) -> Result<Webhook> {
+        Ok(Webhook {
             collab,
             config_storage,
-            secret,
-        }
+            secret: read_secret("github/webhook_secret")?,
+        })
     }
 
     pub(super) fn router(self) -> Router {
@@ -192,7 +177,7 @@ fn validate_signature(
         return Err(unauthorized_error("Invalid signature."));
     };
 
-    let mut mac = HmacSha256::new_from_slice(&secret.secret)?;
+    let mut mac = HmacSha256::new_from_slice(&secret.data)?;
     mac.update(body);
     match mac.verify_slice(&signature) {
         Ok(_) => Ok(()),
@@ -203,26 +188,6 @@ fn validate_signature(
             ))
         }
     }
-}
-
-/// Read the webhook secret from $secrets_dir/github/webhook_secret.
-/// The default is `../.secrets/github/webhook_secret`, unless `SECRETS_DIR` is set.
-pub(super) fn read_webhook_secret() -> Result<WebhookSecret> {
-    let dir = std::env::var("SECRETS_DIR").unwrap_or_else(|_| DEFAULT_SECRETS_DIR.to_string());
-    let path = Path::new(&dir)
-        .join("github/webhook_secret")
-        .into_os_string()
-        .into_string()
-        .map_err(|e| anyhow!("Invalid github secret path in {dir}: {e:?}"))?;
-    tracing::info!("Using github webhook secret at {path}");
-    let secret = fs::read_to_string(&path)
-        .map_err(|e| anyhow!("Failed to read github secret from {path}: {e}"))?
-        .trim()
-        .as_bytes()
-        .to_owned();
-    Ok(WebhookSecret {
-        secret: Arc::new(secret),
-    })
 }
 
 impl Webhook {
