@@ -1,168 +1,102 @@
 <script lang="ts">
   import Navbar from "$lib/navbar.svelte";
-  import { headers, parse_response as parseResponse } from "$lib/api";
+  import { KosoError } from "$lib/api";
   import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
   import { goto } from "$app/navigation";
-  import type internal from "stream";
-
-  const prodClientId = "Iv23lioB8K1C62NP3UbV";
-  const devClientId = "Iv23lif5pPjNjiQVtgPH";
-  const stateSessionKey = "github_csrf_state";
-  const loginExpirationSessionKey = "github_login_expires_at";
-
-  type AuthResult = {
-    expiresIn: number;
-  };
-
-  type InstallationsResponse = {
-    installations: Installation[];
-  };
-
-  type Installation = {
-    installationId: string;
-    name: string;
-  };
-
-  type ConnectResponse = {};
+  import * as github from "$lib/github";
 
   onMount(async () => {
     // See https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-web-application-flow-to-generate-a-user-access-token
     const urlParams = new URLSearchParams(window.location.search);
 
     let state = urlParams.get("state");
-    if (!state) {
-      state = `csrf_${Math.random().toString(36).substring(2)}`;
-    }
-
-    let expiresAt = sessionStorage.getItem(loginExpirationSessionKey);
-    let validLogin =
-      expiresAt && parseInt(expiresAt) - Date.now() > 30 * 60 * 1000;
-    const code = urlParams.get("code");
-    if (!validLogin && !code) {
-      if (!validLogin) {
-        console.log(
-          `Login expired at ${expiresAt}: remaining ${expiresAt && parseInt(expiresAt) - Date.now() > 30 * 60 * 1000}`,
-        );
-      }
-      redirectToGithubOAuthUrl(state);
+    if (state && !github.validateCsrfState(state)) {
+      toast.error(
+        "Something went wrong connecting to Github. Please try again",
+      );
+      await goto("/projects");
       return;
     }
 
-    const installationId = urlParams.get("installation_id");
-    console.log(`Working on installation ${installationId} and state ${state}`);
+    const code = urlParams.get("code");
+    if (!code) {
+      // if (github.hasValidGithubSessionAuth()) {
+      //   console.log(`User is already authenticated with Github`);
+      //   return true;
+      // }
+      // TODO: Decide whether to persist in the session + redirect to github
+      // toast.info("Redirecting to Github for authorization.");
+      // github.redirectToGitubOAuth(state || github.generateCsrfState());
 
-    if (!validateCsrfState(state)) {
-      toast.error(
-        "Something went wrong connecting to Github. Please try again",
+      toast.warning(
+        "No Github auth code is present.  Connect via the 'Connect' button on your project page",
       );
       await goto("/");
       return;
     }
 
-    if (code) {
-      await loginWithCode(code);
-      console.log("Logged in");
-    } else {
-      console.log("Already logged in");
-    }
+    console.log("Logging user in with Github");
+    await authWithCode(code);
 
-    const installations = await fetchInstallations();
-    console.log(`Got installations ${installations}`);
-    if (installationId) {
-      const installation = installations.installations.find(
-        (inst) => inst.installationId === installationId,
+    const installationId = urlParams.get("installation_id");
+    const projectId = state && github.decodeCsrfStateAsProjectId(state);
+    if (!installationId) {
+      // TODO: Implement an installation picker.
+      // The navigated directly to the connections page
+      toast.warning(
+        "No installation selected. Connect via the 'Connect' button on your project page",
       );
-      if (!installation) {
-        console.log("user does not have access to installation");
-        return;
-      } else {
-        console.log(`Found installation: ${installation}`);
-      }
+      await goto("/");
+      return;
     }
+    if (!projectId) {
+      // TODO: Implement a project selector that redirects to the project.
+      // The user installed the app via the market place rather than our share button.
+      console.log("No project ID selected");
+      toast.warning(
+        "No project selected. Connect via the 'Connect' button on your project page",
+      );
 
-    let prefix = "project_";
-    if (state.startsWith(prefix)) {
-      const projectId = state.substring(prefix.length);
-      console.log(`WOrking on project: ${projectId}`);
-
-      if (installationId) {
-        console.log(
-          `Connecting project '${projectId}' to installation '${installationId}''`,
-        );
-        await connectProject(projectId, installationId);
-      }
-    } else {
-      console.log("Select a project");
+      await goto("/");
+      return;
     }
-  });
-
-  function redirectToGithubOAuthUrl(state: string) {
-    const url = new URL("https://github.com/login/oauth/authorize");
-    url.searchParams.append("client_id", devClientId);
-    const redirectUri = `${location.origin}/connections/github`;
-    url.searchParams.append("redirect_uri", redirectUri);
-    sessionStorage.setItem(stateSessionKey, state);
-    url.searchParams.append("state", state);
 
     console.log(
-      `Redirecting to github oauth with redirect_uri ${redirectUri} and state ${state}`,
+      `Connecting installtino '${installationId}' and project '${projectId}'`,
     );
-    window.location.replace(url);
-  }
+    await connectProject(projectId, installationId);
+    toast.info("Project connected to Github!");
 
-  function validateCsrfState(state: string | null): boolean {
-    const sessionCsrfState = sessionStorage.getItem(stateSessionKey);
-    sessionStorage.removeItem(stateSessionKey);
-    if (sessionCsrfState && state && sessionCsrfState !== state) {
-      console.warn(
-        `CSRF state mismatch. Expected:'${sessionCsrfState}'', got:'${state}''`,
-      );
-      return false;
+    await goto(`/projects/${projectId}`);
+  });
+
+  async function authWithCode(code: string): Promise<void> {
+    try {
+      await github.authWithCode(code);
+    } catch (e) {
+      if (e instanceof KosoError && e.hasReason("GITHUB_AUTH_REJECTED")) {
+        toast.error("Failed to authenticate with Github. Please try again");
+        await goto("/");
+      }
+      throw e;
     }
-    return true;
-  }
-
-  async function loginWithCode(code: string): Promise<void> {
-    let response = await fetch(`/plugins/github/auth`, {
-      method: "POST",
-      headers: {
-        ...headers(),
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        code: code,
-      }),
-    });
-    const result: AuthResult = await parseResponse(response);
-    let expiresAt = Math.floor(Date.now()) + (result.expiresIn - 60) * 1000;
-    sessionStorage.setItem(loginExpirationSessionKey, expiresAt.toString());
-  }
-
-  async function fetchInstallations(): Promise<InstallationsResponse> {
-    let response = await fetch(`/plugins/github/installations`, {
-      method: "GET",
-      headers: headers(),
-    });
-    return parseResponse(response);
   }
 
   async function connectProject(
     projectId: string,
     installationId: string,
-  ): Promise<ConnectResponse> {
-    let response = await fetch(`/plugins/github/connect`, {
-      method: "POST",
-      headers: {
-        ...headers(),
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        projectId,
-        installationId,
-      }),
-    });
-    return await parseResponse(response);
+  ): Promise<void> {
+    try {
+      return github.connectProject(projectId, installationId);
+    } catch (e) {
+      if (e instanceof KosoError && e.hasReason("GITHUB_UNAUTHENTICATED")) {
+        toast.error("Github authentication expired. Please try again");
+        github.clearGithubSessionAuth();
+        await goto("/");
+      }
+      throw e;
+    }
   }
 </script>
 

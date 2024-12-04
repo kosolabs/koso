@@ -2,7 +2,7 @@ use crate::{
     api::{
         self, bad_request_error,
         google::{self, User},
-        ApiResult,
+        unauthorized_error, ApiResult,
     },
     plugins::github::{read_secret, GithubSpecificConfig, Secret},
 };
@@ -122,7 +122,7 @@ impl Auth {
         Json(request): Json<AuthRequest>,
     ) -> ApiResult<Json<AuthResult>> {
         if request.code.is_empty() {
-            return Err(bad_request_error("EMPTY_CODE", "code must be present"));
+            return Err(bad_request_error("EMPTY_CODE", "Code is blank"));
         }
         let oauth = auth.generate_access_token(&request.code).await?;
         let expires_in = oauth.expires_in.unwrap_or(60 * 60 * 4);
@@ -155,7 +155,7 @@ impl Auth {
             GithubOAuthResponse::Success(oauth) => oauth,
             GithubOAuthResponse::Error(e) => {
                 return Err(bad_request_error(
-                    "BAD_LOGIN",
+                    "GITHUB_AUTH_REJECTED",
                     &format!("Login rejected: '{}' - '{}'", e.error, e.error_description),
                 ));
             }
@@ -195,13 +195,10 @@ impl Auth {
             .into_iter()
             .any(|installation| installation.installation_id == request.installation_id);
         if !installation_authorized {
-            return Err(bad_request_error(
-                "UNAUTHORIZED",
-                &format!(
-                    "Not authorized to access installation {}",
-                    request.installation_id
-                ),
-            ));
+            return Err(unauthorized_error(&format!(
+                "Not authorized to access installation {}",
+                request.installation_id
+            )));
         }
         api::verify_project_access(pool, user, &request.project_id).await?;
 
@@ -230,13 +227,19 @@ impl Auth {
             tokens.get(&user.email).cloned()
         };
         let Some(token) = token else {
-            return Err(bad_request_error("NEEDS_LOGIN", "Not auth'd with github"));
+            return Err(bad_request_error(
+                "GITHUB_UNAUTHENTICATED",
+                "User is not authenticated with Github.",
+            ));
         };
 
         if token.expires_in.map_or(false, |expires_in| {
             token.created_at.elapsed() > Duration::from_secs(expires_in - 60 * 60)
         }) {
-            return Err(bad_request_error("NEEDS_LOGIN", "Github auth expired"));
+            return Err(bad_request_error(
+                "GITHUB_UNAUTHENTICATED",
+                "User's Github authentication expired.",
+            ));
         }
         Ok(token)
     }

@@ -24,6 +24,7 @@
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
   import UnauthorizedModal from "./unauthorized-modal.svelte";
+  import { githubInstallUrl } from "$lib/github";
 
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
@@ -156,10 +157,7 @@
       <UserPlus />
     </Button>
     <!-- TODO: Configure app for prod-->
-    <Button
-      href="https://github.com/apps/development-koso/installations/new?state=project_{projectId}"
-      >Connect Github</Button
-    >
+    <Button href={githubInstallUrl(projectId)}>Connect Github</Button>
   {/snippet}
 </Navbar>
 
