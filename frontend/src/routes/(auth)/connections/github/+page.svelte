@@ -3,14 +3,12 @@
   import { headers, parse_response as parseResponse } from "$lib/api";
   import { onMount } from "svelte";
 
-  const appId = "1053272";
-  const clientId = "Iv23lioB8K1C62NP3UbV";
-  const devAppId = "1066302";
+  const prodClientId = "Iv23lioB8K1C62NP3UbV";
   const devClientId = "Iv23lif5pPjNjiQVtgPH";
   const stateSessionKey = "github_csrf_state";
 
   type AuthResult = {
-    token: string;
+    access_token: string;
   };
 
   onMount(async () => {
@@ -27,7 +25,8 @@
     console.log(`Working on installation ${installationId}`);
 
     validateCsrfState(urlParams);
-    let auth = exchangeCodeForToken(code);
+    let auth = await exchangeCodeForToken(code);
+    console.log("Got token back");
   });
 
   function redirectToGithubOAuthUrl() {
@@ -35,13 +34,14 @@
     sessionStorage.setItem(stateSessionKey, requestCsrfState);
 
     const url = new URL("https://github.com/login/oauth/authorize");
-    url.searchParams.append("client_id", clientId);
-    url.searchParams.append(
-      "redirect_uri",
-      `${location.origin}/connections/github`,
-    );
+    url.searchParams.append("client_id", devClientId);
+    const redirectUri = `${location.origin}/connections/github`;
+    url.searchParams.append("redirect_uri", redirectUri);
     url.searchParams.append("state", requestCsrfState);
 
+    console.log(
+      `Redirecting to github oauth with redirect_uri ${redirectUri} and state ${requestCsrfState}`,
+    );
     window.location.replace(url);
   }
 
@@ -59,7 +59,10 @@
   async function exchangeCodeForToken(code: string): Promise<AuthResult> {
     let response = await fetch(`/plugins/github/auth`, {
       method: "POST",
-      headers: headers(),
+      headers: {
+        ...headers(),
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         code: code,
       }),

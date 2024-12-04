@@ -2556,7 +2556,6 @@ dependencies = [
  "rand 0.8.5",
  "reqwest 0.12.9",
  "rsa",
- "secrecy",
  "serde",
  "serde_json",
  "sha2",

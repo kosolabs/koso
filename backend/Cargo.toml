@@ -37,7 +37,7 @@ async-stream = "0.3.6"
 yrs = { version = "0.21.3", features = ["sync"] }
 tokio-util = { version = "0.7.12", features = ["rt"] }
 jsonwebtoken = "9.3.0"
-reqwest = { version = "0.12.9", features = ["blocking"] }
+reqwest = { version = "0.12.9", features = ["blocking", "json"] }
 base64 = "0.22.1"
 dashmap = "6.1.0"
 anyhow = "1.0.93"
@@ -50,7 +50,6 @@ octocrab = "0.42.1"
 hmac = "0.12.1"
 hex = "0.4.3"
 sha2 = "0.10.8"
-secrecy = "0.10.3"
 
 [dev-dependencies]
 test-log = { version = "0.2.16", features = ["trace", "color"] }

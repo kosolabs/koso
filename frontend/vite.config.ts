@@ -11,6 +11,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      "/plugins": {
+        target: "http://localhost:3000",
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use jsonwebtoken::EncodingKey;
 use octocrab::{
     models::{
@@ -118,7 +118,10 @@ impl AppGithub {
         let (installation_crab, _) = self
             .app_crab
             .installation_and_token(installation_id)
-            .await?;
+            .await
+            .with_context(|| {
+                format!("failed authenticating as installation '{installation_id}'")
+            })?;
         Ok(InstallationGithub { installation_crab })
     }
 }
