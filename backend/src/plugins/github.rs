@@ -7,6 +7,7 @@ use crate::{
     plugins::config::{self, ConfigStorage},
 };
 use anyhow::{anyhow, Context, Result};
+use auth::Auth;
 use axum::Router;
 use kosolib::{AppGithub, AppGithubConfig};
 use octocrab::models::pulls::PullRequest;
@@ -18,6 +19,7 @@ use tokio::task::JoinHandle;
 use webhook::{read_webhook_secret, Webhook, WebhookSecret};
 use yrs::{ReadTxn, TransactionMut};
 
+mod auth;
 mod poller;
 mod webhook;
 
@@ -61,16 +63,19 @@ impl Plugin {
     }
 
     /// Returns a router that binds webhook (push) and poll endpoints.
-    pub(crate) fn router(&self) -> Router {
-        Router::merge(
-            Webhook::new(
-                self.collab.clone(),
-                self.config_storage.clone(),
-                self.secret.clone(),
-            )
-            .router(),
-            self.poller().router(),
-        )
+    pub(crate) fn router(&self) -> Result<Router> {
+        Ok(Router::merge(
+            Router::merge(
+                Webhook::new(
+                    self.collab.clone(),
+                    self.config_storage.clone(),
+                    self.secret.clone(),
+                )
+                .router(),
+                self.poller().router(),
+            ),
+            Auth::new()?.router(),
+        ))
     }
 
     fn poller(&self) -> Poller {

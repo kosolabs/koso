@@ -88,6 +88,8 @@ mkdir -p /root/.secrets/github
 touch /root/.secrets/github/key.pem
 # The Github app's webhook secret
 touch /root/.secrets/github/webhook_secret
+# The Github app's client secret
+touch /root/.secrets/github/client_secret
 # MANUAL - place secrets in those files
 
 # Finally, run the Deploy action to start the backend.

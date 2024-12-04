@@ -87,7 +87,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         // NOTE: the following routes are not subject to the
         // google authentication middleware above.
         .nest("/healthz", healthz::router())
-        .nest("/plugins/github", github_plugin.router())
+        .nest("/plugins/github", github_plugin.router().unwrap())
         // Apply these layers to all non-static routes.
         .layer((
             Extension(pool),
