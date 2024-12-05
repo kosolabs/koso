@@ -5,7 +5,10 @@ use crate::{
         google::{self, KeySet},
     },
     healthz,
-    plugins::github::{self},
+    plugins::{
+        github::{self},
+        PluginSettings,
+    },
 };
 use axum::{
     extract::{MatchedPath, Request},
@@ -42,6 +45,7 @@ pub struct Config {
     pub port: Option<u16>,
     pub shutdown_signal: Option<Receiver<()>>,
     pub key_set: Option<KeySet>,
+    pub plugin_settings: Option<PluginSettings>,
 }
 
 #[tracing::instrument(skip(config))]
@@ -77,7 +81,13 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         None => google::KeySet::new().await.unwrap(),
     };
 
-    let github_plugin = github::Plugin::new(collab.clone(), pool).await.unwrap();
+    let github_plugin = github::Plugin::new(
+        config.plugin_settings.unwrap_or_default(),
+        collab.clone(),
+        pool,
+    )
+    .await
+    .unwrap();
     let github_poll_handle = github_plugin.start_polling();
 
     let app = Router::new()

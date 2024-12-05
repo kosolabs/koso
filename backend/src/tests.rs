@@ -7,7 +7,7 @@ use crate::{
         model::{CreateProject, Project, ProjectExport, Task},
         yproxy::YDocProxy,
     },
-    plugins::github::GithubSpecificConfig,
+    plugins::{github::GithubSpecificConfig, PluginSettings},
     server::{self, Config},
 };
 use anyhow::{anyhow, Result};
@@ -1094,6 +1094,9 @@ async fn start_server(pool: &PgPool) -> (ServerHandle, SocketAddr) {
         port: Some(0),
         shutdown_signal: Some(close_signal),
         key_set: Some(testonly_key_set().await.unwrap()),
+        plugin_settings: Some(PluginSettings {
+            disable_polling: true,
+        }),
     })
     .await;
 
