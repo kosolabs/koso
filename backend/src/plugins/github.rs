@@ -66,12 +66,12 @@ impl Plugin {
     pub(crate) fn router(&self) -> Result<Router> {
         let auth = Auth::new()?;
         Ok(Router::new()
-            .merge(self.poller().router())
             .merge(auth.router())
             .merge(connect::router())
             .layer((Extension(auth), middleware::from_fn(google::authenticate)))
-            // Webhook is unauthenticated, so add it AFTER adding the authentication layers.
-            .merge(Webhook::new(self.collab.clone(), self.config_storage.clone())?.router()))
+            // Webhook and poller is unauthenticated, so add it AFTER adding the authentication layers.
+            .merge(Webhook::new(self.collab.clone(), self.config_storage.clone())?.router())
+            .merge(self.poller().router()))
     }
 
     fn poller(&self) -> Poller {

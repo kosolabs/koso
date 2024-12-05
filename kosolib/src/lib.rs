@@ -220,7 +220,7 @@ mod tests {
     async fn repos() {
         let client = AppGithub::new(&AppGithubConfig::default()).await.unwrap();
         let gh = client
-            .installation_github(InstallationRef::InstallationId { id: 57461190 })
+            .installation_github(InstallationRef::Org { owner: "kosolabs" })
             .await
             .unwrap();
         let repos = gh.fetch_install_repos().await.unwrap();
