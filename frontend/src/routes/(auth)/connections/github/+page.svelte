@@ -21,10 +21,8 @@
 
     const code = urlParams.get("code");
     if (!code) {
-      toast.warning(
-        "No Github auth code is present.  Connect via the 'Connect' button on your project page",
-      );
-      await goto("/");
+      toast.info("Redirecting to Github for authorization");
+      github.redirectToGitubOAuth(state || github.generateCsrfState());
       return;
     }
 
