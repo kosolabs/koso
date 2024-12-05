@@ -13,8 +13,10 @@ export type AuthResult = {
  * https://docs.github.com/en/apps/sharing-github-apps/sharing-your-github-app
  */
 export function githubInstallUrl(projectId: string) {
-  // TODO: Configure app based on the environment.
-  return `https://github.com/apps/development-koso/installations/new?state=${encodeProjectIdCsrfState(projectId)}`;
+  // TODO: Figure out how to make this work with static builds locally
+  const app =
+    import.meta.env.MODE === "production" ? "koso-github" : "development-koso";
+  return `https://github.com/apps/${app}/installations/new?state=${encodeProjectIdCsrfState(projectId)}`;
 }
 
 /**
