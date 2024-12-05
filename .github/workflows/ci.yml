@@ -73,6 +73,8 @@ jobs:
           echo "${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
           echo "::add-mask::${{ secrets.GH_WEBHOOK_SECRET }}"
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
+          echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
+          echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
           RUST_BACKTRACE=full RUST_BACKTRACE=1 SECRETS_DIR=$(realpath ~/.secrets) TESTONLY_ENABLE_DEV=true cargo test --package kosolib --package koso
       - run: cargo clippy -- -D warnings
       - run: cargo fmt --all -- --check
@@ -204,6 +206,8 @@ jobs:
           echo "${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
           echo "::add-mask::${{ secrets.GH_WEBHOOK_SECRET }}"
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
+          echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
+          echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
           CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} SECRETS_DIR=$(realpath ~/.secrets)  pnpm exec playwright test --workers=4
 
   build-and-push-image:

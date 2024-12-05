@@ -85,7 +85,7 @@ impl Poller {
         skip(self, config),
         fields(gh_installation_id=config.external_id, project_id=config.config.project_id)
     )]
-    async fn poll_installation(&self, config: GithubConfig) -> Result<()> {
+    pub(super) async fn poll_installation(&self, config: GithubConfig) -> Result<()> {
         if let Err(e) = self.poll_installation_internal(config).await {
             tracing::warn!("Failed installation poll: {e:?}");
             return Err(e);

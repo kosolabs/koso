@@ -18,12 +18,13 @@
   } from "$lib/projects";
   import { Action } from "$lib/shortcuts";
   import { KosoSocket } from "$lib/socket";
-  import { FileDown, UserPlus } from "lucide-svelte";
+  import { FileDown, UserPlus, PlugZap } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import { toast } from "svelte-sonner";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
   import UnauthorizedModal from "./unauthorized-modal.svelte";
+  import { githubInstallUrl } from "$lib/github";
 
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
@@ -144,6 +145,9 @@
     </div>
   {/snippet}
   {#snippet right()}
+    <Button title="Connect to Github" href={githubInstallUrl(projectId)}>
+      <PlugZap />
+    </Button>
     <Button title="Export Project" onclick={exportProjectToFile}>
       <FileDown />
     </Button>
