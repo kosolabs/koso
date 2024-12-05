@@ -18,7 +18,7 @@
   } from "$lib/projects";
   import { Action } from "$lib/shortcuts";
   import { KosoSocket } from "$lib/socket";
-  import { FileDown, UserPlus } from "lucide-svelte";
+  import { FileDown, UserPlus, PlugZap } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import { toast } from "svelte-sonner";
   import * as Y from "yjs";
@@ -156,7 +156,9 @@
     >
       <UserPlus />
     </Button>
-    <Button href={githubInstallUrl(projectId)}>Connect Github</Button>
+    <Button title="Connect to Github" href={githubInstallUrl(projectId)}>
+      <PlugZap />
+    </Button>
   {/snippet}
 </Navbar>
 
