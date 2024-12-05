@@ -156,7 +156,6 @@
     >
       <UserPlus />
     </Button>
-    <!-- TODO: Configure app for prod-->
     <Button href={githubInstallUrl(projectId)}>Connect Github</Button>
   {/snippet}
 </Navbar>

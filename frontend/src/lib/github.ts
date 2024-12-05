@@ -7,10 +7,24 @@ export type AuthResult = {
   expiresIn: number;
 };
 
+/**
+ * Craft an install link that will redirect back to this project after install.
+ * See
+ * https://docs.github.com/en/apps/sharing-github-apps/sharing-your-github-app
+ */
 export function githubInstallUrl(projectId: string) {
+  // TODO: Configure app based on the environment.
   return `https://github.com/apps/development-koso/installations/new?state=${encodeProjectIdCsrfState(projectId)}`;
 }
 
+/**
+ * Redirect to Github for OAuth autorization. After authorization, Github will
+ * redirect back to us at our redirect URI: /connections/github with the given
+ * state and a code parameter.
+ *
+ * See
+ * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#generating-a-user-access-token-when-a-user-installs-your-app
+ */
 export function redirectToGitubOAuth(state: string) {
   // const prodClientId = "Iv23lioB8K1C62NP3UbV";
   const devClientId = "Iv23lif5pPjNjiQVtgPH";
@@ -52,6 +66,13 @@ export function validateCsrfState(state: string | null): boolean {
   return true;
 }
 
+/**
+ * Call the Koso backend to exchange the Github OAuth code for a user access
+ * token.
+ *
+ * See
+ * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#generating-a-user-access-token-when-a-user-installs-your-app
+ */
 export async function authWithCode(code: string): Promise<void> {
   const response = await fetch(`/plugins/github/auth`, {
     method: "POST",
