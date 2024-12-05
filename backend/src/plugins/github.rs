@@ -9,7 +9,8 @@ use crate::{
 };
 use anyhow::{anyhow, Context, Result};
 use auth::Auth;
-use axum::{middleware, Extension, Router};
+use axum::{middleware, Router};
+use connect::ConnectHandler;
 use core::fmt;
 use kosolib::{AppGithub, AppGithubConfig};
 use octocrab::models::pulls::PullRequest;
@@ -36,6 +37,7 @@ pub(crate) struct Plugin {
     collab: Collab,
     config_storage: ConfigStorage,
     client: AppGithub,
+    pool: &'static PgPool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -47,12 +49,13 @@ type GithubConfig = config::Config<GithubSpecificConfig>;
 
 impl Plugin {
     pub(crate) async fn new(collab: Collab, pool: &'static PgPool) -> Result<Plugin> {
-        let client = AppGithub::new(&AppGithubConfig::default()).await?;
+        let client: AppGithub = AppGithub::new(&AppGithubConfig::default()).await?;
         let config_storage = ConfigStorage::new(pool)?;
         Ok(Plugin {
             collab,
             client,
             config_storage,
+            pool,
         })
     }
 
@@ -66,10 +69,12 @@ impl Plugin {
     pub(crate) fn router(&self) -> Result<Router> {
         let auth = Auth::new()?;
         Ok(Router::new()
-            .merge(auth.router())
-            .merge(connect::router())
-            .layer((Extension(auth), middleware::from_fn(google::authenticate)))
-            // Webhook and poller is unauthenticated, so add it AFTER adding the authentication layers.
+            .merge(auth.clone().router())
+            .merge(
+                ConnectHandler::new(auth.clone(), self.pool, self.config_storage.clone()).router(),
+            )
+            .layer((middleware::from_fn(google::authenticate),))
+            // Webhook and poller are unauthenticated, so add it AFTER adding the authentication layers.
             .merge(Webhook::new(self.collab.clone(), self.config_storage.clone())?.router())
             .merge(self.poller().router()))
     }

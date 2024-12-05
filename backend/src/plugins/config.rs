@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 use sqlx::{types::Json, PgPool};
 
 #[derive(Clone)]
@@ -77,6 +77,25 @@ impl ConfigStorage {
             })
             .collect())
     }
+
+    pub(super) async fn insert_or_update<T: 'static + Send + Serialize + Unpin>(
+        &self,
+        config: &Config<T>,
+    ) -> Result<()> {
+        sqlx::query(
+            "
+        INSERT INTO plugin_configs (plugin_id, external_id, config)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (plugin_id, external_id)
+        DO UPDATE SET config = EXCLUDED.config;",
+        )
+        .bind(&config.plugin_id)
+        .bind(&config.external_id)
+        .bind(sqlx::types::Json(&config.config))
+        .execute(self.pool)
+        .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -97,22 +116,22 @@ mod tests {
         let pool = Box::leak(Box::new(pool.clone()));
         let storage = ConfigStorage { pool };
 
-        let config = SomePluginConfig {
-            project_id: "project_id_1".to_string(),
-        };
-        sqlx::query(
-            "INSERT INTO plugin_configs (plugin_id, external_id, config) VALUES ($1, $2, $3)",
-        )
-        .bind("plugin_id_1")
-        .bind("external_id_1")
-        .bind(Json(&config))
-        .execute(&*pool)
-        .await?;
+        storage
+            .insert_or_update(&Config {
+                plugin_id: "plugin_id_1".to_string(),
+                external_id: "external_id_1".to_string(),
+                config: SomePluginConfig {
+                    project_id: "project_id_1".to_string(),
+                },
+            })
+            .await?;
 
         let expected = SomeConfig {
             plugin_id: "plugin_id_1".to_string(),
             external_id: "external_id_1".to_string(),
-            config,
+            config: SomePluginConfig {
+                project_id: "project_id_1".to_string(),
+            },
         };
         let actual: SomeConfig = storage.get("plugin_id_1", "external_id_1").await.unwrap();
         assert_eq!(actual, expected);

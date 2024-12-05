@@ -74,8 +74,10 @@ impl Auth {
         })
     }
 
-    pub(super) fn router(&self) -> Router {
-        Router::new().route("/auth", post(Self::auth_handler))
+    pub(super) fn router(self) -> Router {
+        Router::new()
+            .route("/auth", post(Self::auth_handler))
+            .layer((Extension(self),))
     }
 
     #[tracing::instrument(skip(request, user, auth))]
@@ -139,7 +141,7 @@ impl Auth {
         .to_string())
     }
 
-    pub(super) async fn user_github_token(&self, user: &User) -> ApiResult<OAuth> {
+    pub(super) async fn user_access_token(&self, user: &User) -> ApiResult<OAuth> {
         let token = {
             let tokens = self.tokens.lock().await;
             tokens.get(&user.email).cloned()
