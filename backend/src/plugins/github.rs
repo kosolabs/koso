@@ -5,7 +5,10 @@ use crate::{
         model::Task,
         yproxy::{YDocProxy, YTaskProxy},
     },
-    plugins::config::{self, ConfigStorage},
+    plugins::{
+        config::{self, ConfigStorage},
+        PluginSettings,
+    },
 };
 use anyhow::{anyhow, Context, Result};
 use auth::Auth;
@@ -38,6 +41,7 @@ pub(crate) struct Plugin {
     config_storage: ConfigStorage,
     client: AppGithub,
     pool: &'static PgPool,
+    settings: PluginSettings,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -48,7 +52,11 @@ pub(crate) struct GithubSpecificConfig {
 type GithubConfig = config::Config<GithubSpecificConfig>;
 
 impl Plugin {
-    pub(crate) async fn new(collab: Collab, pool: &'static PgPool) -> Result<Plugin> {
+    pub(crate) async fn new(
+        settings: PluginSettings,
+        collab: Collab,
+        pool: &'static PgPool,
+    ) -> Result<Plugin> {
         let client: AppGithub = AppGithub::new(&AppGithubConfig::default()).await?;
         let config_storage = ConfigStorage::new(pool)?;
         Ok(Plugin {
@@ -56,13 +64,18 @@ impl Plugin {
             client,
             config_storage,
             pool,
+            settings,
         })
     }
 
     /// Start a background task that polls github periodically.
     /// Return a handle to the task, useful for aborting the task on shutdown.
     pub(crate) fn start_polling(&self) -> JoinHandle<()> {
-        tokio::spawn(self.poller().poll())
+        if !self.settings.disable_polling {
+            tokio::spawn(self.poller().poll())
+        } else {
+            tokio::spawn(async { tracing::debug!("Plugin polling disabled") })
+        }
     }
 
     /// Returns a router that binds webhook (push) and poll endpoints.
