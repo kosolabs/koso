@@ -28,10 +28,13 @@ export function githubInstallUrl(projectId: string) {
  * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#generating-a-user-access-token-when-a-user-installs-your-app
  */
 export function redirectToGitubOAuth(state: string) {
-  // const prodClientId = "Iv23lioB8K1C62NP3UbV";
-  const devClientId = "Iv23lif5pPjNjiQVtgPH";
+  const clientId =
+    import.meta.env.MODE === "production"
+      ? "Iv23lioB8K1C62NP3UbV"
+      : "Iv23lif5pPjNjiQVtgPH";
+
   const url = new URL("https://github.com/login/oauth/authorize");
-  url.searchParams.append("client_id", devClientId);
+  url.searchParams.append("client_id", clientId);
   const redirectUri = `${location.origin}/connections/github`;
   url.searchParams.append("redirect_uri", redirectUri);
   url.searchParams.append("state", state);
