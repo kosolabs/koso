@@ -145,6 +145,9 @@
     </div>
   {/snippet}
   {#snippet right()}
+    <Button title="Connect to Github" href={githubInstallUrl(projectId)}>
+      <PlugZap />
+    </Button>
     <Button title="Export Project" onclick={exportProjectToFile}>
       <FileDown />
     </Button>
@@ -155,9 +158,6 @@
       }}
     >
       <UserPlus />
-    </Button>
-    <Button title="Connect to Github" href={githubInstallUrl(projectId)}>
-      <PlugZap />
     </Button>
   {/snippet}
 </Navbar>

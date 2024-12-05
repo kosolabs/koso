@@ -71,7 +71,13 @@ impl Plugin {
         Ok(Router::new()
             .merge(auth.clone().router())
             .merge(
-                ConnectHandler::new(auth.clone(), self.pool, self.config_storage.clone()).router(),
+                ConnectHandler::new(
+                    auth.clone(),
+                    self.pool,
+                    self.config_storage.clone(),
+                    self.poller().clone(),
+                )
+                .router(),
             )
             .layer((middleware::from_fn(google::authenticate),))
             // Webhook and poller are unauthenticated, so add it AFTER adding the authentication layers.

@@ -2,13 +2,14 @@ use crate::{
     api::{self, google::User, unauthorized_error, ApiResult},
     plugins::{
         config::{Config, ConfigStorage},
-        github::{self, auth::Auth, GithubSpecificConfig},
+        github::{self, auth::Auth, GithubSpecificConfig, Poller},
     },
 };
 use axum::{routing::post, Extension, Json, Router};
 use octocrab::{models::Installation, OctocrabBuilder};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use tracing::Instrument;
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -26,14 +27,21 @@ pub(super) struct ConnectHandler {
     auth: Auth,
     pool: &'static PgPool,
     storage: ConfigStorage,
+    poller: Poller,
 }
 
 impl ConnectHandler {
-    pub(super) fn new(auth: Auth, pool: &'static PgPool, storage: ConfigStorage) -> ConnectHandler {
+    pub(super) fn new(
+        auth: Auth,
+        pool: &'static PgPool,
+        storage: ConfigStorage,
+        poller: Poller,
+    ) -> ConnectHandler {
         ConnectHandler {
             auth,
             pool,
             storage,
+            poller,
         }
     }
 
@@ -66,15 +74,18 @@ impl ConnectHandler {
             request.project_id,
             request.installation_id
         );
-        self.storage
-            .insert_or_update(&Config {
-                plugin_id: github::KIND.to_string(),
-                external_id: request.installation_id,
-                config: GithubSpecificConfig {
-                    project_id: request.project_id,
-                },
-            })
-            .await?;
+        let config = Config {
+            plugin_id: github::KIND.to_string(),
+            external_id: request.installation_id,
+            config: GithubSpecificConfig {
+                project_id: request.project_id,
+            },
+        };
+        self.storage.insert_or_update(&config).await?;
+
+        // Trigger an initial poll in the background.
+        let poller = self.poller.clone();
+        tokio::spawn(async move { poller.poll_installation(config).await }.in_current_span());
 
         Ok(Json(ConnectResponse {}))
     }
