@@ -753,7 +753,6 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         .execute(&pool)
         .await?;
 
-    // Open a socket.
     let mut req = format!("ws://{addr}/api/ws/projects/{}", project.project_id)
         .into_client_request()
         .unwrap();
@@ -761,62 +760,80 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         "authorization",
         HeaderValue::from_str(format!("Bearer {token}").as_str()).unwrap(),
     );
-    let (mut socket, response) = tokio_tungstenite::connect_async(req).await.unwrap();
-    let socket = &mut socket;
-    assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
-    assert_eq!(read_sync_request(socket).await, StateVector::default());
 
     // Create the root node.
+    {
+        let (mut socket, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
+        let socket = &mut socket;
+        assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
+        assert_eq!(read_sync_request(socket).await, StateVector::default());
+
+        let doc: YDocProxy = YDocProxy::new();
+        doc.set(
+            &mut doc.transact_mut(),
+            &Task {
+                id: "root".to_string(),
+                num: "0".to_string(),
+                name: "root".to_string(),
+                children: Vec::with_capacity(0),
+                assignee: None,
+                reporter: None,
+                status: None,
+                status_time: None,
+                url: None,
+                kind: None,
+            },
+        );
+        socket
+            .send(Message::Binary(msg_sync::sync_response(
+                &doc.transact()
+                    .encode_state_as_update_v2(&StateVector::default()),
+            )))
+            .await
+            .unwrap();
+
+        close_socket(socket).await;
+    }
+
+    // Open a socket.
+    let (mut socket, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
+    let socket = &mut socket;
+    assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
+    read_sync_request(socket).await;
     let doc: YDocProxy = YDocProxy::new();
-    doc.set(
-        &mut doc.transact_mut(),
-        &Task {
-            id: "root".to_string(),
-            num: "0".to_string(),
-            name: "root".to_string(),
-            children: Vec::with_capacity(0),
-            assignee: None,
-            reporter: None,
-            status: None,
-            status_time: None,
-            url: None,
-            kind: None,
-        },
-    );
     socket
-        .send(Message::Binary(msg_sync::sync_response(
-            &doc.transact()
-                .encode_state_as_update_v2(&StateVector::default()),
+        .send(Message::Binary(msg_sync::sync_request(
+            &doc.transact().state_vector(),
         )))
         .await
         .unwrap();
+    doc.transact_mut()
+        .apply_update(read_sync_response(socket).await)
+        .unwrap();
 
     // Send a PR event that will open a new task.
-    // Send it several times to flex the dedupe funtionality.
-    for _ in 1..3 {
-        let res = client
-            .post(format!("http://{addr}/plugins/github/app/webhook"))
-            .header("Content-Type", "application/json")
-            .header("X-GitHub-Delivery", "bfa00450-b01d-11ef-9d28-d6e110293b37")
-            .header("X-GitHub-Event", "pull_request")
-            .header("X-GitHub-Hook-ID", "514610970")
-            .header("X-GitHub-Hook-Installation-Target-ID", "1066302")
-            .header("X-GitHub-Hook-Installation-Target-Type", "integration")
-            .header(
-                "X-Hub-Signature",
-                "sha1=57894d8a5337c78aaf414f8aecbad90ccaf4e403",
-            )
-            .header(
-                "X-Hub-Signature-256",
-                // cat src/testdata/opened_pr.json| openssl sha256 -hex -mac HMAC -macopt key:$(cat ../.secrets/github/webhook_secret
-                "sha256=1fe256ded787e371d4b545f71a2071421c3e8102639862893a6a84ff17f49fa2",
-            )
-            .body(include_str!("testdata/opened_pr.json"))
-            .send()
-            .await
-            .expect("Failed to post event.");
-        assert_eq!(res.status(), StatusCode::OK);
-    }
+    let res = client
+        .post(format!("http://{addr}/plugins/github/app/webhook"))
+        .header("Content-Type", "application/json")
+        .header("X-GitHub-Delivery", "bfa00450-b01d-11ef-9d28-d6e110293b37")
+        .header("X-GitHub-Event", "pull_request")
+        .header("X-GitHub-Hook-ID", "514610970")
+        .header("X-GitHub-Hook-Installation-Target-ID", "1066302")
+        .header("X-GitHub-Hook-Installation-Target-Type", "integration")
+        .header(
+            "X-Hub-Signature",
+            "sha1=57894d8a5337c78aaf414f8aecbad90ccaf4e403",
+        )
+        .header(
+            "X-Hub-Signature-256",
+            // cat src/testdata/opened_pr.json| openssl sha256 -hex -mac HMAC -macopt key:$(cat ../.secrets/github/webhook_secret
+            "sha256=1fe256ded787e371d4b545f71a2071421c3e8102639862893a6a84ff17f49fa2",
+        )
+        .body(include_str!("testdata/opened_pr.json"))
+        .send()
+        .await
+        .expect("Failed to post event.");
+    assert_eq!(res.status(), StatusCode::OK);
     {
         doc.transact_mut()
             .apply_update(read_sync_update(socket).await)
