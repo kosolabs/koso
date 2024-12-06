@@ -1,7 +1,7 @@
 import { jwtDecode } from "jwt-decode";
 import { loads, saves } from "./stores.svelte";
 
-const CREDENTIAL_KEY = "credential";
+export const CREDENTIAL_KEY = "credential";
 
 export type User = {
   email: string;
