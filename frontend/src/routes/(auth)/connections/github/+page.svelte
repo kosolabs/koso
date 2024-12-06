@@ -35,11 +35,11 @@
     console.log("Logging user in with Github");
     await authWithCode(code);
 
-    const state = (rawState && github.decodeState(rawState)) || null;
+    const state = rawState ? github.decodeState(rawState) : {};
     console.log("Decoded state", state);
     const installationId =
-      urlParams.get("installation_id") || state?.installationId;
-    const projectId = state?.projectId;
+      urlParams.get("installation_id") || state.installationId;
+    const projectId = state.projectId;
 
     if (!installationId) {
       // TODO: Implement an installation picker.
