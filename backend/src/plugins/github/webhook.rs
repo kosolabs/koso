@@ -246,10 +246,17 @@ impl Webhook {
 
     async fn process_koso_event(&self, event: KosoGithubEvent) -> Result<()> {
         tracing::debug!("Processing Koso event: {event:?}");
-        let config: GithubConfig = self
+        let Some(config): Option<GithubConfig> = self
             .config_storage
             .get(KIND, &event.installation_id.to_string())
-            .await?;
+            .await?
+        else {
+            tracing::debug!(
+                "No config registered for installation '{}'. Discarding event.",
+                event.installation_id
+            );
+            return Ok(());
+        };
 
         let client = self
             .collab

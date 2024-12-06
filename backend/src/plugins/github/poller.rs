@@ -15,7 +15,10 @@ use crate::{
 use anyhow::Result;
 use axum::{routing::post, Extension, Router};
 use kosolib::{AppGithub, InstallationRef};
-use std::{collections::HashMap, time::Duration};
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 use yrs::{Origin, ReadTxn};
 
 const INIT_POLL_DELAY: Duration = Duration::from_secs(2 * 60);
@@ -70,6 +73,10 @@ impl Poller {
     async fn poll_all_installations(&self) -> Result<()> {
         let configs: Vec<GithubConfig> = self.config_storage.list(KIND).await?;
         tracing::trace!("Polling: {configs:?}");
+
+        let now = Instant::now();
+        let mut failed = 0;
+        let mut successful = 0;
         futures::future::join_all(
             configs
                 .into_iter()
@@ -77,7 +84,20 @@ impl Poller {
         )
         .await
         .into_iter()
-        .collect::<Result<Vec<_>>>()?;
+        .for_each(|res| {
+            if res.is_ok() {
+                successful += 1;
+            } else {
+                failed += 1;
+            }
+        });
+        tracing::info!(
+            "Finished polling in {} ms. Successful: {}, Failed: {}",
+            now.elapsed().as_millis(),
+            successful,
+            failed
+        );
+
         Ok(())
     }
 

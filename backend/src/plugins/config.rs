@@ -26,27 +26,33 @@ impl ConfigStorage {
         &self,
         plugin_id: &str,
         external_id: &str,
-    ) -> Result<Config<T>> {
-        let (plugin_id, external_id, Json(config)): (String, String, Json<T>) = sqlx::query_as(
-            "
+    ) -> Result<Option<Config<T>>> {
+        let Some((plugin_id, external_id, Json(config))): Option<(String, String, Json<T>)> =
+            sqlx::query_as(
+                "
             SELECT
                 plugin_id,
                 external_id,
                 config
             FROM plugin_configs
             WHERE plugin_id=$1 and external_id=$2",
-        )
-        .bind(plugin_id)
-        .bind(external_id)
-        .fetch_one(self.pool)
-        .await
-        .with_context(|| format!("Failed to get plugin config for {plugin_id}:{external_id}"))?;
+            )
+            .bind(plugin_id)
+            .bind(external_id)
+            .fetch_optional(self.pool)
+            .await
+            .with_context(|| {
+                format!("Failed to get plugin config for {plugin_id}:{external_id}")
+            })?
+        else {
+            return Ok(None);
+        };
 
-        Ok(Config {
+        Ok(Some(Config {
             plugin_id,
             external_id,
             config,
-        })
+        }))
     }
 
     /// Lists all configurations for the given plugin.
@@ -133,7 +139,11 @@ mod tests {
                 project_id: "project_id_1".to_string(),
             },
         };
-        let actual: SomeConfig = storage.get("plugin_id_1", "external_id_1").await.unwrap();
+        let actual: SomeConfig = storage
+            .get("plugin_id_1", "external_id_1")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(actual, expected);
 
         let actual: Vec<SomeConfig> = storage.list("plugin_id_1").await.unwrap();
