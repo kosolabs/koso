@@ -16,7 +16,11 @@ export function githubInstallUrl(projectId: string) {
   // TODO: Figure out how to make this work with static builds locally
   const app =
     import.meta.env.MODE === "production" ? "koso-github" : "development-koso";
-  return `https://github.com/apps/${app}/installations/new?state=${encodeProjectIdCsrfState(projectId)}`;
+  const state = {
+    csrf: generateCsrfState(),
+    projectId: projectId,
+  };
+  return `https://github.com/apps/${app}/installations/new?state=${encodeState(state)}`;
 }
 
 /**
@@ -43,20 +47,22 @@ export function redirectToGitubOAuth(state: string) {
   window.location.replace(url);
 }
 
+export type State = {
+  csrf?: string | null;
+  projectId?: string | null;
+  installationId?: string | null;
+};
+
 export function generateCsrfState(): string {
   return `csrf_${Math.random().toString(36).substring(2)}`;
 }
 
-export function encodeProjectIdCsrfState(projectId: string): string {
-  return `project_${projectId}`;
+export function encodeState(state: State): string {
+  return btoa(JSON.stringify(state));
 }
 
-export function decodeCsrfStateAsProjectId(state: string): string | null {
-  const prefix = "project_";
-  if (state.startsWith(prefix)) {
-    return state.substring(prefix.length);
-  }
-  return null;
+export function decodeState(state: string): State {
+  return JSON.parse(atob(state));
 }
 
 export function validateCsrfState(state: string | null): boolean {
