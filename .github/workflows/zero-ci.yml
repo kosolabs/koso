@@ -136,7 +136,7 @@ jobs:
       # Mutually exclusive with the build/archive steps below.
       - name: Build tauri app (non-release)
         id: build-non-release-tauri
-        uses: tauri-apps/tauri-action@8c3e0753aa015d00d03631d6d4f64ad59489251d # v0.5.15
+        uses: tauri-apps/tauri-action@ecd2eff64572601ddde25cc4962c2704435736e9 # v0.5.16
         if: ${{ github.event_name != 'workflow_dispatch' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -154,7 +154,7 @@ jobs:
       # Mutually exclusive with the build/archive steps above.
       - name: Build and publish tauri app (release)
         id: build-release-tauri
-        uses: tauri-apps/tauri-action@8c3e0753aa015d00d03631d6d4f64ad59489251d # v0.5.15
+        uses: tauri-apps/tauri-action@ecd2eff64572601ddde25cc4962c2704435736e9 # v0.5.16
         if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
