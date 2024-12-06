@@ -58,11 +58,11 @@ export function generateCsrfState(): string {
 }
 
 export function encodeState(state: State): string {
-  return Buffer.from(JSON.stringify(state)).toString("base64url");
+  return btoa(JSON.stringify(state));
 }
 
 export function decodeState(state: string): State {
-  return JSON.parse(Buffer.from(state, "base64url").toString());
+  return JSON.parse(atob(state));
 }
 
 export function validateCsrfState(state: string | null): boolean {
