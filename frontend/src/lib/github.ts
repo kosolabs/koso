@@ -16,11 +16,13 @@ export function githubInstallUrl(projectId: string) {
   // TODO: Figure out how to make this work with static builds locally
   const app =
     import.meta.env.MODE === "production" ? "koso-github" : "development-koso";
-  const state = {
-    csrf: generateCsrfState(),
-    projectId: projectId,
-  };
-  return `https://github.com/apps/${app}/installations/new?state=${encodeState(state)}`;
+  const state = encodeURIComponent(
+    encodeState({
+      csrf: generateCsrfState(),
+      projectId: projectId,
+    }),
+  );
+  return `https://github.com/apps/${app}/installations/new?state=${state}`;
 }
 
 /**
