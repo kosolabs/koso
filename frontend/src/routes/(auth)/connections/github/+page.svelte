@@ -10,8 +10,8 @@
     // See https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-web-application-flow-to-generate-a-user-access-token
     const urlParams = new URLSearchParams(window.location.search);
 
-    let state = urlParams.get("state");
-    if (state && !github.validateCsrfState(state)) {
+    const rawState = urlParams.get("state");
+    if (rawState && !github.validateCsrfState(rawState)) {
       toast.error(
         "Something went wrong connecting to Github. Please try again",
       );
@@ -22,20 +22,30 @@
     const code = urlParams.get("code");
     if (!code) {
       toast.info("Redirecting to Github for authorization");
-      github.redirectToGitubOAuth(state || github.generateCsrfState());
+      github.redirectToGitubOAuth(
+        rawState ||
+          github.encodeState({
+            csrf: github.generateCsrfState(),
+            installationId: urlParams.get("installation_id"),
+          }),
+      );
       return;
     }
 
     console.log("Logging user in with Github");
     await authWithCode(code);
 
-    const installationId = urlParams.get("installation_id");
-    const projectId = state && github.decodeCsrfStateAsProjectId(state);
+    const state = (rawState && github.decodeState(rawState)) || null;
+    console.log("Decoded state", state);
+    const installationId =
+      urlParams.get("installation_id") || state?.installationId;
+    const projectId = state?.projectId;
+
     if (!installationId) {
       // TODO: Implement an installation picker.
       // The navigated directly to the connections page
       toast.warning(
-        "No installation selected. Connect via the 'Connect' button on your project page",
+        "No installation or project selected. Connect via the 'Connect' button on your project page",
       );
       await goto("/");
       return;
