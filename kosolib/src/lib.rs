@@ -209,10 +209,15 @@ mod tests {
 
     #[test_log::test(tokio::test)]
     async fn pulls() {
-        let gh = InstallationGithub {
-            installation_crab: Octocrab::default(),
-        };
-        let pulls = gh.fetch_pull_requests("kosolabs", "koso").await.unwrap();
+        let client = AppGithub::new(&AppGithubConfig::default()).await.unwrap();
+        let gh = client
+            .installation_github(InstallationRef::Repo {
+                owner: "kosolabs",
+                repo: "secret",
+            })
+            .await
+            .unwrap();
+        let pulls = gh.fetch_pull_requests("kosolabs", "secret").await.unwrap();
         assert!(!pulls.is_empty());
     }
 
