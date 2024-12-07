@@ -73,6 +73,16 @@ systemctl daemon-reload
 systemctl restart koso.service
 systemctl is-active koso.service && echo Koso service is running
 systemctl enable koso.service
+systemctl status koso.service
 echo "Restarted service."
+
+# Wait for the server to respond healthy.
+echo "Health checking service..."
+curl --verbose --fail \
+    --retry 30 \
+    --retry-connrefused \
+    --retry-delay 1 \
+    http://localhost:3000/healthz
+echo "Health check passed."
 
 echo "Deployment complete"
