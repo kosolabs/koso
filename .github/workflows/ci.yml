@@ -27,7 +27,7 @@ jobs:
           filters: |
             koso:
               - 'frontend/**'
-              - ${{ (github.ref == 'refs/heads/main' && '**') || 'backend/**' }}
+              - '${{ (github.ref == 'refs/heads/main' && '**') || 'backend/**' }}'
               - 'kosolib/**'
               - 'Dockerfile'
               - '.github/workflows/ci.yml'
