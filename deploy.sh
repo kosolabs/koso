@@ -65,7 +65,7 @@ if [ "${DISABLE_ROLLBACK}" != "true" ]; then
             echo "No rollback sha (/root/rollouts/koso_deployed_sha) present. Will not rollback"
         elif [ -z "${ROLLBACK_IMAGE}" ]; then
             echo "No rollback image (/root/rollouts/koso_deployed_image) present. Will not rollback"
-        elif [[ "${ROLLBACK_SHA}" == "${GITHUB_SHA}" ] && [ "${ROLLBACK_IMAGE}" == "${KOSO_IMAGE_DIGEST}" ]]; then
+        elif [[ "${ROLLBACK_SHA}" == "${GITHUB_SHA}" ]] && [[ "${ROLLBACK_IMAGE}" == "${KOSO_IMAGE_DIGEST}" ]]; then
             echo "Rollback target is the same as deployed. Will not rollback"
         else
             echo "Rolling back to commit ${ROLLBACK_SHA} and image ${ROLLBACK_IMAGE}"
