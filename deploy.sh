@@ -53,15 +53,18 @@ docker run \
 echo "Finished database migrations."
 
 # Bind a failure handler that will trigger rollbacks if things go wrong.
+mkdir -p /root/rollouts
+touch /root/rollouts/koso_deployed_sha /root/rollouts/koso_rollback_sha /root/rollouts/koso_deployed_image /root/rollouts/koso_rollback_image
+ROLLBACK_SHA=$(cat /root/rollouts/koso_deployed_sha|tr -d '\n')
+ROLLBACK_IMAGE=$(cat /root/rollouts/koso_deployed_image|tr -d '\n')
+echo "If something goes wrong, will rollback to  commit ${ROLLBACK_SHA}, image digest ${ROLLBACK_IMAGE}"
 if [ "${DISABLE_ROLLBACK}" != "true" ]; then
     function _on_fail {
         echo "Deploy failed, trying to rollback."
-        ROLLBACK_SHA=$(cat ~/koso_deployed_sha|tr -d '\n' || "")
-        ROLLBACK_IMAGE=$(cat ~/koso_deployed_image|tr -d '\n'|| "")
         if [ -z "${ROLLBACK_SHA}" ]; then
-            echo "No rollback sha (~/koso_deployed_sha) present. Will not rollback"
+            echo "No rollback sha (/root/rollouts/koso_deployed_sha) present. Will not rollback"
         elif [ -z "${ROLLBACK_IMAGE}" ]; then
-            echo "No rollback image (~/koso_deployed_image) present. Will not rollback"
+            echo "No rollback image (/root/rollouts/koso_deployed_image) present. Will not rollback"
         elif [[ "${ROLLBACK_SHA}" == "${GITHUB_SHA}" ] && [ "${ROLLBACK_IMAGE}" == "${KOSO_IMAGE_DIGEST}" ]]; then
             echo "Rollback target is the same as deployed. Will not rollback"
         else
@@ -119,9 +122,9 @@ curl -sS --verbose --fail \
 echo "Health check passed."
 
 # Finally, after things are healthy, write the deployed state.
-cp ~/koso_deployed_sha ~/rollback_deployed_sha
-cp ~/koso_deployed_image ~/rollback_deployed_image
-echo -n "${GITHUB_SHA}" > ~/koso_deployed_sha
-echo -n "${KOSO_IMAGE_DIGEST}" > ~/koso_deployed_image
+cp /root/rollouts/koso_deployed_sha /root/rollouts/koso_rollback_sha
+cp /root/rollouts/koso_deployed_image /root/rollouts/koso_rollback_image
+echo -n "${GITHUB_SHA}" > /root/rollouts/koso_deployed_sha
+echo -n "${KOSO_IMAGE_DIGEST}" > /root/rollouts/koso_deployed_image
 
 echo "Deployment complete"
