@@ -10,14 +10,6 @@ if [ -z "${GITHUB_SHA}" ]; then
     echo "GITHUB_SHA variable must be set."
     exit 1
 fi
-if [ -z "${GHCR_USER}" ]; then
-    echo "GHCR_USER variable must be set."
-    exit 1
-fi
-if [ -z "${GHCR_TOKEN}" ]; then
-    echo "GHCR_TOKEN variable must be set."
-    exit 1
-fi
 
 echo "Deploying commit ${GITHUB_SHA}, image digest ${KOSO_IMAGE_DIGEST}"
 cd /root/koso
@@ -39,7 +31,9 @@ echo "Cleaned up stale images and containers."
 echo "Deploying image ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST"
 
 # Pull the new image
-echo $GHCR_TOKEN | docker login ghcr.io -u $GHCR_USER --password-stdin
+if [ -n "${GHCR_USER}" ]; then
+    echo $GHCR_TOKEN | docker login ghcr.io -u $GHCR_USER --password-stdin
+fi
 docker pull ghcr.io/kosolabs/koso@$KOSO_IMAGE_DIGEST
 
 # Run DB migrations.
@@ -55,10 +49,11 @@ echo "Finished database migrations."
 # Bind a failure handler that will trigger rollbacks if things go wrong.
 mkdir -p /root/rollouts
 touch /root/rollouts/koso_deployed_sha /root/rollouts/koso_rollback_sha /root/rollouts/koso_deployed_image /root/rollouts/koso_rollback_image
-ROLLBACK_SHA=$(cat /root/rollouts/koso_deployed_sha|tr -d '\n')
-ROLLBACK_IMAGE=$(cat /root/rollouts/koso_deployed_image|tr -d '\n')
-echo "If something goes wrong, will rollback to  commit ${ROLLBACK_SHA}, image digest ${ROLLBACK_IMAGE}"
 if [ "${DISABLE_ROLLBACK}" != "true" ]; then
+    ROLLBACK_SHA=$(cat /root/rollouts/koso_deployed_sha|tr -d '\n')
+    ROLLBACK_IMAGE=$(cat /root/rollouts/koso_deployed_image|tr -d '\n')
+    echo "If something goes wrong, will rollback to  commit ${ROLLBACK_SHA}, image digest ${ROLLBACK_IMAGE}"
+
     function _on_fail {
         echo "Deploy failed, trying to rollback."
         if [ -z "${ROLLBACK_SHA}" ]; then
@@ -77,7 +72,7 @@ if [ "${DISABLE_ROLLBACK}" != "true" ]; then
             git checkout $ROLLBACK_SHA
             git status
 
-            systemctl status koso.service
+            systemctl --no-pager status koso.service
 
             echo "Running ./deploy.sh in rollback mode..."
             DISABLE_ROLLBACK="true" GITHUB_SHA="${ROLLBACK_SHA}" KOSO_IMAGE_DIGEST="${ROLLBACK_IMAGE}" ./deploy.sh
@@ -109,7 +104,7 @@ systemctl daemon-reload
 systemctl restart koso.service
 systemctl is-active koso.service && echo Koso service is running
 systemctl enable koso.service
-systemctl status koso.service
+systemctl --no-pager status koso.service
 echo "Restarted service."
 
 # Wait for the server to respond healthy.
@@ -119,7 +114,7 @@ curl -sS --verbose --fail \
     --retry-connrefused \
     --retry-delay 1 \
     http://localhost:3000/healthz
-echo "Health check passed."
+echo "\nHealth check passed."
 
 # Finally, after things are healthy, write the deployed state.
 cp /root/rollouts/koso_deployed_sha /root/rollouts/koso_rollback_sha
