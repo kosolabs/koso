@@ -14,6 +14,12 @@
   };
   let { open = $bindable(false), closeFocus, node }: Props = $props();
 
+  $effect(() => {
+    if (!open) {
+      closeFocus.focus();
+    }
+  });
+
   const koso = getContext<Koso>("koso");
 
   let query = $state("");
@@ -35,52 +41,54 @@
   }
 </script>
 
-<Popover.Root bind:open {closeFocus} portal={null}>
+<Popover.Root bind:open>
   <Popover.Trigger class="absolute left-[calc(100%/2)] h-6" />
-  <Popover.Content
-    class="w-[calc(100%-2em)] max-w-2xl"
-    onkeydown={(event) => {
-      event.stopPropagation();
-      if (Shortcut.CANCEL.matches(event)) {
-        query = "";
-        open = false;
-      }
-    }}
-  >
-    <Command.Root shouldFilter={false}>
-      <Command.Input
-        placeholder="Search by task name or number..."
-        bind:value={query}
-      />
-      <Command.List>
-        <Command.Empty>No tasks found.</Command.Empty>
-        {#each tasks as task (task.id)}
-          <Command.Item
-            class="table-row"
-            onSelect={() => link(task.id)}
-            role="button"
-            aria-label="Task {task.id} Command Item"
-          >
-            <div class="table-cell rounded-l px-2 align-middle">
-              <div class="flex items-center gap-1 py-2" title="Task Number">
-                <Clipboard size={16} />
-                {task.num}
+  <Popover.Portal>
+    <Popover.Content
+      class="w-[calc(100%-2em)] max-w-2xl"
+      onkeydown={(event) => {
+        event.stopPropagation();
+        if (Shortcut.CANCEL.matches(event)) {
+          query = "";
+          open = false;
+        }
+      }}
+    >
+      <Command.Root shouldFilter={false}>
+        <Command.Input
+          placeholder="Search by task name or number..."
+          bind:value={query}
+        />
+        <Command.List>
+          <Command.Empty>No tasks found.</Command.Empty>
+          {#each tasks as task (task.id)}
+            <Command.Item
+              class="table-row"
+              onSelect={() => link(task.id)}
+              role="button"
+              aria-label="Task {task.id} Command Item"
+            >
+              <div class="table-cell rounded-l px-2 align-middle">
+                <div class="flex items-center gap-1 py-2" title="Task Number">
+                  <Clipboard size={16} />
+                  {task.num}
+                </div>
               </div>
-            </div>
-            <div class="table-cell w-full px-2 align-middle">
-              <div class="flex items-center" title="Task Name">
-                {task.name || "Untitled task"}
+              <div class="table-cell w-full px-2 align-middle">
+                <div class="flex items-center" title="Task Name">
+                  {task.name || "Untitled task"}
+                </div>
               </div>
-            </div>
-            <div class="table-cell text-nowrap rounded-r px-2 align-middle">
-              <div class="flex items-center gap-1" title="Subtasks">
-                {task.children.length}
-                <Network size={16} />
+              <div class="table-cell text-nowrap rounded-r px-2 align-middle">
+                <div class="flex items-center gap-1" title="Subtasks">
+                  {task.children.length}
+                  <Network size={16} />
+                </div>
               </div>
-            </div>
-          </Command.Item>
-        {/each}
-      </Command.List>
-    </Command.Root>
-  </Popover.Content>
+            </Command.Item>
+          {/each}
+        </Command.List>
+      </Command.Root>
+    </Popover.Content>
+  </Popover.Portal>
 </Popover.Root>
