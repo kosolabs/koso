@@ -150,49 +150,74 @@ impl GraphObserver {
         txn: &yrs::TransactionMut,
         event: &MapEvent,
     ) {
-        let origin = match from_origin(txn.origin()) {
-            Ok(o) => o,
-            Err(e) => {
-                tracing::error!("Failed to parse origin: {e}");
-                return;
-            }
-        };
+        if let Err(e) = self.handle_graph_update_event_internal(project, txn, event) {
+            tracing::warn!("Failed to handle graph update event: {e}");
+        }
+    }
+
+    pub(super) fn handle_graph_update_event_internal(
+        &self,
+        project: Arc<ProjectState>,
+        txn: &yrs::TransactionMut,
+        event: &MapEvent,
+    ) -> Result<()> {
+        tracing::trace!("Handling graph update event {:?}", event.target());
 
         for (mod_id, change) in event.keys(txn).iter() {
-            if let yrs::types::EntryChange::Inserted(yrs::Out::YMap(mod_task)) = change {
-                let mod_task: YTaskProxy = YTaskProxy::new(mod_task.clone());
-                let mod_num = mod_task.get_num(txn).unwrap().parse::<u64>().unwrap();
-                for (id, out) in event.target().iter(txn) {
-                    if mod_id.as_ref() != id {
-                        if let yrs::Out::YMap(task) = out {
-                            let task: YTaskProxy = YTaskProxy::new(task);
-                            let num = task.get_num(txn).unwrap().parse::<u64>().unwrap();
-                            if num == mod_num {
-                                let p = project.clone();
-                                let origin = YOrigin {
-                                    who: format!("rw-{mod_id}-{}", origin.who),
-                                    id: format!("rw-{mod_id}-{}", origin.id),
-                                };
-                                let id = mod_id.clone();
-                                self.tracker.spawn(
-                                    async move {
-                                        let doc_box = p.doc_box.lock().await;
-                                        let doc =
-                                            &DocBox::doc_or_error(doc_box.as_ref()).unwrap().ydoc;
-                                        let mut txn = doc.transact_mut_with(origin.as_origin());
-                                        let num = doc.next_num(&txn).unwrap();
-                                        let task = doc.get(&txn, &id).unwrap();
-                                        tracing::info!("Rewriting task num {num}");
-                                        task.set_num(&mut txn, &num.to_string());
-                                    }
-                                    .in_current_span(),
-                                );
-                                break;
-                            }
+            tracing::trace!("Handling graph update change {mod_id} - {change:?}");
+            let yrs::types::EntryChange::Inserted(yrs::Out::YMap(mod_task)) = change else {
+                continue;
+            };
+
+            let mod_task: YTaskProxy = YTaskProxy::new(mod_task.clone());
+            let mod_num = mod_task.get_num(txn)?;
+            for (_, out) in event
+                .target()
+                .iter(txn)
+                .filter(|(id, _)| mod_id.as_ref() != *id)
+            {
+                let yrs::Out::YMap(task) = out else {
+                    continue;
+                };
+                if YTaskProxy::new(task).get_num(txn)? != mod_num {
+                    continue;
+                }
+
+                let project = project.clone();
+                let origin = from_origin(txn.origin())?;
+                let origin = YOrigin {
+                    who: format!("rw-{}", origin.who),
+                    id: format!("rw-{}", origin.id),
+                };
+                let mod_id = mod_id.clone();
+                self.tracker.spawn(
+                    async move {
+                        if let Err(e) = Self::rewrite_task_num(&mod_id, project, origin).await {
+                            tracing::warn!("Failed to rewrite task num for task '{mod_id}': {e}");
                         }
                     }
-                }
+                    .in_current_span(),
+                );
+                break;
             }
         }
+        Ok(())
+    }
+
+    async fn rewrite_task_num(
+        task_id: &str,
+        project: Arc<ProjectState>,
+        origin: YOrigin,
+    ) -> Result<()> {
+        let doc_box = project.doc_box.lock().await;
+        let doc = &DocBox::doc_or_error(doc_box.as_ref())?.ydoc;
+        let mut txn = doc.transact_mut_with(origin.as_origin());
+
+        let num = doc.next_num(&txn)?;
+        tracing::debug!("Rewriting task num for task '{task_id}' to {num}");
+        let task = doc.get(&txn, task_id)?;
+        task.set_num(&mut txn, &num.to_string());
+
+        Ok(())
     }
 }
