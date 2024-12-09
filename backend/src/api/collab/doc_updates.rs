@@ -1,11 +1,18 @@
 use crate::api::collab::{msg_sync::sync_update, storage};
 use crate::api::collab::{projects_state::ProjectState, txn_origin::from_origin};
+use crate::api::yproxy::YTaskProxy;
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use std::{fmt, sync::Arc};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
+use tracing::Instrument;
+use yrs::types::map::MapEvent;
+use yrs::Map as _;
+
+use super::projects_state::DocBox;
+use super::txn_origin::YOrigin;
 
 // Handles updates applied to a project doc and forward them to the doc_update_tx
 // for handling by the `DocUpdateProcessor`.
@@ -46,11 +53,14 @@ impl DocObserver {
         };
 
         let doc_update_tx = self.doc_update_tx.clone();
-        self.tracker.spawn(async move {
-            if let Err(e) = doc_update_tx.send(update).await {
-                tracing::error!("Failed to send to doc_update channel: {e}");
+        self.tracker.spawn(
+            async move {
+                if let Err(e) = doc_update_tx.send(update).await {
+                    tracing::error!("Failed to send to doc_update channel: {e}");
+                }
             }
-        });
+            .in_current_span(),
+        );
     }
 }
 
@@ -119,5 +129,70 @@ impl fmt::Debug for DocUpdate {
             .field("id", &self.id)
             .field("data.len()", &self.data.len())
             .finish()
+    }
+}
+
+pub(super) struct GraphObserver {
+    tracker: TaskTracker,
+}
+
+impl GraphObserver {
+    pub(super) fn new(tracker: TaskTracker) -> Self {
+        GraphObserver { tracker }
+    }
+
+    /// Callback invoked on update_v2 doc events, triggered by calls to "apply_update" in process_message_internal.
+    /// observe_update_v2 only accepts synchronous callbacks thus requiring this function be synchronous
+    /// and any async operations, including sending to a channel, to occur in a spawned task.
+    pub(super) fn handle_graph_update_event(
+        &self,
+        project: Arc<ProjectState>,
+        txn: &yrs::TransactionMut,
+        event: &MapEvent,
+    ) {
+        let origin = match from_origin(txn.origin()) {
+            Ok(o) => o,
+            Err(e) => {
+                tracing::error!("Failed to parse origin: {e}");
+                return;
+            }
+        };
+
+        for (mod_id, change) in event.keys(txn).iter() {
+            if let yrs::types::EntryChange::Inserted(yrs::Out::YMap(mod_task)) = change {
+                let mod_task: YTaskProxy = YTaskProxy::new(mod_task.clone());
+                let mod_num = mod_task.get_num(txn).unwrap().parse::<u64>().unwrap();
+                for (id, out) in event.target().iter(txn) {
+                    if mod_id.as_ref() != id {
+                        if let yrs::Out::YMap(task) = out {
+                            let task: YTaskProxy = YTaskProxy::new(task);
+                            let num = task.get_num(txn).unwrap().parse::<u64>().unwrap();
+                            if num == mod_num {
+                                let p = project.clone();
+                                let origin = YOrigin {
+                                    who: format!("rw-{mod_id}-{}", origin.who),
+                                    id: format!("rw-{mod_id}-{}", origin.id),
+                                };
+                                let id = mod_id.clone();
+                                self.tracker.spawn(
+                                    async move {
+                                        let doc_box = p.doc_box.lock().await;
+                                        let doc =
+                                            &DocBox::doc_or_error(doc_box.as_ref()).unwrap().ydoc;
+                                        let mut txn = doc.transact_mut_with(origin.as_origin());
+                                        let num = doc.next_num(&txn).unwrap();
+                                        let task = doc.get(&txn, &id).unwrap();
+                                        tracing::info!("Rewriting task num {num}");
+                                        task.set_num(&mut txn, &num.to_string());
+                                    }
+                                    .in_current_span(),
+                                );
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
