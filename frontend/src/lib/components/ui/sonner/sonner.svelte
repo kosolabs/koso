@@ -5,8 +5,7 @@
     type ToasterProps as SonnerProps,
   } from "svelte-sonner";
 
-  type Props = SonnerProps;
-  const { ...props }: Props = $props();
+  let restProps: SonnerProps = $props();
 </script>
 
 <Sonner
@@ -23,5 +22,5 @@
         "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
     },
   }}
-  {...props}
+  {...restProps}
 />
