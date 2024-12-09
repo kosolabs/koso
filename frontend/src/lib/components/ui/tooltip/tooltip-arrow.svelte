@@ -1,6 +1,6 @@
 <script lang="ts">
   import { cn } from "$lib/utils";
-  import { Tooltip as TooltipPrimitive } from "bits-ui";
+  import { Tooltip as TooltipPrimitive } from "bits-ui0";
 
   const { class: classes, ...props }: TooltipPrimitive.ArrowProps = $props();
 </script>
