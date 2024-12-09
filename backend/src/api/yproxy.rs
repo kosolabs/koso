@@ -3,8 +3,8 @@ use anyhow::{anyhow, Result};
 use similar::{capture_diff_slices, Algorithm};
 use std::collections::HashMap;
 use yrs::{
-    Any, Array, ArrayRef, Doc, Map, MapRef, Origin, Out, ReadTxn, Subscription, Transact,
-    TransactionAcqError, TransactionMut, UpdateEvent,
+    types::map::MapEvent, Any, Array, ArrayRef, Doc, Map, MapRef, Observable, Origin, Out, ReadTxn,
+    Subscription, Transact, TransactionAcqError, TransactionMut, UpdateEvent,
 };
 
 pub(crate) struct YDocProxy {
@@ -59,6 +59,13 @@ impl YDocProxy {
         F: Fn(&TransactionMut, &UpdateEvent) + Send + Sync + 'static,
     {
         self.doc.observe_update_v2(f)
+    }
+
+    pub fn observe_graph<F>(&self, f: F) -> Subscription
+    where
+        F: Fn(&TransactionMut, &MapEvent) + Send + Sync + 'static,
+    {
+        self.graph.observe(f)
     }
 
     pub fn transact(&self) -> yrs::Transaction<'_> {
