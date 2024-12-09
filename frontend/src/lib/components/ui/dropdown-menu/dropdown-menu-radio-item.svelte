@@ -1,6 +1,6 @@
 <script lang="ts">
   import { cn } from "$lib/utils.js";
-  import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
+  import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui0";
   import DotFilled from "svelte-radix/DotFilled.svelte";
 
   type $$Props = DropdownMenuPrimitive.RadioItemProps;

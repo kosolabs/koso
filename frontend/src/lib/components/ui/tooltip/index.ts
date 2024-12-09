@@ -1,4 +1,4 @@
-import { Tooltip as TooltipPrimitive } from "bits-ui";
+import { Tooltip as TooltipPrimitive } from "bits-ui0";
 import Arrow from "./tooltip-arrow.svelte";
 import Content from "./tooltip-content.svelte";
 

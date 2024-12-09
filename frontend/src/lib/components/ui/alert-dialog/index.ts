@@ -1,4 +1,4 @@
-import { AlertDialog as AlertDialogPrimitive } from "bits-ui";
+import { AlertDialog as AlertDialogPrimitive } from "bits-ui0";
 
 import Action from "./alert-dialog-action.svelte";
 import Cancel from "./alert-dialog-cancel.svelte";

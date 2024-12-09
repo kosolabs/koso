@@ -36,9 +36,9 @@ importers:
       autoprefixer:
         specifier: 10.4.20
         version: 10.4.20(postcss@8.4.49)
-      bits-ui:
-        specifier: 0.21.16
-        version: 0.21.16(svelte@5.9.0)
+      bits-ui0:
+        specifier: npm:bits-ui@^0.21.16
+        version: bits-ui@0.21.16(svelte@5.9.0)
       clsx:
         specifier: 2.1.1
         version: 2.1.1
