@@ -1143,7 +1143,7 @@ export class Koso {
     this.doc.transact(() => {
       this.upsert({
         id: taskId,
-        num: this.newNum(),
+        num: "24",
         name: name,
         children: [],
         reporter: user.email,
