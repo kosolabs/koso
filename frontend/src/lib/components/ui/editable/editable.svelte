@@ -3,6 +3,7 @@
   import { Input } from "$lib/components/ui/input";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
+  import { tick } from "svelte";
 
   type Props = {
     value: string;
@@ -66,7 +67,7 @@
     event.stopPropagation();
     event.preventDefault();
     onclick?.(event);
-    edit();
+    tick().then(edit);
   }
 
   export function edit() {
