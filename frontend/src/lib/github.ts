@@ -18,7 +18,7 @@ export function githubInstallUrl(projectId: string) {
     import.meta.env.MODE === "production" ? "koso-github" : "development-koso";
   const state = encodeURIComponent(
     encodeState({
-      csrf: generateCsrfState(),
+      csrf: generateCsrfValue(),
       projectId: projectId,
     }),
   );
@@ -55,7 +55,7 @@ export type State = {
   installationId?: string | null;
 };
 
-export function generateCsrfState(): string {
+function generateCsrfValue(): string {
   return `csrf_${Math.random().toString(36).substring(2)}`;
 }
 
@@ -67,7 +67,7 @@ export function decodeState(state: string): State {
   return JSON.parse(atob(state));
 }
 
-export function validateCsrfState(state: string | null): boolean {
+export function validateStateForCsrf(state: string | null): boolean {
   const sessionCsrfState = sessionStorage.getItem(stateSessionKey);
   sessionStorage.removeItem(stateSessionKey);
   if (sessionCsrfState && state && sessionCsrfState !== state) {
