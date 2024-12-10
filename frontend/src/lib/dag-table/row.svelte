@@ -379,7 +379,6 @@
       <TaskStatusSelect
         value={task.status}
         statusTime={task.statusTime ? new Date(task.statusTime) : null}
-        closeFocus={rowElement}
         onselect={(status) => {
           if (status === "Done") confetti.add(getStatusPosition());
           koso.setTaskStatus(node, status, auth.user);
