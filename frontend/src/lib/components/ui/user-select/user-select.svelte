@@ -7,42 +7,45 @@
   } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Input } from "$lib/components/ui/input";
+  import { Shortcut } from "$lib/shortcuts";
   import { UserRound } from "lucide-svelte";
+  import { tick } from "svelte";
   import { UserAvatar } from ".";
   import ResponsiveText from "../responsive-text/responsive-text.svelte";
 
   type Props = {
     users: User[];
     value: User | null;
-    closeFocus?: HTMLElement;
     unassigned?: string;
-    onselect?: (select: User | null) => void;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    onSelect?: (select: User | null) => void;
   };
   let {
     users,
     value = null,
-    closeFocus,
     unassigned = "Unassigned",
-    onselect,
+    open = $bindable(),
+    onOpenChange,
+    onSelect,
   }: Props = $props();
 
   let filter: string = $state("");
 
-  function select(user: User | null) {
-    value = user;
-    onselect?.(user);
+  function handleOpenChange(o: boolean) {
+    onOpenChange?.(o);
+    tick().then(() => (open = o));
   }
 
-  const filteredUsers = $derived.by(() =>
-    users.filter(
-      (user) =>
-        user.name.toLowerCase().includes(filter.toLowerCase()) ||
-        user.email.toLowerCase().includes(filter.toLowerCase()),
-    ),
-  );
+  function select(user: User | null) {
+    value = user;
+    onSelect?.(user);
+  }
+
+  const filteredUsers = users;
 </script>
 
-<DropdownMenu.Root {closeFocus} portal={null}>
+<DropdownMenu.Root controlledOpen {open} onOpenChange={handleOpenChange}>
   <DropdownMenu.Trigger
     class="flex items-center gap-2"
     title={value?.email || "Unassigned"}
@@ -55,31 +58,40 @@
     </Avatar>
     <ResponsiveText>{value?.name || unassigned}</ResponsiveText>
   </DropdownMenu.Trigger>
-  <DropdownMenu.Content
-    class="min-w-64"
+  <div
+    role="none"
     onkeydown={(event) => {
+      if (Shortcut.CANCEL.matches(event)) {
+        open = false;
+      }
       event.stopPropagation();
     }}
   >
-    <DropdownMenu.Label>
-      <Input
-        placeholder="Filter users"
-        name="Filter users"
-        bind:value={filter}
-      />
-    </DropdownMenu.Label>
-    <DropdownMenu.Separator />
-    <DropdownMenu.Group class="max-h-64 overflow-y-auto">
-      <DropdownMenu.Item on:click={() => select(null)}>
-        <UserAvatar
-          user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
+    <DropdownMenu.Content
+      class="min-w-64"
+      portalProps={{ disabled: true }}
+      preventScroll={false}
+    >
+      <DropdownMenu.Label>
+        <Input
+          placeholder="Filter users"
+          name="Filter users"
+          bind:value={filter}
         />
-      </DropdownMenu.Item>
-      {#each filteredUsers as user}
-        <DropdownMenu.Item on:click={() => select(user)}>
-          <UserAvatar {user} />
+      </DropdownMenu.Label>
+      <DropdownMenu.Separator />
+      <DropdownMenu.Group class="max-h-64 overflow-y-auto">
+        <DropdownMenu.Item onSelect={() => select(null)}>
+          <UserAvatar
+            user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
+          />
         </DropdownMenu.Item>
-      {/each}
-    </DropdownMenu.Group>
-  </DropdownMenu.Content>
+        {#each filteredUsers as user}
+          <DropdownMenu.Item onSelect={() => select(user)}>
+            <UserAvatar {user} />
+          </DropdownMenu.Item>
+        {/each}
+      </DropdownMenu.Group>
+    </DropdownMenu.Content>
+  </div>
 </DropdownMenu.Root>
