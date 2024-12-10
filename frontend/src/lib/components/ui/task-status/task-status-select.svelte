@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { ResponsiveText } from "$lib/components/ui/responsive-text";
+  import { Shortcut } from "$lib/shortcuts";
   import type { Status } from "$lib/yproxy";
   import { TaskStatusIcon } from ".";
 
@@ -9,15 +10,12 @@
   type Props = {
     value: Status | null;
     statusTime: Date | null;
-    closeFocus: HTMLElement;
     onselect: (status: Status) => void;
   };
-  let {
-    value = $bindable(),
-    statusTime,
-    closeFocus,
-    onselect,
-  }: Props = $props();
+
+  let { value = $bindable(), statusTime, onselect }: Props = $props();
+
+  let open: boolean = $state(false);
 
   function select(status: Status) {
     value = status;
@@ -25,7 +23,7 @@
   }
 </script>
 
-<DropdownMenu.Root {closeFocus} portal={null}>
+<DropdownMenu.Root bind:open>
   <DropdownMenu.Trigger
     class="flex items-center gap-2"
     title={(value || "Not Started") +
@@ -34,19 +32,27 @@
     <TaskStatusIcon status={value} />
     <ResponsiveText>{value || "Not Started"}</ResponsiveText>
   </DropdownMenu.Trigger>
-  <DropdownMenu.Content
-    onkeydown={(event) => {
-      event.stopPropagation();
-    }}
-  >
-    {#each statuses as status}
-      <DropdownMenu.Item
-        class="flex items-center gap-2 rounded p-2"
-        on:click={() => select(status)}
-      >
-        <TaskStatusIcon {status} />
-        {status}
-      </DropdownMenu.Item>
-    {/each}
-  </DropdownMenu.Content>
+  <DropdownMenu.Portal>
+    <div
+      role="none"
+      onkeydown={(event) => {
+        if (Shortcut.CANCEL.matches(event)) {
+          open = false;
+        }
+        event.stopPropagation();
+      }}
+    >
+      <DropdownMenu.Content portalProps={{ disabled: true }}>
+        {#each statuses as status}
+          <DropdownMenu.Item
+            class="flex items-center gap-2 rounded p-2"
+            onSelect={() => select(status)}
+          >
+            <TaskStatusIcon {status} />
+            {status}
+          </DropdownMenu.Item>
+        {/each}
+      </DropdownMenu.Content>
+    </div>
+  </DropdownMenu.Portal>
 </DropdownMenu.Root>
