@@ -5,9 +5,10 @@
   type Props = {
     children?: Snippet;
     progress: number;
-    size?: string;
+    size?: string | number;
     thickness?: string;
     trackColor?: string;
+    textColor?: string;
     color?: string;
     class?: string;
   };
@@ -15,78 +16,57 @@
   const {
     children,
     progress,
-    size = "22px",
-    thickness = "2px",
+    size = 24,
     trackColor = "color-mix(in srgb, currentColor 10%, transparent)",
+    textColor = "currentColor",
     color = "currentColor",
     class: classes,
   }: Props = $props();
 </script>
 
-<div class={cn("p-[1px]", classes)}>
-  <div
-    class="circular-progress"
-    style="
-      --cp-progress:{progress};
-      --cp-size:{size};
-      --cp-thickness:{thickness};
-      --cp-track-color:{trackColor};
-      --cp-fill-color:{color};"
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  class={cn("progress-bar", classes)}
+  style="--cp-progress:{progress};"
+>
+  <circle class="track" style="stroke: {trackColor};" />
+  <circle class="progress" style="stroke: {color}" />
+  <text
+    class="text"
+    x="12"
+    y="12"
+    font-size="7"
+    text-anchor="middle"
+    dominant-baseline="central"
+    style="fill: {textColor}"
   >
-    <div class="slot">
-      {@render children?.()}
-    </div>
-    <svg class="progress-bar">
-      <circle class="track" />
-      <circle class="progress" />
-    </svg>
-  </div>
-</div>
+    {@render children?.()}
+  </text>
+</svg>
 
 <style>
-  .circular-progress {
-    --_cp-radius: calc(var(--cp-size) / 2 - var(--cp-thickness) / 2);
-    --_cp-length: calc(2 * 3.1415926535 * var(--_cp-radius));
-    width: var(--cp-size);
-    height: var(--cp-size);
-    position: relative;
-  }
-
   .progress-bar {
-    width: var(--cp-size);
-    height: var(--cp-size);
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     fill: transparent;
-  }
-
-  .slot {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: calc(var(--cp-size) / 3);
   }
 
   .track {
     cx: 50%;
     cy: 50%;
-    r: var(--_cp-radius);
-    stroke: var(--cp-track-color);
-    stroke-width: var(--cp-thickness);
+    r: 10px;
+    stroke-width: 2px;
   }
 
   .progress {
     cx: 50%;
     cy: 50%;
-    r: var(--_cp-radius);
-    stroke: var(--cp-fill-color);
-    stroke-width: var(--cp-thickness);
+    r: 10px;
+    stroke-width: 2px;
     stroke-linecap: round;
-    stroke-dasharray: var(--_cp-length);
-    stroke-dashoffset: calc((1 - var(--cp-progress)) * var(--_cp-length));
+    stroke-dasharray: calc(2 * 3.1415926535 * 10px);
+    stroke-dashoffset: calc((1 - var(--cp-progress)) * 2 * 3.1415926535 * 10px);
     transform-origin: center;
     transform: rotate(-90deg);
   }
