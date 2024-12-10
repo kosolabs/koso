@@ -1,11 +1,18 @@
 use crate::api::collab::{msg_sync::sync_update, storage};
 use crate::api::collab::{projects_state::ProjectState, txn_origin::from_origin};
+use crate::api::yproxy::YTaskProxy;
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use std::{fmt, sync::Arc};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
+use tracing::Instrument;
+use yrs::types::map::MapEvent;
+use yrs::Map as _;
+
+use super::projects_state::DocBox;
+use super::txn_origin::YOrigin;
 
 // Handles updates applied to a project doc and forward them to the doc_update_tx
 // for handling by the `DocUpdateProcessor`.
@@ -46,11 +53,14 @@ impl DocObserver {
         };
 
         let doc_update_tx = self.doc_update_tx.clone();
-        self.tracker.spawn(async move {
-            if let Err(e) = doc_update_tx.send(update).await {
-                tracing::error!("Failed to send to doc_update channel: {e}");
+        self.tracker.spawn(
+            async move {
+                if let Err(e) = doc_update_tx.send(update).await {
+                    tracing::error!("Failed to send to doc_update channel: {e}");
+                }
             }
-        });
+            .in_current_span(),
+        );
     }
 }
 
@@ -119,5 +129,95 @@ impl fmt::Debug for DocUpdate {
             .field("id", &self.id)
             .field("data.len()", &self.data.len())
             .finish()
+    }
+}
+
+pub(super) struct GraphObserver {
+    tracker: TaskTracker,
+}
+
+impl GraphObserver {
+    pub(super) fn new(tracker: TaskTracker) -> Self {
+        GraphObserver { tracker }
+    }
+
+    /// Callback invoked on update_v2 doc events, triggered by calls to "apply_update" in process_message_internal.
+    /// observe_update_v2 only accepts synchronous callbacks thus requiring this function be synchronous
+    /// and any async operations, including sending to a channel, to occur in a spawned task.
+    pub(super) fn handle_graph_update_event(
+        &self,
+        project: Arc<ProjectState>,
+        txn: &yrs::TransactionMut,
+        event: &MapEvent,
+    ) {
+        if let Err(e) = self.handle_graph_update_event_internal(project, txn, event) {
+            tracing::warn!("Failed to handle graph update event: {e}");
+        }
+    }
+
+    pub(super) fn handle_graph_update_event_internal(
+        &self,
+        project: Arc<ProjectState>,
+        txn: &yrs::TransactionMut,
+        event: &MapEvent,
+    ) -> Result<()> {
+        tracing::trace!("Handling graph update event {:?}", event.target());
+
+        for (mod_id, change) in event.keys(txn).iter() {
+            tracing::trace!("Handling graph update change {mod_id} - {change:?}");
+            let yrs::types::EntryChange::Inserted(yrs::Out::YMap(mod_task)) = change else {
+                continue;
+            };
+
+            let mod_task: YTaskProxy = YTaskProxy::new(mod_task.clone());
+            let mod_num = mod_task.get_num(txn)?;
+            for (_, out) in event
+                .target()
+                .iter(txn)
+                .filter(|(id, _)| mod_id.as_ref() != *id)
+            {
+                let yrs::Out::YMap(task) = out else {
+                    continue;
+                };
+                if YTaskProxy::new(task).get_num(txn)? != mod_num {
+                    continue;
+                }
+
+                let project = project.clone();
+                let origin = from_origin(txn.origin())?;
+                let origin = YOrigin {
+                    who: format!("rw-{}", origin.who),
+                    id: format!("rw-{}", origin.id),
+                };
+                let mod_id = mod_id.clone();
+                self.tracker.spawn(
+                    async move {
+                        if let Err(e) = Self::rewrite_task_num(&mod_id, project, origin).await {
+                            tracing::warn!("Failed to rewrite task num for task '{mod_id}': {e}");
+                        }
+                    }
+                    .in_current_span(),
+                );
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    async fn rewrite_task_num(
+        task_id: &str,
+        project: Arc<ProjectState>,
+        origin: YOrigin,
+    ) -> Result<()> {
+        let doc_box = project.doc_box.lock().await;
+        let doc = &DocBox::doc_or_error(doc_box.as_ref())?.ydoc;
+        let mut txn = doc.transact_mut_with(origin.as_origin());
+
+        let num = doc.next_num(&txn)?;
+        tracing::debug!("Rewriting task num for task '{task_id}' to {num}");
+        let task = doc.get(&txn, task_id)?;
+        task.set_num(&mut txn, &num.to_string());
+
+        Ok(())
     }
 }
