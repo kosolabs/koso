@@ -268,6 +268,9 @@ impl Kind<'_> {
         }
     }
 
+    /// Creates a new nested kind.
+    /// For consistent namespacing, `id` should have `{parent_kind.id}_` as a prefx.
+    /// For example, a kind of 'github_pr' should have a parent_kind of 'github'.
     const fn new_nested<'a>(parent_kind: &'a Kind, id: &'a str, name: &'a str) -> Kind<'a> {
         Kind {
             id,
