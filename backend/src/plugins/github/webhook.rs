@@ -314,7 +314,7 @@ fn create_task(
     doc: &YDocProxy,
     external_task: &ExternalTask,
 ) -> Result<()> {
-    let parent = get_or_create_kind_parent(txn, doc, PLUGIN_KIND, Some(PR_KIND))?;
+    let parent = get_or_create_kind_parent(txn, doc, PR_KIND)?;
     let mut children: Vec<String> = parent.get_children(txn)?;
 
     let task = new_task(external_task, doc.next_num(txn)?, PR_KIND)?;

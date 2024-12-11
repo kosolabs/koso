@@ -31,7 +31,7 @@ mod poller;
 mod webhook;
 
 const PLUGIN_KIND: &Kind = &Kind::new("github", "Github Plugin");
-const PR_KIND: &Kind = &Kind::new("github_pr", "Pull Requests");
+const PR_KIND: &Kind = &Kind::new_nested(PLUGIN_KIND, "github_pr", "Pull Requests");
 
 #[derive(Clone)]
 pub(crate) struct Plugin {
@@ -108,19 +108,19 @@ impl Plugin {
 fn get_or_create_kind_parent(
     txn: &mut TransactionMut,
     doc: &YDocProxy,
-    plugin_kind: &Kind,
-    sub_kind: Option<&Kind>,
+    kind: &Kind,
 ) -> Result<YTaskProxy> {
-    let plugin_parent = match doc.get(txn, plugin_kind.id) {
+    let parent_kind = kind.parent_kind.unwrap_or(kind);
+    let plugin_parent = match doc.get(txn, parent_kind.id) {
         Ok(parent) => parent,
-        Err(_) => create_container(txn, &doc.get(txn, "root")?, doc, plugin_kind)?,
+        Err(_) => create_container(txn, &doc.get(txn, "root")?, doc, parent_kind)?,
     };
-    let Some(sub_kind) = sub_kind else {
+    if kind.parent_kind.is_none() {
         return Ok(plugin_parent);
-    };
-    match doc.get(txn, sub_kind.id) {
+    }
+    match doc.get(txn, kind.id) {
         Ok(kind_parent) => Ok(kind_parent),
-        Err(_) => create_container(txn, &plugin_parent, doc, sub_kind),
+        Err(_) => create_container(txn, &plugin_parent, doc, kind),
     }
 }
 
@@ -254,12 +254,25 @@ fn read_secret<T: std::convert::From<String>>(sub_path: &str) -> Result<Secret<T
 }
 
 struct Kind<'a> {
-    name: &'a str,
     id: &'a str,
+    name: &'a str,
+    parent_kind: Option<&'a Kind<'a>>,
 }
 
 impl Kind<'_> {
     const fn new<'a>(id: &'a str, name: &'a str) -> Kind<'a> {
-        Kind { name, id }
+        Kind {
+            id,
+            name,
+            parent_kind: None,
+        }
+    }
+
+    const fn new_nested<'a>(parent_kind: &'a Kind, id: &'a str, name: &'a str) -> Kind<'a> {
+        Kind {
+            id,
+            name,
+            parent_kind: Some(parent_kind),
+        }
     }
 }
