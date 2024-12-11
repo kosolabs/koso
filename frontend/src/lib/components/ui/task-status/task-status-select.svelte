@@ -1,31 +1,41 @@
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { ResponsiveText } from "$lib/components/ui/responsive-text";
+  import { Shortcut } from "$lib/shortcuts";
   import type { Status } from "$lib/yproxy";
+  import { tick } from "svelte";
   import { TaskStatusIcon } from ".";
 
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
 
   type Props = {
     value: Status | null;
+    open: boolean;
     statusTime: Date | null;
-    closeFocus: HTMLElement;
-    onselect: (status: Status) => void;
+    onOpenChange?: (open: boolean) => void;
+    onSelect?: (status: Status) => void;
   };
+
   let {
     value = $bindable(),
+    open = $bindable(),
     statusTime,
-    closeFocus,
-    onselect,
+    onOpenChange,
+    onSelect,
   }: Props = $props();
+
+  function handleOpenChange(o: boolean) {
+    onOpenChange?.(o);
+    tick().then(() => (open = o));
+  }
 
   function select(status: Status) {
     value = status;
-    onselect(status);
+    onSelect?.(status);
   }
 </script>
 
-<DropdownMenu.Root {closeFocus} portal={null}>
+<DropdownMenu.Root controlledOpen {open} onOpenChange={handleOpenChange}>
   <DropdownMenu.Trigger
     class="flex items-center gap-2"
     title={(value || "Not Started") +
@@ -34,19 +44,28 @@
     <TaskStatusIcon status={value} />
     <ResponsiveText>{value || "Not Started"}</ResponsiveText>
   </DropdownMenu.Trigger>
-  <DropdownMenu.Content
+  <div
+    role="none"
     onkeydown={(event) => {
+      if (Shortcut.CANCEL.matches(event)) {
+        open = false;
+      }
       event.stopPropagation();
     }}
   >
-    {#each statuses as status}
-      <DropdownMenu.Item
-        class="flex items-center gap-2 rounded p-2"
-        on:click={() => select(status)}
-      >
-        <TaskStatusIcon {status} />
-        {status}
-      </DropdownMenu.Item>
-    {/each}
-  </DropdownMenu.Content>
+    <DropdownMenu.Content
+      portalProps={{ disabled: true }}
+      preventScroll={false}
+    >
+      {#each statuses as status}
+        <DropdownMenu.Item
+          class="flex items-center gap-2 rounded p-2"
+          onSelect={() => select(status)}
+        >
+          <TaskStatusIcon {status} />
+          {status}
+        </DropdownMenu.Item>
+      {/each}
+    </DropdownMenu.Content>
+  </div>
 </DropdownMenu.Root>

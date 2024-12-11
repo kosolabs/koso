@@ -16,7 +16,7 @@
   import { confetti } from "$lib/components/ui/confetti";
   import { Editable } from "$lib/components/ui/editable";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
-  import UserSelect from "$lib/components/ui/user-select/user-select.svelte";
+  import { UserSelect } from "$lib/components/ui/user-select";
   import { Node, type Koso } from "$lib/koso.svelte";
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
@@ -45,6 +45,9 @@
   let dragOverChild = $state(false);
   let isEditing = $state(false);
   let linkOpen = $state(false);
+  let statusOpen = $state(false);
+  let assigneeOpen = $state(false);
+  let reporterOpen = $state(false);
 
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
@@ -378,9 +381,10 @@
     {#if task.children.length === 0}
       <TaskStatusSelect
         value={task.status}
+        bind:open={statusOpen}
         statusTime={task.statusTime ? new Date(task.statusTime) : null}
-        closeFocus={rowElement}
-        onselect={(status) => {
+        onOpenChange={() => (koso.selected = node)}
+        onSelect={(status) => {
           if (status === "Done") confetti.add(getStatusPosition());
           koso.setTaskStatus(node, status, auth.user);
         }}
@@ -422,22 +426,30 @@
       <LinkPanel {node} bind:open={linkOpen} closeFocus={rowElement} />
     </div>
   </td>
-  <td class={cn("border-l border-t p-2")}>
+  <td
+    class={cn("border-l border-t p-2")}
+    onkeydown={(e) => e.stopPropagation()}
+  >
     <UserSelect
       {users}
-      closeFocus={rowElement}
       value={assignee}
-      onselect={(user) => {
+      bind:open={assigneeOpen}
+      onOpenChange={() => (koso.selected = node)}
+      onSelect={(user) => {
         koso.setAssignee(task.id, user);
       }}
     />
   </td>
-  <td class={cn("border-l border-t p-2 max-md:hidden")}>
+  <td
+    class={cn("border-l border-t p-2 max-md:hidden")}
+    onkeydown={(e) => e.stopPropagation()}
+  >
     <UserSelect
       {users}
-      closeFocus={rowElement}
       value={reporter}
-      onselect={(user) => {
+      bind:open={reporterOpen}
+      onOpenChange={() => (koso.selected = node)}
+      onSelect={(user) => {
         koso.setReporter(task.id, user);
       }}
     />
