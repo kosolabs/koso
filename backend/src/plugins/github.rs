@@ -30,8 +30,8 @@ mod connect;
 mod poller;
 mod webhook;
 
-const PLUGIN_KIND: &Kind = &Kind::new("github", "Github Plugin");
-const PR_KIND: &Kind = &Kind::new_nested(PLUGIN_KIND, "github_pr", "Pull Requests");
+const PLUGIN_KIND: &Kind = &Kind::new("github", "GitHub");
+const PR_KIND: &Kind = &Kind::new_nested(PLUGIN_KIND, "github_pr", "GitHub PR");
 
 #[derive(Clone)]
 pub(crate) struct Plugin {
