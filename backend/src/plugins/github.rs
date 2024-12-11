@@ -10,7 +10,7 @@ use crate::{
         PluginSettings,
     },
 };
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use auth::Auth;
 use axum::{middleware, Router};
 use connect::ConnectHandler;
@@ -23,17 +23,15 @@ use sqlx::PgPool;
 use std::{fmt::Debug, fs, path::Path, time::SystemTime};
 use tokio::task::JoinHandle;
 use webhook::Webhook;
-use yrs::{ReadTxn, TransactionMut};
+use yrs::TransactionMut;
 
 mod auth;
 mod connect;
 mod poller;
 mod webhook;
 
-pub(super) const KIND: &str = "github";
-const NAME: &str = "Github Plugin";
-/// Constant task ID of this plugin's container task.
-const PARENT_ID: &str = "plugin_github";
+const PLUGIN_KIND: &Kind = &Kind::new("github", "Github Plugin");
+const PR_KIND: &Kind = &Kind::new("github_pr", "Pull Requests");
 
 #[derive(Clone)]
 pub(crate) struct Plugin {
@@ -107,39 +105,52 @@ impl Plugin {
     }
 }
 
-fn get_plugin_parent<T: ReadTxn>(txn: &T, doc: &YDocProxy) -> Result<YTaskProxy> {
-    doc.get(txn, PARENT_ID)
-        .with_context(|| "Missing plugin parent")
+fn get_or_create_kind_parent(
+    txn: &mut TransactionMut,
+    doc: &YDocProxy,
+    plugin_kind: &Kind,
+    sub_kind: Option<&Kind>,
+) -> Result<YTaskProxy> {
+    let plugin_parent = match doc.get(txn, plugin_kind.id) {
+        Ok(parent) => parent,
+        Err(_) => create_container(txn, &doc.get(txn, "root")?, doc, plugin_kind)?,
+    };
+    let Some(sub_kind) = sub_kind else {
+        return Ok(plugin_parent);
+    };
+    match doc.get(txn, sub_kind.id) {
+        Ok(kind_parent) => Ok(kind_parent),
+        Err(_) => create_container(txn, &plugin_parent, doc, sub_kind),
+    }
 }
 
-fn get_or_create_plugin_parent(txn: &mut TransactionMut, doc: &YDocProxy) -> Result<YTaskProxy> {
-    if let Ok(parent) = doc.get(txn, PARENT_ID) {
-        return Ok(parent);
-    }
+fn create_container(
+    txn: &mut TransactionMut,
+    container_parent: &YTaskProxy,
+    doc: &YDocProxy,
+    kind: &Kind,
+) -> Result<YTaskProxy> {
+    tracing::debug!("Creating new kind container: {}", kind.id);
+    let mut plugin_children = container_parent.get_children(txn)?;
+    plugin_children.push(kind.id.to_string());
 
-    tracing::debug!("Creating new parent task: {PARENT_ID}");
-    let root = doc.get(txn, "root")?;
-    let mut root_children = root.get_children(txn)?;
-    root_children.push(PARENT_ID.to_string());
-
-    let parent = doc.set(
+    let kind_parent = doc.set(
         txn,
         &Task {
-            id: PARENT_ID.to_string(),
+            id: kind.id.to_string(),
             num: doc.next_num(txn)?.to_string(),
-            name: NAME.to_string(),
+            name: kind.name.to_string(),
             children: Vec::with_capacity(0),
             assignee: None,
             reporter: None,
             status: None,
             status_time: None,
             url: None,
-            kind: None,
+            kind: Some(kind.id.to_string()),
         },
     );
-    root.set_children(txn, &root_children);
-
-    Ok(parent)
+    container_parent.set_children(txn, &plugin_children);
+    Ok(kind_parent)
 }
 
 #[derive(Debug)]
@@ -159,7 +170,7 @@ impl ExternalTask {
     }
 }
 
-fn new_task(external_task: &ExternalTask, num: u64) -> Result<Task> {
+fn new_task(external_task: &ExternalTask, num: u64, kind: &Kind) -> Result<Task> {
     let id = uuid::Uuid::new_v4().to_string();
     tracing::trace!("Creating new task {} ({num}): {}", id, external_task.url);
     Ok(Task {
@@ -172,7 +183,7 @@ fn new_task(external_task: &ExternalTask, num: u64) -> Result<Task> {
         status: Some("In Progress".to_string()),
         status_time: Some(now()?),
         url: Some(external_task.url.clone()),
-        kind: Some(KIND.to_string()),
+        kind: Some(kind.id.to_string()),
     })
 }
 
@@ -240,4 +251,15 @@ fn read_secret<T: std::convert::From<String>>(sub_path: &str) -> Result<Secret<T
     Ok(Secret {
         data: secret.into(),
     })
+}
+
+struct Kind<'a> {
+    name: &'a str,
+    id: &'a str,
+}
+
+impl Kind<'_> {
+    const fn new<'a>(id: &'a str, name: &'a str) -> Kind<'a> {
+        Kind { name, id }
+    }
 }

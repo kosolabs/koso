@@ -75,7 +75,7 @@ impl ConnectHandler {
             request.installation_id
         );
         let config = Config {
-            plugin_id: github::KIND.to_string(),
+            plugin_id: github::PLUGIN_KIND.id.to_string(),
             external_id: request.installation_id,
             config: GithubSpecificConfig {
                 project_id: request.project_id,

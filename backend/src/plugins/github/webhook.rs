@@ -9,8 +9,8 @@ use crate::{
     plugins::{
         config::ConfigStorage,
         github::{
-            get_or_create_plugin_parent, get_plugin_parent, new_task, read_secret, resolve_task,
-            update_task, ExternalTask, GithubConfig, Secret, KIND,
+            get_or_create_kind_parent, new_task, read_secret, resolve_task, update_task,
+            ExternalTask, GithubConfig, Kind, Secret, PLUGIN_KIND, PR_KIND,
         },
     },
 };
@@ -248,7 +248,7 @@ impl Webhook {
         tracing::debug!("Processing Koso event: {event:?}");
         let Some(config): Option<GithubConfig> = self
             .config_storage
-            .get(KIND, &event.installation_id.to_string())
+            .get(PLUGIN_KIND.id, &event.installation_id.to_string())
             .await?
         else {
             tracing::debug!(
@@ -267,7 +267,10 @@ impl Webhook {
         let doc = &doc_box.ydoc;
 
         let mut txn = doc.transact_mut_with(origin(&event));
-        match (get_doc_task(&txn, doc, &event.task.url)?, &event.action) {
+        match (
+            get_doc_task(&txn, doc, &event.task.url, PR_KIND)?,
+            &event.action,
+        ) {
             (Some(task), KosoGithubEventAction::Opened | KosoGithubEventAction::Edited) => {
                 update_task(&mut txn, &task, &event.task)?;
             }
@@ -285,15 +288,20 @@ impl Webhook {
     }
 }
 
-fn get_doc_task<T: ReadTxn>(txn: &T, doc: &YDocProxy, url: &str) -> Result<Option<YTaskProxy>> {
-    let Ok(parent) = get_plugin_parent(txn, doc) else {
+fn get_doc_task<T: ReadTxn>(
+    txn: &T,
+    doc: &YDocProxy,
+    url: &str,
+    kind: &Kind,
+) -> Result<Option<YTaskProxy>> {
+    let Ok(parent) = doc.get(txn, kind.id) else {
         return Ok(None);
     };
 
     for child in parent.get_children(txn)? {
         let child = doc.get(txn, &child)?;
         if child.get_url(txn)?.map_or(false, |u| u == url)
-            && child.get_kind(txn)?.map_or(false, |k| k == KIND)
+            && child.get_kind(txn)?.map_or(false, |k| k == kind.id)
         {
             return Ok(Some(child));
         }
@@ -306,10 +314,10 @@ fn create_task(
     doc: &YDocProxy,
     external_task: &ExternalTask,
 ) -> Result<()> {
-    let parent = get_or_create_plugin_parent(txn, doc)?;
+    let parent = get_or_create_kind_parent(txn, doc, PLUGIN_KIND, Some(PR_KIND))?;
     let mut children: Vec<String> = parent.get_children(txn)?;
 
-    let task = new_task(external_task, doc.next_num(txn)?)?;
+    let task = new_task(external_task, doc.next_num(txn)?, PR_KIND)?;
     doc.set(txn, &task);
 
     // Add the new task as a child of the plugin parent.
