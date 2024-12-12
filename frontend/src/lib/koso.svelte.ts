@@ -8,6 +8,7 @@ import * as Y from "yjs";
 import type { User } from "./auth.svelte";
 import { useLocalStorage, type Storable } from "./stores.svelte";
 import { findEntryIndex } from "./utils";
+
 import {
   YChildrenProxy,
   YGraphProxy,
@@ -19,13 +20,23 @@ import {
 } from "./yproxy";
 
 const MSG_SYNC = 0;
-// const MSG_AWARENESS = 1;
-// const MSG_AUTH = 2;
-// const MSG_QUERY_AWARENESS = 3;
 
 const MSG_SYNC_REQUEST = 0;
 const MSG_SYNC_RESPONSE = 1;
 const MSG_SYNC_UPDATE = 2;
+type YMessageSync =
+  | typeof MSG_SYNC_REQUEST
+  | typeof MSG_SYNC_RESPONSE
+  | typeof MSG_SYNC_UPDATE;
+
+const MSG_KOSO_AWARENESS = 8;
+const MSG_KOSO_AWARENESS_UPDATE = 0;
+const MSG_KOSO_AWARENESS_STATE = 1;
+type YMessageKosoAwareness =
+  | typeof MSG_KOSO_AWARENESS_UPDATE
+  | typeof MSG_KOSO_AWARENESS_STATE;
+
+type YMessage = typeof MSG_SYNC | typeof MSG_KOSO_AWARENESS;
 
 type NodeProps = { path: List<string> };
 const NodeRecord = Record<NodeProps>({ path: List() });
@@ -86,7 +97,7 @@ export class Koso {
   #yGraph: YGraphProxy;
   #yUndoManager: Y.UndoManager;
   #yIndexedDb: IndexeddbPersistence;
-  #clientMessageHandler: (message: Uint8Array) => void = () => {
+  #send: (message: Uint8Array) => void = () => {
     // Until we connect to the server and invoke handleClientMessage,
     // there's nothing else to do with client messages, so we simply discard them.
     // Any dropped changes will be sync'd to the server later.
@@ -126,6 +137,8 @@ export class Koso {
     serverSync: false,
   });
 
+  #sequence: number = 0;
+
   // lifecycle functions
   // i.e., init functions and helpers, event handlers, and destructors
 
@@ -160,7 +173,7 @@ export class Koso {
           encoding.writeVarUint(encoder, MSG_SYNC);
           encoding.writeVarUint(encoder, MSG_SYNC_UPDATE);
           encoding.writeVarUint8Array(encoder, message);
-          this.#clientMessageHandler(encoding.toUint8Array(encoder));
+          this.#send(encoding.toUint8Array(encoder));
         }
       },
     );
@@ -184,17 +197,21 @@ export class Koso {
     this.#yIndexedDb.whenSynced.then(() => {
       this.#syncState.indexedDbSync = true;
     });
+
+    $effect(() => {
+      this.#send(this.#encodeAwareness());
+    });
   }
 
   destroy() {
     this.graph.unobserve(this.#observer);
   }
 
-  handleServerMessage(message: Uint8Array) {
+  receive(message: Uint8Array) {
     const decoder = decoding.createDecoder(message);
-    const messageType = decoding.readVarUint(decoder);
+    const messageType = decoding.readVarUint(decoder) as YMessage;
     if (messageType === MSG_SYNC) {
-      const syncType = decoding.readVarUint(decoder);
+      const syncType = decoding.readVarUint(decoder) as YMessageSync;
 
       if (syncType === MSG_SYNC_REQUEST) {
         const encoder = encoding.createEncoder();
@@ -205,7 +222,7 @@ export class Koso {
           encoder,
           Y.encodeStateAsUpdateV2(this.doc, encodedStateVector),
         );
-        this.#clientMessageHandler(encoding.toUint8Array(encoder));
+        this.#send(encoding.toUint8Array(encoder));
       } else if (syncType === MSG_SYNC_RESPONSE) {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdateV2(this.doc, message);
@@ -219,6 +236,19 @@ export class Koso {
       } else {
         throw new Error(`Unknown sync type: ${syncType}`);
       }
+    } else if (messageType === MSG_KOSO_AWARENESS) {
+      const kosoAwarenessType = decoding.readVarUint(
+        decoder,
+      ) as YMessageKosoAwareness;
+
+      if (kosoAwarenessType === MSG_KOSO_AWARENESS_UPDATE) {
+        throw new Error("Unimplemented");
+      } else if (kosoAwarenessType === MSG_KOSO_AWARENESS_STATE) {
+        const awareness = JSON.parse(decoding.readVarString(decoder));
+        console.log(awareness);
+      } else {
+        throw new Error(`Unknown Koso awareness type: ${kosoAwarenessType}`);
+      }
     } else {
       throw new Error(
         `Expected message type to be Sync (0) but was: ${messageType}`,
@@ -226,15 +256,34 @@ export class Koso {
     }
   }
 
-  handleClientMessage(f: (message: Uint8Array) => void) {
-    this.#clientMessageHandler = f;
+  setSendAndSync(f: (message: Uint8Array) => void) {
+    this.#send = f;
+    this.#send(this.#encodeSyncRequest());
+    this.#send(this.#encodeAwareness());
+  }
 
+  #encodeSyncRequest(): Uint8Array {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_SYNC);
     encoding.writeVarUint(encoder, MSG_SYNC_REQUEST);
     const sv = Y.encodeStateVector(this.doc);
     encoding.writeVarUint8Array(encoder, sv);
-    this.#clientMessageHandler(encoding.toUint8Array(encoder));
+    return encoding.toUint8Array(encoder);
+  }
+
+  #encodeAwareness(): Uint8Array {
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, MSG_KOSO_AWARENESS);
+    encoding.writeVarUint(encoder, MSG_KOSO_AWARENESS_UPDATE);
+    encoding.writeVarString(
+      encoder,
+      JSON.stringify({
+        clientId: this.doc.clientID,
+        sequence: this.#sequence++,
+        selected: this.selected,
+      }),
+    );
+    return encoding.toUint8Array(encoder);
   }
 
   #flatten(
