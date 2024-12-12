@@ -24,7 +24,7 @@
 <Command.Dialog
   bind:open
   shouldFilter={false}
-  portal={null}
+  portalProps={{ disabled: true }}
   onkeydown={(event) => {
     event.stopPropagation();
     if (Shortcut.CANCEL.matches(event)) {
