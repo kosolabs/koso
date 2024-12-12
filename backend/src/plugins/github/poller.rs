@@ -7,8 +7,8 @@ use crate::{
     plugins::{
         config::ConfigStorage,
         github::{
-            get_or_create_plugin_parent, new_task, resolve_task, update_task, ExternalTask,
-            GithubConfig, KIND,
+            get_or_create_kind_parent, new_task, resolve_task, update_task, ExternalTask,
+            GithubConfig, Kind, PLUGIN_KIND, PR_KIND,
         },
     },
 };
@@ -71,7 +71,7 @@ impl Poller {
     }
 
     async fn poll_all_installations(&self) -> Result<()> {
-        let configs: Vec<GithubConfig> = self.config_storage.list(KIND).await?;
+        let configs: Vec<GithubConfig> = self.config_storage.list(PLUGIN_KIND.id).await?;
         tracing::trace!("Polling: {configs:?}");
 
         let now = Instant::now();
@@ -129,8 +129,8 @@ impl Poller {
 
         let mut txn = doc.transact_mut_with(origin(&config));
 
-        let parent = get_or_create_plugin_parent(&mut txn, doc)?;
-        let doc_tasks_by_url = self.list_doc_tasks(&txn, doc, &parent)?;
+        let parent = get_or_create_kind_parent(&mut txn, doc, PR_KIND)?;
+        let doc_tasks_by_url = self.list_doc_tasks(&txn, doc, &parent, PR_KIND)?;
         tracing::trace!(
             "Found existing tasks in doc: {:?}",
             doc_tasks_by_url
@@ -154,7 +154,7 @@ impl Poller {
             match doc_tasks_by_url.get(&github_task.url) {
                 Some(_) => {}
                 None => {
-                    let task = new_task(github_task, next_num)?;
+                    let task = new_task(github_task, next_num, PR_KIND)?;
                     next_num += 1;
                     doc.set(&mut txn, &task);
                     children.push(task.id);
@@ -204,11 +204,12 @@ impl Poller {
         txn: &T,
         doc: &YDocProxy,
         parent: &YTaskProxy,
+        kind: &Kind,
     ) -> Result<HashMap<String, YTaskProxy>> {
         let mut results = HashMap::new();
         for child_id in parent.get_children(txn)? {
             let child = doc.get(txn, &child_id)?;
-            if child.get_kind(txn)?.map_or(false, |k| k == KIND) {
+            if child.get_kind(txn)?.map_or(false, |k| k == kind.id) {
                 let url = child.get_url(txn)?.unwrap_or_default();
                 if url.is_empty() {
                     tracing::warn!("Omitting doc task with empty URL: {child_id}");

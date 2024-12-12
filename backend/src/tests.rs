@@ -840,15 +840,18 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
             .unwrap();
         let graph = doc.to_graph(&doc.transact()).unwrap();
         let root = graph.get("root").unwrap();
-        let parent = graph.get("plugin_github").unwrap();
-        assert!(root.children.contains(&parent.id));
+        let plugin_parent: &Task = graph.get("github").unwrap();
+        assert!(root.children.contains(&plugin_parent.id));
+        let parent: &Task = graph.get("github_pr").unwrap();
+        assert!(plugin_parent.children.contains(&parent.id));
+
         let task = graph
             .values()
             .find(|t| {
                 t.url.clone().unwrap_or_default() == "https://github.com/kosolabs/koso/pull/611"
             })
             .unwrap();
-        assert_eq!(task.kind.as_ref().unwrap(), "github");
+        assert_eq!(task.kind.as_ref().unwrap(), "github_pr");
         assert_eq!(task.name, "Tweak VSCode workspace to play nice with rust");
         assert_eq!(task.status.as_ref().unwrap(), "In Progress");
         assert!(task.num.parse::<u64>().unwrap() > 0);
@@ -883,14 +886,14 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
             .apply_update(read_sync_update(socket).await)
             .unwrap();
         let graph = doc.to_graph(&doc.transact()).unwrap();
-        let parent = graph.get("plugin_github").unwrap();
+        let parent = graph.get("github_pr").unwrap();
         let task = graph
             .values()
             .find(|t| {
                 t.url.clone().unwrap_or_default() == "https://github.com/kosolabs/koso/pull/611"
             })
             .unwrap();
-        assert_eq!(task.kind.as_ref().unwrap(), "github");
+        assert_eq!(task.kind.as_ref().unwrap(), "github_pr");
         assert_eq!(task.name, "Tweak VSCode workspace to play nice with rust");
         assert_eq!(task.status.as_ref().unwrap(), "Done");
         assert!(task.num.parse::<u64>().unwrap() > 0);
