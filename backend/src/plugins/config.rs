@@ -16,6 +16,8 @@ pub(crate) struct Config<T> {
     pub(crate) settings: T,
 }
 
+type ConfigRow<T> = (String, String, String, Json<T>);
+
 impl ConfigStorage {
     pub(super) fn new(pool: &'static PgPool) -> Result<ConfigStorage> {
         Ok(ConfigStorage { pool })
@@ -27,7 +29,7 @@ impl ConfigStorage {
         plugin_id: &str,
         external_id: &str,
     ) -> Result<Vec<Config<T>>> {
-        let configs: Vec<(String, String, String, Json<T>)> = sqlx::query_as(
+        let configs: Vec<ConfigRow<T>> = sqlx::query_as(
             "
             SELECT
                 project_id,
@@ -41,19 +43,9 @@ impl ConfigStorage {
         .bind(external_id)
         .fetch_all(self.pool)
         .await
-        .with_context(|| format!("Failed to list plugin configs for {external_id}"))?;
+        .with_context(|| format!("Failed to list plugin configs for {plugin_id}:{external_id}"))?;
 
-        Ok(configs
-            .into_iter()
-            .map(
-                |(project_id, plugin_id, external_id, Json(settings))| Config {
-                    project_id,
-                    plugin_id,
-                    external_id,
-                    settings,
-                },
-            )
-            .collect())
+        Ok(rows_to_configs(configs))
     }
 
     /// Lists all configurations for the given plugin.
@@ -61,7 +53,7 @@ impl ConfigStorage {
         &self,
         plugin_id: &str,
     ) -> Result<Vec<Config<T>>> {
-        let configs: Vec<(String, String, String, Json<T>)> = sqlx::query_as(
+        let configs: Vec<ConfigRow<T>> = sqlx::query_as(
             "
             SELECT
                 project_id,
@@ -76,17 +68,7 @@ impl ConfigStorage {
         .await
         .with_context(|| format!("Failed to list plugin configs for {plugin_id}"))?;
 
-        Ok(configs
-            .into_iter()
-            .map(
-                |(project_id, plugin_id, external_id, Json(settings))| Config {
-                    project_id,
-                    plugin_id,
-                    external_id,
-                    settings,
-                },
-            )
-            .collect())
+        Ok(rows_to_configs(configs))
     }
 
     pub(super) async fn insert_or_update<T: 'static + Send + Serialize + Unpin>(
@@ -108,6 +90,20 @@ impl ConfigStorage {
         .await?;
         Ok(())
     }
+}
+
+fn rows_to_configs<T>(configs: Vec<(String, String, String, Json<T>)>) -> Vec<Config<T>> {
+    configs
+        .into_iter()
+        .map(
+            |(project_id, plugin_id, external_id, Json(settings))| Config {
+                project_id,
+                plugin_id,
+                external_id,
+                settings,
+            },
+        )
+        .collect()
 }
 
 #[cfg(test)]
