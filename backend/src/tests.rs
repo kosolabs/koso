@@ -740,10 +740,9 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
     let project = create_project(&client, &addr, &token, "plugin_test")
         .await
         .unwrap();
-    let config = GithubSpecificConfig {
-        project_id: project.project_id.clone(),
-    };
-    sqlx::query("INSERT INTO plugin_configs (plugin_id, external_id, config) VALUES ($1, $2, $3)")
+    let config = GithubSpecificConfig {};
+    sqlx::query("INSERT INTO plugin_configs (project_id, plugin_id, external_id, settings) VALUES ($1, $2, $3, $4)")
+        .bind(&project.project_id)
         .bind("github")
         // TODO: Make this less prone to breakages when someone changes reinstalls.
         // https://github.com/organizations/kosolabs/settings/installations/

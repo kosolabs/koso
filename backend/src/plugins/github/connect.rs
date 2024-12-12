@@ -75,11 +75,10 @@ impl ConnectHandler {
             request.installation_id
         );
         let config = Config {
+            project_id: request.project_id,
             plugin_id: github::PLUGIN_KIND.id.to_string(),
             external_id: request.installation_id,
-            config: GithubSpecificConfig {
-                project_id: request.project_id,
-            },
+            settings: GithubSpecificConfig {},
         };
         self.storage.insert_or_update(&config).await?;
 

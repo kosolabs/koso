@@ -43,9 +43,7 @@ pub(crate) struct Plugin {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct GithubSpecificConfig {
-    pub(crate) project_id: String,
-}
+pub(crate) struct GithubSpecificConfig {}
 
 type GithubConfig = config::Config<GithubSpecificConfig>;
 
@@ -153,7 +151,7 @@ fn create_container(
     Ok(kind_parent)
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct ExternalTask {
     url: String,
     name: String,

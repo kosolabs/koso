@@ -71,7 +71,11 @@ impl Poller {
     }
 
     async fn poll_all_installations(&self) -> Result<()> {
-        let configs: Vec<GithubConfig> = self.config_storage.list(PLUGIN_KIND.id).await?;
+        // TODO: Multiple configs can refer to the same installation. If
+        // needed, we could optimize the retrieval from GitHub by
+        // grouping configs by installation first.
+        let configs: Vec<GithubConfig> =
+            self.config_storage.list_for_plugin(PLUGIN_KIND.id).await?;
         tracing::trace!("Polling: {configs:?}");
 
         let now = Instant::now();
@@ -103,7 +107,7 @@ impl Poller {
 
     #[tracing::instrument(
         skip(self, config),
-        fields(gh_installation_id=config.external_id, project_id=config.config.project_id)
+        fields(gh_installation_id=config.external_id, project_id=config.project_id)
     )]
     pub(super) async fn poll_installation(&self, config: GithubConfig) -> Result<()> {
         if let Err(e) = self.poll_installation_internal(config).await {
@@ -121,7 +125,7 @@ impl Poller {
 
         let client = self
             .collab
-            .register_local_client(&config.config.project_id)
+            .register_local_client(&config.project_id)
             .await?;
         let doc_box = client.project.doc_box.lock().await;
         let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;
