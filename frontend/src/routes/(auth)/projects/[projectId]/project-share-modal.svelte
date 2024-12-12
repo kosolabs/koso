@@ -94,13 +94,13 @@
 
 <Dialog.Root
   bind:open
-  portal={null}
   onOpenChange={() => {
     filter = "";
     openDropDown = false;
   }}
 >
   <Dialog.Content
+    portalProps={{ disabled: true }}
     onkeydown={(event) => {
       event.stopPropagation();
       if (Shortcut.CANCEL.matches(event)) {
@@ -115,11 +115,7 @@
       <Dialog.Description>Manage access to your project.</Dialog.Description>
     </Dialog.Header>
     <div class="flex flex-col gap-2">
-      <Popover.Root
-        disableFocusTrap={true}
-        openFocus={false}
-        bind:open={openDropDown}
-      >
+      <Popover.Root bind:open={openDropDown}>
         <Popover.Trigger>
           <Input
             type="text"
@@ -128,7 +124,13 @@
             bind:value={filter}
           />
         </Popover.Trigger>
-        <Popover.Content sameWidth={true} class="max-h-96 overflow-y-auto">
+        <Popover.Content
+          trapFocus={false}
+          class="max-h-96 overflow-y-auto"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+          }}
+        >
           {#await filteredUsers then filteredUsers}
             {#if filter.length < MIN_FILTER_LEN}
               Search for people.

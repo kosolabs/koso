@@ -1,16 +1,16 @@
 <script lang="ts">
+  import { Command as CommandPrimitive } from "bits-ui";
   import { cn } from "$lib/utils.js";
-  import { Command as CommandPrimitive } from "cmdk-sv";
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  type $$Props = CommandPrimitive.EmptyProps;
-  let className: string | undefined | null = undefined;
-  export { className as class };
+  let {
+    ref = $bindable(null),
+    class: className,
+    ...restProps
+  }: CommandPrimitive.EmptyProps = $props();
 </script>
 
 <CommandPrimitive.Empty
+  bind:ref
   class={cn("py-6 text-center text-sm", className)}
-  {...$$restProps}
->
-  <slot />
-</CommandPrimitive.Empty>
+  {...restProps}
+/>

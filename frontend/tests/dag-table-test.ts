@@ -149,7 +149,7 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
       await page.keyboard.press("Alt+Shift+Enter");
-      await page.keyboard.type("Task 2 title");
+      await page.keyboard.type("Task 2");
 
       await expect(page.getByRole("row", { name: "Task 2" })).not.toBeFocused();
       await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
@@ -160,7 +160,7 @@ test.describe("dag table tests", () => {
       expect(graph[tasks["1"]].children).toStrictEqual([tasks["2"]]);
 
       await page.keyboard.press("Alt+Shift+Enter");
-      await page.keyboard.type("Task 2 title");
+      await page.keyboard.type("Task 3");
       await page.keyboard.press("Enter");
 
       await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
@@ -1768,7 +1768,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Task f1 Drag Handle" }).click();
 
       await page.keyboard.press("Meta+/");
-      await page.getByRole("button", { name: "Task c2 Command Item" }).click();
+      await page.getByRole("option", { name: "Task c2 Command Item" }).click();
 
       await page.getByRole("button", { name: "Task c2 Toggle Expand" }).click();
       await expect(page.getByTestId("Row c2/f1")).toContainText("Milestone 1");
@@ -1799,7 +1799,7 @@ test.describe("dag table tests", () => {
       await page.getByTestId("Row m1/f2").click();
 
       await page.keyboard.press("Meta+/");
-      await page.getByRole("button", { name: "Task c1 Command Item" }).click();
+      await page.getByRole("option", { name: "Task c1 Command Item" }).click();
 
       await page.getByRole("button", { name: "Task c1 Toggle Expand" }).click();
       await expect(page.getByTestId("Row c1/f2")).toContainText("Milestone 1");
@@ -1831,7 +1831,7 @@ test.describe("dag table tests", () => {
 
       await page.keyboard.press("Meta+/");
       await page
-        .getByRole("button", { name: "Task root Command Item" })
+        .getByRole("option", { name: "Task root Command Item" })
         .click();
       await expect(page.getByTestId("Row f1")).toContainText("Milestone 1");
 
