@@ -46,7 +46,7 @@ struct WebhookHeaders<'a> {
     installation_id: &'a str,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct KosoGithubEvent {
     request_id: String,
     installation_id: u64,
@@ -54,7 +54,7 @@ struct KosoGithubEvent {
     task: ExternalTask,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum KosoGithubEventAction {
     Opened,
     Closed,
@@ -246,11 +246,11 @@ impl Webhook {
 
     async fn process_koso_event(&self, event: KosoGithubEvent) -> Result<()> {
         tracing::debug!("Processing Koso event: {event:?}");
-        let Some(config): Option<GithubConfig> = self
+        let configs: Vec<GithubConfig> = self
             .config_storage
-            .get(PLUGIN_KIND.id, &event.installation_id.to_string())
-            .await?
-        else {
+            .list_for_external_id(PLUGIN_KIND.id, &event.installation_id.to_string())
+            .await?;
+        if configs.is_empty() {
             tracing::debug!(
                 "No config registered for installation '{}'. Discarding event.",
                 event.installation_id
@@ -258,9 +258,34 @@ impl Webhook {
             return Ok(());
         };
 
+        futures::future::join_all(
+            configs
+                .into_iter()
+                .map(|config| self.merge_task(event.clone(), config)),
+        )
+        .await;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(
+        skip(self, event, config),
+        fields(project_id=config.project_id)
+    )]
+    async fn merge_task(&self, event: KosoGithubEvent, config: GithubConfig) {
+        if let Err(e) = self.merge_task_internal(event, config).await {
+            tracing::warn!("Failed to process event for config: {e}");
+        }
+    }
+
+    async fn merge_task_internal(
+        &self,
+        event: KosoGithubEvent,
+        config: GithubConfig,
+    ) -> Result<()> {
         let client = self
             .collab
-            .register_local_client(&config.config.project_id)
+            .register_local_client(&config.project_id)
             .await?;
         let doc_box = client.project.doc_box.lock().await;
         let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;
@@ -284,6 +309,7 @@ impl Webhook {
                 tracing::trace!("Discarding close event without associated task");
             }
         }
+
         Ok(())
     }
 }
