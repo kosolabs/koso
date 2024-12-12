@@ -261,7 +261,7 @@ impl Webhook {
         futures::future::join_all(
             configs
                 .into_iter()
-                .map(|config| self.process(event.clone(), config)),
+                .map(|config| self.merge_task(event.clone(), config)),
         )
         .await;
 
@@ -272,13 +272,17 @@ impl Webhook {
         skip(self, event, config),
         fields(project_id=config.project_id)
     )]
-    async fn process(&self, event: KosoGithubEvent, config: GithubConfig) {
-        if let Err(e) = self.process_internal(event, config).await {
+    async fn merge_task(&self, event: KosoGithubEvent, config: GithubConfig) {
+        if let Err(e) = self.merge_task_internal(event, config).await {
             tracing::warn!("Failed to process event for config: {e}");
         }
     }
 
-    async fn process_internal(&self, event: KosoGithubEvent, config: GithubConfig) -> Result<()> {
+    async fn merge_task_internal(
+        &self,
+        event: KosoGithubEvent,
+        config: GithubConfig,
+    ) -> Result<()> {
         let client = self
             .collab
             .register_local_client(&config.project_id)
