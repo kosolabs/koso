@@ -906,7 +906,7 @@ export class Koso {
   }
 
   isPluginTask(taskId: string): boolean {
-    return !!this.getTask(taskId).kind;
+    return !!this.getTask(taskId).kind && !this.isPluginContainer(taskId);
   }
 
   isPluginContainer(taskId: string): boolean {
@@ -914,7 +914,7 @@ export class Koso {
   }
 
   isEditable(taskId: string): boolean {
-    return !this.isPluginTask(taskId);
+    return !this.isPluginTask(taskId) && !this.isPluginContainer(taskId);
   }
 
   isCanonicalPluginNode(task: string, parent: string): boolean {

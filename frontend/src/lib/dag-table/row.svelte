@@ -84,7 +84,7 @@
   function getTags(allParents: Map<string, string[]>): ChipProps[] {
     const parents = allParents.get(node.name);
     if (!parents) return [];
-    return parents
+    const tags = parents
       .filter((parent) => parent !== node.parent.name)
       .map((parent) => koso.getTask(parent))
       .filter((parent) => parent.name.length > 0)
@@ -144,6 +144,19 @@
         };
         return props;
       });
+
+    if (koso.isPluginTask(task.id) && task.url) {
+      let url = task.url;
+      let chip = {
+        title: "link",
+        description: "",
+        onClick: () => {
+          window.open(url, "_blank")!.focus();
+        },
+      };
+      tags.splice(0, 0, chip);
+    }
+    return tags;
   }
 
   function getUser(users: User[], email: string | null): User | null {
