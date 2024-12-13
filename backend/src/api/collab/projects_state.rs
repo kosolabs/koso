@@ -27,7 +27,7 @@ use std::{
 use tokio::sync::{mpsc::Sender, Mutex};
 use yrs::{ReadTxn as _, StateVector, Update};
 
-use super::YDocProxy;
+use super::{awareness::Awareness, msg_sync::koso_awareness_state, YDocProxy};
 
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
@@ -147,6 +147,7 @@ impl ProjectsState {
         Arc::new(ProjectState {
             project_id: project_id.to_string(),
             clients: Mutex::new(HashMap::new()),
+            awarenesses: Mutex::new(HashMap::new()),
             doc_box: Mutex::new(None),
             doc_update_tx: self.doc_update_tx.clone(),
             updates: atomic::AtomicUsize::new(0),
@@ -169,6 +170,7 @@ impl ProjectsState {
 pub(crate) struct ProjectState {
     pub(crate) project_id: ProjectId,
     clients: Mutex<HashMap<String, ClientSender>>,
+    awarenesses: Mutex<HashMap<String, Awareness>>,
     pub(crate) doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
     doc_update_tx: Sender<DocUpdate>,
@@ -247,14 +249,15 @@ impl ProjectState {
         }
         Ok(())
     }
-    pub(super) async fn broadcast_msg(&self, from_who: &String, data: Vec<u8>) {
+    pub(super) async fn broadcast_msg(&self, data: Vec<u8>, exclude_who: Option<&String>) {
         let mut clients = self.clients.lock().await;
 
         tracing::debug!("Broadcasting to {} clients", clients.len());
         let mut results = Vec::new();
         for client in clients.values_mut() {
-            if client.who != *from_who {
-                results.push(client.send(data.to_owned()));
+            match exclude_who {
+                Some(exclude_who) if client.who == *exclude_who => {}
+                _ => results.push(client.send(data.to_owned())),
             }
         }
         let res = futures::future::join_all(results).await;
@@ -283,6 +286,9 @@ impl ProjectState {
             closure.details,
         );
 
+        self.awarenesses.lock().await.remove(who);
+        self.broadcast_awarenesses().await;
+
         match client {
             Some(mut client) => {
                 client.close(closure.code, closure.reason).await;
@@ -306,6 +312,22 @@ impl ProjectState {
             res.push(client.close(CLOSE_RESTART, "The server is shutting down."));
         }
         futures::future::join_all(res).await;
+    }
+
+    pub(super) async fn update_awareness(&self, who: &str, awareness: Awareness) {
+        self.awarenesses.lock().await.insert(who.into(), awareness);
+        self.broadcast_awarenesses().await;
+    }
+
+    async fn broadcast_awarenesses(&self) {
+        let Ok(state) =
+            serde_json::to_string(&self.awarenesses.lock().await.values().collect::<Vec<_>>())
+        else {
+            tracing::warn!("Failed to serialize awarenesses");
+            return;
+        };
+        let msg = koso_awareness_state(&state);
+        self.broadcast_msg(msg, None).await;
     }
 }
 

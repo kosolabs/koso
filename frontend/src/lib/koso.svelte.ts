@@ -280,7 +280,7 @@ export class Koso {
       JSON.stringify({
         clientId: this.doc.clientID,
         sequence: this.#sequence++,
-        selected: this.selected,
+        selected: this.selected?.id,
       }),
     );
     return encoding.toUint8Array(encoder);

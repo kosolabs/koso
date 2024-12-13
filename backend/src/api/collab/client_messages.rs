@@ -1,4 +1,5 @@
 use crate::api::collab::{
+    awareness::Awareness,
     client::{ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL},
     projects_state::ProjectState,
 };
@@ -18,6 +19,8 @@ use yrs::{
     updates::decoder::{Decode as _, DecoderV1},
     StateVector, Update,
 };
+
+use super::msg_sync::{MSG_KOSO_AWARENESS, MSG_KOSO_AWARENESS_UPDATE};
 
 /// ClientMessageReceiver receives messages from clients
 /// about a particular project and forwards the binary ones to
@@ -196,6 +199,15 @@ impl ClientMessageProcessor {
                     invalid_type => Err(anyhow!("Invalid sync type: {invalid_type}")),
                 }
             }
+            MSG_KOSO_AWARENESS => match decoder.read_var()? {
+                MSG_KOSO_AWARENESS_UPDATE => {
+                    let awareness: Awareness = serde_json::from_str(decoder.read_string()?)?;
+                    tracing::debug!("{awareness:?}");
+                    msg.project.update_awareness(&msg.who, awareness).await;
+                    Ok(())
+                }
+                invalid_type => Err(anyhow!("Invalid Koso awareness type: {invalid_type}")),
+            },
             invalid_type => Err(anyhow!("Invalid message protocol type: {invalid_type}")),
         }
     }

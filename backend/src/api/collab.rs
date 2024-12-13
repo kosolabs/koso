@@ -6,6 +6,7 @@
 //!   - SYNC_UPDATE -
 //!
 
+pub(crate) mod awareness;
 pub(crate) mod client;
 pub(crate) mod client_messages;
 pub(crate) mod doc_updates;
