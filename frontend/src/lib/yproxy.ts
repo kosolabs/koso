@@ -165,6 +165,14 @@ export class YTaskProxy {
     this.#yTask.set("statusTime", value);
   }
 
+  get kind(): string | null {
+    return (this.#yTask.get("kind") as string) || null;
+  }
+
+  get url(): string | null {
+    return (this.#yTask.get("url") as string) || null;
+  }
+
   toJSON(): Task {
     return this.#yTask.toJSON() as Task;
   }

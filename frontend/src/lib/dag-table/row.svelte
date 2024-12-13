@@ -59,6 +59,7 @@
   let isSelected = $derived(node.equals(koso.selected));
   let progress = $derived(koso.getProgress(task.id));
   let tags = $derived(getTags(koso.parents));
+  let editable = $derived(koso.isEditable(task.id));
 
   $effect(() => {
     if (rowElement && isSelected && koso.focus) {
@@ -89,11 +90,14 @@
       .filter((parent) => parent.name.length > 0)
       .map((parent) => {
         const props = parseChipProps(parent.name);
-        props.onDelete = (event) => {
-          console.log(event);
-          event.stopPropagation();
-          koso.unlink(node.name, parent.id);
-        };
+        if (koso.canDeleteNode(node.name, parent.id)) {
+          props.onDelete = (event) => {
+            console.log(event);
+            event.stopPropagation();
+            koso.unlink(node.name, parent.id);
+          };
+        }
+
         props.onClick = (event) => {
           event.stopPropagation();
           let targetNode = koso.nodes
@@ -245,7 +249,11 @@
     }
 
     if (koso.canLink(koso.dragged.name, node.parent.name)) {
-      koso.dropEffect = event.altKey ? "copy" : "move";
+      if (koso.canMoveNode(koso.dragged, node.parent)) {
+        koso.dropEffect = event.altKey ? "copy" : "move";
+      } else {
+        koso.dropEffect = "copy";
+      }
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverPeer = true;
     } else if (koso.canMoveNode(koso.dragged, node.parent)) {
@@ -266,7 +274,11 @@
     }
 
     if (koso.canLink(koso.dragged.name, node.name)) {
-      koso.dropEffect = event.altKey ? "copy" : "move";
+      if (koso.canMoveNode(koso.dragged, node)) {
+        koso.dropEffect = event.altKey ? "copy" : "move";
+      } else {
+        koso.dropEffect = "copy";
+      }
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverChild = true;
     } else if (koso.canMoveNode(koso.dragged, node)) {
@@ -383,6 +395,7 @@
         value={task.status}
         bind:open={statusOpen}
         statusTime={task.statusTime ? new Date(task.statusTime) : null}
+        {editable}
         onOpenChange={() => (koso.selected = node)}
         onSelect={(status) => {
           if (status === "Done") confetti.add(getStatusPosition());
@@ -408,6 +421,7 @@
         value={task.name}
         aria-label={`Task ${task.num} Edit Name`}
         editing={isEditing}
+        {editable}
         closeFocus={rowElement}
         onclick={() => (koso.selected = node)}
         onsave={async (name) => {
@@ -434,6 +448,7 @@
       {users}
       value={assignee}
       bind:open={assigneeOpen}
+      {editable}
       onOpenChange={() => (koso.selected = node)}
       onSelect={(user) => {
         koso.setAssignee(task.id, user);
@@ -448,6 +463,7 @@
       {users}
       value={reporter}
       bind:open={reporterOpen}
+      {editable}
       onOpenChange={() => (koso.selected = node)}
       onSelect={(user) => {
         koso.setReporter(task.id, user);

@@ -619,7 +619,11 @@ export class Koso {
 
   /** Determines if a task can be linked to a parent task. */
   canLink(task: string, parent: string): boolean {
-    return !this.#hasCycle(parent, task) && !this.hasChild(parent, task);
+    return (
+      !this.#hasCycle(parent, task) &&
+      !this.hasChild(parent, task) &&
+      !this.isPluginContainer(parent)
+    );
   }
 
   /**
@@ -659,7 +663,10 @@ export class Koso {
   }
 
   canMove(task: string, src: string, dest: string): boolean {
-    return src === dest || this.canLink(task, dest);
+    return (
+      src === dest ||
+      (!this.isCanonicalPluginNode(task, src) && this.canLink(task, dest))
+    );
   }
 
   reorder(task: string, parent: string, offset: number) {
@@ -828,7 +835,15 @@ export class Koso {
     return null;
   }
 
+  canDeleteNode(task: string, parent: string): boolean {
+    return !this.isCanonicalPluginNode(task, parent);
+  }
+
   deleteNode(node: Node) {
+    if (!this.canDeleteNode(node.name, node.parent.name)) {
+      throw new Error(`Cannot delete node ${node}`);
+    }
+
     const subtreeTaskIds = this.#collectSubtreeTaskIds(node.name);
 
     // Find all of the tasks that will become orphans when `node`
@@ -888,6 +903,35 @@ export class Koso {
         }
       }
     });
+  }
+
+  isPluginTask(taskId: string): boolean {
+    return !!this.getTask(taskId).kind;
+  }
+
+  isPluginContainer(taskId: string): boolean {
+    return this.getTask(taskId).kind === taskId;
+  }
+
+  isEditable(taskId: string): boolean {
+    return !this.isPluginTask(taskId);
+  }
+
+  isCanonicalPluginNode(task: string, parent: string): boolean {
+    const kind = this.getTask(task).kind;
+    if (!kind) {
+      return false;
+    }
+    // Is an immediate child of a plugin container OR is a plugin container.
+    if (kind.startsWith(parent)) {
+      return true;
+    }
+    // Is a top-level plugin container under root.
+    // TODO: There ought to be a better way to do this
+    if (kind === "github" && parent === "root") {
+      return true;
+    }
+    return false;
   }
 
   linkNode(node: Node, parent: Node, offset: number) {
@@ -1207,6 +1251,9 @@ export class Koso {
     user: User,
     name: string = "",
   ): Node {
+    if (!this.canInsert(parent.name)) {
+      throw new Error(`Cannot insert node under parent ${parent} `);
+    }
     const taskId = this.newId();
     this.doc.transact(() => {
       this.upsert({
@@ -1226,6 +1273,10 @@ export class Koso {
     const node = parent.child(taskId);
     this.selected = node;
     return node;
+  }
+
+  canInsert(parentTaskId: string): boolean {
+    return !this.isPluginContainer(parentTaskId);
   }
 
   setTaskName(taskId: string, newName: string) {

@@ -316,6 +316,8 @@
       icon: ListPlus,
       toolbar: true,
       shortcut: Shortcut.INSERT_NODE,
+      enabled: () =>
+        !koso.selected || koso.canInsert(koso.selected.parent.name),
     }),
     new Action({
       callback: insertAbove,
@@ -323,13 +325,15 @@
       description: "Insert a new task above",
       icon: ListPlus,
       shortcut: new Shortcut({ key: "Enter", meta: true, shift: true }),
+      enabled: () =>
+        !!koso.selected && koso.canInsert(koso.selected.parent.name),
     }),
     new Action({
       callback: insertChild,
       title: "Insert Subtask",
       description: "Insert a new task as a child",
       icon: ListTree,
-      enabled: () => !!koso.selected,
+      enabled: () => !!koso.selected && koso.canInsert(koso.selected.name),
       shortcut: Shortcut.INSERT_CHILD_NODE,
     }),
     new Action({
@@ -337,7 +341,13 @@
       title: "Insert Subtask Above",
       description: "Insert a new task as a child of the previous task",
       icon: ListTree,
-      enabled: () => !!koso.selected && koso.getOffset(koso.selected) > 0,
+      enabled: () => {
+        if (!koso.selected) {
+          return false;
+        }
+        const prevPeer = koso.getPrevPeer(koso.selected);
+        return !!prevPeer && koso.canInsert(prevPeer.name);
+      },
       shortcut: new Shortcut({
         key: "Enter",
         alt: true,
@@ -351,6 +361,7 @@
       description: "Edit the current task",
       icon: Pencil,
       shortcut: new Shortcut({ key: "Enter" }),
+      enabled: () => !!koso.selected && koso.isEditable(koso.selected.name),
     }),
     new Action({
       callback: unselect,
@@ -365,7 +376,9 @@
       description: "Delete the current task",
       icon: Trash,
       toolbar: true,
-      enabled: () => !!koso.selected,
+      enabled: () =>
+        !!koso.selected &&
+        koso.canDeleteNode(koso.selected.name, koso.selected.parent.name),
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
@@ -442,6 +455,7 @@
       description: "Toggle the task status to In Progress or Done",
       icon: Check,
       shortcut: new Shortcut({ key: " " }),
+      enabled: () => !!koso.selected && koso.isEditable(koso.selected.name),
     }),
     new Action({
       callback: hideDoneTasks,

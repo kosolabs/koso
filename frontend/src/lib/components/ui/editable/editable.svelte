@@ -9,6 +9,7 @@
     value: string;
     placeholder?: string;
     editing?: boolean;
+    editable?: boolean;
     class?: string;
     "aria-label"?: string;
     closeFocus?: HTMLElement;
@@ -23,6 +24,7 @@
   let {
     value = $bindable(),
     editing = $bindable(false),
+    editable,
     placeholder = "Click to edit",
     class: classes,
     "aria-label": ariaLabel,
@@ -102,7 +104,14 @@
   }
 </script>
 
-{#if editing}
+{#if !editable}
+  <span
+    class={cn("h-auto text-wrap p-0 text-left hover:no-underline", classes)}
+    aria-label={ariaLabel}
+  >
+    {value || placeholder}
+  </span>
+{:else if editing}
   <Input
     class={cn("my-1 h-auto bg-background p-1", classes)}
     aria-label={ariaLabel}
