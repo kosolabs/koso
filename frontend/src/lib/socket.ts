@@ -1,5 +1,6 @@
 import { Koso } from "$lib/koso.svelte";
 import { auth } from "./auth.svelte";
+import { version } from "$app/environment";
 
 export class KosoSocket {
   socket: WebSocket | null = null;
@@ -60,7 +61,12 @@ export class KosoSocket {
 
     const host = location.origin.replace(/^http/, "ws");
     const wsUrl = `${host}/api/ws/projects/${this.projectId}`;
-    const socket = new WebSocket(wsUrl, ["bearer", auth.token]);
+    const socket = new WebSocket(wsUrl, [
+      "bearer",
+      auth.token,
+      "koso-client-version",
+      version,
+    ]);
     this.socket = socket;
     socket.binaryType = "arraybuffer";
 
