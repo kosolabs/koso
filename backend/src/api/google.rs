@@ -176,13 +176,25 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
                 "sec-websocket-protocol must be only visible ASCII chars: {swp_header:?}"
             )));
         };
-        let parts: Vec<&str> = swp.split(", ").collect();
-        if parts.len() != 2 || parts[0] != "bearer" {
+        // Search the comma separated parts for "bearer"
+        // and return the subsequent part containing the token value.
+        let mut iter = swp.split(", ");
+        let token = loop {
+            match iter.next() {
+                None => break None,
+                Some("bearer") => break iter.next(),
+                Some(_) => {
+                    continue;
+                }
+            }
+        };
+        let Some(token) = token else {
             return Err(unauthenticated_error(&format!(
-                "sec-websocket-protocol must contain a bearer token: {parts:?}"
+                "sec-websocket-protocol must contain a bearer token: {swp:?}"
             )));
-        }
-        parts[1]
+        };
+
+        token
     } else {
         return Err(unauthenticated_error("Authorization header is absent."));
     };

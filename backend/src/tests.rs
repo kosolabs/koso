@@ -415,8 +415,8 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         };
         let token = encode_token(&claims, KID_1, PEM_1).unwrap();
         req.headers_mut().insert(
-            "authorization",
-            HeaderValue::from_str(format!("Bearer {token}").as_str()).unwrap(),
+            "Sec-Websocket-Protocol",
+            HeaderValue::from_str(format!("bearer, {token}").as_str()).unwrap(),
         );
         let (mut socket, response) = tokio_tungstenite::connect_async(req).await.unwrap();
         assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
@@ -437,8 +437,11 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
             .into_client_request()
             .unwrap();
         req.headers_mut().insert(
-            "authorization",
-            HeaderValue::from_str(format!("Bearer {token}").as_str()).unwrap(),
+            "Sec-Websocket-Protocol",
+            HeaderValue::from_str(
+                format!("bearer, {token}, koso-client-version, testversion").as_str(),
+            )
+            .unwrap(),
         );
 
         let (mut socket, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
@@ -457,8 +460,11 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         .into_client_request()
         .unwrap();
     req.headers_mut().insert(
-        "authorization",
-        HeaderValue::from_str(format!("Bearer {token}").as_str()).unwrap(),
+        "Sec-Websocket-Protocol",
+        HeaderValue::from_str(
+            format!("bearer, {token}, koso-client-version, testversion").as_str(),
+        )
+        .unwrap(),
     );
 
     let (mut socket_1, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
@@ -756,8 +762,11 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         .into_client_request()
         .unwrap();
     req.headers_mut().insert(
-        "authorization",
-        HeaderValue::from_str(format!("Bearer {token}").as_str()).unwrap(),
+        "Sec-Websocket-Protocol",
+        HeaderValue::from_str(
+            format!("bearer, {token}, koso-client-version, testversion").as_str(),
+        )
+        .unwrap(),
     );
 
     // Create the root node.

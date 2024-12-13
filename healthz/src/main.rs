@@ -41,7 +41,13 @@ struct HealthZ {
 }
 
 async fn check_healthz(url: &str) -> Result<HealthZ> {
-    let healthz: HealthZ = client().get(url).send().await?.json().await?;
+    let healthz: HealthZ = client()
+        .get(url)
+        .header("koso-client-version", "healthz-binary")
+        .send()
+        .await?
+        .json()
+        .await?;
     tracing::info!("check_healthz: {healthz:?}");
     Ok(healthz)
 }

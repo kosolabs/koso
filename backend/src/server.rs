@@ -252,18 +252,48 @@ pub struct KosoOnRequest {}
 
 impl<B> OnRequest<B> for KosoOnRequest {
     fn on_request(&mut self, request: &Request<B>, _: &Span) {
-        let client_version = request
+        if let Some(client_version) = request
             .headers()
             .get("koso-client-version")
             .map(|h| h.to_str().unwrap_or("INVALID"))
-            .unwrap_or("MISSING");
+            .or_else(|| version_from_ws_header(request))
+        {
+            tracing::event!(
+                tracing::Level::DEBUG,
+                http_version = ?request.version(),
+                client_version = client_version,
+                "started processing request",
+            );
+        } else {
+            tracing::event!(
+                tracing::Level::DEBUG,
+                http_version = ?request.version(),
+                "started processing request",
+            );
+        }
+    }
+}
 
-        tracing::event!(
-            tracing::Level::DEBUG,
-            http_version = ?request.version(),
-            client_version = client_version,
-            "started processing request",
-        );
+fn version_from_ws_header<B>(request: &Request<B>) -> Option<&str> {
+    let Some(Ok(swp_header)) = request
+        .headers()
+        .get("sec-websocket-protocol")
+        .map(|h| h.to_str())
+    else {
+        return None;
+    };
+
+    // Search the comma separated parts for "koso-client-version"
+    // and return the subsequent part containing the version value.
+    let mut iter = swp_header.split(", ");
+    loop {
+        match iter.next() {
+            None => break None,
+            Some("koso-client-version") => break iter.next(),
+            Some(_) => {
+                continue;
+            }
+        }
     }
 }
 
