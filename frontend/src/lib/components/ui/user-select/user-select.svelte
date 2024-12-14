@@ -27,7 +27,7 @@
     value = null,
     unassigned = "Unassigned",
     open = $bindable(),
-    editable,
+    editable = true,
     onOpenChange,
     onSelect,
   }: Props = $props();

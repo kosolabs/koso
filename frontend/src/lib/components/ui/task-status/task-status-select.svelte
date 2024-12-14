@@ -23,7 +23,7 @@
     statusTime,
     onOpenChange,
     onSelect,
-    editable,
+    editable = true,
   }: Props = $props();
 
   function handleOpenChange(o: boolean) {

@@ -24,7 +24,7 @@
   let {
     value = $bindable(),
     editing = $bindable(false),
-    editable,
+    editable = true,
     placeholder = "Click to edit",
     class: classes,
     "aria-label": ariaLabel,
