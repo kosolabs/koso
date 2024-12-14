@@ -294,6 +294,61 @@ describe("Koso tests", () => {
         ["3"]: { id: "3", children: [] },
       });
     });
+
+    it("unlinking a canonical plugin container throws an error", () => {
+      init([
+        { id: "root", name: "Root", children: ["github"] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["1"],
+        },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      expect(() => koso.unlink("github", "root")).toThrow();
+      expect(() => koso.unlink("github_pr", "github")).toThrow();
+      expect(() => koso.unlink("2", "github_pr")).toThrow();
+    });
+
+    it("unlinking a non-canonical plugin task succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["github", "github_pr", "1"] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["1"],
+        },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2", children: ["github", "1"] },
+      ]);
+
+      koso.unlink("github_pr", "root");
+      koso.unlink("1", "root");
+      koso.unlink("1", "2");
+      koso.unlink("github", "2");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["github"] },
+        ["github"]: { id: "github", children: ["github_pr"] },
+        ["github_pr"]: { id: "github_pr", children: ["1"] },
+        ["2"]: { id: "2", children: [] },
+      });
+    });
   });
 
   describe("insertNode", () => {
@@ -324,6 +379,66 @@ describe("Koso tests", () => {
           kind: null,
           url: null,
         },
+      });
+    });
+
+    it("inserting a child of a plugin container throws", () => {
+      init([
+        { id: "root", name: "Root", children: ["github", "github_pr", "1"] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["1"],
+        },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      expect(() =>
+        koso.insertNode(Node.parse("github"), 0, USER, "Task 2"),
+      ).toThrow();
+      expect(() =>
+        koso.insertNode(Node.parse("github/github_pr"), 0, USER, "Task 2"),
+      ).toThrow();
+    });
+
+    it("inserting a child of a plugin task succeeds", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["github", "github_pr", "1"],
+        },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["1"],
+        },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      const id2 = koso.insertNode(
+        Node.parse("github/github_pr/1"),
+        0,
+        USER,
+        "Task 2",
+      );
+      expect(koso.toJSON()).toMatchObject({
+        ["1"]: { id: "1", children: [id2.name] },
+        [id2.name]: { id: id2.name },
       });
     });
   });
@@ -363,6 +478,87 @@ describe("Koso tests", () => {
       expect(() =>
         koso.linkNode(Node.parse("1"), Node.parse("2"), 0),
       ).toThrow();
+    });
+
+    it("link node 1 to plugin container throws", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      expect(() =>
+        koso.linkNode(Node.parse("1"), Node.parse("github"), 0),
+      ).toThrow();
+      expect(() =>
+        koso.linkNode(Node.parse("1"), Node.parse("github/github_pr"), 0),
+      ).toThrow();
+    });
+
+    it("link node 1 to plugin task succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      koso.linkNode(Node.parse("1"), Node.parse("github/github_pr/2"), 0);
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "github"] },
+        ["1"]: { id: "1", children: [] },
+        ["2"]: { id: "2", children: ["1"] },
+      });
+    });
+
+    it("link plugin task/container elsewhere succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      koso.linkNode(Node.parse("github/github_pr/2"), Node.parse("1"), 0);
+      koso.linkNode(Node.parse("github/github_pr"), Node.parse("1"), 0);
+      koso.linkNode(Node.parse("github"), Node.parse("1"), 0);
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "github"] },
+        ["github"]: { children: ["github_pr"] },
+        ["github_pr"]: { children: ["2"] },
+        ["1"]: { id: "1", children: ["github", "github_pr", "2"] },
+      });
     });
   });
 
@@ -474,6 +670,136 @@ describe("Koso tests", () => {
         ["4"]: { children: [] },
       });
     });
+
+    it("move canonical plugin task/container elsewhere throws", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      expect(() =>
+        koso.moveNode(Node.parse("github"), Node.parse("1"), 0),
+      ).toThrow();
+      expect(() =>
+        koso.moveNode(Node.parse("github/github_pr"), Node.parse("1"), 0),
+      ).toThrow();
+      expect(() =>
+        koso.moveNode(Node.parse("github/github_pr/2"), Node.parse("1"), 0),
+      ).toThrow();
+    });
+
+    it("move non-canonical plugin task/container succeeds", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["1", "github", "github_pr", "2"],
+        },
+        { id: "1", name: "Task 1" },
+        { id: "3", name: "Task 3", children: ["github"] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      koso.moveNode(Node.parse("2"), Node.parse("1"), 0);
+      koso.moveNode(Node.parse("github_pr"), Node.parse("1"), 0);
+      koso.moveNode(Node.parse("3/github"), Node.parse("1"), 0);
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "github"] },
+        ["github"]: { children: ["github_pr"] },
+        ["github_pr"]: { children: ["2"] },
+        ["1"]: { children: ["github", "github_pr", "2"] },
+        ["3"]: { children: [] },
+      });
+    });
+
+    it("reorder canonical plugin container succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+        },
+      ]);
+      koso.moveNode(Node.parse("github"), Node.parse("root"), 0);
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["github", "1"] },
+      });
+    });
+
+    it("reorder canonical plugin sub-container succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr", "other_plugin"],
+        },
+        { id: "github_pr", name: "Github PR", kind: "github_pr" },
+        { id: "other_plugin", name: "Other", kind: "other_plugin" },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+        { id: "3", name: "Some PR", kind: "github_pr" },
+      ]);
+      koso.moveNode(Node.parse("github/other_plugin"), Node.parse("github"), 0);
+      expect(koso.toJSON()).toMatchObject({
+        ["github"]: { children: ["other_plugin", "github_pr"] },
+      });
+    });
+
+    it("reorder canonical plugin task succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr", "other_plugin"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2", "3"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+        { id: "3", name: "Some PR", kind: "github_pr" },
+      ]);
+      koso.moveNode(
+        Node.parse("github/github_pr/3"),
+        Node.parse("github/github_pr"),
+        0,
+      );
+      expect(koso.toJSON()).toMatchObject({
+        ["github_pr"]: { children: ["3", "2"] },
+      });
+    });
   });
 
   describe("deleteNode", () => {
@@ -546,6 +872,56 @@ describe("Koso tests", () => {
       expect(koso.toJSON()).toHaveProperty("root");
       expect(koso.toJSON()).toHaveProperty("1");
       expect(koso.toJSON()).not.toHaveProperty("2");
+    });
+
+    it("delete canonical plugin task/container throws", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      expect(() => koso.deleteNode(Node.parse("github"))).toThrow();
+      expect(() => koso.deleteNode(Node.parse("github/github_pr"))).toThrow();
+      expect(() => koso.deleteNode(Node.parse("github/github_pr/2"))).toThrow();
+    });
+
+    it("delete non-canonical plugin task/container succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: ["github", "github_pr", "2"] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      koso.deleteNode(Node.parse("1/github"));
+      koso.deleteNode(Node.parse("1/github_pr"));
+      koso.deleteNode(Node.parse("1/2"));
+
+      expect(koso.toJSON()).toMatchObject({
+        ["1"]: { id: "1", children: [] },
+      });
     });
   });
 
@@ -1325,6 +1701,21 @@ describe("Koso tests", () => {
       expect(node).toEqual(Node.parse("t2"));
     });
 
+    it("does not repeat single node", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3"],
+        },
+        { id: "t2" },
+      ]);
+
+      expect(koso.getNextLink(Node.parse("t2"))).toBeNull();
+    });
+  });
+
+  describe("getNextLink", { sequential: true }, () => {
     it("does not repeat single node", () => {
       init([
         {

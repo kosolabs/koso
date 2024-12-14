@@ -632,16 +632,20 @@ export class Koso {
    * the best offset is determined based on the task's status.
    */
   link(task: string, parent: string, offset?: number) {
-    if (this.#hasCycle(parent, task)) {
-      throw new Error(`Inserting ${task} under ${parent} introduces a cycle`);
-    }
-
-    if (this.hasChild(parent, task)) {
-      throw new Error(`Parent task ${parent} already contains ${task}`);
+    if (!this.canLink(task, parent)) {
+      throw new Error(`Cannot insert ${task} under ${parent}`);
     }
 
     offset = offset ?? this.getBestLinkOffset(task, parent);
+    this.#linkUnchecked(task, parent, offset);
+  }
+
+  #linkUnchecked(task: string, parent: string, offset: number) {
     this.getChildren(parent).insert(offset, [task]);
+  }
+
+  canUnlink(task: string, parent: string): boolean {
+    return !this.isCanonicalPluginNode(task, parent);
   }
 
   /**
@@ -655,6 +659,10 @@ export class Koso {
    *   children.
    */
   unlink(taskId: string, parentId: string) {
+    if (!this.canUnlink(taskId, parentId)) {
+      throw new Error(`Cannot unlink ${taskId} from parent ${parentId}`);
+    }
+
     const parent = this.getTask(parentId);
     const index = parent.children.indexOf(taskId);
     if (index < 0)
@@ -686,7 +694,7 @@ export class Koso {
       if (srcOffset < offset) {
         offset -= 1;
       }
-      this.link(task, parent, offset);
+      this.#linkUnchecked(task, parent, offset);
     });
   }
 
@@ -905,29 +913,47 @@ export class Koso {
     });
   }
 
+  /**
+   * Determines if the given task is a plugin task, as opposed to a non-plugin
+   * task or a plugin container, as indicated by the `kind` property.
+   */
   isPluginTask(taskId: string): boolean {
     return !!this.getTask(taskId).kind && !this.isPluginContainer(taskId);
   }
 
+  /**
+   * Determines if the given task is a plugin container. i.e. a task that is
+   * managed by a plugin and contains other plugin containers or tasks.
+   */
   isPluginContainer(taskId: string): boolean {
     return this.getTask(taskId).kind === taskId;
   }
 
+  /**
+   * Determines if a task is editable by users. Today, only tasks managed by a
+   * plugin are not editable.
+   */
   isEditable(taskId: string): boolean {
     return !this.isPluginTask(taskId) && !this.isPluginContainer(taskId);
   }
 
+  /**
+   * Determines if the given task is the canonical plugin task or container
+   * managed by a plugin. As opposed to a link to the canonical task or
+   * container.
+   */
   isCanonicalPluginNode(task: string, parent: string): boolean {
     const kind = this.getTask(task).kind;
     if (!kind) {
       return false;
     }
     // Is an immediate child of a plugin container OR is a plugin container.
-    if (kind.startsWith(parent)) {
+    if (parent.length > 0 && kind.startsWith(parent)) {
       return true;
     }
     // Is a top-level plugin container under root.
     // TODO: There ought to be a better way to do this
+    // Which access to the node and all ancestors, it'd be easy.
     if (kind === "github" && parent === "root") {
       return true;
     }
@@ -957,7 +983,7 @@ export class Koso {
       if (srcParentName === parent.name && srcOffset < offset) {
         offset -= 1;
       }
-      this.link(node.name, parent.name, offset);
+      this.#linkUnchecked(node.name, parent.name, offset);
     });
     this.selected = parent.child(node.name);
   }
@@ -1245,6 +1271,11 @@ export class Koso {
     return `${max + 1}`;
   }
 
+  /** Determines whether the given task may have children inserted. */
+  canInsert(parentTaskId: string): boolean {
+    return !this.isPluginContainer(parentTaskId);
+  }
+
   insertNode(
     parent: Node,
     offset: number,
@@ -1252,7 +1283,7 @@ export class Koso {
     name: string = "",
   ): Node {
     if (!this.canInsert(parent.name)) {
-      throw new Error(`Cannot insert node under parent ${parent} `);
+      throw new Error(`Cannot insert node under parent ${parent}`);
     }
     const taskId = this.newId();
     this.doc.transact(() => {
@@ -1273,10 +1304,6 @@ export class Koso {
     const node = parent.child(taskId);
     this.selected = node;
     return node;
-  }
-
-  canInsert(parentTaskId: string): boolean {
-    return !this.isPluginContainer(parentTaskId);
   }
 
   setTaskName(taskId: string, newName: string) {
