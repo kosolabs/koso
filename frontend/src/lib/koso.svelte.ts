@@ -204,10 +204,6 @@ export class Koso {
     this.#yIndexedDb.whenSynced.then(() => {
       this.#syncState.indexedDbSync = true;
     });
-
-    $effect(() => {
-      this.#send(this.#encodeAwareness());
-    });
   }
 
   destroy() {
@@ -359,8 +355,14 @@ export class Koso {
   }
 
   set selected(value: Node | null) {
+    const shouldUpdateAwareness = this.#selected !== value;
+
     this.#selected = value;
     this.#focus = true;
+
+    if (shouldUpdateAwareness) {
+      this.#send(this.#encodeAwareness());
+    }
   }
 
   get focus(): boolean {
