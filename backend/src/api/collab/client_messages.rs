@@ -1,5 +1,5 @@
 use crate::api::collab::{
-    awareness::Awareness,
+    awareness::AwarenessUpdate,
     client::{ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL},
     projects_state::ProjectState,
 };
@@ -201,9 +201,9 @@ impl ClientMessageProcessor {
             }
             MSG_KOSO_AWARENESS => match decoder.read_var()? {
                 MSG_KOSO_AWARENESS_UPDATE => {
-                    let awareness: Awareness = serde_json::from_str(decoder.read_string()?)?;
-                    tracing::debug!("{awareness:?}");
-                    msg.project.update_awareness(&msg.who, awareness).await;
+                    let update: AwarenessUpdate = serde_json::from_str(decoder.read_string()?)?;
+                    tracing::debug!("{update:?}");
+                    msg.project.update_awareness(&msg.who, update).await;
                     Ok(())
                 }
                 invalid_type => Err(anyhow!("Invalid Koso awareness type: {invalid_type}")),

@@ -1,3 +1,4 @@
+use super::User;
 use crate::api::model::ProjectId;
 use axum::extract::ws::{CloseCode, CloseFrame, Message, WebSocket};
 use futures::SinkExt as _;
@@ -7,6 +8,7 @@ use std::fmt;
 pub(super) fn from_socket(
     socket: WebSocket,
     who: &str,
+    user: &User,
     project_id: &ProjectId,
 ) -> (ClientSender, ClientReceiver) {
     use futures::stream::StreamExt;
@@ -15,6 +17,7 @@ pub(super) fn from_socket(
         ClientSender {
             ws_sender,
             who: who.to_owned(),
+            user: user.clone(),
             project_id: project_id.clone(),
         },
         ClientReceiver {
@@ -45,6 +48,7 @@ pub(super) struct ClientClosure {
 pub(super) struct ClientSender {
     ws_sender: futures::stream::SplitSink<WebSocket, Message>,
     pub(super) who: String,
+    pub(super) user: User,
     pub(super) project_id: ProjectId,
 }
 

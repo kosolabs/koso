@@ -38,6 +38,13 @@ type YMessageKosoAwareness =
 
 type YMessage = typeof MSG_SYNC | typeof MSG_KOSO_AWARENESS;
 
+type AwarenessState = {
+  clientId: number;
+  sequence: number;
+  selected: string[];
+  user: User;
+};
+
 type NodeProps = { path: List<string> };
 const NodeRecord = Record<NodeProps>({ path: List() });
 
@@ -244,8 +251,18 @@ export class Koso {
       if (kosoAwarenessType === MSG_KOSO_AWARENESS_UPDATE) {
         throw new Error("Unimplemented");
       } else if (kosoAwarenessType === MSG_KOSO_AWARENESS_STATE) {
-        const awareness = JSON.parse(decoding.readVarString(decoder));
-        console.log(awareness);
+        const awarenesses = JSON.parse(
+          decoding.readVarString(decoder),
+        ) as AwarenessState[];
+        if (this.debug) {
+          for (const awareness of awarenesses) {
+            if (this.doc.clientID !== awareness.clientId) {
+              toast.info(
+                `${awareness.user.email} (${awareness.clientId}) selected: ${awareness.selected}`,
+              );
+            }
+          }
+        }
       } else {
         throw new Error(`Unknown Koso awareness type: ${kosoAwarenessType}`);
       }
@@ -280,7 +297,7 @@ export class Koso {
       JSON.stringify({
         clientId: this.doc.clientID,
         sequence: this.#sequence++,
-        selected: this.selected?.id,
+        selected: this.selected ? [this.selected.id] : [],
       }),
     );
     return encoding.toUint8Array(encoder);

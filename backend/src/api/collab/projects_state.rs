@@ -1,3 +1,8 @@
+use super::{
+    awareness::{AwarenessState, AwarenessUpdate},
+    msg_sync::koso_awareness_state,
+    User, YDocProxy,
+};
 use crate::{
     api::{
         collab::{
@@ -26,8 +31,6 @@ use std::{
 };
 use tokio::sync::{mpsc::Sender, Mutex};
 use yrs::{ReadTxn as _, StateVector, Update};
-
-use super::{awareness::Awareness, msg_sync::koso_awareness_state, YDocProxy};
 
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
@@ -170,7 +173,7 @@ impl ProjectsState {
 pub(crate) struct ProjectState {
     pub(crate) project_id: ProjectId,
     clients: Mutex<HashMap<String, ClientSender>>,
-    awarenesses: Mutex<HashMap<String, Awareness>>,
+    awarenesses: Mutex<HashMap<String, AwarenessState>>,
     pub(crate) doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
     doc_update_tx: Sender<DocUpdate>,
@@ -314,8 +317,17 @@ impl ProjectState {
         futures::future::join_all(res).await;
     }
 
-    pub(super) async fn update_awareness(&self, who: &str, awareness: Awareness) {
-        self.awarenesses.lock().await.insert(who.into(), awareness);
+    async fn get_user(&self, who: &str) -> Option<User> {
+        Some(self.clients.lock().await.get(who)?.user.clone())
+    }
+
+    pub(super) async fn update_awareness(&self, who: &str, update: AwarenessUpdate) {
+        let Some(user) = self.get_user(who).await else {
+            tracing::warn!("Failed to get client while updating awareness");
+            return;
+        };
+        let state = update.into_state(user);
+        self.awarenesses.lock().await.insert(who.into(), state);
         self.broadcast_awarenesses().await;
     }
 
