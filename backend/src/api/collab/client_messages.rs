@@ -162,43 +162,39 @@ impl ClientMessageProcessor {
     async fn process_message(&self, msg: ClientMessage) -> Result<()> {
         let mut decoder = DecoderV1::from(msg.data.as_slice());
         match decoder.read_var()? {
-            MSG_SYNC => {
-                match decoder.read_var()? {
-                    MSG_SYNC_REQUEST => {
-                        tracing::debug!("Handling sync_request message");
-                        let update = msg
-                            .project
-                            .encode_state_as_update(&StateVector::decode_v1(decoder.read_buf()?)?)
-                            .await?;
+            MSG_SYNC => match decoder.read_var()? {
+                MSG_SYNC_REQUEST => {
+                    tracing::debug!("Handling sync_request message");
+                    let update = msg
+                        .project
+                        .encode_state_as_update(&StateVector::decode_v1(decoder.read_buf()?)?)
+                        .await?;
 
-                        // Respond to the client with a sync_response message containing
-                        // changes known to the server but not the client.
-                        // There's no need to broadcast such updates to others or perist them.
-                        tracing::debug!("Sending synce_response message to client.");
-                        msg.project
-                            .send_msg(&msg.who, sync_response(&update))
-                            .await?;
-
-                        Ok(())
-                    }
-                    MSG_SYNC_RESPONSE | MSG_SYNC_UPDATE => {
-                        tracing::debug!("Handling sync_update|sync_response message");
-                        let update = Update::decode_v2(decoder.read_buf()?)?;
-                        msg.project
-                            .apply_doc_update(
-                                YOrigin {
-                                    who: msg.who,
-                                    id: msg.id,
-                                },
-                                update,
-                            )
-                            .await?;
-
-                        Ok(())
-                    }
-                    invalid_type => Err(anyhow!("Invalid sync type: {invalid_type}")),
+                    // Respond to the client with a sync_response message containing
+                    // changes known to the server but not the client.
+                    // There's no need to broadcast such updates to others or perist them.
+                    tracing::debug!("Sending synce_response message to client.");
+                    msg.project
+                        .send_msg(&msg.who, sync_response(&update))
+                        .await?;
+                    Ok(())
                 }
-            }
+                MSG_SYNC_RESPONSE | MSG_SYNC_UPDATE => {
+                    tracing::debug!("Handling sync_update|sync_response message");
+                    let update = Update::decode_v2(decoder.read_buf()?)?;
+                    msg.project
+                        .apply_doc_update(
+                            YOrigin {
+                                who: msg.who,
+                                id: msg.id,
+                            },
+                            update,
+                        )
+                        .await?;
+                    Ok(())
+                }
+                invalid_type => Err(anyhow!("Invalid sync type: {invalid_type}")),
+            },
             MSG_KOSO_AWARENESS => match decoder.read_var()? {
                 MSG_KOSO_AWARENESS_UPDATE => {
                     let update: AwarenessUpdate = serde_json::from_str(decoder.read_string()?)?;

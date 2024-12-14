@@ -3,14 +3,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct AwarenessUpdate {
+pub(crate) struct AwarenessUpdate {
     client_id: i64,
     sequence: i64,
     selected: Vec<String>,
 }
 
 impl AwarenessUpdate {
-    pub(super) fn into_state(self, user: User) -> AwarenessState {
+    pub(crate) fn into_state(self, user: User) -> AwarenessState {
         AwarenessState {
             client_id: self.client_id,
             sequence: self.sequence,
@@ -22,7 +22,7 @@ impl AwarenessUpdate {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct AwarenessState {
+pub(crate) struct AwarenessState {
     client_id: i64,
     sequence: i64,
     selected: Vec<String>,
