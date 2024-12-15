@@ -289,6 +289,16 @@ pub(crate) struct User {
     pub(crate) exp: usize,
 }
 
+impl User {
+    pub fn to_user(&self) -> crate::api::model::User {
+        crate::api::model::User {
+            email: self.email.clone(),
+            name: self.name.clone(),
+            picture: self.picture.clone(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::api::google::Certs;

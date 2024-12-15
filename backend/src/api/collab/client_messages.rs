@@ -1,10 +1,14 @@
 use crate::api::collab::{
-    client::{ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL},
-    projects_state::ProjectState,
-};
-use crate::api::collab::{
     msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
     txn_origin::YOrigin,
+};
+use crate::api::{
+    collab::{
+        awareness::AwarenessUpdate,
+        client::{ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL},
+        projects_state::ProjectState,
+    },
+    model::User,
 };
 use anyhow::{anyhow, Result};
 use axum::extract::ws::Message;
@@ -18,6 +22,8 @@ use yrs::{
     updates::decoder::{Decode as _, DecoderV1},
     StateVector, Update,
 };
+
+use super::msg_sync::{MSG_KOSO_AWARENESS, MSG_KOSO_AWARENESS_UPDATE};
 
 /// ClientMessageReceiver receives messages from clients
 /// about a particular project and forwards the binary ones to
@@ -87,6 +93,7 @@ impl ClientMessageReceiver {
                     .process_msg_tx
                     .send(ClientMessage {
                         who: self.receiver.who.clone(),
+                        user: self.receiver.user.clone(),
                         project: Arc::clone(&self.project),
                         id: Uuid::new_v4().to_string(),
                         data,
@@ -159,43 +166,50 @@ impl ClientMessageProcessor {
     async fn process_message(&self, msg: ClientMessage) -> Result<()> {
         let mut decoder = DecoderV1::from(msg.data.as_slice());
         match decoder.read_var()? {
-            MSG_SYNC => {
-                match decoder.read_var()? {
-                    MSG_SYNC_REQUEST => {
-                        tracing::debug!("Handling sync_request message");
-                        let update = msg
-                            .project
-                            .encode_state_as_update(&StateVector::decode_v1(decoder.read_buf()?)?)
-                            .await?;
+            MSG_SYNC => match decoder.read_var()? {
+                MSG_SYNC_REQUEST => {
+                    tracing::debug!("Handling sync_request message");
+                    let update = msg
+                        .project
+                        .encode_state_as_update(&StateVector::decode_v1(decoder.read_buf()?)?)
+                        .await?;
 
-                        // Respond to the client with a sync_response message containing
-                        // changes known to the server but not the client.
-                        // There's no need to broadcast such updates to others or perist them.
-                        tracing::debug!("Sending synce_response message to client.");
-                        msg.project
-                            .send_msg(&msg.who, sync_response(&update))
-                            .await?;
-
-                        Ok(())
-                    }
-                    MSG_SYNC_RESPONSE | MSG_SYNC_UPDATE => {
-                        tracing::debug!("Handling sync_update|sync_response message");
-                        let update = Update::decode_v2(decoder.read_buf()?)?;
-                        msg.project
-                            .apply_doc_update(
-                                YOrigin {
-                                    who: msg.who,
-                                    id: msg.id,
-                                },
-                                update,
-                            )
-                            .await?;
-
-                        Ok(())
-                    }
-                    invalid_type => Err(anyhow!("Invalid sync type: {invalid_type}")),
+                    // Respond to the client with a sync_response message containing
+                    // changes known to the server but not the client.
+                    // There's no need to broadcast such updates to others or perist them.
+                    tracing::debug!("Sending synce_response message to client.");
+                    msg.project
+                        .send_msg(&msg.who, sync_response(&update))
+                        .await?;
+                    Ok(())
                 }
-            }
+                MSG_SYNC_RESPONSE | MSG_SYNC_UPDATE => {
+                    tracing::debug!("Handling sync_update|sync_response message");
+                    let update = Update::decode_v2(decoder.read_buf()?)?;
+                    msg.project
+                        .apply_doc_update(
+                            YOrigin {
+                                who: msg.who,
+                                id: msg.id,
+                            },
+                            update,
+                        )
+                        .await?;
+                    Ok(())
+                }
+                invalid_type => Err(anyhow!("Invalid sync type: {invalid_type}")),
+            },
+            MSG_KOSO_AWARENESS => match decoder.read_var()? {
+                MSG_KOSO_AWARENESS_UPDATE => {
+                    let update: AwarenessUpdate = serde_json::from_str(decoder.read_string()?)?;
+                    tracing::debug!("{update:?}");
+                    msg.project
+                        .update_awareness(&msg.who, &msg.user, update)
+                        .await;
+                    Ok(())
+                }
+                invalid_type => Err(anyhow!("Invalid Koso awareness type: {invalid_type}")),
+            },
             invalid_type => Err(anyhow!("Invalid message protocol type: {invalid_type}")),
         }
     }
@@ -203,6 +217,7 @@ impl ClientMessageProcessor {
 
 pub(super) struct ClientMessage {
     pub(super) who: String,
+    pub(super) user: User,
     pub(super) project: Arc<ProjectState>,
     /// Unique ID associated with this update.
     pub(super) id: String,

@@ -53,7 +53,7 @@ pub(crate) struct ProjectUser {
     pub(crate) picture: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct User {
     pub(crate) email: String,

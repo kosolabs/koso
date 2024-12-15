@@ -2,13 +2,17 @@ use std::{mem, net::SocketAddr, time::Duration};
 
 use crate::{
     api::{
-        collab::msg_sync::{self, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
+        collab::{
+            awareness::AwarenessState,
+            msg_sync::{self, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
+        },
         google::test_utils::{encode_token, testonly_key_set, Claims, KID_1, PEM_1},
         model::{CreateProject, Project, ProjectExport, Task},
         yproxy::YDocProxy,
     },
     plugins::{github::GithubSpecificConfig, PluginSettings},
     server::{self, Config},
+    tests::msg_sync::{MSG_KOSO_AWARENESS, MSG_KOSO_AWARENESS_STATE},
 };
 use anyhow::{anyhow, Result};
 use axum::http::HeaderValue;
@@ -519,6 +523,8 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         )))
         .await
         .unwrap();
+    // Read the Koso awareness state.
+    read_awareness_state(socket_1).await;
     // Read the sync_response.
     assert_eq!(read_sync_response(socket_1).await, Update::default());
     // Send the sync_response.
@@ -971,6 +977,24 @@ async fn read_sync_update(socket: &mut Socket) -> Update {
     }
 }
 
+async fn read_awareness_state(socket: &mut Socket) -> Vec<AwarenessState> {
+    let awareness_state = next_with_timeout(socket).await.unwrap().unwrap();
+    let Message::Binary(awareness_state) = awareness_state else {
+        panic!("Expected binary awareness_state, got: {awareness_state:?}");
+    };
+    assert!(!awareness_state.is_empty());
+    let mut decoder = DecoderV1::from(awareness_state.as_slice());
+    match decoder.read_var().unwrap() {
+        MSG_KOSO_AWARENESS => match decoder.read_var().unwrap() {
+            MSG_KOSO_AWARENESS_STATE => {
+                serde_json::from_str(decoder.read_string().unwrap()).unwrap()
+            }
+            invalid_type => panic!("Invalid Koso awareness type: {invalid_type}"),
+        },
+        invalid_type => panic!("Invalid message protocol type: {invalid_type}"),
+    }
+}
+
 async fn close_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
     socket
         .close(Some(CloseFrame {
@@ -980,9 +1004,16 @@ async fn close_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
         .await
         .unwrap();
     // Read the final close message.
-    let close = next_with_timeout(socket).await.unwrap().unwrap();
-    let Message::Close(Some(close)) = close else {
-        panic!("Expected close frame, got: {close:?}");
+    let close = loop {
+        let close = next_with_timeout(socket).await.unwrap().unwrap();
+        match close {
+            Message::Close(Some(close)) => break close,
+            Message::Binary(awareness) => {
+                assert!(awareness[0] == 8);
+                continue;
+            }
+            _ => panic!("Expected close frame, got: {close:?}"),
+        }
     };
     assert_eq!(close.code, CloseCode::Normal);
     assert_eq!(close.reason, "all done");
@@ -995,10 +1026,17 @@ async fn close_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
 async fn close_socket_without_details(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
     socket.close(None).await.unwrap();
     // Read the final close message.
-    let close = next_with_timeout(socket).await.unwrap().unwrap();
-    let Message::Close(None) = close else {
-        panic!("Expected close frame, got: {close:?}");
-    };
+    loop {
+        let close = next_with_timeout(socket).await.unwrap().unwrap();
+        match close {
+            Message::Close(None) => break,
+            Message::Binary(awareness) => {
+                assert!(awareness[0] == 8);
+                continue;
+            }
+            _ => panic!("Expected close frame, got: {close:?}"),
+        }
+    }
 
     // Validate the socket is terminated
     assert!(next_with_timeout(socket).await.unwrap().is_none());
@@ -1006,9 +1044,17 @@ async fn close_socket_without_details(socket: &mut WebSocketStream<MaybeTlsStrea
 }
 
 async fn respond_closed_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
-    let close = next_with_timeout(socket).await.unwrap().unwrap();
-    let Message::Close(Some(close)) = close else {
-        panic!("Expected close frame, got: {close:?}");
+    // Read the final close message.
+    let close = loop {
+        let close = next_with_timeout(socket).await.unwrap().unwrap();
+        match close {
+            Message::Close(Some(close)) => break close,
+            Message::Binary(awareness) => {
+                assert!(awareness[0] == 8);
+                continue;
+            }
+            _ => panic!("Expected close frame, got: {close:?}"),
+        }
     };
     assert_eq!(close.code, CloseCode::Restart);
     assert_eq!(close.reason, "The server is shutting down.");

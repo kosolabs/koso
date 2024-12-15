@@ -6,6 +6,7 @@
 //!   - SYNC_UPDATE -
 //!
 
+pub(crate) mod awareness;
 pub(crate) mod client;
 pub(crate) mod client_messages;
 pub(crate) mod doc_updates;
@@ -86,7 +87,7 @@ impl Collab {
         tracing::Span::current().record("who", &who);
         tracing::debug!("Registering client");
 
-        let (mut sender, receiver) = from_socket(socket, &who, &project_id);
+        let (mut sender, receiver) = from_socket(socket, &who, user.to_user(), &project_id);
 
         // Before doing anything else, make sure the user has access to the project.
         if let Err(e) = api::verify_project_access(self.inner.pool, user, &project_id).await {

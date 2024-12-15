@@ -73,7 +73,7 @@ export class KosoSocket {
     socket.onopen = (event) => {
       console.debug("WebSocket opened", event);
       this.#setOnline();
-      this.koso.handleClientMessage((update) => {
+      this.koso.setSendAndSync((update) => {
         if (socket.readyState == WebSocket.OPEN) {
           socket.send(update);
         } else {
@@ -87,7 +87,7 @@ export class KosoSocket {
 
     socket.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) {
-        this.koso.handleServerMessage(new Uint8Array(event.data));
+        this.koso.receive(new Uint8Array(event.data));
       } else {
         console.debug("Received text frame from server:", event.data);
       }
