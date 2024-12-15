@@ -1,11 +1,14 @@
 use crate::api::collab::{
-    awareness::AwarenessUpdate,
-    client::{ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL},
-    projects_state::ProjectState,
-};
-use crate::api::collab::{
     msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
     txn_origin::YOrigin,
+};
+use crate::api::{
+    collab::{
+        awareness::AwarenessUpdate,
+        client::{ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL},
+        projects_state::ProjectState,
+    },
+    model::User,
 };
 use anyhow::{anyhow, Result};
 use axum::extract::ws::Message;
@@ -90,6 +93,7 @@ impl ClientMessageReceiver {
                     .process_msg_tx
                     .send(ClientMessage {
                         who: self.receiver.who.clone(),
+                        user: self.receiver.user.clone(),
                         project: Arc::clone(&self.project),
                         id: Uuid::new_v4().to_string(),
                         data,
@@ -199,7 +203,9 @@ impl ClientMessageProcessor {
                 MSG_KOSO_AWARENESS_UPDATE => {
                     let update: AwarenessUpdate = serde_json::from_str(decoder.read_string()?)?;
                     tracing::debug!("{update:?}");
-                    msg.project.update_awareness(&msg.who, update).await;
+                    msg.project
+                        .update_awareness(&msg.who, &msg.user, update)
+                        .await;
                     Ok(())
                 }
                 invalid_type => Err(anyhow!("Invalid Koso awareness type: {invalid_type}")),
@@ -211,6 +217,7 @@ impl ClientMessageProcessor {
 
 pub(super) struct ClientMessage {
     pub(super) who: String,
+    pub(super) user: User,
     pub(super) project: Arc<ProjectState>,
     /// Unique ID associated with this update.
     pub(super) id: String,

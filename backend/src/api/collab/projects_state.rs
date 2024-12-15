@@ -1,7 +1,7 @@
 use super::{
     awareness::{AwarenessState, AwarenessUpdate},
     msg_sync::koso_awareness_state,
-    User, YDocProxy,
+    YDocProxy,
 };
 use crate::{
     api::{
@@ -15,7 +15,7 @@ use crate::{
             storage,
             txn_origin::YOrigin,
         },
-        model::ProjectId,
+        model::{ProjectId, User},
     },
     postgres::compact,
 };
@@ -317,16 +317,8 @@ impl ProjectState {
         futures::future::join_all(res).await;
     }
 
-    async fn get_user(&self, who: &str) -> Option<User> {
-        Some(self.clients.lock().await.get(who)?.user.clone())
-    }
-
-    pub(super) async fn update_awareness(&self, who: &str, update: AwarenessUpdate) {
-        let Some(user) = self.get_user(who).await else {
-            tracing::warn!("Failed to get client while updating awareness");
-            return;
-        };
-        let state = update.into_state(user);
+    pub(super) async fn update_awareness(&self, who: &str, user: &User, update: AwarenessUpdate) {
+        let state = update.into_state(user.clone());
         self.awarenesses.lock().await.insert(who.into(), state);
         self.broadcast_awarenesses().await;
     }
