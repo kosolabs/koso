@@ -310,7 +310,7 @@ describe("Koso tests", () => {
           kind: "github_pr",
           children: ["1"],
         },
-        { id: "1", name: "Task 1" },
+        { id: "1", name: "Task 1", kind: "github_pr" },
       ]);
 
       expect(() => koso.unlink("github", "root")).toThrow();
@@ -333,7 +333,7 @@ describe("Koso tests", () => {
           kind: "github_pr",
           children: ["1"],
         },
-        { id: "1", name: "Task 1" },
+        { id: "1", name: "Task 1", kind: "github_pr" },
         { id: "2", name: "Task 2", children: ["github", "1"] },
       ]);
 
@@ -397,7 +397,7 @@ describe("Koso tests", () => {
           kind: "github_pr",
           children: ["1"],
         },
-        { id: "1", name: "Task 1" },
+        { id: "1", name: "Task 1", kind: "github_pr" },
       ]);
 
       expect(() =>
@@ -408,7 +408,7 @@ describe("Koso tests", () => {
       ).toThrow();
     });
 
-    it("inserting a child of a plugin task succeeds", () => {
+    it("inserting a child of a plugin task throws", () => {
       init([
         {
           id: "root",
@@ -427,19 +427,12 @@ describe("Koso tests", () => {
           kind: "github_pr",
           children: ["1"],
         },
-        { id: "1", name: "Task 1" },
+        { id: "1", name: "Task 1", kind: "github_pr" },
       ]);
 
-      const id2 = koso.insertNode(
-        Node.parse("github/github_pr/1"),
-        0,
-        USER,
-        "Task 2",
-      );
-      expect(koso.toJSON()).toMatchObject({
-        ["1"]: { id: "1", children: [id2.name] },
-        [id2.name]: { id: id2.name },
-      });
+      expect(() =>
+        koso.insertNode(Node.parse("github/github_pr/1"), 0, USER, "Task 2"),
+      ).toThrow();
     });
   });
 
@@ -506,7 +499,7 @@ describe("Koso tests", () => {
       ).toThrow();
     });
 
-    it("link node 1 to plugin task succeeds", () => {
+    it("link node 1 to plugin task throws", () => {
       init([
         { id: "root", name: "Root", children: ["1", "github"] },
         { id: "1", name: "Task 1", children: [] },
@@ -524,12 +517,9 @@ describe("Koso tests", () => {
         },
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
-      koso.linkNode(Node.parse("1"), Node.parse("github/github_pr/2"), 0);
-      expect(koso.toJSON()).toMatchObject({
-        root: { children: ["1", "github"] },
-        ["1"]: { id: "1", children: [] },
-        ["2"]: { id: "2", children: ["1"] },
-      });
+      expect(() =>
+        koso.linkNode(Node.parse("1"), Node.parse("github/github_pr/2"), 0),
+      ).toThrow();
     });
 
     it("link plugin task/container elsewhere succeeds", () => {

@@ -622,7 +622,7 @@ export class Koso {
     return (
       !this.#hasCycle(parent, task) &&
       !this.hasChild(parent, task) &&
-      !this.isPluginContainer(parent)
+      !this.isManagedTask(parent)
     );
   }
 
@@ -645,7 +645,7 @@ export class Koso {
   }
 
   canUnlink(task: string, parent: string): boolean {
-    return !this.isCanonicalPluginNode(task, parent);
+    return !this.#isCanonicalManagedLink(task, parent);
   }
 
   /**
@@ -673,7 +673,7 @@ export class Koso {
   canMove(task: string, src: string, dest: string): boolean {
     return (
       src === dest ||
-      (!this.isCanonicalPluginNode(task, src) && this.canLink(task, dest))
+      (!this.#isCanonicalManagedLink(task, src) && this.canLink(task, dest))
     );
   }
 
@@ -844,7 +844,7 @@ export class Koso {
   }
 
   canDeleteNode(task: string, parent: string): boolean {
-    return !this.isCanonicalPluginNode(task, parent);
+    return !this.#isCanonicalManagedLink(task, parent);
   }
 
   deleteNode(node: Node) {
@@ -914,19 +914,11 @@ export class Koso {
   }
 
   /**
-   * Determines if the given task is a plugin task, as opposed to a non-plugin
-   * task or a plugin container, as indicated by the `kind` property.
+   * Determines if the given task is a managed task, as indicated by the `kind`
+   * property.
    */
-  isPluginTask(taskId: string): boolean {
-    return !!this.getTask(taskId).kind && !this.isPluginContainer(taskId);
-  }
-
-  /**
-   * Determines if the given task is a plugin container. i.e. a task that is
-   * managed by a plugin and contains other plugin containers or tasks.
-   */
-  isPluginContainer(taskId: string): boolean {
-    return this.getTask(taskId).kind === taskId;
+  isManagedTask(taskId: string): boolean {
+    return !!this.getTask(taskId).kind;
   }
 
   /**
@@ -934,13 +926,12 @@ export class Koso {
    * plugin are not editable.
    */
   isEditable(taskId: string): boolean {
-    return !this.isPluginTask(taskId) && !this.isPluginContainer(taskId);
+    return !this.isManagedTask(taskId);
   }
 
   /**
-   * Determines if the given task is the canonical plugin task or container
-   * managed by a plugin. As opposed to a link to the canonical task or
-   * container.
+   * Determines if the given task is the canonical plugin task managed by a
+   * plugin. As opposed to a link to the canonical task or container.
    *
    * The top-level plugin container is always a child of `root`. Plugin tasks
    * and containers are nested underneath. In the case of the github plugin, the
@@ -950,7 +941,7 @@ export class Koso {
    * would return false. `root -> github_pr` or `root -> [some pr task]`, for
    * example.
    */
-  isCanonicalPluginNode(task: string, parent: string): boolean {
+  #isCanonicalManagedLink(task: string, parent: string): boolean {
     const kind = this.getTask(task).kind;
     if (!kind) {
       return false;
@@ -1281,7 +1272,7 @@ export class Koso {
 
   /** Determines whether the given task may have children inserted. */
   canInsert(parentTaskId: string): boolean {
-    return !this.isPluginContainer(parentTaskId);
+    return !this.isManagedTask(parentTaskId);
   }
 
   insertNode(

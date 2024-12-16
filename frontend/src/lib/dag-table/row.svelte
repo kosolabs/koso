@@ -145,7 +145,7 @@
         return props;
       });
 
-    if (koso.isPluginTask(task.id) && task.url) {
+    if (koso.isManagedTask(task.id) && task.url) {
       let url = task.url;
       let chip = {
         title: "link",
