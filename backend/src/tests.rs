@@ -518,7 +518,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(read_sync_request(socket_1).await, StateVector::default());
     // Send our own sync request
     socket_1
-        .send(Message::Binary(msg_sync::sync_request(
+        .send(Message::binary(msg_sync::sync_request(
             &ydoc_1.transact().state_vector(),
         )))
         .await
@@ -529,7 +529,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(read_sync_response(socket_1).await, Update::default());
     // Send the sync_response.
     socket_1
-        .send(Message::Binary(msg_sync::sync_response(
+        .send(Message::binary(msg_sync::sync_response(
             &Update::default().encode_v2(),
         )))
         .await
@@ -539,7 +539,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(read_sync_request(socket_2).await, StateVector::default());
     // Send a sync_response.
     socket_2
-        .send(Message::Binary(msg_sync::sync_response(
+        .send(Message::binary(msg_sync::sync_response(
             &ydoc_2
                 .transact()
                 .encode_state_as_update_v2(&StateVector::default()),
@@ -566,7 +566,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     );
     // Send our own sync request
     socket_3
-        .send(Message::Binary(msg_sync::sync_request(
+        .send(Message::binary(msg_sync::sync_request(
             &ydoc_3.transact().state_vector(),
         )))
         .await
@@ -580,7 +580,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 
     // Everything is up to date, subsequent syncs should yield empty updates.
     socket_3
-        .send(Message::Binary(msg_sync::sync_request(
+        .send(Message::binary(msg_sync::sync_request(
             &ydoc_3.transact().state_vector(),
         )))
         .await
@@ -638,7 +638,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         );
         let update = txn.encode_update_v2();
         socket_1
-            .send(Message::Binary(msg_sync::sync_update(&update)))
+            .send(Message::binary(msg_sync::sync_update(&update)))
             .await
             .unwrap();
     }
@@ -672,26 +672,26 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         );
 
         // Send a ping.
-        socket.send(Message::Text("".to_string())).await.unwrap();
+        socket.send(Message::text("".to_string())).await.unwrap();
         // Send some random text, it's discarded.
         socket
-            .send(Message::Text("DISCARD_ME".to_string()))
+            .send(Message::text("DISCARD_ME".to_string()))
             .await
             .unwrap();
         // Send some invalid binary
         // Invalid protocol type.
-        socket.send(Message::Binary(vec![5, 4])).await.unwrap();
+        socket.send(Message::binary(vec![5, 4])).await.unwrap();
         // Invalid sync type.
-        socket.send(Message::Binary(vec![0, 5])).await.unwrap();
+        socket.send(Message::binary(vec![0, 5])).await.unwrap();
         // Invalid content.
-        socket.send(Message::Binary(vec![0, 1, 0])).await.unwrap();
-        socket.send(Message::Binary(vec![0, 1, 1])).await.unwrap();
+        socket.send(Message::binary(vec![0, 1, 0])).await.unwrap();
+        socket.send(Message::binary(vec![0, 1, 1])).await.unwrap();
         socket
-            .send(Message::Binary(vec![0, 0, 4, 2, 2, 2, 2]))
+            .send(Message::binary(vec![0, 0, 4, 2, 2, 2, 2]))
             .await
             .unwrap();
         socket
-            .send(Message::Binary(vec![0, 1, 4, 2, 2, 2, 2]))
+            .send(Message::binary(vec![0, 1, 4, 2, 2, 2, 2]))
             .await
             .unwrap();
 
@@ -799,7 +799,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
             },
         );
         socket
-            .send(Message::Binary(msg_sync::sync_response(
+            .send(Message::binary(msg_sync::sync_response(
                 &doc.transact()
                     .encode_state_as_update_v2(&StateVector::default()),
             )))
@@ -816,7 +816,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
     read_sync_request(socket).await;
     let doc: YDocProxy = YDocProxy::new();
     socket
-        .send(Message::Binary(msg_sync::sync_request(
+        .send(Message::binary(msg_sync::sync_request(
             &doc.transact().state_vector(),
         )))
         .await
@@ -1009,7 +1009,7 @@ async fn close_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
         match close {
             Message::Close(Some(close)) => break close,
             Message::Binary(awareness) => {
-                assert!(awareness[0] == 8);
+                assert!(awareness.as_slice()[0] == 8);
                 continue;
             }
             _ => panic!("Expected close frame, got: {close:?}"),
@@ -1031,7 +1031,7 @@ async fn close_socket_without_details(socket: &mut WebSocketStream<MaybeTlsStrea
         match close {
             Message::Close(None) => break,
             Message::Binary(awareness) => {
-                assert!(awareness[0] == 8);
+                assert!(awareness.as_slice()[0] == 8);
                 continue;
             }
             _ => panic!("Expected close frame, got: {close:?}"),
@@ -1050,7 +1050,7 @@ async fn respond_closed_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpSt
         match close {
             Message::Close(Some(close)) => break close,
             Message::Binary(awareness) => {
-                assert!(awareness[0] == 8);
+                assert!(awareness.as_slice()[0] == 8);
                 continue;
             }
             _ => panic!("Expected close frame, got: {close:?}"),
