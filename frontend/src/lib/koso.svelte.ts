@@ -941,6 +941,14 @@ export class Koso {
    * Determines if the given task is the canonical plugin task or container
    * managed by a plugin. As opposed to a link to the canonical task or
    * container.
+   *
+   * The top-level plugin container is always a child of `root`. Plugin tasks
+   * and containers are nested underneath. In the case of the github plugin, the
+   * hierarchy is: `root -> github -> github_pr -> [some pr task]`
+   *
+   * Links to these in other locations are non-canonical and thus this method
+   * would return false. `root -> github_pr` or `root -> [some pr task]`, for
+   * example.
    */
   isCanonicalPluginNode(task: string, parent: string): boolean {
     const kind = this.getTask(task).kind;
