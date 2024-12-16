@@ -21,7 +21,7 @@
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
-  import { ChevronRight, Grip, Github } from "lucide-svelte";
+  import { ChevronRight, Grip, Github, ToyBrick } from "lucide-svelte";
   import { getContext } from "svelte";
   import { toast } from "svelte-sonner";
   import DropIndicator from "./drop-indicator.svelte";
@@ -453,7 +453,11 @@
           }}
           disabled={!task.url}
         >
-          <Github class="text-black" />
+          {#if task.kind && task.kind.startsWith("github")}
+            <Github class="text-black" />
+          {:else}
+            <ToyBrick class="text-black" />
+          {/if}
           {task.name || "Untitled"}
         </Button>
       {/if}
