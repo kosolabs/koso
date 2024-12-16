@@ -12,6 +12,7 @@
     value: Status | null;
     open: boolean;
     statusTime: Date | null;
+    editable: boolean;
     onOpenChange?: (open: boolean) => void;
     onSelect?: (status: Status) => void;
   };
@@ -22,6 +23,7 @@
     statusTime,
     onOpenChange,
     onSelect,
+    editable = true,
   }: Props = $props();
 
   function handleOpenChange(o: boolean) {
@@ -35,37 +37,48 @@
   }
 </script>
 
-<DropdownMenu.Root controlledOpen {open} onOpenChange={handleOpenChange}>
-  <DropdownMenu.Trigger
+{#if editable}
+  <DropdownMenu.Root controlledOpen {open} onOpenChange={handleOpenChange}>
+    <DropdownMenu.Trigger
+      class="flex items-center gap-2"
+      title={(value || "Not Started") +
+        (statusTime ? " - " + statusTime.toLocaleString() : "")}
+    >
+      <TaskStatusIcon status={value} />
+      <ResponsiveText>{value || "Not Started"}</ResponsiveText>
+    </DropdownMenu.Trigger>
+    <div
+      role="none"
+      onkeydown={(event) => {
+        if (Shortcut.CANCEL.matches(event)) {
+          open = false;
+        }
+        event.stopPropagation();
+      }}
+    >
+      <DropdownMenu.Content
+        portalProps={{ disabled: true }}
+        preventScroll={false}
+      >
+        {#each statuses as status}
+          <DropdownMenu.Item
+            class="flex items-center gap-2 rounded p-2"
+            onSelect={() => select(status)}
+          >
+            <TaskStatusIcon {status} />
+            {status}
+          </DropdownMenu.Item>
+        {/each}
+      </DropdownMenu.Content>
+    </div>
+  </DropdownMenu.Root>
+{:else}
+  <div
     class="flex items-center gap-2"
     title={(value || "Not Started") +
       (statusTime ? " - " + statusTime.toLocaleString() : "")}
   >
     <TaskStatusIcon status={value} />
     <ResponsiveText>{value || "Not Started"}</ResponsiveText>
-  </DropdownMenu.Trigger>
-  <div
-    role="none"
-    onkeydown={(event) => {
-      if (Shortcut.CANCEL.matches(event)) {
-        open = false;
-      }
-      event.stopPropagation();
-    }}
-  >
-    <DropdownMenu.Content
-      portalProps={{ disabled: true }}
-      preventScroll={false}
-    >
-      {#each statuses as status}
-        <DropdownMenu.Item
-          class="flex items-center gap-2 rounded p-2"
-          onSelect={() => select(status)}
-        >
-          <TaskStatusIcon {status} />
-          {status}
-        </DropdownMenu.Item>
-      {/each}
-    </DropdownMenu.Content>
   </div>
-</DropdownMenu.Root>
+{/if}

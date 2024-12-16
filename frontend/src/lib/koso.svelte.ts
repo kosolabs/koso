@@ -619,7 +619,11 @@ export class Koso {
 
   /** Determines if a task can be linked to a parent task. */
   canLink(task: string, parent: string): boolean {
-    return !this.#hasCycle(parent, task) && !this.hasChild(parent, task);
+    return (
+      !this.#hasCycle(parent, task) &&
+      !this.hasChild(parent, task) &&
+      !this.isManagedTask(parent)
+    );
   }
 
   /**
@@ -628,16 +632,20 @@ export class Koso {
    * the best offset is determined based on the task's status.
    */
   link(task: string, parent: string, offset?: number) {
-    if (this.#hasCycle(parent, task)) {
-      throw new Error(`Inserting ${task} under ${parent} introduces a cycle`);
-    }
-
-    if (this.hasChild(parent, task)) {
-      throw new Error(`Parent task ${parent} already contains ${task}`);
+    if (!this.canLink(task, parent)) {
+      throw new Error(`Cannot insert ${task} under ${parent}`);
     }
 
     offset = offset ?? this.getBestLinkOffset(task, parent);
+    this.#linkUnchecked(task, parent, offset);
+  }
+
+  #linkUnchecked(task: string, parent: string, offset: number) {
     this.getChildren(parent).insert(offset, [task]);
+  }
+
+  canUnlink(task: string, parent: string): boolean {
+    return !this.#isCanonicalManagedLink(task, parent);
   }
 
   /**
@@ -651,6 +659,10 @@ export class Koso {
    *   children.
    */
   unlink(taskId: string, parentId: string) {
+    if (!this.canUnlink(taskId, parentId)) {
+      throw new Error(`Cannot unlink ${taskId} from parent ${parentId}`);
+    }
+
     const parent = this.getTask(parentId);
     const index = parent.children.indexOf(taskId);
     if (index < 0)
@@ -659,7 +671,10 @@ export class Koso {
   }
 
   canMove(task: string, src: string, dest: string): boolean {
-    return src === dest || this.canLink(task, dest);
+    return (
+      src === dest ||
+      (!this.#isCanonicalManagedLink(task, src) && this.canLink(task, dest))
+    );
   }
 
   reorder(task: string, parent: string, offset: number) {
@@ -679,7 +694,7 @@ export class Koso {
       if (srcOffset < offset) {
         offset -= 1;
       }
-      this.link(task, parent, offset);
+      this.#linkUnchecked(task, parent, offset);
     });
   }
 
@@ -828,7 +843,15 @@ export class Koso {
     return null;
   }
 
+  canDeleteNode(task: string, parent: string): boolean {
+    return !this.#isCanonicalManagedLink(task, parent);
+  }
+
   deleteNode(node: Node) {
+    if (!this.canDeleteNode(node.name, node.parent.name)) {
+      throw new Error(`Cannot delete node ${node}`);
+    }
+
     const subtreeTaskIds = this.#collectSubtreeTaskIds(node.name);
 
     // Find all of the tasks that will become orphans when `node`
@@ -890,6 +913,52 @@ export class Koso {
     });
   }
 
+  /**
+   * Determines if the given task is a managed task, as indicated by the `kind`
+   * property.
+   */
+  isManagedTask(taskId: string): boolean {
+    return !!this.getTask(taskId).kind;
+  }
+
+  /**
+   * Determines if a task is editable by users. Today, only tasks managed by a
+   * plugin are not editable.
+   */
+  isEditable(taskId: string): boolean {
+    return !this.isManagedTask(taskId);
+  }
+
+  /**
+   * Determines if the given task is the canonical plugin task managed by a
+   * plugin. As opposed to a link to the canonical task or container.
+   *
+   * The top-level plugin container is always a child of `root`. Plugin tasks
+   * and containers are nested underneath. In the case of the github plugin, the
+   * hierarchy is: `root -> github -> github_pr -> [some pr task]`
+   *
+   * Links to these in other locations are non-canonical and thus this method
+   * would return false. `root -> github_pr` or `root -> [some pr task]`, for
+   * example.
+   */
+  #isCanonicalManagedLink(task: string, parent: string): boolean {
+    const kind = this.getTask(task).kind;
+    if (!kind) {
+      return false;
+    }
+    // Is an immediate child of a plugin container OR is a plugin container.
+    if (parent.length > 0 && kind.startsWith(parent)) {
+      return true;
+    }
+    // Is a top-level plugin container under root.
+    // TODO: There ought to be a better way to do this
+    // Which access to the node and all ancestors, it'd be easy.
+    if (kind === "github" && parent === "root") {
+      return true;
+    }
+    return false;
+  }
+
   linkNode(node: Node, parent: Node, offset: number) {
     this.link(node.name, parent.name, offset);
   }
@@ -913,7 +982,7 @@ export class Koso {
       if (srcParentName === parent.name && srcOffset < offset) {
         offset -= 1;
       }
-      this.link(node.name, parent.name, offset);
+      this.#linkUnchecked(node.name, parent.name, offset);
     });
     this.selected = parent.child(node.name);
   }
@@ -1201,12 +1270,20 @@ export class Koso {
     return `${max + 1}`;
   }
 
+  /** Determines whether the given task may have children inserted. */
+  canInsert(parentTaskId: string): boolean {
+    return !this.isManagedTask(parentTaskId);
+  }
+
   insertNode(
     parent: Node,
     offset: number,
     user: User,
     name: string = "",
   ): Node {
+    if (!this.canInsert(parent.name)) {
+      throw new Error(`Cannot insert node under parent ${parent}`);
+    }
     const taskId = this.newId();
     this.doc.transact(() => {
       this.upsert({

@@ -21,11 +21,12 @@
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
-  import { ChevronRight, Grip } from "lucide-svelte";
+  import { ChevronRight, Grip, Github, ToyBrick } from "lucide-svelte";
   import { getContext } from "svelte";
   import { toast } from "svelte-sonner";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   type Props = {
     index: number;
@@ -59,6 +60,7 @@
   let isSelected = $derived(node.equals(koso.selected));
   let progress = $derived(koso.getProgress(task.id));
   let tags = $derived(getTags(koso.parents));
+  let editable = $derived(koso.isEditable(task.id));
 
   $effect(() => {
     if (rowElement && isSelected && koso.focus) {
@@ -89,11 +91,14 @@
       .filter((parent) => parent.name.length > 0)
       .map((parent) => {
         const props = parseChipProps(parent.name);
-        props.onDelete = (event) => {
-          console.log(event);
-          event.stopPropagation();
-          koso.unlink(node.name, parent.id);
-        };
+        if (koso.canUnlink(node.name, parent.id)) {
+          props.onDelete = (event) => {
+            console.log(event);
+            event.stopPropagation();
+            koso.unlink(node.name, parent.id);
+          };
+        }
+
         props.onClick = (event) => {
           event.stopPropagation();
           let targetNode = koso.nodes
@@ -245,7 +250,11 @@
     }
 
     if (koso.canLink(koso.dragged.name, node.parent.name)) {
-      koso.dropEffect = event.altKey ? "copy" : "move";
+      if (koso.canMoveNode(koso.dragged, node.parent)) {
+        koso.dropEffect = event.altKey ? "copy" : "move";
+      } else {
+        koso.dropEffect = "copy";
+      }
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverPeer = true;
     } else if (koso.canMoveNode(koso.dragged, node.parent)) {
@@ -266,7 +275,11 @@
     }
 
     if (koso.canLink(koso.dragged.name, node.name)) {
-      koso.dropEffect = event.altKey ? "copy" : "move";
+      if (koso.canMoveNode(koso.dragged, node)) {
+        koso.dropEffect = event.altKey ? "copy" : "move";
+      } else {
+        koso.dropEffect = "copy";
+      }
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverChild = true;
     } else if (koso.canMoveNode(koso.dragged, node)) {
@@ -383,6 +396,7 @@
         value={task.status}
         bind:open={statusOpen}
         statusTime={task.statusTime ? new Date(task.statusTime) : null}
+        {editable}
         onOpenChange={() => (koso.selected = node)}
         onSelect={(status) => {
           if (status === "Done") confetti.add(getStatusPosition());
@@ -404,25 +418,49 @@
           <Chip {...tag} />
         {/each}
       </div>
-      <Editable
-        value={task.name}
-        aria-label={`Task ${task.num} Edit Name`}
-        editing={isEditing}
-        closeFocus={rowElement}
-        onclick={() => (koso.selected = node)}
-        onsave={async (name) => {
-          koso.setTaskName(task.id, name);
-        }}
-        ondone={() => edit(false)}
-        onkeydown={(e) => {
-          if (
-            !Shortcut.INSERT_NODE.matches(e) &&
-            !Shortcut.INSERT_CHILD_NODE.matches(e)
-          ) {
-            e.stopPropagation();
-          }
-        }}
-      />
+
+      {#if editable}
+        <Editable
+          value={task.name}
+          aria-label={`Task ${task.num} Edit Name`}
+          editing={isEditing}
+          closeFocus={rowElement}
+          onclick={() => (koso.selected = node)}
+          onsave={async (name) => {
+            koso.setTaskName(task.id, name);
+          }}
+          ondone={() => edit(false)}
+          onkeydown={(e) => {
+            if (
+              !Shortcut.INSERT_NODE.matches(e) &&
+              !Shortcut.INSERT_CHILD_NODE.matches(e)
+            ) {
+              e.stopPropagation();
+            }
+          }}
+        />
+      {:else}
+        <Button
+          class={cn(
+            "h-auto text-wrap p-0 text-left hover:no-underline disabled:opacity-100",
+            task.url ? "text" : "",
+          )}
+          variant="link"
+          aria-label={`Task ${task.num} Name`}
+          onclick={() => {
+            if (!task.url) throw new Error(`No URL set on task ${task}`);
+            window.open(task.url, "_blank")!.focus();
+          }}
+          disabled={!task.url}
+        >
+          {#if task.kind && task.kind.startsWith("github")}
+            <Github class="text-black" />
+          {:else}
+            <ToyBrick class="text-black" />
+          {/if}
+          {task.name || "Untitled"}
+        </Button>
+      {/if}
       <LinkPanel {node} bind:open={linkOpen} closeFocus={rowElement} />
     </div>
   </td>
@@ -434,6 +472,7 @@
       {users}
       value={assignee}
       bind:open={assigneeOpen}
+      {editable}
       onOpenChange={() => (koso.selected = node)}
       onSelect={(user) => {
         koso.setAssignee(task.id, user);
@@ -448,6 +487,7 @@
       {users}
       value={reporter}
       bind:open={reporterOpen}
+      {editable}
       onOpenChange={() => (koso.selected = node)}
       onSelect={(user) => {
         koso.setReporter(task.id, user);
