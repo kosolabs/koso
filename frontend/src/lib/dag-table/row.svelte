@@ -21,11 +21,12 @@
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
-  import { ChevronRight, Grip } from "lucide-svelte";
+  import { ChevronRight, Grip, Github } from "lucide-svelte";
   import { getContext } from "svelte";
   import { toast } from "svelte-sonner";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
+  import { Button } from "$lib/components/ui/button";
 
   type Props = {
     index: number;
@@ -84,7 +85,7 @@
   function getTags(allParents: Map<string, string[]>): ChipProps[] {
     const parents = allParents.get(node.name);
     if (!parents) return [];
-    const tags = parents
+    return parents
       .filter((parent) => parent !== node.parent.name)
       .map((parent) => koso.getTask(parent))
       .filter((parent) => parent.name.length > 0)
@@ -144,19 +145,6 @@
         };
         return props;
       });
-
-    if (koso.isManagedTask(task.id) && task.url) {
-      let url = task.url;
-      let chip = {
-        title: "link",
-        description: "",
-        onClick: () => {
-          window.open(url, "_blank")!.focus();
-        },
-      };
-      tags.splice(0, 0, chip);
-    }
-    return tags;
   }
 
   function getUser(users: User[], email: string | null): User | null {
@@ -430,26 +418,45 @@
           <Chip {...tag} />
         {/each}
       </div>
-      <Editable
-        value={task.name}
-        aria-label={`Task ${task.num} Edit Name`}
-        editing={isEditing}
-        {editable}
-        closeFocus={rowElement}
-        onclick={() => (koso.selected = node)}
-        onsave={async (name) => {
-          koso.setTaskName(task.id, name);
-        }}
-        ondone={() => edit(false)}
-        onkeydown={(e) => {
-          if (
-            !Shortcut.INSERT_NODE.matches(e) &&
-            !Shortcut.INSERT_CHILD_NODE.matches(e)
-          ) {
-            e.stopPropagation();
-          }
-        }}
-      />
+
+      {#if editable}
+        <Editable
+          value={task.name}
+          aria-label={`Task ${task.num} Edit Name`}
+          editing={isEditing}
+          closeFocus={rowElement}
+          onclick={() => (koso.selected = node)}
+          onsave={async (name) => {
+            koso.setTaskName(task.id, name);
+          }}
+          ondone={() => edit(false)}
+          onkeydown={(e) => {
+            if (
+              !Shortcut.INSERT_NODE.matches(e) &&
+              !Shortcut.INSERT_CHILD_NODE.matches(e)
+            ) {
+              e.stopPropagation();
+            }
+          }}
+        />
+      {:else}
+        <Button
+          class={cn(
+            "h-auto text-wrap p-0 text-left hover:no-underline disabled:opacity-100",
+            task.url ? "text" : "",
+          )}
+          variant="link"
+          aria-label={`Task ${task.num} Name`}
+          onclick={() => {
+            if (!task.url) throw new Error(`No URL set on task ${task}`);
+            window.open(task.url, "_blank")!.focus();
+          }}
+          disabled={!task.url}
+        >
+          <Github class="text-black" />
+          {task.name || "Untitled"}
+        </Button>
+      {/if}
       <LinkPanel {node} bind:open={linkOpen} closeFocus={rowElement} />
     </div>
   </td>
