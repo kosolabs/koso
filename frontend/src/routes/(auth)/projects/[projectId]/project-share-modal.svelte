@@ -30,15 +30,6 @@
     projectUsers = $bindable(),
   }: Props = $props();
 
-  let users: Promise<User[]> = $derived.by(async () => {
-    const response = await fetch(`/api/users`, {
-      headers: headers(),
-    });
-    let users: User[] = await parse_response(response);
-    users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
-    return users;
-  });
-
   async function addUser(add: User) {
     await updateProjectUsers({
       projectId: project.projectId,
@@ -81,12 +72,16 @@
   let openWarnSelfRemovalModal = $state(false);
 
   const MIN_FILTER_LEN = 2;
-  let filteredUsers: Promise<User[]> = $derived.by(async () => {
+  let users: Promise<User[]> = $derived.by(async () => {
     if (filter.length < MIN_FILTER_LEN) {
       return [];
     }
-    const allUsers = await users;
-    return allUsers
+    const response = await fetch(`/api/users?q=${filter}`, {
+      headers: headers(),
+    });
+    let users: User[] = await parse_response(response);
+    return users
+      .sort(COMPARE_USERS_BY_NAME_AND_EMAIL)
       .filter((u) => !projectUsers.some((pu) => pu.email === u.email))
       .filter((u) => match(u.name, filter) || match(u.email, filter));
   });
@@ -131,11 +126,11 @@
             e.preventDefault();
           }}
         >
-          {#await filteredUsers then filteredUsers}
+          {#await users then users}
             {#if filter.length < MIN_FILTER_LEN}
               Search for people.
-            {:else if filteredUsers.length > 0}
-              {#each filteredUsers as user}
+            {:else if users.length > 0}
+              {#each users as user}
                 <button
                   class="w-full cursor-pointer rounded p-2 hover:bg-accent"
                   title="Add {user.email}"

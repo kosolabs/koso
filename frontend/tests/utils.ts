@@ -67,9 +67,7 @@ export async function setupNewProject(page: Page): Promise<Page> {
   await page.goto("/projects");
   await page.getByRole("button", { name: "New" }).click();
   // Make sure things are initialized before proceeding
-  await expect(
-    await page.getByRole("button", { name: "Add Task" }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add Task" })).toBeVisible();
 
   return page;
 }
@@ -113,4 +111,61 @@ export async function tearDown() {
     },
   });
   expect(res.ok()).toBeTruthy();
+}
+
+export async function init(
+  page: Page,
+  tasks: TaskBuilder[],
+  expandAll: boolean = false,
+) {
+  await page.evaluate(
+    ({ tasks, expandAll }) => {
+      const koso = window.koso;
+
+      const upsertedTaskIds = new Set<string>(tasks.map((task) => task.id));
+      const childTaskIds = new Set<string>(
+        tasks.flatMap((task) => task.children ?? []),
+      );
+      const remainingTaskIds = childTaskIds.difference(upsertedTaskIds);
+
+      koso.doc.transact(() => {
+        for (const task of tasks) {
+          koso.upsert({
+            id: task.id,
+            num: task.num ?? task.id,
+            name: task.name ?? "",
+            children: task.children ?? [],
+            assignee: task.assignee ?? null,
+            reporter: task.reporter ?? null,
+            status: task.status ?? null,
+            statusTime: task.statusTime ?? null,
+            kind: task.kind ?? null,
+            url: task.url ?? null,
+          });
+        }
+        for (const taskId of remainingTaskIds) {
+          koso.upsert({
+            id: taskId,
+            num: taskId,
+            name: "",
+            children: [],
+            assignee: null,
+            reporter: null,
+            status: null,
+            statusTime: null,
+            kind: null,
+            url: null,
+          });
+        }
+      });
+      if (expandAll) {
+        koso.expandAll();
+      } else {
+        koso.collapseAll();
+      }
+    },
+    { tasks, expandAll },
+  );
+  await page.reload();
+  await page.getByLabel("Home").focus();
 }

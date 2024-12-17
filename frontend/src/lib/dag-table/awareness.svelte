@@ -102,6 +102,17 @@
     users: User[];
   };
   let { users }: Props = $props();
+
+  let label = $derived.by(() => {
+    let result = "";
+    if (users.length > 0) {
+      result += users[0].name;
+    }
+    if (users.length > 1) {
+      result += ` and ${users.length - 1} more`;
+    }
+    return result;
+  });
 </script>
 
 {#if users.length > 0}
@@ -111,15 +122,14 @@
         {#snippet child({ props })}
           <div
             {...props}
+            role="note"
+            aria-label={`${label} selected`}
             class={cn(
               "absolute right-0 top-0 text-nowrap rounded-bl rounded-tr px-1 text-xs text-white",
               getAwarenessBg(users),
             )}
           >
-            {users[0].name}
-            {#if users.length > 1}
-              and {users.length - 1} more
-            {/if}
+            {label}
           </div>
         {/snippet}
       </Tooltip.Trigger>

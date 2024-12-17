@@ -1,8 +1,8 @@
-import type { Status } from "$lib/yproxy";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import {
   getKosoGraph,
   getTaskNumToTaskIdMap,
+  init,
   setupNewProject,
   tearDown,
 } from "./utils";
@@ -17,76 +17,6 @@ test.describe("dag table tests", () => {
   test.afterAll(async () => {
     await tearDown();
   });
-
-  type TaskBuilder = {
-    id: string;
-    num?: string;
-    name?: string;
-    children?: string[];
-    assignee?: string | null;
-    reporter?: string | null;
-    status?: Status | null;
-    statusTime?: number | null;
-    kind?: string | null;
-    url?: string | null;
-  };
-
-  async function init(
-    page: Page,
-    tasks: TaskBuilder[],
-    expandAll: boolean = false,
-  ) {
-    await page.evaluate(
-      ({ tasks, expandAll }) => {
-        const koso = window.koso;
-
-        const upsertedTaskIds = new Set<string>(tasks.map((task) => task.id));
-        const childTaskIds = new Set<string>(
-          tasks.flatMap((task) => task.children ?? []),
-        );
-        const remainingTaskIds = childTaskIds.difference(upsertedTaskIds);
-
-        koso.doc.transact(() => {
-          for (const task of tasks) {
-            koso.upsert({
-              id: task.id,
-              num: task.num ?? task.id,
-              name: task.name ?? "",
-              children: task.children ?? [],
-              assignee: task.assignee ?? null,
-              reporter: task.reporter ?? null,
-              status: task.status ?? null,
-              statusTime: task.statusTime ?? null,
-              kind: task.kind ?? null,
-              url: task.url ?? null,
-            });
-          }
-          for (const taskId of remainingTaskIds) {
-            koso.upsert({
-              id: taskId,
-              num: taskId,
-              name: "",
-              children: [],
-              assignee: null,
-              reporter: null,
-              status: null,
-              statusTime: null,
-              kind: null,
-              url: null,
-            });
-          }
-        });
-        if (expandAll) {
-          koso.expandAll();
-        } else {
-          koso.collapseAll();
-        }
-      },
-      { tasks, expandAll },
-    );
-    await page.reload();
-    await page.getByLabel("Home").focus();
-  }
 
   test.describe("creating tasks", () => {
     test("create a task by clicking the Insert button", async ({ page }) => {

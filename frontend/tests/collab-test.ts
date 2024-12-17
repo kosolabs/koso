@@ -1,85 +1,139 @@
-import { expect, test, type Page } from "@playwright/test";
+import {
+  test as base,
+  expect,
+  type Browser,
+  type Page,
+} from "@playwright/test";
 import {
   generateEmail,
   getKosoGraph,
   getTaskNumToTaskIdMap,
+  init,
   login,
   setupNewProject,
   tearDown,
 } from "./utils";
 
+type CollabFixtures = {
+  page1: Page;
+  page2: Page;
+  page3: Page;
+};
+
+async function shareProject(page: Page, email: string) {
+  await page.getByRole("button", { name: "Share Project" }).click();
+  await page.getByRole("textbox", { name: "Add people" }).click();
+  await page.keyboard.type(email);
+  await page.getByText(email).click();
+  await expect(
+    page.getByRole("button", { name: `Remove ${email}` }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Close" }).click();
+}
+
+async function createSharedPage(page: Page, browser: Browser) {
+  const otherPage = await browser.newPage();
+
+  const otherEmail = generateEmail();
+  await login(otherPage, otherEmail);
+  await shareProject(page, otherEmail);
+
+  await otherPage.goto("/projects");
+  await otherPage.getByRole("link", { name: "Collab Test Project" }).click();
+  await expect(
+    otherPage.getByRole("button", { name: "Set Project Name" }),
+  ).toBeVisible();
+
+  return otherPage;
+}
+
+export const test = base.extend<CollabFixtures>({
+  page1: async ({ page }, use) => {
+    await login(page, generateEmail());
+    await setupNewProject(page);
+
+    await page.getByRole("button", { name: "Set Project Name" }).click();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.type("Collab Test Project");
+    await page.keyboard.press("Enter");
+
+    await use(page);
+  },
+
+  page2: async ({ page1, browser }, use) => {
+    const otherPage = await createSharedPage(page1, browser);
+    await use(otherPage);
+  },
+
+  page3: async ({ page1, browser }, use) => {
+    const otherPage = await createSharedPage(page1, browser);
+    await use(otherPage);
+  },
+});
+
 test.describe.configure({ mode: "parallel" });
 
 test.describe("Collaboration tests", () => {
-  let otherPage: Page;
-
-  test.beforeEach(async ({ page, browser }) => {
-    await setupNewProject(page);
-
-    otherPage = await browser.newPage();
-    const otherEmail = generateEmail();
-    await login(otherPage, otherEmail, false);
-
-    await shareProject(page, otherEmail);
-
-    await login(otherPage, otherEmail, false);
-    await otherPage.goto("/projects");
-    await otherPage.getByRole("link", { name: "My Project!" }).click();
-    await expect(
-      otherPage.getByRole("button", { name: "Set Project Name" }),
-    ).toBeVisible();
-  });
-
-  async function shareProject(page: Page, email: string) {
-    await page.getByRole("button", { name: "Share Project" }).click();
-    await page.getByRole("textbox", { name: "Add people" }).click();
-    await page.keyboard.type(email);
-    await page.getByText(email).click();
-    await expect(
-      page.getByRole("button", { name: `Remove ${email}` }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Close" }).click();
-  }
-
   test.afterAll(async () => {
     await tearDown();
   });
 
-  test("Collaborate to create and delete tasks", async ({ page }) => {
-    await page.getByRole("button", { name: "Insert" }).first().click();
+  test("Collaborate to create and delete tasks", async ({ page1, page2 }) => {
+    await page1.getByRole("button", { name: "Insert" }).first().click();
 
-    await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
-    let graph = await getKosoGraph(page);
+    await expect(page1.getByRole("row", { name: "Task 1" })).toBeVisible();
+    let graph = await getKosoGraph(page1);
     let tasks = getTaskNumToTaskIdMap(graph);
     expect(graph["root"].children).toStrictEqual([tasks["1"]]);
-    await expect(otherPage.getByRole("row", { name: "Task 1" })).toBeVisible();
-    expect(graph).toStrictEqual(await getKosoGraph(otherPage));
+    await expect(page2.getByRole("row", { name: "Task 1" })).toBeVisible();
+    expect(graph).toStrictEqual(await getKosoGraph(page2));
 
-    await otherPage.getByRole("button", { name: "Insert" }).click();
+    await page2.getByRole("button", { name: "Insert" }).click();
 
-    await expect(otherPage.getByRole("row", { name: "Task 2" })).toBeVisible();
-    graph = await getKosoGraph(otherPage);
+    await expect(page2.getByRole("row", { name: "Task 2" })).toBeVisible();
+    graph = await getKosoGraph(page2);
     tasks = getTaskNumToTaskIdMap(graph);
     expect(graph["root"].children).toStrictEqual([tasks["2"], tasks["1"]]);
-    await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
-    expect(graph).toStrictEqual(await getKosoGraph(otherPage));
+    await expect(page1.getByRole("row", { name: "Task 2" })).toBeVisible();
+    expect(graph).toStrictEqual(await getKosoGraph(page2));
 
-    await page.getByRole("button", { name: "Delete" }).click();
+    await page1.getByRole("button", { name: "Delete" }).click();
 
-    await expect(page.getByRole("row", { name: "Task 1" })).toBeHidden();
-    graph = await getKosoGraph(page);
+    await expect(page1.getByRole("row", { name: "Task 1" })).toBeHidden();
+    graph = await getKosoGraph(page1);
     tasks = getTaskNumToTaskIdMap(graph);
     expect(graph["root"].children).toStrictEqual([tasks["2"]]);
-    await expect(otherPage.getByRole("row", { name: "Task 1" })).toBeHidden();
-    expect(graph).toStrictEqual(await getKosoGraph(otherPage));
+    await expect(page2.getByRole("row", { name: "Task 1" })).toBeHidden();
+    expect(graph).toStrictEqual(await getKosoGraph(page2));
 
-    await otherPage.getByRole("button", { name: "Delete" }).click();
+    await page2.getByRole("button", { name: "Delete" }).click();
 
-    await expect(otherPage.getByRole("row", { name: "Task 2" })).toBeHidden();
-    graph = await getKosoGraph(otherPage);
+    await expect(page2.getByRole("row", { name: "Task 2" })).toBeHidden();
+    graph = await getKosoGraph(page2);
     tasks = getTaskNumToTaskIdMap(graph);
     expect(graph["root"].children).toStrictEqual([]);
-    await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
-    expect(graph).toStrictEqual(await getKosoGraph(otherPage));
+    await expect(page1.getByRole("row", { name: "Task 2" })).toBeHidden();
+    expect(graph).toStrictEqual(await getKosoGraph(page2));
+  });
+
+  test("Awareness shows other users", async ({ page1, page2, page3 }) => {
+    await init(page1, [
+      { id: "root", name: "Root", children: ["1", "2", "3"] },
+      { id: "1", name: "Task 1" },
+      { id: "2", name: "Task 2" },
+      { id: "3", name: "Task 3" },
+    ]);
+
+    await page2.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+    await expect(
+      page1.getByRole("note", { name: "Pointy-Haired Boss selected" }),
+    ).toBeVisible();
+
+    await page3.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+    await expect(
+      page1.getByRole("note", {
+        name: "Pointy-Haired Boss and 1 more selected",
+      }),
+    ).toBeVisible();
   });
 });
