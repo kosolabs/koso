@@ -1,3 +1,10 @@
+import type { User } from "$lib/auth.svelte";
+import {
+  parseAwarenessStateResponse,
+  type Awareness,
+} from "$lib/dag-table/awareness.svelte";
+import { useLocalStorage, type Storable } from "$lib/stores.svelte";
+import { findEntryIndex } from "$lib/utils";
 import { List, Map, Record, Set } from "immutable";
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
@@ -5,10 +12,6 @@ import { toast } from "svelte-sonner";
 import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
-import type { User } from "./auth.svelte";
-import { useLocalStorage, type Storable } from "./stores.svelte";
-import { findEntryIndex } from "./utils";
-
 import {
   YChildrenProxy,
   YGraphProxy,
@@ -37,13 +40,6 @@ type YMessageKosoAwareness =
   | typeof MSG_KOSO_AWARENESS_STATE;
 
 type YMessage = typeof MSG_SYNC | typeof MSG_KOSO_AWARENESS;
-
-type AwarenessState = {
-  clientId: number;
-  sequence: number;
-  selected: string[];
-  user: User;
-};
 
 type NodeProps = { path: List<string> };
 const NodeRecord = Record<NodeProps>({ path: List() });
@@ -116,6 +112,7 @@ export class Koso {
   #highlighted: string | null = $state(null);
   #dragged: Node | null = $state(null);
   #dropEffect: "copy" | "move" | "none" = $state("none");
+  #awareness: Awareness[] = $state([]);
 
   #debug: Storable<boolean>;
   #observer: (events: YEvent[]) => void;
@@ -247,18 +244,9 @@ export class Koso {
       if (kosoAwarenessType === MSG_KOSO_AWARENESS_UPDATE) {
         throw new Error("Unimplemented");
       } else if (kosoAwarenessType === MSG_KOSO_AWARENESS_STATE) {
-        const awarenesses = JSON.parse(
+        this.#awareness = parseAwarenessStateResponse(
           decoding.readVarString(decoder),
-        ) as AwarenessState[];
-        if (this.debug) {
-          for (const awareness of awarenesses) {
-            if (this.doc.clientID !== awareness.clientId) {
-              toast.info(
-                `${awareness.user.email} (${awareness.clientId}) selected: ${awareness.selected}`,
-              );
-            }
-          }
-        }
+        ).filter((a) => this.clientId !== a.clientId);
       } else {
         throw new Error(`Unknown Koso awareness type: ${kosoAwarenessType}`);
       }
@@ -291,7 +279,7 @@ export class Koso {
     encoding.writeVarString(
       encoder,
       JSON.stringify({
-        clientId: this.doc.clientID,
+        clientId: this.clientId,
         sequence: this.#sequence++,
         selected: this.selected ? [this.selected.id] : [],
       }),
@@ -342,6 +330,10 @@ export class Koso {
     return this.#yDoc;
   }
 
+  get clientId(): number {
+    return this.doc.clientID;
+  }
+
   get graph(): YGraphProxy {
     return this.#yGraph;
   }
@@ -363,6 +355,10 @@ export class Koso {
     if (shouldUpdateAwareness) {
       this.#send(this.#encodeAwareness());
     }
+  }
+
+  get awareness(): Awareness[] {
+    return this.#awareness;
   }
 
   get focus(): boolean {
