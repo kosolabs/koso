@@ -21,7 +21,7 @@
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
-  import { ChevronRight, Grip, Github, ToyBrick } from "lucide-svelte";
+  import { ChevronRight, Grip, Github, ToyBrick, Icon } from "lucide-svelte";
   import { getContext } from "svelte";
   import { toast } from "svelte-sonner";
   import DropIndicator from "./drop-indicator.svelte";
@@ -61,6 +61,7 @@
   let progress = $derived(koso.getProgress(task.id));
   let tags = $derived(getTags(koso.parents));
   let editable = $derived(koso.isEditable(task.id));
+  let ManagedTaskIcon = $derived(getManagedTaskIcon());
 
   $effect(() => {
     if (rowElement && isSelected && koso.focus) {
@@ -154,6 +155,20 @@
       }
     }
     return null;
+  }
+
+  function getManagedTaskIcon(): typeof Icon | null {
+    if (!task.kind) {
+      return null;
+    }
+    if (task.kind.startsWith("github")) {
+      return Github;
+    } else {
+      console.warn(
+        `No icon registered for kind ${task.kind} on task ${task.id}. Add one!`,
+      );
+      return ToyBrick;
+    }
   }
 
   function setOpen(open: boolean) {
@@ -453,10 +468,8 @@
           }}
           disabled={!task.url}
         >
-          {#if task.kind && task.kind.startsWith("github")}
-            <Github class="text-black" />
-          {:else}
-            <ToyBrick class="text-black" />
+          {#if ManagedTaskIcon}
+            <ManagedTaskIcon class="text-foreground" />
           {/if}
           {task.name || "Untitled"}
         </Button>
