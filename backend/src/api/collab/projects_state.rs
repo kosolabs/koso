@@ -10,7 +10,7 @@ use crate::{
                 ClientClosure, ClientReceiver, ClientSender, CLOSE_ERROR, CLOSE_RESTART, OVERLOADED,
             },
             client_messages::{ClientMessage, ClientMessageReceiver},
-            doc_updates::{DocObserver, DocUpdate},
+            doc_updates::{DocObserver, DocUpdate, GraphObserver},
             msg_sync::sync_request,
             storage,
             txn_origin::YOrigin,
@@ -30,6 +30,7 @@ use std::{
     },
 };
 use tokio::sync::{mpsc::Sender, Mutex};
+use tracing::Instrument;
 use yrs::{ReadTxn as _, StateVector, Update};
 
 pub(super) struct ProjectsState {
@@ -224,12 +225,28 @@ impl ProjectState {
             project.updates.fetch_add(1, Relaxed);
             observer.handle_doc_update_v2_event(project, txn, update);
         });
-        let sub = match res {
+        let doc_sub = match res {
             Ok(sub) => Box::new(sub),
             Err(e) => return Err(anyhow!("Failed to create observer: {e}")),
         };
+        let graph_observer = GraphObserver::new(project.tracker.clone());
+        let graph_observer_project = Arc::downgrade(project);
+        let graph_sub = Box::new(doc.observe_graph(move |txn, event| {
+            let Some(project) = graph_observer_project.upgrade() else {
+                // This will never happen because the observer is invoked syncronously in
+                // ProjectState.apply_update while holding a strong reference to the project.
+                tracing::error!(
+                    "handle_graph_update_event but weak project reference was destroyed"
+                );
+                return;
+            };
+            graph_observer.handle_graph_update_event(project, txn, event)
+        }));
 
-        let db = DocBox { ydoc: doc, sub };
+        let db = DocBox {
+            ydoc: doc,
+            subs: vec![doc_sub, graph_sub],
+        };
         let sv = db.ydoc.transact().state_vector();
         *doc_box = Some(db);
         Ok(sv)
@@ -345,7 +362,7 @@ impl Drop for ProjectState {
         let updates = self.updates.load(Relaxed);
         if updates > 10 {
             self.tracker
-                .spawn(compact(self.pool, self.project_id.clone()));
+                .spawn(compact(self.pool, self.project_id.clone()).in_current_span());
         } else {
             tracing::debug!("Skipping compacting, only {updates} updates exist")
         }
@@ -356,7 +373,7 @@ pub(crate) struct DocBox {
     pub(crate) ydoc: YDocProxy,
     /// Subscription to observe changes to doc.
     #[allow(dead_code)]
-    sub: Box<dyn Send>,
+    subs: Vec<Box<dyn Send>>,
 }
 
 impl DocBox {
