@@ -454,9 +454,9 @@
           disabled={!task.url}
         >
           {#if task.kind && task.kind.startsWith("github")}
-            <Github class="text-black" />
+            <Github class="text-foreground" />
           {:else}
-            <ToyBrick class="text-black" />
+            <ToyBrick class="text-foreground" />
           {/if}
           {task.name || "Untitled"}
         </Button>
