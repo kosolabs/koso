@@ -8,6 +8,7 @@
 
 <script lang="ts">
   import { auth, type User } from "$lib/auth.svelte";
+  import { Button } from "$lib/components/ui/button";
   import {
     Chip,
     parseChipProps,
@@ -21,12 +22,15 @@
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
-  import { ChevronRight, Grip, Github, ToyBrick, Icon } from "lucide-svelte";
+  import { ChevronRight, Github, Grip, Icon, ToyBrick } from "lucide-svelte";
   import { getContext } from "svelte";
   import { toast } from "svelte-sonner";
+  import Awareness, {
+    getAwarenessOutline,
+    getUniqueUsers,
+  } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
-  import { Button } from "$lib/components/ui/button";
 
   type Props = {
     index: number;
@@ -58,6 +62,9 @@
   let isMoving = $derived(isDragging && koso.dropEffect === "move");
   let isHovered = $derived(koso.highlighted === node.name);
   let isSelected = $derived(node.equals(koso.selected));
+  let awareUsers = $derived(
+    getUniqueUsers(koso.awareness.filter((a) => node.equals(a.selected[0]))),
+  );
   let progress = $derived(koso.getProgress(task.id));
   let tags = $derived(getTags(koso.parents));
   let editable = $derived(koso.isEditable(task.id));
@@ -356,6 +363,7 @@
     index % 2 === 0 ? "bg-muted" : "",
     isMoving ? "opacity-50" : "",
     isHovered ? "bg-accent" : "",
+    getAwarenessOutline(awareUsers),
     isSelected ? "outline-primary" : "",
   )}
   aria-label={`Task ${task.num}`}
@@ -506,6 +514,9 @@
         koso.setReporter(task.id, user);
       }}
     />
+  </td>
+  <td class={cn("relative m-0 w-0 p-0")}>
+    <Awareness users={awareUsers} />
   </td>
 </tr>
 

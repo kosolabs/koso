@@ -25,9 +25,9 @@
     MoveUp,
     Pencil,
     Redo,
-    SquarePen,
     SkipBack,
     SkipForward,
+    SquarePen,
     StepBack,
     StepForward,
     Sun,
@@ -572,6 +572,7 @@
             <div class="max-md:hidden">Assignee</div>
           </th>
           <th class="border-l p-2 max-md:hidden">Reporter</th>
+          <th class="relative m-0 w-0 p-0"></th>
         </tr>
       </thead>
 

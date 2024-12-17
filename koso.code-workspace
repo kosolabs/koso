@@ -20,6 +20,11 @@
       ".*Class",
       ".*Classes"
     ],
+    "tailwindCSS.experimental.classRegex": [
+      ["Classes.* \\=([^;]*);", "'([^']*)'"],
+      ["Classes.* \\=([^;]*);", "\"([^\"]*)\""],
+      ["Classes.* \\=([^;]*);", "\\`([^\\`]*)\\`"]
+    ],
     "rust-analyzer.runnables.extraEnv": {
       "RUST_BACKTRACE": "1",
       "RUST_LOG": "trace",

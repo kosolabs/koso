@@ -1,0 +1,140 @@
+<script module lang="ts">
+  import { Node } from "$lib/koso.svelte";
+
+  export type User = {
+    email: string;
+    name: string;
+    picture: string;
+  };
+
+  export type Awareness = {
+    clientId: number;
+    sequence: number;
+    selected: Node[];
+    user: User;
+  };
+
+  type Colors = {
+    bg: string;
+    outline: string;
+  };
+
+  const awarenessClasses: Colors[] = [
+    { bg: "bg-lime-600", outline: "outline-lime-600" },
+    { bg: "bg-emerald-600", outline: "outline-emerald-600" },
+    { bg: "bg-cyan-600", outline: "outline-cyan-600" },
+    { bg: "bg-sky-600", outline: "outline-sky-600" },
+    { bg: "bg-indigo-600", outline: "outline-indigo-600" },
+    { bg: "bg-fuchsia-600", outline: "outline-fuchsia-600" },
+    { bg: "bg-pink-600", outline: "outline-pink-600" },
+    { bg: "bg-red-600", outline: "outline-red-600" },
+    { bg: "bg-orange-600", outline: "outline-orange-600" },
+    { bg: "bg-yellow-600", outline: "outline-yellow-600" },
+    { bg: "bg-green-600", outline: "outline-green-600" },
+    { bg: "bg-teal-600", outline: "outline-teal-600" },
+    { bg: "bg-blue-600", outline: "outline-blue-600" },
+    { bg: "bg-purple-600", outline: "outline-purple-600" },
+    { bg: "bg-violet-600", outline: "outline-violet-600" },
+    { bg: "bg-rose-600", outline: "outline-rose-600" },
+    { bg: "bg-amber-600", outline: "outline-amber-600" },
+  ];
+
+  type AwarenessState = {
+    clientId: number;
+    sequence: number;
+    selected: string[];
+    user: User;
+  };
+
+  export function parseAwarenessStateResponse(response: string): Awareness[] {
+    const resp = JSON.parse(response) as AwarenessState[];
+    return resp.map((r) => {
+      return {
+        clientId: r.clientId,
+        sequence: r.sequence,
+        selected: r.selected.map(Node.parse),
+        user: r.user,
+      };
+    });
+  }
+
+  let nextIndex: number = 0;
+  const clients: { [email: string]: number } = {};
+
+  function getColor(user: User): Colors {
+    if (!(user.email in clients)) {
+      clients[user.email] = nextIndex;
+      nextIndex = (nextIndex + 1) % awarenessClasses.length;
+    }
+    return awarenessClasses[clients[user.email]];
+  }
+
+  export function getAwarenessBg(users: User[]): string {
+    if (users.length === 0) return "";
+    if (users.length > 1) return "bg-secondary";
+    return getColor(users[0]).bg;
+  }
+
+  export function getAwarenessOutline(users: User[]): string {
+    if (users.length === 0) return "";
+    if (users.length > 1) return "outline-secondary";
+    return getColor(users[0]).outline;
+  }
+
+  export function getUniqueUsers(awarenesses: Awareness[]): User[] {
+    let users = [];
+    let emails: Set<string> = new Set();
+    for (const awareness of awarenesses) {
+      if (!emails.has(awareness.user.email)) {
+        users.push(awareness.user);
+        emails.add(awareness.user.email);
+      }
+    }
+    return users;
+  }
+</script>
+
+<script lang="ts">
+  import * as Tooltip from "$lib/components/ui/tooltip";
+  import { cn } from "$lib/utils";
+
+  type Props = {
+    users: User[];
+  };
+  let { users }: Props = $props();
+</script>
+
+{#if users.length > 0}
+  <Tooltip.Provider>
+    <Tooltip.Root>
+      <Tooltip.Trigger>
+        {#snippet child({ props })}
+          <div
+            {...props}
+            class={cn(
+              "absolute right-0 top-0 text-nowrap rounded-bl rounded-tr px-1 text-xs text-white",
+              getAwarenessBg(users),
+            )}
+          >
+            {users[0].name}
+            {#if users.length > 1}
+              and {users.length - 1} more
+            {/if}
+          </div>
+        {/snippet}
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content>
+          <Tooltip.Arrow />
+          <div class={cn("flex flex-col gap-1")}>
+            {#each users as user}
+              <div class={cn("rounded p-1 text-xs", getAwarenessBg([user]))}>
+                {user.name} ({user.email})
+              </div>
+            {/each}
+          </div>
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  </Tooltip.Provider>
+{/if}
