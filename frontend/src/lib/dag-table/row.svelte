@@ -434,55 +434,61 @@
       />
     {/if}
   </td>
-  <td class={cn("w-full border-l border-t px-2")}>
-    <div class="flex flex-wrap-reverse gap-x-1">
-      <div class="flex flex-wrap items-center gap-x-1">
-        {#each tags as tag}
-          <Chip {...tag} />
-        {/each}
-      </div>
-
-      {#if editable}
-        <Editable
-          value={task.name}
-          aria-label={`Task ${task.num} Edit Name`}
-          editing={isEditing}
-          closeFocus={rowElement}
-          onclick={() => (koso.selected = node)}
-          onsave={async (name) => {
-            koso.setTaskName(task.id, name);
-          }}
-          ondone={() => edit(false)}
-          onkeydown={(e) => {
-            if (
-              !Shortcut.INSERT_NODE.matches(e) &&
-              !Shortcut.INSERT_CHILD_NODE.matches(e)
-            ) {
-              e.stopPropagation();
-            }
-          }}
-        />
-      {:else}
-        <Button
-          class={cn(
-            "h-auto text-wrap p-0 text-left hover:no-underline disabled:opacity-100",
-            task.url ? "text" : "",
-          )}
-          variant="link"
-          aria-label={`Task ${task.num} Name`}
-          onclick={() => {
-            if (!task.url) throw new Error(`No URL set on task ${task}`);
-            window.open(task.url, "_blank")!.focus();
-          }}
-          disabled={!task.url}
-        >
-          {#if ManagedTaskIcon}
-            <ManagedTaskIcon class="text-foreground" />
-          {/if}
-          {task.name || "Untitled"}
-        </Button>
+  <td class={cn("border-l border-t px-2")}>
+    <div class={cn("flex items-center gap-x-1")}>
+      {#if ManagedTaskIcon}
+        <div class={cn("min-w-4 max-w-4")}>
+          <ManagedTaskIcon size={16} class="text-foreground" />
+        </div>
       {/if}
-      <LinkPanel {node} bind:open={linkOpen} closeFocus={rowElement} />
+      <div class="flex flex-wrap-reverse gap-x-1">
+        {#if tags.length > 0}
+          <div class="flex flex-wrap items-center gap-x-1">
+            {#each tags as tag}
+              <Chip {...tag} />
+            {/each}
+          </div>
+        {/if}
+
+        {#if editable}
+          <Editable
+            value={task.name}
+            aria-label={`Task ${task.num} Edit Name`}
+            editing={isEditing}
+            closeFocus={rowElement}
+            onclick={() => (koso.selected = node)}
+            onsave={async (name) => {
+              koso.setTaskName(task.id, name);
+            }}
+            ondone={() => edit(false)}
+            onkeydown={(e) => {
+              if (
+                !Shortcut.INSERT_NODE.matches(e) &&
+                !Shortcut.INSERT_CHILD_NODE.matches(e)
+              ) {
+                e.stopPropagation();
+              }
+            }}
+          />
+        {:else}
+          <Button
+            class={cn(
+              "h-auto text-wrap p-0 text-left hover:no-underline disabled:opacity-100",
+              task.url ? "text" : "",
+            )}
+            variant="link"
+            aria-label={`Task ${task.num} Name`}
+            onclick={() => {
+              if (!task.url) throw new Error(`No URL set on task ${task}`);
+              window.open(task.url, "_blank")!.focus();
+            }}
+            disabled={!task.url}
+          >
+            {task.name || "Untitled"}
+          </Button>
+        {/if}
+        <LinkPanel {node} bind:open={linkOpen} closeFocus={rowElement} />
+      </div>
     </div>
   </td>
   <td
