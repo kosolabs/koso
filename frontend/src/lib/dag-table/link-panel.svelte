@@ -5,7 +5,7 @@
   import { match } from "$lib/utils";
   import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
-  import type { Koso, Node } from "./koso.svelte";
+  import type { Koso, Node } from ".";
 
   type Props = {
     open: boolean;

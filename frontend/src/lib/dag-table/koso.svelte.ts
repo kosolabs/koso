@@ -115,7 +115,6 @@ export class Koso {
   #awareness: Awareness[] = $state([]);
 
   #debug: Storable<boolean>;
-  #observer: (events: YEvent[]) => void;
   #events: YEvent[] = $state.raw([]);
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
@@ -184,9 +183,6 @@ export class Koso {
 
     this.#debug = useLocalStorage("debug", false);
 
-    this.#observer = (events: YEvent[]) => (this.#events = events);
-    this.graph.observe(this.#observer);
-
     this.#expanded = useLocalStorage<Set<Node>>(
       `expanded-nodes-${projectId}`,
       Set(),
@@ -201,10 +197,16 @@ export class Koso {
     this.#yIndexedDb.whenSynced.then(() => {
       this.#syncState.indexedDbSync = true;
     });
-  }
 
-  destroy() {
-    this.graph.unobserve(this.#observer);
+    $effect(() => {
+      const observer = (events: YEvent[]) => (this.#events = events);
+
+      this.graph.observe(observer);
+
+      return () => {
+        this.graph.unobserve(observer);
+      };
+    });
   }
 
   receive(message: Uint8Array) {
