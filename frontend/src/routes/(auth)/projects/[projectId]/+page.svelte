@@ -5,8 +5,8 @@
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import { Editable } from "$lib/components/ui/editable";
-  import { DagTable } from "$lib/dag-table";
-  import { Koso } from "$lib/koso.svelte";
+  import { DagTable, Koso, KosoSocket } from "$lib/dag-table";
+  import { githubInstallUrl } from "$lib/github";
   import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
   import {
@@ -17,14 +17,12 @@
     updateProject,
   } from "$lib/projects";
   import { Action } from "$lib/shortcuts";
-  import { KosoSocket } from "$lib/socket";
-  import { FileDown, UserPlus, PlugZap } from "lucide-svelte";
+  import { FileDown, PlugZap, UserPlus } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import { toast } from "svelte-sonner";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
   import UnauthorizedModal from "./unauthorized-modal.svelte";
-  import { githubInstallUrl } from "$lib/github";
 
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());

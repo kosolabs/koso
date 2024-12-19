@@ -4,7 +4,6 @@
   import { CommandPalette } from "$lib/components/ui/command-palette";
   import { confetti } from "$lib/components/ui/confetti";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
-  import { Node, type Koso } from "$lib/koso.svelte";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import {
     Cable,
@@ -41,6 +40,7 @@
   import { onMount, setContext, tick } from "svelte";
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
+  import { Node, type Koso } from "./koso.svelte";
   import Row, { type RowType } from "./row.svelte";
   import Toolbar from "./toolbar.svelte";
 

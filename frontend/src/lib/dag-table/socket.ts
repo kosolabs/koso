@@ -1,6 +1,6 @@
-import { Koso } from "$lib/koso.svelte";
-import { auth } from "./auth.svelte";
 import { version } from "$app/environment";
+import { auth } from "$lib/auth.svelte";
+import { Koso } from "./koso.svelte";
 
 export class KosoSocket {
   socket: WebSocket | null = null;

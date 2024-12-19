@@ -18,7 +18,6 @@
   import { Editable } from "$lib/components/ui/editable";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
-  import { Node, type Koso } from "$lib/koso.svelte";
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
@@ -30,6 +29,7 @@
     getUniqueUsers,
   } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
+  import { Node, type Koso } from "./koso.svelte";
   import LinkPanel from "./link-panel.svelte";
 
   type Props = {

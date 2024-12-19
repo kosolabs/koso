@@ -1,11 +1,11 @@
 <script lang="ts">
   import * as Command from "$lib/components/ui/command";
   import * as Popover from "$lib/components/ui/popover";
-  import type { Koso, Node } from "$lib/koso.svelte";
   import { Shortcut } from "$lib/shortcuts";
   import { match } from "$lib/utils";
   import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
+  import type { Koso, Node } from "./koso.svelte";
 
   type Props = {
     open: boolean;
