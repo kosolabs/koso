@@ -24,12 +24,12 @@
   import { ChevronRight, Github, Grip, Icon, ToyBrick } from "lucide-svelte";
   import { getContext } from "svelte";
   import { toast } from "svelte-sonner";
+  import { Node, type Koso } from ".";
   import Awareness, {
     getAwarenessOutline,
     getUniqueUsers,
   } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
-  import { Node, type Koso } from "./koso.svelte";
   import LinkPanel from "./link-panel.svelte";
 
   type Props = {

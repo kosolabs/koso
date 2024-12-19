@@ -4,8 +4,8 @@ import * as encoding from "lib0/encoding";
 import { uuidv4 } from "lib0/random.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
+import { Koso, Node } from ".";
 import { type TaskBuilder } from "../../../tests/utils";
-import { Koso, Node } from "./koso.svelte";
 
 const USER: User = {
   email: "t@koso.app",
@@ -69,10 +69,13 @@ describe("Koso tests", () => {
     });
   };
 
-  beforeEach(() => {
-    koso = new Koso("project-id-" + uuidv4(), new Y.Doc());
-    koso.setSendAndSync(() => {});
-    koso.receive(EMPTY_SYNC_RESPONSE);
+  beforeEach((context) => {
+    const cleanup = $effect.root(() => {
+      koso = new Koso("project-id-" + uuidv4(), new Y.Doc());
+      koso.setSendAndSync(() => {});
+      koso.receive(EMPTY_SYNC_RESPONSE);
+    });
+    context.onTestFinished(() => cleanup());
   });
 
   describe("link", () => {
@@ -1518,7 +1521,11 @@ describe("Koso tests", () => {
 
     it("setting a task to Done moves task to the bottom", () => {
       init([
-        { id: "root", name: "Root", children: ["t1", "t2", "t3", "t4", "t5"] },
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5"],
+        },
       ]);
 
       koso.setTaskStatus(Node.parse("t2"), "Done", USER);
@@ -1529,7 +1536,11 @@ describe("Koso tests", () => {
 
     it("setting a task to In Progress moves task to the top", () => {
       init([
-        { id: "root", name: "Root", children: ["t1", "t2", "t3", "t4", "t5"] },
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5"],
+        },
       ]);
 
       koso.setTaskStatus(Node.parse("t4"), "In Progress", USER);
@@ -1540,7 +1551,11 @@ describe("Koso tests", () => {
 
     it("setting task to In Progress moves next to the last In Progress task", () => {
       init([
-        { id: "root", name: "Root", children: ["t1", "t2", "t3", "t4", "t5"] },
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5"],
+        },
         { id: "t2", status: "In Progress" },
         { id: "t5", status: "Done" },
       ]);
@@ -1553,7 +1568,11 @@ describe("Koso tests", () => {
 
     it("setting task to Done moves next to the first Done task", () => {
       init([
-        { id: "root", name: "Root", children: ["t1", "t2", "t3", "t4", "t5"] },
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5"],
+        },
         { id: "t1", status: "In Progress" },
         { id: "t4", status: "Done" },
       ]);
@@ -1566,7 +1585,11 @@ describe("Koso tests", () => {
 
     it("setting a Done task to In Progress moves up", () => {
       init([
-        { id: "root", name: "Root", children: ["t1", "t2", "t3", "t4", "t5"] },
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5"],
+        },
         { id: "t1", status: "In Progress" },
         { id: "t4", status: "Done" },
         { id: "t5", status: "Done" },

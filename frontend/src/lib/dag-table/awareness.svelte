@@ -1,5 +1,5 @@
 <script module lang="ts">
-  import { Node } from "./koso.svelte";
+  import { Node } from ".";
 
   export type User = {
     email: string;

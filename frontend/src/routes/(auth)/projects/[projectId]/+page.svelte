@@ -18,7 +18,6 @@
   } from "$lib/projects";
   import { Action } from "$lib/shortcuts";
   import { FileDown, PlugZap, UserPlus } from "lucide-svelte";
-  import { onDestroy, onMount } from "svelte";
   import { toast } from "svelte-sonner";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
@@ -26,14 +25,15 @@
 
   const projectId = $page.params.projectId;
   const koso = new Koso(projectId, new Y.Doc());
+  const kosoSocket = new KosoSocket(koso, projectId);
   window.koso = koso;
   window.Y = Y;
 
-  let deflicker: Promise<void> = new Promise((r) => setTimeout(r, 50));
+  let deflicker: Promise<void> = new Promise((r) => window.setTimeout(r, 50));
   let project: Promise<Project> = loadProject();
   let projectUsersPromise: Promise<User[]> = loadProjectUsers();
-  let projectUsers: User[] = [];
-  let openShareModal = false;
+  let projectUsers: User[] = $state([]);
+  let openShareModal: boolean = $state(false);
 
   async function loadProjectUsers() {
     const users = await fetchProjectUsers(projectId);
@@ -88,33 +88,6 @@
     a.click();
   }
 
-  let showSocketOfflineAlert: boolean = false;
-  let showUnauthorizedModal: boolean = false;
-
-  const kosoSocket = new KosoSocket(
-    koso,
-    projectId,
-    () => {
-      showUnauthorizedModal = true;
-    },
-    () => {
-      showSocketOfflineAlert = false;
-    },
-    () => {
-      showSocketOfflineAlert = true;
-    },
-  );
-
-  onMount(async () => {
-    await kosoSocket.openWebSocket();
-    nav.lastVisitedProjectId = $page.params.projectId;
-  });
-
-  onDestroy(() => {
-    kosoSocket.closeAndShutdown(1000, "Closed in onDestroy.");
-    koso.destroy();
-  });
-
   export const extraActions: Action[] = [
     new Action({
       callback: exportProjectToFile,
@@ -124,6 +97,12 @@
       toolbar: false,
     }),
   ];
+
+  $effect(() => {
+    if (kosoSocket.online && kosoSocket.authorized) {
+      nav.lastVisitedProjectId = $page.params.projectId;
+    }
+  });
 </script>
 
 <Navbar>
@@ -160,13 +139,13 @@
   {/snippet}
 </Navbar>
 
-{#if showSocketOfflineAlert}
+{#if !kosoSocket.online}
   <div class="m-4">
     <Alert>Connection to server lost. Working offline.</Alert>
   </div>
 {/if}
 
-<UnauthorizedModal bind:open={showUnauthorizedModal} />
+<UnauthorizedModal open={!kosoSocket.authorized} />
 
 {#await projectUsersPromise}
   {#await deflicker}

@@ -40,7 +40,7 @@
   import { onMount, setContext, tick } from "svelte";
   import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
-  import { Node, type Koso } from "./koso.svelte";
+  import { Node, type Koso } from ".";
   import Row, { type RowType } from "./row.svelte";
   import Toolbar from "./toolbar.svelte";
 

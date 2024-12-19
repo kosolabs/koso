@@ -1,79 +1,87 @@
 import { version } from "$app/environment";
 import { auth } from "$lib/auth.svelte";
-import { Koso } from "./koso.svelte";
+import { Koso } from ".";
 
 export class KosoSocket {
-  socket: WebSocket | null = null;
-  shutdown: boolean = false;
-  socketPingInterval: ReturnType<typeof setTimeout> | null = null;
-  reconnectBackoffMs: number | null = null;
-  lastReconnectTime: number | null = null;
-  offlineTimeout: ReturnType<typeof setTimeout> | null = null;
-  offlineHandler: (event: Event) => void;
-  onlineHandler: (event: Event) => Promise<void>;
-  koso: Koso;
-  projectId: string;
-  onUnauthorized: () => void;
-  onOnline: () => void;
-  onOffline: () => void;
+  #authorized: boolean = $state(true);
+  #online: boolean = $state(false);
+  #socket: WebSocket | null = null;
+  #shutdown: boolean = false;
+  #offlineTimeout: number | undefined;
+  #reconnectBackoffMs: number | null = null;
+  #lastReconnectTime: number | null = null;
+  #koso: Koso;
+  #projectId: string;
 
-  constructor(
-    koso: Koso,
-    projectId: string,
-    onUnauthorized: () => void,
-    onOnline: () => void,
-    onOffline: () => void,
-  ) {
-    this.koso = koso;
-    this.projectId = projectId;
-    this.onUnauthorized = onUnauthorized;
-    this.onOnline = onOnline;
-    this.onOffline = onOffline;
+  constructor(koso: Koso, projectId: string) {
+    this.#koso = koso;
+    this.#projectId = projectId;
 
     this.#setOffline();
 
-    this.onlineHandler = this.#handleOnline.bind(this);
-    window.addEventListener("online", this.onlineHandler);
-    this.offlineHandler = this.#handleOffline.bind(this);
-    window.addEventListener("offline", this.offlineHandler);
-    this.socketPingInterval = setInterval(
-      () => {
-        if (this.socket && this.socket.readyState == WebSocket.OPEN) {
-          this.socket.send("");
-        }
-      },
-      (45 + 20 * Math.random()) * 1000,
-    );
+    $effect(() => {
+      const handleOnline = this.#handleOnline.bind(this);
+      const handleOffline = this.#handleOffline.bind(this);
+
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+
+      const socketPingInterval = window.setInterval(
+        () => {
+          if (this.#socket && this.#socket.readyState == WebSocket.OPEN) {
+            this.#socket.send("");
+          }
+        },
+        (45 + 20 * Math.random()) * 1000,
+      );
+
+      this.#openWebSocket();
+
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+        window.clearInterval(socketPingInterval);
+        this.#closeAndShutdown(1000, "Closed in onDestroy.");
+      };
+    });
   }
 
-  async openWebSocket() {
+  get authorized(): boolean {
+    return this.#authorized;
+  }
+
+  get online(): boolean {
+    return this.#online;
+  }
+
+  #openWebSocket() {
     if (
-      this.socket &&
-      (this.socket.readyState == WebSocket.OPEN ||
-        this.socket.readyState == WebSocket.CONNECTING)
+      this.#socket &&
+      (this.#socket.readyState == WebSocket.OPEN ||
+        this.#socket.readyState == WebSocket.CONNECTING)
     ) {
       console.debug("Socket already connected");
       return;
     }
-    if (this.shutdown) {
+    if (this.#shutdown) {
       return;
     }
 
     const host = location.origin.replace(/^http/, "ws");
-    const wsUrl = `${host}/api/ws/projects/${this.projectId}`;
+    const wsUrl = `${host}/api/ws/projects/${this.#projectId}`;
     const socket = new WebSocket(wsUrl, [
       "bearer",
       auth.token,
       "koso-client-version",
       version,
     ]);
-    this.socket = socket;
+    this.#socket = socket;
     socket.binaryType = "arraybuffer";
 
     socket.onopen = (event) => {
       console.debug("WebSocket opened", event);
       this.#setOnline();
-      this.koso.setSendAndSync((update) => {
+      this.#koso.setSendAndSync((update) => {
         if (socket.readyState == WebSocket.OPEN) {
           socket.send(update);
         } else {
@@ -87,25 +95,27 @@ export class KosoSocket {
 
     socket.onmessage = (event) => {
       if (event.data instanceof ArrayBuffer) {
-        this.koso.receive(new Uint8Array(event.data));
+        this.#koso.receive(new Uint8Array(event.data));
       } else {
         console.debug("Received text frame from server:", event.data);
       }
     };
+
     socket.onerror = (event) => {
       console.debug("WebSocket errored", event);
       // Errors also trigger onclose events so handle everything there.
     };
+
     socket.onclose = (event) => {
       // Sometimes onclose events are delayed while, in the meantime,
       // a new socket was opened.
-      if (this.socket && this.socket != socket) {
+      if (this.#socket && this.#socket != socket) {
         console.debug("Socket already reopened");
         return;
       }
 
       this.#setOffline();
-      if (this.shutdown) {
+      if (this.#shutdown) {
         console.debug(
           `WebSocket closed in onDestroy. Code: ${event.code}, Reason: '${event.reason}' Will not try to reconnect`,
           event,
@@ -119,8 +129,8 @@ export class KosoSocket {
           `Unauthorized, WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. `,
           event,
         );
-        this.#setShutdown();
-        this.onUnauthorized();
+        this.#closeAndShutdown();
+        this.#authorized = false;
         return;
       }
 
@@ -142,71 +152,56 @@ export class KosoSocket {
       }
 
       // Try to reconnect.
-      setTimeout(async () => {
-        await this.openWebSocket();
+      window.setTimeout(() => {
+        this.#openWebSocket();
       }, backoffMs);
     };
+  }
 
-    while (socket.readyState == WebSocket.CONNECTING) {
-      await new Promise((r) => setTimeout(r, 100));
+  #closeAndShutdown(code?: number, reason?: string) {
+    this.#shutdown = true;
+    clearTimeout(this.#offlineTimeout);
+    this.#offlineTimeout = undefined;
+    if (this.#socket) {
+      console.log(reason);
+      this.#socket.close(code, reason);
+      this.#socket = null;
     }
   }
 
-  async #handleOnline(event: Event) {
+  #handleOnline(event: Event) {
     console.debug("Online.", event);
-    await this.openWebSocket();
+    this.#openWebSocket();
   }
 
   #handleOffline(event: Event) {
     console.debug("Offline.", event);
     this.#setOffline(1);
-    if (this.socket) {
-      const socket = this.socket;
-      this.socket = null;
-      socket.close(1000, "Went offline");
+    if (this.#socket) {
+      this.#socket.close(1000, "Went offline");
+      this.#socket = null;
     }
-  }
-
-  closeAndShutdown(code: number, reason: string) {
-    const socket = this.socket;
-    this.#setShutdown();
-    if (socket) {
-      socket.close(code, reason);
-    }
-  }
-
-  #setShutdown() {
-    this.shutdown = true;
-    if (this.socketPingInterval) {
-      clearInterval(this.socketPingInterval);
-    }
-    if (this.offlineTimeout) {
-      clearTimeout(this.offlineTimeout);
-    }
-    window.removeEventListener("online", this.onlineHandler);
-    window.removeEventListener("offline", this.offlineHandler);
-    this.socket = null;
   }
 
   #setOffline(alertDelayMs = 14000) {
-    if (!this.offlineTimeout && !this.shutdown) {
+    if (!this.#offlineTimeout && !this.#shutdown) {
       // Delay showing the offline alert for a little bit
       // to avoid flashing an alert due to transient events.
       // e.g. server restarts.
-      this.offlineTimeout = setTimeout(() => {
-        if (this.offlineTimeout && !this.shutdown) {
-          this.onOffline();
+      this.#offlineTimeout = window.setTimeout(() => {
+        if (this.#offlineTimeout && !this.#shutdown) {
+          this.#online = false;
         }
       }, alertDelayMs);
     }
   }
 
   #setOnline() {
-    if (this.offlineTimeout) {
-      clearTimeout(this.offlineTimeout);
-      this.offlineTimeout = null;
+    if (this.#offlineTimeout) {
+      clearTimeout(this.#offlineTimeout);
+      this.#offlineTimeout = undefined;
     }
-    this.onOnline();
+    this.#online = true;
   }
 
   #backoffOnReconnect(min: number = 0): number {
@@ -214,16 +209,16 @@ export class KosoSocket {
     // Reset the backoff time if the last backoff attempt was long ago,
     // removing any memory of long past strings of failures and allowing
     // clients to rapidly reconnect when interrupted.
-    if (Date.now() - (this.lastReconnectTime || 0) > maxBackoffMs * 4) {
-      this.reconnectBackoffMs = null;
+    if (Date.now() - (this.#lastReconnectTime || 0) > maxBackoffMs * 4) {
+      this.#reconnectBackoffMs = null;
     }
 
-    let base = this.reconnectBackoffMs ? this.reconnectBackoffMs * 1.5 : 400;
+    let base = this.#reconnectBackoffMs ? this.#reconnectBackoffMs * 1.5 : 400;
     // Don't let backoff get too big (or too small).
     base = Math.max(Math.min(maxBackoffMs, base), min);
     // Add some jitter
-    this.reconnectBackoffMs = base + base * 0.3 * Math.random();
-    this.lastReconnectTime = Date.now();
-    return this.reconnectBackoffMs;
+    this.#reconnectBackoffMs = base + base * 0.3 * Math.random();
+    this.#lastReconnectTime = Date.now();
+    return this.#reconnectBackoffMs;
   }
 }
