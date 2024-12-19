@@ -1,10 +1,10 @@
+import type { User } from "$lib/auth.svelte";
 import { List, Set } from "immutable";
 import * as encoding from "lib0/encoding";
 import { uuidv4 } from "lib0/random.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { type TaskBuilder } from "../../tests/utils";
-import type { User } from "./auth.svelte";
+import { type TaskBuilder } from "../../../tests/utils";
 import { Koso, Node } from "./koso.svelte";
 
 const USER: User = {

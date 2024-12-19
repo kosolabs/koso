@@ -20,7 +20,7 @@ import {
   type Task,
   type YEvent,
   type YTask,
-} from "./yproxy";
+} from "../yproxy";
 
 const MSG_SYNC = 0;
 
