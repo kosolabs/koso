@@ -988,12 +988,12 @@ describe("Koso tests", () => {
       expect(koso.getParents("2")).toEqual(["1"]);
     });
 
-    it("parents of 3 are 1 and root", () => {
+    it("parents of 3 are root and 1", () => {
       expect(koso.getParents("3")).toEqual(["root", "1"]);
     });
 
-    it("parents of 4 are 2 and 3", () => {
-      expect(koso.getParents("4")).toEqual(["2", "3"]);
+    it("parents of 4 are 3 and 2", () => {
+      expect(koso.getParents("4")).toEqual(["3", "2"]);
     });
 
     it("parents of root throws", () => {

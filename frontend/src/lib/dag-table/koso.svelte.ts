@@ -312,11 +312,17 @@ export class Koso {
 
   #toParents(): Map<string, string[]> {
     return Map<string, string[]>().withMutations((parents) => {
-      for (const task of this.graph.values()) {
-        for (const childId of task.children) {
+      const tasks = [this.getTask("root")];
+      const visited = Set<string>().asMutable();
+      while (tasks.length > 0) {
+        const parent = tasks.shift()!;
+        if (visited.contains(parent.id)) continue;
+        visited.add(parent.id);
+        for (const childId of parent.children) {
           const children = parents.get<string[]>(childId, []);
-          children.push(task.id);
+          children.push(parent.id);
           parents.set(childId, children);
+          tasks.push(this.getTask(childId));
         }
       }
     });
@@ -352,7 +358,10 @@ export class Koso {
     const shouldUpdateAwareness = this.#selected !== value;
 
     this.#selected = value;
-    this.#focus = true;
+    if (this.#selected) {
+      this.expand(this.#selected.parent);
+      this.focus = true;
+    }
 
     if (shouldUpdateAwareness) {
       this.#send(this.#encodeAwareness());
@@ -586,6 +595,24 @@ export class Koso {
     this.undoManager.clear();
   }
 
+  select(taskId: string) {
+    const nodes = this.getNodes(taskId);
+    if (!nodes.length) throw new Error("Expected at least one Node");
+    this.selected = nodes[0];
+  }
+
+  getNodes(taskId: string, slugs: List<string> = List()): Node[] {
+    if (taskId === "root") {
+      return [new Node({ path: slugs })];
+    }
+    slugs = slugs.insert(0, taskId);
+    const nodes: Node[] = [];
+    for (const parent of this.getParents(taskId)) {
+      nodes.push(...this.getNodes(parent, slugs));
+    }
+    return nodes;
+  }
+
   #hasCycle(parent: string, child: string): boolean {
     if (child === parent) {
       return true;
@@ -703,7 +730,10 @@ export class Koso {
   }
 
   expand(node: Node) {
-    this.expanded = this.expanded.add(node);
+    while (node.name !== "root") {
+      this.expanded = this.expanded.add(node);
+      node = node.parent;
+    }
   }
 
   canCollapse(node: Node) {

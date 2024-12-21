@@ -43,8 +43,6 @@
     value = user;
     onSelect?.(user);
   }
-
-  const filteredUsers = users;
 </script>
 
 {#if editable}
@@ -89,7 +87,7 @@
               user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
             />
           </DropdownMenu.Item>
-          {#each filteredUsers as user}
+          {#each users as user}
             <DropdownMenu.Item onSelect={() => select(user)}>
               <UserAvatar {user} />
             </DropdownMenu.Item>
