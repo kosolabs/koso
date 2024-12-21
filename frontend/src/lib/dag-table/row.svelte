@@ -16,6 +16,7 @@
   } from "$lib/components/ui/chip";
   import { confetti } from "$lib/components/ui/confetti";
   import { Editable } from "$lib/components/ui/editable";
+  import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
   import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { Shortcut } from "$lib/shortcuts";
@@ -31,7 +32,6 @@
   } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
-  import ManagedTaskIcon from "./managed-task-icon.svelte";
 
   type Props = {
     index: number;
@@ -425,7 +425,7 @@
       {#if task.kind}
         <ManagedTaskIcon kind={task.kind} />
       {/if}
-      <div class="flex flex-wrap-reverse gap-x-1">
+      <div class="flex w-full flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}
           <div class="flex flex-wrap items-center gap-x-1">
             {#each tags as tag}
