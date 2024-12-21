@@ -1682,6 +1682,26 @@ test.describe("dag table tests", () => {
     });
   });
 
+  test.describe("search panel", () => {
+    test("search panel expands and selects task", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["m1", "m2", "c1", "c2"] },
+        { id: "m1", name: "Milestone 1", children: ["f1", "f2"] },
+        { id: "m2", name: "Milestone 2", children: [] },
+        { id: "c1", name: "Component 1", children: [] },
+        { id: "c2", name: "Component 2", children: [] },
+        { id: "f1", name: "Feature 1", children: [] },
+        { id: "f2", name: "Feature 2", children: [] },
+      ]);
+
+      await page.keyboard.press("Meta+p");
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.getByRole("option", { name: "Task f2 Search Item" }).click();
+
+      await expect(page.getByRole("row", { name: "Task f2" })).toBeFocused();
+    });
+  });
+
   test.describe("link panel", () => {
     test("link panel adds a link to task by name", async ({ page }) => {
       await init(page, [

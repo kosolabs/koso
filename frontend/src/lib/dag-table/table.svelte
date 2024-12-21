@@ -24,6 +24,7 @@
     MoveUp,
     Pencil,
     Redo,
+    Search,
     SkipBack,
     SkipForward,
     SquarePen,
@@ -42,6 +43,7 @@
   import { flip } from "svelte/animate";
   import { Node, type Koso } from ".";
   import Row, { type RowType } from "./row.svelte";
+  import SearchPanel from "./search-panel.svelte";
   import Toolbar from "./toolbar.svelte";
 
   type Props = {
@@ -59,6 +61,11 @@
       throw new Error(`Row doesn't exist for ${node}`);
     }
     return maybeRow;
+  }
+
+  let searchPaletteOpen: boolean = $state(false);
+  function showSearchPalette() {
+    searchPaletteOpen = true;
   }
 
   let commandPaletteOpen: boolean = $state(false);
@@ -490,6 +497,14 @@
       icon: SunMoon,
     }),
     new Action({
+      callback: showSearchPalette,
+      title: "Search",
+      description: "Show the search palette",
+      icon: Search,
+      toolbar: true,
+      shortcut: new Shortcut({ key: "p", meta: true }),
+    }),
+    new Action({
       callback: showCommandPalette,
       title: "Palette",
       description: "Show the command palette",
@@ -550,6 +565,7 @@
 </script>
 
 <CommandPalette bind:open={commandPaletteOpen} {actions} />
+<SearchPanel bind:open={searchPaletteOpen} />
 
 <Toolbar {actions}>
   {#if !koso.syncState.serverSync && !koso.syncState.indexedDbSync}
