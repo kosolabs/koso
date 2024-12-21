@@ -21,7 +21,7 @@
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
-  import { ChevronRight, Github, Grip, Icon, ToyBrick } from "lucide-svelte";
+  import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
   import { toast } from "svelte-sonner";
   import { Node, type Koso } from ".";
@@ -31,6 +31,7 @@
   } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
+  import ManagedTaskIcon from "./managed-task-icon.svelte";
 
   type Props = {
     index: number;
@@ -68,7 +69,6 @@
   let progress = $derived(koso.getProgress(task.id));
   let tags = $derived(getTags(koso.parents));
   let editable = $derived(koso.isEditable(task.id));
-  let ManagedTaskIcon = $derived(getManagedTaskIcon());
 
   $effect(() => {
     if (rowElement && isSelected && koso.focus) {
@@ -162,20 +162,6 @@
       }
     }
     return null;
-  }
-
-  function getManagedTaskIcon(): typeof Icon | null {
-    if (!task.kind) {
-      return null;
-    }
-    if (task.kind.startsWith("github")) {
-      return Github;
-    } else {
-      console.warn(
-        `No icon registered for kind ${task.kind} on task ${task.id}. Add one!`,
-      );
-      return ToyBrick;
-    }
   }
 
   function setOpen(open: boolean) {
@@ -436,10 +422,8 @@
   </td>
   <td class={cn("border-l border-t px-2")}>
     <div class={cn("flex items-center gap-x-1")}>
-      {#if ManagedTaskIcon}
-        <div class={cn("min-w-4 max-w-4")}>
-          <ManagedTaskIcon size={16} class="text-foreground" />
-        </div>
+      {#if task.kind}
+        <ManagedTaskIcon kind={task.kind} />
       {/if}
       <div class="flex flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}
