@@ -136,7 +136,7 @@ jobs:
       # Mutually exclusive with the build/archive steps below.
       - name: Build tauri app (non-release)
         id: build-non-release-tauri
-        uses: tauri-apps/tauri-action@2a8db2c169af2fdc695133781e27ecba52daea75 # v0.5.17
+        uses: tauri-apps/tauri-action@6a45448f17a006facb105cc5257b3edbc353038a # v0.5.18
         if: ${{ github.event_name != 'workflow_dispatch' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -144,7 +144,7 @@ jobs:
           projectPath: "./zero"
           args: ${{ matrix.args }}
       - name: Archive tauri artifacts
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         if: ${{ github.event_name != 'workflow_dispatch' }}
         with:
           name: tauri-app-${{ matrix.target }}
@@ -154,7 +154,7 @@ jobs:
       # Mutually exclusive with the build/archive steps above.
       - name: Build and publish tauri app (release)
         id: build-release-tauri
-        uses: tauri-apps/tauri-action@2a8db2c169af2fdc695133781e27ecba52daea75 # v0.5.17
+        uses: tauri-apps/tauri-action@6a45448f17a006facb105cc5257b3edbc353038a # v0.5.18
         if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -166,7 +166,7 @@ jobs:
           releaseDraft: true
           prerelease: true
       - name: Archive tauri artifacts
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         if: ${{ github.event_name == 'workflow_dispatch' }}
         with:
           name: tauri-app-${{ matrix.target }}
