@@ -935,7 +935,7 @@ async fn read_sync_request(socket: &mut Socket) -> StateVector {
         panic!("Expected binary sync_request, got: {sync_request:?}");
     };
     assert!(!sync_request.is_empty());
-    let mut decoder = DecoderV1::from(sync_request.as_slice());
+    let mut decoder = DecoderV1::from(sync_request.as_ref());
     match decoder.read_var().unwrap() {
         MSG_SYNC => match decoder.read_var().unwrap() {
             MSG_SYNC_REQUEST => StateVector::decode_v1(decoder.read_buf().unwrap()).unwrap(),
@@ -951,7 +951,7 @@ async fn read_sync_response(socket: &mut Socket) -> Update {
         panic!("Expected binary sync_response, got: {sync_response:?}");
     };
     assert!(!sync_response.is_empty());
-    let mut decoder = DecoderV1::from(sync_response.as_slice());
+    let mut decoder = DecoderV1::from(sync_response.as_ref());
     match decoder.read_var().unwrap() {
         MSG_SYNC => match decoder.read_var().unwrap() {
             MSG_SYNC_RESPONSE => Update::decode_v2(decoder.read_buf().unwrap()).unwrap(),
@@ -967,7 +967,7 @@ async fn read_sync_update(socket: &mut Socket) -> Update {
         panic!("Expected binary sync_update, got: {sync_update:?}");
     };
     assert!(!sync_update.is_empty());
-    let mut decoder = DecoderV1::from(sync_update.as_slice());
+    let mut decoder = DecoderV1::from(sync_update.as_ref());
     match decoder.read_var().unwrap() {
         MSG_SYNC => match decoder.read_var().unwrap() {
             MSG_SYNC_UPDATE => Update::decode_v2(decoder.read_buf().unwrap()).unwrap(),
@@ -983,7 +983,7 @@ async fn read_awareness_state(socket: &mut Socket) -> Vec<AwarenessState> {
         panic!("Expected binary awareness_state, got: {awareness_state:?}");
     };
     assert!(!awareness_state.is_empty());
-    let mut decoder = DecoderV1::from(awareness_state.as_slice());
+    let mut decoder = DecoderV1::from(awareness_state.as_ref());
     match decoder.read_var().unwrap() {
         MSG_KOSO_AWARENESS => match decoder.read_var().unwrap() {
             MSG_KOSO_AWARENESS_STATE => {
@@ -999,7 +999,7 @@ async fn close_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
     socket
         .close(Some(CloseFrame {
             code: CloseCode::Normal,
-            reason: std::borrow::Cow::Borrowed("all done"),
+            reason: "all done".into(),
         }))
         .await
         .unwrap();
@@ -1009,7 +1009,7 @@ async fn close_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
         match close {
             Message::Close(Some(close)) => break close,
             Message::Binary(awareness) => {
-                assert!(awareness.as_slice()[0] == 8);
+                assert!(awareness.as_ref()[0] == 8);
                 continue;
             }
             _ => panic!("Expected close frame, got: {close:?}"),
@@ -1031,7 +1031,7 @@ async fn close_socket_without_details(socket: &mut WebSocketStream<MaybeTlsStrea
         match close {
             Message::Close(None) => break,
             Message::Binary(awareness) => {
-                assert!(awareness.as_slice()[0] == 8);
+                assert!(awareness.as_ref()[0] == 8);
                 continue;
             }
             _ => panic!("Expected close frame, got: {close:?}"),
@@ -1050,7 +1050,7 @@ async fn respond_closed_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpSt
         match close {
             Message::Close(Some(close)) => break close,
             Message::Binary(awareness) => {
-                assert!(awareness.as_slice()[0] == 8);
+                assert!(awareness.as_ref()[0] == 8);
                 continue;
             }
             _ => panic!("Expected close frame, got: {close:?}"),
