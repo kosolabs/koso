@@ -999,7 +999,7 @@ async fn close_socket(socket: &mut WebSocketStream<MaybeTlsStream<TcpStream>>) {
     socket
         .close(Some(CloseFrame {
             code: CloseCode::Normal,
-            reason: "all done".into(),
+            reason: "all done".into()       ,
         }))
         .await
         .unwrap();
