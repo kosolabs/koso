@@ -141,9 +141,7 @@ impl GraphObserver {
         GraphObserver { tracker }
     }
 
-    /// Callback invoked on update_v2 doc events, triggered by calls to "apply_update" in process_message_internal.
-    /// observe_update_v2 only accepts synchronous callbacks thus requiring this function be synchronous
-    /// and any async operations, including sending to a channel, to occur in a spawned task.
+    /// Callback invoked on graph events triggered by calls to "apply_update" in process_message_internal.
     pub(super) fn handle_graph_update_event<T: DocBoxProvider + 'static>(
         &self,
         project: Arc<T>,
