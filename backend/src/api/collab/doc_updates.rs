@@ -1,11 +1,18 @@
 use crate::api::collab::{msg_sync::sync_update, storage};
 use crate::api::collab::{projects_state::ProjectState, txn_origin::from_origin};
+use crate::api::yproxy::YTaskProxy;
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use std::{fmt, sync::Arc};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
+use tracing::Instrument;
+use yrs::types::map::MapEvent;
+use yrs::Map as _;
+
+use super::projects_state::{DocBox, DocBoxProvider};
+use super::txn_origin::YOrigin;
 
 // Handles updates applied to a project doc and forward them to the doc_update_tx
 // for handling by the `DocUpdateProcessor`.
@@ -46,11 +53,14 @@ impl DocObserver {
         };
 
         let doc_update_tx = self.doc_update_tx.clone();
-        self.tracker.spawn(async move {
-            if let Err(e) = doc_update_tx.send(update).await {
-                tracing::error!("Failed to send to doc_update channel: {e}");
+        self.tracker.spawn(
+            async move {
+                if let Err(e) = doc_update_tx.send(update).await {
+                    tracing::error!("Failed to send to doc_update channel: {e}");
+                }
             }
-        });
+            .in_current_span(),
+        );
     }
 }
 
@@ -119,5 +129,201 @@ impl fmt::Debug for DocUpdate {
             .field("id", &self.id)
             .field("data.len()", &self.data.len())
             .finish()
+    }
+}
+
+pub(super) struct GraphObserver {
+    tracker: TaskTracker,
+}
+
+impl GraphObserver {
+    pub(super) fn new(tracker: TaskTracker) -> Self {
+        GraphObserver { tracker }
+    }
+
+    /// Callback invoked on graph events triggered by calls to "apply_update" in process_message_internal.
+    pub(super) fn handle_graph_update_event<T: DocBoxProvider + 'static>(
+        &self,
+        project: Arc<T>,
+        txn: &yrs::TransactionMut,
+        event: &MapEvent,
+    ) {
+        if let Err(e) = self.handle_graph_update_event_internal(project, txn, event) {
+            tracing::warn!("Failed to handle graph update event: {e}");
+        }
+    }
+
+    pub(super) fn handle_graph_update_event_internal<T: DocBoxProvider + 'static>(
+        &self,
+        project: Arc<T>,
+        txn: &yrs::TransactionMut,
+        event: &MapEvent,
+    ) -> Result<()> {
+        tracing::trace!("Handling graph update event {:?}", event.target());
+
+        for (mod_id, change) in event.keys(txn).iter() {
+            tracing::trace!("Handling graph update change {mod_id} - {change:?}");
+            let yrs::types::EntryChange::Inserted(yrs::Out::YMap(mod_task)) = change else {
+                continue;
+            };
+
+            let mod_task: YTaskProxy = YTaskProxy::new(mod_task.clone());
+            let mod_num = mod_task.get_num(txn)?;
+            for (_, out) in event
+                .target()
+                .iter(txn)
+                .filter(|(id, _)| mod_id.as_ref() != *id)
+            {
+                let yrs::Out::YMap(task) = out else {
+                    continue;
+                };
+                if YTaskProxy::new(task).get_num(txn)? != mod_num {
+                    continue;
+                }
+
+                let project = project.clone();
+                let origin = from_origin(txn.origin())?;
+                let origin = YOrigin {
+                    who: format!("rw-{}", origin.who),
+                    id: format!("rw-{}", origin.id),
+                };
+                let mod_id = mod_id.clone();
+                self.tracker.spawn(
+                    async move {
+                        if let Err(e) = Self::rewrite_task_num(&mod_id, project, origin).await {
+                            tracing::warn!("Failed to rewrite task num for task '{mod_id}': {e}");
+                        }
+                    }
+                    .in_current_span(),
+                );
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    async fn rewrite_task_num<T: DocBoxProvider>(
+        task_id: &str,
+        project: Arc<T>,
+        origin: YOrigin,
+    ) -> Result<()> {
+        let doc_box = project.get_doc_box().await;
+        let doc = &DocBox::doc_or_error(doc_box.as_ref())?.ydoc;
+        let mut txn = doc.transact_mut_with(origin.as_origin());
+
+        let num = doc.next_num(&txn)?;
+        tracing::debug!("Rewriting task num for task '{task_id}' to {num}");
+        let task = doc.get(&txn, task_id)?;
+        task.set_num(&mut txn, &num.to_string());
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use self::collab::Collab;
+
+    use super::{DocBox, DocBoxProvider, YOrigin};
+    use crate::api::{
+        collab::{self, doc_updates::GraphObserver, YDocProxy},
+        model::Task,
+    };
+    use async_trait::async_trait;
+    use std::sync::Arc;
+    use tokio::sync::{Mutex, MutexGuard};
+    use tokio_util::task::TaskTracker;
+
+    #[test_log::test(tokio::test)]
+    async fn graph_observer_test() {
+        let tracker = TaskTracker::new();
+        let task1 = Task {
+            id: "id1".into(),
+            num: "1".into(),
+            name: "name1".into(),
+            children: vec![],
+            assignee: None,
+            reporter: None,
+            status: None,
+            status_time: None,
+            url: None,
+            kind: None,
+        };
+        let mut task2 = Task {
+            id: "id2".into(),
+            num: "1".into(),
+            name: "name2".into(),
+            children: vec![],
+            assignee: None,
+            reporter: None,
+            status: None,
+            status_time: None,
+            url: None,
+            kind: None,
+        };
+        let origin = YOrigin {
+            who: "graph_observer_test".into(),
+            id: "test1".into(),
+        }
+        .as_origin();
+
+        // Setup the doc and observer.
+        let doc_box_provider = Arc::new(TestDocBoxProvider {
+            db: Mutex::new(Some(DocBox {
+                ydoc: YDocProxy::new(),
+                subs: vec![],
+            })),
+        });
+        {
+            let mut db: MutexGuard<'_, Option<DocBox>> = doc_box_provider.db.lock().await;
+            let db: &mut DocBox = db.as_mut().unwrap();
+
+            let observer = GraphObserver::new(tracker.clone());
+            let weak_doc_box = Arc::downgrade(&doc_box_provider);
+            let sub = Box::new(db.ydoc.observe_graph(move |txn, event| {
+                observer.handle_graph_update_event(weak_doc_box.upgrade().unwrap(), txn, event)
+            }));
+            db.subs.push(sub);
+        }
+
+        // Insert task 1.
+        {
+            let db = doc_box_provider.db.lock().await;
+            let doc = &db.as_ref().unwrap().ydoc;
+            doc.set(&mut doc.transact_mut_with(origin.clone()), &task1);
+        }
+        Collab::wait_for_tasks(&tracker).await;
+        assert_eq!(tracker.len(), 0);
+
+        // Insert task 2 which will have a number that conflicts with task 1.
+        {
+            let db = doc_box_provider.db.lock().await;
+            let doc = &db.as_ref().unwrap().ydoc;
+            doc.set(&mut doc.transact_mut_with(origin.clone()), &task2);
+        }
+        Collab::wait_for_tasks(&tracker).await;
+        assert_eq!(tracker.len(), 0);
+
+        // Verify task2's num field was rewritten.
+        let graph = {
+            let db = doc_box_provider.db.lock().await;
+            let doc = &db.as_ref().unwrap().ydoc;
+            let g = doc.to_graph(&doc.transact()).unwrap();
+            g
+        };
+        assert_eq!(*graph.get("id1").unwrap(), task1);
+        task2.num = "2".into();
+        assert_eq!(*graph.get("id2").unwrap(), task2);
+    }
+
+    struct TestDocBoxProvider {
+        db: Mutex<Option<DocBox>>,
+    }
+
+    #[async_trait]
+    impl DocBoxProvider for TestDocBoxProvider {
+        async fn get_doc_box(&self) -> MutexGuard<'_, Option<DocBox>> {
+            self.db.lock().await
+        }
     }
 }
