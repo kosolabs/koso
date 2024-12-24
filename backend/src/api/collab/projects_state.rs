@@ -20,6 +20,7 @@ use crate::{
     postgres::compact,
 };
 use anyhow::{anyhow, Error, Result};
+use async_trait::async_trait;
 use dashmap::DashMap;
 use sqlx::PgPool;
 use std::{
@@ -29,7 +30,7 @@ use std::{
         Arc, Weak,
     },
 };
-use tokio::sync::{mpsc::Sender, Mutex};
+use tokio::sync::{mpsc::Sender, Mutex, MutexGuard};
 use tracing::Instrument;
 use yrs::{ReadTxn as _, StateVector, Update};
 
@@ -352,6 +353,13 @@ impl ProjectState {
     }
 }
 
+#[async_trait]
+impl DocBoxProvider for ProjectState {
+    async fn get_doc_box(&self) -> MutexGuard<'_, Option<DocBox>> {
+        self.doc_box.lock().await
+    }
+}
+
 impl Drop for ProjectState {
     fn drop(&mut self) {
         tracing::debug!(
@@ -373,7 +381,7 @@ pub(crate) struct DocBox {
     pub(crate) ydoc: YDocProxy,
     /// Subscription to observe changes to doc.
     #[allow(dead_code)]
-    subs: Vec<Box<dyn Send>>,
+    pub(crate) subs: Vec<Box<dyn Send>>,
 }
 
 impl DocBox {
@@ -383,4 +391,9 @@ impl DocBox {
             None => Err(anyhow!("DocBox is absent")),
         }
     }
+}
+
+#[async_trait]
+pub(crate) trait DocBoxProvider: Sync + Send {
+    async fn get_doc_box(&self) -> MutexGuard<'_, Option<DocBox>>;
 }

@@ -126,10 +126,10 @@ impl Collab {
         // holds the sender sides of our processing channels.
         // Receivers will abort when all senders are gone.
         drop(self);
-        return Collab::wait_for_tasks(tracker).await;
+        return Collab::wait_for_tasks(&tracker).await;
     }
 
-    async fn wait_for_tasks(tracker: TaskTracker) {
+    pub(super) async fn wait_for_tasks(tracker: &TaskTracker) {
         // Wait for background processing tasks to complete.
         tracing::info!(
             "Waiting for {} outstanding task(s) to finish..",
