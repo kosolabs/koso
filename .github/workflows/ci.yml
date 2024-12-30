@@ -47,7 +47,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17.2@sha256:fe4efc6901dda0d952306fd962643d8022d7bb773ffe13fe8a21551b9276e50c
+        image: postgres:17.2@sha256:888402a8cd6075c5dc83a31f58287f13306c318eaad016661ed12e076f3e6341
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -62,7 +62,7 @@ jobs:
         with:
           toolchain: stable
       - name: Rust build cache
-        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:
           workspaces: "./ -> target"
           shared-key: "backend-build"
@@ -116,7 +116,7 @@ jobs:
       REGISTRY: ghcr.io
     services:
       postgres:
-        image: postgres:17.2@sha256:fe4efc6901dda0d952306fd962643d8022d7bb773ffe13fe8a21551b9276e50c
+        image: postgres:17.2@sha256:888402a8cd6075c5dc83a31f58287f13306c318eaad016661ed12e076f3e6341
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
