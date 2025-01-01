@@ -96,7 +96,7 @@ impl ClientMessageReceiver {
                         user: self.receiver.user.clone(),
                         project: Arc::clone(&self.project),
                         id: Uuid::new_v4().to_string(),
-                        data,
+                        data: data.into(),
                     })
                     .await
                 {

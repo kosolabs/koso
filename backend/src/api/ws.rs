@@ -15,7 +15,7 @@ use axum_extra::{headers, TypedHeader};
 use tracing::Instrument as _;
 
 pub(super) fn router() -> Router {
-    Router::new().route("/projects/:project_id", get(ws_handler))
+    Router::new().route("/projects/{project_id}", get(ws_handler))
 }
 /// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
 /// of websocket negotiation). After this completes, the actual switching from HTTP to

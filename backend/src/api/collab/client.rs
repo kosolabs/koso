@@ -52,7 +52,7 @@ pub(super) struct ClientSender {
 
 impl ClientSender {
     pub(super) async fn send(&mut self, data: Vec<u8>) -> Result<(), axum::Error> {
-        self.ws_sender.send(Message::Binary(data)).await
+        self.ws_sender.send(Message::Binary(data.into())).await
     }
 
     pub(super) async fn close(&mut self, code: CloseCode, reason: &'static str) {
