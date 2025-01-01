@@ -28,13 +28,16 @@ pub(super) fn router() -> Router {
     Router::new()
         .route("/", get(list_projects_handler))
         .route("/", post(create_project_handler))
-        .route("/:project_id", get(get_project_handler))
-        .route("/:project_id", patch(update_project_handler))
-        .route("/:project_id", delete(delete_project_handler))
-        .route("/:project_id/users", patch(update_project_users_handler))
-        .route("/:project_id/users", get(list_project_users_handler))
-        .route("/:project_id/updates", get(get_project_doc_updates_handler))
-        .route("/:project_id/export", get(export_project))
+        .route("/{project_id}", get(get_project_handler))
+        .route("/{project_id}", patch(update_project_handler))
+        .route("/{project_id}", delete(delete_project_handler))
+        .route("/{project_id}/users", patch(update_project_users_handler))
+        .route("/{project_id}/users", get(list_project_users_handler))
+        .route(
+            "/{project_id}/updates",
+            get(get_project_doc_updates_handler),
+        )
+        .route("/{project_id}/export", get(export_project))
 }
 
 #[tracing::instrument(skip(user, pool))]
