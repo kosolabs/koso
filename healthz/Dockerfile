@@ -21,5 +21,8 @@ FROM gcr.io/distroless/cc-debian12@sha256:f913198471738d9eedcd00c0ca812bf663e895
 WORKDIR /app
 
 COPY --from=build /app/healthz/target/release/healthz ./
+
+ENV PORT=8000
 ENV RUST_BACKTRACE=1
-ENTRYPOINT ["./healthz"]
+
+CMD ["./healthz"]

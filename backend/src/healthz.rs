@@ -1,6 +1,5 @@
-use axum::{routing::get, Json, Router};
-
 use crate::api::ApiResult;
+use axum::{routing::get, Json, Router};
 
 #[derive(serde::Serialize)]
 struct Healthz {
