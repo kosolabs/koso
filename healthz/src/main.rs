@@ -1,12 +1,14 @@
 use anyhow::Result;
-use clap::Parser;
+use axum::{extract::Query, http::StatusCode, routing::get, Json, Router};
 use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    env,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use teloxide::{prelude::*, types::Chat};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 struct Status {
@@ -52,72 +54,70 @@ async fn check_healthz(url: &str) -> Result<HealthZ> {
     Ok(healthz)
 }
 
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct Cli {
-    url: String,
-    #[arg(short, long, required = true)]
-    chat_id: i64,
-}
-
-#[tokio::main]
-async fn main() {
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .init();
-
-    let cli = Cli::parse();
-    let chat_id = cli.chat_id.to_string();
-
-    tracing::info!("Checking status of: {}", &cli.url);
+async fn check_and_notify(url: &str, chat_id: ChatId) -> Result<Status> {
+    tracing::info!("Checking status of: {}", url);
 
     let bot = Bot::from_env();
 
-    let chat = bot
-        .get_chat(chat_id.to_string())
-        .await
-        .expect("Failed to get chat");
+    let chat = bot.get_chat(chat_id).await?;
     let prev_status = get_status(&chat);
 
-    let healthz_status = check_healthz(&cli.url).await.is_ok();
-    let last_update = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_millis();
+    let healthz_status = check_healthz(url).await.is_ok();
+    let last_update = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
     let curr_status = Status {
         healthz_status,
         last_update,
     };
 
-    let serialized_status =
-        serde_json::to_string(&curr_status).expect("Failed to serialize updated status");
-    bot.set_chat_description(chat_id.to_string())
+    let serialized_status = serde_json::to_string(&curr_status)?;
+    bot.set_chat_description(chat_id)
         .description(serialized_status)
-        .await
-        .expect("Failed to update status");
+        .await?;
 
     tracing::info!("prev: {prev_status:?}, curr: {curr_status:?}");
     if curr_status.healthz_status == prev_status.healthz_status {
-        return;
+        return Ok(curr_status);
     }
 
     let message = if curr_status.healthz_status {
-        bot.send_message(chat_id.to_string(), "✅ Koso is up!")
+        bot.send_message(chat_id, "✅ Koso is up!")
     } else {
-        bot.send_message(chat_id.to_string(), "❌ Koso is down!")
+        bot.send_message(chat_id, "❌ Koso is down!")
     }
-    .await
-    .expect("Failed to send update");
+    .await?;
 
-    bot.unpin_all_chat_messages(chat_id.to_string())
-        .await
-        .expect("Failed to unpin all chat messages");
+    bot.unpin_all_chat_messages(chat_id).await?;
 
-    bot.pin_chat_message(chat_id.to_string(), message.id)
+    bot.pin_chat_message(chat_id, message.id)
         .disable_notification(true)
+        .await?;
+
+    Ok(curr_status)
+}
+
+#[derive(Deserialize)]
+struct CheckAndNotify {
+    url: String,
+    #[serde(rename = "chat-id")]
+    chat_id: i64,
+}
+
+async fn handle(Query(params): Query<CheckAndNotify>) -> Result<Json<Status>, StatusCode> {
+    match check_and_notify(&params.url, ChatId(params.chat_id)).await {
+        Ok(status) => Ok(Json(status)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::fmt().init();
+    let _ = Bot::from_env();
+    let app = Router::new().route("/", get(handle));
+    let port = env::var("PORT").unwrap_or("8000".into());
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
         .await
-        .expect("Failed to pin updated message");
+        .unwrap();
+    tracing::info!("Listening on {:?}", listener.local_addr().unwrap());
+    axum::serve(listener, app).await.unwrap();
 }
