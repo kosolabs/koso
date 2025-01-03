@@ -22,6 +22,6 @@ This is a cronjob that checks the status of Koso.
    docker push us-west1-docker.pkg.dev/koso-429022/healthz/healthz
    ```
 
-1. Update the [Container image URL on Google Cloud Console](https://console.cloud.google.com/run/jobs/edit/us-west1/healthz?project=koso-429022).
+1. Update the [Container image URL on Google Cloud Console](https://console.cloud.google.com/run/deploy/us-west1/koso-healthz?project=koso-429022).
 
 1. Click the Update button.
