@@ -62,7 +62,13 @@ async fn check_and_notify(url: &str, chat_id: ChatId) -> Result<Status> {
     let chat = bot.get_chat(chat_id).await?;
     let prev_status = get_status(&chat);
 
-    let healthz_status = check_healthz(url).await.is_ok();
+    let healthz_status = match check_healthz(url).await {
+        Ok(_) => true,
+        Err(error) => {
+            tracing::error!("Healthz check failed: {error:?}");
+            false
+        }
+    };
     let last_update = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
     let curr_status = Status {
         healthz_status,
@@ -106,7 +112,7 @@ async fn handle(Query(params): Query<CheckAndNotify>) -> Result<Json<Status>, St
     match check_and_notify(&params.url, ChatId(params.chat_id)).await {
         Ok(status) => Ok(Json(status)),
         Err(error) => {
-            tracing::error!("Failed to check healthz: {:?}", error);
+            tracing::error!("Failed to check healthz: {error:?}");
             Err(StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
