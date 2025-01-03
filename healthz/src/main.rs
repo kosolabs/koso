@@ -105,7 +105,10 @@ struct CheckAndNotify {
 async fn handle(Query(params): Query<CheckAndNotify>) -> Result<Json<Status>, StatusCode> {
     match check_and_notify(&params.url, ChatId(params.chat_id)).await {
         Ok(status) => Ok(Json(status)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Err(error) => {
+            tracing::error!("Failed to check healthz: {:?}", error);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
