@@ -975,7 +975,7 @@ export class Koso {
       return false;
     }
     // Is an immediate child of a plugin container OR is a plugin container.
-    if (parent.length > 0 && kind.startsWith(parent)) {
+    if (parent.length > 0 && kind.startsWith(parent + "_")) {
       return true;
     }
     // Is a top-level plugin container under root.
