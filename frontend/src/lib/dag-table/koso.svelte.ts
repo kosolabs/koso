@@ -975,13 +975,13 @@ export class Koso {
       return false;
     }
     // Is an immediate child of a plugin container OR is a plugin container.
-    if (parent.length > 0 && kind.startsWith(parent)) {
+    if (kind === parent || kind.startsWith(parent + "_")) {
       return true;
     }
     // Is a top-level plugin container under root.
-    // TODO: There ought to be a better way to do this
-    // Which access to the node and all ancestors, it'd be easy.
-    if (kind === "github" && parent === "root") {
+    // Underscores are used to separate hierarchical kinds.
+    // Thus, if there is no underscore, the kind must be managed under root.
+    if (!kind.includes("_") && parent === "root") {
       return true;
     }
     return false;
