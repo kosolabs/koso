@@ -881,36 +881,81 @@ describe("Koso tests", () => {
           id: "github_pr",
           name: "Github PR",
           kind: "github_pr",
-          children: ["2"],
+          children: ["2", "3", "github_pr_other"],
+        },
+        {
+          id: "github_pr_other",
+          name: "Github PR Other",
+          kind: "github_pr_other",
+          children: ["3"],
         },
         { id: "2", name: "Some PR", kind: "github_pr" },
+        { id: "3", name: "Some Other PR", kind: "github_pr_other" },
       ]);
       expect(() => koso.deleteNode(Node.parse("github"))).toThrow();
       expect(() => koso.deleteNode(Node.parse("github/github_pr"))).toThrow();
       expect(() => koso.deleteNode(Node.parse("github/github_pr/2"))).toThrow();
+      expect(() =>
+        koso.deleteNode(Node.parse("github/github_pr/github_pr_other")),
+      ).toThrow();
+      expect(() =>
+        koso.deleteNode(Node.parse("github/github_pr/github_pr_other/3")),
+      ).toThrow();
     });
 
     it("delete non-canonical plugin task/container succeeds", () => {
       init([
-        { id: "root", name: "Root", children: ["1", "github"] },
-        { id: "1", name: "Task 1", children: ["github", "github_pr", "2"] },
+        {
+          id: "root",
+          name: "Root",
+          children: ["1", "github", "githubfoo", "github_pr_other"],
+        },
+        {
+          id: "1",
+          name: "Task 1",
+          children: ["github", "github_pr", "github_pr_other", "2", "3"],
+        },
         {
           id: "github",
           name: "Github",
           kind: "github",
-          children: ["github_pr"],
+          children: ["github_pr", "github_pr_other", "githubfoo"],
         },
         {
           id: "github_pr",
           name: "Github PR",
           kind: "github_pr",
-          children: ["2"],
+          children: ["2", "3", "github_pr_other", "githubfoo"],
         },
-        { id: "2", name: "Some PR", kind: "github_pr" },
+        {
+          id: "github_pr_other",
+          name: "Github PR Other",
+          kind: "github_pr_other",
+          children: ["3"],
+        },
+        {
+          id: "githubfoo",
+          name: "Github Foo",
+          kind: "githubfoo",
+        },
+        {
+          id: "2",
+          name: "Some PR",
+          kind: "github_pr",
+          children: ["github_pr_other"],
+        },
+        { id: "3", name: "Some Other PR", kind: "github_pr_other" },
       ]);
       koso.deleteNode(Node.parse("1/github"));
       koso.deleteNode(Node.parse("1/github_pr"));
+      koso.deleteNode(Node.parse("1/github_pr_other"));
       koso.deleteNode(Node.parse("1/2"));
+      koso.deleteNode(Node.parse("1/3"));
+      koso.deleteNode(Node.parse("github/github_pr_other"));
+      koso.deleteNode(Node.parse("github/github_pr/2/github_pr_other"));
+      koso.deleteNode(Node.parse("github/githubfoo"));
+      koso.deleteNode(Node.parse("github_pr/githubfoo"));
+      koso.deleteNode(Node.parse("github_pr_other"));
 
       expect(koso.toJSON()).toMatchObject({
         ["1"]: { id: "1", children: [] },
