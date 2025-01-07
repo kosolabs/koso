@@ -53,6 +53,8 @@ impl Plugin {
         collab: Collab,
         pool: &'static PgPool,
     ) -> Result<Plugin> {
+        PLUGIN_KIND.validate()?;
+        PR_KIND.validate()?;
         let client: AppGithub = AppGithub::new(&AppGithubConfig::default()).await?;
         let config_storage = ConfigStorage::new(pool)?;
         Ok(Plugin {
@@ -258,6 +260,10 @@ struct Kind<'a> {
 }
 
 impl Kind<'_> {
+    /// Creates a new kind.
+    /// `id` must NOT contain underscores as they're used
+    /// as separators in the kind hierarchy. For example, 'github_pr'
+    /// is a child kind of 'github'.
     const fn new<'a>(id: &'a str, name: &'a str) -> Kind<'a> {
         Kind {
             id,
@@ -267,7 +273,8 @@ impl Kind<'_> {
     }
 
     /// Creates a new nested kind.
-    /// For consistent namespacing, `id` should have `{parent_kind.id}_` as a prefx.
+    /// For consistent namespacing, `id` must have `{parent_kind.id}_` as a prefix.
+    /// The remaining suffix must NOT contain underscores.
     /// For example, a kind of 'github_pr' should have a parent_kind of 'github'.
     const fn new_nested<'a>(parent_kind: &'a Kind, id: &'a str, name: &'a str) -> Kind<'a> {
         Kind {
@@ -275,5 +282,46 @@ impl Kind<'_> {
             name,
             parent_kind: Some(parent_kind),
         }
+    }
+
+    fn validate(&self) -> Result<()> {
+        let sub_id = match self.parent_kind {
+            Some(parent_kind) => {
+                parent_kind.validate()?;
+                let Some(sub_id) = self.id.strip_prefix(&format!("{}_", parent_kind.id)) else {
+                    return Err(anyhow!(
+                        "Kind id ({}) does not start with parent kind id ({})",
+                        self.id,
+                        parent_kind.id
+                    ));
+                };
+                sub_id
+            }
+            None => self.id,
+        };
+        if sub_id.contains("_") {
+            return Err(anyhow!(
+                "Kind id ({}) must not contain underscores which separate parent and children kinds",
+                sub_id,
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test_log::test(tokio::test)]
+    async fn validate_pr_kind() {
+        let res = PR_KIND.validate();
+        assert!(res.is_ok(), "PR_KIND is invalid {res:?}");
+    }
+
+    #[test_log::test(tokio::test)]
+    async fn validate_plugin_kind() {
+        let res = PLUGIN_KIND.validate();
+        assert!(res.is_ok(), "PLUGIN_KIND is invalid {res:?}");
     }
 }

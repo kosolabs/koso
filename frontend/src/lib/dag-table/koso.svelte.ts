@@ -979,9 +979,9 @@ export class Koso {
       return true;
     }
     // Is a top-level plugin container under root.
-    // TODO: There ought to be a better way to do this
-    // Which access to the node and all ancestors, it'd be easy.
-    if (kind === "github" && parent === "root") {
+    // Underscores are used to separate hierarchical kinds.
+    // Thus, if there is no underscore, the kind must be managed under root.
+    if (!kind.includes("_") && parent === "root") {
       return true;
     }
     return false;
