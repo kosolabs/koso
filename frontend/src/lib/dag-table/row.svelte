@@ -420,7 +420,7 @@
       />
     {/if}
   </td>
-  <td class={cn("border-l border-t px-2")}>
+  <td class={cn("w-full border-l border-t px-2")}>
     <div class={cn("flex items-center gap-x-1")}>
       {#if task.kind}
         <ManagedTaskIcon kind={task.kind} />
