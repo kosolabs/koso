@@ -35,10 +35,9 @@
 
     {#if auth.ok()}
       <DropdownMenu.Root controlledOpen {open} onOpenChange={(o) => (open = o)}>
-        <DropdownMenu.Trigger>
+        <DropdownMenu.Trigger title={auth.user.email}>
           <Avatar
             class="size-9 rounded transition-all hover:brightness-110 active:scale-95"
-            title={auth.user.email}
           >
             <AvatarImage src={auth.user.picture} alt={auth.user.email} />
             <AvatarFallback class="rounded">
