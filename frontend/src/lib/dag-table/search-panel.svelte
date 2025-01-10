@@ -36,13 +36,13 @@
   }
 
   function getTags(taskId: string): ChipProps[] {
-    return (
-      koso.parents
-        .get(taskId)
-        ?.map((parent) => koso.getTask(parent))
-        .filter((parent) => parent.name.length > 0)
-        .map((parent) => parseChipProps(parent.name)) || []
-    );
+    let parents = koso.parents.get(taskId);
+    if (!parents) return [];
+
+    return parents
+      .map((parent) => koso.getTask(parent))
+      .filter((parent) => parent.name.length > 0)
+      .map((parent) => parseChipProps(parent.name));
   }
 </script>
 
