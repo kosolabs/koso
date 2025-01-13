@@ -153,7 +153,7 @@ impl Auth {
             ));
         };
 
-        if token.expires_in.map_or(false, |expires_in| {
+        if token.expires_in.is_some_and(|expires_in| {
             token.created_at.elapsed() > Duration::from_secs(expires_in - 60 * 60)
         }) {
             return Err(bad_request_error(

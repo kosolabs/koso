@@ -326,8 +326,8 @@ fn get_doc_task<T: ReadTxn>(
 
     for child in parent.get_children(txn)? {
         let child = doc.get(txn, &child)?;
-        if child.get_url(txn)?.map_or(false, |u| u == url)
-            && child.get_kind(txn)?.map_or(false, |k| k == kind.id)
+        if child.get_url(txn)?.is_some_and(|u| u == url)
+            && child.get_kind(txn)?.is_some_and(|k| k == kind.id)
         {
             return Ok(Some(child));
         }

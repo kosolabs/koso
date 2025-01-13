@@ -6,7 +6,7 @@ use axum::{routing::post, Extension, Router};
 use sqlx::PgPool;
 
 pub(super) fn router() -> Router {
-    let enable_dev = std::env::var("TESTONLY_ENABLE_DEV").map_or(false, |v| v == "true");
+    let enable_dev = std::env::var("TESTONLY_ENABLE_DEV").is_ok_and(|v| v == "true");
     if enable_dev {
         tracing::info!("Enable dev mode. Something is WRONG if you see this in production.");
         return Router::new()
