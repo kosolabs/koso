@@ -149,23 +149,6 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
-  <div
-    class="mx-auto flex max-w-screen-md flex-col items-center gap-8 text-center"
-  >
-    <h2 class="text-2xl lg:text-4xl">AI Rollup</h2>
-    <p>
-      Generate executive summaries of project progress using the LLM of your
-      choice.
-    </p>
-    <div
-      class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
-    >
-      Video Placeholder
-    </div>
-  </div>
-</div>
-
 <style>
   p,
   div,
