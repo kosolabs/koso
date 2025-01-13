@@ -5,6 +5,7 @@ export { Koso, Node } from "./koso.svelte";
 export { KosoSocket } from "./socket.svelte";
 export { default as DagTable } from "./table.svelte";
 
+/** Compares two tasks by status and number of children. */
 export function compareTasks(
   t1: YTaskProxy,
   t2: YTaskProxy,
