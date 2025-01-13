@@ -4,7 +4,7 @@
   import { cn, match } from "$lib/utils";
   import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
-  import type { Koso } from ".";
+  import { compareTasks, type Koso } from ".";
   import {
     Chip,
     parseChipProps,
@@ -24,7 +24,7 @@
       ? koso
           .getTasks()
           .filter((task) => match(task.num, query) || match(task.name, query))
-          .sort((t1, t2) => t2.children.length - t1.children.length)
+          .sort((t1, t2) => compareTasks(t1, t2, koso))
           .slice(0, 50)
       : [],
   );
