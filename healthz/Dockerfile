@@ -1,4 +1,4 @@
-FROM rust:1.83.0@sha256:a45bf1f5d9af0a23b26703b3500d70af1abff7f984a7abef5a104b42c02a292b AS build
+FROM rust:1.84.0@sha256:f7cbb35003d4ffb5543f8ad6480c1e36bbae5c3609523c9f0c2e223668ee9c1a AS build
 WORKDIR /app/healthz
 
 # Setup dependencies and run a dummy build ahead
@@ -17,7 +17,7 @@ RUN cargo build --release
 #
 # Use the :debug image to debug
 # https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images
-FROM gcr.io/distroless/cc-debian12@sha256:f913198471738d9eedcd00c0ca812bf663e8959eebff3a3cbadb027ed9da0c38 AS runtime
+FROM gcr.io/distroless/cc-debian12@sha256:b7550f0b15838de14c564337eef2b804ba593ae55d81ca855421bd52f19bb480 AS runtime
 WORKDIR /app
 
 COPY --from=build /app/healthz/target/release/healthz ./
