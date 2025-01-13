@@ -1,4 +1,4 @@
-FROM rust:1.83.0@sha256:a45bf1f5d9af0a23b26703b3500d70af1abff7f984a7abef5a104b42c02a292b AS backend
+FROM rust:1.84.0@sha256:f7cbb35003d4ffb5543f8ad6480c1e36bbae5c3609523c9f0c2e223668ee9c1a AS backend
 
 # Setup dependencies and run a dummy build ahead
 # of copying in our code. This speeds up re-builds
@@ -22,11 +22,11 @@ WORKDIR /app/backend
 RUN cargo build --release
 
 # Build the sqlx binary, used to apply database migrations.
-FROM rust:1.83.0@sha256:a45bf1f5d9af0a23b26703b3500d70af1abff7f984a7abef5a104b42c02a292b AS sqlx
+FROM rust:1.84.0@sha256:f7cbb35003d4ffb5543f8ad6480c1e36bbae5c3609523c9f0c2e223668ee9c1a AS sqlx
 WORKDIR /app
 RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres --root ./
 
-FROM node:23.5.0@sha256:1745a99b66da41b5ccd6f7be3810f74ddab16eb4579de10de378adb50d2e6e6f AS frontend
+FROM node:23.6.0@sha256:2f73096d856b0b9d6fa43002edb619f1527f939bab870eab6c909f633bcf56e9 AS frontend
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -46,7 +46,7 @@ RUN pnpm run build
 #
 # Use the :debug image to debug
 # https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images
-FROM gcr.io/distroless/cc-debian12@sha256:f913198471738d9eedcd00c0ca812bf663e8959eebff3a3cbadb027ed9da0c38 AS runtime
+FROM gcr.io/distroless/cc-debian12@sha256:b7550f0b15838de14c564337eef2b804ba593ae55d81ca855421bd52f19bb480 AS runtime
 WORKDIR /app
 
 COPY --from=sqlx /app/bin/sqlx ./

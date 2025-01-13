@@ -30,7 +30,7 @@ impl KeySet {
 
     pub(crate) async fn new() -> Result<KeySet> {
         let enable_test_creds =
-            std::env::var("TESTONLY_ENABLE_TEST_CREDS").map_or(false, |v| v == "true");
+            std::env::var("TESTONLY_ENABLE_TEST_CREDS").is_ok_and(|v| v == "true");
         if enable_test_creds {
             tracing::info!("Insecure test credentials enabled. Something is WRONG if you see this in production.")
         }

@@ -42,7 +42,7 @@ impl Poller {
 
     pub(super) fn router(self) -> Router {
         // TODO: In the future, we could expose this in production with admin authorization
-        let enable_dev = std::env::var("TESTONLY_ENABLE_DEV").map_or(false, |v| v == "true");
+        let enable_dev = std::env::var("TESTONLY_ENABLE_DEV").is_ok_and(|v| v == "true");
         if enable_dev {
             return Router::new()
                 .route("/poll", post(Poller::poll_handler))
@@ -213,7 +213,7 @@ impl Poller {
         let mut results = HashMap::new();
         for child_id in parent.get_children(txn)? {
             let child = doc.get(txn, &child_id)?;
-            if child.get_kind(txn)?.map_or(false, |k| k == kind.id) {
+            if child.get_kind(txn)?.is_some_and(|k| k == kind.id) {
                 let url = child.get_url(txn)?.unwrap_or_default();
                 if url.is_empty() {
                     tracing::warn!("Omitting doc task with empty URL: {child_id}");
