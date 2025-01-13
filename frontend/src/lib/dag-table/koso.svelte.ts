@@ -488,8 +488,8 @@ export class Koso {
    * derived directly from the task's status field. If the task has children,
    * the status is derived from the progress of its children.
    */
-  getStatus(taskId: string): Status {
-    const progress = this.getProgress(taskId);
+  getStatus(taskId: string, cache?: { [taskId: string]: Progress }): Status {
+    const progress = this.getProgress(taskId, cache);
     if (progress.done === progress.total) {
       return "Done";
     } else if (progress.inProgress > 0 || progress.done > 0) {
@@ -514,7 +514,10 @@ export class Koso {
    *
    * @throws Will throw an error if the task status is invalid.
    */
-  getProgress(taskId: string): Progress {
+  getProgress(
+    taskId: string,
+    cache?: { [taskId: string]: Progress },
+  ): Progress {
     const task = this.getTask(taskId);
     if (task.children.length === 0) {
       switch (task.status || "Not Started") {
@@ -545,6 +548,14 @@ export class Koso {
           );
       }
     }
+
+    if (cache) {
+      const progress = cache[taskId];
+      if (progress) {
+        return progress;
+      }
+    }
+
     const result: Progress = {
       inProgress: 0,
       done: 0,
@@ -554,7 +565,7 @@ export class Koso {
     task.children.forEach((taskId) => {
       // If performance is ever an issue for large, nested graphs,
       // we can memoize the recursive call and trade memory for time.
-      const childProgress = this.getProgress(taskId);
+      const childProgress = this.getProgress(taskId, cache);
       result.inProgress += childProgress.inProgress;
       result.done += childProgress.done;
       result.total += childProgress.total;
@@ -563,6 +574,9 @@ export class Koso {
         childProgress.lastStatusTime,
       );
     });
+    if (cache) {
+      cache[taskId] = result;
+    }
     return result;
   }
 
