@@ -1,5 +1,9 @@
 <script lang="ts">
   import { KosoLogo } from "$lib/components/ui/koso-logo";
+  import editDemo from "$lib/components/ui/landing/edit-demo.png";
+  import collabDemo from "$lib/components/ui/landing/collab-demo.png";
+  import linkDemo from "$lib/components/ui/landing/link-demo.png";
+  import githubDemo from "$lib/components/ui/landing/github-demo.png";
   import Google from "./google.svelte";
 
   type Props = {
@@ -60,7 +64,7 @@
     <div
       class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
     >
-      Video Placeholder
+      <img src={editDemo} alt="Create and edit tasks" />
     </div>
     <div>
       <h3 class="pb-4 text-xl lg:text-2xl">Quick Edits</h3>
@@ -90,7 +94,7 @@
     <div
       class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
     >
-      Video Placeholder
+      <img src={collabDemo} alt="Multiple people collaborating on tasks" />
     </div>
   </div>
 </div>
@@ -107,7 +111,7 @@
     <div
       class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
     >
-      Video Placeholder
+      <img src={linkDemo} alt="Link tasks by searching" />
     </div>
   </div>
 </div>
@@ -126,7 +130,7 @@
     <div
       class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
     >
-      Video Placeholder
+      <img src={githubDemo} alt="External Github PR task" />
     </div>
   </div>
 </div>
@@ -144,7 +148,7 @@
     <div
       class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
     >
-      Video Placeholder
+      Coming soon!
     </div>
   </div>
 </div>
