@@ -61,11 +61,11 @@
   >
     <h2 class="text-2xl lg:text-4xl">Plan at the Speed of Thought</h2>
     <p>Create and edit tasks as if you were typing in a doc.</p>
-    <div
-      class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
-    >
-      <img src={editDemo} alt="Create and edit tasks" />
-    </div>
+    <img
+      src={editDemo}
+      alt="Create and edit tasks"
+      class="placeholder flex w-full items-center justify-center rounded-lg border"
+    />
     <div>
       <h3 class="pb-4 text-xl lg:text-2xl">Quick Edits</h3>
       <p>
@@ -91,11 +91,11 @@
       Multiple people can organize tasks at the same time. Ask the gizmo expert
       to break down the tasks for gizmo's whatchamacallit feature.
     </p>
-    <div
-      class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
-    >
-      <img src={collabDemo} alt="Multiple people collaborating on tasks" />
-    </div>
+    <img
+      src={collabDemo}
+      alt="Multiple people collaborating on tasks"
+      class="placeholder flex w-full items-center justify-center rounded-lg border"
+    />
   </div>
 </div>
 
@@ -108,11 +108,11 @@
       Tasks are organized as a graph. Drag and drop tasks to link a task as the
       dependency of another. Or link by searching.
     </p>
-    <div
-      class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
-    >
-      <img src={linkDemo} alt="Link tasks by searching" />
-    </div>
+    <img
+      src={linkDemo}
+      alt="Link tasks by searching"
+      class="placeholder flex w-full items-center justify-center rounded-lg border"
+    />
   </div>
 </div>
 
@@ -127,11 +127,11 @@
       External tasks are managed through Koso plugins. Our list of plugins is
       constantly growing.
     </p>
-    <div
-      class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
-    >
-      <img src={githubDemo} alt="External Github PR task" />
-    </div>
+    <img
+      src={githubDemo}
+      alt="External Github PR task"
+      class="placeholder flex w-full items-center justify-center rounded-lg border"
+    />
   </div>
 </div>
 
