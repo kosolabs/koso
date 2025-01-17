@@ -43,7 +43,7 @@
   const koso = getContext<Koso>("koso");
 
   let rowElement: HTMLTableRowElement | undefined = $state();
-  let idCellElement: HTMLTableCellElement | undefined = $state();
+  let dragCellElement: HTMLElement | undefined = $state();
   let handleElement: HTMLButtonElement | undefined = $state();
   let statusElement: HTMLTableCellElement | undefined = $state();
 
@@ -179,7 +179,7 @@
 
   function handleDragStart(event: DragEvent) {
     const dataTransfer = event.dataTransfer;
-    if (!dataTransfer || !rowElement || !handleElement || !idCellElement) {
+    if (!dataTransfer || !rowElement || !handleElement || !dragCellElement) {
       return;
     }
     koso.highlighted = null;
@@ -193,7 +193,7 @@
     const handleRect = handleElement.getBoundingClientRect();
 
     dataTransfer.setDragImage(
-      idCellElement,
+      dragCellElement,
       handleRect.x - rowRect.x + event.offsetX,
       handleRect.y - rowRect.y + event.offsetY,
     );
@@ -361,8 +361,8 @@
   onclick={handleRowClick}
   bind:this={rowElement}
 >
-  <td class={cn("border-t px-2")} bind:this={idCellElement}>
-    <div class="flex items-center">
+  <td class={cn("border-t px-2")}>
+    <div class="flex items-center" bind:this={dragCellElement}>
       <div style="width: {(node.length - 1) * 20}px"></div>
       {#if task.children.length > 0}
         <button
@@ -510,8 +510,8 @@
   </td>
 </tr>
 
-{#if rowElement && idCellElement}
-  {@const cellWidth = idCellElement.clientWidth}
+{#if rowElement && dragCellElement}
+  {@const cellWidth = dragCellElement.clientWidth}
   {@const rowWidth = rowElement.clientWidth}
   {@const peerOffset = node.length * 20}
   {@const childOffset = (node.length + 1) * 20}
