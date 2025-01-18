@@ -511,7 +511,8 @@
 </tr>
 
 {#if rowElement && dragCellElement}
-  {@const cellWidth = dragCellElement.clientWidth}
+  {@const cellWidth =
+    dragCellElement.parentElement?.clientWidth || dragCellElement.clientWidth}
   {@const rowWidth = rowElement.clientWidth}
   {@const peerOffset = node.length * 20}
   {@const childOffset = (node.length + 1) * 20}
