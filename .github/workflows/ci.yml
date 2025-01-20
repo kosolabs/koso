@@ -47,7 +47,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17.2@sha256:888402a8cd6075c5dc83a31f58287f13306c318eaad016661ed12e076f3e6341
+        image: postgres:17.2@sha256:87ec5e0a167dc7d4831729f9e1d2ee7b8597dcc49ccd9e43cc5f89e808d2adae
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -116,7 +116,7 @@ jobs:
       REGISTRY: ghcr.io
     services:
       postgres:
-        image: postgres:17.2@sha256:888402a8cd6075c5dc83a31f58287f13306c318eaad016661ed12e076f3e6341
+        image: postgres:17.2@sha256:87ec5e0a167dc7d4831729f9e1d2ee7b8597dcc49ccd9e43cc5f89e808d2adae
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -182,7 +182,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Backend Docker Image
         id: build-backend
-        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # v6.11.0
+        uses: docker/build-push-action@67a2d409c0a876cbe6b11854e3e25193efe4e62d # v6.12.0
         env:
           DOCKER_BUILD_SUMMARY: ${{ github.ref == 'refs/heads/main'}}
           DOCKER_BUILD_RECORD_UPLOAD: ${{ github.ref == 'refs/heads/main'}}
@@ -279,7 +279,7 @@ jobs:
       # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
       - name: Build and push Docker image
         id: push
-        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # v6.11.0
+        uses: docker/build-push-action@67a2d409c0a876cbe6b11854e3e25193efe4e62d # v6.12.0
         env:
           DOCKER_BUILD_SUMMARY: ${{ github.ref == 'refs/heads/main'}}
           DOCKER_BUILD_RECORD_UPLOAD: ${{ github.ref == 'refs/heads/main'}}
