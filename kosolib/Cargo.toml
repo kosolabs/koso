@@ -7,7 +7,7 @@ edition = "2021"
 anyhow = "1.0.94"
 futures = "0.3.31"
 jsonwebtoken = "9.3.0"
-octocrab = "0.42.1"
+octocrab = "0.43.0"
 test-log = { version = "0.2.16", features = ["trace"] }
 tokio = { version = "1.42.0", features = ["macros"] }
 tracing = "0.1.41"
