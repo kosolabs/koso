@@ -17,7 +17,7 @@ async fn login_handler(
         INSERT INTO users (email, name, picture, invited)
         VALUES ($1, $2, $3, false)
         ON CONFLICT (email)
-        DO UPDATE SET name = EXCLUDED.name, picture = EXCLUDED.picture;",
+        DO UPDATE SET name = EXCLUDED.name, picture = EXCLUDED.picture, login_time = NOW();",
     )
     .bind(&user.email)
     .bind(&user.name)
