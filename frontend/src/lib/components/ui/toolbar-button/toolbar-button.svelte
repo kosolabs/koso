@@ -16,9 +16,9 @@
   <Tooltip.Root>
     <Tooltip.Trigger>
       {#snippet child({ props })}
-        <Button {...props} variant="ghost" size="sm" onclick={callback}>
-          <Icon class="w-4" />
-          <div class="text-xs max-sm:hidden">{title}</div>
+        <Button {...props} variant="ghost" onclick={callback}>
+          <Icon />
+          <div class="max-sm:hidden">{title}</div>
         </Button>
       {/snippet}
     </Tooltip.Trigger>
