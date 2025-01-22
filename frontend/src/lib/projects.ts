@@ -22,12 +22,18 @@ export type ProjectExport = {
 export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>
   a.name.localeCompare(b.name) || a.email.localeCompare(b.email);
 
-export async function fetchProjects(): Promise<Project[]> {
+export async function fetchProjects(
+  filterDeleted: boolean = true,
+): Promise<Project[]> {
   const response = await fetch("/api/projects", {
     method: "GET",
     headers: headers(),
   });
-  return parseResponse(response);
+  let projects = await parseResponse<Project[]>(response);
+  if (filterDeleted) {
+    projects = projects.filter((p) => !p.deletedOn);
+  }
+  return projects;
 }
 
 export async function fetchProject(projectId: string): Promise<Project> {
