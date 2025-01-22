@@ -608,12 +608,12 @@
         </div>
         <div class="ml-4">
           <div class="text-md">Welcome to Koso!</div>
-          <div class="mt-2 text-xs">
+          <div class="mt-2 text-sm">
             Koso helps you to organize your work and be productive.
           </div>
           <div class="mt-4">
-            <Button size="sm" class="text-xs" onclick={insert}>
-              <ListPlus class="w-4 sm:me-2" />
+            <Button onclick={insert}>
+              <ListPlus />
               Add task
             </Button>
           </div>

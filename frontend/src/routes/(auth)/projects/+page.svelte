@@ -138,10 +138,12 @@
       <div class="text-xl">Create your first Koso project!</div>
       <div>
         <Button title="New Project" onclick={() => createProject()}>
-          <PackagePlus class="me-2 w-5" />New
+          <PackagePlus />
+          New
         </Button>
         <Button title="Import Project" onclick={triggerFileSelect}>
-          <HardDriveUpload class="me-2 w-5" /> Import
+          <HardDriveUpload />
+          Import
         </Button>
       </div>
     </div>
@@ -150,10 +152,12 @@
       <div class="flex flex-col items-end p-2">
         <div>
           <Button title="New Project" onclick={() => createProject()}>
-            <PackagePlus class="me-2 w-5" />New
+            <PackagePlus />
+            New
           </Button>
           <Button title="Import Project" onclick={triggerFileSelect}>
-            <HardDriveUpload class="me-2 w-5" />Import
+            <HardDriveUpload />
+            Import
           </Button>
         </div>
       </div>
@@ -174,7 +178,8 @@
               aria-label="Delete {project.name}"
               onclick={() => deleteProject(project)}
             >
-              <Trash2 class="me-2 w-5" />Trash
+              <Trash2 />
+              Trash
             </Button>
           </div>
         {/each}
