@@ -1005,7 +1005,7 @@ describe("Koso tests", () => {
     it("fetches all tasks", () => {
       init([{ id: "root", name: "Root", children: ["1", "2", "3", "4"] }]);
 
-      expect(koso.getTasks().map((task) => task.toJSON())).toMatchObject([
+      expect(koso.tasks.map((task) => task.toJSON())).toMatchObject([
         { id: "root" },
         { id: "1" },
         { id: "2" },
