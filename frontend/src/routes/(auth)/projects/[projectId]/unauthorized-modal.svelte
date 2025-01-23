@@ -15,7 +15,7 @@
     );
     // Don't redirect the user back to a project they don't have access too.
     nav.lastVisitedProjectId = null;
-    if (open) {
+    if (!open) {
       await goto("/projects");
     }
   }
