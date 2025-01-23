@@ -46,10 +46,25 @@ export class KosoSocket {
     });
   }
 
+  /**
+   * True if the socket failed due to the user being unauthorized for the given
+   * project.
+   *
+   * Note: False may indicate the user is authorized, but it may also indicate
+   * that the socket has not connected yet. For example, the user is offline.
+   */
   get unauthorized(): boolean {
     return this.#unauthorized;
   }
 
+  /**
+   * True if the socket is not connected
+   *
+   * Note: False may indicate the socket is connected, but it may also indicate
+   * that the socket is trying to reconnect. To avoid fipping between states
+   * rapidly, there's a delay in marking the socket of offline. See
+   * `#setOffline`.
+   */
   get offline(): boolean {
     return this.#offline;
   }
