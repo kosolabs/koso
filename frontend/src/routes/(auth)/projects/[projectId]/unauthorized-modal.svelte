@@ -10,12 +10,9 @@
   let { open = $bindable(false) }: Props = $props();
 
   async function goHome(open: boolean) {
-    // Don't redirect the user back to a project they don't have access too.
-    nav.lastVisitedProjectId = null;
     if (!open) {
-      console.debug(
-        `User is not authorized to access project. Redirecting home.`,
-      );
+      // Don't redirect the user back to a project they don't have access too.
+      nav.lastVisitedProjectId = null;
       await goto("/projects");
     }
   }
