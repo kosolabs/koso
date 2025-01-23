@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
+  import { nav } from "$lib/nav.svelte";
 
   type Props = {
     open: boolean;
@@ -10,6 +11,8 @@
 
   async function goHome(open: boolean) {
     if (!open) {
+      // Don't redirect the user back to a project they don't have access too.
+      nav.lastVisitedProjectId = null;
       await goto("/projects");
     }
   }
