@@ -24,6 +24,7 @@
   import UnauthorizedModal from "./unauthorized-modal.svelte";
 
   const projectId = $page.params.projectId;
+  nav.lastVisitedProjectId = projectId;
   const koso = new Koso(projectId, new Y.Doc());
   const kosoSocket = new KosoSocket(koso, projectId);
   window.koso = koso;
@@ -31,9 +32,6 @@
 
   let deflicker: Promise<void> = new Promise((r) => window.setTimeout(r, 50));
   let project: Promise<Project> = loadProject();
-  project.then(() => {
-    nav.lastVisitedProjectId = projectId;
-  });
   let projectUsersPromise: Promise<User[]> = loadProjectUsers();
   let projectUsers: User[] = $state([]);
   let openShareModal: boolean = $state(false);
