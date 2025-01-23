@@ -118,6 +118,11 @@ export class Koso {
   #events: YEvent[] = $state.raw([]);
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
+  #tasks: YTaskProxy[] = $derived.by(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    this.#events;
+    return this.getTasks();
+  });
   #parents: Map<string, string[]> = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     this.#events;
@@ -346,6 +351,10 @@ export class Koso {
     return this.#yGraph;
   }
 
+  get tasks(): YTaskProxy[] {
+    return this.#tasks;
+  }
+
   get undoManager(): Y.UndoManager {
     return this.#yUndoManager;
   }
@@ -458,6 +467,7 @@ export class Koso {
 
   /** Retrieves all tasks in the graph. */
   getTasks(): YTaskProxy[] {
+    // TODO: Refactor so that callers use the reactive koso.tasks instead.
     return Array.from(this.graph.values());
   }
 

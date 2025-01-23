@@ -120,7 +120,6 @@
     </div>
   {/await}
 {:then projects}
-  {@const filteredProjects = projects.filter((p) => !p.deletedOn)}
   <input
     id="projectImportFileInput"
     type="file"
@@ -130,7 +129,7 @@
     onchange={importProject}
   />
 
-  {#if filteredProjects.length === 0}
+  {#if projects.length === 0}
     <div
       class="m-2 flex flex-col items-center gap-6 rounded border bg-card p-8"
     >
@@ -162,7 +161,7 @@
         </div>
       </div>
       <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-muted">
-        {#each filteredProjects as project}
+        {#each projects as project}
           <div class="flex items-center border-t p-2">
             <Button
               variant="link"
