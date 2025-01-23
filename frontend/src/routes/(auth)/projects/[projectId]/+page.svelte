@@ -24,6 +24,7 @@
   import UnauthorizedModal from "./unauthorized-modal.svelte";
 
   const projectId = $page.params.projectId;
+  nav.lastVisitedProjectId = projectId;
   const koso = new Koso(projectId, new Y.Doc());
   const kosoSocket = new KosoSocket(koso, projectId);
   window.koso = koso;
@@ -97,12 +98,6 @@
       toolbar: false,
     }),
   ];
-
-  $effect(() => {
-    if (kosoSocket.online && kosoSocket.authorized) {
-      nav.lastVisitedProjectId = $page.params.projectId;
-    }
-  });
 </script>
 
 <Navbar>
@@ -139,13 +134,13 @@
   {/snippet}
 </Navbar>
 
-{#if !kosoSocket.online}
+{#if kosoSocket.offline}
   <div class="m-4">
     <Alert>Connection to server lost. Working offline.</Alert>
   </div>
 {/if}
 
-<UnauthorizedModal open={!kosoSocket.authorized} />
+<UnauthorizedModal open={kosoSocket.unauthorized} />
 
 {#await projectUsersPromise}
   {#await deflicker}

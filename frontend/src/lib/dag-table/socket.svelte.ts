@@ -3,8 +3,8 @@ import { auth } from "$lib/auth.svelte";
 import { Koso } from ".";
 
 export class KosoSocket {
-  #authorized: boolean = $state(true);
-  #online: boolean = $state(false);
+  #unauthorized: boolean = $state(false);
+  #offline: boolean = $state(false);
   #socket: WebSocket | null = null;
   #shutdown: boolean = false;
   #offlineTimeout: number | undefined;
@@ -46,12 +46,27 @@ export class KosoSocket {
     });
   }
 
-  get authorized(): boolean {
-    return this.#authorized;
+  /**
+   * True if the socket failed due to the user being unauthorized for the given
+   * project.
+   *
+   * Note: False may indicate the user is authorized, but it may also indicate
+   * that the socket has not connected yet. For example, the user is offline.
+   */
+  get unauthorized(): boolean {
+    return this.#unauthorized;
   }
 
-  get online(): boolean {
-    return this.#online;
+  /**
+   * True if the socket is not connected
+   *
+   * Note: False may indicate the socket is connected, but it may also indicate
+   * that the socket is trying to reconnect. To avoid fipping between states
+   * rapidly, there's a delay in marking the socket of offline. See
+   * `#setOffline`.
+   */
+  get offline(): boolean {
+    return this.#offline;
   }
 
   #openWebSocket() {
@@ -129,8 +144,11 @@ export class KosoSocket {
           `Unauthorized, WebSocket closed. Code: ${event.code}, Reason: '${event.reason}'. `,
           event,
         );
-        this.#closeAndShutdown();
-        this.#authorized = false;
+        this.#closeAndShutdown(
+          1000,
+          "Responding to Unauthorized server closure.",
+        );
+        this.#unauthorized = true;
         return;
       }
 
@@ -163,7 +181,7 @@ export class KosoSocket {
     clearTimeout(this.#offlineTimeout);
     this.#offlineTimeout = undefined;
     if (this.#socket) {
-      console.log(reason);
+      console.log("Closing socket.", reason);
       this.#socket.close(code, reason);
       this.#socket = null;
     }
@@ -190,7 +208,7 @@ export class KosoSocket {
       // e.g. server restarts.
       this.#offlineTimeout = window.setTimeout(() => {
         if (this.#offlineTimeout && !this.#shutdown) {
-          this.#online = false;
+          this.#offline = true;
         }
       }, alertDelayMs);
     }
@@ -201,7 +219,7 @@ export class KosoSocket {
       clearTimeout(this.#offlineTimeout);
       this.#offlineTimeout = undefined;
     }
-    this.#online = true;
+    this.#offline = false;
   }
 
   #backoffOnReconnect(min: number = 0): number {
