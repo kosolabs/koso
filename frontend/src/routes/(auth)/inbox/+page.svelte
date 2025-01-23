@@ -30,10 +30,8 @@
       }
     }),
   );
-  $inspect(kosos);
 
   type ProjectTask = { project: Project; task: YTaskProxy };
-
   let tasks: ProjectTask[] = $derived.by(() => {
     let tasks = [];
     for (const { project, koso } of kosos.values()) {
@@ -45,9 +43,6 @@
     }
     return tasks;
   });
-  $inspect(tasks);
-
-  auth.user.email;
 </script>
 
 <Navbar>
@@ -73,11 +68,15 @@
             "rounded bg-opacity-50 outline outline-2 outline-transparent",
           )}
         >
-          <td class={cn("border-t p-2")}>{projectTask.task.num}</td>
-          <td class={cn("border-l border-t px-2")}
-            >{projectTask.project.name}</td
-          >
-          <td class={cn("border-l border-t p-2")}>{projectTask.task.name}</td>
+          <td class={cn("border-t p-2")}>
+            {projectTask.task.num}
+          </td>
+          <td class={cn("border-l border-t px-2")}>
+            {projectTask.project.name}
+          </td>
+          <td class={cn("border-l border-t p-2")}>
+            {projectTask.task.name}
+          </td>
         </tr>
       {/each}
     </tbody>
