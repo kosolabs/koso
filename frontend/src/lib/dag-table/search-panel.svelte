@@ -1,15 +1,15 @@
 <script lang="ts">
+  import {
+    Chip,
+    parseChipProps,
+    type ChipProps,
+  } from "$lib/components/ui/chip";
   import * as Command from "$lib/components/ui/command";
   import { Shortcut } from "$lib/shortcuts";
   import { cn, match } from "$lib/utils";
   import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
   import { compareTasks, type Koso } from ".";
-  import {
-    Chip,
-    parseChipProps,
-    type ChipProps,
-  } from "$lib/components/ui/chip";
 
   type Props = {
     open: boolean;
@@ -21,8 +21,7 @@
   let query = $state("");
   let tasks = $derived(
     open
-      ? koso
-          .getTasks()
+      ? koso.tasks
           .filter((task) => match(task.num, query) || match(task.name, query))
           .sort((t1, t2) => compareTasks(t1, t2, koso))
           .slice(0, 50)

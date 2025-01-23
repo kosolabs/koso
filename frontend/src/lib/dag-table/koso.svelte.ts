@@ -121,7 +121,7 @@ export class Koso {
   #tasks: YTaskProxy[] = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     this.#events;
-    return this.getTasks();
+    return Array.from(this.graph.values());
   });
   #parents: Map<string, string[]> = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -463,12 +463,6 @@ export class Koso {
   /** Retrieves a task by task ID. */
   getTask(taskId: string): YTaskProxy {
     return this.graph.get(taskId);
-  }
-
-  /** Retrieves all tasks in the graph. */
-  getTasks(): YTaskProxy[] {
-    // TODO: Refactor so that callers use the reactive koso.tasks instead.
-    return Array.from(this.graph.values());
   }
 
   /** Retrieves the parent task IDs of the given task ID. */
