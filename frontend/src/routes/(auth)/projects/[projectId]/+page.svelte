@@ -98,6 +98,13 @@
       toolbar: false,
     }),
   ];
+
+  $effect(() => {
+    if (kosoSocket.unauthorized) {
+      // Don't redirect the user back to a project they don't have access too.
+      nav.lastVisitedProjectId = null;
+    }
+  });
 </script>
 
 <Navbar>
