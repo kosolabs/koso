@@ -17,7 +17,10 @@
   import { confetti } from "$lib/components/ui/confetti";
   import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
-  import { TaskStatus, TaskStatusSelect } from "$lib/components/ui/task-status";
+  import {
+    TaskStatusProgress,
+    TaskStatusSelect,
+  } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
@@ -413,7 +416,7 @@
         }}
       />
     {:else}
-      <TaskStatus
+      <TaskStatusProgress
         inProgress={progress.inProgress}
         done={progress.done}
         total={progress.total}
