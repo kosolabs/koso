@@ -561,6 +561,14 @@
     };
   });
 
+  onMount(() => {
+    const taskId = sessionStorage.getItem("taskId");
+    if (taskId) {
+      koso.select(taskId);
+      sessionStorage.removeItem("taskId");
+    }
+  });
+
   setContext<Koso>("koso", koso);
 </script>
 

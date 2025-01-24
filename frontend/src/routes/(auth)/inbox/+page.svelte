@@ -66,29 +66,38 @@
       </tr>
     </thead>
     <tbody>
-      {#each tasks as projectTask}
+      {#each tasks as { project, task }}
         <tr
           class={cn(
             "rounded bg-opacity-50 outline outline-2 outline-transparent",
           )}
         >
           <td class={cn("border-t p-2")}>
-            {projectTask.task.num}
+            {task.num}
           </td>
           <td class={cn("border-l border-t px-2")}>
-            <TaskStatus task={projectTask.task} />
+            <TaskStatus {task} />
           </td>
           <td class={cn("border-l border-t px-2")}>
             <Button
               class={cn("p-0")}
               variant="link"
-              onclick={() => goto(`/projects/${projectTask.project.projectId}`)}
+              onclick={() => goto(`/projects/${project.projectId}`)}
             >
-              {projectTask.project.name}
+              {project.name}
             </Button>
           </td>
-          <td class={cn("border-l border-t p-2")}>
-            {projectTask.task.name}
+          <td class={cn("border-l border-t px-2")}>
+            <Button
+              class={cn("p-0")}
+              variant="link"
+              onclick={() => {
+                sessionStorage.setItem("taskId", task.id);
+                goto(`/projects/${project.projectId}`);
+              }}
+            >
+              {task.name}
+            </Button>
           </td>
         </tr>
       {/each}
