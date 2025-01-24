@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
+  import { Button } from "$lib/components/ui/button";
+  import TaskStatus from "$lib/components/ui/task-status/task-status.svelte";
   import { Koso, KosoSocket } from "$lib/dag-table";
   import Navbar from "$lib/navbar.svelte";
   import { fetchProjects, type Project } from "$lib/projects";
@@ -56,7 +59,8 @@
   <table class="w-full border-separate border-spacing-0 rounded-md border">
     <thead class="text-left text-xs font-bold uppercase">
       <tr>
-        <th class="w-32 p-2">ID</th>
+        <th class="p-2">ID</th>
+        <th class="border-l p-2">Status</th>
         <th class="border-l p-2">Project</th>
         <th class="border-l p-2">Name</th>
       </tr>
@@ -72,7 +76,16 @@
             {projectTask.task.num}
           </td>
           <td class={cn("border-l border-t px-2")}>
-            {projectTask.project.name}
+            <TaskStatus task={projectTask.task} />
+          </td>
+          <td class={cn("border-l border-t px-2")}>
+            <Button
+              class={cn("p-0")}
+              variant="link"
+              onclick={() => goto(`/projects/${projectTask.project.projectId}`)}
+            >
+              {projectTask.project.name}
+            </Button>
           </td>
           <td class={cn("border-l border-t p-2")}>
             {projectTask.task.name}
