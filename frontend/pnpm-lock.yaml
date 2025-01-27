@@ -37,8 +37,8 @@ importers:
         specifier: 10.4.20
         version: 10.4.20(postcss@8.5.1)
       bits-ui:
-        specifier: 1.0.0-next.78
-        version: 1.0.0-next.78(svelte@5.19.3)
+        specifier: 1.0.0-next.73
+        version: 1.0.0-next.73(svelte@5.19.3)
       clsx:
         specifier: 2.1.1
         version: 2.1.1
@@ -747,11 +747,11 @@ packages:
   binary-searching@2.0.5:
     resolution: {integrity: sha512-v4N2l3RxL+m4zDxyxz3Ne2aTmiPn8ZUpKFpdPtO+ItW1NcTCXA7JeHG5GMBSvoKSkQZ9ycS+EouDVxYB9ufKWA==}
 
-  bits-ui@1.0.0-next.78:
-    resolution: {integrity: sha512-jZjG2ObZ/CNyCNaXecpItC7hRXqJAgEfMhr06/eNrf3wHiiPyhdcy4OkzLcJyxeOrDyj+xma8cZTd3JRWqJdAw==}
+  bits-ui@1.0.0-next.73:
+    resolution: {integrity: sha512-kNtNv6kfz6BO2/2IfJg03TsY5hxv0++0I+LxmaSDHjuxvXSmaPPUdyLXgQGcn2eK0n+R+MSOjzbjdS4R3J5A3Q==}
     engines: {node: '>=18', pnpm: '>=8.7.0'}
     peerDependencies:
-      svelte: ^5.11.0
+      svelte: ^5.0.0
 
   brace-expansion@1.1.11:
     resolution: {integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==}
@@ -1538,15 +1538,10 @@ packages:
   run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
 
-  runed@0.20.0:
-    resolution: {integrity: sha512-YqPxaUdWL5nUXuSF+/v8a+NkVN8TGyEGbQwTA25fLY35MR/2bvZ1c6sCbudoo1kT4CAJPh4kUkcgGVxW127WKw==}
+  runed@0.15.4:
+    resolution: {integrity: sha512-kmbpstUd7v2FdlBM+MT78IyuOVd38tq/e7MHvVb0fnVCsPSPMD/m2Xh+wUhzg9qCJgxRjBbIKu68DlH/x5VXJA==}
     peerDependencies:
-      svelte: ^5.7.0
-
-  runed@0.22.0:
-    resolution: {integrity: sha512-ZWVXWhOr0P5xdNgtviz6D1ivLUDWKLCbeC5SUEJ3zBkqLReVqWHenFxMNFeFaiC5bfxhFxyxzyzB+98uYFtwdA==}
-    peerDependencies:
-      svelte: ^5.7.0
+      svelte: ^5.0.0-next.1
 
   sade@1.8.1:
     resolution: {integrity: sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==}
@@ -1636,11 +1631,11 @@ packages:
     peerDependencies:
       svelte: ^3.0.0 || ^4.0.0 || ^5.0.0-next.1
 
-  svelte-toolbelt@0.7.0:
-    resolution: {integrity: sha512-i/Tv4NwAWWqJnK5H0F8y/ubDnogDYlwwyzKhrspTUFzrFuGnYshqd2g4/R43ds841wmaFiSW/HsdsdWhPOlrAA==}
+  svelte-toolbelt@0.4.6:
+    resolution: {integrity: sha512-k8OUvXBUifHZcAlWeY/HLg/4J0v5m2iOfOhn8fDmjt4AP8ZluaDh9eBFus9lFiLX6O5l6vKqI1dKL5wy7090NQ==}
     engines: {node: '>=18', pnpm: '>=8.7.0'}
     peerDependencies:
-      svelte: ^5.0.0
+      svelte: ^5.0.0-next.126
 
   svelte@5.19.3:
     resolution: {integrity: sha512-rb/bkYG9jq67OCWikMvaPnfOobyGn0JizVDwHpdeBtLiNXPMcoA9GTFC3BhptP7xGNquUU8J5GiS7PlGlfDAFA==}
@@ -2446,15 +2441,15 @@ snapshots:
 
   binary-searching@2.0.5: {}
 
-  bits-ui@1.0.0-next.78(svelte@5.19.3):
+  bits-ui@1.0.0-next.73(svelte@5.19.3):
     dependencies:
       '@floating-ui/core': 1.6.9
       '@floating-ui/dom': 1.6.13
       '@internationalized/date': 3.7.0
       esm-env: 1.2.2
-      runed: 0.22.0(svelte@5.19.3)
+      runed: 0.15.4(svelte@5.19.3)
       svelte: 5.19.3
-      svelte-toolbelt: 0.7.0(svelte@5.19.3)
+      svelte-toolbelt: 0.4.6(svelte@5.19.3)
 
   brace-expansion@1.1.11:
     dependencies:
@@ -3269,12 +3264,7 @@ snapshots:
     dependencies:
       queue-microtask: 1.2.3
 
-  runed@0.20.0(svelte@5.19.3):
-    dependencies:
-      esm-env: 1.2.2
-      svelte: 5.19.3
-
-  runed@0.22.0(svelte@5.19.3):
+  runed@0.15.4(svelte@5.19.3):
     dependencies:
       esm-env: 1.2.2
       svelte: 5.19.3
@@ -3357,10 +3347,9 @@ snapshots:
     dependencies:
       svelte: 5.19.3
 
-  svelte-toolbelt@0.7.0(svelte@5.19.3):
+  svelte-toolbelt@0.4.6(svelte@5.19.3):
     dependencies:
       clsx: 2.1.1
-      runed: 0.20.0(svelte@5.19.3)
       style-to-object: 1.0.8
       svelte: 5.19.3
 
