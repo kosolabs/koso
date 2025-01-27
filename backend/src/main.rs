@@ -18,7 +18,7 @@ async fn main() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                "koso=debug,tower_http=trace,axum::rejection=trace,sqlx=trace,axum=trace".into()
+                "koso=debug,tower_http=trace,sqlx=trace,axum=trace,info".into()
             }),
         )
         .with(tracing_subscriber::fmt::layer())

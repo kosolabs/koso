@@ -1,6 +1,7 @@
 use crate::{
     flags::is_dev,
     secrets::{read_secret, Secret},
+    server::shutdown_signal,
 };
 use anyhow::Result;
 use jsonwebtoken::{encode, EncodingKey, Header};
@@ -40,12 +41,22 @@ pub(crate) async fn start_telegram_server() -> Result<()> {
     let schema = Update::filter_message()
         .filter_map(|update: Update| update.from().cloned())
         .branch(Message::filter_text().endpoint(process_text_message));
-    Dispatcher::builder(bot, schema)
+    let mut dis = Dispatcher::builder(bot, schema)
         .dependencies(dptree::deps![key])
-        .enable_ctrlc_handler()
-        .build()
-        .dispatch()
-        .await;
+        .build();
+
+    let token = dis.shutdown_token();
+    tokio::spawn(async move {
+        shutdown_signal("telegram bot", None).await;
+        match token.shutdown() {
+            Err(error) => {
+                tracing::error!("Error while shutting down Teloxide: {error}");
+            }
+            Ok(f) => f.await,
+        }
+    });
+
+    dis.dispatch().await;
     Ok(())
 }
 
