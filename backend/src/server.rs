@@ -150,7 +150,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
             listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
         )
-        .with_graceful_shutdown(shutdown_signal("server", config.shutdown_signal))
+        .with_graceful_shutdown(shutdown_signal("koso server", config.shutdown_signal))
         .await
         .unwrap();
 
