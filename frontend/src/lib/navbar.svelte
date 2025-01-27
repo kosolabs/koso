@@ -22,7 +22,7 @@
   let open: boolean = $state(false);
 </script>
 
-<nav class="flex items-center border-b bg-card p-2 shadow">
+<nav class="flex items-center border-b bg-card p-2 shadow-sm">
   <div class="flex items-center">
     <a href="/projects" aria-label="Home">
       <KosoLogo class="size-10" />
