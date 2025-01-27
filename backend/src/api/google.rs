@@ -1,4 +1,7 @@
-use crate::api::{unauthenticated_error, ApiResult};
+use crate::{
+    api::{unauthenticated_error, ApiResult},
+    flags::is_dev,
+};
 use anyhow::{anyhow, Result};
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
 use jsonwebtoken::{DecodingKey, Validation};
@@ -29,8 +32,7 @@ impl KeySet {
     const INTEG_TEST_KID: &'static str = "koso-integration-test";
 
     pub(crate) async fn new() -> Result<KeySet> {
-        let enable_test_creds =
-            std::env::var("TESTONLY_ENABLE_TEST_CREDS").is_ok_and(|v| v == "true");
+        let enable_test_creds = is_dev();
         if enable_test_creds {
             tracing::info!("Insecure test credentials enabled. Something is WRONG if you see this in production.")
         }

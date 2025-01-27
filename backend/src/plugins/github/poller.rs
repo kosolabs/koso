@@ -4,6 +4,7 @@ use crate::{
         yproxy::{YDocProxy, YTaskProxy},
         ApiResult,
     },
+    flags::is_dev,
     plugins::{
         config::ConfigStorage,
         github::{
@@ -42,8 +43,7 @@ impl Poller {
 
     pub(super) fn router(self) -> Router {
         // TODO: In the future, we could expose this in production with admin authorization
-        let enable_dev = std::env::var("TESTONLY_ENABLE_DEV").is_ok_and(|v| v == "true");
-        if enable_dev {
+        if is_dev() {
             return Router::new()
                 .route("/poll", post(Poller::poll_handler))
                 .layer((Extension(self),));

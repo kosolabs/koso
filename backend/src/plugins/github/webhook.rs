@@ -9,10 +9,11 @@ use crate::{
     plugins::{
         config::ConfigStorage,
         github::{
-            get_or_create_kind_parent, new_task, read_secret, resolve_task, update_task,
-            ExternalTask, GithubConfig, Kind, Secret, PLUGIN_KIND, PR_KIND,
+            get_or_create_kind_parent, new_task, resolve_task, update_task, ExternalTask,
+            GithubConfig, Kind, PLUGIN_KIND, PR_KIND,
         },
     },
+    secrets::{read_secret, Secret},
 };
 use anyhow::{anyhow, Result};
 use axum::{

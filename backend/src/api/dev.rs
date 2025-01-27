@@ -1,13 +1,15 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::{bad_request_error, google, User};
-use crate::api::{internal_error, ApiResult};
+use crate::{
+    api::{internal_error, ApiResult},
+    flags::is_dev,
+};
 use axum::{routing::post, Extension, Router};
 use sqlx::PgPool;
 
 pub(super) fn router() -> Router {
-    let enable_dev = std::env::var("TESTONLY_ENABLE_DEV").is_ok_and(|v| v == "true");
-    if enable_dev {
+    if is_dev() {
         tracing::info!("Enable dev mode. Something is WRONG if you see this in production.");
         return Router::new()
             .route("/cleanup_test_data", post(cleanup_test_data_handler))
