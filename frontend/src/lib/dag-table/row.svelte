@@ -7,20 +7,16 @@
 </script>
 
 <script lang="ts">
-  import { auth, type User } from "$lib/auth.svelte";
+  import { type User } from "$lib/auth.svelte";
   import { Button } from "$lib/components/ui/button";
   import {
     Chip,
     parseChipProps,
     type ChipProps,
   } from "$lib/components/ui/chip";
-  import { confetti } from "$lib/components/ui/confetti";
   import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
-  import {
-    TaskStatusProgress,
-    TaskStatusSelect,
-  } from "$lib/components/ui/task-status";
+  import TaskAction from "$lib/components/ui/task-action/task-action.svelte";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { cn } from "$lib/kosui/utils";
   import { Shortcut } from "$lib/shortcuts";
@@ -400,24 +396,7 @@
     onkeydown={(e) => e.stopPropagation()}
     bind:this={statusElement}
   >
-    {#if task.children.length === 0}
-      <TaskStatusSelect
-        value={task.status}
-        statusTime={task.statusTime ? new Date(task.statusTime) : null}
-        {editable}
-        onOpenChange={() => (koso.selected = node)}
-        onSelect={(status) => {
-          if (status === "Done") confetti.add(getStatusPosition());
-          koso.setTaskStatus(node, status, auth.user);
-        }}
-      />
-    {:else}
-      <TaskStatusProgress
-        inProgress={progress.inProgress}
-        done={progress.done}
-        total={progress.total}
-      />
-    {/if}
+    <TaskAction {task} {koso} />
   </td>
   <td class={cn("w-full border-t border-l px-2")}>
     <div class={cn("flex items-center gap-x-1")}>
