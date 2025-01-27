@@ -1,6 +1,6 @@
 use crate::{
     api::{bad_request_error, google::User, ApiResult},
-    plugins::github::{read_secret, Secret},
+    secrets::{read_secret, Secret},
 };
 use anyhow::{anyhow, Context, Result};
 use axum::{routing::post, Extension, Json, Router};

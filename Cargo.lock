@@ -2539,6 +2539,7 @@ dependencies = [
  "sha2",
  "similar",
  "sqlx",
+ "teloxide",
  "test-log",
  "tokio",
  "tokio-stream",

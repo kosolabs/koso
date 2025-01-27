@@ -14,13 +14,12 @@ use anyhow::{anyhow, Result};
 use auth::Auth;
 use axum::{middleware, Router};
 use connect::ConnectHandler;
-use core::fmt;
 use kosolib::{AppGithub, AppGithubConfig};
 use octocrab::models::pulls::PullRequest;
 use poller::Poller;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use std::{fmt::Debug, fs, path::Path, time::SystemTime};
+use std::{fmt::Debug, time::SystemTime};
 use tokio::task::JoinHandle;
 use webhook::Webhook;
 use yrs::TransactionMut;
@@ -219,38 +218,6 @@ fn now() -> Result<i64> {
         .duration_since(SystemTime::UNIX_EPOCH)?
         .as_millis()
         .try_into()?)
-}
-
-#[derive(Clone)]
-struct Secret<T> {
-    data: T,
-}
-
-impl<T> Debug for Secret<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Secret([REDACTED])")
-    }
-}
-
-const DEFAULT_SECRETS_DIR: &str = "../.secrets";
-
-/// Read the secret from $secrets_dir/$sub_path.
-/// The default is `../.secrets/$sub_path`, unless `SECRETS_DIR` is set.
-fn read_secret<T: std::convert::From<String>>(sub_path: &str) -> Result<Secret<T>> {
-    let dir = std::env::var("SECRETS_DIR").unwrap_or_else(|_| DEFAULT_SECRETS_DIR.to_string());
-    let path = Path::new(&dir)
-        .join(sub_path)
-        .into_os_string()
-        .into_string()
-        .map_err(|e| anyhow!("Invalid secret path in {dir}: {e:?}"))?;
-    tracing::info!("Using {sub_path} secret at {path}");
-    let secret: String = fs::read_to_string(&path)
-        .map_err(|e| anyhow!("Failed to read secret from {path}: {e}"))?
-        .trim()
-        .to_owned();
-    Ok(Secret {
-        data: secret.into(),
-    })
 }
 
 struct Kind<'a> {
