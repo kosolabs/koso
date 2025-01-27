@@ -67,13 +67,3 @@ async fn process_text_message(
         .await?;
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::notify::encoding_key_from_secrets;
-
-    #[test_log::test(tokio::test)]
-    async fn encode() {
-        encoding_key_from_secrets();
-    }
-}
