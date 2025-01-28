@@ -131,7 +131,7 @@
 
   {#if projects.length === 0}
     <div
-      class="m-2 flex flex-col items-center gap-6 rounded border bg-card p-8"
+      class="bg-card m-2 flex flex-col items-center gap-6 rounded border p-8"
     >
       <div><Layers /></div>
       <div class="text-xl">Create your first Koso project!</div>
@@ -160,7 +160,7 @@
           </Button>
         </div>
       </div>
-      <div class="flex flex-col items-stretch [&>*:nth-child(even)]:bg-muted">
+      <div class="[&>*:nth-child(even)]:bg-muted flex flex-col items-stretch">
         {#each projects as project}
           <div class="flex items-center border-t p-2">
             <Button

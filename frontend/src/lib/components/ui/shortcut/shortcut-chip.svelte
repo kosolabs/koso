@@ -8,7 +8,7 @@
 </script>
 
 <div
-  class="flex h-5 min-w-5 items-center justify-center rounded border bg-muted p-1 text-xs text-muted-foreground shadow-xs"
+  class="bg-muted text-muted-foreground flex h-5 min-w-5 items-center justify-center rounded border p-1 text-xs shadow-xs"
 >
   {@render children()}
 </div>

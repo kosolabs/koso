@@ -10,7 +10,7 @@
   const { shortcut, class: classes }: Props = $props();
 </script>
 
-<div class={cn("flex gap-1 p-1 text-foreground", classes)}>
+<div class={cn("text-foreground flex gap-1 p-1", classes)}>
   {#if shortcut.ctrl}
     <ShortcutChip>⌃</ShortcutChip>
   {/if}

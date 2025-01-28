@@ -32,7 +32,7 @@
 
 <div class="colorful-gradient flex flex-col items-center">
   <div class="hero-text text-center" bind:this={heroTextEl}>
-    <h1 class="pb-5 pt-20 text-6xl lg:pt-40">
+    <h1 class="pt-20 pb-5 text-6xl lg:pt-40">
       <span class="inline-block">Plan Less.</span>
       <span class="inline-block">Ship More.</span>
     </h1>
@@ -55,7 +55,7 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
+<div class="flat-gradient px-4 pt-40 pb-20">
   <div
     class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >
@@ -82,7 +82,7 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
+<div class="flat-gradient px-4 pt-40 pb-20">
   <div
     class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >
@@ -99,7 +99,7 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
+<div class="flat-gradient px-4 pt-40 pb-20">
   <div
     class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >
@@ -116,7 +116,7 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
+<div class="flat-gradient px-4 pt-40 pb-20">
   <div
     class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >
@@ -135,7 +135,7 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
+<div class="flat-gradient px-4 pt-40 pb-20">
   <div
     class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >

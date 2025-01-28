@@ -348,7 +348,7 @@
 <tr
   tabindex="0"
   class={cn(
-    "rounded bg-opacity-50 outline outline-2 outline-transparent",
+    "bg-opacity-50 rounded outline outline-2 outline-transparent",
     index % 2 === 0 ? "bg-muted" : "",
     isMoving ? "opacity-50" : "",
     isHovered ? "bg-accent" : "",
@@ -394,12 +394,12 @@
     </div>
   </td>
   {#if koso.debug}
-    <td class={cn("border-l border-t p-2 text-xs lg:text-nowrap")}>
+    <td class={cn("border-t border-l p-2 text-xs lg:text-nowrap")}>
       {task.id}
     </td>
   {/if}
   <td
-    class={cn("border-l border-t p-2")}
+    class={cn("border-t border-l p-2")}
     onkeydown={(e) => e.stopPropagation()}
     bind:this={statusElement}
   >
@@ -423,7 +423,7 @@
       />
     {/if}
   </td>
-  <td class={cn("w-full border-l border-t px-2")}>
+  <td class={cn("w-full border-t border-l px-2")}>
     <div class={cn("flex items-center gap-x-1")}>
       {#if task.kind}
         <ManagedTaskIcon kind={task.kind} />
@@ -460,7 +460,7 @@
         {:else}
           <Button
             class={cn(
-              "h-auto text-wrap p-0 text-left hover:no-underline disabled:opacity-100",
+              "h-auto p-0 text-left text-wrap hover:no-underline disabled:opacity-100",
               task.url ? "text" : "",
             )}
             variant="link"
@@ -479,7 +479,7 @@
     </div>
   </td>
   <td
-    class={cn("border-l border-t p-2")}
+    class={cn("border-t border-l p-2")}
     onkeydown={(e) => e.stopPropagation()}
   >
     <UserSelect
@@ -494,7 +494,7 @@
     />
   </td>
   <td
-    class={cn("border-l border-t p-2 max-md:hidden")}
+    class={cn("border-t border-l p-2 max-md:hidden")}
     onkeydown={(e) => e.stopPropagation()}
   >
     <UserSelect
