@@ -4,7 +4,6 @@
   import { auth } from "$lib/auth.svelte";
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
-  import TaskStatus from "$lib/components/ui/task-status/task-status.svelte";
   import { Koso, KosoSocket } from "$lib/dag-table";
   import { cn } from "$lib/kosui/utils";
   import { nav } from "$lib/nav.svelte";
@@ -13,6 +12,7 @@
   import type { YTaskProxy } from "$lib/yproxy";
   import * as Y from "yjs";
   import UnauthorizedModal from "../unauthorized-modal.svelte";
+  import TaskAction from "$lib/components/ui/task-action/task-action.svelte";
 
   const projectId = page.params.projectId;
   nav.lastVisitedProjectId = projectId;
@@ -73,7 +73,7 @@
             {task.num}
           </td>
           <td class={cn("border-t border-l px-2")}>
-            <TaskStatus {task} />
+            <TaskAction {task} {koso} />
           </td>
           <td class={cn("border-t border-l px-2")}>
             <Button
