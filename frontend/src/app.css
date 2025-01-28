@@ -94,3 +94,13 @@ layer(base);
     @apply bg-background text-foreground;
   }
 }
+
+/*
+  Default button cursors: https://tailwindcss.com/docs/upgrade-guide#buttons-use-the-default-cursor
+*/
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
