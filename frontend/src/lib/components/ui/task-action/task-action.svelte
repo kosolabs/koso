@@ -37,8 +37,9 @@
     class="flex items-center gap-2"
     title={(task.status || "Not Started") +
       (task.statusTime ? " - " + task.statusTime.toLocaleString() : "")}
+    disabled={!canSetStatus && !canSetKind}
   >
-    <TaskStatus {task} />
+    <TaskStatus {task} {koso} />
   </DropdownMenu.Trigger>
   <DropdownMenu.Content portalProps={{ disabled: true }} preventScroll={false}>
     {#if canSetStatus}
