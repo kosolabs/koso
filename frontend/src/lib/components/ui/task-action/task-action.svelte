@@ -2,8 +2,10 @@
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import type { Koso } from "$lib/dag-table";
   import type { Status, YTaskProxy } from "$lib/yproxy";
-  import { Bot, LoaderCircle } from "lucide-svelte";
-  import { TaskStatus, TaskStatusIcon } from ".";
+  import { Bot, CircleCheck, LoaderCircle } from "lucide-svelte";
+  import { TaskStatusIcon } from ".";
+  import { CircularProgress } from "../circular-progress";
+  import { ResponsiveText } from "../responsive-text";
 
   type Kind = "Rollup" | "Juggled";
 
@@ -22,24 +24,59 @@
   let canSetKind = $derived(
     koso.isEditable(task.id) && task.children.length > 0,
   );
+  let rollupProgress = $derived(
+    task.children.length > 0 || task.kind == "Rollup"
+      ? koso.getProgress(task.id)
+      : null,
+  );
 
   function setStatus(status: Status) {
+    // TODO
     console.log(status);
   }
 
   function setKind(kind: Kind) {
+    // TODO
     console.log(kind);
+  }
+
+  function triggerTitle() {
+    if (!rollupProgress) {
+      return `${task.status || "Not Started"}${task.statusTime ? ` - ${new Date(task.statusTime).toLocaleString()}` : ""}`;
+    }
+    return `${rollupProgress.done} of ${rollupProgress.total} (${Math.round(
+      (rollupProgress.done * 100) / rollupProgress.total,
+    )}%)`;
   }
 </script>
 
 <DropdownMenu.Root>
   <DropdownMenu.Trigger
     class="flex items-center gap-2"
-    title={(task.status || "Not Started") +
-      (task.statusTime ? " - " + task.statusTime.toLocaleString() : "")}
+    title={triggerTitle()}
     disabled={!canSetStatus && !canSetKind}
+    aria-label="task-status"
   >
-    <TaskStatus {task} {koso} />
+    {#if rollupProgress}
+      {#if rollupProgress.done === rollupProgress.total}
+        <CircleCheck color="hsl(var(--primary))" />
+        <ResponsiveText>Done</ResponsiveText>
+      {:else if rollupProgress.done === 0 && rollupProgress.inProgress == 0}
+        <CircularProgress progress={0} color="hsl(var(--primary))" />
+        <ResponsiveText>Not Started</ResponsiveText>
+      {:else}
+        <CircularProgress
+          progress={rollupProgress.done / rollupProgress.total}
+          color="hsl(var(--primary))"
+        >
+          {Math.round((rollupProgress.done * 100) / rollupProgress.total)}%
+        </CircularProgress>
+        <ResponsiveText>In Progress</ResponsiveText>
+      {/if}
+    {:else}
+      <TaskStatusIcon status={task.status} />
+      <ResponsiveText>{task.status || "Not Started"}</ResponsiveText>
+    {/if}
   </DropdownMenu.Trigger>
   <DropdownMenu.Content portalProps={{ disabled: true }} preventScroll={false}>
     {#if canSetStatus}
