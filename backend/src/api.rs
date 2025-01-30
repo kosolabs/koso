@@ -8,6 +8,8 @@ use google::User;
 use model::{ProjectId, ProjectPermission};
 use sqlx::postgres::PgPool;
 
+use crate::notifiers;
+
 pub(crate) mod auth;
 pub(crate) mod collab;
 pub(crate) mod dev;
@@ -23,6 +25,7 @@ pub(crate) type ApiResult<T> = Result<T, ErrorResponse>;
 pub(crate) fn router() -> Router {
     Router::new()
         .nest("/projects", projects::router())
+        .nest("/notifiers", notifiers::router())
         .nest("/auth", auth::router())
         .nest("/ws", ws::router())
         .nest("/users", users::router())

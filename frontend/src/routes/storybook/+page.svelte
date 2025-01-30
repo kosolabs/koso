@@ -1,5 +1,8 @@
 <script>
-  import { CircularProgress } from "$lib/components/ui/circular-progress";
+  import {
+    CircularProgress,
+    IndeterminateProgress,
+  } from "$lib/components/ui/circular-progress";
   import Navbar from "$lib/navbar.svelte";
   import { CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
 </script>
@@ -24,6 +27,9 @@
       </div>
       <div class="border">
         <CircleCheck color="hsl(var(--primary))" />
+      </div>
+      <div class="border">
+        <IndeterminateProgress color="hsl(var(--primary))" />
       </div>
     </div>
 
@@ -50,6 +56,9 @@
       <div class="border">
         <CircleCheck class="h-16 w-16" color="hsl(var(--primary))" />
       </div>
+      <div class="border">
+        <IndeterminateProgress class="h-16 w-16" color="hsl(var(--primary))" />
+      </div>
     </div>
 
     <div class="flex gap-2">
@@ -74,6 +83,9 @@
       </div>
       <div class="border">
         <CircleCheck size="200px" color="hsl(var(--primary))" />
+      </div>
+      <div class="border">
+        <IndeterminateProgress size="200px" color="hsl(var(--primary))" />
       </div>
     </div>
   </div>
