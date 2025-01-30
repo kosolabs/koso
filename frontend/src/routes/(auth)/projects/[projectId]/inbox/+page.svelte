@@ -1,47 +1,34 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import { auth } from "$lib/auth.svelte";
+  import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import TaskStatus from "$lib/components/ui/task-status/task-status.svelte";
   import { Koso, KosoSocket } from "$lib/dag-table";
+  import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
-  import { fetchProjects, type Project } from "$lib/projects";
+  import { fetchProject, type Project } from "$lib/projects";
   import { cn } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
-  import { Map } from "immutable";
   import * as Y from "yjs";
+  import UnauthorizedModal from "../unauthorized-modal.svelte";
 
-  let projects = $state<Project[] | undefined>(undefined);
-  fetchProjects().then((resolved) => {
-    projects = resolved;
-  });
+  const projectId = page.params.projectId;
+  nav.lastVisitedProjectId = projectId;
 
-  type KosoPair = {
-    project: Project;
-    koso: Koso;
-    socket: KosoSocket;
-  };
+  const koso = new Koso(projectId, new Y.Doc());
+  const kosoSocket = new KosoSocket(koso, projectId);
+  window.koso = koso;
+  window.Y = Y;
 
-  let kosos = $derived(
-    Map<string, KosoPair>().withMutations((kosos) => {
-      if (projects) {
-        for (const project of projects) {
-          const koso = new Koso(project.projectId, new Y.Doc());
-          const socket = new KosoSocket(koso, project.projectId);
-          kosos.set(project.projectId, { project, koso, socket });
-        }
-      }
-    }),
-  );
+  let project: Promise<Project> = fetchProject(projectId);
 
-  type ProjectTask = { project: Project; task: YTaskProxy };
-  let tasks: ProjectTask[] = $derived.by(() => {
+  let tasks: YTaskProxy[] = $derived.by(() => {
     let tasks = [];
-    for (const { project, koso } of kosos.values()) {
-      for (const task of koso.tasks) {
-        if (task.assignee === auth.user.email && task.status !== "Done") {
-          tasks.push({ project, task });
-        }
+    for (const task of koso.tasks) {
+      if (task.assignee === auth.user.email && task.status !== "Done") {
+        tasks.push(task);
       }
     }
     return tasks;
@@ -51,22 +38,36 @@
 <Navbar>
   {#snippet left()}
     <div>
-      <h1 class="ml-2 text-lg">Inbox</h1>
+      <h1 class="ml-2 text-lg">
+        {#await project}
+          Inbox
+        {:then project}
+          Inbox - {project.name}
+        {/await}
+      </h1>
     </div>
   {/snippet}
 </Navbar>
+
+{#if kosoSocket.offline}
+  <div class="m-4">
+    <Alert>Connection to server lost. Working offline.</Alert>
+  </div>
+{/if}
+
+<UnauthorizedModal open={kosoSocket.unauthorized} />
+
 <div class="p-2">
   <table class="w-full border-separate border-spacing-0 rounded-md border">
     <thead class="text-left text-xs font-bold uppercase">
       <tr>
         <th class="p-2">ID</th>
         <th class="border-l p-2">Status</th>
-        <th class="border-l p-2">Project</th>
         <th class="border-l p-2">Name</th>
       </tr>
     </thead>
     <tbody>
-      {#each tasks as { project, task }}
+      {#each tasks as task}
         <tr
           class={cn(
             "rounded bg-opacity-50 outline outline-2 outline-transparent",
@@ -82,18 +83,9 @@
             <Button
               class={cn("p-0")}
               variant="link"
-              onclick={() => goto(`/projects/${project.projectId}`)}
-            >
-              {project.name}
-            </Button>
-          </td>
-          <td class={cn("border-l border-t px-2")}>
-            <Button
-              class={cn("p-0")}
-              variant="link"
               onclick={() => {
                 sessionStorage.setItem("taskId", task.id);
-                goto(`/projects/${project.projectId}`);
+                goto(`/projects/${projectId}`);
               }}
             >
               {task.name}
