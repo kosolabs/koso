@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Finds the index of the first entry in the iterable that satisfies the
+ * Finds the index of the fir`st entry in the iterable that satisfies the
  * provided predicate function.
  *
  * @param entries - An iterable iterator of entries, where each entry is a tuple
