@@ -4,7 +4,7 @@ mod api;
 mod flags;
 mod healthz;
 mod metrics_server;
-mod notify;
+mod notifiers;
 mod plugins;
 mod postgres;
 mod secrets;
@@ -35,7 +35,7 @@ async fn main() {
             serve.await.unwrap();
         },
         async {
-            notify::start_telegram_server().await.unwrap();
+            notifiers::telegram::start_telegram_server().await.unwrap();
         },
     );
 }
