@@ -132,7 +132,7 @@
             {:else if users.length > 0}
               {#each users as user}
                 <button
-                  class="w-full cursor-pointer rounded p-2 hover:bg-accent"
+                  class="hover:bg-accent w-full cursor-pointer rounded p-2"
                   title="Add {user.email}"
                   onclick={() => addUser(user)}
                 >
@@ -148,7 +148,7 @@
 
       <div class="h3 mt-2">People with access</div>
       <div
-        class="flex h-64 w-full flex-col items-stretch overflow-y-auto [&>*:nth-child(even)]:bg-muted"
+        class="[&>*:nth-child(even)]:bg-muted flex h-64 w-full flex-col items-stretch overflow-y-auto"
       >
         {#each projectUsers as projectUser (projectUser.email)}
           <div

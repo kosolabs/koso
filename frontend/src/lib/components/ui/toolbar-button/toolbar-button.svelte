@@ -28,7 +28,7 @@
         <div class="flex items-center gap-2">
           <div class="text-primary-foreground">{description}</div>
           {#if shortcut}
-            <div class="font-bold text-primary-foreground">
+            <div class="text-primary-foreground font-bold">
               {shortcut.toString()}
             </div>
           {/if}

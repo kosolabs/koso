@@ -30,7 +30,7 @@
   <Tooltip.Root>
     <Tooltip.Trigger>
       {#snippet child({ props })}
-        <div {...props} class={cn("min-w-4 max-w-4")}>
+        <div {...props} class={cn("max-w-4 min-w-4")}>
           <ManagedTaskIcon size={16} class="text-foreground" />
         </div>
       {/snippet}

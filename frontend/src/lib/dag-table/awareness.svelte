@@ -125,7 +125,7 @@
             role="note"
             aria-label={`${label} selected`}
             class={cn(
-              "absolute right-0 top-0 text-nowrap rounded-bl rounded-tr px-1 text-xs text-white",
+              "absolute top-0 right-0 rounded-tr rounded-bl px-1 text-xs text-nowrap text-white",
               getAwarenessBg(users),
             )}
           >

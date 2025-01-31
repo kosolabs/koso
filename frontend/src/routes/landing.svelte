@@ -32,7 +32,7 @@
 
 <div class="colorful-gradient flex flex-col items-center">
   <div class="hero-text text-center" bind:this={heroTextEl}>
-    <h1 class="pb-5 pt-20 text-6xl lg:pt-40">
+    <h1 class="pt-20 pb-5 text-6xl lg:pt-40">
       <span class="inline-block">Plan Less.</span>
       <span class="inline-block">Ship More.</span>
     </h1>
@@ -43,7 +43,7 @@
   </div>
 
   <div
-    class="glass mx-4 my-20 flex max-w-screen-md flex-col items-center gap-8 p-10 text-center"
+    class="glass mx-4 my-20 flex max-w-(--breakpoint-md) flex-col items-center gap-8 p-10 text-center"
   >
     <KosoLogo class="m-auto w-20" />
     <h1 class="text-4xl">Koso</h1>
@@ -55,9 +55,9 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
+<div class="flat-gradient px-4 pt-40 pb-20">
   <div
-    class="mx-auto flex max-w-screen-md flex-col items-center gap-8 text-center"
+    class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >
     <h2 class="text-2xl lg:text-4xl">Plan at the Speed of Thought</h2>
     <p>Create and edit tasks as if you were typing in a doc.</p>
@@ -82,9 +82,9 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
+<div class="flat-gradient px-4 pt-40 pb-20">
   <div
-    class="mx-auto flex max-w-screen-md flex-col items-center gap-8 text-center"
+    class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >
     <h2 class="text-2xl lg:text-4xl">Collaborative</h2>
     <p>
@@ -99,9 +99,9 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
+<div class="flat-gradient px-4 pt-40 pb-20">
   <div
-    class="mx-auto flex max-w-screen-md flex-col items-center gap-8 text-center"
+    class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >
     <h2 class="text-2xl lg:text-4xl">Simplified Dependency Management</h2>
     <p>
@@ -116,9 +116,9 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
+<div class="flat-gradient px-4 pt-40 pb-20">
   <div
-    class="mx-auto flex max-w-screen-md flex-col items-center gap-8 text-center"
+    class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >
     <h2 class="text-2xl lg:text-4xl">Extensible Intelligent Automation</h2>
     <p>
@@ -135,9 +135,9 @@
   </div>
 </div>
 
-<div class="flat-gradient px-4 pb-20 pt-40">
+<div class="flat-gradient px-4 pt-40 pb-20">
   <div
-    class="mx-auto flex max-w-screen-md flex-col items-center gap-8 text-center"
+    class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >
     <h2 class="text-2xl lg:text-4xl">Self Organizing Zero Inbox</h2>
     <p>

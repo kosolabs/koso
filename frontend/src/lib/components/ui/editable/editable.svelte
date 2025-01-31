@@ -104,7 +104,7 @@
 
 {#if editing}
   <Input
-    class={cn("my-1 h-auto bg-background p-1", classes)}
+    class={cn("bg-background my-1 h-auto p-1", classes)}
     aria-label={ariaLabel}
     name={ariaLabel}
     onclick={(event) => event.stopPropagation()}
@@ -117,7 +117,7 @@
 {:else}
   <Button
     variant="link"
-    class={cn("h-auto text-wrap p-0 text-left hover:no-underline", classes)}
+    class={cn("h-auto p-0 text-left text-wrap hover:no-underline", classes)}
     aria-label={ariaLabel}
     onclick={handleButtonClick}
   >

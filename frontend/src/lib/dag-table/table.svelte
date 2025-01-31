@@ -610,7 +610,7 @@
     </table>
   {:else}
     <div class="flex items-center justify-center pt-8">
-      <div class="flex w-9/12 max-w-[425px] rounded-md border bg-muted p-4">
+      <div class="bg-muted flex w-9/12 max-w-[425px] rounded-md border p-4">
         <div class="min-w-16">
           <KosoLogo class="size-16" />
         </div>

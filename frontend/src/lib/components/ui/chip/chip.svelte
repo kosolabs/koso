@@ -6,7 +6,7 @@
 </script>
 
 <div
-  class="flex items-center gap-1 text-nowrap rounded border bg-secondary px-1 text-xs text-secondary-foreground"
+  class="bg-secondary text-secondary-foreground flex items-center gap-1 rounded border px-1 text-xs text-nowrap"
   title={description}
 >
   {#if onClick}
@@ -20,7 +20,7 @@
   {#if onDelete}
     <button
       aria-label="Delete {title}"
-      class="rounded border border-transparent hover:border-primary-foreground active:scale-95"
+      class="hover:border-primary-foreground rounded border border-transparent active:scale-95"
       onclick={onDelete}
     >
       <X size={12} />

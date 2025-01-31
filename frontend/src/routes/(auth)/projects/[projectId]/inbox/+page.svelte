@@ -70,16 +70,16 @@
       {#each tasks as task}
         <tr
           class={cn(
-            "rounded bg-opacity-50 outline outline-2 outline-transparent",
+            "bg-opacity-50 rounded outline outline-2 outline-transparent",
           )}
         >
           <td class={cn("border-t p-2")}>
             {task.num}
           </td>
-          <td class={cn("border-l border-t px-2")}>
+          <td class={cn("border-t border-l px-2")}>
             <TaskStatus {task} />
           </td>
-          <td class={cn("border-l border-t px-2")}>
+          <td class={cn("border-t border-l px-2")}>
             <Button
               class={cn("p-0")}
               variant="link"
