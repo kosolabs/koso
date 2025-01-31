@@ -34,7 +34,14 @@
     {@render right?.()}
 
     {#if auth.ok()}
-      <DropdownMenu.Root controlledOpen {open} onOpenChange={(o) => (open = o)}>
+      <DropdownMenu.Root
+        bind:open={
+          () => open,
+          (newOpen) => {
+            open = newOpen;
+          }
+        }
+      >
         <DropdownMenu.Trigger title={auth.user.email}>
           <Avatar
             class="size-9 rounded transition-all hover:brightness-110 active:scale-95"
