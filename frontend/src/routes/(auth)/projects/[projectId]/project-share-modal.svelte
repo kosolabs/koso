@@ -85,6 +85,14 @@
       .filter((u) => !projectUsers.some((pu) => pu.email === u.email))
       .filter((u) => match(u.name, filter) || match(u.email, filter));
   });
+
+  let searchInput = $state<HTMLElement | null>(null);
+
+  $effect(() => {
+    if (searchInput && filter) {
+      openDropDown = true;
+    }
+  });
 </script>
 
 <Dialog.Root
@@ -111,18 +119,26 @@
     </Dialog.Header>
     <div class="flex flex-col gap-2">
       <Popover.Root bind:open={openDropDown}>
-        <Popover.Trigger>
-          <Input
-            type="text"
-            placeholder="Add people"
-            name="Add people"
-            bind:value={filter}
-          />
+        <Popover.Trigger bind:ref={searchInput}>
+          {#snippet child({ props })}
+            <Input
+              {...props}
+              type="text"
+              placeholder="Add people"
+              name="Add people"
+              bind:value={filter}
+              autocomplete="off"
+            />
+          {/snippet}
         </Popover.Trigger>
         <Popover.Content
           trapFocus={false}
           class="max-h-96 overflow-y-auto"
           onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            searchInput?.focus();
+          }}
+          onCloseAutoFocus={(e) => {
             e.preventDefault();
           }}
         >
@@ -174,7 +190,7 @@
 </Dialog.Root>
 
 <AlertDialog.Root bind:open={openWarnSelfRemovalModal}>
-  <AlertDialog.AlertDialogContent>
+  <AlertDialog.AlertDialogContent portalProps={{ disabled: true }}>
     <AlertDialog.AlertDialogHeader>
       <AlertDialog.AlertDialogTitle>
         Are you absolutely sure?
