@@ -348,7 +348,7 @@
 <tr
   tabindex="0"
   class={cn(
-    "bg-opacity-50 rounded outline outline-2 outline-transparent",
+    "bg-opacity-50 rounded outline-2 outline-transparent",
     index % 2 === 0 ? "bg-muted" : "",
     isMoving ? "opacity-50" : "",
     isHovered ? "bg-accent" : "",
