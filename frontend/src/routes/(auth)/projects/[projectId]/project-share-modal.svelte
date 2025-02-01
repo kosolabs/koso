@@ -87,12 +87,6 @@
   });
 
   let searchInput = $state<HTMLElement | null>(null);
-
-  $effect(() => {
-    if (searchInput && filter) {
-      openDropDown = true;
-    }
-  });
 </script>
 
 <Dialog.Root
@@ -112,39 +106,45 @@
         openDropDown = false;
       }
     }}
+    onOpenAutoFocus={(e) => {
+      e.preventDefault();
+    }}
   >
     <Dialog.Header>
       <Dialog.Title>Share &quot;{project.name}&quot;</Dialog.Title>
       <Dialog.Description>Manage access to your project.</Dialog.Description>
     </Dialog.Header>
     <div class="flex flex-col gap-2">
+      <Input
+        type="text"
+        placeholder="Add people"
+        name="Add people"
+        bind:value={filter}
+        bind:ref={searchInput}
+        autocomplete="off"
+        onkeydown={(event) => {
+          if (openDropDown) {
+            event.stopPropagation();
+            if (Shortcut.CANCEL.matches(event)) {
+              openDropDown = false;
+            }
+          }
+        }}
+        onfocus={() => {
+          openDropDown = true;
+        }}
+        onblur={() => {
+          openDropDown = false;
+        }}
+      />
+
       <Popover.Root bind:open={openDropDown}>
-        <Popover.Trigger bind:ref={searchInput}>
-          {#snippet child({ props })}
-            <Input
-              {...props}
-              type="text"
-              placeholder="Add people"
-              name="Add people"
-              bind:value={filter}
-              autocomplete="off"
-              onkeydown={(event) => {
-                if (openDropDown) {
-                  event.stopPropagation();
-                  if (Shortcut.CANCEL.matches(event)) {
-                    openDropDown = false;
-                  }
-                }
-              }}
-            />
-          {/snippet}
-        </Popover.Trigger>
         <Popover.Content
+          customAnchor={searchInput}
           trapFocus={false}
           class="max-h-96 overflow-y-auto"
           onOpenAutoFocus={(e) => {
             e.preventDefault();
-            searchInput?.focus();
           }}
           onCloseAutoFocus={(e) => {
             e.preventDefault();
