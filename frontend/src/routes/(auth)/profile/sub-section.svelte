@@ -2,7 +2,7 @@
   import type { Snippet } from "svelte";
 
   type Props = {
-    title: String;
+    title: string;
     children: Snippet;
   };
   const { title, children }: Props = $props();

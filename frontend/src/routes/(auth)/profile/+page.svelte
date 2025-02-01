@@ -15,7 +15,7 @@
   let profile: Promise<Profile> = $state(load());
 
   type Base = {
-    email: String;
+    email: string;
     enabled: boolean;
   };
 
@@ -50,7 +50,7 @@
       });
       await parse_response(resp);
       toast.success("Test notification sent successfully.", { id: toastId });
-    } catch (err) {
+    } catch {
       toast.error("Failed to send test notification.", { id: toastId });
     }
   }
@@ -69,7 +69,7 @@
       await parse_response(resp);
       toast.success("Telegram authorization deleted.", { id: toastId });
       profile = load();
-    } catch (err) {
+    } catch {
       toast.error("Failed to delete Telegram authorization.", { id: toastId });
     }
   }
