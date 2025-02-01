@@ -57,7 +57,7 @@
             </div>
             <ol>
               <li>1. Open Telegram</li>
-              <li>2. Open a Chat with @KosoLabsBot</li>
+              <li>2. Start a Chat with @KosoLabsBot</li>
               <li>3. Send the /token command</li>
               <li>4. Click the link returned by the bot</li>
             </ol>
@@ -65,8 +65,11 @@
         </AlertDialog.AlertDialogDescription>
       </AlertDialog.AlertDialogHeader>
       <AlertDialog.AlertDialogFooter>
-        <AlertDialog.AlertDialogAction onclick={() => goto("/")}>
-          Return to Home
+        <AlertDialog.AlertDialogCancel onclick={() => goto("/")}>
+          Return Home
+        </AlertDialog.AlertDialogCancel>
+        <AlertDialog.AlertDialogAction onclick={() => goto("/profile")}>
+          User Profile
         </AlertDialog.AlertDialogAction>
       </AlertDialog.AlertDialogFooter>
     </AlertDialog.AlertDialogContent>

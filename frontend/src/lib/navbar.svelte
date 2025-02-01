@@ -8,10 +8,10 @@
   } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { UserAvatar } from "$lib/components/ui/user-select";
+  import { UserRound } from "lucide-svelte";
   import { resetMode, setMode } from "mode-watcher";
   import type { Snippet } from "svelte";
   import { KosoLogo } from "./components/ui/koso-logo";
-  import { UserRound } from "lucide-svelte";
 
   type Props = {
     left?: Snippet;
@@ -62,6 +62,9 @@
               <UserAvatar user={auth.user} />
             </DropdownMenu.Label>
             <DropdownMenu.Separator />
+            <DropdownMenu.Item onSelect={() => goto("/profile")}>
+              Profile
+            </DropdownMenu.Item>
             <DropdownMenu.Sub>
               <DropdownMenu.SubTrigger>Theme</DropdownMenu.SubTrigger>
               <DropdownMenu.SubContent>

@@ -1,5 +1,3 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
 use crate::api::google::User;
 use crate::api::{error_response, ApiResult};
 use crate::{
@@ -8,32 +6,43 @@ use crate::{
     server::shutdown_signal,
 };
 use anyhow::Result;
-use axum::{routing::post, Extension, Json, Router};
+use axum::{
+    routing::{delete, post},
+    Extension, Json, Router,
+};
 use dptree::case;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use teloxide::{
     dispatching::UpdateFilterExt,
     dptree,
     macros::BotCommands,
     payloads::SendMessageSetters,
     prelude::{Dispatcher, Requester},
-    types::{ParseMode, Update},
+    types::{ParseMode, Update, UserId},
     Bot,
 };
 
+use super::UserNotificationConfig;
+
 pub(crate) fn router() -> Router {
-    Router::new().route("/", post(authorize_telegram))
+    Router::new()
+        .route("/", post(authorize_telegram))
+        .route("/", delete(deauthorize_telegram))
+        .route("/test", post(send_test_message_handler))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 struct TelegramSettings {
     chat_id: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 struct Claims {
     exp: u64,
     chat_id: u64,
@@ -82,6 +91,55 @@ async fn authorize_telegram(
     .await?;
 
     Ok(Json(settings))
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct Empty {}
+
+#[tracing::instrument(skip(user, pool))]
+async fn deauthorize_telegram(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+) -> ApiResult<Json<Empty>> {
+    sqlx::query(
+        "
+        DELETE FROM user_notification_configs
+        WHERE email = $1 AND notifier = 'telegram'",
+    )
+    .bind(user.email)
+    .execute(pool)
+    .await?;
+
+    Ok(Json(Empty {}))
+}
+
+#[tracing::instrument(skip(user, pool))]
+async fn send_test_message_handler(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+) -> ApiResult<Json<Empty>> {
+    let config: UserNotificationConfig = sqlx::query_as(
+        "
+        SELECT email, notifier, enabled, settings
+        FROM user_notification_configs
+        WHERE email = $1 AND notifier = 'telegram'",
+    )
+    .bind(user.email)
+    .fetch_one(pool)
+    .await?;
+
+    let settings: TelegramSettings = serde_json::from_value(config.settings)?;
+
+    let bot = bot_from_secrets()?;
+    bot.send_message(
+        UserId(settings.chat_id),
+        "Hello from Koso! This is a test notification. Change your setting <a href=\"https://koso.app/profile\">here</a>.",
+    )
+    .parse_mode(ParseMode::Html)
+    .await?;
+
+    Ok(Json(Empty {}))
 }
 
 #[derive(BotCommands, Clone)]

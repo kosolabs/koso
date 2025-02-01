@@ -15,6 +15,7 @@ pub(crate) mod collab;
 pub(crate) mod dev;
 pub(crate) mod google;
 pub(crate) mod model;
+pub(crate) mod profile;
 pub(crate) mod projects;
 pub(crate) mod users;
 pub(crate) mod ws;
@@ -25,6 +26,7 @@ pub(crate) type ApiResult<T> = Result<T, ErrorResponse>;
 pub(crate) fn router() -> Router {
     Router::new()
         .nest("/projects", projects::router())
+        .nest("/profile", profile::router())
         .nest("/notifiers", notifiers::router())
         .nest("/auth", auth::router())
         .nest("/ws", ws::router())
