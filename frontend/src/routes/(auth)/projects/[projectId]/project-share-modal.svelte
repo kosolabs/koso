@@ -73,7 +73,7 @@
 
   const MIN_FILTER_LEN = 2;
   let users: Promise<User[]> = $derived.by(async () => {
-    if (filter.length < MIN_FILTER_LEN) {
+    if (filter.trim().length < MIN_FILTER_LEN) {
       return [];
     }
     const response = await fetch(`/api/users?q=${filter}`, {
@@ -128,6 +128,14 @@
               name="Add people"
               bind:value={filter}
               autocomplete="off"
+              onkeydown={(event) => {
+                if (openDropDown) {
+                  event.stopPropagation();
+                  if (Shortcut.CANCEL.matches(event)) {
+                    openDropDown = false;
+                  }
+                }
+              }}
             />
           {/snippet}
         </Popover.Trigger>
@@ -143,7 +151,7 @@
           }}
         >
           {#await users then users}
-            {#if filter.length < MIN_FILTER_LEN}
+            {#if filter.trim().length < MIN_FILTER_LEN}
               Search for people.
             {:else if users.length > 0}
               {#each users as user}
