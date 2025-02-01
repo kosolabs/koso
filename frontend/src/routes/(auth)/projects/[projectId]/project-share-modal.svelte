@@ -72,18 +72,28 @@
   let openWarnSelfRemovalModal = $state(false);
 
   const MIN_FILTER_LEN = 2;
-  let users: Promise<User[]> = $derived.by(async () => {
-    if (filter.trim().length < MIN_FILTER_LEN) {
-      return [];
-    }
-    const response = await fetch(`/api/users?q=${filter}`, {
-      headers: headers(),
-    });
-    let users: User[] = await parse_response(response);
-    return users
-      .sort(COMPARE_USERS_BY_NAME_AND_EMAIL)
-      .filter((u) => !projectUsers.some((pu) => pu.email === u.email))
-      .filter((u) => match(u.name, filter) || match(u.email, filter));
+  let req = 0;
+  let users: User[] = $state([]);
+  $effect(() => {
+    (async () => {
+      if (filter.trim().length < MIN_FILTER_LEN) {
+        users = [];
+        return;
+      }
+      let thisReq = req + 1;
+      req = thisReq;
+      const response = await fetch(`/api/users?q=${filter}`, {
+        headers: headers(),
+      });
+      let userss: User[] = await parse_response(response);
+      if (thisReq !== req) {
+        return;
+      }
+      users = userss
+        .sort(COMPARE_USERS_BY_NAME_AND_EMAIL)
+        .filter((u) => !projectUsers.some((pu) => pu.email === u.email))
+        .filter((u) => match(u.name, filter) || match(u.email, filter));
+    })();
   });
 
   let searchInput = $state<HTMLElement | null>(null);
@@ -133,42 +143,36 @@
         onfocus={() => {
           openDropDown = true;
         }}
-        onblur={() => {
-          openDropDown = false;
-        }}
       />
 
-      <Popover.Root bind:open={openDropDown}>
-        <Popover.Content
-          customAnchor={searchInput}
-          trapFocus={false}
-          class="max-h-96 overflow-y-auto"
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
-          }}
-          onCloseAutoFocus={(e) => {
-            e.preventDefault();
-          }}
-        >
-          {#await users then users}
-            {#if filter.trim().length < MIN_FILTER_LEN}
-              Search for people.
-            {:else if users.length > 0}
-              {#each users as user}
-                <button
-                  class="hover:bg-accent w-full cursor-pointer rounded p-2"
-                  title="Add {user.email}"
-                  onclick={() => addUser(user)}
-                >
-                  <UserAvatar {user} />
-                </button>
-              {/each}
-            {:else}
-              <div>No people found.</div>
-            {/if}
-          {/await}
-        </Popover.Content>
-      </Popover.Root>
+      {#if users.length > 0}
+        <Popover.Root bind:open={openDropDown}>
+          <Popover.Content
+            onInteractOutside={() => {
+              openDropDown = false;
+            }}
+            customAnchor={searchInput}
+            trapFocus={false}
+            class="max-h-96 overflow-y-auto"
+            onOpenAutoFocus={(e) => {
+              e.preventDefault();
+            }}
+            onCloseAutoFocus={(e) => {
+              e.preventDefault();
+            }}
+          >
+            {#each users as user (user.email)}
+              <button
+                class="hover:bg-accent w-full cursor-pointer rounded p-2"
+                title="Add {user.email}"
+                onclick={() => addUser(user)}
+              >
+                <UserAvatar {user} />
+              </button>
+            {/each}
+          </Popover.Content>
+        </Popover.Root>
+      {/if}
 
       <div class="h3 mt-2">People with access</div>
       <div
