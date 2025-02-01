@@ -76,7 +76,8 @@
   let users: User[] = $state([]);
   $effect(() => {
     (async () => {
-      if (filter.trim().length < MIN_FILTER_LEN) {
+      // reference project users so svelte treats it as a dependency.
+      if (projectUsers.length > -1 && filter.trim().length < MIN_FILTER_LEN) {
         users = [];
         return;
       }
@@ -85,11 +86,14 @@
       const response = await fetch(`/api/users?q=${filter}`, {
         headers: headers(),
       });
-      let userss: User[] = await parse_response(response);
+      let respUsers: User[] = await parse_response(response);
       if (thisReq !== req) {
+        console.log(
+          `Discarding request ${thisReq}. A newer request, ${req}, is running.`,
+        );
         return;
       }
-      users = userss
+      users = respUsers
         .sort(COMPARE_USERS_BY_NAME_AND_EMAIL)
         .filter((u) => !projectUsers.some((pu) => pu.email === u.email))
         .filter((u) => match(u.name, filter) || match(u.email, filter));
@@ -165,7 +169,10 @@
               <button
                 class="hover:bg-accent w-full cursor-pointer rounded p-2"
                 title="Add {user.email}"
-                onclick={() => addUser(user)}
+                onclick={() => {
+                  openDropDown = false;
+                  addUser(user);
+                }}
               >
                 <UserAvatar {user} />
               </button>
