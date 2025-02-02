@@ -1,16 +1,15 @@
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { ResponsiveText } from "$lib/components/ui/responsive-text";
-  import { Shortcut } from "$lib/shortcuts";
   import type { Status } from "$lib/yproxy";
   import { tick } from "svelte";
   import { TaskStatusIcon } from ".";
+  import { Shortcut } from "$lib/shortcuts";
 
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
 
   type Props = {
     value: Status | null;
-    open: boolean;
     statusTime: Date | null;
     editable: boolean;
     onOpenChange?: (open: boolean) => void;
@@ -19,26 +18,30 @@
 
   let {
     value = $bindable(),
-    open = $bindable(),
     statusTime,
     onOpenChange,
     onSelect,
     editable = true,
   }: Props = $props();
 
-  function handleOpenChange(o: boolean) {
-    onOpenChange?.(o);
-    tick().then(() => (open = o));
-  }
-
   function select(status: Status) {
     value = status;
     onSelect?.(status);
   }
+
+  let open: boolean = $state(false);
 </script>
 
 {#if editable}
-  <DropdownMenu.Root controlledOpen {open} onOpenChange={handleOpenChange}>
+  <DropdownMenu.Root
+    bind:open={
+      () => open,
+      (newOpen) => {
+        onOpenChange?.(newOpen);
+        tick().then(() => (open = newOpen));
+      }
+    }
+  >
     <DropdownMenu.Trigger
       class="flex items-center gap-2"
       title={(value || "Not Started") +

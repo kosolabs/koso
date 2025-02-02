@@ -54,9 +54,6 @@
   let dragOverChild = $state(false);
   let isEditing = $state(false);
   let linkOpen = $state(false);
-  let statusOpen = $state(false);
-  let assigneeOpen = $state(false);
-  let reporterOpen = $state(false);
 
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
@@ -406,7 +403,6 @@
     {#if task.children.length === 0}
       <TaskStatusSelect
         value={task.status}
-        bind:open={statusOpen}
         statusTime={task.statusTime ? new Date(task.statusTime) : null}
         {editable}
         onOpenChange={() => (koso.selected = node)}
@@ -485,7 +481,6 @@
     <UserSelect
       {users}
       value={assignee}
-      bind:open={assigneeOpen}
       {editable}
       onOpenChange={() => (koso.selected = node)}
       onSelect={(user) => {
@@ -500,7 +495,6 @@
     <UserSelect
       {users}
       value={reporter}
-      bind:open={reporterOpen}
       {editable}
       onOpenChange={() => (koso.selected = node)}
       onSelect={(user) => {

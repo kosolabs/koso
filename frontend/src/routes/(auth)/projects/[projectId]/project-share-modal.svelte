@@ -72,19 +72,35 @@
   let openWarnSelfRemovalModal = $state(false);
 
   const MIN_FILTER_LEN = 2;
-  let users: Promise<User[]> = $derived.by(async () => {
-    if (filter.length < MIN_FILTER_LEN) {
-      return [];
-    }
-    const response = await fetch(`/api/users?q=${filter}`, {
-      headers: headers(),
-    });
-    let users: User[] = await parse_response(response);
-    return users
-      .sort(COMPARE_USERS_BY_NAME_AND_EMAIL)
-      .filter((u) => !projectUsers.some((pu) => pu.email === u.email))
-      .filter((u) => match(u.name, filter) || match(u.email, filter));
+  let req = 0;
+  let users: User[] = $state([]);
+  $effect(() => {
+    (async () => {
+      // reference project users so svelte treats it as a dependency.
+      if (projectUsers.length > -1 && filter.trim().length < MIN_FILTER_LEN) {
+        users = [];
+        return;
+      }
+      let thisReq = req + 1;
+      req = thisReq;
+      const response = await fetch(`/api/users?q=${filter}`, {
+        headers: headers(),
+      });
+      let respUsers: User[] = await parse_response(response);
+      if (thisReq !== req) {
+        console.log(
+          `Discarding request ${thisReq}. A newer request, ${req}, is running.`,
+        );
+        return;
+      }
+      users = respUsers
+        .sort(COMPARE_USERS_BY_NAME_AND_EMAIL)
+        .filter((u) => !projectUsers.some((pu) => pu.email === u.email))
+        .filter((u) => match(u.name, filter) || match(u.email, filter));
+    })();
   });
+
+  let searchInput = $state<HTMLElement | null>(null);
 </script>
 
 <Dialog.Root
@@ -104,47 +120,66 @@
         openDropDown = false;
       }
     }}
+    onOpenAutoFocus={(e) => {
+      e.preventDefault();
+    }}
   >
     <Dialog.Header>
       <Dialog.Title>Share &quot;{project.name}&quot;</Dialog.Title>
       <Dialog.Description>Manage access to your project.</Dialog.Description>
     </Dialog.Header>
     <div class="flex flex-col gap-2">
-      <Popover.Root bind:open={openDropDown}>
-        <Popover.Trigger>
-          <Input
-            type="text"
-            placeholder="Add people"
-            name="Add people"
-            bind:value={filter}
-          />
-        </Popover.Trigger>
-        <Popover.Content
-          trapFocus={false}
-          class="max-h-96 overflow-y-auto"
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
-          }}
-        >
-          {#await users then users}
-            {#if filter.length < MIN_FILTER_LEN}
-              Search for people.
-            {:else if users.length > 0}
-              {#each users as user}
-                <button
-                  class="hover:bg-accent w-full cursor-pointer rounded p-2"
-                  title="Add {user.email}"
-                  onclick={() => addUser(user)}
-                >
-                  <UserAvatar {user} />
-                </button>
-              {/each}
-            {:else}
-              <div>No people found.</div>
-            {/if}
-          {/await}
-        </Popover.Content>
-      </Popover.Root>
+      <Input
+        type="text"
+        placeholder="Add people"
+        name="Add people"
+        bind:value={filter}
+        bind:ref={searchInput}
+        autocomplete="off"
+        onkeydown={(event) => {
+          if (openDropDown) {
+            event.stopPropagation();
+            if (Shortcut.CANCEL.matches(event)) {
+              openDropDown = false;
+            }
+          }
+        }}
+        onfocus={() => {
+          openDropDown = true;
+        }}
+      />
+
+      {#if users.length > 0}
+        <Popover.Root bind:open={openDropDown}>
+          <Popover.Content
+            onInteractOutside={() => {
+              openDropDown = false;
+            }}
+            customAnchor={searchInput}
+            trapFocus={false}
+            class="max-h-96 overflow-y-auto"
+            onOpenAutoFocus={(e) => {
+              e.preventDefault();
+            }}
+            onCloseAutoFocus={(e) => {
+              e.preventDefault();
+            }}
+          >
+            {#each users as user (user.email)}
+              <button
+                class="hover:bg-accent w-full cursor-pointer rounded p-2"
+                title="Add {user.email}"
+                onclick={() => {
+                  openDropDown = false;
+                  addUser(user);
+                }}
+              >
+                <UserAvatar {user} />
+              </button>
+            {/each}
+          </Popover.Content>
+        </Popover.Root>
+      {/if}
 
       <div class="h3 mt-2">People with access</div>
       <div
@@ -174,7 +209,7 @@
 </Dialog.Root>
 
 <AlertDialog.Root bind:open={openWarnSelfRemovalModal}>
-  <AlertDialog.AlertDialogContent>
+  <AlertDialog.AlertDialogContent portalProps={{ disabled: true }}>
     <AlertDialog.AlertDialogHeader>
       <AlertDialog.AlertDialogTitle>
         Are you absolutely sure?

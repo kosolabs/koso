@@ -7,17 +7,16 @@
   } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Input } from "$lib/components/ui/input";
-  import { Shortcut } from "$lib/shortcuts";
   import { UserRound } from "lucide-svelte";
   import { tick } from "svelte";
   import { UserAvatar } from ".";
   import ResponsiveText from "../responsive-text/responsive-text.svelte";
+  import { Shortcut } from "$lib/shortcuts";
 
   type Props = {
     users: User[];
     value: User | null;
     unassigned?: string;
-    open?: boolean;
     editable?: boolean;
     onOpenChange?: (open: boolean) => void;
     onSelect?: (select: User | null) => void;
@@ -26,7 +25,6 @@
     users,
     value = null,
     unassigned = "Unassigned",
-    open = $bindable(),
     editable = true,
     onOpenChange,
     onSelect,
@@ -34,19 +32,24 @@
 
   let filter: string = $state("");
 
-  function handleOpenChange(o: boolean) {
-    onOpenChange?.(o);
-    tick().then(() => (open = o));
-  }
-
   function select(user: User | null) {
     value = user;
     onSelect?.(user);
   }
+
+  let open: boolean = $state(false);
 </script>
 
 {#if editable}
-  <DropdownMenu.Root controlledOpen {open} onOpenChange={handleOpenChange}>
+  <DropdownMenu.Root
+    bind:open={
+      () => open,
+      (newOpen) => {
+        onOpenChange?.(newOpen);
+        tick().then(() => (open = newOpen));
+      }
+    }
+  >
     <DropdownMenu.Trigger
       class="flex items-center gap-2"
       title={value?.email || "Unassigned"}
