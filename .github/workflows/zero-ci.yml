@@ -111,7 +111,7 @@ jobs:
           cache-dependency-path: zero/pnpm-lock.yaml
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@a54c7afa936fefeb4456b2dd8068152669aa8203 # master
+        uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # master
         with:
           toolchain: stable
           # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
