@@ -11,6 +11,7 @@
   import { toast } from "svelte-sonner";
   import Section from "./section.svelte";
   import SubSection from "./sub-section.svelte";
+  import { dialog } from "$lib/kosui/dialog";
 
   let profile: Promise<Profile> = $state(load());
 
@@ -56,6 +57,13 @@
   }
 
   async function deleteTelegramConfig() {
+    const ok = await dialog.confirm("Wow, great!");
+
+    console.log(`Confirmed: ${ok}`);
+    if (!ok) {
+      return;
+    }
+
     const toastId = toast.loading("Deleting Telegram authorization...");
 
     try {
