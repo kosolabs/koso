@@ -6,8 +6,10 @@
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../circular-progress";
   import { ResponsiveText } from "../responsive-text";
+  import { tick } from "svelte";
+  import { Shortcut } from "$lib/shortcuts";
 
-  type Kind = "Rollup" | "Juggled";
+  export type Kind = "Rollup" | "Juggled";
 
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
   const kinds: Kind[] = ["Rollup", "Juggled"];
@@ -15,9 +17,14 @@
   type Props = {
     task: YTaskProxy;
     koso: Koso;
+    onOpenChange?: (open: boolean) => void;
+    onSelectKind?: (kind: Kind) => void;
+    onSelectStatus?: (status: Status) => void;
   };
-  const { task, koso }: Props = $props();
+  const { task, koso, onOpenChange, onSelectKind, onSelectStatus }: Props =
+    $props();
 
+  let open = $state(false);
   let canSetStatus = $derived(
     koso.isEditable(task.id) && task.children.length === 0,
   );
@@ -30,15 +37,24 @@
       : null,
   );
 
-  function setStatus(status: Status) {
-    // TODO
-    console.log(status);
+  function handleOnSelectKind(kind: Kind) {
+    handleOnSelectKind?.(kind);
   }
 
-  function setKind(kind: Kind) {
-    // TODO
-    console.log(kind);
+  function handleOnSelectStatus(status: Status) {
+    onSelectStatus?.(status);
   }
+  // function setStatus(status: Status) {
+  //   // TODO: Add back confetti
+  //   // if (status === "Done") confetti.add(getRow(node));
+  //   koso.setTaskStatus(node, status, auth.user);
+  //   console.log(status);
+  // }
+
+  // function setKind(kind: Kind) {
+  //   // TODO
+  //   console.log(kind);
+  // }
 
   function triggerTitle() {
     if (!rollupProgress) {
@@ -50,7 +66,15 @@
   }
 </script>
 
-<DropdownMenu.Root>
+<DropdownMenu.Root
+  bind:open={
+    () => open,
+    (newOpen) => {
+      onOpenChange?.(newOpen);
+      tick().then(() => (open = newOpen));
+    }
+  }
+>
   <DropdownMenu.Trigger
     class="flex items-center gap-2"
     title={triggerTitle()}
@@ -78,32 +102,45 @@
       <ResponsiveText>{task.status || "Not Started"}</ResponsiveText>
     {/if}
   </DropdownMenu.Trigger>
-  <DropdownMenu.Content portalProps={{ disabled: true }} preventScroll={false}>
-    {#if canSetStatus}
-      {#each statuses as status}
-        <DropdownMenu.Item
-          class="flex items-center gap-2 rounded p-2"
-          onSelect={() => setStatus(status)}
-        >
-          <TaskStatusIcon {status} />
-          {status}
-        </DropdownMenu.Item>
-      {/each}
-    {/if}
-    {#if canSetKind}
-      {#each kinds as kind}
-        <DropdownMenu.Item
-          class="flex items-center gap-2 rounded p-2"
-          onSelect={() => setKind(kind)}
-        >
-          {#if kind === "Rollup"}
-            <LoaderCircle />
-          {:else if kind === "Juggled"}
-            <Bot />
-          {/if}
-          {kind}
-        </DropdownMenu.Item>
-      {/each}
-    {/if}
-  </DropdownMenu.Content>
+  <div
+    role="none"
+    onkeydown={(event) => {
+      if (Shortcut.CANCEL.matches(event)) {
+        open = false;
+      }
+      event.stopPropagation();
+    }}
+  >
+    <DropdownMenu.Content
+      portalProps={{ disabled: true }}
+      preventScroll={false}
+    >
+      {#if canSetStatus}
+        {#each statuses as status}
+          <DropdownMenu.Item
+            class="flex items-center gap-2 rounded p-2"
+            onSelect={() => handleOnSelectStatus(status)}
+          >
+            <TaskStatusIcon {status} />
+            {status}
+          </DropdownMenu.Item>
+        {/each}
+      {/if}
+      {#if canSetKind}
+        {#each kinds as kind}
+          <DropdownMenu.Item
+            class="flex items-center gap-2 rounded p-2"
+            onSelect={() => handleOnSelectKind(kind)}
+          >
+            {#if kind === "Rollup"}
+              <LoaderCircle />
+            {:else if kind === "Juggled"}
+              <Bot />
+            {/if}
+            {kind}
+          </DropdownMenu.Item>
+        {/each}
+      {/if}
+    </DropdownMenu.Content>
+  </div>
 </DropdownMenu.Root>

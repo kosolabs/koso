@@ -7,7 +7,7 @@
 </script>
 
 <script lang="ts">
-  import { type User } from "$lib/auth.svelte";
+  import { auth, type User } from "$lib/auth.svelte";
   import { Button } from "$lib/components/ui/button";
   import {
     Chip,
@@ -31,6 +31,7 @@
   } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
+  import { confetti } from "$lib/components/ui/confetti";
 
   type Props = {
     index: number;
@@ -62,7 +63,6 @@
   let awareUsers = $derived(
     getUniqueUsers(koso.awareness.filter((a) => node.equals(a.selected[0]))),
   );
-  let progress = $derived(koso.getProgress(task.id));
   let tags = $derived(getTags(koso.parents));
   let editable = $derived(koso.isEditable(task.id));
 
@@ -396,7 +396,19 @@
     onkeydown={(e) => e.stopPropagation()}
     bind:this={statusElement}
   >
-    <TaskAction {task} {koso} />
+    <TaskAction
+      {task}
+      {koso}
+      onOpenChange={() => (koso.selected = node)}
+      onSelectStatus={(status) => {
+        if (status === "Done") confetti.add(getStatusPosition());
+        koso.setTaskStatus(node, status, auth.user);
+      }}
+      onSelectKind={(value) => {
+        // TODO
+        console.log(`Selected kind ${value}`);
+      }}
+    />
   </td>
   <td class={cn("w-full border-t border-l px-2")}>
     <div class={cn("flex items-center gap-x-1")}>

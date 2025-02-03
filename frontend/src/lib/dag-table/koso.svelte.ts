@@ -118,6 +118,7 @@ export class Koso {
   #events: YEvent[] = $state.raw([]);
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
+  #visibilityFilter: ((node: Node) => boolean) | undefined;
   #tasks: YTaskProxy[] = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     this.#events;
@@ -150,7 +151,11 @@ export class Koso {
   // lifecycle functions
   // i.e., init functions and helpers, event handlers, and destructors
 
-  constructor(projectId: string, yDoc: Y.Doc) {
+  constructor(
+    projectId: string,
+    yDoc: Y.Doc,
+    visibilityFilter?: (node: Node) => boolean,
+  ) {
     this.#projectId = projectId;
     this.#yDoc = yDoc;
     const graph = yDoc.getMap<YTask>("graph");
@@ -198,6 +203,7 @@ export class Koso {
     );
 
     this.#showDone = useLocalStorage<boolean>(`show-done-${projectId}`, false);
+    this.#visibilityFilter = visibilityFilter;
 
     this.#yIndexedDb.whenSynced.then(() => {
       this.#syncState.indexedDbSync = true;
@@ -1420,6 +1426,10 @@ export class Koso {
   }
 
   isVisible(node: Node, showDone: boolean) {
+    if (this.#visibilityFilter && !this.#visibilityFilter(node)) {
+      return false;
+    }
+
     if (!showDone) {
       const progress = this.getProgress(node.name);
       if (progress.total === progress.done) {
