@@ -30,6 +30,7 @@
     "tailwindcss-animate": "1.0.7"
   },
   "devDependencies": {
+    "@eslint/js": "9.19.0",
     "@sveltejs/adapter-static": "3.0.8",
     "@sveltejs/kit": "2.17.0",
     "@sveltejs/vite-plugin-svelte": "5.0.3",
@@ -58,6 +59,9 @@
     "overrides": {
       "cookie": "1.0.2",
       "vite": "6.0.11"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
