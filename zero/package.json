@@ -15,7 +15,7 @@
     "test": "pnpm run \"/(check|lint|test:unit)$/\"",
     "test:unit": "vitest run"
   },
-  "packageManager": "pnpm@9.15.5",
+  "packageManager": "pnpm@10.2.0",
   "engines": {
     "node": ">= 20"
   },

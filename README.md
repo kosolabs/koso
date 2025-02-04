@@ -61,7 +61,6 @@
    In the `frontend` folder, run:
 
    ```sh
-   corepack enable
    pnpm install
    ```
 
