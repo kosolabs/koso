@@ -63,7 +63,7 @@
     "typescript-eslint": "8.22.0",
     "uuid": "11.0.5",
     "vite": "6.0.11",
-    "vitest": "3.0.4",
+    "vitest": "3.0.5",
     "workbox-core": "7.3.0",
     "workbox-precaching": "7.3.0",
     "workbox-routing": "7.3.0",
