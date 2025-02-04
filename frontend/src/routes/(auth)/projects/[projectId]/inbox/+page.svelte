@@ -15,11 +15,12 @@
   import TaskAction from "$lib/components/ui/task-action/task-action.svelte";
   import { confetti } from "$lib/components/ui/confetti";
   import { flip } from "svelte/animate";
+  import { List, Map, Record, Set } from "immutable";
 
   const projectId = page.params.projectId;
   nav.lastVisitedProjectId = projectId;
 
-  const koso = new Koso(projectId, new Y.Doc(), isVisible);
+  const koso = new Koso(projectId, new Y.Doc(), isVisible, flatten);
   const kosoSocket = new KosoSocket(koso, projectId);
   window.koso = koso;
   window.Y = Y;
@@ -33,8 +34,40 @@
   }
 
   function isVisible(node: Node): boolean {
-    const task = koso.getTask(node.name);
+    return isTaskVisible(koso.getTask(node.name));
+  }
+
+  function isTaskVisible(task: YTaskProxy): boolean {
     return task.assignee === auth.user.email && task.status !== "Done";
+  }
+
+  function flatten(
+    node: Node,
+    expanded: Set<Node>,
+    showDone: boolean,
+  ): List<Node> {
+    console.log("Flattening");
+    const parents = koso.parents;
+    let nodes: List<Node> = List();
+    nodes = nodes.push(new Node());
+
+    for (const task of koso.tasks) {
+      console.log(`Task ${task.num}`);
+      if (isTaskVisible(task)) {
+        let id = "";
+        let parent = parents.get(task.id);
+        while (parent) {
+          let parentId = parent[0];
+          id += `${parentId}/`;
+          parent = parents.get(parentId);
+        }
+        id += task.id;
+        let n = Node.parse(id);
+        console.log(`Including Task ${task.num} as ${n}`);
+        nodes = nodes.push(n);
+      }
+    }
+    return nodes;
   }
 </script>
 
@@ -102,10 +135,8 @@
               onclick={() => {
                 sessionStorage.setItem("taskId", task.id);
                 goto(`/projects/${projectId}`);
-              }}
+              }}>{task.name}</Button
             >
-              {task.name}
-            </Button>
           </td>
         </tr>
       {/each}

@@ -94,6 +94,12 @@ export type SyncState = {
   serverSync: boolean;
 };
 
+export type FlattenFn = (
+  node: Node,
+  expanded: Set<Node>,
+  showDone: boolean,
+) => List<Node>;
+
 export class Koso {
   #projectId: string;
   #yDoc: Y.Doc;
@@ -119,6 +125,7 @@ export class Koso {
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
   #visibilityFilter: ((node: Node) => boolean) | undefined;
+  #flattenFn: FlattenFn;
   #tasks: YTaskProxy[] = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     this.#events;
@@ -139,7 +146,7 @@ export class Koso {
     if (this.graph.size === 0) {
       return List();
     }
-    return this.#flatten(new Node(), this.expanded, this.showDone);
+    return this.#flattenFn(new Node(), this.expanded, this.showDone);
   });
   #syncState: SyncState = $state({
     indexedDbSync: false,
@@ -155,6 +162,7 @@ export class Koso {
     projectId: string,
     yDoc: Y.Doc,
     visibilityFilter?: (node: Node) => boolean,
+    flattenFn?: FlattenFn,
   ) {
     this.#projectId = projectId;
     this.#yDoc = yDoc;
@@ -204,6 +212,7 @@ export class Koso {
 
     this.#showDone = useLocalStorage<boolean>(`show-done-${projectId}`, false);
     this.#visibilityFilter = visibilityFilter;
+    this.#flattenFn = flattenFn || this.#flatten;
 
     this.#yIndexedDb.whenSynced.then(() => {
       this.#syncState.indexedDbSync = true;
