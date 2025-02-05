@@ -482,21 +482,21 @@
       </div>
     </div>
   </td>
+  <td
+    class={cn("border-t border-l p-2")}
+    onkeydown={(e) => e.stopPropagation()}
+  >
+    <UserSelect
+      {users}
+      value={assignee}
+      {editable}
+      onOpenChange={() => (koso.selected = node)}
+      onSelect={(user) => {
+        koso.setAssignee(task.id, user);
+      }}
+    />
+  </td>
   {#if !inboxView}
-    <td
-      class={cn("border-t border-l p-2")}
-      onkeydown={(e) => e.stopPropagation()}
-    >
-      <UserSelect
-        {users}
-        value={assignee}
-        {editable}
-        onOpenChange={() => (koso.selected = node)}
-        onSelect={(user) => {
-          koso.setAssignee(task.id, user);
-        }}
-      />
-    </td>
     <td
       class={cn("border-t border-l p-2 max-md:hidden")}
       onkeydown={(e) => e.stopPropagation()}

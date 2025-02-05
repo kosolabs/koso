@@ -324,7 +324,7 @@
       title: "Insert",
       description: "Insert a new task",
       icon: ListPlus,
-      toolbar: !inboxView,
+      toolbar: true,
       shortcut: Shortcut.INSERT_NODE,
       enabled: () =>
         !inboxView &&
@@ -601,11 +601,11 @@
             <div class="max-md:hidden">Status</div></th
           >
           <th class="border-l p-2">Name</th>
+          <th class="border-l p-2">
+            <UserRoundPlus class="h-4 md:hidden" />
+            <div class="max-md:hidden">Assignee</div>
+          </th>
           {#if !inboxView}
-            <th class="border-l p-2">
-              <UserRoundPlus class="h-4 md:hidden" />
-              <div class="max-md:hidden">Assignee</div>
-            </th>
             <th class="border-l p-2 max-md:hidden">Reporter</th>
           {/if}
           <th class="relative m-0 w-0 p-0"></th>
