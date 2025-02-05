@@ -1,24 +1,19 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { Button } from "$lib/kosui/button";
+  import { toTitleCase } from "$lib/kosui/utils";
 
-  type Component = {
-    title: string;
-    path: string;
-  };
-
-  const components: Component[] = [
-    { title: "Dialog", path: "/storybook/dialog" },
-    { title: "Progress Indicators", path: "/storybook/progress" },
+  const paths: string[] = [
+    "/storybook/buttons-and-links",
+    "/storybook/dialog",
+    "/storybook/progress-indicators",
   ];
 </script>
 
-<div>
-  {#each components as component}
-    <div>
-      <Button variant="link" onclick={() => goto(component.path)}>
-        {component.title}
-      </Button>
-    </div>
+<div class="flex flex-col items-start rounded-lg border p-4">
+  {#each paths as path}
+    <Button variant="link" onclick={() => goto(path)}>
+      {toTitleCase(path.split("/").slice(-1)[0])}
+    </Button>
   {/each}
 </div>

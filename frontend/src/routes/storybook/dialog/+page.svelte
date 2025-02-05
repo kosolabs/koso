@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button } from "$lib/kosui/button";
-  import { dialog, Dialoguer } from "$lib/kosui/dialog";
+  import { dialog } from "$lib/kosui/dialog";
   import { TriangleAlert } from "lucide-svelte";
   import { onMount } from "svelte";
 
@@ -36,5 +36,3 @@
     {/if}
   {/await}
 </div>
-
-<Dialoguer />

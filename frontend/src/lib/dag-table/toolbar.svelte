@@ -1,7 +1,7 @@
 <script lang="ts">
   import { ToolbarButton } from "$lib/components/ui/toolbar-button";
+  import { cn } from "$lib/kosui/utils";
   import type { Action } from "$lib/shortcuts";
-  import { cn } from "$lib/utils";
   import type { Snippet } from "svelte";
 
   type Props = {

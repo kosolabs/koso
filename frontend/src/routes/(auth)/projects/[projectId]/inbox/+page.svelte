@@ -6,10 +6,10 @@
   import { Button } from "$lib/components/ui/button";
   import TaskStatus from "$lib/components/ui/task-status/task-status.svelte";
   import { Koso, KosoSocket } from "$lib/dag-table";
+  import { cn } from "$lib/kosui/utils";
   import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
   import { fetchProject, type Project } from "$lib/projects";
-  import { cn } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
   import * as Y from "yjs";
   import UnauthorizedModal from "../unauthorized-modal.svelte";
