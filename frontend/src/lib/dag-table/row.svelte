@@ -33,6 +33,7 @@
   import LinkPanel from "./link-panel.svelte";
   import { confetti } from "$lib/components/ui/confetti";
   import { goto } from "$app/navigation";
+  import { kinds } from "$lib/yproxy";
 
   type Props = {
     index: number;
@@ -421,16 +422,15 @@
         if (status === "Done") confetti.add(getStatusPosition());
         koso.setTaskStatus(node, status, auth.user);
       }}
-      onSelectKind={(value) => {
-        // TODO
-        console.log(`Selected kind ${value}`);
+      onSelectKind={(kind) => {
+        koso.setKind(task.id, kind);
       }}
     />
   </td>
   <td class={cn("w-full border-t border-l px-2")}>
     <div class={cn("flex items-center gap-x-1")}>
-      {#if task.kind}
-        <ManagedTaskIcon kind={task.kind} />
+      {#if koso.isManagedTask(task.id) && !kinds.includes(task.kind || "")}
+        <ManagedTaskIcon kind={task.kind || ""} />
       {/if}
       <div class="flex w-full flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}

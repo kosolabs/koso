@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import type { Koso } from "$lib/dag-table";
-  import type { Status, YTaskProxy } from "$lib/yproxy";
+  import { kinds, type Kind, type Status, type YTaskProxy } from "$lib/yproxy";
   import { Bot, CircleCheck, LoaderCircle } from "lucide-svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../circular-progress";
@@ -9,10 +9,7 @@
   import { tick } from "svelte";
   import { Shortcut } from "$lib/shortcuts";
 
-  export type Kind = "Rollup" | "Juggled";
-
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
-  const kinds: Kind[] = ["Rollup", "Juggled"];
 
   type Props = {
     task: YTaskProxy;
@@ -44,17 +41,6 @@
   function handleOnSelectStatus(status: Status) {
     onSelectStatus?.(status);
   }
-  // function setStatus(status: Status) {
-  //   // TODO: Add back confetti
-  //   // if (status === "Done") confetti.add(getRow(node));
-  //   koso.setTaskStatus(node, status, auth.user);
-  //   console.log(status);
-  // }
-
-  // function setKind(kind: Kind) {
-  //   // TODO
-  //   console.log(kind);
-  // }
 
   function triggerTitle() {
     if (!rollupProgress) {

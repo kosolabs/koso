@@ -13,9 +13,11 @@ import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
+  kinds,
   YChildrenProxy,
   YGraphProxy,
   YTaskProxy,
+  type Kind,
   type Status,
   type Task,
   type YEvent,
@@ -666,7 +668,7 @@ export class Koso {
     return (
       !this.#hasCycle(parent, task) &&
       !this.hasChild(parent, task) &&
-      !this.isManagedTask(parent)
+      this.isEditable(parent)
     );
   }
 
@@ -965,6 +967,7 @@ export class Koso {
    * property.
    */
   isManagedTask(taskId: string): boolean {
+    // TODO: reconcile meaning of managed tasks.
     return !!this.getTask(taskId).kind;
   }
 
@@ -973,7 +976,11 @@ export class Koso {
    * plugin are not editable.
    */
   isEditable(taskId: string): boolean {
-    return !this.isManagedTask(taskId);
+    // TODO: reconcile meaning of managed tasks.
+    return (
+      !this.isManagedTask(taskId) ||
+      kinds.includes(this.getTask(taskId).kind || "")
+    );
   }
 
   /**
@@ -1384,6 +1391,17 @@ export class Koso {
         task.reporter = null;
       } else if (reporter && reporter.email !== task.reporter) {
         task.reporter = reporter.email;
+      }
+    });
+  }
+
+  setKind(taskId: string, kind: Kind | null) {
+    this.doc.transact(() => {
+      const task = this.getTask(taskId);
+      if (kind === null && task.kind !== null) {
+        task.kind = null;
+      } else if (kind && kind !== task.kind) {
+        task.kind = kind;
       }
     });
   }

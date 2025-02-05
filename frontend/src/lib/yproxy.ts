@@ -28,6 +28,8 @@ export type Task = {
   url: string | null;
 };
 export type Status = "Not Started" | "In Progress" | "Done";
+export type Kind = "Rollup" | "Juggled" | string;
+export const kinds: Kind[] = ["Rollup", "Juggled"];
 
 export type Slice = {
   start?: number;
@@ -165,8 +167,12 @@ export class YTaskProxy {
     this.#yTask.set("statusTime", value);
   }
 
-  get kind(): string | null {
+  get kind(): Kind | null {
     return (this.#yTask.get("kind") as string) || null;
+  }
+
+  set kind(value: Kind | null) {
+    this.#yTask.set("kind", value);
   }
 
   get url(): string | null {
