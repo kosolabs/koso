@@ -25,11 +25,10 @@
   };
   let { node, koso }: Props = $props();
 
+  let open = $state(false);
   let statusElement: HTMLElement | null = $state(null);
 
   let task = $derived(koso.getTask(node.name));
-
-  let open = $state(false);
   let canSetStatus = $derived(
     koso.isEditable(task.id) && task.children.length === 0,
   );

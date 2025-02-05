@@ -101,6 +101,7 @@ export type FlattenFn = (
   expanded: Set<Node>,
   showDone: boolean,
 ) => List<Node>;
+export type VisibilityFilterFn = (node: Node, showDone: boolean) => boolean;
 
 export class Koso {
   #projectId: string;
@@ -126,7 +127,7 @@ export class Koso {
   #events: YEvent[] = $state.raw([]);
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
-  #visibilityFilter: ((node: Node) => boolean) | undefined;
+  #visibilityFilterFn: VisibilityFilterFn;
   #flattenFn: FlattenFn;
   #tasks: YTaskProxy[] = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -163,7 +164,7 @@ export class Koso {
   constructor(
     projectId: string,
     yDoc: Y.Doc,
-    visibilityFilter?: (node: Node) => boolean,
+    visibilityFilterFn?: VisibilityFilterFn,
     flattenFn?: FlattenFn,
   ) {
     this.#projectId = projectId;
@@ -213,8 +214,8 @@ export class Koso {
     );
 
     this.#showDone = useLocalStorage<boolean>(`show-done-${projectId}`, false);
-    this.#visibilityFilter = visibilityFilter;
-    this.#flattenFn = flattenFn || this.#flatten;
+    this.#visibilityFilterFn = visibilityFilterFn ?? this.#defaultIsVisible;
+    this.#flattenFn = flattenFn ?? this.#defaultFlatten;
 
     this.#yIndexedDb.whenSynced.then(() => {
       this.#syncState.indexedDbSync = true;
@@ -311,7 +312,8 @@ export class Koso {
     return encoding.toUint8Array(encoder);
   }
 
-  #flatten(
+  /** Do not call this directly. Use #flattenFn instead. */
+  #defaultFlatten(
     node: Node,
     expanded: Set<Node>,
     showDone: boolean,
@@ -325,7 +327,7 @@ export class Koso {
         // Apply visibility filtering here instead of at the start of #flatten
         // to ensure that the root node is always present.
         if (this.isVisible(childNode, showDone)) {
-          nodes = this.#flatten(childNode, expanded, showDone, nodes);
+          nodes = this.#defaultFlatten(childNode, expanded, showDone, nodes);
         }
       });
     }
@@ -1449,11 +1451,12 @@ export class Koso {
   }
 
   isVisible(node: Node, showDone: boolean) {
-    if (this.#visibilityFilter && !this.#visibilityFilter(node)) {
-      return false;
-    }
+    return this.#visibilityFilterFn(node, showDone);
+  }
 
-    if (!showDone) {
+  /** Do not call this directly. Use isVisible instead. */
+  #defaultIsVisible(node: Node) {
+    if (!this.showDone) {
       const progress = this.getProgress(node.name);
       if (progress.total === progress.done) {
         const doneTime = progress.lastStatusTime;
