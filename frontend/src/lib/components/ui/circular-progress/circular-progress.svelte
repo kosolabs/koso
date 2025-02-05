@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { cn } from "$lib/utils";
   import type { Snippet } from "svelte";
 
   type Props = {
@@ -29,45 +28,37 @@
   width={size}
   height={size}
   viewBox="0 0 24 24"
-  class={cn("progress-bar", classes)}
+  fill="transparent"
+  class={classes}
   style="--cp-progress:{progress};"
 >
-  <circle class="track" style="stroke: {trackColor};" />
-  <circle class="progress" style="stroke: {color}" />
+  <circle
+    cx="50%"
+    cy="50%"
+    r="10px"
+    stroke-width="2px"
+    style="stroke: {trackColor};"
+  />
+  <circle
+    cx="50%"
+    cy="50%"
+    r="10px"
+    stroke-width="2px"
+    stroke-linecap="round"
+    stroke-dasharray={2 * 3.1415926535 * 10}
+    stroke-dashoffset={(1 - progress) * 2 * 3.1415926535 * 10}
+    transform-origin="center"
+    transform="rotate(-90)"
+    stroke={color}
+  />
   <text
-    class="text"
     x="12"
     y="12"
     font-size="7"
     text-anchor="middle"
     dominant-baseline="central"
-    style="fill: {textColor}"
+    fill={textColor}
   >
     {@render children?.()}
   </text>
 </svg>
-
-<style>
-  .progress-bar {
-    fill: transparent;
-  }
-
-  .track {
-    cx: 50%;
-    cy: 50%;
-    r: 10px;
-    stroke-width: 2px;
-  }
-
-  .progress {
-    cx: 50%;
-    cy: 50%;
-    r: 10px;
-    stroke-width: 2px;
-    stroke-linecap: round;
-    stroke-dasharray: calc(2 * 3.1415926535 * 10px);
-    stroke-dashoffset: calc((1 - var(--cp-progress)) * 2 * 3.1415926535 * 10px);
-    transform-origin: center;
-    transform: rotate(-90deg);
-  }
-</style>
