@@ -107,6 +107,13 @@
 
         props.onClick = (event) => {
           event.stopPropagation();
+
+          if (inboxView) {
+            sessionStorage.setItem("taskId", parent.id);
+            goto(`/projects/${koso.projectId}`);
+            return;
+          }
+
           let targetNode = koso.nodes
             .filter((n) => n.name == node.name && n.parent.name === parent.id)
             // Prefer the least nested linkage of this node under the given parent.
