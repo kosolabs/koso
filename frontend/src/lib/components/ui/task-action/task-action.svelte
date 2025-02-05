@@ -84,7 +84,6 @@
     class="flex items-center gap-2"
     title={triggerTitle()}
     disabled={!canSetStatus && !canSetKind}
-    aria-label="task-status"
   >
     {#if rollupProgress}
       {#if rollupProgress.done === rollupProgress.total}
