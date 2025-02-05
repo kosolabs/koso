@@ -1,92 +1,24 @@
-<script>
-  import {
-    CircularProgress,
-    IndeterminateProgress,
-  } from "$lib/components/ui/circular-progress";
-  import Navbar from "$lib/navbar.svelte";
-  import { CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
+<script lang="ts">
+  import { goto } from "$app/navigation";
+  import { Button } from "$lib/kosui/button";
+
+  type Component = {
+    title: string;
+    path: string;
+  };
+
+  const components: Component[] = [
+    { title: "Dialog", path: "/storybook/dialog" },
+    { title: "Progress Indicators", path: "/storybook/progress" },
+  ];
 </script>
 
-<Navbar />
-
-<div class="p-2">
-  <div class="flex flex-col gap-2 rounded border p-2">
-    <h1 class="text-3xl font-thin">Progress Indicators</h1>
-
-    <div class="flex gap-2">
-      <div class="border">
-        <CircularProgress progress={0.9} color="hsl(var(--primary))">
-          90%
-        </CircularProgress>
-      </div>
-      <div class="border">
-        <CircleFadingArrowUp color="hsl(var(--primary))" />
-      </div>
-      <div class="border">
-        <CircularProgress progress={0} color="hsl(var(--primary))" />
-      </div>
-      <div class="border">
-        <CircleCheck color="hsl(var(--primary))" />
-      </div>
-      <div class="border">
-        <IndeterminateProgress color="hsl(var(--primary))" />
-      </div>
+<div>
+  {#each components as component}
+    <div>
+      <Button variant="link" onclick={() => goto(component.path)}>
+        {component.title}
+      </Button>
     </div>
-
-    <div class="flex gap-2">
-      <div class="border">
-        <CircularProgress
-          class="h-16 w-16"
-          progress={0.9}
-          color="hsl(var(--primary))"
-        >
-          90%
-        </CircularProgress>
-      </div>
-      <div class="border">
-        <CircleFadingArrowUp class="h-16 w-16" color="hsl(var(--primary))" />
-      </div>
-      <div class="border">
-        <CircularProgress
-          class="h-16 w-16"
-          progress={0}
-          color="hsl(var(--primary))"
-        />
-      </div>
-      <div class="border">
-        <CircleCheck class="h-16 w-16" color="hsl(var(--primary))" />
-      </div>
-      <div class="border">
-        <IndeterminateProgress class="h-16 w-16" color="hsl(var(--primary))" />
-      </div>
-    </div>
-
-    <div class="flex gap-2">
-      <div class="border">
-        <CircularProgress
-          size="200px"
-          progress={0.9}
-          color="hsl(var(--primary))"
-        >
-          90%
-        </CircularProgress>
-      </div>
-      <div class="border">
-        <CircleFadingArrowUp size="200px" color="hsl(var(--primary))" />
-      </div>
-      <div class="border">
-        <CircularProgress
-          size="200px"
-          progress={0}
-          color="hsl(var(--primary))"
-        />
-      </div>
-      <div class="border">
-        <CircleCheck size="200px" color="hsl(var(--primary))" />
-      </div>
-      <div class="border">
-        <IndeterminateProgress size="200px" color="hsl(var(--primary))" />
-      </div>
-    </div>
-  </div>
+  {/each}
 </div>

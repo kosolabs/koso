@@ -7,6 +7,7 @@
   import { toast } from "svelte-sonner";
   import { Workbox } from "workbox-window";
   import "../app.css";
+  import { Dialoguer } from "$lib/kosui/dialog";
 
   const { children } = $props();
 
@@ -35,5 +36,6 @@
 
 <ModeWatcher />
 <Toaster richColors />
+<Dialoguer />
 <Confetti />
 {@render children()}

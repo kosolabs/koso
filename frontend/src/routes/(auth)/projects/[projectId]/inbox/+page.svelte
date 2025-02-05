@@ -68,11 +68,7 @@
     </thead>
     <tbody>
       {#each tasks as task}
-        <tr
-          class={cn(
-            "bg-opacity-50 rounded outline outline-2 outline-transparent",
-          )}
-        >
+        <tr class={cn("bg-opacity-50 rounded outline-2 outline-transparent")}>
           <td class={cn("border-t p-2")}>
             {task.num}
           </td>
