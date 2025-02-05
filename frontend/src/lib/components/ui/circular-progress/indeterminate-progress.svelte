@@ -22,35 +22,31 @@
   width={size}
   height={size}
   viewBox="0 0 24 24"
+  fill="transparent"
   class={cn("circular", classes)}
 >
-  <circle class="track" style="stroke: {trackColor};" />
-  <circle class="path" style="stroke: {color}"></circle>
+  <circle cx="50%" cy="50%" r="10px" stroke={trackColor} stroke-width="2px" />
+  <circle
+    class="path"
+    cx="50%"
+    cy="50%"
+    r="10px"
+    stroke={color}
+    stroke-width="2px"
+    stroke-miterlimit="4px"
+    stroke-dasharray="1, 200"
+    stroke-dashoffset="0"
+    stroke-linecap="round"
+  ></circle>
 </svg>
 
 <style>
   .circular {
-    fill: transparent;
     animation: rotate 2s linear infinite;
   }
 
-  .track {
-    cx: 50%;
-    cy: 50%;
-    r: 10px;
-    stroke-width: 2px;
-  }
-
   .path {
-    cx: 50%;
-    cy: 50%;
-    r: 10px;
-    stroke-width: 2px;
-    stroke-miterlimit: 4px;
-    stroke-dasharray: 1, 200;
-    stroke-dashoffset: 0;
     animation: dash 1.5s ease-in-out infinite;
-    stroke-linecap: round;
   }
 
   @keyframes rotate {
