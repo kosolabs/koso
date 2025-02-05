@@ -1,21 +1,21 @@
 <script lang="ts" module>
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { type VariantProps, tv } from "tailwind-variants";
+  import { cn } from "../utils";
 
   const buttonVariants = tv({
-    base: "focus-visible:ring-ring inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+    base: "focus-visible:ring-ring inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-hidden focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-all active:scale-95",
+          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm active:scale-95",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-xs transition-all active:scale-95",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-xs active:scale-95",
         outline:
-          "border-input bg-background hover:bg-accent hover:text-accent-foreground border shadow-xs transition-all active:scale-95",
+          "border-input bg-background hover:bg-accent hover:text-accent-foreground border shadow-xs active:scale-95",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-xs",
-        ghost:
-          "hover:bg-accent hover:text-accent-foreground transition-all active:scale-95",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-xs active:scale-95",
+        ghost: "hover:bg-accent hover:text-accent-foreground active:scale-95",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
@@ -41,8 +41,6 @@
 </script>
 
 <script lang="ts">
-  import { cn } from "$lib/utils.js";
-
   let {
     class: className,
     variant = "default",

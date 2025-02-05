@@ -96,7 +96,7 @@
 
 <script lang="ts">
   import * as Tooltip from "$lib/components/ui/tooltip";
-  import { cn } from "$lib/utils";
+  import { cn } from "$lib/kosui/utils";
 
   type Props = {
     users: User[];

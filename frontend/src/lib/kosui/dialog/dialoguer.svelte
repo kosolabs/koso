@@ -1,5 +1,4 @@
 <script module lang="ts">
-  import { cn } from "$lib/utils";
   import type { Snippet } from "svelte";
 
   type Resolver = (ok: boolean) => void;
@@ -29,6 +28,7 @@
 <script lang="ts">
   import type { Icon } from "lucide-svelte";
   import { Button } from "../button";
+  import { cn } from "../utils";
 
   function handleToggle(event: ToggleEvent, resolve?: (ok: boolean) => void) {
     if (!dialogEl) {
