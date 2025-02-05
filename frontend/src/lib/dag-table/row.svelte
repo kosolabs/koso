@@ -32,13 +32,15 @@
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
   import { confetti } from "$lib/components/ui/confetti";
+  import { goto } from "$app/navigation";
 
   type Props = {
     index: number;
     node: Node;
     users: User[];
+    inboxView: boolean;
   };
-  const { index, node, users }: Props = $props();
+  const { index, node, users, inboxView }: Props = $props();
 
   const koso = getContext<Koso>("koso");
 
@@ -359,31 +361,46 @@
 >
   <td class={cn("border-t px-2")} bind:this={idCellElement}>
     <div class="flex items-center">
-      <div style="width: {(node.length - 1) * 20}px"></div>
-      {#if task.children.length > 0}
+      {#if !inboxView}
+        <div style="width: {(node.length - 1) * 20}px"></div>
+        {#if task.children.length > 0}
+          <button
+            class={cn("w-4 transition-transform", open ? "rotate-90" : "")}
+            title={open ? "Collapse" : "Expand"}
+            aria-label={`Task ${task.num} Toggle Expand`}
+            onclick={handleToggleOpen}
+          >
+            <ChevronRight class="w-4" />
+          </button>
+        {:else}
+          <div class="w-4"></div>
+        {/if}
         <button
-          class={cn("w-4 transition-transform", open ? "rotate-90" : "")}
-          title={open ? "Collapse" : "Expand"}
-          aria-label={`Task ${task.num} Toggle Expand`}
-          onclick={handleToggleOpen}
+          class="flex items-center gap-1 py-1"
+          draggable={true}
+          aria-label={`Task ${task.num} Drag Handle`}
+          ondragstart={handleDragStart}
+          ondragend={handleDragEnd}
+          ondrag={handleDrag}
+          bind:this={handleElement}
         >
-          <ChevronRight class="w-4" />
+          <Grip class="w-4" />
+          <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
         </button>
       {:else}
-        <div class="w-4"></div>
+        <div class="overflow-x-hidden whitespace-nowrap">
+          <Button
+            class="p-0"
+            variant="link"
+            onclick={() => {
+              sessionStorage.setItem("taskId", task.id);
+              goto(`/projects/${koso.projectId}`);
+            }}
+          >
+            {task.num}
+          </Button>
+        </div>
       {/if}
-      <button
-        class="flex items-center gap-1 py-1"
-        draggable={true}
-        aria-label={`Task ${task.num} Drag Handle`}
-        ondragstart={handleDragStart}
-        ondragend={handleDragEnd}
-        ondrag={handleDrag}
-        bind:this={handleElement}
-      >
-        <Grip class="w-4" />
-        <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
-      </button>
     </div>
   </td>
   {#if koso.debug}
@@ -465,34 +482,36 @@
       </div>
     </div>
   </td>
-  <td
-    class={cn("border-t border-l p-2")}
-    onkeydown={(e) => e.stopPropagation()}
-  >
-    <UserSelect
-      {users}
-      value={assignee}
-      {editable}
-      onOpenChange={() => (koso.selected = node)}
-      onSelect={(user) => {
-        koso.setAssignee(task.id, user);
-      }}
-    />
-  </td>
-  <td
-    class={cn("border-t border-l p-2 max-md:hidden")}
-    onkeydown={(e) => e.stopPropagation()}
-  >
-    <UserSelect
-      {users}
-      value={reporter}
-      {editable}
-      onOpenChange={() => (koso.selected = node)}
-      onSelect={(user) => {
-        koso.setReporter(task.id, user);
-      }}
-    />
-  </td>
+  {#if !inboxView}
+    <td
+      class={cn("border-t border-l p-2")}
+      onkeydown={(e) => e.stopPropagation()}
+    >
+      <UserSelect
+        {users}
+        value={assignee}
+        {editable}
+        onOpenChange={() => (koso.selected = node)}
+        onSelect={(user) => {
+          koso.setAssignee(task.id, user);
+        }}
+      />
+    </td>
+    <td
+      class={cn("border-t border-l p-2 max-md:hidden")}
+      onkeydown={(e) => e.stopPropagation()}
+    >
+      <UserSelect
+        {users}
+        value={reporter}
+        {editable}
+        onOpenChange={() => (koso.selected = node)}
+        onSelect={(user) => {
+          koso.setReporter(task.id, user);
+        }}
+      />
+    </td>
+  {/if}
   <td class={cn("relative m-0 w-0 p-0")}>
     <Awareness users={awareUsers} />
   </td>

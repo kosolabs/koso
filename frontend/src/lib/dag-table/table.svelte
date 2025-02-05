@@ -50,8 +50,9 @@
     koso: Koso;
     users: User[];
     extraActions: Action[];
+    inboxView: boolean;
   };
-  const { koso, users, extraActions }: Props = $props();
+  const { koso, users, extraActions, inboxView }: Props = $props();
 
   const rows: { [key: string]: RowType } = {};
 
@@ -291,7 +292,8 @@
       title: "Expand",
       description: "Expand the current task",
       icon: ChevronsUpDown,
-      enabled: () => !!koso.selected && koso.canExpand(koso.selected),
+      enabled: () =>
+        !inboxView && !!koso.selected && koso.canExpand(koso.selected),
       shortcut: new Shortcut({ key: "ArrowRight" }),
     }),
     new Action({
@@ -299,7 +301,8 @@
       title: "Collapse",
       description: "Collapse the current task",
       icon: ChevronsDownUp,
-      enabled: () => !!koso.selected && koso.canCollapse(koso.selected),
+      enabled: () =>
+        !inboxView && !!koso.selected && koso.canCollapse(koso.selected),
       shortcut: new Shortcut({ key: "ArrowLeft" }),
     }),
     new Action({
@@ -307,24 +310,25 @@
       title: "Expand All",
       description: "Expand all tasks",
       icon: ChevronsUpDown,
-      enabled: () => true,
+      enabled: () => !inboxView,
     }),
     new Action({
       callback: () => koso.collapseAll(),
       title: "Collapse All",
       description: "Collapse all tasks",
       icon: ChevronsDownUp,
-      enabled: () => true,
+      enabled: () => !inboxView,
     }),
     new Action({
       callback: insert,
       title: "Insert",
       description: "Insert a new task",
       icon: ListPlus,
-      toolbar: true,
+      toolbar: !inboxView,
       shortcut: Shortcut.INSERT_NODE,
       enabled: () =>
-        !koso.selected || koso.canInsert(koso.selected.parent.name),
+        !inboxView &&
+        (!koso.selected || koso.canInsert(koso.selected.parent.name)),
     }),
     new Action({
       callback: insertAbove,
@@ -333,14 +337,17 @@
       icon: ListPlus,
       shortcut: new Shortcut({ key: "Enter", meta: true, shift: true }),
       enabled: () =>
-        !!koso.selected && koso.canInsert(koso.selected.parent.name),
+        !inboxView &&
+        !!koso.selected &&
+        koso.canInsert(koso.selected.parent.name),
     }),
     new Action({
       callback: insertChild,
       title: "Insert Subtask",
       description: "Insert a new task as a child",
       icon: ListTree,
-      enabled: () => !!koso.selected && koso.canInsert(koso.selected.name),
+      enabled: () =>
+        !inboxView && !!koso.selected && koso.canInsert(koso.selected.name),
       shortcut: Shortcut.INSERT_CHILD_NODE,
     }),
     new Action({
@@ -349,7 +356,7 @@
       description: "Insert a new task as a child of the previous task",
       icon: ListTree,
       enabled: () => {
-        if (!koso.selected) {
+        if (inboxView || !koso.selected) {
           return false;
         }
         const prevPeer = koso.getPrevPeer(koso.selected);
@@ -394,7 +401,7 @@
       description: "Move the current task up",
       icon: MoveUp,
       toolbar: true,
-      enabled: () => !!koso.selected,
+      enabled: () => !inboxView && !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowUp", alt: true }),
     }),
     new Action({
@@ -403,7 +410,7 @@
       description: "Move the current task down",
       icon: MoveDown,
       toolbar: true,
-      enabled: () => !!koso.selected,
+      enabled: () => !inboxView && !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowDown", alt: true }),
     }),
     new Action({
@@ -412,7 +419,7 @@
       description: "Move the current task to the top of its group",
       icon: ListStart,
       toolbar: true,
-      enabled: () => !!koso.selected,
+      enabled: () => !inboxView && !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowUp", alt: true, shift: true }),
     }),
     new Action({
@@ -421,7 +428,7 @@
       description: "Move the current task to the bottom of its group",
       icon: ListEnd,
       toolbar: true,
-      enabled: () => !!koso.selected,
+      enabled: () => !inboxView && !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowDown", alt: true, shift: true }),
     }),
     new Action({
@@ -430,7 +437,8 @@
       description: "Make the current task a peer of its parent",
       icon: IndentDecrease,
       toolbar: true,
-      enabled: () => !!koso.selected && koso.canUndentNode(koso.selected),
+      enabled: () =>
+        !inboxView && !!koso.selected && koso.canUndentNode(koso.selected),
       shortcut: new Shortcut({ key: "ArrowLeft", alt: true }),
     }),
     new Action({
@@ -439,7 +447,8 @@
       description: "Make the current task a child of its peer",
       icon: IndentIncrease,
       toolbar: true,
-      enabled: () => !!koso.selected && koso.canIndentNode(koso.selected),
+      enabled: () =>
+        !inboxView && !!koso.selected && koso.canIndentNode(koso.selected),
       shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
     }),
     new Action({
@@ -469,14 +478,14 @@
       title: "Hide Done Tasks",
       description: "Hide tasks that have been marked done",
       icon: EyeOff,
-      enabled: () => koso.showDone,
+      enabled: () => !inboxView && koso.showDone,
     }),
     new Action({
       callback: showDoneTasks,
       title: "Show Done Tasks",
       description: "Show tasks that have been marked done",
       icon: Eye,
-      enabled: () => !koso.showDone,
+      enabled: () => !inboxView && !koso.showDone,
     }),
     new Action({
       callback: () => setMode("light"),
@@ -502,6 +511,7 @@
       description: "Show the search palette",
       icon: Search,
       toolbar: true,
+      enabled: () => !inboxView,
       shortcut: new Shortcut({ key: "p", meta: true }),
     }),
     new Action({
@@ -527,7 +537,7 @@
       description: "Select next link to current task",
       icon: SkipForward,
       toolbar: false,
-      enabled: () => !!koso.selected,
+      enabled: () => !inboxView && !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowDown", meta: true }),
     }),
     new Action({
@@ -536,7 +546,7 @@
       description: "Select previous link to current task",
       icon: SkipBack,
       toolbar: false,
-      enabled: () => !!koso.selected,
+      enabled: () => !inboxView && !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
     }),
     ...extraActions,
@@ -591,11 +601,13 @@
             <div class="max-md:hidden">Status</div></th
           >
           <th class="border-l p-2">Name</th>
-          <th class="border-l p-2">
-            <UserRoundPlus class="h-4 md:hidden" />
-            <div class="max-md:hidden">Assignee</div>
-          </th>
-          <th class="border-l p-2 max-md:hidden">Reporter</th>
+          {#if !inboxView}
+            <th class="border-l p-2">
+              <UserRoundPlus class="h-4 md:hidden" />
+              <div class="max-md:hidden">Assignee</div>
+            </th>
+            <th class="border-l p-2 max-md:hidden">Reporter</th>
+          {/if}
           <th class="relative m-0 w-0 p-0"></th>
         </tr>
       </thead>
@@ -604,11 +616,11 @@
         <tbody animate:flip={{ duration: 250 }}>
           <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
           <!-- svelte-ignore binding_property_non_reactive -->
-          <Row bind:this={rows[node.id]} {index} {node} {users} />
+          <Row bind:this={rows[node.id]} {index} {node} {users} {inboxView} />
         </tbody>
       {/each}
     </table>
-  {:else}
+  {:else if !inboxView}
     <div class="flex items-center justify-center pt-8">
       <div class="bg-muted flex w-9/12 max-w-[425px] rounded-md border p-4">
         <div class="min-w-16">
@@ -625,6 +637,18 @@
               Add task
             </Button>
           </div>
+        </div>
+      </div>
+    </div>
+  {:else}
+    <div class="flex items-center justify-center pt-8">
+      <div class="bg-muted flex w-9/12 max-w-[425px] rounded-md border p-4">
+        <div class="min-w-16">
+          <KosoLogo class="size-16" />
+        </div>
+        <div class="ml-4">
+          <div class="text-md">Welcome to Koso!</div>
+          <div class="mt-2 text-sm">Inbox zero!</div>
         </div>
       </div>
     </div>

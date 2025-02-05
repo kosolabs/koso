@@ -156,5 +156,5 @@
     <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
   {/await}
 
-  <DagTable {koso} users={projectUsers} {extraActions} />
+  <DagTable {koso} users={projectUsers} {extraActions} inboxView={false} />
 {/await}

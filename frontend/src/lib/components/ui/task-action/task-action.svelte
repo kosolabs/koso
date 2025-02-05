@@ -38,7 +38,7 @@
   );
 
   function handleOnSelectKind(kind: Kind) {
-    handleOnSelectKind?.(kind);
+    onSelectKind?.(kind);
   }
 
   function handleOnSelectStatus(status: Status) {
