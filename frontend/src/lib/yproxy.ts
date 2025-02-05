@@ -1,3 +1,4 @@
+import { Set } from "immutable";
 import * as Y from "yjs";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,7 +30,7 @@ export type Task = {
 };
 export type Status = "Not Started" | "In Progress" | "Done";
 export type Kind = "Rollup" | "Juggled" | string;
-export const kinds: Kind[] = ["Rollup", "Juggled"];
+export const unmanagedKinds: Set<Kind> = Set.of("Rollup", "Juggled");
 
 export type Slice = {
   start?: number;

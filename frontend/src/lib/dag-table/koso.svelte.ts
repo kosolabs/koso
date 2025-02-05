@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
-  kinds,
+  unmanagedKinds,
   YChildrenProxy,
   YGraphProxy,
   YTaskProxy,
@@ -967,8 +967,8 @@ export class Koso {
    * property.
    */
   isManagedTask(taskId: string): boolean {
-    // TODO: reconcile meaning of managed tasks.
-    return !!this.getTask(taskId).kind;
+    const kind = this.getTask(taskId).kind;
+    return !!kind && !unmanagedKinds.includes(kind);
   }
 
   /**
@@ -976,11 +976,7 @@ export class Koso {
    * plugin are not editable.
    */
   isEditable(taskId: string): boolean {
-    // TODO: reconcile meaning of managed tasks.
-    return (
-      !this.isManagedTask(taskId) ||
-      kinds.includes(this.getTask(taskId).kind || "")
-    );
+    return !this.isManagedTask(taskId);
   }
 
   /**
@@ -1331,7 +1327,7 @@ export class Koso {
 
   /** Determines whether the given task may have children inserted. */
   canInsert(parentTaskId: string): boolean {
-    return !this.isManagedTask(parentTaskId);
+    return this.isEditable(parentTaskId);
   }
 
   insertNode(

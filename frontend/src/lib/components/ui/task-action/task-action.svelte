@@ -1,7 +1,12 @@
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import type { Koso } from "$lib/dag-table";
-  import { kinds, type Kind, type Status, type YTaskProxy } from "$lib/yproxy";
+  import {
+    unmanagedKinds,
+    type Kind,
+    type Status,
+    type YTaskProxy,
+  } from "$lib/yproxy";
   import { Bot, CircleCheck, LoaderCircle } from "lucide-svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../circular-progress";
@@ -29,7 +34,7 @@
     koso.isEditable(task.id) && task.children.length > 0,
   );
   let rollupProgress = $derived(
-    task.children.length > 0 || task.kind == "Rollup"
+    task.children.length > 0 || task.kind === "Rollup"
       ? koso.getProgress(task.id)
       : null,
   );
@@ -113,7 +118,7 @@
         {/each}
       {/if}
       {#if canSetKind}
-        {#each kinds as kind}
+        {#each unmanagedKinds as kind}
           <DropdownMenu.Item
             class="flex items-center gap-2 rounded p-2"
             onSelect={() => handleOnSelectKind(kind)}

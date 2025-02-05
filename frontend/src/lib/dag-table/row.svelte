@@ -33,7 +33,6 @@
   import LinkPanel from "./link-panel.svelte";
   import { confetti } from "$lib/components/ui/confetti";
   import { goto } from "$app/navigation";
-  import { kinds } from "$lib/yproxy";
 
   type Props = {
     index: number;
@@ -429,8 +428,8 @@
   </td>
   <td class={cn("w-full border-t border-l px-2")}>
     <div class={cn("flex items-center gap-x-1")}>
-      {#if koso.isManagedTask(task.id) && !kinds.includes(task.kind || "")}
-        <ManagedTaskIcon kind={task.kind || ""} />
+      {#if koso.isManagedTask(task.id)}
+        <ManagedTaskIcon kind={task.kind ?? ""} />
       {/if}
       <div class="flex w-full flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}
