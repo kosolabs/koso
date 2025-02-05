@@ -97,7 +97,7 @@
       .filter((parent) => parent.name.length > 0)
       .map((parent) => {
         const props = parseChipProps(parent.name);
-        if (koso.canUnlink(node.name, parent.id)) {
+        if (!inboxView && koso.canUnlink(node.name, parent.id)) {
           props.onDelete = (event) => {
             console.log(event);
             event.stopPropagation();
