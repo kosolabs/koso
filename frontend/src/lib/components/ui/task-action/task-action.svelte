@@ -1,30 +1,33 @@
+<script module lang="ts">
+  export type TaskActionType = {
+    showDoneConfetti(): void;
+  };
+</script>
+
 <script lang="ts">
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import type { Koso } from "$lib/dag-table";
-  import {
-    unmanagedKinds,
-    type Kind,
-    type Status,
-    type YTaskProxy,
-  } from "$lib/yproxy";
+  import type { Koso, Node } from "$lib/dag-table";
+  import { unmanagedKinds, type Kind, type Status } from "$lib/yproxy";
   import { Bot, CircleCheck, LoaderCircle } from "lucide-svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../circular-progress";
   import { ResponsiveText } from "../responsive-text";
   import { tick } from "svelte";
   import { Shortcut } from "$lib/shortcuts";
+  import { confetti } from "../confetti";
+  import { auth } from "$lib/auth.svelte";
 
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
 
   type Props = {
-    task: YTaskProxy;
+    node: Node;
     koso: Koso;
-    onOpenChange?: (open: boolean) => void;
-    onSelectKind?: (kind: Kind) => void;
-    onSelectStatus?: (status: Status) => void;
   };
-  const { task, koso, onOpenChange, onSelectKind, onSelectStatus }: Props =
-    $props();
+  let { node, koso }: Props = $props();
+
+  let statusElement: HTMLElement | null = $state(null);
+
+  let task = $derived(koso.getTask(node.name));
 
   let open = $state(false);
   let canSetStatus = $derived(
@@ -40,11 +43,21 @@
   );
 
   function handleOnSelectKind(kind: Kind) {
-    onSelectKind?.(kind);
+    koso.setKind(task.id, kind);
   }
 
   function handleOnSelectStatus(status: Status) {
-    onSelectStatus?.(status);
+    if (status === "Done") showDoneConfetti();
+    koso.setTaskStatus(node, status, auth.user);
+  }
+
+  export function showDoneConfetti() {
+    confetti.add(getStatusPosition());
+  }
+
+  function getStatusPosition(): DOMRect {
+    if (!statusElement) throw new Error("Status element is undefined");
+    return statusElement.getBoundingClientRect();
   }
 
   function triggerTitle() {
@@ -61,12 +74,13 @@
   bind:open={
     () => open,
     (newOpen) => {
-      onOpenChange?.(newOpen);
+      koso.selected = node;
       tick().then(() => (open = newOpen));
     }
   }
 >
   <DropdownMenu.Trigger
+    bind:ref={statusElement}
     class="flex items-center gap-2"
     title={triggerTitle()}
     disabled={!canSetStatus && !canSetKind}

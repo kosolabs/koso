@@ -1,13 +1,13 @@
 <script module lang="ts">
   export type RowType = {
     edit(editing: boolean): void;
-    getStatusPosition(): DOMRect;
+    showDoneConfetti(): void;
     linkPanel(open: boolean): void;
   };
 </script>
 
 <script lang="ts">
-  import { auth, type User } from "$lib/auth.svelte";
+  import { type User } from "$lib/auth.svelte";
   import { Button } from "$lib/components/ui/button";
   import {
     Chip,
@@ -16,7 +16,9 @@
   } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
-  import TaskAction from "$lib/components/ui/task-action/task-action.svelte";
+  import TaskAction, {
+    type TaskActionType,
+  } from "$lib/components/ui/task-action/task-action.svelte";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { cn } from "$lib/kosui/utils";
   import { Shortcut } from "$lib/shortcuts";
@@ -31,7 +33,6 @@
   } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
-  import { confetti } from "$lib/components/ui/confetti";
   import { goto } from "$app/navigation";
 
   type Props = {
@@ -47,7 +48,7 @@
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
   let handleElement: HTMLButtonElement | undefined = $state();
-  let statusElement: HTMLTableCellElement | undefined = $state();
+  let taskAction = $state<TaskActionType | undefined>();
 
   let dragOverPeer = $state(false);
   let dragOverChild = $state(false);
@@ -79,9 +80,8 @@
     isEditing = editing;
   }
 
-  export function getStatusPosition(): DOMRect {
-    if (!statusElement) throw new Error("Status element is undefined");
-    return statusElement.getBoundingClientRect();
+  export function showDoneConfetti() {
+    taskAction?.showDoneConfetti();
   }
 
   export function linkPanel(visible: boolean) {
@@ -411,20 +411,8 @@
   <td
     class={cn("border-t border-l p-2")}
     onkeydown={(e) => e.stopPropagation()}
-    bind:this={statusElement}
   >
-    <TaskAction
-      {task}
-      {koso}
-      onOpenChange={() => (koso.selected = node)}
-      onSelectStatus={(status) => {
-        if (status === "Done") confetti.add(getStatusPosition());
-        koso.setTaskStatus(node, status, auth.user);
-      }}
-      onSelectKind={(kind) => {
-        koso.setKind(task.id, kind);
-      }}
-    />
+    <TaskAction {node} {koso} bind:this={taskAction} />
   </td>
   <td class={cn("w-full border-t border-l px-2")}>
     <div class={cn("flex items-center gap-x-1")}>
