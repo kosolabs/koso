@@ -1,26 +1,24 @@
 <script module lang="ts">
   export type RowType = {
     edit(editing: boolean): void;
-    getStatusPosition(): DOMRect;
+    showDoneConfetti(): void;
     linkPanel(open: boolean): void;
   };
 </script>
 
 <script lang="ts">
-  import { auth, type User } from "$lib/auth.svelte";
+  import { type User } from "$lib/auth.svelte";
   import { Button } from "$lib/components/ui/button";
   import {
     Chip,
     parseChipProps,
     type ChipProps,
   } from "$lib/components/ui/chip";
-  import { confetti } from "$lib/components/ui/confetti";
   import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
-  import {
-    TaskStatusProgress,
-    TaskStatusSelect,
-  } from "$lib/components/ui/task-status";
+  import TaskAction, {
+    type TaskActionType,
+  } from "$lib/components/ui/task-action/task-action.svelte";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { cn } from "$lib/kosui/utils";
   import { Shortcut } from "$lib/shortcuts";
@@ -35,20 +33,22 @@
   } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
+  import { goto } from "$app/navigation";
 
   type Props = {
     index: number;
     node: Node;
     users: User[];
+    inboxView: boolean;
   };
-  const { index, node, users }: Props = $props();
+  const { index, node, users, inboxView }: Props = $props();
 
   const koso = getContext<Koso>("koso");
 
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
   let handleElement: HTMLButtonElement | undefined = $state();
-  let statusElement: HTMLTableCellElement | undefined = $state();
+  let taskAction = $state<TaskActionType | undefined>();
 
   let dragOverPeer = $state(false);
   let dragOverChild = $state(false);
@@ -66,7 +66,6 @@
   let awareUsers = $derived(
     getUniqueUsers(koso.awareness.filter((a) => node.equals(a.selected[0]))),
   );
-  let progress = $derived(koso.getProgress(task.id));
   let tags = $derived(getTags(koso.parents));
   let editable = $derived(koso.isEditable(task.id));
 
@@ -81,9 +80,8 @@
     isEditing = editing;
   }
 
-  export function getStatusPosition(): DOMRect {
-    if (!statusElement) throw new Error("Status element is undefined");
-    return statusElement.getBoundingClientRect();
+  export function showDoneConfetti() {
+    taskAction?.showDoneConfetti();
   }
 
   export function linkPanel(visible: boolean) {
@@ -99,7 +97,7 @@
       .filter((parent) => parent.name.length > 0)
       .map((parent) => {
         const props = parseChipProps(parent.name);
-        if (koso.canUnlink(node.name, parent.id)) {
+        if (!inboxView && koso.canUnlink(node.name, parent.id)) {
           props.onDelete = (event) => {
             console.log(event);
             event.stopPropagation();
@@ -109,6 +107,13 @@
 
         props.onClick = (event) => {
           event.stopPropagation();
+
+          if (inboxView) {
+            sessionStorage.setItem("taskId", parent.id);
+            goto(`/projects/${koso.projectId}`);
+            return;
+          }
+
           let targetNode = koso.nodes
             .filter((n) => n.name == node.name && n.parent.name === parent.id)
             // Prefer the least nested linkage of this node under the given parent.
@@ -363,31 +368,46 @@
 >
   <td class={cn("border-t px-2")} bind:this={idCellElement}>
     <div class="flex items-center">
-      <div style="width: {(node.length - 1) * 20}px"></div>
-      {#if task.children.length > 0}
+      {#if !inboxView}
+        <div style="width: {(node.length - 1) * 20}px"></div>
+        {#if task.children.length > 0}
+          <button
+            class={cn("w-4 transition-transform", open ? "rotate-90" : "")}
+            title={open ? "Collapse" : "Expand"}
+            aria-label={`Task ${task.num} Toggle Expand`}
+            onclick={handleToggleOpen}
+          >
+            <ChevronRight class="w-4" />
+          </button>
+        {:else}
+          <div class="w-4"></div>
+        {/if}
         <button
-          class={cn("w-4 transition-transform", open ? "rotate-90" : "")}
-          title={open ? "Collapse" : "Expand"}
-          aria-label={`Task ${task.num} Toggle Expand`}
-          onclick={handleToggleOpen}
+          class="flex items-center gap-1 py-1"
+          draggable={true}
+          aria-label={`Task ${task.num} Drag Handle`}
+          ondragstart={handleDragStart}
+          ondragend={handleDragEnd}
+          ondrag={handleDrag}
+          bind:this={handleElement}
         >
-          <ChevronRight class="w-4" />
+          <Grip class="w-4" />
+          <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
         </button>
       {:else}
-        <div class="w-4"></div>
+        <div class="overflow-x-hidden whitespace-nowrap">
+          <Button
+            class="p-0"
+            variant="link"
+            onclick={() => {
+              sessionStorage.setItem("taskId", task.id);
+              goto(`/projects/${koso.projectId}`);
+            }}
+          >
+            {task.num}
+          </Button>
+        </div>
       {/if}
-      <button
-        class="flex items-center gap-1 py-1"
-        draggable={true}
-        aria-label={`Task ${task.num} Drag Handle`}
-        ondragstart={handleDragStart}
-        ondragend={handleDragEnd}
-        ondrag={handleDrag}
-        bind:this={handleElement}
-      >
-        <Grip class="w-4" />
-        <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
-      </button>
     </div>
   </td>
   {#if koso.debug}
@@ -398,31 +418,13 @@
   <td
     class={cn("border-t border-l p-2")}
     onkeydown={(e) => e.stopPropagation()}
-    bind:this={statusElement}
   >
-    {#if task.children.length === 0}
-      <TaskStatusSelect
-        value={task.status}
-        statusTime={task.statusTime ? new Date(task.statusTime) : null}
-        {editable}
-        onOpenChange={() => (koso.selected = node)}
-        onSelect={(status) => {
-          if (status === "Done") confetti.add(getStatusPosition());
-          koso.setTaskStatus(node, status, auth.user);
-        }}
-      />
-    {:else}
-      <TaskStatusProgress
-        inProgress={progress.inProgress}
-        done={progress.done}
-        total={progress.total}
-      />
-    {/if}
+    <TaskAction {node} {koso} bind:this={taskAction} />
   </td>
   <td class={cn("w-full border-t border-l px-2")}>
     <div class={cn("flex items-center gap-x-1")}>
-      {#if task.kind}
-        <ManagedTaskIcon kind={task.kind} />
+      {#if koso.isManagedTask(task.id)}
+        <ManagedTaskIcon kind={task.kind ?? ""} />
       {/if}
       <div class="flex w-full flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}
@@ -488,20 +490,22 @@
       }}
     />
   </td>
-  <td
-    class={cn("border-t border-l p-2 max-md:hidden")}
-    onkeydown={(e) => e.stopPropagation()}
-  >
-    <UserSelect
-      {users}
-      value={reporter}
-      {editable}
-      onOpenChange={() => (koso.selected = node)}
-      onSelect={(user) => {
-        koso.setReporter(task.id, user);
-      }}
-    />
-  </td>
+  {#if !inboxView}
+    <td
+      class={cn("border-t border-l p-2 max-md:hidden")}
+      onkeydown={(e) => e.stopPropagation()}
+    >
+      <UserSelect
+        {users}
+        value={reporter}
+        {editable}
+        onOpenChange={() => (koso.selected = node)}
+        onSelect={(user) => {
+          koso.setReporter(task.id, user);
+        }}
+      />
+    </td>
+  {/if}
   <td class={cn("relative m-0 w-0 p-0")}>
     <Awareness users={awareUsers} />
   </td>

@@ -13,9 +13,11 @@ import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
+  unmanagedKinds,
   YChildrenProxy,
   YGraphProxy,
   YTaskProxy,
+  type Kind,
   type Status,
   type Task,
   type YEvent,
@@ -94,6 +96,13 @@ export type SyncState = {
   serverSync: boolean;
 };
 
+export type FlattenFn = (
+  node: Node,
+  expanded: Set<Node>,
+  showDone: boolean,
+) => List<Node>;
+export type VisibilityFilterFn = (node: Node, showDone: boolean) => boolean;
+
 export class Koso {
   #projectId: string;
   #yDoc: Y.Doc;
@@ -118,6 +127,8 @@ export class Koso {
   #events: YEvent[] = $state.raw([]);
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
+  #visibilityFilterFn: VisibilityFilterFn;
+  #flattenFn: FlattenFn;
   #tasks: YTaskProxy[] = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     this.#events;
@@ -138,7 +149,7 @@ export class Koso {
     if (this.graph.size === 0) {
       return List();
     }
-    return this.#flatten(new Node(), this.expanded, this.showDone);
+    return this.#flattenFn(new Node(), this.expanded, this.showDone);
   });
   #syncState: SyncState = $state({
     indexedDbSync: false,
@@ -150,7 +161,12 @@ export class Koso {
   // lifecycle functions
   // i.e., init functions and helpers, event handlers, and destructors
 
-  constructor(projectId: string, yDoc: Y.Doc) {
+  constructor(
+    projectId: string,
+    yDoc: Y.Doc,
+    visibilityFilterFn?: VisibilityFilterFn,
+    flattenFn?: FlattenFn,
+  ) {
     this.#projectId = projectId;
     this.#yDoc = yDoc;
     const graph = yDoc.getMap<YTask>("graph");
@@ -198,6 +214,8 @@ export class Koso {
     );
 
     this.#showDone = useLocalStorage<boolean>(`show-done-${projectId}`, false);
+    this.#visibilityFilterFn = visibilityFilterFn ?? this.#defaultIsVisible;
+    this.#flattenFn = flattenFn ?? this.#defaultFlatten;
 
     this.#yIndexedDb.whenSynced.then(() => {
       this.#syncState.indexedDbSync = true;
@@ -294,7 +312,8 @@ export class Koso {
     return encoding.toUint8Array(encoder);
   }
 
-  #flatten(
+  /** Do not call this directly. Use #flattenFn instead. */
+  #defaultFlatten(
     node: Node,
     expanded: Set<Node>,
     showDone: boolean,
@@ -308,7 +327,7 @@ export class Koso {
         // Apply visibility filtering here instead of at the start of #flatten
         // to ensure that the root node is always present.
         if (this.isVisible(childNode, showDone)) {
-          nodes = this.#flatten(childNode, expanded, showDone, nodes);
+          nodes = this.#defaultFlatten(childNode, expanded, showDone, nodes);
         }
       });
     }
@@ -651,7 +670,7 @@ export class Koso {
     return (
       !this.#hasCycle(parent, task) &&
       !this.hasChild(parent, task) &&
-      !this.isManagedTask(parent)
+      this.isEditable(parent)
     );
   }
 
@@ -950,7 +969,8 @@ export class Koso {
    * property.
    */
   isManagedTask(taskId: string): boolean {
-    return !!this.getTask(taskId).kind;
+    const kind = this.getTask(taskId).kind;
+    return !!kind && !unmanagedKinds.includes(kind);
   }
 
   /**
@@ -1309,7 +1329,7 @@ export class Koso {
 
   /** Determines whether the given task may have children inserted. */
   canInsert(parentTaskId: string): boolean {
-    return !this.isManagedTask(parentTaskId);
+    return this.isEditable(parentTaskId);
   }
 
   insertNode(
@@ -1373,6 +1393,17 @@ export class Koso {
     });
   }
 
+  setKind(taskId: string, kind: Kind | null) {
+    this.doc.transact(() => {
+      const task = this.getTask(taskId);
+      if (kind === null && task.kind !== null) {
+        task.kind = null;
+      } else if (kind && kind !== task.kind) {
+        task.kind = kind;
+      }
+    });
+  }
+
   setTaskStatus(node: Node, status: Status, user: User) {
     const taskId = node.name;
     this.doc.transact(() => {
@@ -1420,7 +1451,12 @@ export class Koso {
   }
 
   isVisible(node: Node, showDone: boolean) {
-    if (!showDone) {
+    return this.#visibilityFilterFn(node, showDone);
+  }
+
+  /** Do not call this directly. Use isVisible instead. */
+  #defaultIsVisible(node: Node) {
+    if (!this.showDone) {
       const progress = this.getProgress(node.name);
       if (progress.total === progress.done) {
         const doneTime = progress.lastStatusTime;
