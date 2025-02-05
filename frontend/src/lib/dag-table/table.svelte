@@ -646,8 +646,8 @@
           <KosoLogo class="size-16" />
         </div>
         <div class="ml-4">
-          <div class="text-md">Welcome to Koso!</div>
-          <div class="mt-2 text-sm">Inbox zero!</div>
+          <div class="text-md">Inbox zero!</div>
+          <div class="mt-2 text-sm">You've achieved inbox zero. Great job!</div>
         </div>
       </div>
     </div>
