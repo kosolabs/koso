@@ -33,9 +33,26 @@
 
   function flatten(): List<Node> {
     console.log("Flattening");
-    const parents = {};
+    const parents = koso.parents;
     let nodes: List<Node> = List();
     nodes = nodes.push(new Node());
+
+    for (const task of koso.tasks) {
+      console.log(`Task ${task.num}`);
+      if (isTaskVisible(task)) {
+        let id = "";
+        let parent = parents.get(task.id);
+        while (parent) {
+          let parentId = parent[0];
+          id += `${parentId}/`;
+          parent = parents.get(parentId);
+        }
+        id += task.id;
+        let n = Node.parse(id);
+        console.log(`Including Task ${task.num} as ${n}`);
+        nodes = nodes.push(n);
+      }
+    }
 
     return nodes;
   }
