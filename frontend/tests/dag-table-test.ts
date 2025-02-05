@@ -1254,11 +1254,11 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
       await page.keyboard.press("Space");
 
-      await expect(
-        page
-          .getByRole("row", { name: "Task 3" })
-          .getByRole("button", { name: "In Progress" }),
-      ).toBeVisible();
+      const statusButton = page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("In Progress");
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["3", "1", "2", "4"] },
         ["1"]: { children: [] },
@@ -1334,19 +1334,21 @@ test.describe("dag table tests", () => {
         { id: "4", children: [] },
       ]);
 
-      page
+      let statusButton = page
         .getByRole("row", { name: "Task 3" })
-        .getByRole("button", { name: "Not Started" })
-        .click();
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Not Started");
+      statusButton.click();
       page
         .getByRole("row", { name: "Task 3" })
         .getByRole("menuitem", { name: "In Progress" })
         .click();
-      await expect(
-        page
-          .getByRole("row", { name: "Task 3" })
-          .getByRole("button", { name: "In Progress" }),
-      ).toBeVisible();
+      statusButton = page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("In Progress");
 
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["3", "1", "2", "4"] },
@@ -1365,19 +1367,21 @@ test.describe("dag table tests", () => {
         { id: "3", children: [], status: "In Progress" },
         { id: "4", children: [] },
       ]);
-      page
+      let statusButton = page
         .getByRole("row", { name: "Task 3" })
-        .getByRole("button", { name: "In Progress" })
-        .click();
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("In Progress");
+      statusButton.click();
       page
         .getByRole("row", { name: "Task 3" })
         .getByRole("menuitem", { name: "Done" })
         .click();
-      await expect(
-        page
-          .getByRole("row", { name: "Task 3" })
-          .getByRole("button", { name: "Done" }),
-      ).toBeVisible();
+      statusButton = page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Done");
 
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2", "4", "3"] },
@@ -1396,19 +1400,21 @@ test.describe("dag table tests", () => {
         { id: "3", children: [], status: "Done", statusTime: Date.now() },
         { id: "4", children: [] },
       ]);
-      page
+      let statusButton = page
         .getByRole("row", { name: "Task 3" })
-        .getByRole("button", { name: "Done" })
-        .click();
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Done");
+      statusButton.click();
       page
         .getByRole("row", { name: "Task 3" })
         .getByRole("menuitem", { name: "Not Started" })
         .click();
-      await expect(
-        page
-          .getByRole("row", { name: "Task 3" })
-          .getByRole("button", { name: "Not Started" }),
-      ).toBeVisible();
+      statusButton = page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Not Started");
 
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2", "3", "4"] },
