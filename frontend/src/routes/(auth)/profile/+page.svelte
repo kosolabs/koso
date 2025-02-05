@@ -1,17 +1,17 @@
 <script lang="ts">
   import { headers, parse_response } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
-  import * as Accordion from "$lib/components/ui/accordion";
   import { Button } from "$lib/components/ui/button";
   import { IndeterminateProgress } from "$lib/components/ui/circular-progress";
   import { Toggle } from "$lib/components/ui/toggle";
+  import { dialog } from "$lib/kosui/dialog";
+  import { Link } from "$lib/kosui/link";
   import Navbar from "$lib/navbar.svelte";
-  import { CircleX, Moon, Send, Sun, SunMoon } from "lucide-svelte";
+  import { CircleX, Moon, Send, Sun, SunMoon, Trash2 } from "lucide-svelte";
   import { userPrefersMode as mode, setMode } from "mode-watcher";
   import { toast } from "svelte-sonner";
   import Section from "./section.svelte";
   import SubSection from "./sub-section.svelte";
-  import { dialog } from "$lib/kosui/dialog";
 
   let profile: Promise<Profile> = $state(load());
 
@@ -57,10 +57,13 @@
   }
 
   async function deleteTelegramConfig() {
-    const ok = await dialog.confirm("Wow, great!");
-
-    console.log(`Confirmed: ${ok}`);
-    if (!ok) {
+    if (
+      !(await dialog.confirm({
+        message,
+        title: "Delete Telegram Authorization?",
+        icon: Trash2,
+      }))
+    ) {
       return;
     }
 
@@ -93,6 +96,11 @@
     return null;
   }
 </script>
+
+{#snippet message()}
+  Deleting the Telegram authorization will prevent Koso from being able to send
+  notifications to Telegram.
+{/snippet}
 
 <Navbar>
   {#snippet left()}
@@ -150,22 +158,9 @@
             <div></div>
           </div>
         {:else}
-          <Accordion.Root type="single">
-            <Accordion.Item value="item-1">
-              <Accordion.Trigger>
-                Koso is not authorized to send messages to Telegram. Expand for
-                instructions to enable.
-              </Accordion.Trigger>
-              <Accordion.Content>
-                <ol class="ml-4">
-                  <li>1. Open Telegram</li>
-                  <li>2. Start a Chat with @KosoLabsBot</li>
-                  <li>3. Send the /token command</li>
-                  <li>4. Click the link returned by the bot</li>
-                </ol>
-              </Accordion.Content>
-            </Accordion.Item>
-          </Accordion.Root>
+          Koso is not authorized to send messages to Telegram. To authorize
+          Koso, start a Telegram Chat with
+          <Link href="https://t.me/KosoLabsBot">@KosoLabsBot</Link>.
         {/if}
       </SubSection>
     {/await}
