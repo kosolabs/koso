@@ -2,9 +2,7 @@
   import { page } from "$app/state";
   import { auth, type User } from "$lib/auth.svelte";
   import { Alert } from "$lib/components/ui/alert";
-  import { Button } from "$lib/components/ui/button";
   import { DagTable, Koso, KosoSocket, Node } from "$lib/dag-table";
-  import { cn } from "$lib/kosui/utils";
   import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
   import { fetchProject, fetchProjectUsers, type Project } from "$lib/projects";
