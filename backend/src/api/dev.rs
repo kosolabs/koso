@@ -72,7 +72,6 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
             ) else {
                 return true;
             };
-            tracing::debug!("Filtering {email} duration:{d:?}");
 
             // Enable post hoc debugging and avoid interfering with other running tests
             // by only deleting users after some time has passed.
