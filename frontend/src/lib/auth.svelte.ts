@@ -1,4 +1,8 @@
+import { goto } from "$app/navigation";
+import { dialog } from "$lib/kosui/dialog";
+import { nav } from "$lib/nav.svelte";
 import { jwtDecode } from "jwt-decode";
+import { CircleX } from "lucide-svelte";
 import { loads, saves } from "./stores.svelte";
 
 export const CREDENTIAL_KEY = "credential";
@@ -64,3 +68,15 @@ class Auth {
   }
 }
 export const auth = new Auth();
+
+export async function showUnauthorizedDialog() {
+  await dialog.notice({
+    icon: CircleX,
+    title: "Unauthorized",
+    message:
+      "You do not have access to this project or the project does not exist.",
+    acceptText: "Return Home",
+  });
+  nav.lastVisitedProjectId = null;
+  await goto("/");
+}
