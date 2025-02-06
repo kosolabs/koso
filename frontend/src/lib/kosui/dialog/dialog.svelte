@@ -23,6 +23,7 @@
 <script lang="ts">
   let {
     ref = $bindable(),
+    open = $bindable(),
     onSelect = () => {},
     class: className,
     icon: IconComponent,
@@ -39,10 +40,20 @@
     }
     if (event.newState === "closed") {
       onSelect(ref.returnValue);
+      open = false;
     } else {
       ref.returnValue = "";
+      open = true;
     }
   }
+
+  $effect(() => {
+    if (open) {
+      ref?.showModal();
+    } else {
+      ref?.close();
+    }
+  });
 </script>
 
 <dialog

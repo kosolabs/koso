@@ -17,7 +17,7 @@
   let buttons: ButtonProps[] = $state.raw([]);
   let resolve: (value: string) => void = $state(() => {});
 
-  let dialogEl: HTMLDialogElement | undefined = $state();
+  let open: boolean = $state(false);
 
   type ShowDialogProps = {
     icon?: typeof Icon;
@@ -28,7 +28,7 @@
 
   export function show(dialog: ShowDialogProps): Promise<string> {
     ({ icon, title, message, buttons } = dialog);
-    dialogEl?.showModal();
+    open = true;
     return new Promise((newResolve) => (resolve = newResolve));
   }
 
@@ -88,7 +88,7 @@
   }
 </script>
 
-<Dialog bind:ref={dialogEl} {icon} {title} onSelect={resolve}>
+<Dialog bind:open {icon} {title} onSelect={resolve}>
   {#if typeof message === "function"}
     {@render message()}
   {:else}
