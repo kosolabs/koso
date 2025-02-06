@@ -13,7 +13,7 @@ use std::{
 };
 use tokio::sync::Mutex;
 
-pub const TEST_USER_SUFFIX: &str = "test@test.koso.app";
+pub const TEST_USER_SUFFIX: &str = "@test.koso.app";
 
 #[derive(Clone)]
 pub struct KeySet {
