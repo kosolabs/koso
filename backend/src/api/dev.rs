@@ -94,10 +94,39 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
     }
     if let Err(e) = sqlx::query(
         "
-        DELETE FROM project_permissions
-        WHERE email IN (SELECT * FROM unnest($1));",
+        DELETE FROM yupdates
+        WHERE project_id NOT IN (
+            SELECT project_id FROM projects
+        );",
     )
-    .bind(&test_user_emails)
+    .execute(pool)
+    .await
+    {
+        return Err(internal_error(&format!(
+            "Failed to delete test yupdates: {e}"
+        )));
+    }
+    if let Err(e) = sqlx::query(
+        "
+        DELETE FROM plugin_configs
+        WHERE project_id NOT IN (
+            SELECT project_id FROM projects
+        );",
+    )
+    .execute(pool)
+    .await
+    {
+        return Err(internal_error(&format!(
+            "Failed to delete test yupdates: {e}"
+        )));
+    }
+    if let Err(e) = sqlx::query(
+        "
+        DELETE FROM project_permissions
+        WHERE project_id NOT IN (
+            SELECT project_id FROM projects
+        );",
+    )
     .execute(pool)
     .await
     {
@@ -111,6 +140,18 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
         WHERE email IN (SELECT * FROM unnest($1));",
     )
     .bind(&test_user_emails)
+    .execute(pool)
+    .await
+    {
+        return Err(internal_error(&format!("Failed to delete test users: {e}")));
+    }
+    if let Err(e) = sqlx::query(
+        "
+        DELETE FROM user_notification_configs
+        WHERE email NOT IN (
+            SELECT email FROM users
+        );",
+    )
     .execute(pool)
     .await
     {
