@@ -4,5 +4,6 @@
     "prettier-plugin-svelte",
     "prettier-plugin-tailwindcss"
   ],
+  "tailwindFunctions": ["tv"],
   "overrides": [{ "files": "*.svelte", "options": { "parser": "svelte" } }]
 }

@@ -23,7 +23,10 @@
     "tailwindCSS.experimental.classRegex": [
       ["Classes.* \\=([^;]*);", "'([^']*)'"],
       ["Classes.* \\=([^;]*);", "\"([^\"]*)\""],
-      ["Classes.* \\=([^;]*);", "\\`([^\\`]*)\\`"]
+      ["Classes.* \\=([^;]*);", "\\`([^\\`]*)\\`"],
+      ["Variants.* \\=([^;]*);", "'([^']*)'"],
+      ["Variants.* \\=([^;]*);", "\"([^\"]*)\""],
+      ["Variants.* \\=([^;]*);", "\\`([^\\`]*)\\`"]
     ],
     "rust-analyzer.runnables.extraEnv": {
       "RUST_BACKTRACE": "1",

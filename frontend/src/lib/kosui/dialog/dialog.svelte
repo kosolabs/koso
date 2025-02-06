@@ -1,18 +1,26 @@
-<script lang="ts">
+<script module lang="ts">
   import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
   import type { HTMLDialogAttributes } from "svelte/elements";
+  import { tv, type ClassValue } from "tailwind-variants";
   import { cn } from "../utils";
 
-  type Props = {
+  const dialogVariants = tv({
+    base: "bg-background dialog-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-lg border p-6 shadow-lg",
+  });
+
+  type DialogProps = {
     ref?: HTMLDialogElement;
     onSelect?: (result: string) => void;
-    class?: string;
+    class?: ClassValue;
     icon?: typeof Icon;
     title?: string;
     children: Snippet;
     actions?: Snippet;
   } & HTMLDialogAttributes;
+</script>
+
+<script lang="ts">
   let {
     ref = $bindable(),
     onSelect = () => {},
@@ -22,7 +30,7 @@
     children,
     actions,
     ...props
-  }: Props = $props();
+  }: DialogProps = $props();
 
   function handleToggle(event: ToggleEvent) {
     if (!ref) {
@@ -40,10 +48,7 @@
 <dialog
   bind:this={ref}
   ontoggle={(event) => handleToggle(event)}
-  class={cn(
-    "bg-background dialog-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-lg border p-6 shadow-lg",
-    className,
-  )}
+  class={dialogVariants({ className })}
   {...props}
 >
   <form method="dialog">
