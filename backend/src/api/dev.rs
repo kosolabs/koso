@@ -6,7 +6,12 @@ use crate::{
     flags::is_dev,
 };
 use axum::{routing::post, Extension, Router};
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+
+fn integ_test_user_suffix() -> String {
+    format!("-test{}", google::TEST_USER_SUFFIX)
+}
 
 pub(super) fn router() -> Router {
     if is_dev() {
@@ -50,38 +55,42 @@ async fn invite_test_user_handler(
 
 #[tracing::instrument(skip(pool))]
 async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) -> ApiResult<()> {
-    let test_user_emails: Vec<(String,)> =
-        sqlx::query_as("SELECT email FROM users where email LIKE '%'||$1;")
-            .bind(google::TEST_USER_SUFFIX)
+    let test_user_emails: Vec<(String, DateTime<Utc>)> =
+        sqlx::query_as("SELECT email, creation_time FROM users where email LIKE '%'||$1;")
+            .bind(integ_test_user_suffix())
             .fetch_all(pool)
             .await?;
     let test_user_emails: Vec<String> = test_user_emails
         .into_iter()
-        .map(|(email,)| email)
-        .filter(|email| email.ends_with(google::TEST_USER_SUFFIX))
-        .filter(|email| {
-            let parts = email.split("-").collect::<Vec<&str>>();
-            let Some(Ok(create_time)) = parts.get(1).map(|t| t.parse::<u64>()) else {
+        .filter(|(email, creation_time)| {
+            if !email.ends_with(&integ_test_user_suffix()) {
+                return false;
+            }
+            let Ok(d) = SystemTime::now().duration_since(
+                UNIX_EPOCH
+                    + Duration::from_millis(creation_time.timestamp_millis().try_into().unwrap()),
+            ) else {
                 return true;
             };
-            let Ok(d) =
-                SystemTime::now().duration_since(UNIX_EPOCH + Duration::from_millis(create_time))
-            else {
-                return true;
-            };
+
             // Enable post hoc debugging and avoid interfering with other running tests
             // by only deleting users after some time has passed.
             d > Duration::from_secs(3 * 60 * 60)
         })
+        .map(|(email, _)| email)
         .collect::<Vec<String>>();
     tracing::debug!("Deleting test users{test_user_emails:?}");
 
+    // Delete any projects with ONLY deletable test users.
     if let Err(e) = sqlx::query(
         "
         DELETE FROM projects
         WHERE project_id IN (
             SELECT project_id FROM project_permissions
             WHERE email IN (SELECT * FROM unnest($1))
+        ) AND project_id NOT IN (
+            SELECT project_id FROM project_permissions
+            WHERE email NOT IN (SELECT * FROM unnest($1))
         );",
     )
     .bind(&test_user_emails)
@@ -92,12 +101,44 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
             "Failed to delete test projects: {e}"
         )));
     }
+    // Delete any orphaned yupdates.
+    if let Err(e) = sqlx::query(
+        "
+        DELETE FROM yupdates
+        WHERE project_id NOT IN (
+            SELECT project_id FROM projects
+        );",
+    )
+    .execute(pool)
+    .await
+    {
+        return Err(internal_error(&format!(
+            "Failed to delete test yupdates: {e}"
+        )));
+    }
+    // Delete any orphaned plugin configs.
+    if let Err(e) = sqlx::query(
+        "
+        DELETE FROM plugin_configs
+        WHERE project_id NOT IN (
+            SELECT project_id FROM projects
+        );",
+    )
+    .execute(pool)
+    .await
+    {
+        return Err(internal_error(&format!(
+            "Failed to delete test yupdates: {e}"
+        )));
+    }
+    // Delete any orphaned project permissions.
     if let Err(e) = sqlx::query(
         "
         DELETE FROM project_permissions
-        WHERE email IN (SELECT * FROM unnest($1));",
+        WHERE project_id NOT IN (
+            SELECT project_id FROM projects
+        );",
     )
-    .bind(&test_user_emails)
     .execute(pool)
     .await
     {
@@ -105,12 +146,27 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
             "Failed to delete test project_permissions: {e}"
         )));
     }
+    // Delete any test users that are no longer part of any project.
     if let Err(e) = sqlx::query(
         "
         DELETE FROM users
-        WHERE email IN (SELECT * FROM unnest($1));",
+        WHERE email IN (SELECT * FROM unnest($1))
+        AND email NOT IN(SELECT email FROM project_permissions);",
     )
     .bind(&test_user_emails)
+    .execute(pool)
+    .await
+    {
+        return Err(internal_error(&format!("Failed to delete test users: {e}")));
+    }
+    // Delete any orphaned notification configs.
+    if let Err(e) = sqlx::query(
+        "
+        DELETE FROM user_notification_configs
+        WHERE email NOT IN (
+            SELECT email FROM users
+        );",
+    )
     .execute(pool)
     .await
     {
