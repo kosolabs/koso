@@ -15,6 +15,9 @@ TOKEN="$(encode "$HEADER").$(encode "$PAYLOAD").$(encode "$SIGNATURE")"
 
 curl -s -X POST -H "Authorization: Bearer $TOKEN" localhost:3000/api/auth/login
 curl -s -X POST -H "Authorization: Bearer $TOKEN" localhost:3000/api/dev/invite_test_user
-curl -s -X POST -H "Authorization: Bearer $TOKEN" localhost:3000/api/dev/cleanup_test_data
 
-echo "Logged in as $EMAIL. Token:\n$TOKEN"
+LOGIN_CMD="localStorage.setItem(\"credential\",\"$TOKEN\")"
+
+echo "$LOGIN_CMD" | pbcopy
+echo "Login command for $EMAIL copied to clipboard:\n$LOGIN_CMD"
+
