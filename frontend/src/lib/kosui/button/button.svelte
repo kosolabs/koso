@@ -1,10 +1,9 @@
 <script lang="ts" module>
   import type { HTMLButtonAttributes } from "svelte/elements";
-  import { type VariantProps, tv } from "tailwind-variants";
-  import { cn } from "../utils";
+  import { type ClassValue, type VariantProps, tv } from "tailwind-variants";
 
   const buttonVariants = tv({
-    base: "focus-visible:ring-ring inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-hidden focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+    base: "focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all focus-visible:ring-1 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
     variants: {
       variant: {
         default:
@@ -37,6 +36,7 @@
   export type ButtonProps = HTMLButtonAttributes & {
     variant?: ButtonVariant;
     size?: ButtonSize;
+    class?: ClassValue;
   };
 </script>
 
@@ -52,7 +52,7 @@
 </script>
 
 <button
-  class={cn(buttonVariants({ variant, size }), className)}
+  class={buttonVariants({ variant, size, className })}
   {type}
   {...restProps}
 >

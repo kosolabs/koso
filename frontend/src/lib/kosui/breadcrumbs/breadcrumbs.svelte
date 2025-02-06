@@ -1,19 +1,25 @@
-<script lang="ts">
-  import { goto } from "$app/navigation";
+<script module lang="ts">
   import { page } from "$app/state";
   import type { Snippet } from "svelte";
-  import { cn, toTitleCase } from "../utils";
+  import { tv, type ClassValue } from "tailwind-variants";
+  import { Link } from "../link";
+  import { toTitleCase } from "../utils";
 
-  type Props = {
-    separator?: Snippet | string;
-    class?: string;
-  };
-  const { separator = "›", class: className }: Props = $props();
+  const breadcrumbsVariants = tv({ base: "flex gap-2" });
 
   type Crumb = {
     path: string;
     title: string;
   };
+
+  type BreadcrumbsProps = {
+    separator?: Snippet | string;
+    class?: ClassValue;
+  };
+</script>
+
+<script lang="ts">
+  const { separator = "›", class: className }: BreadcrumbsProps = $props();
 
   let crumbs = $derived.by(() => {
     const parts = page.url.pathname.split("/");
@@ -26,10 +32,9 @@
     }
     return crumbs;
   });
-  $inspect(crumbs);
 </script>
 
-<div class={cn("flex gap-2", className)}>
+<div class={breadcrumbsVariants({ className })}>
   {#each crumbs as { path, title }, index}
     {#if index !== 0}
       <div>
@@ -40,6 +45,6 @@
         {/if}
       </div>
     {/if}
-    <button onclick={() => goto(path)}>{title}</button>
+    <Link href={path} underline="never" color="inherit">{title}</Link>
   {/each}
 </div>
