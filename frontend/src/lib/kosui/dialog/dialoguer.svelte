@@ -1,153 +1,102 @@
 <script module lang="ts">
+  import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
+  import { Button, type ButtonVariant } from "../button";
+  import Dialog from "./dialog.svelte";
 
-  type Resolver = (ok: boolean) => void;
-
-  type Dialog = {
-    message: Snippet | string;
-    title?: string;
-    cancelText?: string;
-    acceptText?: string;
-    icon?: typeof Icon;
+  type ButtonProps = {
+    text: string;
+    value: string;
+    variant: ButtonVariant;
+    default: boolean;
   };
-  let dialog: (Dialog & { resolve: Resolver }) | null = $state(null);
+
+  let message: Snippet | string = $state("");
+  let icon: typeof Icon | undefined = $state();
+  let title: string | undefined = $state();
+  let buttons: ButtonProps[] = $state.raw([]);
+  let resolve: (value: string) => void = $state(() => {});
+
   let dialogEl: HTMLDialogElement | undefined = $state();
 
-  export function confirm(newDialog: Dialog): Promise<boolean> {
-    dialogEl?.showModal();
+  type ShowDialogProps = {
+    icon?: typeof Icon;
+    title?: string;
+    message: Snippet | string;
+    buttons: ButtonProps[];
+  };
 
-    return new Promise((resolve) => {
-      dialog = {
-        resolve,
-        ...newDialog,
-      };
+  export function show(dialog: ShowDialogProps): Promise<string> {
+    ({ icon, title, message, buttons } = dialog);
+    dialogEl?.showModal();
+    return new Promise((newResolve) => (resolve = newResolve));
+  }
+
+  type NoticeDialogProps = {
+    icon?: typeof Icon;
+    title?: string;
+    message: Snippet | string;
+    acceptText?: string;
+  };
+
+  export async function notice(dialog: NoticeDialogProps): Promise<void> {
+    await show({
+      icon: dialog.icon,
+      title: dialog.title,
+      message: dialog.message,
+      buttons: [
+        {
+          text: dialog.acceptText ?? "OK",
+          value: "ok",
+          variant: "default",
+          default: true,
+        },
+      ],
     });
   }
+
+  type ConfirmDialogProps = {
+    icon?: typeof Icon;
+    title?: string;
+    message: Snippet | string;
+    cancelText?: string;
+    acceptText?: string;
+  };
+
+  export async function confirm(dialog: ConfirmDialogProps): Promise<boolean> {
+    return (
+      (await show({
+        icon: dialog.icon,
+        title: dialog.title,
+        message: dialog.message,
+        buttons: [
+          {
+            text: dialog.cancelText ?? "Cancel",
+            value: "",
+            variant: "outline",
+            default: false,
+          },
+          {
+            text: dialog.acceptText ?? "Accept",
+            value: "ok",
+            variant: "default",
+            default: true,
+          },
+        ],
+      })) === "ok"
+    );
+  }
 </script>
 
-<script lang="ts">
-  import type { Icon } from "lucide-svelte";
-  import { Button } from "../button";
-  import { cn } from "../utils";
-
-  function handleToggle(event: ToggleEvent, resolve?: (ok: boolean) => void) {
-    if (!dialogEl) {
-      return;
-    }
-
-    if (event.newState === "closed") {
-      resolve?.(dialogEl.returnValue === "ok");
-    } else {
-      dialogEl.returnValue = "";
-    }
-  }
-
-  function accept() {
-    dialogEl?.close("ok");
-  }
-
-  function cancel() {
-    dialogEl?.close();
-  }
-</script>
-
-<dialog
-  bind:this={dialogEl}
-  ontoggle={(event) => handleToggle(event, dialog?.resolve)}
-  class={cn(
-    "bg-background dialog-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-lg border p-6 shadow-lg",
-  )}
->
-  {#if dialog}
-    {@const {
-      message,
-      icon: Icon,
-      title,
-      cancelText = "Cancel",
-      acceptText = "Accept",
-    } = dialog}
-    <div class={cn("flex flex-col gap-4")}>
-      {#if Icon}
-        <Icon class="mx-auto" />
-      {/if}
-      {#if title}
-        <div class={cn("text-xl", Icon ? "text-center" : "")}>{title}</div>
-      {/if}
-      <div>
-        {#if typeof message === "function"}
-          {@render message()}
-        {:else}
-          {message}
-        {/if}
-      </div>
-      <div class="mt-2 flex flex-row-reverse place-content-end gap-2">
-        <Button onclick={accept}>{acceptText}</Button>
-        <Button variant="outline" onclick={cancel}>{cancelText}</Button>
-      </div>
-    </div>
+<Dialog bind:ref={dialogEl} {icon} {title} onSelect={resolve}>
+  {#if typeof message === "function"}
+    {@render message()}
+  {:else}
+    {message}
   {/if}
-</dialog>
-
-<style>
-  .dialog-animation {
-    transition:
-      display 0.15s allow-discrete,
-      overlay 0.15s allow-discrete;
-
-    animation: close-dialog 0.15s forwards;
-    &[open] {
-      animation: open-dialog 0.15s forwards;
-    }
-
-    &::backdrop {
-      animation: close-backdrop 0.15s forwards;
-    }
-    &[open]::backdrop {
-      animation: open-backdrop 0.15s forwards;
-    }
-  }
-
-  @keyframes open-backdrop {
-    from {
-      background: rgba(0, 0, 0, 0);
-      backdrop-filter: blur(0px);
-    }
-    to {
-      background: rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(2px);
-    }
-  }
-
-  @keyframes close-backdrop {
-    from {
-      background: rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(2px);
-    }
-    to {
-      background: rgba(0, 0, 0, 0);
-      backdrop-filter: blur(0px);
-    }
-  }
-
-  @keyframes open-dialog {
-    from {
-      opacity: 0;
-      scale: 0.95;
-    }
-    to {
-      opacity: 1;
-      scale: 1;
-    }
-  }
-
-  @keyframes close-dialog {
-    from {
-      opacity: 1;
-      scale: 1;
-    }
-    to {
-      opacity: 0;
-      scale: 0.95;
-    }
-  }
-</style>
+  {#snippet actions()}
+    {#each buttons as { value, variant, text }}
+      <Button type="submit" {value} {variant}>{text}</Button>
+    {/each}
+  {/snippet}
+</Dialog>
