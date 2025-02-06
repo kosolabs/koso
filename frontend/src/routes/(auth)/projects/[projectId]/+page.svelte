@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import { KosoError } from "$lib/api";
-  import { type User } from "$lib/auth.svelte";
+  import { showUnauthorizedDialog, type User } from "$lib/auth.svelte";
   import { Alert } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
   import { Editable } from "$lib/components/ui/editable";
@@ -21,9 +21,8 @@
   import { toast } from "svelte-sonner";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
-  import UnauthorizedModal from "./unauthorized-modal.svelte";
 
-  const projectId = $page.params.projectId;
+  const projectId = page.params.projectId;
   nav.lastVisitedProjectId = projectId;
   const koso = new Koso(projectId, new Y.Doc());
   const kosoSocket = new KosoSocket(koso, projectId);
@@ -98,6 +97,12 @@
       toolbar: false,
     }),
   ];
+
+  $effect(() => {
+    if (kosoSocket.unauthorized) {
+      showUnauthorizedDialog();
+    }
+  });
 </script>
 
 <Navbar>
@@ -139,8 +144,6 @@
     <Alert>Connection to server lost. Working offline.</Alert>
   </div>
 {/if}
-
-<UnauthorizedModal open={kosoSocket.unauthorized} />
 
 {#await projectUsersPromise}
   {#await deflicker}

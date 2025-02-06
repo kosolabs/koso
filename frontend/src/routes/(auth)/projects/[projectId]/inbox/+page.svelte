@@ -1,15 +1,14 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { auth, type User } from "$lib/auth.svelte";
+  import { auth, showUnauthorizedDialog, type User } from "$lib/auth.svelte";
   import { Alert } from "$lib/components/ui/alert";
   import { DagTable, Koso, KosoSocket, Node } from "$lib/dag-table";
   import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
   import { fetchProject, fetchProjectUsers, type Project } from "$lib/projects";
   import type { YTaskProxy } from "$lib/yproxy";
-  import * as Y from "yjs";
-  import UnauthorizedModal from "../unauthorized-modal.svelte";
   import { List } from "immutable";
+  import * as Y from "yjs";
 
   const projectId = page.params.projectId;
   nav.lastVisitedProjectId = projectId;
@@ -61,6 +60,12 @@
 
     return nodes;
   }
+
+  $effect(() => {
+    if (kosoSocket.unauthorized) {
+      showUnauthorizedDialog();
+    }
+  });
 </script>
 
 <Navbar>
@@ -82,8 +87,6 @@
     <Alert>Connection to server lost. Working offline.</Alert>
   </div>
 {/if}
-
-<UnauthorizedModal open={kosoSocket.unauthorized} />
 
 {#await projectUsersPromise}
   {#await deflicker}
