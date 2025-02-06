@@ -17,6 +17,13 @@
       "depNameTemplate": "rust",
       "packageNameTemplate": "rust-lang/rust",
       "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)\\.npmrc$"],
+      "matchStrings": ["use-node-version=(?<currentValue>.*?)\\n"],
+      "depNameTemplate": "node",
+      "datasourceTemplate": "node-version"
     }
   ],
   "lockFileMaintenance": {
