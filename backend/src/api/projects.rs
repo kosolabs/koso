@@ -198,7 +198,7 @@ async fn delete_project_handler(
     sqlx::query(
         "
         UPDATE projects
-        SET deleted_on = LOCALTIMESTAMP
+        SET deleted_on = CURRENT_TIMESTAMP
         WHERE project_id = $1",
     )
     .bind(&project_id)
