@@ -88,9 +88,9 @@
   </div>
 
   {#snippet actions()}
-    <Button autofocus type="submit" value="one">One</Button>
-    <Button autofocus type="submit" value="two">Two</Button>
-    <Button autofocus type="submit" value="three">Three</Button>
-    <Button autofocus type="submit" value="four">Four</Button>
+    <Button type="submit" value="one">One</Button>
+    <Button type="submit" value="two">Two</Button>
+    <Button type="submit" value="three">Three</Button>
+    <Button type="submit" value="four">Four</Button>
   {/snippet}
 </Dialog>
