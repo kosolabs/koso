@@ -1,11 +1,11 @@
 <script lang="ts">
   import { headers, parse_response } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
-  import { Button } from "$lib/components/ui/button";
-  import { IndeterminateProgress } from "$lib/components/ui/circular-progress";
   import { Toggle } from "$lib/components/ui/toggle";
+  import { Button } from "$lib/kosui/button";
   import { dialog } from "$lib/kosui/dialog";
   import { Link } from "$lib/kosui/link";
+  import { CircularProgress } from "$lib/kosui/progress";
   import Navbar from "$lib/navbar.svelte";
   import { CircleX, Moon, Send, Sun, SunMoon, Trash2 } from "lucide-svelte";
   import { userPrefersMode as mode, setMode } from "mode-watcher";
@@ -136,7 +136,10 @@
   </Section>
   <Section title="Notifications">
     {#await profile}
-      <IndeterminateProgress /> Loading
+      <div class="flex place-content-center items-center gap-2">
+        <CircularProgress />
+        <div>Loading...</div>
+      </div>
     {:then profile}
       <SubSection title="Telegram">
         {@const telegramConfig = getTelegramConfig(profile)}

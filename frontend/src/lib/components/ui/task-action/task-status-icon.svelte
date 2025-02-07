@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { CircularProgress } from "$lib/components/ui/circular-progress";
+  import { CircularProgress } from "$lib/kosui/progress";
   import type { Status } from "$lib/yproxy";
   import { CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
 
