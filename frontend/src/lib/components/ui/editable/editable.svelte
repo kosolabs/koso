@@ -117,7 +117,10 @@
 {:else}
   <Button
     variant="link"
-    class={cn("h-auto p-0 text-left text-wrap hover:no-underline", classes)}
+    class={cn(
+      "h-auto p-0 text-left text-wrap whitespace-normal hover:no-underline",
+      classes,
+    )}
     aria-label={ariaLabel}
     onclick={handleButtonClick}
   >
