@@ -9,8 +9,32 @@
     }
   ],
   "settings": {
+    "[github-actions-workflow]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[rust]": {
+      "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    },
+    "[yaml]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "files.associations": {
+      "*.css": "tailwindcss"
+    },
     "rust-analyzer.check.command": "clippy",
-    "css.lint.validProperties": ["cx", "cy", "r"],
+    "rust-analyzer.runnables.extraEnv": {
+      "RUST_BACKTRACE": "1",
+      "RUST_LOG": "trace",
+      "DATABASE_URL": "postgresql://localhost",
+      "TESTONLY_ENABLE_DEV": true
+    },
+    "search.exclude": {
+      "backend/static/": true
+    },
     "svelte.enable-ts-plugin": true,
     "tailwindCSS.classAttributes": [
       "class",
@@ -27,28 +51,6 @@
       ["Variants.* \\=([^;]*);", "'([^']*)'"],
       ["Variants.* \\=([^;]*);", "\"([^\"]*)\""],
       ["Variants.* \\=([^;]*);", "\\`([^\\`]*)\\`"]
-    ],
-    "rust-analyzer.runnables.extraEnv": {
-      "RUST_BACKTRACE": "1",
-      "RUST_LOG": "trace",
-      "DATABASE_URL": "postgresql://localhost",
-      "TESTONLY_ENABLE_DEV": true
-    },
-    "[json]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[yaml]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[github-actions-workflow]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[rust]": {
-      "editor.defaultFormatter": "rust-lang.rust-analyzer"
-    },
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "search.exclude": {
-      "backend/static/": true
-    }
+    ]
   }
 }
