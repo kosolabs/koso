@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/kosui/button";
   import { Link } from "$lib/kosui/link";
+  import { SegmentedButtons } from "$lib/kosui/segmented-buttons";
   import { Link2 } from "lucide-svelte";
 </script>
 
@@ -23,4 +24,14 @@
       <div>link</div>
     </Link>
   </div>
+</div>
+
+<div class="flex flex-col gap-2 rounded-lg border p-4">
+  <SegmentedButtons
+    buttons={[
+      { name: "Light", value: "light" },
+      { name: "Dark", value: "dark" },
+      { name: "System", value: "system" },
+    ]}
+  />
 </div>
