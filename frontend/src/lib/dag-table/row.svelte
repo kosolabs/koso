@@ -7,6 +7,7 @@
 </script>
 
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { type User } from "$lib/auth.svelte";
   import { Button } from "$lib/components/ui/button";
   import {
@@ -33,7 +34,6 @@
   } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel from "./link-panel.svelte";
-  import { goto } from "$app/navigation";
 
   type Props = {
     index: number;
@@ -458,7 +458,7 @@
         {:else}
           <Button
             class={cn(
-              "h-auto p-0 text-left text-wrap hover:no-underline disabled:opacity-100",
+              "h-auto p-0 text-left text-wrap whitespace-normal hover:no-underline disabled:opacity-100",
               task.url ? "text" : "",
             )}
             variant="link"
