@@ -1,8 +1,5 @@
-<script>
-  import {
-    CircularProgress,
-    IndeterminateProgress,
-  } from "$lib/components/ui/circular-progress";
+<script lang="ts">
+  import { CircularProgress } from "$lib/kosui/progress";
   import { CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
 </script>
 
@@ -22,7 +19,7 @@
     <CircleCheck color="hsl(var(--primary))" />
   </div>
   <div class="border">
-    <IndeterminateProgress color="hsl(var(--primary))" />
+    <CircularProgress color="hsl(var(--primary))" />
   </div>
 </div>
 
@@ -50,7 +47,7 @@
     <CircleCheck class="h-16 w-16" color="hsl(var(--primary))" />
   </div>
   <div class="border">
-    <IndeterminateProgress class="h-16 w-16" color="hsl(var(--primary))" />
+    <CircularProgress class="h-16 w-16" color="hsl(var(--primary))" />
   </div>
 </div>
 
@@ -70,6 +67,6 @@
     <CircleCheck size="200px" color="hsl(var(--primary))" />
   </div>
   <div class="border">
-    <IndeterminateProgress size="200px" color="hsl(var(--primary))" />
+    <CircularProgress size="200px" color="hsl(var(--primary))" />
   </div>
 </div>

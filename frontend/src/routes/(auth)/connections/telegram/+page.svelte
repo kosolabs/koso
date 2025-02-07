@@ -4,7 +4,7 @@
   import { headers, parse_response } from "$lib/api";
   import { Alert } from "$lib/components/ui/alert";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import { IndeterminateProgress } from "$lib/components/ui/circular-progress";
+  import { CircularProgress } from "$lib/kosui/progress";
   import Navbar from "$lib/navbar.svelte";
   import { CircleCheck, CircleX } from "lucide-svelte";
 
@@ -80,7 +80,7 @@
   <div class="m-2">
     <Alert>
       <div class="flex items-center gap-2">
-        <IndeterminateProgress />
+        <CircularProgress />
         <div>Koso is authorizing sending notifications to Telegram...</div>
       </div>
     </Alert>

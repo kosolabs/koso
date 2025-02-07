@@ -5,17 +5,17 @@
 </script>
 
 <script lang="ts">
+  import { auth } from "$lib/auth.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import type { Koso, Node } from "$lib/dag-table";
+  import { Shortcut } from "$lib/shortcuts";
   import { unmanagedKinds, type Kind, type Status } from "$lib/yproxy";
   import { Bot, CircleCheck, LoaderCircle } from "lucide-svelte";
-  import { TaskStatusIcon } from ".";
-  import { CircularProgress } from "../circular-progress";
-  import { ResponsiveText } from "../responsive-text";
   import { tick } from "svelte";
-  import { Shortcut } from "$lib/shortcuts";
+  import { TaskStatusIcon } from ".";
+  import { CircularProgress } from "../../../kosui/progress";
   import { confetti } from "../confetti";
-  import { auth } from "$lib/auth.svelte";
+  import { ResponsiveText } from "../responsive-text";
 
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
 

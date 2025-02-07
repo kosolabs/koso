@@ -1,9 +1,11 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
 
+  const DASH_ARRAY = 2 * 3.1415926535 * 10;
+
   type Props = {
     children?: Snippet;
-    progress: number;
+    progress?: number;
     size?: string | number;
     thickness?: string;
     trackColor?: string;
@@ -19,7 +21,7 @@
     trackColor = "color-mix(in srgb, currentColor 10%, transparent)",
     textColor = "currentColor",
     color = "currentColor",
-    class: classes,
+    class: className,
   }: Props = $props();
 </script>
 
@@ -29,27 +31,22 @@
   height={size}
   viewBox="0 0 24 24"
   fill="transparent"
-  class={classes}
-  style="--cp-progress:{progress};"
+  class={className}
+  class:circular={progress === undefined}
 >
+  <circle cx="50%" cy="50%" r="10px" stroke={trackColor} stroke-width="2px" />
   <circle
+    class:path={progress === undefined}
     cx="50%"
     cy="50%"
     r="10px"
-    stroke-width="2px"
-    style="stroke: {trackColor};"
-  />
-  <circle
-    cx="50%"
-    cy="50%"
-    r="10px"
+    stroke={color}
     stroke-width="2px"
     stroke-linecap="round"
-    stroke-dasharray={2 * 3.1415926535 * 10}
-    stroke-dashoffset={(1 - progress) * 2 * 3.1415926535 * 10}
+    stroke-dasharray={DASH_ARRAY}
+    stroke-dashoffset={(1 - (progress ?? 1)) * DASH_ARRAY}
     transform-origin="center"
     transform="rotate(-90)"
-    stroke={color}
   />
   <text
     x="12"
@@ -62,3 +59,29 @@
     {@render children?.()}
   </text>
 </svg>
+
+<style>
+  .circular {
+    animation: rotate 2s linear infinite;
+  }
+
+  .path {
+    animation: dash 1.5s ease-in-out infinite;
+  }
+
+  @keyframes rotate {
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes dash {
+    0% {
+      stroke-dasharray: 1, 200;
+      stroke-dashoffset: 0;
+    }
+    100% {
+      stroke-dasharray: 89, 200;
+      stroke-dashoffset: -62;
+    }
+  }
+</style>
