@@ -12,28 +12,7 @@ concurrency:
   # Cancel in-progress workflows for PRs (but not main).
   cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
-    outputs:
-      koso: ${{ steps.filter.outputs.changes }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
-        id: filter
-        with:
-          filters: |
-            koso:
-              - 'frontend/**'
-              - '${{ (github.ref == 'refs/heads/main' && '**') || 'backend/**' }}'
-              - 'Dockerfile'
-              - '.github/workflows/ci.yml'
-
   cargo:
-    needs: changes
-    if: ${{ needs.changes.outputs.koso != '[]' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -77,9 +56,8 @@ jobs:
           RUST_BACKTRACE=full RUST_BACKTRACE=1 SECRETS_DIR=$(realpath ~/.secrets) TESTONLY_ENABLE_DEV=true cargo test --package koso
       - run: cargo clippy -- -D warnings
       - run: cargo fmt --all -- --check
+
   npm:
-    needs: changes
-    if: ${{ needs.changes.outputs.koso != '[]' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -99,9 +77,8 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install
       - run: pnpm run "/^(build|check|lint|test:unit)$/"
+
   playwright:
-    needs: changes
-    if: ${{ needs.changes.outputs.koso != '[]' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -122,7 +99,6 @@ jobs:
           POSTGRES_DB: postgres
         ports:
           - 5432:5432
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -210,8 +186,6 @@ jobs:
           CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} SECRETS_DIR=$(realpath ~/.secrets)  pnpm exec playwright test --workers=4
 
   build-and-push-image:
-    needs: changes
-    if: ${{ needs.changes.outputs.koso != '[]' }}
     env:
       # Container registry domain
       REGISTRY: ghcr.io
