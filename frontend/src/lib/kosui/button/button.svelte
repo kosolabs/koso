@@ -1,60 +1,50 @@
 <script lang="ts" module>
+  import type { Icon } from "lucide-svelte";
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { type ClassValue, type VariantProps, tv } from "tailwind-variants";
 
-  const buttonVariants = tv({
-    base: "focus-visible:ring-ring inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all focus-visible:ring-1 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  export const buttonVariants = tv({
+    base: "focus-visible:ring-m3-secondary disabled:text-m3-on-surface/38 flex h-10 items-center gap-2 rounded-[20px] px-6 text-sm text-nowrap transition-all focus-visible:outline-hidden",
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm active:scale-95",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-xs active:scale-95",
+        elevated:
+          "bg-m3-surface-container-low shadow-m3-shadow text-m3-primary hover:bg-m3-surface-container-low-hover focus-visible:bg-m3-surface-container-low-focus active:bg-m3-surface-container-low-active disabled:bg-m3-on-surface/12 not-disabled:shadow-xs not-disabled:active:scale-95",
+        filled:
+          "bg-m3-primary text-m3-on-primary shadow-m3-shadow hover:bg-m3-primary-hover focus-visible:bg-m3-primary-focus active:bg-m3-primary-active disabled:bg-m3-on-surface/12 not-disabled:not-active:hover:shadow-xs not-disabled:active:scale-95",
+        tonal:
+          "bg-m3-secondary-container shadow-m3-shadow text-m3-on-secondary-container hover:bg-m3-secondary-container-hover focus-visible:bg-m3-secondary-container-focus active:bg-m3-secondary-container-active disabled:bg-m3-on-surface/12 not-disabled:not-active:hover:shadow-xs not-disabled:active:scale-95",
         outline:
-          "border-input bg-background hover:bg-accent hover:text-accent-foreground border shadow-xs active:scale-95",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-xs active:scale-95",
-        ghost: "hover:bg-accent hover:text-accent-foreground active:scale-95",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+          "text-m3-primary not-disabled:hover:bg-m3-primary/8 focus-visible:bg-m3-primary/10 not-disabled:active:bg-m3-primary/12 focus-visible:outline-m3-primary outline-m3-outline disabled:outline-m3-on-surface/12 outline not-disabled:active:scale-95",
+        text: "text-m3-primary not-disabled:hover:bg-m3-primary/8 focus-visible:bg-m3-primary/10 not-disabled:active:bg-m3-primary/12 disabled:outline-m3-on-surface/12 not-disabled:active:scale-95",
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: "outline",
     },
   });
 
-  export type ButtonVariant = VariantProps<typeof buttonVariants>["variant"];
-  export type ButtonSize = VariantProps<typeof buttonVariants>["size"];
+  export type ButtonVariants = VariantProps<typeof buttonVariants>;
 
-  export type ButtonProps = HTMLButtonAttributes & {
-    variant?: ButtonVariant;
-    size?: ButtonSize;
-    class?: ClassValue;
-  };
+  export type ButtonProps = HTMLButtonAttributes &
+    ButtonVariants & {
+      icon?: typeof Icon;
+      class?: ClassValue;
+    };
 </script>
 
 <script lang="ts">
   let {
     class: className,
-    variant = "default",
-    size = "default",
-    type = "button",
+    variant,
+    icon: IconComponent,
     children,
     ...restProps
   }: ButtonProps = $props();
 </script>
 
-<button
-  class={buttonVariants({ variant, size, className })}
-  {type}
-  {...restProps}
->
+<button class={buttonVariants({ variant, className })} {...restProps}>
+  {#if IconComponent}
+    <IconComponent size={18} class="ml-[-4px]" />
+  {/if}
   {@render children?.()}
 </button>

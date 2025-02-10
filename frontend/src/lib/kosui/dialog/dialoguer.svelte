@@ -1,13 +1,12 @@
 <script module lang="ts">
   import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
-  import { Button, type ButtonVariant } from "../button";
+  import { Button, type ButtonVariants } from "../button";
   import Dialog from "./dialog.svelte";
 
-  type ButtonProps = {
+  type ButtonProps = ButtonVariants & {
     text: string;
     value: string;
-    variant: ButtonVariant;
     default: boolean;
   };
 
@@ -48,7 +47,6 @@
         {
           text: dialog.acceptText ?? "OK",
           value: "ok",
-          variant: "default",
           default: true,
         },
       ],
@@ -73,13 +71,12 @@
           {
             text: dialog.cancelText ?? "Cancel",
             value: "",
-            variant: "outline",
             default: false,
           },
           {
             text: dialog.acceptText ?? "Accept",
             value: "ok",
-            variant: "default",
+            variant: "filled",
             default: true,
           },
         ],

@@ -2,6 +2,14 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 import { fontFamily } from "tailwindcss/defaultTheme";
 
+function m3(prop: string): string {
+  return `rgb(from var(--md-sys-color-${prop}) r g b / <alpha-value>)`;
+}
+
+function mix(m3Base: string, m3Layer: string, amount: number): string {
+  return `color-mix(in srgb, var(--md-sys-color-${m3Base}), var(--md-sys-color-${m3Layer}) ${amount}%);`;
+}
+
 const config: Config = {
   darkMode: ["class"],
   content: ["./src/**/*.{html,js,svelte,ts}"],
@@ -59,92 +67,70 @@ const config: Config = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        "md-primary": "rgb(var(--md-sys-color-primary) / <alpha-value>)",
-        "md-surface-tint":
-          "rgb(var(--md-sys-color-surface-tint) / <alpha-value>)",
-        "md-on-primary": "rgb(var(--md-sys-color-on-primary) / <alpha-value>)",
-        "md-primary-container":
-          "rgb(var(--md-sys-color-primary-container) / <alpha-value>)",
-        "md-on-primary-container":
-          "rgb(var(--md-sys-color-on-primary-container) / <alpha-value>)",
-        "md-secondary": "rgb(var(--md-sys-color-secondary) / <alpha-value>)",
-        "md-on-secondary":
-          "rgb(var(--md-sys-color-on-secondary) / <alpha-value>)",
-        "md-secondary-container":
-          "rgb(var(--md-sys-color-secondary-container) / <alpha-value>)",
-        "md-on-secondary-container":
-          "rgb(var(--md-sys-color-on-secondary-container) / <alpha-value>)",
-        "md-tertiary": "rgb(var(--md-sys-color-tertiary) / <alpha-value>)",
-        "md-on-tertiary":
-          "rgb(var(--md-sys-color-on-tertiary) / <alpha-value>)",
-        "md-tertiary-container":
-          "rgb(var(--md-sys-color-tertiary-container) / <alpha-value>)",
-        "md-on-tertiary-container":
-          "rgb(var(--md-sys-color-on-tertiary-container) / <alpha-value>)",
-        "md-error": "rgb(var(--md-sys-color-error) / <alpha-value>)",
-        "md-on-error": "rgb(var(--md-sys-color-on-error) / <alpha-value>)",
-        "md-error-container":
-          "rgb(var(--md-sys-color-error-container) / <alpha-value>)",
-        "md-on-error-container":
-          "rgb(var(--md-sys-color-on-error-container) / <alpha-value>)",
-        "md-background": "rgb(var(--md-sys-color-background) / <alpha-value>)",
-        "md-on-background":
-          "rgb(var(--md-sys-color-on-background) / <alpha-value>)",
-        "md-surface": "rgb(var(--md-sys-color-surface) / <alpha-value>)",
-        "md-on-surface": "rgb(var(--md-sys-color-on-surface) / <alpha-value>)",
-        "md-surface-variant":
-          "rgb(var(--md-sys-color-surface-variant) / <alpha-value>)",
-        "md-on-surface-variant":
-          "rgb(var(--md-sys-color-on-surface-variant) / <alpha-value>)",
-        "md-outline": "rgb(var(--md-sys-color-outline) / <alpha-value>)",
-        "md-outline-variant":
-          "rgb(var(--md-sys-color-outline-variant) / <alpha-value>)",
-        "md-shadow": "rgb(var(--md-sys-color-shadow) / <alpha-value>)",
-        "md-scrim": "rgb(var(--md-sys-color-scrim) / <alpha-value>)",
-        "md-inverse-surface":
-          "rgb(var(--md-sys-color-inverse-surface) / <alpha-value>)",
-        "md-inverse-on-surface":
-          "rgb(var(--md-sys-color-inverse-on-surface) / <alpha-value>)",
-        "md-inverse-primary":
-          "rgb(var(--md-sys-color-inverse-primary) / <alpha-value>)",
-        "md-primary-fixed":
-          "rgb(var(--md-sys-color-primary-fixed) / <alpha-value>)",
-        "md-on-primary-fixed":
-          "rgb(var(--md-sys-color-on-primary-fixed) / <alpha-value>)",
-        "md-primary-fixed-dim":
-          "rgb(var(--md-sys-color-primary-fixed-dim) / <alpha-value>)",
-        "md-on-primary-fixed-variant":
-          "rgb(var(--md-sys-color-on-primary-fixed-variant) / <alpha-value>)",
-        "md-secondary-fixed":
-          "rgb(var(--md-sys-color-secondary-fixed) / <alpha-value>)",
-        "md-on-secondary-fixed":
-          "rgb(var(--md-sys-color-on-secondary-fixed) / <alpha-value>)",
-        "md-secondary-fixed-dim":
-          "rgb(var(--md-sys-color-secondary-fixed-dim) / <alpha-value>)",
-        "md-on-secondary-fixed-variant":
-          "rgb(var(--md-sys-color-on-secondary-fixed-variant) / <alpha-value>)",
-        "md-tertiary-fixed":
-          "rgb(var(--md-sys-color-tertiary-fixed) / <alpha-value>)",
-        "md-on-tertiary-fixed":
-          "rgb(var(--md-sys-color-on-tertiary-fixed) / <alpha-value>)",
-        "md-tertiary-fixed-dim":
-          "rgb(var(--md-sys-color-tertiary-fixed-dim) / <alpha-value>)",
-        "md-on-tertiary-fixed-variant":
-          "rgb(var(--md-sys-color-on-tertiary-fixed-variant) / <alpha-value>)",
-        "md-surface-dim":
-          "rgb(var(--md-sys-color-surface-dim) / <alpha-value>)",
-        "md-surface-bright":
-          "rgb(var(--md-sys-color-surface-bright) / <alpha-value>)",
-        "md-surface-container-lowest":
-          "rgb(var(--md-sys-color-surface-container-lowest) / <alpha-value>)",
-        "md-surface-container-low":
-          "rgb(var(--md-sys-color-surface-container-low) / <alpha-value>)",
-        "md-surface-container":
-          "rgb(var(--md-sys-color-surface-container) / <alpha-value>)",
-        "md-surface-container-high":
-          "rgb(var(--md-sys-color-surface-container-high) / <alpha-value>)",
-        "md-surface-container-highest":
-          "rgb(var(--md-sys-color-surface-container-highest) / <alpha-value>)",
+        "m3-primary": {
+          DEFAULT: m3("primary"),
+          hover: mix("primary", "on-primary", 8),
+          focus: mix("primary", "on-primary", 10),
+          active: mix("primary", "on-primary", 12),
+        },
+        "m3-surface-tint": m3("surface-tint"),
+        "m3-on-primary": m3("on-primary"),
+        "m3-primary-container": m3("primary-container"),
+        "m3-on-primary-container": m3("on-primary-container"),
+        "m3-secondary": m3("secondary"),
+        "m3-on-secondary": m3("on-secondary"),
+        "m3-secondary-container": {
+          DEFAULT: m3("secondary-container"),
+          hover: mix("secondary-container", "on-secondary-container", 8),
+          focus: mix("secondary-container", "on-secondary-container", 10),
+          active: mix("secondary-container", "on-secondary-container", 12),
+        },
+        "m3-on-secondary-container": m3("on-secondary-container"),
+        "m3-tertiary": m3("tertiary"),
+        "m3-on-tertiary": m3("on-tertiary"),
+        "m3-tertiary-container": m3("tertiary-container"),
+        "m3-on-tertiary-container": m3("on-tertiary-container"),
+        "m3-error": m3("error"),
+        "m3-on-error": m3("on-error"),
+        "m3-error-container": m3("error-container"),
+        "m3-on-error-container": m3("on-error-container"),
+        "m3-background": m3("background"),
+        "m3-on-background": m3("on-background"),
+        "m3-surface": m3("surface"),
+        "m3-on-surface": m3("on-surface"),
+        "m3-surface-variant": m3("surface-variant"),
+        "m3-on-surface-variant": m3("on-surface-variant"),
+        "m3-outline": m3("outline"),
+        "m3-outline-variant": m3("outline-variant"),
+        "m3-shadow": m3("shadow"),
+        "m3-scrim": m3("scrim"),
+        "m3-inverse-surface": m3("inverse-surface"),
+        "m3-inverse-on-surface": m3("inverse-on-surface"),
+        "m3-inverse-primary": m3("inverse-primary"),
+        "m3-primary-fixed": m3("primary-fixed"),
+        "m3-on-primary-fixed": m3("on-primary-fixed"),
+        "m3-primary-fixed-dim": m3("primary-fixed-dim"),
+        "m3-on-primary-fixed-variant": m3("on-primary-fixed-variant"),
+        "m3-secondary-fixed": m3("secondary-fixed"),
+        "m3-on-secondary-fixed": m3("on-secondary-fixed"),
+        "m3-secondary-fixed-dim": m3("secondary-fixed-dim"),
+        "m3-on-secondary-fixed-variant": m3("on-secondary-fixed-variant"),
+        "m3-tertiary-fixed": m3("tertiary-fixed"),
+        "m3-on-tertiary-fixed": m3("on-tertiary-fixed"),
+        "m3-tertiary-fixed-dim": m3("tertiary-fixed-dim"),
+        "m3-on-tertiary-fixed-variant": m3("on-tertiary-fixed-variant"),
+        "m3-surface-dim": m3("surface-dim"),
+        "m3-surface-bright": m3("surface-bright"),
+        "m3-surface-container-lowest": m3("surface-container-lowest"),
+        "m3-surface-container-low": {
+          DEFAULT: m3("surface-container-low"),
+          hover: mix("surface-container-low", "primary", 8),
+          focus: mix("surface-container-low", "primary", 10),
+          active: mix("surface-container-low", "primary", 12),
+        },
+        "m3-surface-container": m3("surface-container"),
+        "m3-surface-container-high": m3("surface-container-high"),
+        "m3-surface-container-highest": m3("surface-container-highest"),
       },
       borderRadius: {
         xl: "calc(var(--radius) + 4px)",

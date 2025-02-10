@@ -110,7 +110,7 @@
   {/snippet}
 </Navbar>
 
-<div class="flex flex-col p-2">
+<div class="flex flex-col gap-4 p-2">
   <Section title="Theme">
     <Toggle
       variant="outline"
@@ -147,13 +147,15 @@
           <div class="flex flex-col gap-2">
             <div>Koso is authorized to send messages to Telegram.</div>
             <div class="flex flex-wrap gap-2">
-              <Button onclick={sendTestTelegramNotification}>
-                <Send />
+              <Button icon={Send} onclick={sendTestTelegramNotification}>
                 Send Test Notification
               </Button>
               <div class="ml-auto">
-                <Button variant="destructive" onclick={deleteTelegramConfig}>
-                  <CircleX />
+                <Button
+                  icon={CircleX}
+                  variant="filled"
+                  onclick={deleteTelegramConfig}
+                >
                   Delete Authorization
                 </Button>
               </div>

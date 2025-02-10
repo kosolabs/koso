@@ -3,7 +3,7 @@
   import type { HTMLAnchorAttributes } from "svelte/elements";
   import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
 
-  const linkVariants = tv({
+  export const linkVariants = tv({
     base: "focus-visible:ring-ring inline-flex cursor-pointer items-center justify-center gap-1 rounded-md underline-offset-4 focus-visible:ring-1 focus-visible:outline-hidden",
     variants: {
       underline: {
@@ -12,22 +12,25 @@
         never: "",
       },
       color: {
-        primary: "text-primary",
-        secondary: "text-secondary",
+        primary: "text-m3-primary",
+        secondary: "text-m3-secondary",
+        tertiary: "text-m3-tertiary",
         inherit: "",
       },
     },
+    defaultVariants: {
+      underline: "always",
+      color: "primary",
+    },
   });
 
-  export type LinkUnderline = VariantProps<typeof linkVariants>["underline"];
-  export type LinkColor = VariantProps<typeof linkVariants>["color"];
+  export type LinkVariants = VariantProps<typeof linkVariants>;
 
-  export type LinkProps = HTMLAnchorAttributes & {
-    children: Snippet;
-    class?: ClassValue;
-    underline?: LinkUnderline;
-    color?: LinkColor;
-  };
+  export type LinkProps = HTMLAnchorAttributes &
+    LinkVariants & {
+      children: Snippet;
+      class?: ClassValue;
+    };
 </script>
 
 <script lang="ts">
