@@ -5,8 +5,6 @@ FROM rust:1.84.1@sha256:efe14eee1be3fd2462fe349b5948b0d1b179b421c9fb23acb20b579f
 # triggered by changes to src/ by keeping dependencies
 # in a separate layer.
 WORKDIR /app
-COPY kosolib/Cargo.toml ./kosolib/
-COPY backend/build/dummy.rs kosolib/src/lib.rs
 COPY backend/Cargo.toml Cargo.lock rust-toolchain.toml ./backend/
 COPY backend/build/dummy.rs backend/build/dummy.rs
 WORKDIR /app/backend
@@ -16,7 +14,6 @@ RUN rm target/release/deps/libkoso* target/release/deps/koso*
 
 # Build the backend.
 WORKDIR /app
-COPY kosolib/src/ ./kosolib/src/
 COPY backend/src/ ./backend/src/
 WORKDIR /app/backend
 RUN cargo build --release

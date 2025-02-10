@@ -46,11 +46,6 @@ use yrs::{
 };
 
 #[test_log::test(sqlx::test)]
-fn kosolib_link_test() {
-    assert_eq!(kosolib::add(1, 1), 2);
-}
-
-#[test_log::test(sqlx::test)]
 async fn database_connectivity_test(pool: PgPool) -> sqlx::Result<()> {
     let users: Vec<(String,)> = sqlx::query_as("SELECT email FROM users")
         .fetch_all(&pool)

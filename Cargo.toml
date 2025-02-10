@@ -1,4 +1,4 @@
 [workspace]
 
-members = ["kosolib", "backend", "zero/src-tauri", "healthz"]
+members = ["backend", "healthz"]
 resolver = "2"

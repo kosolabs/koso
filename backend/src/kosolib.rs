@@ -9,10 +9,6 @@ use octocrab::{
 };
 use std::{fs, path::Path};
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
 const PROD_APP_ID: u64 = 1053272;
 const DEV_APP_ID: u64 = 1066302;
 const DEFAULT_SECRETS_DIR: &str = "../.secrets";
