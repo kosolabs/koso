@@ -9,8 +9,6 @@ COPY backend/Cargo.toml Cargo.lock rust-toolchain.toml ./backend/
 COPY backend/build/dummy.rs backend/build/dummy.rs
 WORKDIR /app/backend
 RUN cargo build --release --lib
-# Clean up the dummy buil deps. Otherwise, below, cargo will build against the dummy kosolib.
-RUN rm target/release/deps/libkoso* target/release/deps/koso*
 
 # Build the backend.
 WORKDIR /app
