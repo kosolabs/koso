@@ -6,7 +6,7 @@
   import { cn } from "../utils";
 
   const dialogVariants = tv({
-    base: "bg-background dialog-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-lg border p-6 shadow-lg",
+    base: "bg-m3-surface-container-high dialog-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-[28px] p-6 shadow-lg",
   });
 
   type DialogProps = {
@@ -109,14 +109,14 @@
       backdrop-filter: blur(0px);
     }
     to {
-      background: rgba(0, 0, 0, 0.1);
+      background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(2px);
     }
   }
 
   @keyframes close-backdrop {
     from {
-      background: rgba(0, 0, 0, 0.1);
+      background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(2px);
     }
     to {
