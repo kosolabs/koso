@@ -3,21 +3,27 @@
   import { page } from "$app/state";
   import { headers, parse_response } from "$lib/api";
   import { Alert } from "$lib/components/ui/alert";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
+  import { dialog } from "$lib/kosui/dialog";
   import { CircularProgress } from "$lib/kosui/progress";
   import Navbar from "$lib/navbar.svelte";
-  import { CircleCheck, CircleX } from "lucide-svelte";
+  import { CircleCheck, CircleSlash, CircleX } from "lucide-svelte";
+  import { onMount } from "svelte";
 
-  const resp = load();
-  type Settings = {
-    chatId: number;
-  };
+  let loading = $state(true);
 
-  async function load(): Promise<Settings> {
+  onMount(async () => {
     const token = page.url.searchParams.get("token");
 
     if (!token) {
-      throw new Error("Token is missing");
+      loading = false;
+      await dialog.notice({
+        icon: CircleSlash,
+        title: "Telegram authorization failed",
+        message:
+          "Koso failed to authorize sending notifications to Telegram because the token was missing. Return to the User Profile page and try again.",
+        acceptText: "Return to User Profile",
+      });
+      return await goto("/profile");
     }
 
     let resp = await fetch("/api/notifiers/telegram", {
@@ -28,55 +34,38 @@
       },
       body: JSON.stringify({ token }),
     });
+    loading = false;
 
-    return await parse_response(resp);
-  }
+    try {
+      await parse_response(resp);
+      const goHome = await dialog.confirm({
+        icon: CircleCheck,
+        title: "Telegram authorized",
+        message: "Koso has been authorized to send notifications to Telegram.",
+        cancelText: "User Profile",
+        acceptText: "Return Home",
+      });
+      if (goHome) {
+        return await goto("/");
+      } else {
+        return await goto("/profile");
+      }
+    } catch {
+      await dialog.notice({
+        icon: CircleX,
+        title: "Telegram authorization failed",
+        message:
+          "Koso failed to authorize sending notifications to Telegram because the token was invalid. Return to the User Profile page and try again.",
+        acceptText: "Return to User Profile",
+      });
+      return await goto("/profile");
+    }
+  });
 </script>
 
 <Navbar />
 
-{#snippet alert(success: boolean)}
-  <AlertDialog.Root open={true}>
-    <AlertDialog.AlertDialogContent>
-      <AlertDialog.AlertDialogHeader>
-        <AlertDialog.AlertDialogTitle class="flex items-center gap-1">
-          {#if success}
-            <CircleCheck size={24} class="text-primary" />
-          {:else}
-            <CircleX size={24} class="text-destructive" />
-          {/if}
-          <div>Telegram Authorization</div>
-        </AlertDialog.AlertDialogTitle>
-        <AlertDialog.AlertDialogDescription class="flex flex-col gap-2">
-          {#if success}
-            Koso has been authorized to send notifications to Telegram.
-          {:else}
-            <div>
-              Koso failed to authorize sending notifications to Telegram because
-              the token was invalid. Steps to connect to Telegram:
-            </div>
-            <ol>
-              <li>1. Open Telegram</li>
-              <li>2. Start a Chat with @KosoLabsBot</li>
-              <li>3. Send the /token command</li>
-              <li>4. Click the link returned by the bot</li>
-            </ol>
-          {/if}
-        </AlertDialog.AlertDialogDescription>
-      </AlertDialog.AlertDialogHeader>
-      <AlertDialog.AlertDialogFooter>
-        <AlertDialog.AlertDialogCancel onclick={() => goto("/")}>
-          Return Home
-        </AlertDialog.AlertDialogCancel>
-        <AlertDialog.AlertDialogAction onclick={() => goto("/profile")}>
-          User Profile
-        </AlertDialog.AlertDialogAction>
-      </AlertDialog.AlertDialogFooter>
-    </AlertDialog.AlertDialogContent>
-  </AlertDialog.Root>
-{/snippet}
-
-{#await resp}
+{#if loading}
   <div class="m-2">
     <Alert>
       <div class="flex items-center gap-2">
@@ -85,8 +74,4 @@
       </div>
     </Alert>
   </div>
-{:then}
-  {@render alert(true)}
-{:catch}
-  {@render alert(false)}
-{/await}
+{/if}
