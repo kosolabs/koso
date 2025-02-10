@@ -1,4 +1,4 @@
-FROM rust:1.84.1@sha256:efe14eee1be3fd2462fe349b5948b0d1b179b421c9fb23acb20b579f59299daf AS build
+FROM rust:1.84.1@sha256:738ae99a3d75623f41e6882566b4ef37e38a9840244a47efd4a0ca22e9628b88 AS build
 WORKDIR /app/healthz
 
 # Setup dependencies and run a dummy build ahead
