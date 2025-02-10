@@ -9,17 +9,11 @@ use octocrab::{
 };
 use std::{fs, path::Path};
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
 const PROD_APP_ID: u64 = 1053272;
 const DEV_APP_ID: u64 = 1066302;
 const DEFAULT_SECRETS_DIR: &str = "../.secrets";
 
-pub enum InstallationRef<'a> {
-    Org { owner: &'a str },
-    Repo { owner: &'a str, repo: &'a str },
+pub enum InstallationRef {
     InstallationId { id: u64 },
 }
 
@@ -99,19 +93,9 @@ impl AppGithub {
     /// Authenticate as the given installation.
     pub async fn installation_github(
         &self,
-        installation_ref: InstallationRef<'_>,
+        installation_ref: InstallationRef,
     ) -> Result<InstallationGithub> {
         let installation_id = match installation_ref {
-            InstallationRef::Org { owner } => {
-                self.app_crab.apps().get_org_installation(owner).await?.id
-            }
-            InstallationRef::Repo { owner, repo } => {
-                self.app_crab
-                    .apps()
-                    .get_repository_installation(owner, repo)
-                    .await?
-                    .id
-            }
             InstallationRef::InstallationId { id } => InstallationId::from(id),
         };
 
@@ -200,35 +184,5 @@ impl InstallationGithub {
             tracing::warn!("Number of intallation repositories is probably large and we need to paginate: {installed_repos:?}");
         }
         Ok(installed_repos.repositories)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test_log::test(tokio::test)]
-    async fn pulls() {
-        let client = AppGithub::new(&AppGithubConfig::default()).await.unwrap();
-        let gh = client
-            .installation_github(InstallationRef::Repo {
-                owner: "kosolabs",
-                repo: "secret",
-            })
-            .await
-            .unwrap();
-        let pulls = gh.fetch_pull_requests("kosolabs", "secret").await.unwrap();
-        assert!(!pulls.is_empty());
-    }
-
-    #[test_log::test(tokio::test)]
-    async fn repos() {
-        let client = AppGithub::new(&AppGithubConfig::default()).await.unwrap();
-        let gh = client
-            .installation_github(InstallationRef::Org { owner: "kosolabs" })
-            .await
-            .unwrap();
-        let repos = gh.fetch_install_repos().await.unwrap();
-        assert!(!repos.is_empty());
     }
 }

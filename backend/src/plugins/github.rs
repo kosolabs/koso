@@ -5,6 +5,7 @@ use crate::{
         model::Task,
         yproxy::{YDocProxy, YTaskProxy},
     },
+    kosolib::{AppGithub, AppGithubConfig},
     plugins::{
         config::{self, ConfigStorage},
         PluginSettings,
@@ -14,7 +15,6 @@ use anyhow::{anyhow, Result};
 use auth::Auth;
 use axum::{middleware, Router};
 use connect::ConnectHandler;
-use kosolib::{AppGithub, AppGithubConfig};
 use octocrab::models::pulls::PullRequest;
 use poller::Poller;
 use serde::{Deserialize, Serialize};

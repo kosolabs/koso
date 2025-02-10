@@ -5,6 +5,7 @@ use crate::{
         ApiResult,
     },
     flags::is_dev,
+    kosolib::{AppGithub, InstallationRef},
     plugins::{
         config::ConfigStorage,
         github::{
@@ -15,7 +16,6 @@ use crate::{
 };
 use anyhow::Result;
 use axum::{routing::post, Extension, Router};
-use kosolib::{AppGithub, InstallationRef};
 use std::{
     collections::HashMap,
     time::{Duration, Instant},

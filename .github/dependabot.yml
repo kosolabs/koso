@@ -7,34 +7,31 @@ version: 2
 updates:
   - package-ecosystem: "cargo"
     directories:
-     - "/backend"
-     - "/kosolib"
-     - "/zero/src-tauri"
-     - "/"
+      - "/backend"
+      - "/"
     schedule:
       interval: "monthly"
     groups:
       cargo-deps:
         patterns:
-          - '*'
+          - "*"
   - package-ecosystem: "npm"
     directories:
-     - "/frontend"
-     - "/zero"
+      - "/frontend"
     schedule:
       interval: "monthly"
     groups:
       npm-deps:
         patterns:
-          - '*'
-  - package-ecosystem: "github-actions" 
+          - "*"
+  - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "monthly"
     groups:
       github-actions-deps:
         patterns:
-          - '*'
+          - "*"
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
@@ -42,4 +39,4 @@ updates:
     groups:
       docker-deps:
         patterns:
-          - '*'
+          - "*"

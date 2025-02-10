@@ -3,6 +3,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod api;
 mod flags;
 mod healthz;
+mod kosolib;
 mod metrics_server;
 mod notifiers;
 mod plugins;

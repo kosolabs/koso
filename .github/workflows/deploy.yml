@@ -6,7 +6,6 @@ on:
     paths:
       - frontend/**
       - backend/**
-      - kosolib/**
       - Dockerfile
       - deploy.sh
       - .github/workflows/deploy.yml
