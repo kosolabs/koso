@@ -1,18 +1,20 @@
 <script module lang="ts">
   import { page } from "$app/state";
   import type { Snippet } from "svelte";
-  import { tv, type ClassValue } from "tailwind-variants";
+  import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
   import { Link } from "../link";
   import { toTitleCase } from "../utils";
 
-  const breadcrumbsVariants = tv({ base: "flex gap-2" });
+  export const breadcrumbsVariants = tv({ base: "flex gap-2" });
+
+  export type BreadcrumbsVariants = VariantProps<typeof breadcrumbsVariants>;
 
   type Crumb = {
     path: string;
     title: string;
   };
 
-  type BreadcrumbsProps = {
+  type BreadcrumbsProps = BreadcrumbsVariants & {
     separator?: Snippet | string;
     class?: ClassValue;
   };
@@ -45,6 +47,6 @@
         {/if}
       </div>
     {/if}
-    <Link href={path} underline="never" color="inherit">{title}</Link>
+    <Link href={path} underline="none" color="inherit">{title}</Link>
   {/each}
 </div>

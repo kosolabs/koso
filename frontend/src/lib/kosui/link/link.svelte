@@ -4,18 +4,18 @@
   import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
 
   export const linkVariants = tv({
-    base: "focus-visible:ring-ring inline-flex cursor-pointer items-center justify-center gap-1 rounded-md underline-offset-4 focus-visible:ring-1 focus-visible:outline-hidden",
+    base: "inline-flex cursor-pointer items-center justify-center gap-1 rounded-md underline-offset-4 focus-visible:ring-1 focus-visible:outline-hidden",
     variants: {
       underline: {
         always: "underline",
         hover: "hover:underline",
-        never: "",
+        none: "",
       },
       color: {
-        primary: "text-m3-primary",
-        secondary: "text-m3-secondary",
-        tertiary: "text-m3-tertiary",
-        inherit: "",
+        primary: "text-m3-primary focus-visible:ring-m3-primary",
+        secondary: "text-m3-secondary focus-visible:ring-m3-secondary",
+        tertiary: "text-m3-tertiary focus-visible:ring-m3-tertiary",
+        inherit: "focus-visible:ring-m3-primary",
       },
     },
     defaultVariants: {
