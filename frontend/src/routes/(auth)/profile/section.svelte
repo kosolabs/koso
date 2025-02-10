@@ -8,7 +8,7 @@
   const { title, children }: Props = $props();
 </script>
 
-<div class="flex flex-col gap-2 pt-6">
+<div class="flex flex-col gap-2">
   <h1 class="text-2xl font-thin">{title}</h1>
   <hr />
   <div class="py-2">

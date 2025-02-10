@@ -1,1 +1,5 @@
-export { default as Link } from "./link.svelte";
+export {
+  default as Link,
+  linkVariants,
+  type LinkVariants,
+} from "./link.svelte";

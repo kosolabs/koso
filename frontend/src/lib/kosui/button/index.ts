@@ -1,1 +1,5 @@
-export { default as Button, type ButtonVariant } from "./button.svelte";
+export {
+  default as Button,
+  buttonVariants,
+  type ButtonVariants,
+} from "./button.svelte";

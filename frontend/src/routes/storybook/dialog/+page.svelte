@@ -88,9 +88,9 @@
   </div>
 
   {#snippet actions()}
-    <Button type="submit" value="one">One</Button>
-    <Button type="submit" value="two">Two</Button>
-    <Button type="submit" value="three">Three</Button>
+    <Button type="submit" variant="elevated" value="one">One</Button>
+    <Button type="submit" variant="filled" value="two">Two</Button>
+    <Button type="submit" variant="tonal" value="three">Three</Button>
     <Button type="submit" value="four">Four</Button>
   {/snippet}
 </Dialog>
