@@ -159,6 +159,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         collab.stop().await;
         tracing::info!("Closing database pool...");
         pool.close().await;
+        tracing::info!("Database pool closed.");
     });
 
     return (addr, serve);

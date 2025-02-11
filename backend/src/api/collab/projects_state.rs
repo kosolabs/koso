@@ -25,6 +25,7 @@ use dashmap::DashMap;
 use sqlx::PgPool;
 use std::{
     collections::HashMap,
+    fmt,
     sync::{
         atomic::{self, Ordering::Relaxed},
         Arc, Weak,
@@ -350,6 +351,18 @@ impl ProjectState {
         };
         let msg = koso_awareness_state(&state);
         self.broadcast_msg(msg, None).await;
+    }
+}
+
+impl fmt::Debug for ProjectState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.project_id)
+    }
+}
+
+impl fmt::Display for ProjectState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.project_id)
     }
 }
 
