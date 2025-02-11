@@ -1,5 +1,6 @@
 use crate::api::google::User;
 use crate::api::{error_response, ApiResult};
+use crate::notifiers::{TelegramSettings, UserNotificationConfig};
 use crate::{
     flags::is_dev,
     secrets::{read_secret, Secret},
@@ -26,19 +27,13 @@ use teloxide::{
     Bot,
 };
 
-use super::UserNotificationConfig;
+use super::NotifierSettings;
 
 pub(crate) fn router() -> Router {
     Router::new()
         .route("/", post(authorize_telegram))
         .route("/", delete(deauthorize_telegram))
         .route("/test", post(send_test_message_handler))
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct TelegramSettings {
-    chat_id: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -59,7 +54,7 @@ async fn authorize_telegram(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Json(req): Json<AuthorizeTelegram>,
-) -> ApiResult<Json<TelegramSettings>> {
+) -> ApiResult<Json<NotifierSettings>> {
     let key = decoding_key_from_secrets()?;
     let token = match decode::<Claims>(&req.token, &key, &Validation::default()) {
         Ok(token) => token,
@@ -72,9 +67,9 @@ async fn authorize_telegram(
         }
     };
 
-    let settings = TelegramSettings {
+    let settings = NotifierSettings::Telegram(TelegramSettings {
         chat_id: token.claims.chat_id,
-    };
+    });
 
     sqlx::query(
         "
@@ -129,7 +124,7 @@ async fn send_test_message_handler(
     .fetch_one(pool)
     .await?;
 
-    let settings: TelegramSettings = serde_json::from_value(config.settings)?;
+    let NotifierSettings::Telegram(settings) = config.settings;
 
     let bot = bot_from_secrets()?;
     bot.send_message(
