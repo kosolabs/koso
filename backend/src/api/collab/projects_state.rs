@@ -14,9 +14,10 @@ use crate::{
             msg_sync::sync_request,
             notifications::KosoEvent,
             storage,
-            txn_origin::YOrigin,
+            txn_origin::{from_origin, YOrigin},
         },
         model::{ProjectId, User},
+        yproxy::YTaskProxy,
     },
     postgres::compact,
 };
@@ -34,7 +35,7 @@ use std::{
 };
 use tokio::sync::{mpsc::Sender, Mutex, MutexGuard};
 use tracing::Instrument;
-use yrs::{Any, Map, Out, ReadTxn as _, StateVector, Update};
+use yrs::{ReadTxn as _, StateVector, Update};
 
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
@@ -263,15 +264,18 @@ impl ProjectState {
             };
 
             for event in events.iter() {
-                tracing::info!("Handling deep graph update event {:?}", event.target());
-
                 if let yrs::types::Event::Map(map_event) = event {
-                    let t = map_event.target();
-                    let tt = (*t).clone();
-                    let id = match map_event.target().get(txn, "id") {
-                        Some(Out::Any(Any::String(id))) => id,
-                        o => {
-                            tracing::warn!("Expected id field but got: {o:?}");
+                    let task = match YTaskProxy::new(map_event.target().clone()).to_task(txn) {
+                        Ok(task) => task,
+                        Err(e) => {
+                            tracing::error!("Failed to convert MapEvent to Koso Task: {e}");
+                            continue;
+                        }
+                    };
+                    let origin = match from_origin(txn.origin()) {
+                        Ok(origin) => origin,
+                        Err(e) => {
+                            tracing::error!("Failed to deserialize origin: {e}");
                             continue;
                         }
                     };
@@ -284,14 +288,13 @@ impl ProjectState {
                     let event = KosoEvent {
                         project: project.clone(),
                         changes,
+                        task,
+                        origin,
                     };
 
-                    project.tracker.spawn(
-                        async move {
-                            // TODO: shove into channel
-                        }
-                        .in_current_span(),
-                    );
+                    if let Err(e) = project.event_tx.try_send(event) {
+                        tracing::error!("Failed to send event to deep graph observer: {e:?}")
+                    }
                 }
             }
         }));

@@ -1,7 +1,11 @@
 use crate::{
     api::{
         bad_request_error,
-        collab::{projects_state::DocBox, txn_origin::YOrigin, Collab},
+        collab::{
+            projects_state::DocBox,
+            txn_origin::{Actor, YOrigin},
+            Collab,
+        },
         unauthorized_error,
         yproxy::{YDocProxy, YTaskProxy},
         ApiResult,
@@ -357,6 +361,7 @@ fn origin(event: &KosoGithubEvent) -> Origin {
             "install_{}_request_{}",
             event.installation_id, event.request_id
         ),
+        actor: Actor::GitHub,
     }
     .as_origin()
 }

@@ -1,31 +1,33 @@
+use crate::api::model::User;
 use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 use yrs::Origin;
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum Actor {
+    None,
+    User(User),
+    GitHub,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct YOrigin {
     pub(crate) who: String,
     pub(crate) id: String,
+    pub(crate) actor: Actor,
 }
 
 pub(crate) fn from_origin(origin: Option<&Origin>) -> Result<YOrigin> {
-    origin
-        .map(|o| match core::str::from_utf8(o.as_ref()) {
-            Ok(v) => {
-                let mut parts = v.split("@@");
-                let (Some(who), Some(id)) = (parts.next(), parts.next()) else {
-                    return Err(anyhow!("Could not split origin into parts: {v}"));
-                };
-                Ok(YOrigin {
-                    who: who.to_string(),
-                    id: id.to_string(),
-                })
-            }
-            Err(e) => Err(anyhow!("Failed to parse origin bytes to string: {o}: {e}")),
-        })
-        .unwrap_or_else(|| Err(anyhow!("Missing origin")))
+    let Some(origin) = origin else {
+        return Err(anyhow!("Missing origin"));
+    };
+    Ok(serde_json::from_slice(origin.as_ref())?)
 }
 
 impl YOrigin {
     pub(crate) fn as_origin(&self) -> Origin {
-        format!("{}@@{}", self.who, self.id).into()
+        serde_json::to_string(self).unwrap().into()
     }
 }

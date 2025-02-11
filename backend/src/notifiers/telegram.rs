@@ -16,7 +16,6 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
-use sqlx::{Pool, Postgres};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use teloxide::{
     dispatching::UpdateFilterExt,
@@ -226,27 +225,5 @@ async fn send_token(bot: Bot, key: EncodingKey, user: teloxide::types::User) -> 
     bot.send_message(user.id, message)
         .parse_mode(ParseMode::Html)
         .await?;
-    Ok(())
-}
-
-pub async fn notify(pool: &Pool<Postgres>, recipient: &str, message: &str) -> Result<()> {
-    let configs: Vec<UserNotificationConfig> = sqlx::query_as(
-        "
-        SELECT email, notifier, enabled, settings
-        FROM user_notification_configs
-        WHERE email = $1",
-    )
-    .bind(recipient)
-    .fetch_all(pool)
-    .await?;
-
-    for config in configs {
-        if config.notifier == "telegram" {
-            let settings: TelegramSettings = serde_json::from_value(config.settings)?;
-            let bot = bot_from_secrets()?;
-            bot.send_message(UserId(settings.chat_id), message).await?;
-        }
-    }
-
     Ok(())
 }

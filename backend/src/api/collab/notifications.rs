@@ -1,14 +1,18 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use sqlx::PgPool;
 use std::{fmt, sync::Arc};
 use tokio::sync::mpsc::Receiver;
-use yrs::types::{EntryChange, Events};
+use yrs::types::EntryChange;
 
-use super::projects_state::ProjectState;
+use crate::api::model::Task;
+
+use super::{projects_state::ProjectState, txn_origin::YOrigin};
 
 pub(super) struct KosoEvent {
     pub(super) project: Arc<ProjectState>,
     pub(super) changes: Vec<(String, EntryChange)>,
+    pub(super) task: Task,
+    pub(super) origin: YOrigin,
 }
 
 impl fmt::Debug for KosoEvent {
@@ -16,6 +20,7 @@ impl fmt::Debug for KosoEvent {
         f.debug_struct("KosoEvent")
             .field("project_id", &self.project.project_id)
             .field("changes", &self.changes)
+            .field("task", &self.task)
             .finish()
     }
 }
@@ -45,6 +50,7 @@ impl EventProcessor {
 
     #[tracing::instrument(skip(self))]
     async fn process_event(&self, update: KosoEvent) -> Result<()> {
+        tracing::info!("Processing event: {update:?}");
         // let u = Update::decode_v2(&update.data)?;
         // notify(
         //     self.pool,

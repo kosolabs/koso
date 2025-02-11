@@ -1,6 +1,10 @@
 use crate::{
     api::{
-        collab::{projects_state::DocBox, txn_origin::YOrigin, Collab},
+        collab::{
+            projects_state::DocBox,
+            txn_origin::{Actor, YOrigin},
+            Collab,
+        },
         yproxy::{YDocProxy, YTaskProxy},
         ApiResult,
     },
@@ -231,6 +235,7 @@ fn origin(config: &Config) -> Origin {
     YOrigin {
         who: "github_poller".to_string(),
         id: format!("install_{}", config.external_id),
+        actor: Actor::GitHub,
     }
     .as_origin()
 }

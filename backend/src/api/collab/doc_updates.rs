@@ -1,7 +1,6 @@
 use crate::api::collab::{msg_sync::sync_update, storage};
 use crate::api::collab::{projects_state::ProjectState, txn_origin::from_origin};
 use crate::api::yproxy::YTaskProxy;
-use crate::notifiers::telegram::notify;
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use std::{fmt, sync::Arc};
@@ -10,8 +9,7 @@ use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
 use tracing::Instrument;
 use yrs::types::map::MapEvent;
-use yrs::updates::decoder::Decode;
-use yrs::{Map as _, Update};
+use yrs::Map as _;
 
 use super::projects_state::{DocBox, DocBoxProvider};
 use super::txn_origin::YOrigin;
@@ -106,14 +104,6 @@ impl DocUpdateProcessor {
             .project
             .broadcast_msg(sync_update(&update.data), Some(&update.who))
             .await;
-
-        // let u = Update::decode_v2(&update.data)?;
-        // notify(
-        //     self.pool,
-        //     "shadanan@gmail.com",
-        //     &format!("Got an update from {u}"),
-        // )
-        // .await?;
         Ok(())
     }
 }
@@ -195,6 +185,7 @@ impl GraphObserver {
                 let origin = YOrigin {
                     who: format!("rw-{}", origin.who),
                     id: format!("rw-{}", origin.id),
+                    actor: origin.actor,
                 };
                 let mod_id = mod_id.clone();
                 self.tracker.spawn(
@@ -235,8 +226,8 @@ mod tests {
 
     use super::{DocBox, DocBoxProvider, YOrigin};
     use crate::api::{
-        collab::{self, doc_updates::GraphObserver, YDocProxy},
-        model::Task,
+        collab::{self, doc_updates::GraphObserver, txn_origin::Actor, YDocProxy},
+        model::{Task, User},
     };
     use async_trait::async_trait;
     use std::sync::Arc;
@@ -273,6 +264,11 @@ mod tests {
         let origin = YOrigin {
             who: "graph_observer_test".into(),
             id: "test1".into(),
+            actor: Actor::User(User {
+                email: "a@koso.app".into(),
+                name: "A".into(),
+                picture: "pic".into(),
+            }),
         }
         .as_origin();
 
