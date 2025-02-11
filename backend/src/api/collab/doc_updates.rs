@@ -1,6 +1,7 @@
 use crate::api::collab::{msg_sync::sync_update, storage};
 use crate::api::collab::{projects_state::ProjectState, txn_origin::from_origin};
 use crate::api::yproxy::YTaskProxy;
+use crate::notifiers::telegram::notify;
 use anyhow::{anyhow, Result};
 use sqlx::PgPool;
 use std::{fmt, sync::Arc};
@@ -9,7 +10,8 @@ use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
 use tracing::Instrument;
 use yrs::types::map::MapEvent;
-use yrs::Map as _;
+use yrs::updates::decoder::Decode;
+use yrs::{Map as _, Update};
 
 use super::projects_state::{DocBox, DocBoxProvider};
 use super::txn_origin::YOrigin;
@@ -105,6 +107,13 @@ impl DocUpdateProcessor {
             .broadcast_msg(sync_update(&update.data), Some(&update.who))
             .await;
 
+        // let u = Update::decode_v2(&update.data)?;
+        // notify(
+        //     self.pool,
+        //     "shadanan@gmail.com",
+        //     &format!("Got an update from {u}"),
+        // )
+        // .await?;
         Ok(())
     }
 }

@@ -3,7 +3,8 @@ use anyhow::{anyhow, Result};
 use similar::{capture_diff_slices, Algorithm};
 use std::collections::HashMap;
 use yrs::{
-    types::map::MapEvent, Any, Array, ArrayRef, Doc, Map, MapRef, Observable, Origin, Out, ReadTxn,
+    types::{map::MapEvent, Events},
+    Any, Array, ArrayRef, DeepObservable, Doc, Map, MapRef, Observable, Origin, Out, ReadTxn,
     Subscription, Transact, TransactionAcqError, TransactionMut, UpdateEvent,
 };
 
@@ -66,6 +67,13 @@ impl YDocProxy {
         F: Fn(&TransactionMut, &MapEvent) + Send + Sync + 'static,
     {
         self.graph.observe(f)
+    }
+
+    pub fn observe_deep_graph<F>(&self, f: F) -> Subscription
+    where
+        F: Fn(&TransactionMut, &Events) + Send + Sync + 'static,
+    {
+        self.graph.observe_deep(f)
     }
 
     pub fn transact(&self) -> yrs::Transaction<'_> {

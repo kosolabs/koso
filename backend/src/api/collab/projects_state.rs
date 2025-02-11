@@ -12,6 +12,7 @@ use crate::{
             client_messages::{ClientMessage, ClientMessageReceiver},
             doc_updates::{DocObserver, DocUpdate, GraphObserver},
             msg_sync::sync_request,
+            notifications::KosoEvent,
             storage,
             txn_origin::YOrigin,
         },
@@ -33,12 +34,13 @@ use std::{
 };
 use tokio::sync::{mpsc::Sender, Mutex, MutexGuard};
 use tracing::Instrument;
-use yrs::{ReadTxn as _, StateVector, Update};
+use yrs::{Any, Map, Out, ReadTxn as _, StateVector, Update};
 
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
     process_msg_tx: Sender<ClientMessage>,
     doc_update_tx: Sender<DocUpdate>,
+    event_tx: Sender<KosoEvent>,
     pool: &'static PgPool,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -47,6 +49,7 @@ impl ProjectsState {
     pub(super) fn new(
         process_msg_tx: Sender<ClientMessage>,
         doc_update_tx: Sender<DocUpdate>,
+        event_tx: Sender<KosoEvent>,
         pool: &'static PgPool,
         tracker: tokio_util::task::TaskTracker,
     ) -> Self {
@@ -54,6 +57,7 @@ impl ProjectsState {
             projects: DashMap::new(),
             process_msg_tx,
             doc_update_tx,
+            event_tx,
             pool,
             tracker,
         }
@@ -156,6 +160,7 @@ impl ProjectsState {
             awarenesses: Mutex::new(HashMap::new()),
             doc_box: Mutex::new(None),
             doc_update_tx: self.doc_update_tx.clone(),
+            event_tx: self.event_tx.clone(),
             updates: atomic::AtomicUsize::new(0),
             pool: self.pool,
             tracker: self.tracker.clone(),
@@ -180,6 +185,7 @@ pub(crate) struct ProjectState {
     pub(crate) doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
     doc_update_tx: Sender<DocUpdate>,
+    event_tx: Sender<KosoEvent>,
     pool: &'static PgPool,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -245,9 +251,54 @@ impl ProjectState {
             graph_observer.handle_graph_update_event(project, txn, event)
         }));
 
+        let graph_observer_deep_project = Arc::downgrade(project);
+        let graph_deep_sub = Box::new(doc.observe_deep_graph(move |txn, events| {
+            let Some(project) = graph_observer_deep_project.upgrade() else {
+                // This will never happen because the observer is invoked syncronously in
+                // ProjectState.apply_update while holding a strong reference to the project.
+                tracing::error!(
+                    "handle_graph_update_event but weak project reference was destroyed"
+                );
+                return;
+            };
+
+            for event in events.iter() {
+                tracing::info!("Handling deep graph update event {:?}", event.target());
+
+                if let yrs::types::Event::Map(map_event) = event {
+                    let t = map_event.target();
+                    let tt = (*t).clone();
+                    let id = match map_event.target().get(txn, "id") {
+                        Some(Out::Any(Any::String(id))) => id,
+                        o => {
+                            tracing::warn!("Expected id field but got: {o:?}");
+                            continue;
+                        }
+                    };
+                    let changes = map_event
+                        .keys(txn)
+                        .iter()
+                        .map(|(mod_id, change)| (mod_id.to_string(), (*change).clone()))
+                        .collect::<Vec<_>>();
+
+                    let event = KosoEvent {
+                        project: project.clone(),
+                        changes,
+                    };
+
+                    project.tracker.spawn(
+                        async move {
+                            // TODO: shove into channel
+                        }
+                        .in_current_span(),
+                    );
+                }
+            }
+        }));
+
         let db = DocBox {
             ydoc: doc,
-            subs: vec![doc_sub, graph_sub],
+            subs: vec![doc_sub, graph_sub, graph_deep_sub],
         };
         let sv = db.ydoc.transact().state_vector();
         *doc_box = Some(db);
