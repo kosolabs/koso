@@ -34,7 +34,7 @@ metrics-exporter-prometheus = { version = "0.16.0", default-features = false }
 futures = "0.3.31"
 tokio-stream = "0.1.17"
 async-stream = "0.3.6"
-yrs = { version = "0.22.0", features = ["sync"] }
+yrs = { git = "https://github.com/shadanan/y-crdt.git", branch = "debug", features = ["sync"] }
 tokio-util = { version = "0.7.13", features = ["rt"] }
 jsonwebtoken = "9.3.0"
 reqwest = { version = "0.12.9", features = ["blocking", "json"] }
