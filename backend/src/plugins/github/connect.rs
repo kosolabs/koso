@@ -1,8 +1,8 @@
 use crate::{
     api::{self, google::User, unauthorized_error, ApiResult},
     plugins::{
-        config::{Config, ConfigStorage},
-        github::{self, auth::Auth, GithubSpecificConfig, Poller},
+        config::{Config, ConfigStorage, GithubSettings, Settings},
+        github::{self, auth::Auth, Poller},
     },
 };
 use axum::{routing::post, Extension, Json, Router};
@@ -78,7 +78,7 @@ impl ConnectHandler {
             project_id: request.project_id,
             plugin_id: github::PLUGIN_KIND.id.to_string(),
             external_id: request.installation_id,
-            settings: GithubSpecificConfig {},
+            settings: Settings::Github(GithubSettings {}),
         };
         self.storage.insert_or_update(&config).await?;
 

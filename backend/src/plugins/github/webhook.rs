@@ -7,10 +7,10 @@ use crate::{
         ApiResult,
     },
     plugins::{
-        config::ConfigStorage,
+        config::{Config, ConfigStorage},
         github::{
-            get_or_create_kind_parent, new_task, resolve_task, update_task, ExternalTask,
-            GithubConfig, Kind, PLUGIN_KIND, PR_KIND,
+            get_or_create_kind_parent, new_task, resolve_task, update_task, ExternalTask, Kind,
+            PLUGIN_KIND, PR_KIND,
         },
     },
     secrets::{read_secret, Secret},
@@ -247,7 +247,7 @@ impl Webhook {
 
     async fn process_koso_event(&self, event: KosoGithubEvent) -> Result<()> {
         tracing::debug!("Processing Koso event: {event:?}");
-        let configs: Vec<GithubConfig> = self
+        let configs = self
             .config_storage
             .list_for_external_id(PLUGIN_KIND.id, &event.installation_id.to_string())
             .await?;
@@ -273,17 +273,13 @@ impl Webhook {
         skip(self, event, config),
         fields(project_id=config.project_id)
     )]
-    async fn merge_task(&self, event: KosoGithubEvent, config: GithubConfig) {
+    async fn merge_task(&self, event: KosoGithubEvent, config: Config) {
         if let Err(e) = self.merge_task_internal(event, config).await {
             tracing::warn!("Failed to process event for config: {e}");
         }
     }
 
-    async fn merge_task_internal(
-        &self,
-        event: KosoGithubEvent,
-        config: GithubConfig,
-    ) -> Result<()> {
+    async fn merge_task_internal(&self, event: KosoGithubEvent, config: Config) -> Result<()> {
         let client = self
             .collab
             .register_local_client(&config.project_id)
