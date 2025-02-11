@@ -7,10 +7,10 @@ use crate::{
     flags::is_dev,
     kosolib::{AppGithub, InstallationRef},
     plugins::{
-        config::ConfigStorage,
+        config::{Config, ConfigStorage},
         github::{
-            get_or_create_kind_parent, new_task, resolve_task, update_task, ExternalTask,
-            GithubConfig, Kind, PLUGIN_KIND, PR_KIND,
+            get_or_create_kind_parent, new_task, resolve_task, update_task, ExternalTask, Kind,
+            PLUGIN_KIND, PR_KIND,
         },
     },
 };
@@ -74,8 +74,7 @@ impl Poller {
         // TODO: Multiple configs can refer to the same installation. If
         // needed, we could optimize the retrieval from GitHub by
         // grouping configs by installation first.
-        let configs: Vec<GithubConfig> =
-            self.config_storage.list_for_plugin(PLUGIN_KIND.id).await?;
+        let configs: Vec<Config> = self.config_storage.list_for_plugin(PLUGIN_KIND.id).await?;
         tracing::trace!("Polling: {configs:?}");
 
         let now = Instant::now();
@@ -109,7 +108,7 @@ impl Poller {
         skip(self, config),
         fields(gh_installation_id=config.external_id, project_id=config.project_id)
     )]
-    pub(super) async fn poll_installation(&self, config: GithubConfig) -> Result<()> {
+    pub(super) async fn poll_installation(&self, config: Config) -> Result<()> {
         if let Err(e) = self.poll_installation_internal(config).await {
             tracing::warn!("Failed installation poll: {e:?}");
             return Err(e);
@@ -117,7 +116,7 @@ impl Poller {
         Ok(())
     }
 
-    async fn poll_installation_internal(&self, config: GithubConfig) -> Result<()> {
+    async fn poll_installation_internal(&self, config: Config) -> Result<()> {
         tracing::debug!("Polling installation");
 
         let github_tasks_by_url = self.fetch_tasks_from_github(&config).await?;
@@ -178,7 +177,7 @@ impl Poller {
 
     async fn fetch_tasks_from_github(
         &self,
-        config: &GithubConfig,
+        config: &Config,
     ) -> Result<HashMap<String, ExternalTask>> {
         let client = self
             .client
@@ -228,7 +227,7 @@ impl Poller {
     }
 }
 
-fn origin(config: &GithubConfig) -> Origin {
+fn origin(config: &Config) -> Origin {
     YOrigin {
         who: "github_poller".to_string(),
         id: format!("install_{}", config.external_id),

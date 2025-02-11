@@ -10,7 +10,7 @@ use crate::{
         model::{CreateProject, Project, ProjectExport, Task},
         yproxy::YDocProxy,
     },
-    plugins::{github::GithubSpecificConfig, PluginSettings},
+    plugins::PluginSettings,
     server::{self, Config},
     tests::msg_sync::{MSG_KOSO_AWARENESS, MSG_KOSO_AWARENESS_STATE},
 };
@@ -747,17 +747,19 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
     let project = create_project(&client, &addr, &token, "plugin_test")
         .await
         .unwrap();
-    let config = GithubSpecificConfig {};
-    sqlx::query("INSERT INTO plugin_configs (project_id, plugin_id, external_id, settings) VALUES ($1, $2, $3, $4)")
-        .bind(&project.project_id)
-        .bind("github")
-        // TODO: Make this less prone to breakages when someone changes reinstalls.
-        // https://github.com/organizations/kosolabs/settings/installations/
-        // Don't forget to update org id references elsewhere in test code.
-        .bind("57987456")
-        .bind(Json(config))
-        .execute(&pool)
-        .await?;
+    sqlx::query(
+        "
+        INSERT INTO plugin_configs (project_id, plugin_id, external_id, settings)
+        VALUES ($1, $2, $3, '{\"type\":\"github\"}'::jsonb)",
+    )
+    .bind(&project.project_id)
+    .bind("github")
+    // TODO: Make this less prone to breakages when someone changes reinstalls.
+    // https://github.com/organizations/kosolabs/settings/installations/
+    // Don't forget to update org id references elsewhere in test code.
+    .bind("57987456")
+    .execute(&pool)
+    .await?;
 
     let mut req = format!("ws://{addr}/api/ws/projects/{}", project.project_id)
         .into_client_request()
