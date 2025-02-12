@@ -1,7 +1,11 @@
 use crate::{
     api::{
         bad_request_error,
-        collab::{projects_state::DocBox, txn_origin::YOrigin, Collab},
+        collab::{
+            projects_state::DocBox,
+            txn_origin::{Actor, YOrigin},
+            Collab,
+        },
         unauthorized_error,
         yproxy::{YDocProxy, YTaskProxy},
         ApiResult,
@@ -288,7 +292,7 @@ impl Webhook {
         let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;
         let doc = &doc_box.ydoc;
 
-        let mut txn = doc.transact_mut_with(origin(&event));
+        let mut txn = doc.transact_mut_with(origin(&event)?);
         match (
             get_doc_task(&txn, doc, &event.task.url, PR_KIND)?,
             &event.action,
@@ -350,13 +354,14 @@ fn create_task(
     Ok(())
 }
 
-fn origin(event: &KosoGithubEvent) -> Origin {
+fn origin(event: &KosoGithubEvent) -> Result<Origin> {
     YOrigin {
         who: "github_webhook".to_string(),
         id: format!(
             "install_{}_request_{}",
             event.installation_id, event.request_id
         ),
+        actor: Actor::GitHub,
     }
     .as_origin()
 }

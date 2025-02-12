@@ -12,10 +12,12 @@ use crate::{
             client_messages::{ClientMessage, ClientMessageReceiver},
             doc_updates::{DocObserver, DocUpdate, GraphObserver},
             msg_sync::sync_request,
+            notifications::KosoEvent,
             storage,
-            txn_origin::YOrigin,
+            txn_origin::{from_origin, YOrigin},
         },
         model::{ProjectId, User},
+        yproxy::YTaskProxy,
     },
     postgres::compact,
 };
@@ -33,12 +35,13 @@ use std::{
 };
 use tokio::sync::{mpsc::Sender, Mutex, MutexGuard};
 use tracing::Instrument;
-use yrs::{ReadTxn as _, StateVector, Update};
+use yrs::{types::EntryChange, ReadTxn as _, StateVector, Update};
 
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
     process_msg_tx: Sender<ClientMessage>,
     doc_update_tx: Sender<DocUpdate>,
+    event_tx: Sender<KosoEvent>,
     pool: &'static PgPool,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -47,6 +50,7 @@ impl ProjectsState {
     pub(super) fn new(
         process_msg_tx: Sender<ClientMessage>,
         doc_update_tx: Sender<DocUpdate>,
+        event_tx: Sender<KosoEvent>,
         pool: &'static PgPool,
         tracker: tokio_util::task::TaskTracker,
     ) -> Self {
@@ -54,6 +58,7 @@ impl ProjectsState {
             projects: DashMap::new(),
             process_msg_tx,
             doc_update_tx,
+            event_tx,
             pool,
             tracker,
         }
@@ -156,6 +161,7 @@ impl ProjectsState {
             awarenesses: Mutex::new(HashMap::new()),
             doc_box: Mutex::new(None),
             doc_update_tx: self.doc_update_tx.clone(),
+            event_tx: self.event_tx.clone(),
             updates: atomic::AtomicUsize::new(0),
             pool: self.pool,
             tracker: self.tracker.clone(),
@@ -180,6 +186,7 @@ pub(crate) struct ProjectState {
     pub(crate) doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
     doc_update_tx: Sender<DocUpdate>,
+    event_tx: Sender<KosoEvent>,
     pool: &'static PgPool,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -245,9 +252,63 @@ impl ProjectState {
             graph_observer.handle_graph_update_event(project, txn, event)
         }));
 
+        let graph_observer_deep_project = Arc::downgrade(project);
+        let graph_deep_sub = Box::new(doc.observe_deep_graph(move |txn, events| {
+            let Some(project) = graph_observer_deep_project.upgrade() else {
+                // This will never happen because the observer is invoked syncronously in
+                // ProjectState.apply_update while holding a strong reference to the project.
+                tracing::error!(
+                    "handle_graph_update_event but weak project reference was destroyed"
+                );
+                return;
+            };
+
+            for event in events.iter() {
+                if let yrs::types::Event::Map(map_event) = event {
+                    // Events on tasks will have a path length of 1.
+                    if map_event.path().len() != 1 {
+                        continue;
+                    }
+
+                    let origin = match from_origin(txn.origin()) {
+                        Ok(origin) => origin,
+                        Err(e) => {
+                            tracing::error!("Failed to deserialize origin: {e}");
+                            continue;
+                        }
+                    };
+
+                    let changes: HashMap<String, EntryChange> = map_event
+                        .keys(txn)
+                        .iter()
+                        .map(|(mod_id, change)| (mod_id.to_string(), (*change).clone()))
+                        .collect();
+
+                    let task = match YTaskProxy::new(map_event.target().clone()).to_task(txn) {
+                        Ok(task) => task,
+                        Err(e) => {
+                            tracing::error!("Failed to convert MapEvent to Koso Task: {e}");
+                            continue;
+                        }
+                    };
+
+                    let event = KosoEvent {
+                        project: project.clone(),
+                        changes,
+                        task,
+                        origin,
+                    };
+
+                    if let Err(e) = project.event_tx.try_send(event) {
+                        tracing::error!("Failed to send event to deep graph observer: {e:?}")
+                    }
+                }
+            }
+        }));
+
         let db = DocBox {
             ydoc: doc,
-            subs: vec![doc_sub, graph_sub],
+            subs: vec![doc_sub, graph_sub, graph_deep_sub],
         };
         let sv = db.ydoc.transact().state_vector();
         *doc_box = Some(db);
@@ -264,7 +325,7 @@ impl ProjectState {
     pub(super) async fn apply_doc_update(&self, origin: YOrigin, update: Update) -> Result<()> {
         if let Err(e) = DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
             .ydoc
-            .transact_mut_with(origin.as_origin())
+            .transact_mut_with(origin.as_origin()?)
             .apply_update(update)
         {
             return Err(anyhow!("Failed to apply doc update: {e}"));
