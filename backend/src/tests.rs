@@ -19,7 +19,7 @@ use axum::http::HeaderValue;
 use futures::{stream::FusedStream, SinkExt, StreamExt};
 use reqwest::{Client, Response, StatusCode};
 use serde_json::Value;
-use sqlx::{types::Json, PgPool};
+use sqlx::PgPool;
 use tokio::{
     net::TcpStream,
     sync::{
