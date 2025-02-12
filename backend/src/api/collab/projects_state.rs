@@ -35,7 +35,7 @@ use std::{
 };
 use tokio::sync::{mpsc::Sender, Mutex, MutexGuard};
 use tracing::Instrument;
-use yrs::{types::EntryChange, ReadTxn as _, StateVector, Update};
+use yrs::{types::EntryChange, ReadTxn as _, StateVector, Subscription, Update};
 
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
@@ -215,15 +215,29 @@ impl ProjectState {
 
         // Load the doc if it wasn't already loaded by another client.
         tracing::debug!("Initializing new YDoc");
-        let (doc, update_count) = storage::load_doc(&project.project_id, project.pool).await?;
+        let (ydoc, update_count) = storage::load_doc(&project.project_id, project.pool).await?;
         tracing::debug!("Initialized new YDoc with {update_count} updates");
         project.updates.store(update_count, Relaxed);
 
-        // Persist and broadcast update events by subscribing to the callback.
+        // Attach observers to the doc.
+        let subs = vec![
+            Self::create_doc_observer(project, &ydoc)?,
+            Self::create_graph_observer(project, &ydoc),
+            Self::create_deep_graph_observer(project, &ydoc),
+        ];
+
+        let db = DocBox { ydoc, subs };
+        let sv = db.ydoc.transact().state_vector();
+        *doc_box = Some(db);
+        Ok(sv)
+    }
+
+    /// Persist and broadcast update events by subscribing to the callback.
+    fn create_doc_observer(project: &Arc<ProjectState>, doc: &YDocProxy) -> Result<Subscription> {
         let observer = DocObserver::new(project.doc_update_tx.clone(), project.tracker.clone());
-        let observer_project = Arc::downgrade(project);
+        let project = Arc::downgrade(project);
         let res = doc.observe_update_v2(move |txn, update| {
-            let Some(project) = observer_project.upgrade() else {
+            let Some(project) = project.upgrade() else {
                 // This will never happen because the observer is invoked syncronously in
                 // ProjectState.apply_update while holding a strong reference to the project.
                 tracing::error!(
@@ -231,17 +245,21 @@ impl ProjectState {
                 );
                 return;
             };
+
             project.updates.fetch_add(1, Relaxed);
             observer.handle_doc_update_v2_event(project, txn, update);
         });
-        let doc_sub = match res {
-            Ok(sub) => Box::new(sub),
-            Err(e) => return Err(anyhow!("Failed to create observer: {e}")),
-        };
-        let graph_observer = GraphObserver::new(project.tracker.clone());
-        let graph_observer_project = Arc::downgrade(project);
-        let graph_sub = Box::new(doc.observe_graph(move |txn, event| {
-            let Some(project) = graph_observer_project.upgrade() else {
+        match res {
+            Ok(sub) => Ok(sub),
+            Err(e) => Err(anyhow!("Failed to create observer: {e}")),
+        }
+    }
+
+    fn create_graph_observer(project: &Arc<ProjectState>, doc: &YDocProxy) -> Subscription {
+        let observer: GraphObserver = GraphObserver::new(project.tracker.clone());
+        let project = Arc::downgrade(project);
+        doc.observe_graph(move |txn, event| {
+            let Some(project) = project.upgrade() else {
                 // This will never happen because the observer is invoked syncronously in
                 // ProjectState.apply_update while holding a strong reference to the project.
                 tracing::error!(
@@ -249,12 +267,15 @@ impl ProjectState {
                 );
                 return;
             };
-            graph_observer.handle_graph_update_event(project, txn, event)
-        }));
 
-        let graph_observer_deep_project = Arc::downgrade(project);
-        let graph_deep_sub = Box::new(doc.observe_deep_graph(move |txn, events| {
-            let Some(project) = graph_observer_deep_project.upgrade() else {
+            observer.handle_graph_update_event(project, txn, event)
+        })
+    }
+
+    fn create_deep_graph_observer(project: &Arc<ProjectState>, doc: &YDocProxy) -> Subscription {
+        let project = Arc::downgrade(project);
+        doc.observe_deep_graph(move |txn, events| {
+            let Some(project) = project.upgrade() else {
                 // This will never happen because the observer is invoked syncronously in
                 // ProjectState.apply_update while holding a strong reference to the project.
                 tracing::error!(
@@ -304,15 +325,7 @@ impl ProjectState {
                     }
                 }
             }
-        }));
-
-        let db = DocBox {
-            ydoc: doc,
-            subs: vec![doc_sub, graph_sub, graph_deep_sub],
-        };
-        let sv = db.ydoc.transact().state_vector();
-        *doc_box = Some(db);
-        Ok(sv)
+        })
     }
 
     pub(super) async fn encode_state_as_update(&self, sv: &StateVector) -> Result<Vec<u8>> {
@@ -455,7 +468,7 @@ pub(crate) struct DocBox {
     pub(crate) ydoc: YDocProxy,
     /// Subscription to observe changes to doc.
     #[allow(dead_code)]
-    pub(crate) subs: Vec<Box<dyn Send>>,
+    pub(crate) subs: Vec<Subscription>,
 }
 
 impl DocBox {

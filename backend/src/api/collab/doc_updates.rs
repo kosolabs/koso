@@ -282,9 +282,9 @@ mod tests {
 
             let observer = GraphObserver::new(tracker.clone());
             let weak_doc_box = Arc::downgrade(&doc_box_provider);
-            let sub = Box::new(db.ydoc.observe_graph(move |txn, event| {
+            let sub = db.ydoc.observe_graph(move |txn, event| {
                 observer.handle_graph_update_event(weak_doc_box.upgrade().unwrap(), txn, event)
-            }));
+            });
             db.subs.push(sub);
         }
 
