@@ -11,13 +11,13 @@
 1. Install [PostgreSQL](https://www.postgresql.org/).
 
    ```sh
-   brew install postgresql@16
+   brew install postgresql@17
    ```
 
 1. Start PostgreSQL.
 
    ```sh
-   brew services start postgresql@16
+   brew services start postgresql@17
    ```
 
 1. Install [Rust](https://www.rust-lang.org/).
@@ -56,7 +56,17 @@
    brew install node pnpm
    ```
 
-1. Install the frontend dependencies.
+### Once A Day / After Every Pull
+
+1. Run the most recent DB migrations.
+
+   In the `backend` folder, run:
+
+   ```sh
+   sqlx migrate run
+   ```
+
+1. Install the latest frontend dependencies.
 
    In the `frontend` folder, run:
 
