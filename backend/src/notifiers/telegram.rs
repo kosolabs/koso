@@ -143,7 +143,7 @@ enum Command {
     Token,
 }
 
-fn bot_from_secrets() -> Result<Bot> {
+pub(super) fn bot_from_secrets() -> Result<Bot> {
     let secret: Secret<String> = read_secret("telegram/token")?;
     Ok(Bot::new(secret.data))
 }

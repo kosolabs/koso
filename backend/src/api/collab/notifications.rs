@@ -1,28 +1,22 @@
 use anyhow::Result;
 use sqlx::PgPool;
-use std::{fmt, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 use yrs::types::EntryChange;
 
-use crate::api::model::Task;
+use crate::{
+    api::{collab::txn_origin::Actor, model::Task},
+    notifiers::notify,
+};
 
 use super::{projects_state::ProjectState, txn_origin::YOrigin};
 
+#[derive(Debug)]
 pub(super) struct KosoEvent {
     pub(super) project: Arc<ProjectState>,
     pub(super) changes: Vec<(String, EntryChange)>,
     pub(super) task: Task,
     pub(super) origin: YOrigin,
-}
-
-impl fmt::Debug for KosoEvent {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("KosoEvent")
-            .field("project_id", &self.project.project_id)
-            .field("changes", &self.changes)
-            .field("task", &self.task)
-            .finish()
-    }
 }
 
 pub(super) struct EventProcessor {
@@ -38,10 +32,10 @@ impl EventProcessor {
     #[tracing::instrument(skip(self))]
     pub(super) async fn process_events(mut self) {
         loop {
-            let Some(update) = self.event_rx.recv().await else {
+            let Some(event) = self.event_rx.recv().await else {
                 break;
             };
-            if let Err(e) = self.process_event(update).await {
+            if let Err(e) = self.process_event(event).await {
                 tracing::warn!("Failed to process event: {e}");
             }
         }
@@ -49,15 +43,32 @@ impl EventProcessor {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn process_event(&self, update: KosoEvent) -> Result<()> {
-        tracing::info!("Processing event: {update:?}");
-        // let u = Update::decode_v2(&update.data)?;
-        // notify(
-        //     self.pool,
-        //     "shadanan@gmail.com",
-        //     &format!("Got an update from {u}"),
-        // )
-        // .await?;
+    async fn process_event(&self, event: KosoEvent) -> Result<()> {
+        tracing::info!("Processing event: {event:?}");
+
+        let Actor::User(user) = event.origin.actor else {
+            return Ok(());
+        };
+
+        for (field, change) in event.changes {
+            match (field.as_str(), change) {
+                (
+                    "assignee",
+                    EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(recipient))),
+                ) if *user.email != *recipient => {
+                    notify(
+                                self.pool,
+                                &recipient,
+                                &format!(
+                                    "🎁 <i>{} &lt;{}&gt;</i> assigned you: <a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
+                                    user.name, user.email, event.project.project_id, event.task.name
+                                ),
+                            )
+                            .await?;
+                }
+                _ => continue,
+            }
+        }
         Ok(())
     }
 }

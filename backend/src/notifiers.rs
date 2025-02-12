@@ -2,8 +2,9 @@ use anyhow::Result;
 use axum::Router;
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, Pool, Postgres};
+use teloxide::payloads::SendMessageSetters;
 use teloxide::prelude::Requester;
-use teloxide::types::UserId;
+use teloxide::types::{ParseMode, UserId};
 
 pub(crate) mod telegram;
 
@@ -33,12 +34,7 @@ pub(super) fn router() -> Router {
     Router::new().nest("/telegram", telegram::router())
 }
 
-pub(super) async fn notify(
-    pool: &Pool<Postgres>,
-    telegram_bot: &teloxide::Bot,
-    recipient: &str,
-    message: &str,
-) -> Result<()> {
+pub(super) async fn notify(pool: &Pool<Postgres>, recipient: &str, message: &str) -> Result<()> {
     let configs: Vec<UserNotificationConfig> = sqlx::query_as(
         "
         SELECT email, notifier, enabled, settings
@@ -52,8 +48,9 @@ pub(super) async fn notify(
     for config in configs {
         match config.settings {
             NotifierSettings::Telegram(settings) => {
-                telegram_bot
-                    .send_message(UserId(settings.chat_id), message)
+                let bot = telegram::bot_from_secrets()?;
+                bot.send_message(UserId(settings.chat_id), message)
+                    .parse_mode(ParseMode::Html)
                     .await?;
             }
         }
