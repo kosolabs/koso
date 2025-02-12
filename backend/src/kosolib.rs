@@ -21,9 +21,7 @@ pub enum InstallationRef {
 pub struct AppGithubConfig {
     /// Path to the Github application key file in the RSA PEM file format.
     ///
-    /// If unspecified, the path defaults to `$secrets_dir/github/key.pem`. The
-    /// `$secrets_dir` directory is either he value of the SECRETS_DIR environment
-    /// variable or, if that is absent, the DEFAULT_SECRETS_DIR constant.
+    /// If unspecified, the path defaults to `$SECRETS_DIR/github/key.pem`.
     ///
     /// See https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps
     app_key_path: Option<String>,
@@ -41,7 +39,7 @@ impl AppGithubConfig {
             Some(app_id) => Ok(app_id),
             None => {
                 match std::env::var("GH_APP_ENV")
-                    .unwrap_or("dev".to_string())
+                    .context("GH_APP_ENV is unset. Try GH_APP_ENV=dev")?
                     .as_str()
                 {
                     "prod" => Ok(PROD_APP_ID),

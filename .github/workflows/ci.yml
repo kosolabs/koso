@@ -53,7 +53,7 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
-          RUST_BACKTRACE=full RUST_BACKTRACE=1 SECRETS_DIR=$(realpath ~/.secrets) TESTONLY_ENABLE_DEV=true cargo test --package koso
+          RUST_BACKTRACE=full RUST_BACKTRACE=1 SECRETS_DIR=$(realpath ~/.secrets) cargo test --package koso
       - run: cargo clippy -- -D warnings
       - run: cargo fmt --all -- --check
 

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use core::fmt;
 use std::{fmt::Debug, fs, path::Path};
 
@@ -13,10 +13,7 @@ impl<T> Debug for Secret<T> {
     }
 }
 
-const DEFAULT_SECRETS_DIR: &str = "../.secrets";
-
 /// Read the secret from $secrets_dir/$sub_path.
-/// The default is `../.secrets/$sub_path`, unless `SECRETS_DIR` is set.
 pub(crate) fn read_secret<T: std::convert::From<String>>(sub_path: &str) -> Result<Secret<T>> {
     let path = secret_path(sub_path)?;
     tracing::info!("Using {sub_path} secret at {path}");
@@ -30,7 +27,7 @@ pub(crate) fn read_secret<T: std::convert::From<String>>(sub_path: &str) -> Resu
 }
 
 pub(crate) fn secret_path(sub_path: &str) -> Result<String> {
-    let dir = std::env::var("SECRETS_DIR").unwrap_or_else(|_| DEFAULT_SECRETS_DIR.to_string());
+    let dir = std::env::var("SECRETS_DIR").context("SECRETS_DIR is unset.")?;
     Path::new(&dir)
         .join(sub_path)
         .into_os_string()
