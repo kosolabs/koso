@@ -1,3 +1,4 @@
+use crate::secrets;
 use anyhow::{anyhow, Context, Result};
 use jsonwebtoken::EncodingKey;
 use octocrab::{
@@ -7,11 +8,10 @@ use octocrab::{
     params::{pulls::Sort, Direction, State},
     Octocrab, OctocrabBuilder,
 };
-use std::{fs, path::Path};
+use std::fs;
 
 const PROD_APP_ID: u64 = 1053272;
 const DEV_APP_ID: u64 = 1066302;
-const DEFAULT_SECRETS_DIR: &str = "../.secrets";
 
 pub enum InstallationRef {
     InstallationId { id: u64 },
@@ -55,13 +55,7 @@ impl AppGithubConfig {
     fn app_key_path(&self) -> Result<String> {
         match self.app_key_path.clone() {
             Some(app_key_path) => Ok(app_key_path),
-            None => Path::new(
-                &std::env::var("SECRETS_DIR").unwrap_or_else(|_| DEFAULT_SECRETS_DIR.to_string()),
-            )
-            .join("github/key.pem")
-            .into_os_string()
-            .into_string()
-            .map_err(|e| anyhow!("Path error: {e:?}")),
+            None => secrets::secret_path("github/key.pem"),
         }
     }
 
