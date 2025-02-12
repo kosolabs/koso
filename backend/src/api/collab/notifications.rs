@@ -1,6 +1,6 @@
 use anyhow::Result;
 use sqlx::PgPool;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use tokio::sync::mpsc::Receiver;
 use yrs::types::EntryChange;
 
@@ -14,7 +14,7 @@ use super::{projects_state::ProjectState, txn_origin::YOrigin};
 #[derive(Debug)]
 pub(super) struct KosoEvent {
     pub(super) project: Arc<ProjectState>,
-    pub(super) changes: Vec<(String, EntryChange)>,
+    pub(super) changes: HashMap<String, EntryChange>,
     pub(super) task: Task,
     pub(super) origin: YOrigin,
 }
@@ -44,7 +44,7 @@ impl EventProcessor {
 
     #[tracing::instrument(skip(self))]
     async fn process_event(&self, event: KosoEvent) -> Result<()> {
-        tracing::info!("Processing event: {event:?}");
+        tracing::trace!("Processing event: {event:?}");
 
         let Actor::User(user) = event.origin.actor else {
             return Ok(());
@@ -60,7 +60,7 @@ impl EventProcessor {
                                 self.pool,
                                 &recipient,
                                 &format!(
-                                    "🎁 <i>{} &lt;{}&gt;</i> assigned you: <a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
+                                    "🎁 <i>{} &lt;{}&gt;</i> assigned to you:\n<a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
                                     user.name, user.email, event.project.project_id, event.task.name
                                 ),
                             )

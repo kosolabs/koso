@@ -227,7 +227,7 @@ mod tests {
     use super::{DocBox, DocBoxProvider, YOrigin};
     use crate::api::{
         collab::{self, doc_updates::GraphObserver, txn_origin::Actor, YDocProxy},
-        model::{Task, User},
+        model::Task,
     };
     use async_trait::async_trait;
     use std::sync::Arc;
@@ -264,11 +264,7 @@ mod tests {
         let origin = YOrigin {
             who: "graph_observer_test".into(),
             id: "test1".into(),
-            actor: Actor::User(User {
-                email: "a@koso.app".into(),
-                name: "A".into(),
-                picture: "pic".into(),
-            }),
+            actor: Actor::None,
         }
         .as_origin();
 

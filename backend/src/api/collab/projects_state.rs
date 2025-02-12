@@ -35,7 +35,7 @@ use std::{
 };
 use tokio::sync::{mpsc::Sender, Mutex, MutexGuard};
 use tracing::Instrument;
-use yrs::{ReadTxn as _, StateVector, Update};
+use yrs::{types::EntryChange, ReadTxn as _, StateVector, Update};
 
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
@@ -265,13 +265,11 @@ impl ProjectState {
 
             for event in events.iter() {
                 if let yrs::types::Event::Map(map_event) = event {
-                    let task = match YTaskProxy::new(map_event.target().clone()).to_task(txn) {
-                        Ok(task) => task,
-                        Err(e) => {
-                            tracing::error!("Failed to convert MapEvent to Koso Task: {e}");
-                            continue;
-                        }
-                    };
+                    // Events on tasks will have a path length of 1.
+                    if map_event.path().len() != 1 {
+                        continue;
+                    }
+
                     let origin = match from_origin(txn.origin()) {
                         Ok(origin) => origin,
                         Err(e) => {
@@ -279,11 +277,20 @@ impl ProjectState {
                             continue;
                         }
                     };
-                    let changes = map_event
+
+                    let changes: HashMap<String, EntryChange> = map_event
                         .keys(txn)
                         .iter()
                         .map(|(mod_id, change)| (mod_id.to_string(), (*change).clone()))
-                        .collect::<Vec<_>>();
+                        .collect();
+
+                    let task = match YTaskProxy::new(map_event.target().clone()).to_task(txn) {
+                        Ok(task) => task,
+                        Err(e) => {
+                            tracing::error!("Failed to convert MapEvent to Koso Task: {e}");
+                            continue;
+                        }
+                    };
 
                     let event = KosoEvent {
                         project: project.clone(),
