@@ -237,6 +237,7 @@ Build and run the docker image defined in `Dockerfile`.
    DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
       --env DATABASE_URL \
       --env SECRETS_DIR=/.secrets \
+      --env RUST_BACKTRACE=1 \
       -v $HOME/.secrets:/.secrets \
       --network=host \
       --rm -it \

@@ -9,6 +9,7 @@ const config: PlaywrightTestConfig = {
         --env RUST_LOG=info \
         --env GH_APP_ENV=dev \
         --env SECRETS_DIR=/.secrets \
+        --env RUST_BACKTRACE=1 \
         -v ${process.env.SECRETS_DIR}:/.secrets \
         --network=host \
         --rm ${process.env.KOSO_IMAGE}`
