@@ -29,7 +29,7 @@
     "rust-analyzer.runnables.extraEnv": {
       "RUST_BACKTRACE": "1",
       "RUST_LOG": "trace",
-      "DATABASE_URL": "postgresql://localhost",
+      "DATABASE_URL": "postgresql://localhost/koso",
       "TESTONLY_ENABLE_DEV": true
     },
     "search.exclude": {

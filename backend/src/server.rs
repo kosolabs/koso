@@ -55,7 +55,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         None => {
             // Connect to the Postgres database.
             let db_connection_str = std::env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgresql://localhost".to_string());
+                .unwrap_or_else(|_| "postgresql://localhost/koso".to_string());
             tracing::info!("Connecting to database: {}", db_connection_str);
 
             Box::leak(Box::new(
