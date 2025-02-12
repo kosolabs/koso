@@ -206,34 +206,42 @@ Build and run the docker image defined in `Dockerfile`.
 
 ### Build & run
 
-Build the image:
+1. Build the image:
 
-```bash
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -t ghcr.io/kosolabs/koso .
-```
+   ```bash
+   DOCKER_DEFAULT_PLATFORM=linux/amd64 docker build -t ghcr.io/kosolabs/koso .
+   ```
 
-Run database migrations:
+1. Configure the DATABASE_URL.
 
-```bash
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
-   --env DATABASE_URL=postgresql://$USER@localhost/$USER \
-   --network=host \
-   --rm -it \
-   ghcr.io/kosolabs/koso:latest \
-   "./sqlx" migrate run
-```
+   ```sh
+   export DATABASE_URL=postgresql://localhost/koso
+   ```
 
-Run the server:
+   Also, add the environment variable to the appropriate profile file (`~/.profile`, `~/.bash_profile`, `~/.bashrc`, `~/.zshrc`, `~/.zshenv`) so you don't have to run it every time.
 
-```bash
-DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
-   --env DATABASE_URL=postgresql://$USER@localhost/$USER \
-    --env SECRETS_DIR=/.secrets \
-    -v $HOME/.secrets:/.secrets \
-   --network=host \
-   --rm -it \
-   ghcr.io/kosolabs/koso:latest
-```
+1. Run database migrations:
+
+   ```bash
+   DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
+      --env DATABASE_URL \
+      --network=host \
+      --rm -it \
+      ghcr.io/kosolabs/koso:latest \
+      "./sqlx" migrate run
+   ```
+
+1. Run the server:
+
+   ```bash
+   DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
+      --env DATABASE_URL \
+      --env SECRETS_DIR=/.secrets \
+      -v $HOME/.secrets:/.secrets \
+      --network=host \
+      --rm -it \
+      ghcr.io/kosolabs/koso:latest
+   ```
 
 ## Server setup
 

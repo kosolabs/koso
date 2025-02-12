@@ -21,13 +21,13 @@ if [[ -z "${KOSO_IMAGE}" ]]; then
   sqlx migrate run
 else
   docker run \
-    --env DATABASE_URL=$DATABASE_URL \
+    --env DATABASE_URL \
     --network=host \
     --rm \
     $KOSO_IMAGE \
     "./sqlx" database create
   docker run \
-    --env DATABASE_URL=$DATABASE_URL \
+    --env DATABASE_URL \
     --network=host \
     --rm \
     $KOSO_IMAGE \
