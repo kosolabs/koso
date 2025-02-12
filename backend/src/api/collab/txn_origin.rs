@@ -27,7 +27,7 @@ pub(crate) fn from_origin(origin: Option<&Origin>) -> Result<YOrigin> {
 }
 
 impl YOrigin {
-    pub(crate) fn as_origin(&self) -> Origin {
-        serde_json::to_string(self).unwrap().into()
+    pub(crate) fn as_origin(&self) -> Result<Origin> {
+        Ok(serde_json::to_string(self)?.into())
     }
 }

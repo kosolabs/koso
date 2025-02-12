@@ -209,7 +209,7 @@ impl GraphObserver {
     ) -> Result<()> {
         let doc_box = project.get_doc_box().await;
         let doc = &DocBox::doc_or_error(doc_box.as_ref())?.ydoc;
-        let mut txn = doc.transact_mut_with(origin.as_origin());
+        let mut txn = doc.transact_mut_with(origin.as_origin()?);
 
         let num = doc.next_num(&txn)?;
         tracing::debug!("Rewriting task num for task '{task_id}' to {num}");
@@ -266,7 +266,8 @@ mod tests {
             id: "test1".into(),
             actor: Actor::None,
         }
-        .as_origin();
+        .as_origin()
+        .unwrap();
 
         // Setup the doc and observer.
         let doc_box_provider = Arc::new(TestDocBoxProvider {

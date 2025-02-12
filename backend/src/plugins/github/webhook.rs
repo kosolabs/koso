@@ -292,7 +292,7 @@ impl Webhook {
         let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;
         let doc = &doc_box.ydoc;
 
-        let mut txn = doc.transact_mut_with(origin(&event));
+        let mut txn = doc.transact_mut_with(origin(&event)?);
         match (
             get_doc_task(&txn, doc, &event.task.url, PR_KIND)?,
             &event.action,
@@ -354,7 +354,7 @@ fn create_task(
     Ok(())
 }
 
-fn origin(event: &KosoGithubEvent) -> Origin {
+fn origin(event: &KosoGithubEvent) -> Result<Origin> {
     YOrigin {
         who: "github_webhook".to_string(),
         id: format!(

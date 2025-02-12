@@ -134,7 +134,7 @@ impl Poller {
         let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;
         let doc = &doc_box.ydoc;
 
-        let mut txn = doc.transact_mut_with(origin(&config));
+        let mut txn = doc.transact_mut_with(origin(&config)?);
 
         let parent = get_or_create_kind_parent(&mut txn, doc, PR_KIND)?;
         let doc_tasks_by_url = self.list_doc_tasks(&txn, doc, &parent, PR_KIND)?;
@@ -231,7 +231,7 @@ impl Poller {
     }
 }
 
-fn origin(config: &Config) -> Origin {
+fn origin(config: &Config) -> Result<Origin> {
     YOrigin {
         who: "github_poller".to_string(),
         id: format!("install_{}", config.external_id),

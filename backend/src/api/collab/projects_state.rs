@@ -325,7 +325,7 @@ impl ProjectState {
     pub(super) async fn apply_doc_update(&self, origin: YOrigin, update: Update) -> Result<()> {
         if let Err(e) = DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
             .ydoc
-            .transact_mut_with(origin.as_origin())
+            .transact_mut_with(origin.as_origin()?)
             .apply_update(update)
         {
             return Err(anyhow!("Failed to apply doc update: {e}"));
