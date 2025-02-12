@@ -1,3 +1,11 @@
+use super::{
+    projects_state::ProjectState,
+    txn_origin::{from_origin, YOrigin},
+};
+use crate::{
+    api::{collab::txn_origin::Actor, model::Task, yproxy::YTaskProxy},
+    notifiers::Notifier,
+};
 use anyhow::Result;
 use sqlx::PgPool;
 use std::{collections::HashMap, sync::Arc};
@@ -5,16 +13,6 @@ use tokio::sync::mpsc::Receiver;
 use yrs::{
     types::{EntryChange, Events},
     TransactionMut,
-};
-
-use crate::{
-    api::{collab::txn_origin::Actor, model::Task, yproxy::YTaskProxy},
-    notifiers::notify,
-};
-
-use super::{
-    projects_state::ProjectState,
-    txn_origin::{from_origin, YOrigin},
 };
 
 #[derive(Debug)]
@@ -75,13 +73,16 @@ pub(super) fn handle_deep_graph_update_event(
 }
 
 pub(super) struct EventProcessor {
-    pool: &'static PgPool,
     event_rx: Receiver<KosoEvent>,
+    notifier: Notifier,
 }
 
 impl EventProcessor {
-    pub(super) fn new(pool: &'static PgPool, event_rx: Receiver<KosoEvent>) -> Self {
-        EventProcessor { pool, event_rx }
+    pub(super) fn new(pool: &'static PgPool, event_rx: Receiver<KosoEvent>) -> Result<Self> {
+        Ok(EventProcessor {
+            event_rx,
+            notifier: Notifier::new(pool)?,
+        })
     }
 
     #[tracing::instrument(skip(self))]
@@ -111,15 +112,14 @@ impl EventProcessor {
                     "assignee",
                     EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(recipient))),
                 ) if *user.email != *recipient => {
-                    notify(
-                                self.pool,
-                                &recipient,
-                                &format!(
-                                    "🎁 <i>{} &lt;{}&gt;</i> assigned to you:\n<a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
-                                    user.name, user.email, event.project.project_id, event.task.name
-                                ),
-                            )
-                            .await?;
+                    self.notifier.notify(
+                        &recipient,
+                        &format!(
+                            "🎁 <i>{} &lt;{}&gt;</i> assigned to you:\n<a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
+                            user.name, user.email, event.project.project_id, event.task.name
+                        ),
+                    )
+                .await?;
                 }
                 _ => continue,
             }

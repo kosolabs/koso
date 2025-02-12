@@ -70,12 +70,12 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
                             .log_statements(tracing::log::LevelFilter::Trace),
                     )
                     .await
-                    .expect("can't connect to database"),
+                    .expect("Can't connect to database"),
             ))
         }
     };
 
-    let collab = Collab::new(pool);
+    let collab = Collab::new(pool).expect("Failed to init collab");
     let key_set = match config.key_set {
         Some(key_set) => key_set,
         None => google::KeySet::new().await.unwrap(),
