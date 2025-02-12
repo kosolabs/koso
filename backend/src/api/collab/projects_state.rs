@@ -1,7 +1,7 @@
 use super::{
     awareness::{AwarenessState, AwarenessUpdate},
     msg_sync::koso_awareness_state,
-    YDocProxy,
+    notifications, YDocProxy,
 };
 use crate::{
     api::{
@@ -14,10 +14,9 @@ use crate::{
             msg_sync::sync_request,
             notifications::KosoEvent,
             storage,
-            txn_origin::{from_origin, YOrigin},
+            txn_origin::YOrigin,
         },
         model::{ProjectId, User},
-        yproxy::YTaskProxy,
     },
     postgres::compact,
 };
@@ -35,7 +34,7 @@ use std::{
 };
 use tokio::sync::{mpsc::Sender, Mutex, MutexGuard};
 use tracing::Instrument;
-use yrs::{types::EntryChange, ReadTxn as _, StateVector, Subscription, Update};
+use yrs::{ReadTxn as _, StateVector, Subscription, Update};
 
 pub(super) struct ProjectsState {
     projects: DashMap<ProjectId, Weak<ProjectState>>,
@@ -186,7 +185,7 @@ pub(crate) struct ProjectState {
     pub(crate) doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
     doc_update_tx: Sender<DocUpdate>,
-    event_tx: Sender<KosoEvent>,
+    pub(super) event_tx: Sender<KosoEvent>,
     pool: &'static PgPool,
     tracker: tokio_util::task::TaskTracker,
 }
@@ -284,47 +283,7 @@ impl ProjectState {
                 return;
             };
 
-            for event in events.iter() {
-                if let yrs::types::Event::Map(map_event) = event {
-                    // Events on tasks will have a path length of 1.
-                    if map_event.path().len() != 1 {
-                        continue;
-                    }
-
-                    let origin = match from_origin(txn.origin()) {
-                        Ok(origin) => origin,
-                        Err(e) => {
-                            tracing::error!("Failed to deserialize origin: {e}");
-                            continue;
-                        }
-                    };
-
-                    let changes: HashMap<String, EntryChange> = map_event
-                        .keys(txn)
-                        .iter()
-                        .map(|(mod_id, change)| (mod_id.to_string(), (*change).clone()))
-                        .collect();
-
-                    let task = match YTaskProxy::new(map_event.target().clone()).to_task(txn) {
-                        Ok(task) => task,
-                        Err(e) => {
-                            tracing::error!("Failed to convert MapEvent to Koso Task: {e}");
-                            continue;
-                        }
-                    };
-
-                    let event = KosoEvent {
-                        project: project.clone(),
-                        changes,
-                        task,
-                        origin,
-                    };
-
-                    if let Err(e) = project.event_tx.try_send(event) {
-                        tracing::error!("Failed to send event to deep graph observer: {e:?}")
-                    }
-                }
-            }
+            notifications::handle_deep_graph_update_event(txn, events, project);
         })
     }
 
