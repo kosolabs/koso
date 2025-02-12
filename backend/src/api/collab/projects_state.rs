@@ -233,10 +233,7 @@ impl ProjectState {
     }
 
     /// Persist and broadcast update events by subscribing to the callback.
-    fn create_doc_observer(
-        project: &Arc<ProjectState>,
-        doc: &YDocProxy,
-    ) -> Result<Box<Subscription>> {
+    fn create_doc_observer(project: &Arc<ProjectState>, doc: &YDocProxy) -> Result<Subscription> {
         let observer = DocObserver::new(project.doc_update_tx.clone(), project.tracker.clone());
         let project = Arc::downgrade(project);
         let res = doc.observe_update_v2(move |txn, update| {
@@ -253,15 +250,15 @@ impl ProjectState {
             observer.handle_doc_update_v2_event(project, txn, update);
         });
         match res {
-            Ok(sub) => Ok(Box::new(sub)),
+            Ok(sub) => Ok(sub),
             Err(e) => Err(anyhow!("Failed to create observer: {e}")),
         }
     }
 
-    fn create_graph_observer(project: &Arc<ProjectState>, doc: &YDocProxy) -> Box<Subscription> {
+    fn create_graph_observer(project: &Arc<ProjectState>, doc: &YDocProxy) -> Subscription {
         let observer: GraphObserver = GraphObserver::new(project.tracker.clone());
         let project = Arc::downgrade(project);
-        Box::new(doc.observe_graph(move |txn, event| {
+        doc.observe_graph(move |txn, event| {
             let Some(project) = project.upgrade() else {
                 // This will never happen because the observer is invoked syncronously in
                 // ProjectState.apply_update while holding a strong reference to the project.
@@ -272,15 +269,12 @@ impl ProjectState {
             };
 
             observer.handle_graph_update_event(project, txn, event)
-        }))
+        })
     }
 
-    fn create_deep_graph_observer(
-        project: &Arc<ProjectState>,
-        doc: &YDocProxy,
-    ) -> Box<Subscription> {
+    fn create_deep_graph_observer(project: &Arc<ProjectState>, doc: &YDocProxy) -> Subscription {
         let project = Arc::downgrade(project);
-        Box::new(doc.observe_deep_graph(move |txn, events| {
+        doc.observe_deep_graph(move |txn, events| {
             let Some(project) = project.upgrade() else {
                 // This will never happen because the observer is invoked syncronously in
                 // ProjectState.apply_update while holding a strong reference to the project.
@@ -331,7 +325,7 @@ impl ProjectState {
                     }
                 }
             }
-        }))
+        })
     }
 
     pub(super) async fn encode_state_as_update(&self, sv: &StateVector) -> Result<Vec<u8>> {
@@ -474,7 +468,7 @@ pub(crate) struct DocBox {
     pub(crate) ydoc: YDocProxy,
     /// Subscription to observe changes to doc.
     #[allow(dead_code)]
-    pub(crate) subs: Vec<Box<Subscription>>,
+    pub(crate) subs: Vec<Subscription>,
 }
 
 impl DocBox {
