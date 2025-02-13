@@ -20,15 +20,15 @@ test.describe("import export tests", () => {
   });
 
   test("export and import a project", async ({ page }) => {
-    // Insert a few tasks.
+    // Add or Insert a few tasks.
     await page.getByRole("button", { name: "Add Task" }).last().click();
     await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Insert" }).last().click();
+    await page.getByRole("button", { name: "Add" }).last().click();
     await page.keyboard.type("Task 2 name");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
-    await page.getByRole("button", { name: "Insert" }).click();
+    await page.getByRole("button", { name: "Add" }).click();
     await page.keyboard.type("Task 3 child name");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("row", { name: "Task 3" })).toBeVisible();
@@ -63,7 +63,7 @@ test.describe("import export tests", () => {
     expect(projectExport2.data.graph).toEqual(projectExport1.data.graph);
 
     // Validate that a new task can be created
-    await page.getByRole("button", { name: "Insert" }).last().click();
+    await page.getByRole("button", { name: "Add" }).last().click();
     await expect(page.getByRole("row", { name: "Task 4" })).toBeVisible();
     await expect(page.getByRole("row", { name: "Task 4" })).toBeFocused;
   });
