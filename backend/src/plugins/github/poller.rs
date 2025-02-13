@@ -9,10 +9,10 @@ use crate::{
         ApiResult,
     },
     flags::is_dev,
-    kosolib::{AppGithub, InstallationRef},
     plugins::{
         config::{Config, ConfigStorage},
         github::{
+            app::{AppGithub, InstallationRef},
             get_or_create_kind_parent, new_task, resolve_task, update_task, ExternalTask, Kind,
             PLUGIN_KIND, PR_KIND,
         },

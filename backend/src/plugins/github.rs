@@ -5,8 +5,11 @@ use crate::{
         model::Task,
         yproxy::{YDocProxy, YTaskProxy},
     },
-    kosolib::{AppGithub, AppGithubConfig},
-    plugins::{config::ConfigStorage, PluginSettings},
+    plugins::{
+        config::ConfigStorage,
+        github::app::{AppGithub, AppGithubConfig},
+        PluginSettings,
+    },
 };
 use anyhow::{anyhow, Result};
 use auth::Auth;
@@ -20,6 +23,7 @@ use tokio::task::JoinHandle;
 use webhook::Webhook;
 use yrs::TransactionMut;
 
+mod app;
 mod auth;
 mod connect;
 mod poller;
