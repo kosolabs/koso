@@ -130,15 +130,15 @@ impl Auth {
     }
 
     fn client_id() -> Result<String> {
-        Ok(match std::env::var("GH_APP_ENV")
-            .unwrap_or("dev".to_string())
-            .as_str()
-        {
-            "prod" => PROD_CLIENT_ID,
-            "dev" => DEV_CLIENT_ID,
-            env => return Err(anyhow!("Invalid environment: {env}")),
-        }
-        .to_string())
+        Ok(
+            match std::env::var("GH_APP_ENV").as_ref().map(String::as_ref) {
+                Ok("prod") => PROD_CLIENT_ID,
+                Ok("dev") => DEV_CLIENT_ID,
+                Ok(env) => return Err(anyhow!("Invalid environment: {env}")),
+                Err(e) => return Err(anyhow!("GH_APP_ENV is unset. Try GH_APP_ENV=dev: {e}")),
+            }
+            .to_string(),
+        )
     }
 
     pub(super) async fn user_access_token(&self, user: &User) -> ApiResult<OAuth> {

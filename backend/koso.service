@@ -12,6 +12,7 @@ ExecStart=docker run \
     --env DATABASE_URL=postgresql://koso:koso@localhost/koso \
     --env SECRETS_DIR=/.secrets \
     --env GH_APP_ENV=prod \
+    --env RUST_BACKTRACE=1 \
     -v /root/.secrets:/.secrets \
     --network=host \
     --rm \

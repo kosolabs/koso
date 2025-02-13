@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use core::fmt;
 use std::{fmt::Debug, fs, path::Path};
 
@@ -13,17 +13,9 @@ impl<T> Debug for Secret<T> {
     }
 }
 
-const DEFAULT_SECRETS_DIR: &str = "../.secrets";
-
 /// Read the secret from $secrets_dir/$sub_path.
-/// The default is `../.secrets/$sub_path`, unless `SECRETS_DIR` is set.
 pub(crate) fn read_secret<T: std::convert::From<String>>(sub_path: &str) -> Result<Secret<T>> {
-    let dir = std::env::var("SECRETS_DIR").unwrap_or_else(|_| DEFAULT_SECRETS_DIR.to_string());
-    let path = Path::new(&dir)
-        .join(sub_path)
-        .into_os_string()
-        .into_string()
-        .map_err(|e| anyhow!("Invalid secret path in {dir}: {e:?}"))?;
+    let path = secret_path(sub_path)?;
     tracing::info!("Using {sub_path} secret at {path}");
     let secret: String = fs::read_to_string(&path)
         .map_err(|e| anyhow!("Failed to read secret from {path}: {e}"))?
@@ -32,4 +24,13 @@ pub(crate) fn read_secret<T: std::convert::From<String>>(sub_path: &str) -> Resu
     Ok(Secret {
         data: secret.into(),
     })
+}
+
+pub(crate) fn secret_path(sub_path: &str) -> Result<String> {
+    let dir = std::env::var("SECRETS_DIR").context("SECRETS_DIR is unset.")?;
+    Path::new(&dir)
+        .join(sub_path)
+        .into_os_string()
+        .into_string()
+        .map_err(|e| anyhow!("Invalid secret path in {dir}: {e:?}"))
 }
