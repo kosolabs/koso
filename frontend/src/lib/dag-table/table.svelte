@@ -320,8 +320,8 @@
     }),
     new Action({
       callback: insert,
-      title: "Insert",
-      description: "Insert a new task",
+      title: "Add",
+      description: "Add or insert a new task",
       icon: ListPlus,
       toolbar: true,
       shortcut: Shortcut.INSERT_NODE,
