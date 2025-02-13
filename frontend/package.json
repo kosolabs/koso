@@ -16,7 +16,7 @@
     "test:integration": "playwright test",
     "test:unit": "vitest run"
   },
-  "packageManager": "pnpm@10.2.1",
+  "packageManager": "pnpm@10.3.0",
   "engines": {
     "node": ">= 20"
   },

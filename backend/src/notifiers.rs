@@ -1,6 +1,12 @@
+use anyhow::{anyhow, Result};
 use axum::Router;
 use serde::{Deserialize, Serialize};
-use sqlx::prelude::FromRow;
+use sqlx::{prelude::FromRow, Pool, Postgres};
+use teloxide::payloads::SendMessageSetters;
+use teloxide::prelude::Requester;
+use teloxide::types::{ParseMode, UserId};
+
+use crate::flags::is_dev;
 
 pub(crate) mod telegram;
 
@@ -28,4 +34,53 @@ pub(super) struct UserNotificationConfig {
 
 pub(super) fn router() -> Router {
     Router::new().nest("/telegram", telegram::router())
+}
+
+pub(super) struct Notifier {
+    pool: &'static Pool<Postgres>,
+    bot: Option<teloxide::Bot>,
+}
+
+impl Notifier {
+    pub(super) fn new(pool: &'static Pool<Postgres>) -> Result<Self> {
+        Ok(Self {
+            pool,
+            bot: match telegram::bot_from_secrets() {
+                Ok(bot) => Some(bot),
+                Err(e) => {
+                    if is_dev() {
+                        None
+                    } else {
+                        return Err(anyhow!("Failed to initialize telegram bot: {e}"));
+                    }
+                }
+            },
+        })
+    }
+
+    pub(super) async fn notify(&self, recipient: &str, message: &str) -> Result<()> {
+        let configs: Vec<UserNotificationConfig> = sqlx::query_as(
+            "
+            SELECT email, notifier, enabled, settings
+            FROM user_notification_configs
+            WHERE email = $1",
+        )
+        .bind(recipient)
+        .fetch_all(self.pool)
+        .await?;
+
+        for config in configs {
+            match config.settings {
+                NotifierSettings::Telegram(settings) => {
+                    if let Some(bot) = &self.bot {
+                        bot.send_message(UserId(settings.chat_id), message)
+                            .parse_mode(ParseMode::Html)
+                            .await?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
 }

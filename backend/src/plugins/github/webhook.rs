@@ -1,16 +1,20 @@
 use crate::{
     api::{
         bad_request_error,
-        collab::{projects_state::DocBox, txn_origin::YOrigin, Collab},
+        collab::{
+            projects_state::DocBox,
+            txn_origin::{Actor, YOrigin},
+            Collab,
+        },
         unauthorized_error,
         yproxy::{YDocProxy, YTaskProxy},
         ApiResult,
     },
     plugins::{
-        config::ConfigStorage,
+        config::{Config, ConfigStorage},
         github::{
-            get_or_create_kind_parent, new_task, resolve_task, update_task, ExternalTask,
-            GithubConfig, Kind, PLUGIN_KIND, PR_KIND,
+            get_or_create_kind_parent, new_task, resolve_task, update_task, ExternalTask, Kind,
+            PLUGIN_KIND, PR_KIND,
         },
     },
     secrets::{read_secret, Secret},
@@ -247,7 +251,7 @@ impl Webhook {
 
     async fn process_koso_event(&self, event: KosoGithubEvent) -> Result<()> {
         tracing::debug!("Processing Koso event: {event:?}");
-        let configs: Vec<GithubConfig> = self
+        let configs = self
             .config_storage
             .list_for_external_id(PLUGIN_KIND.id, &event.installation_id.to_string())
             .await?;
@@ -273,17 +277,13 @@ impl Webhook {
         skip(self, event, config),
         fields(project_id=config.project_id)
     )]
-    async fn merge_task(&self, event: KosoGithubEvent, config: GithubConfig) {
+    async fn merge_task(&self, event: KosoGithubEvent, config: Config) {
         if let Err(e) = self.merge_task_internal(event, config).await {
             tracing::warn!("Failed to process event for config: {e}");
         }
     }
 
-    async fn merge_task_internal(
-        &self,
-        event: KosoGithubEvent,
-        config: GithubConfig,
-    ) -> Result<()> {
+    async fn merge_task_internal(&self, event: KosoGithubEvent, config: Config) -> Result<()> {
         let client = self
             .collab
             .register_local_client(&config.project_id)
@@ -292,7 +292,7 @@ impl Webhook {
         let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;
         let doc = &doc_box.ydoc;
 
-        let mut txn = doc.transact_mut_with(origin(&event));
+        let mut txn = doc.transact_mut_with(origin(&event)?);
         match (
             get_doc_task(&txn, doc, &event.task.url, PR_KIND)?,
             &event.action,
@@ -354,13 +354,14 @@ fn create_task(
     Ok(())
 }
 
-fn origin(event: &KosoGithubEvent) -> Origin {
+fn origin(event: &KosoGithubEvent) -> Result<Origin> {
     YOrigin {
         who: "github_webhook".to_string(),
         id: format!(
             "install_{}_request_{}",
             event.installation_id, event.request_id
         ),
+        actor: Actor::GitHub,
     }
     .as_origin()
 }

@@ -5,9 +5,9 @@ use crate::{
         model::Task,
         yproxy::{YDocProxy, YTaskProxy},
     },
-    kosolib::{AppGithub, AppGithubConfig},
     plugins::{
-        config::{self, ConfigStorage},
+        config::ConfigStorage,
+        github::app::{AppGithub, AppGithubConfig},
         PluginSettings,
     },
 };
@@ -17,13 +17,13 @@ use axum::{middleware, Router};
 use connect::ConnectHandler;
 use octocrab::models::pulls::PullRequest;
 use poller::Poller;
-use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::{fmt::Debug, time::SystemTime};
 use tokio::task::JoinHandle;
 use webhook::Webhook;
 use yrs::TransactionMut;
 
+mod app;
 mod auth;
 mod connect;
 mod poller;
@@ -40,11 +40,6 @@ pub(crate) struct Plugin {
     pool: &'static PgPool,
     settings: PluginSettings,
 }
-
-#[derive(Debug, Deserialize, Serialize)]
-pub(crate) struct GithubSpecificConfig {}
-
-type GithubConfig = config::Config<GithubSpecificConfig>;
 
 impl Plugin {
     pub(crate) async fn new(

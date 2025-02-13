@@ -54,8 +54,9 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         Some(pool) => pool,
         None => {
             // Connect to the Postgres database.
-            let db_connection_str = std::env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgresql://localhost".to_string());
+            let db_connection_str = std::env::var("DATABASE_URL").expect(
+                "DATABASE_URL env variable is unset. Try DATABASE_URL=postgresql://localhost/koso",
+            );
             tracing::info!("Connecting to database: {}", db_connection_str);
 
             Box::leak(Box::new(
@@ -70,12 +71,12 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
                             .log_statements(tracing::log::LevelFilter::Trace),
                     )
                     .await
-                    .expect("can't connect to database"),
+                    .expect("Can't connect to database"),
             ))
         }
     };
 
-    let collab = Collab::new(pool);
+    let collab = Collab::new(pool).expect("Failed to init collab");
     let key_set = match config.key_set {
         Some(key_set) => key_set,
         None => google::KeySet::new().await.unwrap(),
@@ -159,6 +160,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         collab.stop().await;
         tracing::info!("Closing database pool...");
         pool.close().await;
+        tracing::info!("Database pool closed.");
     });
 
     return (addr, serve);

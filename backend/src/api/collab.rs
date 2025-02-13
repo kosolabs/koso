@@ -4,16 +4,6 @@
 //!   - SYNC_REQUEST - sent by clients during the initial
 //!   - SYNC_RESPONSE
 //!   - SYNC_UPDATE -
-//!
-
-pub(crate) mod awareness;
-pub(crate) mod client;
-pub(crate) mod client_messages;
-pub(crate) mod doc_updates;
-pub(crate) mod msg_sync;
-pub(crate) mod projects_state;
-pub(crate) mod storage;
-pub(crate) mod txn_origin;
 
 use crate::api::{
     self,
@@ -30,6 +20,7 @@ use crate::api::{
 use anyhow::Error;
 use anyhow::Result;
 use axum::extract::ws::WebSocket;
+use notifications::{EventProcessor, KosoEvent};
 use projects_state::ProjectState;
 use sqlx::PgPool;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
@@ -37,6 +28,16 @@ use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
 use uuid::Uuid;
+
+pub(crate) mod awareness;
+pub(crate) mod client;
+pub(crate) mod client_messages;
+pub(crate) mod doc_updates;
+pub(crate) mod msg_sync;
+pub(crate) mod notifications;
+pub(crate) mod projects_state;
+pub(crate) mod storage;
+pub(crate) mod txn_origin;
 
 #[derive(Clone)]
 pub(crate) struct Collab {
@@ -50,13 +51,20 @@ struct Inner {
 }
 
 impl Collab {
-    pub(crate) fn new(pool: &'static PgPool) -> Collab {
+    pub(crate) fn new(pool: &'static PgPool) -> Result<Collab> {
         let (process_msg_tx, process_msg_rx) = mpsc::channel::<ClientMessage>(1);
         let (doc_update_tx, doc_update_rx) = mpsc::channel::<DocUpdate>(50);
+        let (event_tx, event_rx) = mpsc::channel::<KosoEvent>(50);
         let tracker = tokio_util::task::TaskTracker::new();
         let collab = Collab {
             inner: Arc::new(Inner {
-                state: ProjectsState::new(process_msg_tx, doc_update_tx, pool, tracker.clone()),
+                state: ProjectsState::new(
+                    process_msg_tx,
+                    doc_update_tx,
+                    event_tx,
+                    pool,
+                    tracker.clone(),
+                ),
                 pool,
                 tracker,
             }),
@@ -73,6 +81,11 @@ impl Collab {
             .spawn(ClientMessageProcessor::new(process_msg_rx).process_messages());
 
         collab
+            .inner
+            .tracker
+            .spawn(EventProcessor::new(pool, event_rx)?.process_events());
+
+        Ok(collab)
     }
 
     #[tracing::instrument(skip(self, socket, who, user), fields(who))]

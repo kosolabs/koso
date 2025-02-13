@@ -1,6 +1,5 @@
-use crate::api::google::User;
-use crate::api::{error_response, ApiResult};
-use crate::notifiers::{TelegramSettings, UserNotificationConfig};
+use crate::api::{error_response, google::User, ApiResult};
+use crate::notifiers::{NotifierSettings, TelegramSettings, UserNotificationConfig};
 use crate::{
     flags::is_dev,
     secrets::{read_secret, Secret},
@@ -27,9 +26,7 @@ use teloxide::{
     Bot,
 };
 
-use super::NotifierSettings;
-
-pub(crate) fn router() -> Router {
+pub(super) fn router() -> Router {
     Router::new()
         .route("/", post(authorize_telegram))
         .route("/", delete(deauthorize_telegram))
@@ -143,7 +140,7 @@ enum Command {
     Token,
 }
 
-fn bot_from_secrets() -> Result<Bot> {
+pub(super) fn bot_from_secrets() -> Result<Bot> {
     let secret: Secret<String> = read_secret("telegram/token")?;
     Ok(Bot::new(secret.data))
 }

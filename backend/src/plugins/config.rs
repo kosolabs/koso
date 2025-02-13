@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Deserialize, Serialize};
 use sqlx::{types::Json, PgPool};
 
 #[derive(Clone)]
@@ -8,15 +8,24 @@ pub(super) struct ConfigStorage {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Config<T> {
+pub(crate) struct Config {
     pub(crate) project_id: String,
     pub(crate) plugin_id: String,
     pub(crate) external_id: String,
     /// Plugin specific configuration.
-    pub(crate) settings: T,
+    pub(crate) settings: Settings,
 }
 
-type ConfigRow<T> = (String, String, String, Json<T>);
+#[derive(Serialize, Clone, Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase", tag = "type")]
+pub(crate) enum Settings {
+    Github(GithubSettings),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub(crate) struct GithubSettings {}
+
+type ConfigRow = (String, String, String, Json<Settings>);
 
 impl ConfigStorage {
     pub(super) fn new(pool: &'static PgPool) -> Result<ConfigStorage> {
@@ -24,12 +33,12 @@ impl ConfigStorage {
     }
 
     /// Lists all configurations for the given plugin.
-    pub(super) async fn list_for_external_id<T: 'static + Send + DeserializeOwned + Unpin>(
+    pub(super) async fn list_for_external_id(
         &self,
         plugin_id: &str,
         external_id: &str,
-    ) -> Result<Vec<Config<T>>> {
-        let configs: Vec<ConfigRow<T>> = sqlx::query_as(
+    ) -> Result<Vec<Config>> {
+        let configs: Vec<ConfigRow> = sqlx::query_as(
             "
             SELECT
                 project_id,
@@ -49,11 +58,8 @@ impl ConfigStorage {
     }
 
     /// Lists all configurations for the given plugin.
-    pub(super) async fn list_for_plugin<T: 'static + Send + DeserializeOwned + Unpin>(
-        &self,
-        plugin_id: &str,
-    ) -> Result<Vec<Config<T>>> {
-        let configs: Vec<ConfigRow<T>> = sqlx::query_as(
+    pub(super) async fn list_for_plugin(&self, plugin_id: &str) -> Result<Vec<Config>> {
+        let configs: Vec<ConfigRow> = sqlx::query_as(
             "
             SELECT
                 project_id,
@@ -71,10 +77,7 @@ impl ConfigStorage {
         Ok(rows_to_configs(configs))
     }
 
-    pub(super) async fn insert_or_update<T: 'static + Send + Serialize + Unpin>(
-        &self,
-        config: &Config<T>,
-    ) -> Result<()> {
+    pub(super) async fn insert_or_update(&self, config: &Config) -> Result<()> {
         sqlx::query(
             "
         INSERT INTO plugin_configs (project_id, plugin_id, external_id, settings)
@@ -92,7 +95,7 @@ impl ConfigStorage {
     }
 }
 
-fn rows_to_configs<T>(configs: Vec<(String, String, String, Json<T>)>) -> Vec<Config<T>> {
+fn rows_to_configs(configs: Vec<ConfigRow>) -> Vec<Config> {
     configs
         .into_iter()
         .map(
@@ -117,8 +120,6 @@ mod tests {
         pub(super) other_thing: String,
     }
 
-    type SomeConfig = Config<SomePluginSettings>;
-
     #[test_log::test(sqlx::test)]
     async fn config_test(pool: PgPool) -> Result<()> {
         let pool = Box::leak(Box::new(pool.clone()));
@@ -129,31 +130,27 @@ mod tests {
                 project_id: "project_id_1".to_string(),
                 plugin_id: "plugin_id_1".to_string(),
                 external_id: "external_id_1".to_string(),
-                settings: SomePluginSettings {
-                    other_thing: "something".to_string(),
-                },
+                settings: Settings::Github(GithubSettings {}),
             })
             .await?;
 
-        let expected = vec![SomeConfig {
+        let expected = vec![Config {
             project_id: "project_id_1".to_string(),
             plugin_id: "plugin_id_1".to_string(),
             external_id: "external_id_1".to_string(),
-            settings: SomePluginSettings {
-                other_thing: "something".to_string(),
-            },
+            settings: Settings::Github(GithubSettings {}),
         }];
 
-        let actual: Vec<SomeConfig> = storage.list_for_plugin("plugin_id_1").await.unwrap();
+        let actual: Vec<Config> = storage.list_for_plugin("plugin_id_1").await.unwrap();
         assert_eq!(actual, expected);
 
-        let actual: Vec<SomeConfig> = storage
+        let actual: Vec<Config> = storage
             .list_for_external_id("plugin_id_1", "external_id_1")
             .await
             .unwrap();
         assert_eq!(actual, expected);
 
-        let actual: Vec<SomeConfig> = storage
+        let actual: Vec<Config> = storage
             .list_for_plugin("plugin_id_not_found")
             .await
             .unwrap();

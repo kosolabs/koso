@@ -104,7 +104,6 @@ impl DocUpdateProcessor {
             .project
             .broadcast_msg(sync_update(&update.data), Some(&update.who))
             .await;
-
         Ok(())
     }
 }
@@ -186,6 +185,7 @@ impl GraphObserver {
                 let origin = YOrigin {
                     who: format!("rw-{}", origin.who),
                     id: format!("rw-{}", origin.id),
+                    actor: origin.actor,
                 };
                 let mod_id = mod_id.clone();
                 self.tracker.spawn(
@@ -209,7 +209,7 @@ impl GraphObserver {
     ) -> Result<()> {
         let doc_box = project.get_doc_box().await;
         let doc = &DocBox::doc_or_error(doc_box.as_ref())?.ydoc;
-        let mut txn = doc.transact_mut_with(origin.as_origin());
+        let mut txn = doc.transact_mut_with(origin.as_origin()?);
 
         let num = doc.next_num(&txn)?;
         tracing::debug!("Rewriting task num for task '{task_id}' to {num}");
@@ -226,7 +226,7 @@ mod tests {
 
     use super::{DocBox, DocBoxProvider, YOrigin};
     use crate::api::{
-        collab::{self, doc_updates::GraphObserver, YDocProxy},
+        collab::{self, doc_updates::GraphObserver, txn_origin::Actor, YDocProxy},
         model::Task,
     };
     use async_trait::async_trait;
@@ -264,8 +264,10 @@ mod tests {
         let origin = YOrigin {
             who: "graph_observer_test".into(),
             id: "test1".into(),
+            actor: Actor::None,
         }
-        .as_origin();
+        .as_origin()
+        .unwrap();
 
         // Setup the doc and observer.
         let doc_box_provider = Arc::new(TestDocBoxProvider {
@@ -280,9 +282,9 @@ mod tests {
 
             let observer = GraphObserver::new(tracker.clone());
             let weak_doc_box = Arc::downgrade(&doc_box_provider);
-            let sub = Box::new(db.ydoc.observe_graph(move |txn, event| {
+            let sub = db.ydoc.observe_graph(move |txn, event| {
                 observer.handle_graph_update_event(weak_doc_box.upgrade().unwrap(), txn, event)
-            }));
+            });
             db.subs.push(sub);
         }
 

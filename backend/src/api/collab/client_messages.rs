@@ -1,6 +1,6 @@
 use crate::api::collab::{
     msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
-    txn_origin::YOrigin,
+    txn_origin::{Actor, YOrigin},
 };
 use crate::api::{
     collab::{
@@ -191,6 +191,7 @@ impl ClientMessageProcessor {
                             YOrigin {
                                 who: msg.who,
                                 id: msg.id,
+                                actor: Actor::User(msg.user),
                             },
                             update,
                         )
