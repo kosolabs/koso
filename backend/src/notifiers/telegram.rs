@@ -1,7 +1,7 @@
 use crate::api::{ApiResult, error_response, google::User};
 use crate::notifiers::{NotifierSettings, TelegramSettings, UserNotificationConfig};
+use crate::settings::settings;
 use crate::{
-    flags::is_dev,
     secrets::{Secret, read_secret},
     server::shutdown_signal,
 };
@@ -161,7 +161,7 @@ pub(crate) async fn start_telegram_server() -> Result<()> {
     let bot = match bot_from_secrets() {
         Ok(bot) => bot,
         Err(error) => {
-            if is_dev() {
+            if settings().is_dev() {
                 tracing::warn!("Telegram bot not started because token is not set.");
                 return Ok(());
             } else {
