@@ -1,4 +1,7 @@
-use crate::{secrets, settings::settings};
+use crate::{
+    secrets::{self},
+    settings::settings,
+};
 use anyhow::{Context, Result, anyhow};
 use octocrab::{
     Octocrab, OctocrabBuilder,

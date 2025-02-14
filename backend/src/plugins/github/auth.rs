@@ -65,7 +65,7 @@ type ClientSecret = Secret<String>;
 impl Auth {
     pub(super) fn new() -> Result<Auth> {
         Ok(Auth {
-            client_id: Self::client_id()?,
+            client_id: settings().plugins.github.client_id.clone(),
             client_secret: read_secret("github/client_secret")?,
             client: Client::default(),
             tokens: Arc::new(Mutex::new(HashMap::new())),
@@ -125,10 +125,6 @@ impl Auth {
         };
 
         Ok(oauth)
-    }
-
-    fn client_id() -> Result<String> {
-        Ok(settings().plugins.github.client_id.clone())
     }
 
     pub(super) async fn user_access_token(&self, user: &User) -> ApiResult<OAuth> {
