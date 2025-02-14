@@ -1,6 +1,5 @@
 use crate::secrets;
 use anyhow::{anyhow, Context, Result};
-use jsonwebtoken::EncodingKey;
 use octocrab::{
     models::{
         self, pulls::PullRequest, AppId, InstallationId, InstallationRepositories, Repository,
@@ -8,7 +7,6 @@ use octocrab::{
     params::{pulls::Sort, Direction, State},
     Octocrab, OctocrabBuilder,
 };
-use std::fs;
 
 const PROD_APP_ID: u64 = 1053272;
 const DEV_APP_ID: u64 = 1066302;
@@ -17,69 +15,35 @@ pub enum InstallationRef {
     InstallationId { id: u64 },
 }
 
-#[derive(Default)]
-pub struct AppGithubConfig {
-    /// Path to the Github application key file in the RSA PEM file format.
-    ///
-    /// If unspecified, the path defaults to `$SECRETS_DIR/github/key.pem`.
-    ///
-    /// See https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps
-    app_key_path: Option<String>,
-    /// Github application id.
-    ///
-    /// If unspecified, the ID defaults to the ID indicated by the environment
-    /// given by the GH_APP_ENV environment variable or, if that is absent,
-    /// the dev id, DEV_APP_ID.
-    app_id: Option<u64>,
-}
-
-impl AppGithubConfig {
-    fn app_id(&self) -> Result<u64> {
-        match self.app_id {
-            Some(app_id) => Ok(app_id),
-            None => {
-                match std::env::var("GH_APP_ENV")
-                    .context("GH_APP_ENV is unset. Try GH_APP_ENV=dev")?
-                    .as_str()
-                {
-                    "prod" => Ok(PROD_APP_ID),
-                    "dev" => Ok(DEV_APP_ID),
-                    env => Err(anyhow!("Invalid environment: {env}")),
-                }
-            }
-        }
-    }
-
-    fn app_key_path(&self) -> Result<String> {
-        match self.app_key_path.clone() {
-            Some(app_key_path) => Ok(app_key_path),
-            None => secrets::secret_path("github/key.pem"),
-        }
-    }
-
-    fn app_key(&self) -> Result<EncodingKey> {
-        let key_path = self.app_key_path()?;
-        AppGithubConfig::read_app_key(&key_path)
-    }
-
-    fn read_app_key(key_path: &str) -> Result<EncodingKey> {
-        let pem =
-            fs::read(key_path).map_err(|e| anyhow!("Failed to read filed {key_path}: {e}"))?;
-        Ok(jsonwebtoken::EncodingKey::from_rsa_pem(&pem)?)
-    }
-}
-
 #[derive(Clone)]
 pub struct AppGithub {
     pub app_crab: Octocrab,
 }
 
 impl AppGithub {
-    pub async fn new(config: &AppGithubConfig) -> Result<AppGithub> {
+    pub async fn new() -> Result<AppGithub> {
+        // See https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps
+        let app_key = jsonwebtoken::EncodingKey::from_rsa_pem(
+            secrets::read_secret::<String>("github/key.pem")?
+                .data
+                .as_bytes(),
+        )?;
+
         let app_crab = OctocrabBuilder::new()
-            .app(AppId::from(config.app_id()?), config.app_key()?)
+            .app(AppId::from(Self::app_id()?), app_key)
             .build()?;
         Ok(AppGithub { app_crab })
+    }
+
+    fn app_id() -> Result<u64> {
+        match std::env::var("GH_APP_ENV")
+            .context("GH_APP_ENV is unset. Try GH_APP_ENV=dev")?
+            .as_str()
+        {
+            "prod" => Ok(PROD_APP_ID),
+            "dev" => Ok(DEV_APP_ID),
+            env => Err(anyhow!("Invalid environment: {env}")),
+        }
     }
 
     /// Authenticate as the given installation.
