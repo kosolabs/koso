@@ -10,7 +10,7 @@
   import { cn } from "../utils";
 
   export const tooltipVariants = tv({
-    base: "tooltip bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
+    base: "tooltip-animation bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
   });
 
   export type TooltipTriggerProps = {
@@ -48,7 +48,7 @@
     arrow = false,
     children,
     placement = "top",
-    strategy = "absolute",
+    strategy = "fixed",
     trigger,
     ...restProps
   }: TooltipProps = $props();
@@ -146,24 +146,35 @@
 })}
 
 <style>
-  .tooltip:popover-open {
-    opacity: 1;
-    scale: 1;
-  }
-
-  .tooltip {
-    opacity: 0;
-    scale: 0.95;
-
+  .tooltip-animation {
     transition:
-      opacity 0.15s,
-      scale 0.15s,
       overlay 0.15s allow-discrete,
       display 0.15s allow-discrete;
+
+    animation: close-tooltip 0.15s forwards;
   }
 
-  @starting-style {
-    .tooltip:popover-open {
+  .tooltip-animation:popover-open {
+    animation: open-tooltip 0.15s forwards;
+  }
+
+  @keyframes open-tooltip {
+    from {
+      opacity: 0;
+      scale: 0.95;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+
+  @keyframes close-tooltip {
+    from {
+      opacity: 1;
+      scale: 1;
+    }
+    to {
       opacity: 0;
       scale: 0.95;
     }

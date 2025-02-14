@@ -87,8 +87,8 @@
 <style>
   .dialog-animation {
     transition:
-      display 0.15s allow-discrete,
-      overlay 0.15s allow-discrete;
+      overlay 0.15s allow-discrete,
+      display 0.15s allow-discrete;
 
     animation: close-dialog 0.15s forwards;
     &[open] {

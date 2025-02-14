@@ -6,7 +6,7 @@
   const { icon, title, description, shortcut, callback }: Action = $props();
 </script>
 
-<PlainTooltip placement="top" strategy="fixed" arrow>
+<PlainTooltip placement="top" arrow>
   {#snippet trigger(buttonProps)}
     <Button variant="ghost" {icon} onclick={callback} {...buttonProps}>
       <div class="max-sm:hidden">{title}</div>
