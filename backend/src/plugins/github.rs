@@ -5,11 +5,7 @@ use crate::{
         model::Task,
         yproxy::{YDocProxy, YTaskProxy},
     },
-    plugins::{
-        config::ConfigStorage,
-        github::app::{AppGithub, AppGithubConfig},
-        PluginSettings,
-    },
+    plugins::{config::ConfigStorage, github::app::AppGithub, PluginSettings},
 };
 use anyhow::{anyhow, Result};
 use auth::Auth;
@@ -49,7 +45,7 @@ impl Plugin {
     ) -> Result<Plugin> {
         PLUGIN_KIND.validate()?;
         PR_KIND.validate()?;
-        let client: AppGithub = AppGithub::new(&AppGithubConfig::default()).await?;
+        let client: AppGithub = AppGithub::new().await?;
         let config_storage = ConfigStorage::new(pool)?;
         Ok(Plugin {
             collab,
