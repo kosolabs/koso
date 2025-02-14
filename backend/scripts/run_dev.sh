@@ -2,6 +2,5 @@
 
 set -eo pipefail
 
-export DATABASE_URL=${DATABASE_URL:=postgresql://localhost/koso}
-sqlx migrate run
+DATABASE_URL=${DATABASE_URL:=postgresql://localhost/koso} sqlx migrate run
 cargo run
