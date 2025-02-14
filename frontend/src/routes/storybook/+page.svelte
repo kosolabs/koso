@@ -6,6 +6,7 @@
     "/storybook/buttons-and-links",
     "/storybook/dialog",
     "/storybook/progress-indicators",
+    "/storybook/tooltip",
   ];
 </script>
 
