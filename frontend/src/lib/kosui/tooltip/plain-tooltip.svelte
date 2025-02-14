@@ -29,9 +29,10 @@
     arrow?: boolean;
     placement?: floatingUi.Placement;
     strategy?: floatingUi.Strategy;
-    triggerRef?: HTMLElement;
     children: Snippet;
-    trigger?: Snippet<[Box<HTMLElement>, TooltipTriggerProps]>;
+    // If trigger is a Snippet, do render delegation.
+    // If trigger is a HTMLElement, do fully controlled.
+    trigger?: Snippet<[Box<HTMLElement>, TooltipTriggerProps]> | HTMLElement;
   };
 </script>
 
@@ -42,7 +43,6 @@
     arrow = false,
     placement = "top",
     strategy = "fixed",
-    triggerRef,
     children,
     trigger,
     ...restProps
@@ -51,7 +51,11 @@
   let popoverEl: HTMLDivElement | undefined = $state();
   let arrowEl: HTMLDivElement | undefined = $state();
   let triggerBox = new Box<HTMLElement>();
-  let triggerEl = $derived(triggerRef ?? triggerBox.value);
+  let triggerEl = $derived(
+    // If trigger is a snippet, get the trigger element from the box.
+    // Otherwise, use the passed in element.
+    typeof trigger === "function" ? triggerBox.value : trigger,
+  );
 
   let timeout: number | undefined = $state();
 
@@ -138,13 +142,8 @@
   ></div>
 </div>
 
-{#if trigger}
-  {@render trigger(triggerBox, {
-    onfocus: show,
-    onblur: hide,
-    onmouseenter: show,
-    onmouseleave: hide,
-  })}
+{#if typeof trigger === "function"}
+  {@render trigger(triggerBox, triggerProps)}
 {/if}
 
 <style>

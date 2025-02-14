@@ -5,13 +5,21 @@
 
   const shortcut = new Shortcut({ key: "Enter", shift: true });
 
-  let ref: HTMLButtonElement | undefined = $state();
+  let ref: HTMLElement | undefined = $state();
   let tooltip: PlainTooltip | undefined = $state();
 </script>
 
 <div class="flex flex-wrap gap-2">
-  <Button bind:ref {...tooltip?.triggerProps}>Fully Controlled</Button>
-  <PlainTooltip bind:this={tooltip} triggerRef={ref} arrow>
+  <Button
+    bind:ref
+    onmouseenter={() => tooltip?.show()}
+    onmouseleave={() => tooltip?.hide()}
+    onfocus={() => tooltip?.show()}
+    onblur={() => tooltip?.hide()}
+  >
+    Fully Controlled
+  </Button>
+  <PlainTooltip bind:this={tooltip} trigger={ref} arrow>
     <div class="flex items-center gap-2">
       I'm a fully controlled tooltip
       <div class="font-bold">
