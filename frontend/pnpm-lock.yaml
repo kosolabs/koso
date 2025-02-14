@@ -10,14 +10,13 @@ overrides:
 importers:
 
   .:
-    dependencies:
-      '@floating-ui/dom':
-        specifier: ^1.6.13
-        version: 1.6.13
     devDependencies:
       '@eslint/js':
         specifier: 9.20.0
         version: 9.20.0
+      '@floating-ui/dom':
+        specifier: ^1.6.13
+        version: 1.6.13
       '@playwright/test':
         specifier: 1.50.1
         version: 1.50.1
