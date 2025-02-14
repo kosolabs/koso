@@ -7,6 +7,7 @@
     MouseEventHandler,
   } from "svelte/elements";
   import { tv, type VariantProps } from "tailwind-variants";
+  import { Box } from "../box.svelte";
   import { cn } from "../utils";
 
   export const tooltipVariants = tv({
@@ -14,10 +15,10 @@
   });
 
   export type TooltipTriggerProps = {
-    onfocus?: FocusEventHandler<HTMLButtonElement> | undefined | null;
-    onblur?: FocusEventHandler<HTMLButtonElement> | undefined | null;
-    onmouseenter?: MouseEventHandler<HTMLButtonElement> | undefined | null;
-    onmouseleave?: MouseEventHandler<HTMLButtonElement> | undefined | null;
+    onfocus?: FocusEventHandler<HTMLElement> | undefined | null;
+    onblur?: FocusEventHandler<HTMLElement> | undefined | null;
+    onmouseenter?: MouseEventHandler<HTMLElement> | undefined | null;
+    onmouseleave?: MouseEventHandler<HTMLElement> | undefined | null;
   };
 
   export type TooltipVariants = VariantProps<typeof tooltipVariants>;
@@ -28,52 +29,54 @@
     arrow?: boolean;
     placement?: floatingUi.Placement;
     strategy?: floatingUi.Strategy;
+    triggerRef?: HTMLElement;
     children: Snippet;
-    trigger: Snippet<
-      [
-        TooltipTriggerProps & {
-          ref: Box<HTMLButtonElement>;
-        },
-      ]
-    >;
+    trigger?: Snippet<[Box<HTMLElement>, TooltipTriggerProps]>;
   };
 </script>
 
 <script lang="ts">
-  import { Box } from "../box.svelte";
-
   let {
     class: className,
     delay = 500,
     arrow = false,
-    children,
     placement = "top",
     strategy = "fixed",
+    triggerRef,
+    children,
     trigger,
     ...restProps
   }: TooltipProps = $props();
 
   let popoverEl: HTMLDivElement | undefined = $state();
-  let buttonEl: Box<HTMLButtonElement> = new Box();
   let arrowEl: HTMLDivElement | undefined = $state();
+  let triggerBox = new Box<HTMLElement>();
+  let triggerEl = $derived(triggerRef ?? triggerBox.value);
 
   let timeout: number | undefined = $state();
 
-  function handleShow() {
+  export function show() {
     timeout = window.setTimeout(() => {
       popoverEl?.showPopover();
     }, delay);
   }
 
-  function handleHide() {
+  export function hide() {
     popoverEl?.hidePopover();
     window.clearTimeout(timeout);
   }
 
+  export const triggerProps: TooltipTriggerProps = {
+    onmouseenter: show,
+    onmouseleave: hide,
+    onfocus: show,
+    onblur: hide,
+  };
+
   async function updatePosition() {
-    if (buttonEl.value && popoverEl && arrowEl) {
+    if (triggerEl && popoverEl && arrowEl) {
       const computedPosition = await floatingUi.computePosition(
-        buttonEl.value,
+        triggerEl,
         popoverEl,
         {
           placement,
@@ -114,9 +117,7 @@
   }
 
   onMount(() => {
-    if (buttonEl.value && popoverEl) {
-      return floatingUi.autoUpdate(buttonEl.value, popoverEl, updatePosition);
-    }
+    return floatingUi.autoUpdate(triggerEl!, popoverEl!, updatePosition);
   });
 </script>
 
@@ -137,13 +138,14 @@
   ></div>
 </div>
 
-{@render trigger({
-  ref: buttonEl,
-  onfocus: handleShow,
-  onblur: handleHide,
-  onmouseenter: handleShow,
-  onmouseleave: handleHide,
-})}
+{#if trigger}
+  {@render trigger(triggerBox, {
+    onfocus: show,
+    onblur: hide,
+    onmouseenter: show,
+    onmouseleave: hide,
+  })}
+{/if}
 
 <style>
   .tooltip-animation {
