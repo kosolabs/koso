@@ -8,7 +8,6 @@ use crate::{
         yproxy::{YDocProxy, YTaskProxy},
         ApiResult,
     },
-    flags::is_dev,
     plugins::{
         config::{Config, ConfigStorage},
         github::{
@@ -17,6 +16,7 @@ use crate::{
             PLUGIN_KIND, PR_KIND,
         },
     },
+    settings::settings,
 };
 use anyhow::Result;
 use axum::{routing::post, Extension, Router};
@@ -47,7 +47,7 @@ impl Poller {
 
     pub(super) fn router(self) -> Router {
         // TODO: In the future, we could expose this in production with admin authorization
-        if is_dev() {
+        if settings().is_dev() {
             return Router::new()
                 .route("/poll", post(Poller::poll_handler))
                 .layer((Extension(self),));

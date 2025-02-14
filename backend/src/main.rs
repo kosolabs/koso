@@ -1,7 +1,6 @@
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
-mod flags;
 mod healthz;
 mod metrics_server;
 mod notifiers;
@@ -9,6 +8,7 @@ mod plugins;
 mod postgres;
 mod secrets;
 mod server;
+mod settings;
 
 #[cfg(test)]
 mod tests;
