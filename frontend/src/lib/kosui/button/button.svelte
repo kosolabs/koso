@@ -1,7 +1,9 @@
 <script lang="ts" module>
   import type { Icon } from "lucide-svelte";
   import type { HTMLButtonAttributes } from "svelte/elements";
-  import { type ClassValue, type VariantProps, tv } from "tailwind-variants";
+  import { type VariantProps, tv } from "tailwind-variants";
+  import { Box } from "../box.svelte";
+  import { cn } from "../utils";
 
   export const buttonVariants = tv({
     base: "focus-visible:ring-m3-secondary disabled:text-m3-on-surface/38 flex h-10 items-center gap-2 rounded-[20px] px-6 text-sm text-nowrap transition-all focus-visible:outline-hidden",
@@ -15,7 +17,8 @@
           "bg-m3-secondary-container shadow-m3-shadow text-m3-on-secondary-container hover:bg-m3-secondary-container-hover focus-visible:bg-m3-secondary-container-focus active:bg-m3-secondary-container-active disabled:bg-m3-on-surface/12 not-disabled:not-active:hover:shadow-xs not-disabled:active:scale-95",
         outline:
           "text-m3-primary not-disabled:hover:bg-m3-primary/8 focus-visible:bg-m3-primary/10 not-disabled:active:bg-m3-primary/12 focus-visible:outline-m3-primary outline-m3-outline disabled:outline-m3-on-surface/12 outline not-disabled:active:scale-95",
-        text: "text-m3-primary not-disabled:hover:bg-m3-primary/8 focus-visible:bg-m3-primary/10 not-disabled:active:bg-m3-primary/12 disabled:outline-m3-on-surface/12 not-disabled:active:scale-95",
+        ghost:
+          "text-m3-primary not-disabled:hover:bg-m3-primary/8 focus-visible:bg-m3-primary/10 not-disabled:active:bg-m3-primary/12 disabled:outline-m3-on-surface/12 not-disabled:active:scale-95",
       },
     },
     defaultVariants: {
@@ -27,8 +30,8 @@
 
   export type ButtonProps = HTMLButtonAttributes &
     ButtonVariants & {
+      ref?: Box<HTMLButtonElement>;
       icon?: typeof Icon;
-      class?: ClassValue;
     };
 </script>
 
@@ -36,13 +39,18 @@
   let {
     class: className,
     variant,
+    ref = new Box(),
     icon: IconComponent,
     children,
     ...restProps
   }: ButtonProps = $props();
 </script>
 
-<button class={buttonVariants({ variant, className })} {...restProps}>
+<button
+  use:ref.apply
+  class={cn(buttonVariants({ variant }), className)}
+  {...restProps}
+>
   {#if IconComponent}
     <IconComponent size={18} class="ml-[-4px]" />
   {/if}
