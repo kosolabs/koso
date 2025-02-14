@@ -1,6 +1,7 @@
 use crate::{
     api::{ApiResult, bad_request_error, google::User},
     secrets::{Secret, read_secret},
+    settings::settings,
 };
 use anyhow::{Context, Result, anyhow};
 use axum::{Extension, Json, Router, routing::post};
@@ -12,9 +13,6 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::Mutex;
-
-const PROD_CLIENT_ID: &str = "Iv23lioB8K1C62NP3UbV";
-const DEV_CLIENT_ID: &str = "Iv23lif5pPjNjiQVtgPH";
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -130,15 +128,7 @@ impl Auth {
     }
 
     fn client_id() -> Result<String> {
-        Ok(
-            match std::env::var("GH_APP_ENV").as_ref().map(String::as_ref) {
-                Ok("prod") => PROD_CLIENT_ID,
-                Ok("dev") => DEV_CLIENT_ID,
-                Ok(env) => return Err(anyhow!("Invalid environment: {env}")),
-                Err(e) => return Err(anyhow!("GH_APP_ENV is unset. Try GH_APP_ENV=dev: {e}")),
-            }
-            .to_string(),
-        )
+        Ok(settings().plugins.github.client_id.clone())
     }
 
     pub(super) async fn user_access_token(&self, user: &User) -> ApiResult<OAuth> {

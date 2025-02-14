@@ -1,6 +1,8 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Result, anyhow};
 use core::fmt;
 use std::{fmt::Debug, fs, path::Path};
+
+use crate::settings::settings;
 
 #[derive(Clone)]
 pub(crate) struct Secret<T> {
@@ -27,8 +29,8 @@ pub(crate) fn read_secret<T: std::convert::From<String>>(sub_path: &str) -> Resu
 }
 
 pub(crate) fn secret_path(sub_path: &str) -> Result<String> {
-    let dir = std::env::var("SECRETS_DIR").context("SECRETS_DIR is unset.")?;
-    Path::new(&dir)
+    let dir = &settings().secrets_dir;
+    Path::new(dir)
         .join(sub_path)
         .into_os_string()
         .into_string()
