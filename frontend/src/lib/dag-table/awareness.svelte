@@ -95,7 +95,7 @@
 </script>
 
 <script lang="ts">
-  import * as Tooltip from "$lib/components/ui/tooltip";
+  import { PlainTooltip } from "$lib/kosui/tooltip";
   import { cn } from "$lib/kosui/utils";
 
   type Props = {
@@ -116,35 +116,34 @@
 </script>
 
 {#if users.length > 0}
-  <Tooltip.Provider>
-    <Tooltip.Root>
-      <Tooltip.Trigger>
-        {#snippet child({ props })}
+  <PlainTooltip arrow>
+    {#snippet trigger(ref, props)}
+      <div
+        bind:this={ref.value}
+        {...props}
+        role="note"
+        aria-label={`${label} selected`}
+        class={cn(
+          "absolute top-0 right-0 rounded-tr rounded-bl px-1 text-xs text-nowrap text-white",
+          getAwarenessBg(users),
+        )}
+      >
+        {label}
+      </div>
+    {/snippet}
+    {#snippet children()}
+      <div class={cn("flex flex-col gap-1")}>
+        {#each users as user}
           <div
-            {...props}
-            role="note"
-            aria-label={`${label} selected`}
             class={cn(
-              "absolute top-0 right-0 rounded-tr rounded-bl px-1 text-xs text-nowrap text-white",
-              getAwarenessBg(users),
+              "rounded p-1 text-xs text-nowrap",
+              getAwarenessBg([user]),
             )}
           >
-            {label}
+            {user.name} ({user.email})
           </div>
-        {/snippet}
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content>
-          <Tooltip.Arrow />
-          <div class={cn("flex flex-col gap-1")}>
-            {#each users as user}
-              <div class={cn("rounded p-1 text-xs", getAwarenessBg([user]))}>
-                {user.name} ({user.email})
-              </div>
-            {/each}
-          </div>
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
-  </Tooltip.Provider>
+        {/each}
+      </div>
+    {/snippet}
+  </PlainTooltip>
 {/if}

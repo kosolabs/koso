@@ -136,7 +136,7 @@
   <div
     bind:this={arrowEl}
     class={cn(
-      "bg-m3-inverse-surface absolute size-2 rotate-45",
+      "bg-m3-inverse-surface absolute -z-10 size-2 rotate-45",
       arrow ? "block" : "hidden",
     )}
   ></div>
