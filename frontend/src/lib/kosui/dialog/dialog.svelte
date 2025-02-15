@@ -2,8 +2,8 @@
   import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
   import type { HTMLDialogAttributes } from "svelte/elements";
+  import { twMerge } from "tailwind-merge";
   import { tv, type ClassValue } from "tailwind-variants";
-  import { cn } from "../utils";
 
   const dialogVariants = tv({
     base: "bg-m3-surface-container-high dialog-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-[28px] p-6 shadow-lg",
@@ -63,12 +63,12 @@
   {...props}
 >
   <form method="dialog">
-    <div class={cn("flex flex-col gap-4")}>
+    <div class={twMerge("flex flex-col gap-4")}>
       {#if IconComponent}
         <IconComponent class="mx-auto" />
       {/if}
       {#if title}
-        <div class={cn("text-xl", IconComponent ? "text-center" : "")}>
+        <div class={twMerge("text-xl", IconComponent ? "text-center" : "")}>
           {title}
         </div>
       {/if}

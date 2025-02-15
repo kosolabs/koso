@@ -1,6 +1,6 @@
 <script lang="ts">
   import { PlainTooltip } from "$lib/kosui/tooltip";
-  import { cn } from "$lib/kosui/utils";
+  import { cn } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
   import { ArrowBigDown } from "lucide-svelte";
 

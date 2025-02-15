@@ -1,14 +1,10 @@
 <script lang="ts" module>
   import * as floatingUi from "@floating-ui/dom";
   import { onMount, type Snippet } from "svelte";
-  import type {
-    ClassValue,
-    FocusEventHandler,
-    MouseEventHandler,
-  } from "svelte/elements";
-  import { tv, type VariantProps } from "tailwind-variants";
+  import type { FocusEventHandler, MouseEventHandler } from "svelte/elements";
+  import { twMerge } from "tailwind-merge";
+  import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
   import { Box } from "../box.svelte";
-  import { cn } from "../utils";
 
   export const tooltipVariants = tv({
     base: "tooltip-animation bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
@@ -24,7 +20,7 @@
   export type TooltipVariants = VariantProps<typeof tooltipVariants>;
 
   export type TooltipProps = TooltipVariants & {
-    class?: ClassValue | null;
+    class?: ClassValue;
     delay?: number;
     arrow?: boolean;
     placement?: floatingUi.Placement;
@@ -142,13 +138,13 @@
   bind:this={popoverEl}
   popover="auto"
   role="tooltip"
-  class={cn(tooltipVariants({}), className)}
+  class={tooltipVariants({ className })}
   {...restProps}
 >
   {@render children()}
   <div
     bind:this={arrowEl}
-    class={cn(
+    class={twMerge(
       "bg-m3-inverse-surface absolute -z-10 size-2 rotate-45",
       arrow ? "block" : "hidden",
     )}
