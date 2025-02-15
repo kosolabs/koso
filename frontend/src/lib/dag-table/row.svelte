@@ -21,8 +21,8 @@
     type TaskActionType,
   } from "$lib/components/ui/task-action/task-action.svelte";
   import { UserSelect } from "$lib/components/ui/user-select";
-  import { cn } from "$lib/kosui/utils";
   import { Shortcut } from "$lib/shortcuts";
+  import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";

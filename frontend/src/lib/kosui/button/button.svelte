@@ -2,9 +2,8 @@
   import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
   import type { HTMLButtonAttributes } from "svelte/elements";
-  import { type VariantProps, tv } from "tailwind-variants";
+  import { type ClassValue, type VariantProps, tv } from "tailwind-variants";
   import { PlainTooltip } from "../tooltip";
-  import { cn } from "../utils";
 
   export const buttonVariants = tv({
     base: "focus-visible:ring-m3-secondary disabled:text-m3-on-surface/38 flex h-10 items-center gap-2 rounded-[20px] px-6 text-sm text-nowrap transition-all focus-visible:outline-hidden",
@@ -31,6 +30,7 @@
 
   export type ButtonProps = HTMLButtonAttributes &
     ButtonVariants & {
+      class?: ClassValue;
       ref?: HTMLElement;
       icon?: typeof Icon;
       tooltip?: Snippet | string;
@@ -53,7 +53,7 @@
 
 <button
   bind:this={ref}
-  class={cn(buttonVariants({ variant }), className)}
+  class={buttonVariants({ variant, className })}
   {...restProps}
   {...tooltipRef?.triggerProps}
 >
