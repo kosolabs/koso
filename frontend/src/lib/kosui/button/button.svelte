@@ -1,7 +1,9 @@
 <script lang="ts" module>
   import type { Icon } from "lucide-svelte";
+  import type { Snippet } from "svelte";
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { type VariantProps, tv } from "tailwind-variants";
+  import { PlainTooltip } from "../tooltip";
   import { cn } from "../utils";
 
   export const buttonVariants = tv({
@@ -31,6 +33,7 @@
     ButtonVariants & {
       ref?: HTMLElement;
       icon?: typeof Icon;
+      tooltip?: Snippet | string;
     };
 </script>
 
@@ -41,17 +44,31 @@
     ref = $bindable(),
     icon: IconComponent,
     children,
+    tooltip,
     ...restProps
   }: ButtonProps = $props();
+
+  let tooltipRef: PlainTooltip | undefined = $state();
 </script>
 
 <button
   bind:this={ref}
   class={cn(buttonVariants({ variant }), className)}
   {...restProps}
+  {...tooltipRef?.triggerProps}
 >
   {#if IconComponent}
     <IconComponent size={18} class="ml-[-4px]" />
   {/if}
   {@render children?.()}
 </button>
+
+{#if tooltip}
+  <PlainTooltip bind:this={tooltipRef} trigger={ref} arrow>
+    {#if typeof tooltip === "function"}
+      {@render tooltip()}
+    {:else}
+      {tooltip}
+    {/if}
+  </PlainTooltip>
+{/if}

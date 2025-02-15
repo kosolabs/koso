@@ -39,5 +39,19 @@
       </div>
     </div>
   </PlainTooltip>
+
+  <Button tooltip="I'm a tooltip prop">Tooltip Prop</Button>
+
+  <Button>
+    Tooltip Snippet
+    {#snippet tooltip()}
+      <div class="flex items-center gap-2">
+        I'm a tooltip snippet
+        <div class="font-bold">
+          {shortcut.toString()}
+        </div>
+      </div>
+    {/snippet}
+  </Button>
 </div>
 <div class="h-[1024px] w-[1024px]"></div>
