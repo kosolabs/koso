@@ -2,7 +2,6 @@
   import type { Icon } from "lucide-svelte";
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { type VariantProps, tv } from "tailwind-variants";
-  import { Box } from "../box.svelte";
   import { cn } from "../utils";
 
   export const buttonVariants = tv({
@@ -30,7 +29,7 @@
 
   export type ButtonProps = HTMLButtonAttributes &
     ButtonVariants & {
-      ref?: Box<HTMLButtonElement>;
+      ref?: HTMLElement;
       icon?: typeof Icon;
     };
 </script>
@@ -39,7 +38,7 @@
   let {
     class: className,
     variant,
-    ref = new Box(),
+    ref = $bindable(),
     icon: IconComponent,
     children,
     ...restProps
@@ -47,7 +46,7 @@
 </script>
 
 <button
-  use:ref.apply
+  bind:this={ref}
   class={cn(buttonVariants({ variant }), className)}
   {...restProps}
 >
