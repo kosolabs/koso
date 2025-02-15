@@ -29,6 +29,7 @@
     arrow?: boolean;
     placement?: floatingUi.Placement;
     strategy?: floatingUi.Strategy;
+    open?: boolean;
     children: Snippet;
     // If trigger is a Snippet, do render delegation.
     // If trigger is a HTMLElement, do fully controlled.
@@ -43,6 +44,7 @@
     arrow = false,
     placement = "top",
     strategy = "fixed",
+    open = $bindable(false),
     children,
     trigger,
     ...restProps
@@ -59,23 +61,34 @@
 
   let timeout: number | undefined = $state();
 
-  export function show() {
-    timeout = window.setTimeout(() => {
-      popoverEl?.showPopover();
-    }, delay);
+  export function show(after?: number) {
+    timeout = window.setTimeout(
+      () => {
+        open = true;
+      },
+      after === undefined ? delay : after,
+    );
   }
 
   export function hide() {
-    popoverEl?.hidePopover();
     window.clearTimeout(timeout);
+    open = false;
   }
 
   export const triggerProps: TooltipTriggerProps = {
-    onmouseenter: show,
-    onmouseleave: hide,
-    onfocus: show,
-    onblur: hide,
+    onmouseenter: () => show(),
+    onmouseleave: () => hide(),
+    onfocus: () => show(),
+    onblur: () => hide(),
   };
+
+  $effect(() => {
+    if (open) {
+      popoverEl?.showPopover();
+    } else {
+      popoverEl?.hidePopover();
+    }
+  });
 
   async function updatePosition() {
     if (triggerEl && popoverEl && arrowEl) {
