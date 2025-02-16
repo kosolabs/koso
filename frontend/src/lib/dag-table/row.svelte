@@ -9,7 +9,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { type User } from "$lib/auth.svelte";
-  import { Button } from "$lib/components/ui/button";
   import {
     Chip,
     parseChipProps,
@@ -21,6 +20,7 @@
     type TaskActionType,
   } from "$lib/components/ui/task-action/task-action.svelte";
   import { UserSelect } from "$lib/components/ui/user-select";
+  import { Link } from "$lib/kosui/link";
   import { Shortcut } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
@@ -396,16 +396,14 @@
         </button>
       {:else}
         <div class="overflow-x-hidden whitespace-nowrap">
-          <Button
-            class="p-0"
-            variant="link"
+          <Link
             onclick={() => {
               sessionStorage.setItem("taskId", task.id);
               goto(`/projects/${koso.projectId}`);
             }}
           >
             {task.num}
-          </Button>
+          </Link>
         </div>
       {/if}
     </div>
@@ -456,21 +454,21 @@
             }}
           />
         {:else}
-          <Button
+          <Link
             class={cn(
-              "h-auto p-0 text-left text-wrap whitespace-normal hover:no-underline disabled:opacity-100",
+              "h-auto p-0 text-left text-wrap whitespace-normal disabled:opacity-100",
               task.url ? "text" : "",
             )}
-            variant="link"
             aria-label={`Task ${task.num} Name`}
             onclick={() => {
               if (!task.url) throw new Error(`No URL set on task ${task}`);
               window.open(task.url, "_blank")!.focus();
             }}
             disabled={!task.url}
+            underline="none"
           >
             {task.name || "Untitled"}
-          </Button>
+          </Link>
         {/if}
         <LinkPanel {node} bind:open={linkOpen} closeFocus={rowElement} />
       </div>

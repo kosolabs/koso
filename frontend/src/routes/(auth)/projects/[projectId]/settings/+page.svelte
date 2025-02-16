@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Navbar from "$lib/navbar.svelte";
-  import { Button } from "$lib/components/ui/button";
   import { CREDENTIAL_KEY } from "$lib/auth.svelte";
+  import { Button } from "$lib/kosui/button";
+  import Navbar from "$lib/navbar.svelte";
   import { toast } from "svelte-sonner";
 
   async function clearLocalState() {

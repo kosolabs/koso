@@ -1,7 +1,8 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
-  import { Button } from "$lib/components/ui/button";
+  import { Button } from "$lib/kosui/button";
+  import { Link } from "$lib/kosui/link";
   import Navbar from "$lib/navbar.svelte";
   import * as rest from "$lib/projects";
   import { type Project, type ProjectExport } from "$lib/projects";
@@ -136,12 +137,18 @@
       <div><Layers /></div>
       <div class="text-xl">Create your first Koso project!</div>
       <div>
-        <Button title="New Project" onclick={() => createProject()}>
-          <PackagePlus />
+        <Button
+          icon={PackagePlus}
+          tooltip="New Project"
+          onclick={() => createProject()}
+        >
           New
         </Button>
-        <Button title="Import Project" onclick={triggerFileSelect}>
-          <HardDriveUpload />
+        <Button
+          icon={HardDriveUpload}
+          tooltip="Import Project"
+          onclick={triggerFileSelect}
+        >
           Import
         </Button>
       </div>
@@ -149,13 +156,19 @@
   {:else}
     <div class="m-2 flex flex-col rounded border">
       <div class="flex flex-col items-end p-2">
-        <div>
-          <Button title="New Project" onclick={() => createProject()}>
-            <PackagePlus />
+        <div class="flex gap-2">
+          <Button
+            icon={PackagePlus}
+            tooltip="New Project"
+            onclick={() => createProject()}
+          >
             New
           </Button>
-          <Button title="Import Project" onclick={triggerFileSelect}>
-            <HardDriveUpload />
+          <Button
+            icon={HardDriveUpload}
+            tooltip="Import Project"
+            onclick={triggerFileSelect}
+          >
             Import
           </Button>
         </div>
@@ -163,21 +176,16 @@
       <div class="[&>*:nth-child(even)]:bg-muted flex flex-col items-stretch">
         {#each projects as project}
           <div class="flex items-center border-t p-2">
-            <Button
-              variant="link"
-              class="text-lg"
-              href="projects/{project.projectId}"
-            >
+            <Link class="text-lg" href="projects/{project.projectId}">
               {project.name}
-            </Button>
+            </Link>
             <Button
-              title="Move Project to Trash"
+              icon={Trash2}
+              tooltip="Move Project to Trash"
               class="ml-auto"
-              variant="outline"
               aria-label="Delete {project.name}"
               onclick={() => deleteProject(project)}
             >
-              <Trash2 />
               Trash
             </Button>
           </div>

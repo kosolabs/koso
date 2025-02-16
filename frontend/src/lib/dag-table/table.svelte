@@ -1,8 +1,8 @@
 <script lang="ts">
   import { auth, type User } from "$lib/auth.svelte";
-  import { Button } from "$lib/components/ui/button";
   import { CommandPalette } from "$lib/components/ui/command-palette";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
+  import { Button } from "$lib/kosui/button";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import {
     Cable,
@@ -631,8 +631,7 @@
             Koso helps you to organize your work and be productive.
           </div>
           <div class="mt-4">
-            <Button onclick={insert}>
-              <ListPlus />
+            <Button variant="filled" icon={ListPlus} onclick={insert}>
               Add task
             </Button>
           </div>

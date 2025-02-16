@@ -4,6 +4,7 @@
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { type ClassValue, type VariantProps, tv } from "tailwind-variants";
   import { PlainTooltip } from "../tooltip";
+  import type { ElementRef } from "../utils";
 
   export const buttonVariants = tv({
     base: "focus-visible:ring-m3-secondary disabled:text-m3-on-surface/38 flex h-10 items-center gap-2 rounded-[20px] px-6 text-sm text-nowrap transition-all focus-visible:outline-hidden",
@@ -28,10 +29,10 @@
 
   export type ButtonVariants = VariantProps<typeof buttonVariants>;
 
-  export type ButtonProps = HTMLButtonAttributes &
+  export type ButtonProps = ElementRef &
+    HTMLButtonAttributes &
     ButtonVariants & {
       class?: ClassValue;
-      ref?: HTMLElement;
       icon?: typeof Icon;
       tooltip?: Snippet | string;
     };

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
+  import { Link } from "$lib/kosui/link";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import { tick } from "svelte";
@@ -115,15 +115,12 @@
     bind:value={edited}
   />
 {:else}
-  <Button
-    variant="link"
-    class={cn(
-      "h-auto p-0 text-left text-wrap whitespace-normal hover:no-underline",
-      classes,
-    )}
+  <Link
+    class={cn("h-auto p-0 text-left text-wrap whitespace-normal", classes)}
     aria-label={ariaLabel}
     onclick={handleButtonClick}
+    underline="none"
   >
     {value || placeholder}
-  </Button>
+  </Link>
 {/if}

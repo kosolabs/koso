@@ -98,7 +98,5 @@
     </div>
   {/await}
 {:then}
-  <div class="p-2">
-    <DagTable {koso} users={projectUsers} extraActions={[]} inboxView={true} />
-  </div>
+  <DagTable {koso} users={projectUsers} extraActions={[]} inboxView={true} />
 {/await}
