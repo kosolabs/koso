@@ -3,10 +3,10 @@
   import { KosoError } from "$lib/api";
   import { showUnauthorizedDialog, type User } from "$lib/auth.svelte";
   import { Alert } from "$lib/components/ui/alert";
-  import { Button } from "$lib/components/ui/button";
   import { Editable } from "$lib/components/ui/editable";
   import { DagTable, Koso, KosoSocket } from "$lib/dag-table";
   import { githubInstallUrl } from "$lib/github";
+  import { Button } from "$lib/kosui/button";
   import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
   import {
@@ -122,20 +122,34 @@
     </div>
   {/snippet}
   {#snippet right()}
-    <Button title="Connect to Github" href={githubInstallUrl(projectId)}>
-      <PlugZap />
-    </Button>
-    <Button title="Export Project" onclick={exportProjectToFile}>
-      <FileDown />
-    </Button>
-    <Button
-      title="Share Project"
-      onclick={() => {
-        openShareModal = true;
-      }}
-    >
-      <UserPlus />
-    </Button>
+    <div class="flex">
+      <Button
+        variant="ghost"
+        tooltip="Connect to GitHub"
+        aria-label="Connect to GitHub"
+        onclick={() => window.location.assign(githubInstallUrl(projectId))}
+      >
+        <PlugZap />
+      </Button>
+      <Button
+        variant="ghost"
+        tooltip="Export project"
+        aria-label="Export project"
+        onclick={exportProjectToFile}
+      >
+        <FileDown />
+      </Button>
+      <Button
+        variant="ghost"
+        tooltip="Share project"
+        aria-label="Share project"
+        onclick={() => {
+          openShareModal = true;
+        }}
+      >
+        <UserPlus />
+      </Button>
+    </div>
   {/snippet}
 </Navbar>
 

@@ -3,11 +3,11 @@
   import { headers, parse_response } from "$lib/api";
   import { auth, type User } from "$lib/auth.svelte";
   import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import { Button } from "$lib/components/ui/button";
   import * as Dialog from "$lib/components/ui/dialog";
   import { Input } from "$lib/components/ui/input";
   import * as Popover from "$lib/components/ui/popover";
   import { UserAvatar } from "$lib/components/ui/user-select";
+  import { Button } from "$lib/kosui/button";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectUsers,
@@ -192,12 +192,11 @@
           >
             <UserAvatar user={projectUser} />
             <Button
+              variant="ghost"
               class="ml-auto"
-              variant="link"
-              title="Remove {projectUser.email}"
-              onclick={async () => {
-                await removeUser(projectUser, false);
-              }}
+              tooltip="Remove {projectUser.email}"
+              aria-label="Remove {projectUser.email}"
+              onclick={() => removeUser(projectUser, false)}
             >
               <CircleMinus />
             </Button>
