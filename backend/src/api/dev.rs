@@ -1,10 +1,8 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::{bad_request_error, google, User};
-use crate::{
-    api::{internal_error, ApiResult},
-    flags::is_dev,
-};
+use crate::{api::ApiResult, flags::is_dev};
+use anyhow::Context as _;
 use axum::{routing::post, Extension, Router};
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
@@ -82,7 +80,7 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
     tracing::debug!("Deleting test users{test_user_emails:?}");
 
     // Delete any projects with ONLY deletable test users.
-    if let Err(e) = sqlx::query(
+    sqlx::query(
         "
         DELETE FROM projects
         WHERE project_id IN (
@@ -96,13 +94,9 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
     .bind(&test_user_emails)
     .execute(pool)
     .await
-    {
-        return Err(internal_error(&format!(
-            "Failed to delete test projects: {e}"
-        )));
-    }
+    .context("Failed to delete test projects")?;
     // Delete any orphaned yupdates.
-    if let Err(e) = sqlx::query(
+    sqlx::query(
         "
         DELETE FROM yupdates
         WHERE project_id NOT IN (
@@ -111,13 +105,9 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
     )
     .execute(pool)
     .await
-    {
-        return Err(internal_error(&format!(
-            "Failed to delete test yupdates: {e}"
-        )));
-    }
+    .context("Failed to delete test yupdates")?;
     // Delete any orphaned plugin configs.
-    if let Err(e) = sqlx::query(
+    sqlx::query(
         "
         DELETE FROM plugin_configs
         WHERE project_id NOT IN (
@@ -126,13 +116,9 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
     )
     .execute(pool)
     .await
-    {
-        return Err(internal_error(&format!(
-            "Failed to delete test yupdates: {e}"
-        )));
-    }
+    .context("Failed to delete test yupdates")?;
     // Delete any orphaned project permissions.
-    if let Err(e) = sqlx::query(
+    sqlx::query(
         "
         DELETE FROM project_permissions
         WHERE project_id NOT IN (
@@ -141,13 +127,9 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
     )
     .execute(pool)
     .await
-    {
-        return Err(internal_error(&format!(
-            "Failed to delete test project_permissions: {e}"
-        )));
-    }
+    .context("Failed to delete test project_permissions")?;
     // Delete any test users that are no longer part of any project.
-    if let Err(e) = sqlx::query(
+    sqlx::query(
         "
         DELETE FROM users
         WHERE email IN (SELECT * FROM unnest($1))
@@ -156,11 +138,9 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
     .bind(&test_user_emails)
     .execute(pool)
     .await
-    {
-        return Err(internal_error(&format!("Failed to delete test users: {e}")));
-    }
+    .context("Failed to delete test users")?;
     // Delete any orphaned notification configs.
-    if let Err(e) = sqlx::query(
+    sqlx::query(
         "
         DELETE FROM user_notification_configs
         WHERE email NOT IN (
@@ -169,9 +149,7 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
     )
     .execute(pool)
     .await
-    {
-        return Err(internal_error(&format!("Failed to delete test users: {e}")));
-    }
+    .context("Failed to delete test users")?;
 
     Ok(())
 }
