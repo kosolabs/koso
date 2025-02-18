@@ -187,7 +187,7 @@ impl IntoResponse for ErrorResponse {
 /// Converts from boxed Error to ErrorResponse and logs the error.
 impl<E> From<E> for ErrorResponse
 where
-    E: Into<Box<dyn std::error::Error>>,
+    E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
         internal_error(&format!("{:?}", err.into()))
