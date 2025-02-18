@@ -92,8 +92,8 @@
     {message}
   {/if}
   {#snippet actions()}
-    {#each buttons as { value, variant, text }}
-      <Button type="submit" {value} {variant}>{text}</Button>
+    {#each buttons as { value, variant, text, default: autofocus }}
+      <Button type="submit" {value} {variant} {autofocus}>{text}</Button>
     {/each}
   {/snippet}
 </Dialog>

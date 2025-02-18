@@ -67,9 +67,7 @@
 
   export function show(after?: number) {
     timeout = window.setTimeout(
-      () => {
-        open = true;
-      },
+      () => (open = true),
       after === undefined ? delay : after,
     );
   }

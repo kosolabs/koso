@@ -10,11 +10,23 @@
   let customResult: string | undefined = $state();
   function handleSelect(value: string) {
     customResult = value;
+    console.log("handleSelect", value);
+  }
+
+  let customConfirmOpen: boolean = $state(false);
+  function handleConfirm(value: string) {
+    if (value === "ok") {
+      customResult = "four";
+    } else {
+      customResult = undefined;
+    }
+    console.log("handleConfirm", value);
   }
 </script>
 
 <div class="flex flex-wrap items-center gap-2 rounded-lg border p-4">
   <Button
+    tooltip="I'm the Show Notice Button"
     onclick={() => {
       noticeResult = dialog.notice({
         message: "Heads up. A thing just happened!",
@@ -91,6 +103,25 @@
     <Button type="submit" variant="elevated" value="one">One</Button>
     <Button type="submit" variant="filled" value="two">Two</Button>
     <Button type="submit" variant="tonal" value="three">Three</Button>
-    <Button type="submit" value="four">Four</Button>
+    <Button
+      type="button"
+      onclick={() => {
+        customConfirmOpen = true;
+      }}>Four</Button
+    >
+  {/snippet}
+</Dialog>
+
+<Dialog
+  bind:open={customConfirmOpen}
+  icon={TriangleAlert}
+  title="Confirmation Title!"
+  onSelect={handleConfirm}
+>
+  Are you sure you want to select four?
+
+  {#snippet actions()}
+    <Button type="submit" value="">No way!</Button>
+    <Button type="submit" value="ok" variant="filled">Absolutely!</Button>
   {/snippet}
 </Dialog>

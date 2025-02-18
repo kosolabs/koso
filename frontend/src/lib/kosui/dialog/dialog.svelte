@@ -4,10 +4,9 @@
   import type { HTMLDialogAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { tv, type ClassValue } from "tailwind-variants";
+  import { Modal, type ToggleEventWithTarget } from "../modal";
 
-  const dialogVariants = tv({
-    base: "bg-m3-surface-container-high dialog-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-[28px] p-6 shadow-lg",
-  });
+  const dialogVariants = tv({});
 
   type DialogProps = {
     ref?: HTMLDialogElement;
@@ -33,31 +32,19 @@
     ...props
   }: DialogProps = $props();
 
-  function handleToggle(event: ToggleEvent) {
-    if (!ref) {
-      console.error("ref should be defined!");
-      return;
-    }
+  function handleToggle(event: ToggleEventWithTarget) {
+    if (!ref) throw new Error("ref should be defined!");
     if (event.newState === "closed") {
       onSelect(ref.returnValue);
-      open = false;
     } else {
       ref.returnValue = "";
-      open = true;
     }
   }
-
-  $effect(() => {
-    if (open) {
-      ref?.showModal();
-    } else {
-      ref?.close();
-    }
-  });
 </script>
 
-<dialog
-  bind:this={ref}
+<Modal
+  bind:ref
+  bind:open
   ontoggle={(event) => handleToggle(event)}
   class={dialogVariants({ className })}
   {...props}
@@ -82,68 +69,4 @@
       {/if}
     </div>
   </form>
-</dialog>
-
-<style>
-  .dialog-animation {
-    transition:
-      overlay 0.15s allow-discrete,
-      display 0.15s allow-discrete;
-
-    animation: close-dialog 0.15s forwards;
-    &[open] {
-      animation: open-dialog 0.15s forwards;
-    }
-
-    &::backdrop {
-      animation: close-backdrop 0.15s forwards;
-    }
-    &[open]::backdrop {
-      animation: open-backdrop 0.15s forwards;
-    }
-  }
-
-  @keyframes open-backdrop {
-    from {
-      background: rgba(0, 0, 0, 0);
-      backdrop-filter: blur(0px);
-    }
-    to {
-      background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(2px);
-    }
-  }
-
-  @keyframes close-backdrop {
-    from {
-      background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(2px);
-    }
-    to {
-      background: rgba(0, 0, 0, 0);
-      backdrop-filter: blur(0px);
-    }
-  }
-
-  @keyframes open-dialog {
-    from {
-      opacity: 0;
-      scale: 0.95;
-    }
-    to {
-      opacity: 1;
-      scale: 1;
-    }
-  }
-
-  @keyframes close-dialog {
-    from {
-      opacity: 1;
-      scale: 1;
-    }
-    to {
-      opacity: 0;
-      scale: 0.95;
-    }
-  }
-</style>
+</Modal>
