@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use axum::Router;
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, Pool, Postgres};
@@ -51,7 +51,7 @@ impl Notifier {
                     if is_dev() {
                         None
                     } else {
-                        return Err(anyhow!("Failed to initialize telegram bot: {e}"));
+                        return Err(e.context("Failed to initialize telegram bot"));
                     }
                 }
             },

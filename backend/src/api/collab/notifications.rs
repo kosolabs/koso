@@ -39,7 +39,7 @@ pub(super) fn handle_deep_graph_update_event(
             let origin = match from_origin(txn.origin()) {
                 Ok(origin) => origin,
                 Err(e) => {
-                    tracing::error!("Failed to deserialize origin: {e}");
+                    tracing::error!("Failed to deserialize origin: {e:?}");
                     continue;
                 }
             };
@@ -53,7 +53,7 @@ pub(super) fn handle_deep_graph_update_event(
             let task = match YTaskProxy::new(map_event.target().clone()).to_task(txn) {
                 Ok(task) => task,
                 Err(e) => {
-                    tracing::error!("Failed to convert MapEvent to Koso Task: {e}");
+                    tracing::error!("Failed to convert MapEvent to Koso Task: {e:?}");
                     continue;
                 }
             };
@@ -92,7 +92,7 @@ impl EventProcessor {
                 break;
             };
             if let Err(e) = self.process_event(event).await {
-                tracing::warn!("Failed to process event: {e}");
+                tracing::warn!("Failed to process event: {e:?}");
             }
         }
         tracing::info!("Stopped processing events");

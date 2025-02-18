@@ -215,7 +215,7 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
         Ok(key) => key,
         Err(e) => {
             return Err(unauthenticated_error(&format!(
-                "certs is absent for {kid:?}: {e}"
+                "certs is absent for {kid:?}: {e:#}"
             )));
         }
     };
