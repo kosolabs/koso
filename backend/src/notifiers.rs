@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::Router;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres, prelude::FromRow};
@@ -45,16 +45,7 @@ impl Notifier {
     pub(super) fn new(pool: &'static Pool<Postgres>) -> Result<Self> {
         Ok(Self {
             pool,
-            bot: match telegram::bot_from_secrets() {
-                Ok(bot) => Some(bot),
-                Err(e) => {
-                    if settings().is_dev() {
-                        None
-                    } else {
-                        return Err(e.context("Failed to initialize telegram bot"));
-                    }
-                }
-            },
+            bot: telegram::bot_from_secrets().context("Failed to initialize telegram bot")?,
         })
     }
 

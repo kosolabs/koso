@@ -2,10 +2,10 @@ use crate::api::{ApiResult, error_response, google::User};
 use crate::notifiers::{NotifierSettings, TelegramSettings, UserNotificationConfig};
 use crate::settings::settings;
 use crate::{
-    secrets::{Secret, read_secret},
+    secrets::{Secret, read_optional_secret, read_secret},
     server::shutdown_signal,
 };
-use anyhow::Result;
+use anyhow::{Context, Result, anyhow};
 use axum::{
     Extension, Json, Router,
     routing::{delete, post},
@@ -124,7 +124,7 @@ async fn send_test_message_handler(
 
     let NotifierSettings::Telegram(settings) = config.settings;
 
-    let bot = bot_from_secrets()?;
+    let bot = bot_from_secrets()?.context("Telegram bot is not enabled")?;
     bot.send_message(
         UserId(settings.chat_id),
         "Hello from Koso! This is a test notification. Change your setting <a href=\"https://koso.app/profile\">here</a>.",
@@ -141,9 +141,17 @@ enum Command {
     Token,
 }
 
-pub(super) fn bot_from_secrets() -> Result<Bot> {
-    let secret: Secret<String> = read_secret("telegram/token")?;
-    Ok(Bot::new(secret.data))
+pub(super) fn bot_from_secrets() -> Result<Option<Bot>> {
+    let Some(secret) = read_optional_secret::<String>("telegram/token")? else {
+        if settings().is_dev() {
+            return Ok(None);
+        } else {
+            return Err(anyhow!(
+                "Failed to initialize telegram bot. Secrets are not set."
+            ));
+        }
+    };
+    Ok(Some(Bot::new(secret.data)))
 }
 
 fn decoding_key_from_secrets() -> Result<DecodingKey> {
@@ -157,17 +165,11 @@ fn encoding_key_from_secrets() -> EncodingKey {
     EncodingKey::from_base64_secret(&secret.data).unwrap()
 }
 
+#[tracing::instrument()]
 pub(crate) async fn start_telegram_server() -> Result<()> {
-    let bot = match bot_from_secrets() {
-        Ok(bot) => bot,
-        Err(error) => {
-            if settings().is_dev() {
-                tracing::warn!("Telegram bot not started because token is not set.");
-                return Ok(());
-            } else {
-                return Err(error);
-            }
-        }
+    let Some(bot) = bot_from_secrets()? else {
+        tracing::info!("Telegram bot not started because token is not set.");
+        return Ok(());
     };
     let key = encoding_key_from_secrets();
     let schema = Update::filter_message()
