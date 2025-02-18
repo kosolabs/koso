@@ -1,7 +1,7 @@
 use crate::api::collab::{msg_sync::sync_update, storage};
 use crate::api::collab::{projects_state::ProjectState, txn_origin::from_origin};
 use crate::api::yproxy::YTaskProxy;
-use anyhow::{anyhow, Result};
+use anyhow::{Context, Result};
 use sqlx::PgPool;
 use std::{fmt, sync::Arc};
 use tokio::sync::mpsc::Receiver;
@@ -41,7 +41,7 @@ impl DocObserver {
         let origin = match from_origin(txn.origin()) {
             Ok(o) => o,
             Err(e) => {
-                tracing::error!("Failed to parse origin: {e}");
+                tracing::error!("Failed to parse origin: {e:?}");
                 return;
             }
         };
@@ -56,7 +56,7 @@ impl DocObserver {
         self.tracker.spawn(
             async move {
                 if let Err(e) = doc_update_tx.send(update).await {
-                    tracing::error!("Failed to send to doc_update channel: {e}");
+                    tracing::error!("Failed to send to doc_update channel: {e:?}");
                 }
             }
             .in_current_span(),
@@ -87,7 +87,7 @@ impl DocUpdateProcessor {
                 break;
             };
             if let Err(e) = self.process_doc_update(update).await {
-                tracing::warn!("Failed to process doc update: {e}");
+                tracing::warn!("Failed to process doc update: {e:?}");
             }
         }
         tracing::info!("Stopped processing doc updates");
@@ -95,11 +95,9 @@ impl DocUpdateProcessor {
 
     #[tracing::instrument(skip(self))]
     async fn process_doc_update(&self, update: DocUpdate) -> Result<()> {
-        if let Err(e) =
-            storage::persist_update(&update.project.project_id, &update.data, self.pool).await
-        {
-            return Err(anyhow!("Failed to persist update: {e}"));
-        }
+        storage::persist_update(&update.project.project_id, &update.data, self.pool)
+            .await
+            .context("Failed to persist update")?;
         update
             .project
             .broadcast_msg(sync_update(&update.data), Some(&update.who))
@@ -148,7 +146,7 @@ impl GraphObserver {
         event: &MapEvent,
     ) {
         if let Err(e) = self.handle_graph_update_event_internal(project, txn, event) {
-            tracing::warn!("Failed to handle graph update event: {e}");
+            tracing::warn!("Failed to handle graph update event: {e:?}");
         }
     }
 
@@ -191,7 +189,7 @@ impl GraphObserver {
                 self.tracker.spawn(
                     async move {
                         if let Err(e) = Self::rewrite_task_num(&mod_id, project, origin).await {
-                            tracing::warn!("Failed to rewrite task num for task '{mod_id}': {e}");
+                            tracing::warn!("Failed to rewrite task num for task '{mod_id}': {e:?}");
                         }
                     }
                     .in_current_span(),

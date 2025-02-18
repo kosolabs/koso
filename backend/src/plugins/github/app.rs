@@ -116,7 +116,7 @@ impl InstallationGithub {
                         tracing::trace!("Fetched {} PRs for {owner}/{name}", prs.len());
                         Ok(prs)
                     }
-                    Err(e) => Err(anyhow!("Failed to fetch prs for {owner}/{name}: {e}")),
+                    Err(e) => Err(e.context("Failed to fetch prs for {owner}/{name}")),
                 }
             });
         }
