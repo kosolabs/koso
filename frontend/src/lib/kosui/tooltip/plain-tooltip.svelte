@@ -4,6 +4,7 @@
   import type { FocusEventHandler, MouseEventHandler } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
+  import { events } from "..";
   import { Box } from "../box.svelte";
 
   export const tooltipVariants = tv({
@@ -57,6 +58,13 @@
 
   let timeout: number | undefined = $state();
 
+  function handleEscape(event: KeyboardEvent) {
+    if (open && event.key === "Escape") {
+      hide();
+      event.stopImmediatePropagation();
+    }
+  }
+
   export function show(after?: number) {
     timeout = window.setTimeout(
       () => {
@@ -81,8 +89,10 @@
   $effect(() => {
     if (open) {
       popoverEl?.showPopover();
+      events.on("keydown", handleEscape);
     } else {
       popoverEl?.hidePopover();
+      events.remove("keydown", handleEscape);
     }
   });
 
@@ -136,7 +146,7 @@
 
 <div
   bind:this={popoverEl}
-  popover="auto"
+  popover="manual"
   role="tooltip"
   class={tooltipVariants({ className })}
   {...restProps}
