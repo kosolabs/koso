@@ -3,10 +3,12 @@
   import type { FocusEventHandler, MouseEventHandler } from "svelte/elements";
   import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
   import { Box } from "../box.svelte";
+  import type { PopoverProps } from "../popover";
   import { Popover } from "../popover";
-  import type { PopoverProps } from "../popover/popover.svelte";
 
-  export const tooltipVariants = tv({});
+  export const tooltipVariants = tv({
+    base: "bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
+  });
 
   export type TooltipTriggerProps = {
     onfocus?: FocusEventHandler<HTMLElement> | undefined | null;

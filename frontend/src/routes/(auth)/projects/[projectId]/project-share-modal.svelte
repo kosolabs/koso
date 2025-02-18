@@ -1,22 +1,20 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { headers, parse_response } from "$lib/api";
   import { auth, type User } from "$lib/auth.svelte";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog";
-  import * as Dialog from "$lib/components/ui/dialog";
-  import { Input } from "$lib/components/ui/input";
-  import * as Popover from "$lib/components/ui/popover";
   import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { Button } from "$lib/kosui/button";
+  import { dialog } from "$lib/kosui/dialog";
+  import { Input } from "$lib/kosui/input";
+  import { Menu, MenuItem } from "$lib/kosui/menu";
+  import { Modal } from "$lib/kosui/modal";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectUsers,
     type Project,
   } from "$lib/projects";
-  import { Shortcut } from "$lib/shortcuts";
-  import { match } from "$lib/utils";
-  import { CircleMinus, TriangleAlert } from "lucide-svelte";
+  import { cn, match } from "$lib/utils";
+  import { CircleMinus, TriangleAlert, X } from "lucide-svelte";
   import { flip } from "svelte/animate";
 
   type Props = {
@@ -30,6 +28,9 @@
     projectUsers = $bindable(),
   }: Props = $props();
 
+  let filter: string = $state("");
+  let openDropDown: boolean = $state(false);
+
   async function addUser(add: User) {
     await updateProjectUsers({
       projectId: project.projectId,
@@ -39,16 +40,21 @@
 
     projectUsers.push(add);
     projectUsers.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
-    projectUsers = projectUsers;
+    filter = "";
 
-    openDropDown = false;
     toast.success(`Added ${add.email}`);
   }
 
-  async function removeUser(remove: User, forceRemoveSelf: boolean) {
-    if (auth.user.email === remove.email && !forceRemoveSelf) {
-      openWarnSelfRemovalModal = true;
-      return;
+  async function removeUser(remove: User) {
+    if (auth.user.email === remove.email) {
+      const confirmed = await dialog.confirm({
+        icon: TriangleAlert,
+        title: "Remove your own access?",
+        message:
+          "You will immediately lose access to this project. To regain access, you will need to contact another owner to have them grant you access.",
+        acceptText: "Remove my access",
+      });
+      if (!confirmed) return;
     }
 
     let i = projectUsers.findIndex((u) => u.email === remove.email);
@@ -62,14 +68,9 @@
 
     projectUsers.splice(i, 1);
     projectUsers.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
-    projectUsers = projectUsers;
 
     toast.success(`Removed ${remove.email}`);
   }
-
-  let filter: string = $state("");
-  let openDropDown: boolean = $state(false);
-  let openWarnSelfRemovalModal = $state(false);
 
   const MIN_FILTER_LEN = 2;
   let req = 0;
@@ -100,136 +101,78 @@
     })();
   });
 
-  let searchInput = $state<HTMLElement | null>(null);
+  let searchInput: HTMLElement | undefined = $state();
 </script>
 
-<Dialog.Root
-  bind:open
-  onOpenChange={() => {
-    filter = "";
-    openDropDown = false;
-  }}
->
-  <Dialog.Content
-    portalProps={{ disabled: true }}
-    onkeydown={(event) => {
-      event.stopPropagation();
-      if (Shortcut.CANCEL.matches(event)) {
-        open = false;
-        filter = "";
-        openDropDown = false;
-      }
-    }}
-    onOpenAutoFocus={(e) => {
-      e.preventDefault();
-    }}
-  >
-    <Dialog.Header>
-      <Dialog.Title>Share &quot;{project.name}&quot;</Dialog.Title>
-      <Dialog.Description>Manage access to your project.</Dialog.Description>
-    </Dialog.Header>
-    <div class="flex flex-col gap-2">
-      <Input
-        type="text"
-        placeholder="Add people"
-        name="Add people"
-        bind:value={filter}
-        bind:ref={searchInput}
-        autocomplete="off"
-        onkeydown={(event) => {
-          if (openDropDown) {
-            event.stopPropagation();
-            if (Shortcut.CANCEL.matches(event)) {
-              openDropDown = false;
-            }
-          }
-        }}
-        onfocus={() => {
-          openDropDown = true;
-        }}
-      />
-
-      {#if users.length > 0}
-        <Popover.Root bind:open={openDropDown}>
-          <Popover.Content
-            onInteractOutside={() => {
-              openDropDown = false;
-            }}
-            customAnchor={searchInput}
-            trapFocus={false}
-            class="max-h-96 overflow-y-auto"
-            onOpenAutoFocus={(e) => {
-              e.preventDefault();
-            }}
-            onCloseAutoFocus={(e) => {
-              e.preventDefault();
-            }}
-          >
-            {#each users as user (user.email)}
-              <button
-                class="hover:bg-accent w-full cursor-pointer rounded p-2"
-                title="Add {user.email}"
-                onclick={() => {
-                  openDropDown = false;
-                  addUser(user);
-                }}
-              >
-                <UserAvatar {user} />
-              </button>
-            {/each}
-          </Popover.Content>
-        </Popover.Root>
-      {/if}
-
-      <div class="h3 mt-2">People with access</div>
-      <div
-        class="[&>*:nth-child(even)]:bg-muted flex h-64 w-full flex-col items-stretch overflow-y-auto"
-      >
-        {#each projectUsers as projectUser (projectUser.email)}
-          <div
-            class="flex items-center rounded p-2"
-            animate:flip={{ duration: 250 }}
-          >
-            <UserAvatar user={projectUser} />
-            <Button
-              variant="ghost"
-              class="ml-auto"
-              tooltip="Remove {projectUser.email}"
-              aria-label="Remove {projectUser.email}"
-              onclick={() => removeUser(projectUser, false)}
-            >
-              <CircleMinus />
-            </Button>
-          </div>
-        {/each}
+<Modal bind:open class={cn("w-[min(calc(100%-1em),36em)]")} enableEscapeHandler>
+  <div class="flex flex-col gap-2">
+    <div>
+      <div class="flex items-center">
+        <div class={"text-xl"}>Share &quot;{project.name}&quot;</div>
+        <Button
+          variant="ghost"
+          class="ml-auto"
+          aria-label="close"
+          onclick={() => (open = false)}
+        >
+          <X />
+        </Button>
       </div>
+      <div class={"text-sm"}>Manage access to your project.</div>
     </div>
-  </Dialog.Content>
-</Dialog.Root>
+    <Input
+      bind:value={filter}
+      bind:ref={searchInput}
+      autofocus
+      type="text"
+      placeholder="Add people"
+      name="Add people"
+      autocomplete="off"
+      class="my-2"
+      onfocus={() => {
+        openDropDown = true;
+      }}
+    />
 
-<AlertDialog.Root bind:open={openWarnSelfRemovalModal}>
-  <AlertDialog.AlertDialogContent portalProps={{ disabled: true }}>
-    <AlertDialog.AlertDialogHeader>
-      <AlertDialog.AlertDialogTitle>
-        Are you absolutely sure?
-      </AlertDialog.AlertDialogTitle>
-      <AlertDialog.AlertDialogDescription>
-        <TriangleAlert class="mx-auto mb-4 h-12 w-12 text-yellow-300" />
-        You will <b>immediately lose access</b> if you remove yourself from this
-        project.
-      </AlertDialog.AlertDialogDescription>
-    </AlertDialog.AlertDialogHeader>
-    <AlertDialog.AlertDialogFooter>
-      <AlertDialog.AlertDialogCancel>Cancel</AlertDialog.AlertDialogCancel>
-      <AlertDialog.AlertDialogAction
-        class="bg-destructive text-white"
-        onclick={async () => {
-          await removeUser(auth.user, true);
-          await goto("/projects");
-        }}
+    {#if users.length > 0}
+      <Menu
+        bind:open={openDropDown}
+        anchorEl={searchInput}
+        popover="manual"
+        enableEscapeHandler={true}
       >
-        Yes, I'm sure
-      </AlertDialog.AlertDialogAction>
-    </AlertDialog.AlertDialogFooter>
-  </AlertDialog.AlertDialogContent>
-</AlertDialog.Root>
+        {#each users as user (user.email)}
+          <MenuItem
+            onclick={() => {
+              openDropDown = false;
+              addUser(user);
+            }}
+          >
+            <UserAvatar {user} />
+          </MenuItem>
+        {/each}
+      </Menu>
+    {/if}
+
+    <div class="h3">People with access</div>
+    <div class="flex h-64 w-full flex-col items-stretch overflow-y-auto">
+      {#each projectUsers as projectUser (projectUser.email)}
+        <div
+          class="flex items-center rounded p-2"
+          animate:flip={{ duration: 250 }}
+        >
+          <UserAvatar user={projectUser} />
+          <Button
+            variant="ghost"
+            class="ml-auto"
+            tooltip="Remove {projectUser.email}"
+            aria-label="Remove {projectUser.email}"
+            onclick={() => removeUser(projectUser)}
+          >
+            <CircleMinus />
+          </Button>
+        </div>
+      {/each}
+    </div>
+  </div>
+</Modal>

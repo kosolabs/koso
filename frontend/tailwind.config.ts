@@ -96,7 +96,12 @@ const config: Config = {
         "m3-on-error-container": m3("on-error-container"),
         "m3-background": m3("background"),
         "m3-on-background": m3("on-background"),
-        "m3-surface": m3("surface"),
+        "m3-surface": {
+          DEFAULT: m3("surface"),
+          hover: mix("surface", "on-surface", 8),
+          focus: mix("surface", "on-surface", 10),
+          active: mix("surface", "on-surface", 12),
+        },
         "m3-on-surface": m3("on-surface"),
         "m3-surface-variant": m3("surface-variant"),
         "m3-on-surface-variant": m3("on-surface-variant"),

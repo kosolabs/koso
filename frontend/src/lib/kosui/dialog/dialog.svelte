@@ -1,14 +1,14 @@
 <script module lang="ts">
   import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
-  import type { HTMLDialogAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { tv, type ClassValue } from "tailwind-variants";
-  import { Modal, type ToggleEventWithTarget } from "../modal";
+  import { Modal, type ModalProps } from "../modal";
+  import type { ToggleEventWithTarget } from "../utils";
 
   const dialogVariants = tv({});
 
-  type DialogProps = {
+  export type DialogProps = {
     ref?: HTMLDialogElement;
     onSelect?: (result: string) => void;
     class?: ClassValue;
@@ -16,7 +16,7 @@
     title?: string;
     children: Snippet;
     actions?: Snippet;
-  } & HTMLDialogAttributes;
+  } & ModalProps;
 </script>
 
 <script lang="ts">
@@ -24,6 +24,7 @@
     ref = $bindable(),
     open = $bindable(),
     onSelect = () => {},
+    ontoggle,
     class: className,
     icon: IconComponent,
     title,
@@ -32,7 +33,8 @@
     ...props
   }: DialogProps = $props();
 
-  function handleToggle(event: ToggleEventWithTarget) {
+  function handleToggle(event: ToggleEventWithTarget<HTMLDialogElement>) {
+    ontoggle?.(event);
     if (!ref) throw new Error("ref should be defined!");
     if (event.newState === "closed") {
       onSelect(ref.returnValue);

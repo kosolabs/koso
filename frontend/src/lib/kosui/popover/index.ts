@@ -1,1 +1,6 @@
-export { default as Popover } from "./popover.svelte";
+export {
+  default as Popover,
+  popoverVariants,
+  type PopoverProps,
+  type PopoverVariants,
+} from "./popover.svelte";

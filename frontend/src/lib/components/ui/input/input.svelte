@@ -1,15 +1,15 @@
 <script lang="ts">
+  import type { ElementRef } from "$lib/kosui/utils";
   import { cn } from "$lib/utils.js";
-  import type { WithElementRef } from "bits-ui";
   import type { HTMLInputAttributes } from "svelte/elements";
 
   let {
-    ref = $bindable(null),
+    ref = $bindable(),
     value = $bindable(),
     class: className,
     autofocus,
     ...restProps
-  }: WithElementRef<HTMLInputAttributes> = $props();
+  }: ElementRef & HTMLInputAttributes = $props();
 
   $effect(() => {
     if (ref && autofocus) {
