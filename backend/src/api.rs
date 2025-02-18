@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Context, Error, Result};
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -48,14 +48,12 @@ pub(crate) async fn verify_invited(pool: &PgPool, user: &User) -> Result<(), Err
     .bind(&user.email)
     .fetch_optional(pool)
     .await
+    .context("Failed to check user permission")?
     {
-        Ok(Some((true,))) => Ok(()),
-        Ok(None | Some((false,))) => Err(not_invited_error(&format!(
+        Some((true,)) => Ok(()),
+        None | Some((false,)) => Err(not_invited_error(&format!(
             "User {} is not invited",
             user.email
-        ))),
-        Err(e) => Err(internal_error(&format!(
-            "Failed to check user permission: {e}"
         ))),
     }
 }
@@ -73,16 +71,12 @@ pub(crate) async fn verify_project_access(
         ));
     }
 
-    let mut txn = match pool.begin().await {
-        Ok(txn) => txn,
-        Err(e) => {
-            return Err(internal_error(&format!(
-                "Failed to check user permission: {e}"
-            )))
-        }
-    };
+    let mut txn = pool
+        .begin()
+        .await
+        .context("Failed to check user permission")?;
 
-    let permission: Option<ProjectPermission> = match sqlx::query_as(
+    let permission: Option<ProjectPermission> = sqlx::query_as(
         "
         SELECT project_id, email
         FROM project_permissions
@@ -94,14 +88,7 @@ pub(crate) async fn verify_project_access(
     .bind(&user.email)
     .fetch_optional(&mut *txn)
     .await
-    {
-        Ok(permission) => permission,
-        Err(e) => {
-            return Err(internal_error(&format!(
-                "Failed to check user permission: {e}"
-            )))
-        }
-    };
+    .context("Failed to check user permission")?;
 
     match permission {
         Some(_) => Ok(()),

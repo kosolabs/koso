@@ -1,4 +1,5 @@
-use crate::api::{internal_error, ApiResult};
+use crate::api::ApiResult;
+use anyhow::Context as _;
 use axum::{routing::post, Extension, Router};
 use sqlx::PgPool;
 
@@ -12,7 +13,7 @@ async fn login_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<()> {
-    if let Err(e) = sqlx::query(
+    sqlx::query(
         "
         INSERT INTO users (email, name, picture, invited)
         VALUES ($1, $2, $3, false)
@@ -24,10 +25,6 @@ async fn login_handler(
     .bind(&user.picture)
     .execute(pool)
     .await
-    {
-        return Err(internal_error(&format!(
-            "Failed to upsert user on login: {e}"
-        )));
-    }
+    .context("Failed to upsert user on login")?;
     Ok(())
 }
