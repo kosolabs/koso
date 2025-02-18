@@ -1,15 +1,12 @@
 <script lang="ts" module>
-  import * as floatingUi from "@floating-ui/dom";
-  import { onMount, type Snippet } from "svelte";
+  import { type Snippet } from "svelte";
   import type { FocusEventHandler, MouseEventHandler } from "svelte/elements";
-  import { twMerge } from "tailwind-merge";
   import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
-  import { events } from "..";
   import { Box } from "../box.svelte";
+  import { Popover } from "../popover";
+  import type { PopoverProps } from "../popover/popover.svelte";
 
-  export const tooltipVariants = tv({
-    base: "tooltip-animation bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
-  });
+  export const tooltipVariants = tv({});
 
   export type TooltipTriggerProps = {
     onfocus?: FocusEventHandler<HTMLElement> | undefined | null;
@@ -23,32 +20,25 @@
   export type TooltipProps = TooltipVariants & {
     class?: ClassValue;
     delay?: number;
-    arrow?: boolean;
-    placement?: floatingUi.Placement;
-    strategy?: floatingUi.Strategy;
     open?: boolean;
     children: Snippet;
     // If trigger is a Snippet, do render delegation.
     // If trigger is a HTMLElement, do fully controlled.
     trigger?: Snippet<[Box<HTMLElement>, TooltipTriggerProps]> | HTMLElement;
-  };
+  } & TooltipVariants &
+    PopoverProps;
 </script>
 
 <script lang="ts">
   let {
     class: className,
     delay = 500,
-    arrow = false,
-    placement = "top",
-    strategy = "fixed",
     open = $bindable(false),
     children,
     trigger,
     ...restProps
   }: TooltipProps = $props();
 
-  let popoverEl: HTMLDivElement | undefined = $state();
-  let arrowEl: HTMLDivElement | undefined = $state();
   let triggerBox = new Box<HTMLElement>();
   let triggerEl = $derived(
     // If trigger is a snippet, get the trigger element from the box.
@@ -57,13 +47,6 @@
   );
 
   let timeout: number | undefined = $state();
-
-  function handleEscape(event: KeyboardEvent) {
-    if (open && event.key === "Escape") {
-      hide();
-      event.stopImmediatePropagation();
-    }
-  }
 
   export function show(after?: number) {
     timeout = window.setTimeout(
@@ -83,118 +66,18 @@
     onfocus: () => show(),
     onblur: () => hide(),
   };
-
-  $effect(() => {
-    if (open) {
-      popoverEl?.showPopover();
-      events.on("keydown", handleEscape);
-    } else {
-      popoverEl?.hidePopover();
-      events.remove("keydown", handleEscape);
-    }
-  });
-
-  async function updatePosition() {
-    if (triggerEl && popoverEl && arrowEl) {
-      const computedPosition = await floatingUi.computePosition(
-        triggerEl,
-        popoverEl,
-        {
-          placement,
-          middleware: [
-            floatingUi.offset(6),
-            floatingUi.flip(),
-            floatingUi.shift({ padding: 5 }),
-            floatingUi.arrow({ element: arrowEl }),
-          ],
-          strategy,
-        },
-      );
-
-      Object.assign(popoverEl.style, {
-        left: `${computedPosition.x}px`,
-        top: `${computedPosition.y}px`,
-      });
-
-      if (computedPosition.middlewareData.arrow) {
-        const arrow = computedPosition.middlewareData.arrow;
-
-        const staticSide = {
-          top: "bottom",
-          right: "left",
-          bottom: "top",
-          left: "right",
-        }[computedPosition.placement.split("-")[0]]!;
-
-        Object.assign(arrowEl.style, {
-          left: arrow.x != null ? `${arrow.x}px` : "",
-          top: arrow.y != null ? `${arrow.y}px` : "",
-          right: "",
-          bottom: "",
-          [staticSide]: "-4px",
-        });
-      }
-    }
-  }
-
-  onMount(() => {
-    return floatingUi.autoUpdate(triggerEl!, popoverEl!, updatePosition);
-  });
 </script>
 
-<div
-  bind:this={popoverEl}
-  popover="manual"
+<Popover
+  bind:open
   role="tooltip"
+  anchorEl={triggerEl}
   class={tooltipVariants({ className })}
   {...restProps}
 >
   {@render children()}
-  <div
-    bind:this={arrowEl}
-    class={twMerge(
-      "bg-m3-inverse-surface absolute -z-10 size-2 rotate-45",
-      arrow ? "block" : "hidden",
-    )}
-  ></div>
-</div>
+</Popover>
 
 {#if typeof trigger === "function"}
   {@render trigger(triggerBox, triggerProps)}
 {/if}
-
-<style>
-  .tooltip-animation {
-    transition:
-      overlay 0.15s allow-discrete,
-      display 0.15s allow-discrete;
-
-    animation: close-tooltip 0.15s forwards;
-  }
-
-  .tooltip-animation:popover-open {
-    animation: open-tooltip 0.15s forwards;
-  }
-
-  @keyframes open-tooltip {
-    from {
-      opacity: 0;
-      scale: 0.95;
-    }
-    to {
-      opacity: 1;
-      scale: 1;
-    }
-  }
-
-  @keyframes close-tooltip {
-    from {
-      opacity: 1;
-      scale: 1;
-    }
-    to {
-      opacity: 0;
-      scale: 0.95;
-    }
-  }
-</style>
