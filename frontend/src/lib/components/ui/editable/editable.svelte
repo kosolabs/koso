@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Input } from "$lib/components/ui/input";
+  import { Input } from "$lib/kosui/input";
   import { Link } from "$lib/kosui/link";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
@@ -20,6 +20,7 @@
     ondone?: () => void;
     onkeydown?: (event: KeyboardEvent) => void;
   };
+
   let {
     value = $bindable(),
     editing = $bindable(false),
@@ -34,6 +35,7 @@
   }: Props = $props();
 
   let edited: string = $state(value);
+  let ref: HTMLInputElement | undefined = $state();
 
   const actions: Action[] = [
     new Action({
@@ -100,19 +102,25 @@
     edited = value;
     done();
   }
+
+  $effect(() => {
+    if (ref) {
+      ref.focus();
+    }
+  });
 </script>
 
 {#if editing}
   <Input
-    class={cn("bg-background my-1 h-auto p-1", classes)}
+    bind:ref
+    bind:value={edited}
+    class={cn("bg-background my-1 h-auto w-full p-1", classes)}
     aria-label={ariaLabel}
     name={ariaLabel}
     onclick={(event) => event.stopPropagation()}
     onblur={save}
     onkeydown={handleInputKeydown}
-    autofocus={true}
     autocomplete="off"
-    bind:value={edited}
   />
 {:else}
   <Link
