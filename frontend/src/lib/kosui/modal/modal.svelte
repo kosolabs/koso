@@ -1,34 +1,45 @@
 <script module lang="ts">
   import type { Snippet } from "svelte";
   import type { HTMLDialogAttributes } from "svelte/elements";
-  import { tv, type ClassValue } from "tailwind-variants";
+  import { tv, type VariantProps } from "tailwind-variants";
+  import { events } from "..";
+  import type { ClassName, ToggleEventWithTarget } from "../utils";
 
-  export type ToggleEventWithTarget = ToggleEvent & {
-    currentTarget: EventTarget & HTMLDialogElement;
-  };
-
-  const modalVariants = tv({
+  export const modalVariants = tv({
     base: "bg-m3-surface-container-high modal-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-[28px] p-6 shadow-lg",
   });
 
-  type ModalProps = {
+  export type ModalVariants = VariantProps<typeof modalVariants>;
+
+  export type ModalProps = {
     ref?: HTMLDialogElement;
-    class?: ClassValue;
+    enableEscapeHandler?: boolean;
     children: Snippet;
-  } & HTMLDialogAttributes;
+  } & ClassName &
+    ModalVariants &
+    HTMLDialogAttributes;
 </script>
 
 <script lang="ts">
   let {
     ref = $bindable(),
     open = $bindable(),
+    enableEscapeHandler = false,
     class: className,
     children,
     ontoggle,
     ...props
   }: ModalProps = $props();
 
-  function handleToggle(event: ToggleEventWithTarget) {
+  function handleEscape(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      open = false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }
+
+  function handleToggle(event: ToggleEventWithTarget<HTMLDialogElement>) {
     ontoggle?.(event);
     if (event.newState === "closed") {
       open = false;
@@ -39,11 +50,15 @@
 
   $effect(() => {
     if (open) {
-      console.log("showModal");
       ref?.showModal();
+      if (enableEscapeHandler) {
+        events.on("keydown", handleEscape);
+      }
     } else {
-      console.log("closeModal");
       ref?.close();
+      if (enableEscapeHandler) {
+        events.remove("keydown", handleEscape);
+      }
     }
   });
 </script>
@@ -69,9 +84,11 @@
     }
 
     &::backdrop {
+      z-index: 50;
       animation: close-backdrop 0.15s forwards;
     }
     &[open]::backdrop {
+      z-index: 50;
       animation: open-backdrop 0.15s forwards;
     }
   }

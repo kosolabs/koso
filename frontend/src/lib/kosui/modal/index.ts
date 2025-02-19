@@ -1,1 +1,6 @@
-export { default as Modal, type ToggleEventWithTarget } from "./modal.svelte";
+export {
+  default as Modal,
+  modalVariants,
+  type ModalProps,
+  type ModalVariants,
+} from "./modal.svelte";

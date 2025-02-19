@@ -1,4 +1,12 @@
+import type { ClassValue } from "tailwind-variants";
+
 export type ElementRef = { ref?: HTMLElement };
+
+export type ClassName = { class?: ClassValue };
+
+export type ToggleEventWithTarget<T extends HTMLElement> = ToggleEvent & {
+  currentTarget: EventTarget & T;
+};
 
 /**
  * Converts a kebab-case string to Title Case.

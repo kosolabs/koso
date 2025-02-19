@@ -136,7 +136,7 @@
     >
       <div><Layers /></div>
       <div class="text-xl">Create your first Koso project!</div>
-      <div>
+      <div class="flex gap-2">
         <Button
           icon={PackagePlus}
           tooltip="New Project"

@@ -5,9 +5,10 @@
   import { twMerge } from "tailwind-merge";
   import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
   import { events } from "..";
+  import type { ToggleEventWithTarget } from "../utils";
 
   export const popoverVariants = tv({
-    base: "popover-animation bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
+    base: "popover-animation",
   });
 
   export type PopoverVariants = VariantProps<typeof popoverVariants>;
@@ -19,6 +20,7 @@
     strategy?: floatingUi.Strategy;
     open?: boolean;
     anchorEl?: HTMLElement;
+    enableEscapeHandler?: boolean;
     children: Snippet;
   } & PopoverVariants &
     HTMLAttributes<HTMLDivElement>;
@@ -31,8 +33,10 @@
     placement = "top",
     strategy = "fixed",
     open = $bindable(false),
+    enableEscapeHandler = false,
     anchorEl,
     children,
+    ontoggle,
     ...restProps
   }: PopoverProps = $props();
 
@@ -40,19 +44,33 @@
   let arrowEl: HTMLDivElement | undefined = $state();
 
   function handleEscape(event: KeyboardEvent) {
-    if (open && event.key === "Escape") {
+    if (event.key === "Escape") {
       open = false;
+      event.preventDefault();
       event.stopImmediatePropagation();
+    }
+  }
+
+  function handleToggle(event: ToggleEventWithTarget<HTMLDivElement>) {
+    ontoggle?.(event);
+    if (event.newState === "closed") {
+      open = false;
+    } else {
+      open = true;
     }
   }
 
   $effect(() => {
     if (open) {
       popoverEl?.showPopover();
-      events.on("keydown", handleEscape);
+      if (enableEscapeHandler) {
+        events.on("keydown", handleEscape);
+      }
     } else {
       popoverEl?.hidePopover();
-      events.remove("keydown", handleEscape);
+      if (enableEscapeHandler) {
+        events.remove("keydown", handleEscape);
+      }
     }
   });
 
@@ -108,9 +126,10 @@
 
 <div
   bind:this={popoverEl}
-  popover="manual"
+  popover="auto"
   role="tooltip"
   class={popoverVariants({ className })}
+  ontoggle={handleToggle}
   {...restProps}
 >
   {@render children()}
