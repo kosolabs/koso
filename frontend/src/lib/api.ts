@@ -1,5 +1,5 @@
 import { version } from "$app/environment";
-import { toast } from "svelte-sonner";
+import { toast } from "$lib/components/ui/sonner";
 import { auth } from "./auth.svelte";
 
 export type ErrorResponseBody = {

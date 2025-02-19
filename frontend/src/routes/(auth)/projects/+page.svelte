@@ -1,13 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
+  import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
   import { Link } from "$lib/kosui/link";
   import Navbar from "$lib/navbar.svelte";
   import * as rest from "$lib/projects";
   import { type Project, type ProjectExport } from "$lib/projects";
   import { HardDriveUpload, Layers, PackagePlus, Trash2 } from "lucide-svelte";
-  import { toast } from "svelte-sonner";
 
   let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
   let projects: Promise<Project[]> = rest.fetchProjects();

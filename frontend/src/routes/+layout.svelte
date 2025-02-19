@@ -2,12 +2,11 @@
   import { dev } from "$app/environment";
   import { updated } from "$app/stores";
   import { Confetti } from "$lib/components/ui/confetti";
-  import { Toaster } from "$lib/components/ui/sonner";
+  import { toast, Toaster } from "$lib/components/ui/sonner";
+  import { Dialoguer } from "$lib/kosui/dialog";
   import { ModeWatcher } from "mode-watcher";
-  import { toast } from "svelte-sonner";
   import { Workbox } from "workbox-window";
   import "../app.css";
-  import { Dialoguer } from "$lib/kosui/dialog";
 
   const { children } = $props();
 

@@ -2,6 +2,7 @@
   import { auth, type User } from "$lib/auth.svelte";
   import { CommandPalette } from "$lib/components/ui/command-palette";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
+  import { toast } from "$lib/components/ui/sonner";
   import { events } from "$lib/kosui";
   import { Button } from "$lib/kosui/button";
   import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
@@ -39,7 +40,6 @@
   } from "lucide-svelte";
   import { resetMode, setMode } from "mode-watcher";
   import { onMount, setContext, tick } from "svelte";
-  import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
   import { Node, type Koso } from ".";
   import Row, { type RowType } from "./row.svelte";

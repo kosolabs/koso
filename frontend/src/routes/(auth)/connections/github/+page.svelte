@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Navbar from "$lib/navbar.svelte";
-  import { KosoError } from "$lib/api";
-  import { onMount } from "svelte";
-  import { toast } from "svelte-sonner";
   import { goto } from "$app/navigation";
+  import { KosoError } from "$lib/api";
+  import { toast } from "$lib/components/ui/sonner";
   import * as github from "$lib/github";
+  import Navbar from "$lib/navbar.svelte";
+  import { onMount } from "svelte";
 
   onMount(async () => {
     // See https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-web-application-flow-to-generate-a-user-access-token

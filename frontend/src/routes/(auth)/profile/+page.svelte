@@ -1,6 +1,7 @@
 <script lang="ts">
   import { headers, parse_response } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
+  import { toast } from "$lib/components/ui/sonner";
   import { Toggle } from "$lib/components/ui/toggle";
   import { Button } from "$lib/kosui/button";
   import { dialog } from "$lib/kosui/dialog";
@@ -9,7 +10,6 @@
   import Navbar from "$lib/navbar.svelte";
   import { CircleX, Moon, Send, Sun, SunMoon, Trash2 } from "lucide-svelte";
   import { userPrefersMode as mode, setMode } from "mode-watcher";
-  import { toast } from "svelte-sonner";
   import Section from "./section.svelte";
   import SubSection from "./sub-section.svelte";
 
