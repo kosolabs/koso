@@ -6,12 +6,12 @@
     AvatarImage,
   } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { Input } from "$lib/components/ui/input";
+  import { Input } from "$lib/kosui/input";
+  import { Shortcut } from "$lib/shortcuts";
   import { UserRound } from "lucide-svelte";
   import { tick } from "svelte";
   import { UserAvatar } from ".";
   import ResponsiveText from "../responsive-text/responsive-text.svelte";
-  import { Shortcut } from "$lib/shortcuts";
 
   type Props = {
     users: User[];
@@ -78,9 +78,10 @@
       >
         <DropdownMenu.Label>
           <Input
+            bind:value={filter}
+            class="w-full"
             placeholder="Filter users"
             name="Filter users"
-            bind:value={filter}
           />
         </DropdownMenu.Label>
         <DropdownMenu.Separator />
