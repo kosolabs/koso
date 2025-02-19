@@ -6,6 +6,7 @@
   import * as Dialog from "$lib/components/ui/dialog";
   import { Input } from "$lib/components/ui/input";
   import * as Popover from "$lib/components/ui/popover";
+  import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { Button } from "$lib/kosui/button";
   import {
@@ -16,7 +17,6 @@
   import { Shortcut } from "$lib/shortcuts";
   import { match } from "$lib/utils";
   import { CircleMinus, TriangleAlert } from "lucide-svelte";
-  import { toast } from "svelte-sonner";
   import { flip } from "svelte/animate";
 
   type Props = {

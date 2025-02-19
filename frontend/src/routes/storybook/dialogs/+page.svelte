@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
   import { Dialog, dialog } from "$lib/kosui/dialog";
   import { TriangleAlert } from "lucide-svelte";
@@ -102,7 +103,12 @@
   {#snippet actions()}
     <Button type="submit" variant="elevated" value="one">One</Button>
     <Button type="submit" variant="filled" value="two">Two</Button>
-    <Button type="submit" variant="tonal" value="three">Three</Button>
+    <Button
+      type="button"
+      variant="tonal"
+      value="three"
+      onclick={() => toast.info("Three clicked!")}>Three</Button
+    >
     <Button
       type="button"
       onclick={() => {

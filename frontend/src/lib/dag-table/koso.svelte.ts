@@ -1,4 +1,5 @@
 import type { User } from "$lib/auth.svelte";
+import { toast } from "$lib/components/ui/sonner";
 import {
   parseAwarenessStateResponse,
   type Awareness,
@@ -8,7 +9,6 @@ import { findEntryIndex } from "$lib/utils";
 import { List, Map, Record, Set } from "immutable";
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
-import { toast } from "svelte-sonner";
 import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { CREDENTIAL_KEY } from "$lib/auth.svelte";
+  import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
   import Navbar from "$lib/navbar.svelte";
-  import { toast } from "svelte-sonner";
 
   async function clearLocalState() {
     [...Array(localStorage.length).keys()]

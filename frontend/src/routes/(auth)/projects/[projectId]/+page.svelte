@@ -4,6 +4,7 @@
   import { showUnauthorizedDialog, type User } from "$lib/auth.svelte";
   import { Alert } from "$lib/components/ui/alert";
   import { Editable } from "$lib/components/ui/editable";
+  import { toast } from "$lib/components/ui/sonner";
   import { DagTable, Koso, KosoSocket } from "$lib/dag-table";
   import { githubInstallUrl } from "$lib/github";
   import { Button } from "$lib/kosui/button";
@@ -18,7 +19,6 @@
   } from "$lib/projects";
   import { Action } from "$lib/shortcuts";
   import { FileDown, PlugZap, UserPlus } from "lucide-svelte";
-  import { toast } from "svelte-sonner";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
 

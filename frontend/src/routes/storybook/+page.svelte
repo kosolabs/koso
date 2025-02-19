@@ -4,9 +4,9 @@
 
   const paths: string[] = [
     "/storybook/buttons-and-links",
-    "/storybook/dialog",
+    "/storybook/dialogs",
     "/storybook/progress-indicators",
-    "/storybook/tooltip",
+    "/storybook/tooltips",
   ];
 </script>
 

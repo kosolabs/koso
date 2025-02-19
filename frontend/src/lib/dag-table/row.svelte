@@ -16,6 +16,7 @@
   } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
+  import { toast } from "$lib/components/ui/sonner";
   import TaskAction, {
     type TaskActionType,
   } from "$lib/components/ui/task-action/task-action.svelte";
@@ -26,7 +27,6 @@
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
-  import { toast } from "svelte-sonner";
   import { Node, type Koso } from ".";
   import Awareness, {
     getAwarenessOutline,
