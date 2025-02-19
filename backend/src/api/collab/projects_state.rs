@@ -20,7 +20,7 @@ use crate::{
     },
     postgres::compact,
 };
-use anyhow::{anyhow, Error, Result};
+use anyhow::{anyhow, Context as _, Error, Result};
 use async_trait::async_trait;
 use dashmap::DashMap;
 use sqlx::PgPool;
@@ -104,20 +104,22 @@ impl ProjectsState {
 
         // Send the entire state vector to the client.
         tracing::debug!("Sending sync_request message to client");
-        if let Err(e) = project.send_msg(&receiver.who, sync_request(&sv)).await {
+        if let Err(e) = project
+            .send_msg(&receiver.who, sync_request(&sv))
+            .await
+            .context("Failed to send sync request message to client")
+        {
             project
                 .remove_and_close_client(
                     &receiver.who,
                     ClientClosure {
                         code: CLOSE_ERROR,
                         reason: "Failed to send sync request message.",
-                        details: format!("Failed to send sync request message: {e}"),
+                        details: format!("Failed to send sync request message: {e:#}"),
                     },
                 )
                 .await;
-            return Err(anyhow!(
-                "Failed to send sync request message to client: {e}"
-            ));
+            return Err(e);
         }
 
         // Listen for messages on the read side of the socket.
@@ -235,7 +237,7 @@ impl ProjectState {
     fn create_doc_observer(project: &Arc<ProjectState>, doc: &YDocProxy) -> Result<Subscription> {
         let observer = DocObserver::new(project.doc_update_tx.clone(), project.tracker.clone());
         let project = Arc::downgrade(project);
-        let res = doc.observe_update_v2(move |txn, update| {
+        doc.observe_update_v2(move |txn, update| {
             let Some(project) = project.upgrade() else {
                 // This will never happen because the observer is invoked syncronously in
                 // ProjectState.apply_update while holding a strong reference to the project.
@@ -247,11 +249,8 @@ impl ProjectState {
 
             project.updates.fetch_add(1, Relaxed);
             observer.handle_doc_update_v2_event(project, txn, update);
-        });
-        match res {
-            Ok(sub) => Ok(sub),
-            Err(e) => Err(anyhow!("Failed to create observer: {e}")),
-        }
+        })
+        .context("Failed to create observer")
     }
 
     fn create_graph_observer(project: &Arc<ProjectState>, doc: &YDocProxy) -> Subscription {
@@ -278,7 +277,7 @@ impl ProjectState {
                 // This will never happen because the observer is invoked syncronously in
                 // ProjectState.apply_update while holding a strong reference to the project.
                 tracing::error!(
-                    "handle_graph_update_event but weak project reference was destroyed"
+                    "handle_deep_graph_update_event but weak project reference was destroyed"
                 );
                 return;
             };
@@ -295,15 +294,13 @@ impl ProjectState {
         Ok(update)
     }
     pub(super) async fn apply_doc_update(&self, origin: YOrigin, update: Update) -> Result<()> {
-        if let Err(e) = DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
+        DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
             .ydoc
             .transact_mut_with(origin.as_origin()?)
             .apply_update(update)
-        {
-            return Err(anyhow!("Failed to apply doc update: {e}"));
-        }
-        Ok(())
+            .context("Failed to apply doc update")
     }
+
     pub(super) async fn broadcast_msg(&self, data: Vec<u8>, exclude_who: Option<&String>) {
         let mut clients = self.clients.lock().await;
 
@@ -324,10 +321,7 @@ impl ProjectState {
         let Some(client) = clients.get_mut(to_who) else {
             return Err(anyhow!("Unexpectedly found no client to send to"));
         };
-        if let Err(e) = client.send(data).await {
-            return Err(anyhow!("Failed to send to client: {e}"));
-        };
-        Ok(())
+        client.send(data).await.context("Failed to send to client")
     }
 
     pub(super) async fn remove_and_close_client(&self, who: &String, closure: ClientClosure) {

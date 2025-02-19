@@ -187,7 +187,7 @@ fn validate_signature(
     match mac.verify_slice(&signature) {
         Ok(_) => Ok(()),
         Err(err) => {
-            tracing::warn!("Received webhook event with invalid signature: {err}");
+            tracing::warn!("Received webhook event with invalid signature: {err:?}");
             Err(unauthorized_error(
                 format!("Invalid signature: {}", hex::encode(signature)).as_str(),
             ))
@@ -237,7 +237,7 @@ impl Webhook {
                 tokio::spawn(
                     async move {
                         if let Err(e) = self.process_koso_event(event).await {
-                            tracing::warn!("Failed to process koso event: {e}")
+                            tracing::warn!("Failed to process koso event: {e:?}")
                         }
                     }
                     .in_current_span(),
@@ -279,7 +279,7 @@ impl Webhook {
     )]
     async fn merge_task(&self, event: KosoGithubEvent, config: Config) {
         if let Err(e) = self.merge_task_internal(event, config).await {
-            tracing::warn!("Failed to process event for config: {e}");
+            tracing::warn!("Failed to process event for config: {e:?}");
         }
     }
 

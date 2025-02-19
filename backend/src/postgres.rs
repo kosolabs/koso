@@ -10,7 +10,7 @@ use yrs::{
 #[tracing::instrument(skip(pool))]
 pub(crate) async fn compact(pool: &PgPool, project_id: ProjectId) {
     if let Err(e) = _compact(pool, project_id).await {
-        tracing::warn!("Failed to compact: {e}");
+        tracing::warn!("Failed to compact: {e:?}");
     }
 }
 

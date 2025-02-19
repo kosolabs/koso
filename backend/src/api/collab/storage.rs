@@ -1,5 +1,5 @@
 use crate::api::model::ProjectId;
-use anyhow::{anyhow, Result};
+use anyhow::{Context as _, Result};
 use sqlx::PgPool;
 use yrs::{updates::decoder::Decode as _, Update};
 
@@ -30,9 +30,8 @@ pub(super) async fn load_doc(project_id: &ProjectId, pool: &PgPool) -> Result<(Y
     {
         let mut txn = ydoc.transact_mut();
         for (update,) in updates {
-            if let Err(e) = txn.apply_update(Update::decode_v2(&update)?) {
-                return Err(anyhow!("Failed to apply loaded update: {e}"));
-            }
+            txn.apply_update(Update::decode_v2(&update)?)
+                .context("Failed to apply loaded update")?
         }
     }
     Result::Ok((ydoc, update_count))
