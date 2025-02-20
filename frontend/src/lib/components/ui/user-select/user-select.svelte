@@ -7,7 +7,7 @@
   } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Input } from "$lib/kosui/input";
-  import { Shortcut } from "$lib/shortcuts";
+  import { CANCEL } from "$lib/shortcuts";
   import { UserRound } from "lucide-svelte";
   import { tick } from "svelte";
   import { UserAvatar } from ".";
@@ -65,7 +65,7 @@
     <div
       role="none"
       onkeydown={(event) => {
-        if (Shortcut.CANCEL.matches(event)) {
+        if (CANCEL.matches(event)) {
           open = false;
         }
         event.stopPropagation();

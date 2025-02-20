@@ -6,7 +6,7 @@
   } from "$lib/components/ui/chip";
   import * as Command from "$lib/components/ui/command";
   import * as Popover from "$lib/components/ui/popover";
-  import { Shortcut } from "$lib/shortcuts";
+  import { CANCEL } from "$lib/shortcuts";
   import { match } from "$lib/utils";
   import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
@@ -54,7 +54,7 @@
   <div
     role="none"
     onkeydown={(event) => {
-      if (Shortcut.CANCEL.matches(event)) {
+      if (CANCEL.matches(event)) {
         open = false;
       }
       event.stopPropagation();
