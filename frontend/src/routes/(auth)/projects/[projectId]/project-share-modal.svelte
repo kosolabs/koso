@@ -110,7 +110,7 @@
       <div class="flex items-center">
         <div class={"text-xl"}>Share &quot;{project.name}&quot;</div>
         <Button
-          variant="ghost"
+          variant="plain"
           class="ml-auto"
           aria-label="close"
           onclick={() => (open = false)}
@@ -140,6 +140,7 @@
         anchorEl={searchInput}
         popover="manual"
         enableEscapeHandler={true}
+        class="w-[min(calc(100%-1em),32em)] max-w-full"
       >
         {#each users as user (user.email)}
           <MenuItem
@@ -163,7 +164,7 @@
         >
           <UserAvatar user={projectUser} />
           <Button
-            variant="ghost"
+            variant="plain"
             class="ml-auto"
             tooltip="Remove {projectUser.email}"
             aria-label="Remove {projectUser.email}"

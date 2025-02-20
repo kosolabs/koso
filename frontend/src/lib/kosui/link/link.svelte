@@ -22,10 +22,16 @@
         error: "text-m3-error focus-visible:ring-m3-error",
         inherit: "focus-visible:ring-m3-primary",
       },
+      scale: {
+        sm: "text-sm",
+        md: "",
+        lg: "text-lg",
+      },
     },
     defaultVariants: {
-      underline: "always",
+      underline: "hover",
       color: "primary",
+      scale: "md",
     },
   });
 
@@ -45,8 +51,9 @@
     children,
     class: className,
     ref = $bindable(),
-    underline = "hover",
-    color = "primary",
+    underline,
+    color,
+    scale,
     href,
     ...props
   }: LinkProps = $props();
@@ -55,7 +62,7 @@
 {#if href}
   <a
     bind:this={ref}
-    class={linkVariants({ underline, color, className })}
+    class={linkVariants({ underline, color, scale, className })}
     {href}
     {...props}
   >
@@ -64,7 +71,7 @@
 {:else}
   <button
     bind:this={ref}
-    class={linkVariants({ underline, color, className })}
+    class={linkVariants({ underline, color, scale, className })}
     {...props}
   >
     {@render children?.()}

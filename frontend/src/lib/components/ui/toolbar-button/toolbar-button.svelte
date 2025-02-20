@@ -5,7 +5,7 @@
   const { icon, title, description, shortcut, callback }: Action = $props();
 </script>
 
-<Button variant="ghost" {icon} onclick={callback}>
+<Button variant="plain" {icon} onclick={callback}>
   <div class="max-sm:hidden">{title}</div>
   {#snippet tooltip()}
     <div class="flex items-center gap-2">

@@ -124,7 +124,7 @@
   {#snippet right()}
     <div class="flex">
       <Button
-        variant="ghost"
+        variant="plain"
         tooltip="Connect to GitHub"
         aria-label="Connect to GitHub"
         onclick={() => window.location.assign(githubInstallUrl(projectId))}
@@ -132,7 +132,7 @@
         <PlugZap />
       </Button>
       <Button
-        variant="ghost"
+        variant="plain"
         tooltip="Export project"
         aria-label="Export project"
         onclick={exportProjectToFile}
@@ -140,7 +140,7 @@
         <FileDown />
       </Button>
       <Button
-        variant="ghost"
+        variant="plain"
         tooltip="Share project"
         aria-label="Share project"
         onclick={() => {
