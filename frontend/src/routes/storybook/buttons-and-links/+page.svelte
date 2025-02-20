@@ -11,6 +11,9 @@
   const buttonVariantsVariants = Object.keys(
     buttonVariants.variants.variant,
   ) as Exclude<ButtonVariants["variant"], undefined>[];
+  const buttonVariantsColors = Object.keys(
+    buttonVariants.variants.color,
+  ) as Exclude<ButtonVariants["color"], undefined>[];
 
   const linkVariantsUnderlines = Object.keys(
     linkVariants.variants.underline,
@@ -22,18 +25,20 @@
 
 <div class="flex flex-col gap-4 rounded-lg border p-4">
   {#each buttonVariantsVariants as variant}
-    {@const title = toTitleCase(variant)}
-    <div>
-      <div class="mb-2">{title} Buttons</div>
-      <div class="flex flex-wrap gap-2">
-        <Button {variant}>{title}</Button>
-        <Button {variant} icon={Link2}>{title} with icon</Button>
-        <Button disabled {variant}>{title} disabled</Button>
-        <Button disabled {variant} icon={Link2}
-          >{title} disabled with icon</Button
-        >
+    {#each buttonVariantsColors as color}
+      {@const title = toTitleCase(variant)}
+      <div>
+        <div class="mb-2">{title} Buttons ({color})</div>
+        <div class="flex flex-wrap gap-2">
+          <Button {variant} {color}>{title}</Button>
+          <Button {variant} {color} icon={Link2}>{title} with icon</Button>
+          <Button disabled {variant} {color}>{title} disabled</Button>
+          <Button disabled {variant} {color} icon={Link2}
+            >{title} disabled with icon</Button
+          >
+        </div>
       </div>
-    </div>
+    {/each}
   {/each}
 </div>
 

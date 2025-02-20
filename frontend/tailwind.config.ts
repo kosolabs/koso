@@ -6,10 +6,6 @@ function m3(prop: string): string {
   return `rgb(from var(--md-sys-color-${prop}) r g b / <alpha-value>)`;
 }
 
-function mix(m3Base: string, m3Layer: string, amount: number): string {
-  return `color-mix(in srgb, var(--md-sys-color-${m3Base}), var(--md-sys-color-${m3Layer}) ${amount}%);`;
-}
-
 const config: Config = {
   darkMode: ["class"],
   content: ["./src/**/*.{html,js,svelte,ts}"],
@@ -67,24 +63,14 @@ const config: Config = {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        "m3-primary": {
-          DEFAULT: m3("primary"),
-          hover: mix("primary", "on-primary", 8),
-          focus: mix("primary", "on-primary", 10),
-          active: mix("primary", "on-primary", 12),
-        },
+        "m3-primary": m3("primary"),
         "m3-surface-tint": m3("surface-tint"),
         "m3-on-primary": m3("on-primary"),
         "m3-primary-container": m3("primary-container"),
         "m3-on-primary-container": m3("on-primary-container"),
         "m3-secondary": m3("secondary"),
         "m3-on-secondary": m3("on-secondary"),
-        "m3-secondary-container": {
-          DEFAULT: m3("secondary-container"),
-          hover: mix("secondary-container", "on-secondary-container", 8),
-          focus: mix("secondary-container", "on-secondary-container", 10),
-          active: mix("secondary-container", "on-secondary-container", 12),
-        },
+        "m3-secondary-container": m3("secondary-container"),
         "m3-on-secondary-container": m3("on-secondary-container"),
         "m3-tertiary": m3("tertiary"),
         "m3-on-tertiary": m3("on-tertiary"),
@@ -96,12 +82,7 @@ const config: Config = {
         "m3-on-error-container": m3("on-error-container"),
         "m3-background": m3("background"),
         "m3-on-background": m3("on-background"),
-        "m3-surface": {
-          DEFAULT: m3("surface"),
-          hover: mix("surface", "on-surface", 8),
-          focus: mix("surface", "on-surface", 10),
-          active: mix("surface", "on-surface", 12),
-        },
+        "m3-surface": m3("surface"),
         "m3-on-surface": m3("on-surface"),
         "m3-surface-variant": m3("surface-variant"),
         "m3-on-surface-variant": m3("on-surface-variant"),
@@ -127,17 +108,13 @@ const config: Config = {
         "m3-surface-dim": m3("surface-dim"),
         "m3-surface-bright": m3("surface-bright"),
         "m3-surface-container-lowest": m3("surface-container-lowest"),
-        "m3-surface-container-low": {
-          DEFAULT: m3("surface-container-low"),
-          hover: mix("surface-container-low", "primary", 8),
-          focus: mix("surface-container-low", "primary", 10),
-          active: mix("surface-container-low", "primary", 12),
-        },
+        "m3-surface-container-low": m3("surface-container-low"),
         "m3-surface-container": m3("surface-container"),
         "m3-surface-container-high": m3("surface-container-high"),
         "m3-surface-container-highest": m3("surface-container-highest"),
       },
       borderRadius: {
+        m3: "6px",
         xl: "calc(var(--radius) + 4px)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
