@@ -103,8 +103,8 @@ pub(crate) async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
 
-pub(crate) fn internal_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL", msg)
+pub(crate) fn internal_error(err: Error) -> ErrorResponse {
+    error_response(StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL", err)
 }
 
 pub(crate) fn unauthenticated_error(msg: &str) -> ErrorResponse {
@@ -123,18 +123,25 @@ pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorRespons
     error_response(StatusCode::BAD_REQUEST, reason, msg)
 }
 
-pub(crate) fn error_response(status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse {
+/// `msg` will be rendered in the response using the alternate display mode
+/// `{msg:#}` and in logs using debug mode `{msg:?}`. This is aimed at
+/// handling both `&str` and anyhow::Error types.
+pub(crate) fn error_response<T: std::fmt::Display + std::fmt::Debug>(
+    status: StatusCode,
+    reason: &'static str,
+    msg: T,
+) -> ErrorResponse {
     match status {
         StatusCode::INTERNAL_SERVER_ERROR => {
-            tracing::error!("Failed: {} ({}): {}", status, reason, msg)
+            tracing::error!("Failed: {} ({}): {:?}", status, reason, msg)
         }
-        _ => tracing::warn!("Failed: {} ({}): {}", status, reason, msg),
+        _ => tracing::warn!("Failed: {} ({}): {:?}", status, reason, msg),
     }
     ErrorResponse {
         status,
         details: vec![ErrorDetail {
             reason,
-            msg: msg.to_string(),
+            msg: format!("{msg:#}"),
         }],
     }
 }
@@ -190,6 +197,6 @@ where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        internal_error(&format!("{:?}", err.into()))
+        internal_error(err.into())
     }
 }
