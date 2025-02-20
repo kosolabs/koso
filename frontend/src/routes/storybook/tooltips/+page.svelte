@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/kosui/button";
+  import { Shortcut } from "$lib/kosui/shortcut";
   import { PlainTooltip } from "$lib/kosui/tooltip";
-  import { Shortcut } from "$lib/shortcuts";
 
   const shortcut = new Shortcut({ key: "Enter", shift: true });
 

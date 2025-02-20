@@ -8,7 +8,7 @@
   import { auth } from "$lib/auth.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import type { Koso, Node } from "$lib/dag-table";
-  import { Shortcut } from "$lib/shortcuts";
+  import { CANCEL } from "$lib/shortcuts";
   import { unmanagedKinds, type Kind, type Status } from "$lib/yproxy";
   import { Bot, CircleCheck, LoaderCircle } from "lucide-svelte";
   import { tick } from "svelte";
@@ -115,7 +115,7 @@
   <div
     role="none"
     onkeydown={(event) => {
-      if (Shortcut.CANCEL.matches(event)) {
+      if (CANCEL.matches(event)) {
         open = false;
       }
       event.stopPropagation();

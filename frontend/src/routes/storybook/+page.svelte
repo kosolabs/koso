@@ -8,6 +8,7 @@
     "/storybook/inputs",
     "/storybook/menus",
     "/storybook/progress-indicators",
+    "/storybook/shortcuts",
     "/storybook/tooltips",
   ];
 </script>

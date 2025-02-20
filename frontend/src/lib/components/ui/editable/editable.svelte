@@ -1,7 +1,14 @@
 <script lang="ts">
   import { Input } from "$lib/kosui/input";
   import { Link } from "$lib/kosui/link";
-  import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
+  import {
+    Action,
+    CANCEL,
+    INSERT_CHILD_NODE,
+    INSERT_NODE,
+    OK,
+    ShortcutRegistry,
+  } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import { tick } from "svelte";
 
@@ -40,19 +47,19 @@
   const actions: Action[] = [
     new Action({
       callback: save,
-      shortcut: Shortcut.INSERT_NODE,
+      shortcut: INSERT_NODE,
     }),
     new Action({
       callback: save,
-      shortcut: Shortcut.INSERT_CHILD_NODE,
+      shortcut: INSERT_CHILD_NODE,
     }),
     new Action({
       callback: save,
-      shortcut: Shortcut.OK,
+      shortcut: OK,
     }),
     new Action({
       callback: revert,
-      shortcut: Shortcut.CANCEL,
+      shortcut: CANCEL,
     }),
   ];
 

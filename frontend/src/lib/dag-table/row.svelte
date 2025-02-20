@@ -22,7 +22,7 @@
   } from "$lib/components/ui/task-action/task-action.svelte";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { Link } from "$lib/kosui/link";
-  import { Shortcut } from "$lib/shortcuts";
+  import { INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
@@ -445,10 +445,7 @@
             }}
             ondone={() => edit(false)}
             onkeydown={(e) => {
-              if (
-                !Shortcut.INSERT_NODE.matches(e) &&
-                !Shortcut.INSERT_CHILD_NODE.matches(e)
-              ) {
+              if (!INSERT_NODE.matches(e) && !INSERT_CHILD_NODE.matches(e)) {
                 e.stopPropagation();
               }
             }}

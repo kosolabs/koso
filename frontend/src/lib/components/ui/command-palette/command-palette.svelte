@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as Command from "$lib/components/ui/command";
-  import { ShortcutChips } from "$lib/components/ui/shortcut";
-  import { Shortcut, type Action } from "$lib/shortcuts";
+  import ShortcutBadge from "$lib/kosui/shortcut/shortcut-badge.svelte";
+  import { CANCEL, type Action } from "$lib/shortcuts";
   import { match } from "$lib/utils";
 
   type Props = {
@@ -27,7 +27,7 @@
   portalProps={{ disabled: true }}
   onkeydown={(event) => {
     event.stopPropagation();
-    if (Shortcut.CANCEL.matches(event)) {
+    if (CANCEL.matches(event)) {
       query = "";
       open = false;
     }
@@ -49,7 +49,7 @@
         <Icon class="mr-2 h-4 w-4" />
         {description}
         {#if shortcut}
-          <ShortcutChips class="ml-auto" {shortcut} />
+          <ShortcutBadge class="ml-auto" {shortcut} />
         {/if}
       </Command.Item>
     {/each}

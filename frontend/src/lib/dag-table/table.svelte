@@ -5,7 +5,14 @@
   import { toast } from "$lib/components/ui/sonner";
   import { events } from "$lib/kosui";
   import { Button } from "$lib/kosui/button";
-  import { Action, Shortcut, ShortcutRegistry } from "$lib/shortcuts";
+  import { Shortcut } from "$lib/kosui/shortcut";
+  import {
+    Action,
+    CANCEL,
+    INSERT_CHILD_NODE,
+    INSERT_NODE,
+    ShortcutRegistry,
+  } from "$lib/shortcuts";
   import {
     Cable,
     Check,
@@ -325,7 +332,7 @@
       description: "Add or insert a new task",
       icon: ListPlus,
       toolbar: true,
-      shortcut: Shortcut.INSERT_NODE,
+      shortcut: INSERT_NODE,
       enabled: () =>
         !inboxView &&
         (!koso.selected || koso.canInsert(koso.selected.parent.name)),
@@ -348,7 +355,7 @@
       icon: ListTree,
       enabled: () =>
         !inboxView && !!koso.selected && koso.canInsert(koso.selected.name),
-      shortcut: Shortcut.INSERT_CHILD_NODE,
+      shortcut: INSERT_CHILD_NODE,
     }),
     new Action({
       callback: insertChildAbove,
@@ -382,7 +389,7 @@
       title: "Clear",
       description: "Clear the current selection",
       icon: CircleX,
-      shortcut: Shortcut.CANCEL,
+      shortcut: CANCEL,
     }),
     new Action({
       callback: remove,
