@@ -12,8 +12,10 @@
       variant: {
         elevated:
           "bg-m3-surface-container-low disabled:bg-m3-on-surface/12 not-disabled:not-active:shadow",
-        filled: "disabled:bg-m3-on-surface/12",
-        tonal: "disabled:bg-m3-on-surface/12",
+        filled:
+          "disabled:bg-m3-on-surface/12 hover:opacity-90 focus-visible:opacity-90",
+        tonal:
+          "disabled:bg-m3-on-surface/12 hover:opacity-80 focus-visible:opacity-80",
         outline: "outline-m3-outline disabled:outline-m3-on-surface/12 outline",
         ghost: "disabled:outline-m3-on-surface/12",
       },
@@ -52,50 +54,42 @@
       {
         variant: "filled",
         color: "primary",
-        class:
-          "bg-m3-primary text-m3-on-primary hover:bg-m3-primary/90 focus-visible:bg-m3-primary/90",
+        class: "bg-m3-primary text-m3-on-primary",
       },
       {
         variant: "filled",
         color: "secondary",
-        class:
-          "bg-m3-secondary text-m3-on-secondary hover:bg-m3-secondary/90 focus-visible:bg-m3-secondary/90",
+        class: "bg-m3-secondary text-m3-on-secondary",
       },
       {
         variant: "filled",
         color: "tertiary",
-        class:
-          "bg-m3-tertiary text-m3-on-tertiary hover:bg-m3-tertiary/90 focus-visible:bg-m3-tertiary/90",
+        class: "bg-m3-tertiary text-m3-on-tertiary",
       },
       {
         variant: "filled",
         color: "error",
-        class:
-          "bg-m3-error text-m3-on-error hover:bg-m3-error/90 focus-visible:bg-m3-error/90",
+        class: "bg-m3-error text-m3-on-error",
       },
       {
         variant: "tonal",
         color: "primary",
-        class:
-          "bg-m3-primary-container text-m3-on-primary-container hover:bg-m3-primary-container/80 focus-visible:bg-m3-primary-container/80",
+        class: "bg-m3-primary-container text-m3-on-primary-container",
       },
       {
         variant: "tonal",
         color: "secondary",
-        class:
-          "bg-m3-secondary-container text-m3-on-secondary-container hover:bg-m3-secondary-container/80 focus-visible:bg-m3-secondary-container/80",
+        class: "bg-m3-secondary-container text-m3-on-secondary-container",
       },
       {
         variant: "tonal",
         color: "tertiary",
-        class:
-          "bg-m3-tertiary-container text-m3-on-tertiary-container hover:bg-m3-tertiary-container/80 focus-visible:bg-m3-tertiary-container/80",
+        class: "bg-m3-tertiary-container text-m3-on-tertiary-container",
       },
       {
         variant: "tonal",
         color: "error",
-        class:
-          "bg-m3-error-container text-m3-on-error-container hover:bg-m3-error-container/80 focus-visible:bg-m3-error-container/80",
+        class: "bg-m3-error-container text-m3-on-error-container",
       },
       {
         variant: "outline",

@@ -8,7 +8,7 @@
   import type { ElementRef } from "../utils";
 
   export const linkVariants = tv({
-    base: "inline-flex cursor-pointer items-center justify-center gap-1 rounded-md underline-offset-4 focus-visible:ring-1 focus-visible:outline-hidden",
+    base: "inline-flex cursor-pointer items-center justify-center gap-1 rounded-md underline-offset-4 hover:opacity-80 focus-visible:ring-1 focus-visible:outline-hidden",
     variants: {
       underline: {
         always: "underline",
