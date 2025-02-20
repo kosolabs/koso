@@ -3,11 +3,22 @@ const keys: { [key: string]: string } = {
   ArrowLeft: "←",
   ArrowRight: "→",
   ArrowUp: "↑",
+  Alt: "⌥",
+  Backspace: "⌫",
+  CapsLock: "⇪",
+  Control: "⌃",
   Delete: "⌦",
   Enter: "⏎",
   Escape: "⎋",
+  Meta: "⌘",
+  Shift: "⇧",
+  Tab: "↹",
   " ": "␣",
 };
+
+for (let i = 1; i <= 12; i++) {
+  keys[`F${i}`] = `F${i}`;
+}
 
 export class Shortcut {
   key: string;
@@ -46,7 +57,8 @@ export class Shortcut {
     }
     const result = keys[this.key];
     if (!result) {
-      throw new Error(`${this.key} was not be mapped to a character`);
+      console.warn(`${this.key} was not be mapped to a character`);
+      return this.key;
     }
     return result;
   }
