@@ -19,6 +19,7 @@
         primary: "text-m3-primary focus-visible:ring-m3-primary",
         secondary: "text-m3-secondary focus-visible:ring-m3-secondary",
         tertiary: "text-m3-tertiary focus-visible:ring-m3-tertiary",
+        error: "text-m3-error focus-visible:ring-m3-error",
         inherit: "focus-visible:ring-m3-primary",
       },
     },
