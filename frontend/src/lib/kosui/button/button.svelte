@@ -7,7 +7,7 @@
   import type { ElementRef } from "../utils";
 
   export const buttonVariants = tv({
-    base: "rounded-m3 disabled:text-m3-on-surface/38 shadow-m3-shadow/38 flex items-center gap-2 px-4 py-1.5 text-sm text-nowrap transition-all focus-visible:ring-1 focus-visible:outline-hidden not-disabled:active:scale-95",
+    base: "rounded-m3 disabled:text-m3-on-surface/38 shadow-m3-shadow/38 flex items-center gap-2 text-sm text-nowrap transition-all focus-visible:ring-1 focus-visible:outline-hidden not-disabled:active:scale-95",
     variants: {
       variant: {
         elevated:
@@ -16,14 +16,20 @@
           "disabled:bg-m3-on-surface/12 hover:opacity-90 focus-visible:opacity-90",
         tonal:
           "disabled:bg-m3-on-surface/12 hover:opacity-80 focus-visible:opacity-80",
-        outline: "outline-m3-outline disabled:outline-m3-on-surface/12 outline",
-        ghost: "disabled:outline-m3-on-surface/12",
+        outlined:
+          "outline-m3-outline disabled:outline-m3-on-surface/12 outline",
+        plain: "disabled:outline-m3-on-surface/12",
       },
       color: {
         primary: "focus-visible:ring-m3-primary",
         secondary: "focus-visible:ring-m3-secondary",
         tertiary: "focus-visible:ring-m3-tertiary",
         error: "focus-visible:ring-m3-error",
+      },
+      scale: {
+        sm: "px-3 py-1 text-sm",
+        md: "px-4 py-1.5",
+        lg: "px-6 py-2 text-lg",
       },
     },
     compoundVariants: [
@@ -92,53 +98,54 @@
         class: "bg-m3-error-container text-m3-on-error-container",
       },
       {
-        variant: "outline",
+        variant: "outlined",
         color: "primary",
         class: "focus-visible:outline-m3-primary",
       },
       {
-        variant: "outline",
+        variant: "outlined",
         color: "secondary",
         class: "focus-visible:outline-m3-secondary",
       },
       {
-        variant: "outline",
+        variant: "outlined",
         color: "tertiary",
         class: "focus-visible:outline-m3-tertiary",
       },
       {
-        variant: "outline",
+        variant: "outlined",
         color: "error",
         class: "focus-visible:outline-m3-error",
       },
       {
-        variant: ["outline", "ghost"],
+        variant: ["outlined", "plain"],
         color: "primary",
         class:
           "text-m3-primary not-disabled:hover:bg-m3-primary/15 focus-visible:bg-m3-primary/15",
       },
       {
-        variant: ["outline", "ghost"],
+        variant: ["outlined", "plain"],
         color: "secondary",
         class:
           "text-m3-secondary not-disabled:hover:bg-m3-secondary/15 focus-visible:bg-m3-secondary/15",
       },
       {
-        variant: ["outline", "ghost"],
+        variant: ["outlined", "plain"],
         color: "tertiary",
         class:
           "text-m3-tertiary not-disabled:hover:bg-m3-tertiary/15 focus-visible:bg-m3-tertiary/15",
       },
       {
-        variant: ["outline", "ghost"],
+        variant: ["outlined", "plain"],
         color: "error",
         class:
           "text-m3-error not-disabled:hover:bg-m3-error/15 focus-visible:bg-m3-error/15",
       },
     ],
     defaultVariants: {
-      variant: "outline",
+      variant: "outlined",
       color: "primary",
+      scale: "md",
     },
   });
 
@@ -158,6 +165,7 @@
     class: className,
     variant,
     color,
+    scale,
     ref = $bindable(),
     icon: IconComponent,
     children,
@@ -166,16 +174,27 @@
   }: ButtonProps = $props();
 
   let tooltipRef: PlainTooltip | undefined = $state();
+
+  let size = $derived.by(() => {
+    switch (scale) {
+      case "lg":
+        return 18;
+      case "sm":
+        return 14;
+      default:
+        return 16;
+    }
+  });
 </script>
 
 <button
   bind:this={ref}
-  class={buttonVariants({ variant, color, className })}
+  class={buttonVariants({ variant, color, scale, className })}
   {...restProps}
   {...tooltipRef?.triggerProps}
 >
   {#if IconComponent}
-    <IconComponent size={16} />
+    <IconComponent {size} />
   {/if}
   {@render children?.()}
 </button>

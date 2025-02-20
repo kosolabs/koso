@@ -128,10 +128,14 @@
     onblur={save}
     onkeydown={handleInputKeydown}
     autocomplete="off"
+    scale="sm"
   />
 {:else}
   <Link
-    class={cn("h-auto p-0 text-left text-wrap whitespace-normal", classes)}
+    class={cn(
+      "h-auto p-0 text-left text-sm text-wrap whitespace-normal",
+      classes,
+    )}
     aria-label={ariaLabel}
     onclick={handleButtonClick}
     underline="none"

@@ -453,7 +453,7 @@
         {:else}
           <Link
             class={cn(
-              "h-auto p-0 text-left text-wrap whitespace-normal disabled:opacity-100",
+              "h-auto p-0 text-left text-sm text-wrap whitespace-normal",
               task.url ? "text" : "",
             )}
             aria-label={`Task ${task.num} Name`}
