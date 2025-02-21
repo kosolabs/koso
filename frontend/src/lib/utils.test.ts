@@ -43,6 +43,14 @@ describe("utils tests", () => {
       expect(match("my.email@gmail.com", "email")).toBeTruthy();
     });
 
+    it("prefix of a word separated by a dash in an email matches", () => {
+      expect(match("my-email@gmail.com", "email")).toBeTruthy();
+    });
+
+    it("prefix of a word separated by an underscore in an email matches", () => {
+      expect(match("my_email@gmail.com", "email")).toBeTruthy();
+    });
+
     it("multiple prefixes of multiple words in an email matches", () => {
       expect(match("my.email@gmail.com", "gmail email my")).toBeTruthy();
     });

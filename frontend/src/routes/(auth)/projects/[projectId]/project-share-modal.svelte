@@ -29,7 +29,11 @@
   }: Props = $props();
 
   let filter: string = $state("");
-  let openDropDown: boolean = $state(false);
+  let users: User[] = $state([]);
+  let wantSearchResultsOpen: boolean = $state(false);
+  let openDropDown: boolean = $derived(
+    wantSearchResultsOpen && users.length > 0,
+  );
 
   async function addUser(add: User) {
     await updateProjectUsers({
@@ -74,15 +78,17 @@
 
   const MIN_FILTER_LEN = 2;
   let req = 0;
-  let users: User[] = $state([]);
   $effect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    projectUsers;
+    // reference project users so svelte treats it as a dependency.
+    if (filter.trim().length < MIN_FILTER_LEN) {
+      users = [];
+      return;
+    }
+
     (async () => {
-      // reference project users so svelte treats it as a dependency.
-      if (projectUsers.length > -1 && filter.trim().length < MIN_FILTER_LEN) {
-        users = [];
-        return;
-      }
-      let thisReq = req + 1;
+      const thisReq = req + 1;
       req = thisReq;
       const response = await fetch(`/api/users?q=${filter}`, {
         headers: headers(),
@@ -99,6 +105,12 @@
         .filter((u) => !projectUsers.some((pu) => pu.email === u.email))
         .filter((u) => match(u.name, filter) || match(u.email, filter));
     })();
+  });
+
+  $effect(() => {
+    if (filter) {
+      wantSearchResultsOpen = true;
+    }
   });
 
   let searchInput: HTMLElement | undefined = $state();
@@ -129,31 +141,31 @@
       name="Add people"
       autocomplete="off"
       class="my-2"
-      onfocus={() => {
-        openDropDown = true;
-      }}
+      onclick={() => (wantSearchResultsOpen = true)}
+      onfocus={() => (wantSearchResultsOpen = true)}
     />
 
-    {#if users.length > 0}
-      <Menu
-        bind:open={openDropDown}
-        anchorEl={searchInput}
-        popover="manual"
-        enableEscapeHandler={true}
-        class="w-[min(calc(100%-1em),32em)] max-w-full"
-      >
-        {#each users as user (user.email)}
-          <MenuItem
-            onclick={() => {
-              openDropDown = false;
-              addUser(user);
-            }}
-          >
-            <UserAvatar {user} />
-          </MenuItem>
-        {/each}
-      </Menu>
-    {/if}
+    <Menu
+      open={openDropDown}
+      anchorEl={searchInput}
+      ontoggle={(event) => {
+        if (event.newState === "closed") {
+          wantSearchResultsOpen = false;
+        }
+      }}
+      class="w-[min(calc(100%-1em),32em)] max-w-full"
+    >
+      {#each users as user (user.email)}
+        <MenuItem
+          onclick={() => {
+            wantSearchResultsOpen = false;
+            addUser(user);
+          }}
+        >
+          <UserAvatar {user} />
+        </MenuItem>
+      {/each}
+    </Menu>
 
     <div class="h3">People with access</div>
     <div class="flex h-64 w-full flex-col items-stretch overflow-y-auto">

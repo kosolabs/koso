@@ -41,7 +41,7 @@ export function findEntryIndex<T, U>(
  * @returns `true` if the text matches the prefix, `false` otherwise.
  */
 export function match(text: string, prefix: string): boolean {
-  const TOKEN_SPLITTER = /[\s.,!?;:@]/;
+  const TOKEN_SPLITTER = /[-_\s.,!?;:@]/;
   const textLower = text.toLocaleLowerCase();
   const prefixLower = prefix.toLocaleLowerCase();
 
