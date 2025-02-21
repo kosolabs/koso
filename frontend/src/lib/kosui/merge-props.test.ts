@@ -42,7 +42,7 @@ describe("mergeProps", () => {
   });
 
   it("should not run second handler if the first once cancels", () => {
-    const handler1 = vi.fn((event) => event.preventDefault());
+    const handler1 = vi.fn((event) => event.stopImmediatePropagation());
     const handler2 = vi.fn();
     const props1 = { onclick: handler1 };
     const props2 = { onclick: handler2 };

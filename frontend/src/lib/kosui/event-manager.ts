@@ -1,20 +1,10 @@
+import type { EventHandler } from "svelte/elements";
 import { on } from "svelte/events";
+import { runEventHandlers } from "./merge-props";
 
 type EventType = keyof DocumentEventMap;
 
-type Listener<K extends EventType> = (
-  this: Document,
-  event: DocumentEventMap[K],
-) => void;
-
-function interceptStopImmediatePropagation(event: Event, callback: () => void) {
-  const original = event.stopImmediatePropagation;
-
-  event.stopImmediatePropagation = function () {
-    callback();
-    original.call(event);
-  };
-}
+type Listener<K extends EventType> = EventHandler<DocumentEventMap[K]>;
 
 function entries<T extends object>(obj: T): [keyof T, T[keyof T]][] {
   return Object.entries(obj) as [keyof T, T[keyof T]][];
@@ -32,12 +22,11 @@ export class EventManager {
     this.#listeners[type] ??= [];
     if (this.#listeners[type].length === 0) {
       this.#destroyers[type] = on(document, type, (event) => {
-        let stopped = false;
-        interceptStopImmediatePropagation(event, () => (stopped = true));
-        for (const listener of this.#listeners[type]!) {
-          if (stopped) break;
-          listener.call(document, event);
-        }
+        runEventHandlers(
+          document,
+          event as Event & { currentTarget: EventTarget & Element },
+          ...(this.#listeners[type] as EventHandler[]),
+        );
       });
     }
     this.#listeners[type].unshift(listener);
