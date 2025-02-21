@@ -23,15 +23,37 @@ function isHandler(value: unknown): value is EventHandler {
   return typeof value === "function";
 }
 
+export function interceptStopImmediatePropagation(
+  event: Event,
+  callback: () => void,
+) {
+  const original = event.stopImmediatePropagation;
+
+  event.stopImmediatePropagation = function () {
+    callback();
+    original.call(event);
+  };
+}
+
+export function runEventHandlers(
+  target: EventTarget,
+  event: Event & { currentTarget: EventTarget & Element },
+  ...handlers: EventHandler[]
+) {
+  let stopped = false;
+  interceptStopImmediatePropagation(event, () => (stopped = true));
+  for (const handler of handlers) {
+    if (stopped) break;
+    handler.call(target, event);
+  }
+}
+
 function chainHandlers<
   E extends Event & { currentTarget: EventTarget & Element },
   T extends EventTarget,
 >(...handlers: EventHandler[]): (e: E) => void {
   return function (this: T, event: E) {
-    for (const handler of handlers) {
-      if (event.defaultPrevented) break;
-      handler.call(this, event);
-    }
+    runEventHandlers(this, event, ...handlers);
   };
 }
 
