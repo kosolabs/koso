@@ -105,14 +105,14 @@ impl ClientMessageReceiver {
                 ControlFlow::Continue(())
             }
             Ok(Message::Close(c)) => {
-                let details = if let Some(cf) = &c {
+                let details = match &c { Some(cf) => {
                     format!(
                         "Client closed connection: code:'{}', detail:'{}'",
                         cf.code, cf.reason
                     )
-                } else {
+                } _ => {
                     "Client closed connection: code:'NONE', detail:'No CloseFrame'".to_string()
-                };
+                }};
                 ControlFlow::Break(ClientClosure {
                     code: CLOSE_NORMAL,
                     reason: "Client closed connection.",
