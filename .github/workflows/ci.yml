@@ -21,7 +21,7 @@ jobs:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
-      KOSO_DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
+      KOSO_SETTING_DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
       DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
 
     services:
@@ -54,7 +54,7 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
-          KOSO_SECRETS_DIR=$(realpath ~/.secrets) cargo test --package koso
+          KOSO_SETTING_SECRETS_DIR=$(realpath ~/.secrets) cargo test --package koso
       - run: cargo clippy -- -D warnings
       - run: cargo fmt --all -- --check
 
@@ -88,7 +88,7 @@ jobs:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
-      KOSO_DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
+      KOSO_SETTING_DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
       DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
       # Container registry domain
       REGISTRY: ghcr.io
@@ -185,7 +185,7 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
-          CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} KOSO_SECRETS_DIR=$(realpath ~/.secrets)  pnpm exec playwright test --workers=4
+          CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} KOSO_SETTING_SECRETS_DIR=$(realpath ~/.secrets)  pnpm exec playwright test --workers=4
 
   build-and-push-image:
     env:

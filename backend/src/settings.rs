@@ -38,32 +38,23 @@ pub fn settings() -> &'static Settings {
 }
 
 fn load_settings_from_env() -> Settings {
-    load_settings(&std::env::var("RUN_KOSO_ENV").expect("RUN_KOSO_ENV is unset"))
+    load_settings(&std::env::var("KOSO_ENV").expect("KOSO_ENV is unset"))
 }
 
 fn load_settings(env: &str) -> Settings {
-    let env_source = match env {
-        "dev" => File::from_str(include_str!("settings/dev.toml"), FileFormat::Toml),
-        "prod" => File::from_str(include_str!("settings/prod.toml"), FileFormat::Toml),
-        env => panic!("No settings file for '{env}' found. Expected 'dev' or 'prod'."),
-    };
-
-    let config = config::Config::builder()
-        .add_source(env_source)
+    let settings = config::Config::builder()
+        .add_source(match env {
+            "dev" => File::from_str(include_str!("settings/dev.toml"), FileFormat::Toml),
+            "prod" => File::from_str(include_str!("settings/prod.toml"), FileFormat::Toml),
+            env => panic!("No settings file for '{env}' found. Expected 'dev' or 'prod'."),
+        })
         .add_source(File::new(".local_settings", FileFormat::Toml).required(false))
-        .add_source(Environment::with_prefix("KOSO"))
+        .add_source(Environment::with_prefix("KOSO_SETTING"))
         .build()
-        .expect("Failed to load settings");
-    if std::env::var("RUN_KOSO_LOG_SETTINGS").unwrap_or_default() == "true" {
-        println!("Using koso settings config: {config:?}");
-    }
-
-    let settings = config
+        .expect("Failed to load settings")
         .try_deserialize()
         .expect("Failed to deserialize settings");
-    if std::env::var("RUN_KOSO_LOG_SETTINGS").unwrap_or_default() == "true" {
-        println!("Using koso settings: {settings:?}");
-    }
+    println!("Using koso settings: {settings:?}");
 
     settings
 }
