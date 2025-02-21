@@ -206,7 +206,7 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
     let start = Instant::now();
     let path = match req.extensions().get::<MatchedPath>() {
         Some(matched_path) => matched_path.as_str().to_owned(),
-        _ => "404_UNMATCHED_PATH".to_string(),
+        None => "404_UNMATCHED_PATH".to_string(),
     };
     let method = req.method().to_string();
 

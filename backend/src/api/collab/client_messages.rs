@@ -112,7 +112,7 @@ impl ClientMessageReceiver {
                             cf.code, cf.reason
                         )
                     }
-                    _ => {
+                    None => {
                         "Client closed connection: code:'NONE', detail:'No CloseFrame'".to_string()
                     }
                 };
