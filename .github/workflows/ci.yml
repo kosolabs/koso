@@ -25,7 +25,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17.3@sha256:6e3358e46e34dae6c184f48fd06fe1b3dbf958ad5b83480031907e52b9ec2a7d
+        image: postgres:17.3@sha256:0321e2252ebfeecb8bc1a899755084d29bce872953e1a5a3e25ec0860b739098
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -92,7 +92,7 @@ jobs:
       REGISTRY: ghcr.io
     services:
       postgres:
-        image: postgres:17.3@sha256:6e3358e46e34dae6c184f48fd06fe1b3dbf958ad5b83480031907e52b9ec2a7d
+        image: postgres:17.3@sha256:0321e2252ebfeecb8bc1a899755084d29bce872953e1a5a3e25ec0860b739098
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -104,7 +104,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Cache Playwright install
         id: playwright-cache
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4.2.1
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/frontend/pnpm-lock.yaml') }}
@@ -157,7 +157,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Backend Docker Image
         id: build-backend
-        uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
+        uses: docker/build-push-action@0adf9959216b96bec444f325f1e493d4aa344497 # v6.14.0
         env:
           DOCKER_BUILD_SUMMARY: ${{ github.ref == 'refs/heads/main'}}
           DOCKER_BUILD_RECORD_UPLOAD: ${{ github.ref == 'refs/heads/main'}}
@@ -252,7 +252,7 @@ jobs:
       # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
       - name: Build and push Docker image
         id: push
-        uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # v6.13.0
+        uses: docker/build-push-action@0adf9959216b96bec444f325f1e493d4aa344497 # v6.14.0
         env:
           DOCKER_BUILD_SUMMARY: ${{ github.ref == 'refs/heads/main'}}
           DOCKER_BUILD_RECORD_UPLOAD: ${{ github.ref == 'refs/heads/main'}}
