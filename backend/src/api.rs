@@ -7,6 +7,7 @@ use axum::{
 use google::User;
 use model::{ProjectId, ProjectPermission};
 use sqlx::postgres::PgPool;
+use std::backtrace::BacktraceStatus;
 
 use crate::notifiers;
 
@@ -103,8 +104,13 @@ pub(crate) async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
 
-pub(crate) fn internal_error(err: Error) -> ErrorResponse {
-    error_response(StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL", err)
+pub(crate) fn internal_error(err: Error, msg_for_user: Option<&str>) -> ErrorResponse {
+    error_response_from_error(
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "INTERNAL",
+        msg_for_user,
+        Some(err),
+    )
 }
 
 pub(crate) fn unauthenticated_error(msg: &str) -> ErrorResponse {
@@ -123,26 +129,120 @@ pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorRespons
     error_response(StatusCode::BAD_REQUEST, reason, msg)
 }
 
-/// `msg` will be rendered in the response using the alternate display mode
-/// `{msg:#}` and in logs using debug mode `{msg:?}`. This is aimed at
-/// handling both `&str` and anyhow::Error types.
-pub(crate) fn error_response<T: std::fmt::Display + std::fmt::Debug>(
-    status: StatusCode,
-    reason: &'static str,
-    msg: T,
-) -> ErrorResponse {
+pub(crate) fn error_response(status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse {
     match status {
         StatusCode::INTERNAL_SERVER_ERROR => {
-            tracing::error!("Failed: {} ({}): {:?}", status, reason, msg)
+            tracing::error!("Failed: {} ({}): {}", status, reason, msg)
         }
-        _ => tracing::warn!("Failed: {} ({}): {:?}", status, reason, msg),
+        _ => tracing::warn!("Failed: {} ({}): {}", status, reason, msg),
     }
     ErrorResponse {
         status,
         details: vec![ErrorDetail {
             reason,
-            msg: format!("{msg:#}"),
+            msg: msg.to_string(),
         }],
+    }
+}
+
+pub(crate) fn error_response_from_error(
+    status: StatusCode,
+    reason: &'static str,
+    msg: Option<&str>,
+    err: Option<Error>,
+) -> ErrorResponse {
+    let err = ErrorRender { err, msg };
+
+    match status {
+        StatusCode::INTERNAL_SERVER_ERROR => {
+            tracing::error!("Failed: {} ({}): {:?}", status, reason, err)
+        }
+        _ => tracing::warn!("Failed: {} ({}): {:?}", status, reason, err),
+    }
+    ErrorResponse {
+        status,
+        details: vec![ErrorDetail {
+            reason,
+            msg: format!("{err}"),
+        }],
+    }
+}
+
+struct ErrorRender<'a> {
+    err: Option<Error>,
+    msg: Option<&'a str>,
+}
+
+impl std::fmt::Display for ErrorRender<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match (self.msg, &self.err) {
+            (Some(msg), _) => f.write_str(msg),
+            (None, Some(err)) => write!(f, "{err:#}"),
+            (None, None) => f.write_str("Something really unexpected went wrong"),
+        }
+    }
+}
+
+impl std::fmt::Debug for ErrorRender<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match (self.msg, &self.err) {
+            (Some(msg), None) => f.write_str(msg),
+            (None, None) => {
+                f.write_str("Something really unexpected went wrong [Neither msg or err was set]")
+            }
+            (msg, Some(err)) => {
+                if let Some(msg) = msg {
+                    write!(f, "[{msg}]: ")?;
+                }
+
+                write!(f, "{}", err)?;
+                for cause in err.chain().skip(1) {
+                    write!(f, ": {}", cause)?;
+                }
+
+                let backtrace = err.backtrace();
+                if let BacktraceStatus::Captured = backtrace.status() {
+                    let mut backtrace = backtrace.to_string();
+                    write!(f, "\n Stack backtrace:")?;
+
+                    backtrace.truncate(backtrace.trim_end().len());
+
+                    let mut skipped_frames = 0;
+                    let mut iter = backtrace.split("\n").peekable();
+                    loop {
+                        let Some(function_line) = iter.next() else {
+                            break;
+                        };
+                        let file_line = match iter.peek() {
+                            Some(fl) if fl.trim().starts_with("at ") => iter.next().unwrap_or(""),
+                            _ => "",
+                        };
+
+                        let remainder = function_line.trim_start_matches(|c: char| {
+                            c.is_numeric() || c.is_whitespace() || c == ':'
+                        });
+
+                        if !remainder.starts_with("koso::") {
+                            skipped_frames += 1;
+                            continue;
+                        }
+
+                        if skipped_frames > 0 {
+                            skipped_frames = 0;
+                        }
+                        write!(f, "\n {function_line}")?;
+                        if !file_line.is_empty() {
+                            write!(f, "\n{file_line}")?;
+                        }
+                    }
+                    if skipped_frames > 0 {
+                        write!(f, "\n       [Skipped {skipped_frames} frames]")?;
+                    }
+                }
+
+                Ok(())
+            }
+        }
     }
 }
 
@@ -197,6 +297,6 @@ where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        internal_error(err.into())
+        internal_error(err.into(), None)
     }
 }
