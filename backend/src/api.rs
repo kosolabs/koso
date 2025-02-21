@@ -105,7 +105,7 @@ pub(crate) async fn handler_404() -> impl IntoResponse {
 }
 
 pub(crate) fn internal_error(err: Error, msg_for_user: Option<&str>) -> ErrorResponse {
-    error_response_from_error(
+    error_response(
         StatusCode::INTERNAL_SERVER_ERROR,
         "INTERNAL",
         msg_for_user,
@@ -114,38 +114,22 @@ pub(crate) fn internal_error(err: Error, msg_for_user: Option<&str>) -> ErrorRes
 }
 
 pub(crate) fn unauthenticated_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::UNAUTHORIZED, "UNAUTHENTICATED", msg)
+    error_response(StatusCode::UNAUTHORIZED, "UNAUTHENTICATED", Some(msg), None)
 }
 
 pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", msg)
+    error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", Some(msg), None)
 }
 
 pub(crate) fn not_invited_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::FORBIDDEN, "NOT_INVITED", msg)
+    error_response(StatusCode::FORBIDDEN, "NOT_INVITED", Some(msg), None)
 }
 
 pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorResponse {
-    error_response(StatusCode::BAD_REQUEST, reason, msg)
+    error_response(StatusCode::BAD_REQUEST, reason, Some(msg), None)
 }
 
-pub(crate) fn error_response(status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse {
-    match status {
-        StatusCode::INTERNAL_SERVER_ERROR => {
-            tracing::error!("Failed: {} ({}): {}", status, reason, msg)
-        }
-        _ => tracing::warn!("Failed: {} ({}): {}", status, reason, msg),
-    }
-    ErrorResponse {
-        status,
-        details: vec![ErrorDetail {
-            reason,
-            msg: msg.to_string(),
-        }],
-    }
-}
-
-pub(crate) fn error_response_from_error(
+pub(crate) fn error_response(
     status: StatusCode,
     reason: &'static str,
     msg: Option<&str>,
