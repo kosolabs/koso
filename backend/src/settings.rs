@@ -7,7 +7,6 @@ use std::sync::OnceLock;
 pub(crate) struct Settings {
     pub(crate) env: String,
     pub(crate) database_url: String,
-    pub(crate) port: u16,
     pub(crate) secrets_dir: String,
     pub(crate) plugins: Plugins,
 }

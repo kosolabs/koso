@@ -138,7 +138,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         }
         // otherwise fall back to local listening
         None => {
-            let port = config.port.unwrap_or(settings().port);
+            let port = config.port.unwrap_or(3000);
             TcpListener::bind(format!("0.0.0.0:{port}")).await.unwrap()
         }
     };
