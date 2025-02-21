@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context as _, Result, anyhow};
 use core::fmt;
 use std::{fmt::Debug, fs, path::Path};
 
