@@ -7,7 +7,7 @@ use axum::{
 use google::User;
 use model::{ProjectId, ProjectPermission};
 use sqlx::postgres::PgPool;
-use std::backtrace::BacktraceStatus;
+use std::backtrace::{Backtrace, BacktraceStatus};
 
 use crate::notifiers;
 
@@ -200,49 +200,66 @@ impl std::fmt::Debug for ErrorRender<'_> {
                     write!(f, ": {}", cause)?;
                 }
 
-                let backtrace = err.backtrace();
-                if let BacktraceStatus::Captured = backtrace.status() {
-                    let mut backtrace = backtrace.to_string();
-                    write!(f, "\n Stack backtrace:")?;
-
-                    backtrace.truncate(backtrace.trim_end().len());
-
-                    let mut skipped_frames = 0;
-                    let mut iter = backtrace.split("\n").peekable();
-                    loop {
-                        let Some(function_line) = iter.next() else {
-                            break;
-                        };
-                        let file_line = match iter.peek() {
-                            Some(fl) if fl.trim().starts_with("at ") => iter.next().unwrap_or(""),
-                            _ => "",
-                        };
-
-                        let remainder = function_line.trim_start_matches(|c: char| {
-                            c.is_numeric() || c.is_whitespace() || c == ':'
-                        });
-
-                        if !remainder.starts_with("koso::") {
-                            skipped_frames += 1;
-                            continue;
-                        }
-
-                        if skipped_frames > 0 {
-                            skipped_frames = 0;
-                        }
-                        write!(f, "\n {function_line}")?;
-                        if !file_line.is_empty() {
-                            write!(f, "\n{file_line}")?;
-                        }
-                    }
-                    if skipped_frames > 0 {
-                        write!(f, "\n       [Skipped {skipped_frames} frames]")?;
-                    }
-                }
-
-                Ok(())
+                Self::fmt_backtrace(err.backtrace(), f)
             }
         }
+    }
+}
+
+impl ErrorRender<'_> {
+    fn fmt_backtrace(backtrace: &Backtrace, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match backtrace.status() {
+            BacktraceStatus::Captured => {}
+            _ => return Ok(()),
+        }
+
+        let mut backtrace = backtrace.to_string();
+        backtrace.truncate(backtrace.trim_end().len());
+
+        write!(f, "\n Stack backtrace:")?;
+
+        // Backtrace frames usually contain two lines: function and file. There are a few
+        // that only have a function line and not file line, for example: ___rust_try.
+        // To handle this we use a peekable iterator to pop off frames with the second
+        // line of the frame, the file, being optional.
+        let mut iter: std::iter::Peekable<std::str::Split<'_, &str>> =
+            backtrace.split("\n").peekable();
+        let mut skipped_frames = 0;
+        loop {
+            // The function line. For example:
+            //   5: koso::server::emit_request_metrics::{{closure}}
+            let Some(function_line) = iter.next() else {
+                break;
+            };
+            // The optional file line. For example:
+            //       at /some/file/path/lib.rs:520:23
+            let file_line = match iter.peek() {
+                Some(fl) if fl.trim().starts_with("at ") => iter.next().unwrap_or(""),
+                _ => "",
+            };
+
+            // Trim everything before the function name itself, leaving, for example:
+            // koso::server::emit_request_metrics::{{closure}}
+            let function_name = function_line
+                .trim_start_matches(|c: char| c.is_numeric() || c.is_whitespace() || c == ':');
+            if !function_name.starts_with("koso::") {
+                skipped_frames += 1;
+                continue;
+            }
+
+            if skipped_frames > 0 {
+                skipped_frames = 0;
+            }
+            write!(f, "\n {function_line}")?;
+            if !file_line.is_empty() {
+                write!(f, "\n{file_line}")?;
+            }
+        }
+        if skipped_frames > 0 {
+            write!(f, "\n       [Skipped {skipped_frames} frames]")?;
+        }
+
+        Ok(())
     }
 }
 
