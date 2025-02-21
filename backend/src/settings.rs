@@ -3,6 +3,7 @@ use serde::Deserialize;
 use std::sync::OnceLock;
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct Settings {
     pub(crate) env: String,
     pub(crate) database_url: String,
@@ -13,17 +14,20 @@ pub(crate) struct Settings {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct Plugins {
     pub(crate) github: Github,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct Github {
     pub(crate) client_id: String,
     pub(crate) app_id: u64,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct Metrics {
     pub(crate) port: u16,
 }
@@ -44,13 +48,24 @@ fn load_settings(env: &str) -> Settings {
         env => panic!("No settings file for '{env}' found. Expected 'dev' or 'prod'."),
     };
 
-    config::Config::builder()
+    let config = config::Config::builder()
         .add_source(env_source)
+        .add_source(File::new(".local_settings", FileFormat::Toml).required(false))
         .add_source(Environment::with_prefix("KOSO"))
         .build()
-        .expect("Failed to load settings")
+        .expect("Failed to load settings");
+    if std::env::var("RUN_KOSO_LOG_SETTINGS").unwrap_or_default() == "true" {
+        println!("Using koso settings config: {config:?}");
+    }
+
+    let settings = config
         .try_deserialize()
-        .expect("Failed to deserialize settings")
+        .expect("Failed to deserialize settings");
+    if std::env::var("RUN_KOSO_LOG_SETTINGS").unwrap_or_default() == "true" {
+        println!("Using koso settings: {settings:?}");
+    }
+
+    settings
 }
 
 impl Settings {
