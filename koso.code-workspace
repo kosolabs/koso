@@ -22,6 +22,7 @@
       "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "eslint.validate": ["javascript", "javascriptreact", "svelte"],
     "files.associations": {
       "*.css": "tailwindcss"
     },
