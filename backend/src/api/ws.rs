@@ -36,11 +36,11 @@ async fn ws_handler(
     let cs: tracing::Span = tracing::Span::current();
     Ok(ws
         .protocols(["bearer"])
-        .on_failed_upgrade(|e| tracing::warn!("Failed to upgrade socket: {e}"))
+        .on_failed_upgrade(|e| tracing::warn!("Failed to upgrade socket: {e:?}"))
         .on_upgrade(move |socket: axum::extract::ws::WebSocket| {
             async move {
                 if let Err(e) = collab.register_client(socket, addr, project_id, user).await {
-                    tracing::warn!("Failed to register client at {addr}: {e}");
+                    tracing::warn!("Failed to register client at {addr}: {e:?}");
                 }
             }
             .instrument(cs)

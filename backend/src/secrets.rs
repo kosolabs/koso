@@ -18,7 +18,7 @@ pub(crate) fn read_secret<T: std::convert::From<String>>(sub_path: &str) -> Resu
     let path = secret_path(sub_path)?;
     tracing::info!("Using {sub_path} secret at {path}");
     let secret: String = fs::read_to_string(&path)
-        .map_err(|e| anyhow!("Failed to read secret from {path}: {e}"))?
+        .with_context(|| format!("Failed to read secret from {path}"))?
         .trim()
         .to_owned();
     Ok(Secret {
@@ -32,5 +32,5 @@ pub(crate) fn secret_path(sub_path: &str) -> Result<String> {
         .join(sub_path)
         .into_os_string()
         .into_string()
-        .map_err(|e| anyhow!("Invalid secret path in {dir}: {e:?}"))
+        .map_err(|p| anyhow!("Invalid secret path in {dir}: {p:?}"))
 }

@@ -200,7 +200,7 @@ impl YTaskProxy {
         let old_children = match self.get_children(txn) {
             Ok(c) => c,
             Err(e) => {
-                tracing::warn!("invalid children: {e}, clobbering children");
+                tracing::warn!("invalid children, clobbering children: {e:?}");
                 y_children.remove_range(txn, 0, y_children.len(txn));
                 y_children.insert_range(txn, 0, new_children.to_vec());
                 return;

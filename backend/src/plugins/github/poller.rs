@@ -68,7 +68,7 @@ impl Poller {
         tokio::time::sleep(INIT_POLL_DELAY).await;
         loop {
             if let Err(e) = self.poll_all_installations().await {
-                tracing::warn!("Failed poll: {e}");
+                tracing::warn!("Failed poll: {e:?}");
             }
             tokio::time::sleep(POLL_DELAY).await;
         }
@@ -200,7 +200,7 @@ impl Poller {
                         tracing::warn!("Found multiple PRs with same url");
                     }
                 }
-                Err(e) => tracing::warn!("Skipping malformed PR: {e}"),
+                Err(e) => tracing::warn!("Skipping malformed PR: {e:?}"),
             }
         }
         Ok(results)

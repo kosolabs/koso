@@ -59,7 +59,8 @@ async fn authorize_telegram(
             return Err(error_response(
                 StatusCode::PRECONDITION_FAILED,
                 "VALIDATION_FAILED",
-                &format!("{error}"),
+                Some(&format!("{error}")),
+                None,
             ));
         }
     };

@@ -100,7 +100,7 @@ impl ClientMessageReceiver {
                     })
                     .await
                 {
-                    tracing::error!("Error sending message to process_msg channel: {e}");
+                    tracing::error!("Error sending message to process_msg channel: {e:?}");
                 };
                 ControlFlow::Continue(())
             }
@@ -120,11 +120,11 @@ impl ClientMessageReceiver {
                 })
             }
             Err(e) => {
-                tracing::warn!("Got error reading from client socket. Will close socket. {e}");
+                tracing::warn!("Got error reading from client socket. Will close socket. {e:?}");
                 ControlFlow::Break(ClientClosure {
                     code: CLOSE_ERROR,
                     reason: "Failed to read from client socket.",
-                    details: format!("Failed to read from client socket: {e}"),
+                    details: format!("Failed to read from client socket: {e:#}"),
                 })
             }
             // Our clients send heartbeat pings in the form of empty text messages
@@ -156,7 +156,7 @@ impl ClientMessageProcessor {
                 break;
             };
             if let Err(e) = self.process_message(msg).await {
-                tracing::warn!("Failed to process message: {e}");
+                tracing::warn!("Failed to process message: {e:?}");
             }
         }
         tracing::info!("Stopped processing messages");
