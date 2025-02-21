@@ -1,6 +1,6 @@
 use super::{
     projects_state::ProjectState,
-    txn_origin::{from_origin, YOrigin},
+    txn_origin::{YOrigin, from_origin},
 };
 use crate::{
     api::{collab::txn_origin::Actor, model::Task, yproxy::YTaskProxy},
@@ -11,8 +11,8 @@ use sqlx::PgPool;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::mpsc::Receiver;
 use yrs::{
-    types::{EntryChange, Events},
     TransactionMut,
+    types::{EntryChange, Events},
 };
 
 #[derive(Debug)]

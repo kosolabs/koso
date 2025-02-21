@@ -1,9 +1,9 @@
 use crate::{
-    api::{bad_request_error, google::User, ApiResult},
-    secrets::{read_secret, Secret},
+    api::{ApiResult, bad_request_error, google::User},
+    secrets::{Secret, read_secret},
 };
-use anyhow::{anyhow, Context, Result};
-use axum::{routing::post, Extension, Json, Router};
+use anyhow::{Context, Result, anyhow};
+use axum::{Extension, Json, Router, routing::post};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::{

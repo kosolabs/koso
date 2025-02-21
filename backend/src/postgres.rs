@@ -1,10 +1,10 @@
 use crate::api::model::{ProjectId, ProjectUser};
-use anyhow::anyhow;
 use anyhow::Result;
+use anyhow::anyhow;
 use sqlx::PgPool;
 use yrs::{
-    updates::{decoder::Decode, encoder::Encode},
     Update,
+    updates::{decoder::Decode, encoder::Encode},
 };
 
 #[tracing::instrument(skip(pool))]
@@ -62,8 +62,9 @@ async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<()> {
         // For example, after compaction A selects rows to compact, say 55, an update is inserted and compaction B sees 56 rows.
         // Compaction A would merge 1-55 and insert as 55 while compaction B would merge 1-56 and insert as 56.
         return Err(anyhow!(
-            "Expected to delete {} yupdates, but actually deleted {}. Expected sequences: {consumed_sequences:?}", 
-            consumed_sequences.len(), deletes.rows_affected()
+            "Expected to delete {} yupdates, but actually deleted {}. Expected sequences: {consumed_sequences:?}",
+            consumed_sequences.len(),
+            deletes.rows_affected()
         ));
     }
 

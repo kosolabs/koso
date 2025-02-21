@@ -1,6 +1,6 @@
-use crate::api::{google::User, ApiResult};
+use crate::api::{ApiResult, google::User};
 use crate::notifiers::UserNotificationConfig;
-use axum::{routing::get, Extension, Json, Router};
+use axum::{Extension, Json, Router, routing::get};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 

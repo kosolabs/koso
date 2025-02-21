@@ -8,8 +8,8 @@ use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio_util::task::TaskTracker;
 use tracing::Instrument;
-use yrs::types::map::MapEvent;
 use yrs::Map as _;
+use yrs::types::map::MapEvent;
 
 use super::projects_state::{DocBox, DocBoxProvider};
 use super::txn_origin::YOrigin;
@@ -224,7 +224,7 @@ mod tests {
 
     use super::{DocBox, DocBoxProvider, YOrigin};
     use crate::api::{
-        collab::{self, doc_updates::GraphObserver, txn_origin::Actor, YDocProxy},
+        collab::{self, YDocProxy, doc_updates::GraphObserver, txn_origin::Actor},
         model::Task,
     };
     use async_trait::async_trait;

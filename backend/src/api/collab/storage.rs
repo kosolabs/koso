@@ -1,7 +1,7 @@
 use crate::api::model::ProjectId;
 use anyhow::{Context as _, Result};
 use sqlx::PgPool;
-use yrs::{updates::decoder::Decode as _, Update};
+use yrs::{Update, updates::decoder::Decode as _};
 
 use super::YDocProxy;
 

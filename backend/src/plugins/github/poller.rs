@@ -1,25 +1,25 @@
 use crate::{
     api::{
+        ApiResult,
         collab::{
+            Collab,
             projects_state::DocBox,
             txn_origin::{Actor, YOrigin},
-            Collab,
         },
         yproxy::{YDocProxy, YTaskProxy},
-        ApiResult,
     },
     flags::is_dev,
     plugins::{
         config::{Config, ConfigStorage},
         github::{
+            ExternalTask, Kind, PLUGIN_KIND, PR_KIND,
             app::{AppGithub, InstallationRef},
-            get_or_create_kind_parent, new_task, resolve_task, update_task, ExternalTask, Kind,
-            PLUGIN_KIND, PR_KIND,
+            get_or_create_kind_parent, new_task, resolve_task, update_task,
         },
     },
 };
 use anyhow::Result;
-use axum::{routing::post, Extension, Router};
+use axum::{Extension, Router, routing::post};
 use std::{
     collections::HashMap,
     time::{Duration, Instant},

@@ -6,21 +6,21 @@ use crate::{
     },
     healthz,
     plugins::{
-        github::{self},
         PluginSettings,
+        github::{self},
     },
 };
 use axum::{
+    Extension, Router,
     extract::{MatchedPath, Request},
     http::{HeaderName, HeaderValue},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    Extension, Router,
 };
 use listenfd::ListenFd;
 use sqlx::{
-    postgres::{PgConnectOptions, PgPool, PgPoolOptions},
     ConnectOptions,
+    postgres::{PgConnectOptions, PgPool, PgPoolOptions},
 };
 use std::{
     net::SocketAddr,

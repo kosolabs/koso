@@ -1,7 +1,7 @@
 use anyhow::Result;
 use axum::Router;
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, Pool, Postgres};
+use sqlx::{Pool, Postgres, prelude::FromRow};
 use teloxide::payloads::SendMessageSetters;
 use teloxide::prelude::Requester;
 use teloxide::types::{ParseMode, UserId};

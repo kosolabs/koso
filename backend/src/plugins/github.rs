@@ -5,11 +5,11 @@ use crate::{
         model::Task,
         yproxy::{YDocProxy, YTaskProxy},
     },
-    plugins::{config::ConfigStorage, github::app::AppGithub, PluginSettings},
+    plugins::{PluginSettings, config::ConfigStorage, github::app::AppGithub},
 };
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use auth::Auth;
-use axum::{middleware, Router};
+use axum::{Router, middleware};
 use connect::ConnectHandler;
 use octocrab::models::pulls::PullRequest;
 use poller::Poller;

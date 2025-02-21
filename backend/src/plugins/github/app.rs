@@ -1,11 +1,11 @@
 use crate::secrets;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use octocrab::{
-    models::{
-        self, pulls::PullRequest, AppId, InstallationId, InstallationRepositories, Repository,
-    },
-    params::{pulls::Sort, Direction, State},
     Octocrab, OctocrabBuilder,
+    models::{
+        self, AppId, InstallationId, InstallationRepositories, Repository, pulls::PullRequest,
+    },
+    params::{Direction, State, pulls::Sort},
 };
 
 const PROD_APP_ID: u64 = 1053272;
@@ -137,7 +137,9 @@ impl InstallationGithub {
             .await?;
         let len: i64 = installed_repos.repositories.len().try_into()?;
         if len != installed_repos.total_count {
-            tracing::warn!("Number of intallation repositories is probably large and we need to paginate: {installed_repos:?}");
+            tracing::warn!(
+                "Number of intallation repositories is probably large and we need to paginate: {installed_repos:?}"
+            );
         }
         Ok(installed_repos.repositories)
     }

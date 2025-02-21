@@ -2,16 +2,16 @@ use std::net::SocketAddr;
 
 use crate::{
     api::google::User,
-    api::{collab::Collab, ApiResult},
+    api::{ApiResult, collab::Collab},
 };
 use axum::{
+    Extension, Router,
     body::Body,
     extract::{ConnectInfo, Path, WebSocketUpgrade},
     response::Response,
     routing::get,
-    Extension, Router,
 };
-use axum_extra::{headers, TypedHeader};
+use axum_extra::{TypedHeader, headers};
 use tracing::Instrument as _;
 
 pub(super) fn router() -> Router {

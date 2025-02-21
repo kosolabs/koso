@@ -1,6 +1,6 @@
 use crate::api::ApiResult;
 use anyhow::Context as _;
-use axum::{routing::post, Extension, Router};
+use axum::{Extension, Router, routing::post};
 use sqlx::PgPool;
 
 use crate::api::google::User;
