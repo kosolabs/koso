@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "9.20.0",
-    "@floating-ui/dom": "^1.6.13",
+    "@floating-ui/dom": "1.6.13",
     "@playwright/test": "1.50.1",
     "@sveltejs/adapter-static": "3.0.8",
     "@sveltejs/kit": "2.17.2",
