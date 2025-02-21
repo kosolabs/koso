@@ -1,6 +1,5 @@
 secrets_dir = "../.secrets"
 database_url = "postgresql://localhost/koso"
-port = 3000
 env = "dev"
 
 [plugins.github]
