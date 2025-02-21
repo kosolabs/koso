@@ -2,14 +2,14 @@
   import * as floatingUi from "@floating-ui/dom";
   import { type Snippet } from "svelte";
   import type { HTMLAttributes } from "svelte/elements";
+  import type { TransitionConfig } from "svelte/transition";
   import { twMerge } from "tailwind-merge";
   import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
   import { events } from "..";
-  import type { ToggleEventWithTarget } from "../utils";
+  import { mergeProps } from "../merge-props";
+  import { type ToggleEventWithTarget } from "../utils";
 
-  export const popoverVariants = tv({
-    base: "popover-animation",
-  });
+  export const popoverVariants = tv({});
 
   export type PopoverVariants = VariantProps<typeof popoverVariants>;
 
@@ -20,10 +20,20 @@
     strategy?: floatingUi.Strategy;
     open?: boolean;
     anchorEl?: HTMLElement;
-    enableEscapeHandler?: boolean;
     children: Snippet;
   } & PopoverVariants &
     HTMLAttributes<HTMLDivElement>;
+
+  function kosui(node: Element, config?: TransitionConfig): TransitionConfig {
+    const { duration = 150, ...restProps } = config ?? {};
+    return {
+      duration,
+      ...restProps,
+      css: (t: number) => {
+        return `opacity: ${t};scale: ${0.95 + 0.05 * t};`;
+      },
+    };
+  }
 </script>
 
 <script lang="ts">
@@ -33,10 +43,8 @@
     placement = "top",
     strategy = "fixed",
     open = $bindable(false),
-    enableEscapeHandler = false,
     anchorEl,
     children,
-    ontoggle,
     ...restProps
   }: PopoverProps = $props();
 
@@ -45,14 +53,13 @@
 
   function handleEscape(event: KeyboardEvent) {
     if (event.key === "Escape") {
-      open = false;
+      popoverEl?.hidePopover();
       event.preventDefault();
       event.stopImmediatePropagation();
     }
   }
 
-  function handleToggle(event: ToggleEventWithTarget<HTMLDivElement>) {
-    ontoggle?.(event);
+  function ontoggle(event: ToggleEventWithTarget<HTMLDivElement>) {
     if (event.newState === "closed") {
       open = false;
     } else {
@@ -61,16 +68,17 @@
   }
 
   $effect(() => {
-    if (open) {
-      popoverEl?.showPopover();
-      if (enableEscapeHandler) {
-        events.on("keydown", handleEscape);
-      }
+    if (popoverEl) {
+      popoverEl.showPopover();
+      events.on("keydown", handleEscape);
     } else {
-      popoverEl?.hidePopover();
-      if (enableEscapeHandler) {
-        events.remove("keydown", handleEscape);
-      }
+      events.remove("keydown", handleEscape);
+    }
+  });
+
+  $effect(() => {
+    if (anchorEl && popoverEl) {
+      return floatingUi.autoUpdate(anchorEl, popoverEl, updatePosition);
     }
   });
 
@@ -117,63 +125,25 @@
     }
   }
 
-  $effect(() => {
-    if (anchorEl && popoverEl) {
-      return floatingUi.autoUpdate(anchorEl, popoverEl, updatePosition);
-    }
-  });
+  const mergedProps = $derived(mergeProps({ ontoggle }, restProps));
 </script>
 
-<div
-  bind:this={popoverEl}
-  popover="auto"
-  role="tooltip"
-  class={popoverVariants({ className })}
-  ontoggle={handleToggle}
-  {...restProps}
->
-  {@render children()}
+{#if open}
   <div
-    bind:this={arrowEl}
-    class={twMerge(
-      "bg-m3-inverse-surface absolute -z-10 size-2 rotate-45",
-      arrow ? "block" : "hidden",
-    )}
-  ></div>
-</div>
-
-<style>
-  .popover-animation {
-    transition:
-      overlay 0.15s allow-discrete,
-      display 0.15s allow-discrete;
-
-    animation: close-tooltip 0.15s forwards;
-  }
-
-  .popover-animation:popover-open {
-    animation: open-tooltip 0.15s forwards;
-  }
-
-  @keyframes open-tooltip {
-    from {
-      opacity: 0;
-      scale: 0.95;
-    }
-    to {
-      opacity: 1;
-      scale: 1;
-    }
-  }
-
-  @keyframes close-tooltip {
-    from {
-      opacity: 1;
-      scale: 1;
-    }
-    to {
-      opacity: 0;
-      scale: 0.95;
-    }
-  }
-</style>
+    bind:this={popoverEl}
+    popover="manual"
+    role="tooltip"
+    class={popoverVariants({ className })}
+    transition:kosui
+    {...mergedProps}
+  >
+    {@render children()}
+    <div
+      bind:this={arrowEl}
+      class={twMerge(
+        "bg-m3-inverse-surface absolute -z-10 size-2 rotate-45",
+        arrow ? "block" : "hidden",
+      )}
+    ></div>
+  </div>
+{/if}

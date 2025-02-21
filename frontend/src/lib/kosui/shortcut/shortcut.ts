@@ -7,6 +7,7 @@ const keys: { [key: string]: string } = {
   Backspace: "⌫",
   CapsLock: "⇪",
   Control: "⌃",
+  Dead: "☠️",
   Delete: "⌦",
   Enter: "⏎",
   Escape: "⎋",
