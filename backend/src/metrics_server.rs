@@ -1,4 +1,4 @@
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use std::{future::ready, net::SocketAddr};
 use tokio::{sync::oneshot::Receiver, task::JoinHandle};

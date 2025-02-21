@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use sqlx::{types::Json, PgPool};
+use sqlx::{PgPool, types::Json};
 
 #[derive(Clone)]
 pub(super) struct ConfigStorage {

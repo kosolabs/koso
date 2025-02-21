@@ -1,11 +1,11 @@
 use crate::api::model::{Graph, Task};
-use anyhow::{anyhow, Result};
-use similar::{capture_diff_slices, Algorithm};
+use anyhow::{Result, anyhow};
+use similar::{Algorithm, capture_diff_slices};
 use std::collections::HashMap;
 use yrs::{
-    types::{map::MapEvent, Events},
     Any, Array, ArrayRef, DeepObservable, Doc, Map, MapRef, Observable, Origin, Out, ReadTxn,
     Subscription, Transact, TransactionAcqError, TransactionMut, UpdateEvent,
+    types::{Events, map::MapEvent},
 };
 
 pub(crate) struct YDocProxy {

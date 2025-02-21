@@ -1,7 +1,7 @@
 use crate::{
     api::{
-        bad_request_error,
-        collab::{storage, Collab},
+        ApiResult, bad_request_error,
+        collab::{Collab, storage},
         google::User,
         model::{
             CreateProject, Project, ProjectExport, ProjectUser, UpdateProjectUsers,
@@ -9,17 +9,16 @@ use crate::{
         },
         verify_invited, verify_project_access,
         yproxy::YDocProxy,
-        ApiResult,
     },
     postgres::list_project_users,
 };
 use anyhow::Result;
 use axum::{
+    Extension, Json, Router,
     extract::Path,
     routing::{delete, get, patch, post},
-    Extension, Json, Router,
 };
-use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
 use yrs::{ReadTxn as _, StateVector};

@@ -1,7 +1,7 @@
 [package]
 name = "koso"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # Target built docker to speed up dependency compilation.
 # See Dockerfile.

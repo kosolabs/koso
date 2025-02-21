@@ -1,12 +1,12 @@
 use crate::{
-    api::{self, google::User, unauthorized_error, ApiResult},
+    api::{self, ApiResult, google::User, unauthorized_error},
     plugins::{
         config::{Config, ConfigStorage, GithubSettings, Settings},
-        github::{self, auth::Auth, Poller},
+        github::{self, Poller, auth::Auth},
     },
 };
-use axum::{routing::post, Extension, Json, Router};
-use octocrab::{models::Installation, OctocrabBuilder};
+use axum::{Extension, Json, Router, routing::post};
+use octocrab::{OctocrabBuilder, models::Installation};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::Instrument;

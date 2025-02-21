@@ -1,8 +1,8 @@
 use crate::{
-    api::{unauthenticated_error, ApiResult},
+    api::{ApiResult, unauthenticated_error},
     flags::is_dev,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
 use jsonwebtoken::{DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,9 @@ impl KeySet {
     pub(crate) async fn new() -> Result<KeySet> {
         let enable_test_creds = is_dev();
         if enable_test_creds {
-            tracing::info!("Insecure test credentials enabled. Something is WRONG if you see this in production.")
+            tracing::info!(
+                "Insecure test credentials enabled. Something is WRONG if you see this in production."
+            )
         }
 
         let distant_past =
@@ -270,7 +272,7 @@ fn decode_and_validate_test_token(token: &str, key: &DecodingKey) -> ApiResult<U
         Err(e) => {
             return Err(unauthenticated_error(&format!(
                 "Failed to decode test cred token: {e}"
-            )))
+            )));
         }
     };
     let user = token.claims;
@@ -351,8 +353,8 @@ pub(crate) mod test_utils {
     use anyhow::Result;
     use jsonwebtoken::{DecodingKey, EncodingKey, Header};
     use rsa::{
-        pkcs1::{DecodeRsaPrivateKey as _, EncodeRsaPublicKey as _},
         RsaPrivateKey,
+        pkcs1::{DecodeRsaPrivateKey as _, EncodeRsaPublicKey as _},
     };
     use serde::{Deserialize, Serialize};
     use std::{

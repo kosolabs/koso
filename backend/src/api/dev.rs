@@ -1,9 +1,9 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use super::{bad_request_error, google, User};
+use super::{User, bad_request_error, google};
 use crate::{api::ApiResult, flags::is_dev};
 use anyhow::Context as _;
-use axum::{routing::post, Extension, Router};
+use axum::{Extension, Router, routing::post};
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 

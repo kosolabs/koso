@@ -1,13 +1,14 @@
 use super::{
+    YDocProxy,
     awareness::{AwarenessState, AwarenessUpdate},
     msg_sync::koso_awareness_state,
-    notifications, YDocProxy,
+    notifications,
 };
 use crate::{
     api::{
         collab::{
             client::{
-                ClientClosure, ClientReceiver, ClientSender, CLOSE_ERROR, CLOSE_RESTART, OVERLOADED,
+                CLOSE_ERROR, CLOSE_RESTART, ClientClosure, ClientReceiver, ClientSender, OVERLOADED,
             },
             client_messages::{ClientMessage, ClientMessageReceiver},
             doc_updates::{DocObserver, DocUpdate, GraphObserver},
@@ -20,7 +21,7 @@ use crate::{
     },
     postgres::compact,
 };
-use anyhow::{anyhow, Context as _, Error, Result};
+use anyhow::{Context as _, Error, Result, anyhow};
 use async_trait::async_trait;
 use dashmap::DashMap;
 use sqlx::PgPool;
@@ -28,11 +29,11 @@ use std::{
     collections::HashMap,
     fmt,
     sync::{
-        atomic::{self, Ordering::Relaxed},
         Arc, Weak,
+        atomic::{self, Ordering::Relaxed},
     },
 };
-use tokio::sync::{mpsc::Sender, Mutex, MutexGuard};
+use tokio::sync::{Mutex, MutexGuard, mpsc::Sender};
 use tracing::Instrument;
 use yrs::{ReadTxn as _, StateVector, Subscription, Update};
 

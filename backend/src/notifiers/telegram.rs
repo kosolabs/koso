@@ -1,29 +1,29 @@
-use crate::api::{error_response, google::User, ApiResult};
+use crate::api::{ApiResult, error_response, google::User};
 use crate::notifiers::{NotifierSettings, TelegramSettings, UserNotificationConfig};
 use crate::{
     flags::is_dev,
-    secrets::{read_secret, Secret},
+    secrets::{Secret, read_secret},
     server::shutdown_signal,
 };
 use anyhow::Result;
 use axum::{
-    routing::{delete, post},
     Extension, Json, Router,
+    routing::{delete, post},
 };
 use dptree::case;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use teloxide::{
+    Bot,
     dispatching::UpdateFilterExt,
     dptree,
     macros::BotCommands,
     payloads::SendMessageSetters,
     prelude::{Dispatcher, Requester},
     types::{ParseMode, Update, UserId},
-    Bot,
 };
 
 pub(super) fn router() -> Router {

@@ -8,7 +8,7 @@
 use crate::api::{
     self,
     collab::{
-        client::{from_socket, CLOSE_UNAUTHORIZED},
+        client::{CLOSE_UNAUTHORIZED, from_socket},
         client_messages::{ClientMessage, ClientMessageProcessor},
         doc_updates::{DocUpdate, DocUpdateProcessor},
         projects_state::ProjectsState,

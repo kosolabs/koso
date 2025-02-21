@@ -1,7 +1,7 @@
 use yrs::{
+    StateVector,
     encoding::write::Write as _,
     updates::encoder::{Encode as _, Encoder as _, EncoderV1},
-    StateVector,
 };
 
 pub(crate) const MSG_SYNC: u8 = 0;

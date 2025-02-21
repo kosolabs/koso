@@ -1,16 +1,16 @@
 use crate::api::collab::{
-    msg_sync::{sync_response, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
+    msg_sync::{MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE, sync_response},
     txn_origin::{Actor, YOrigin},
 };
 use crate::api::{
     collab::{
         awareness::AwarenessUpdate,
-        client::{ClientClosure, ClientReceiver, CLOSE_ERROR, CLOSE_NORMAL},
+        client::{CLOSE_ERROR, CLOSE_NORMAL, ClientClosure, ClientReceiver},
         projects_state::ProjectState,
     },
     model::User,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use axum::extract::ws::Message;
 use rand::random;
 use std::{fmt, ops::ControlFlow, sync::Arc, time::Duration};
@@ -18,9 +18,9 @@ use tokio::sync::mpsc::Receiver;
 use tokio::{sync::mpsc::Sender, time::timeout};
 use uuid::Uuid;
 use yrs::{
+    StateVector, Update,
     encoding::read::Read as _,
     updates::decoder::{Decode as _, DecoderV1},
-    StateVector, Update,
 };
 
 use super::msg_sync::{MSG_KOSO_AWARENESS, MSG_KOSO_AWARENESS_UPDATE};

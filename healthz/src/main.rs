@@ -1,8 +1,8 @@
 use anyhow::Result;
-use axum::{extract::Query, http::StatusCode, routing::get, Json, Router};
+use axum::{Json, Router, extract::Query, http::StatusCode, routing::get};
 use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
+use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
 use serde::{Deserialize, Serialize};
 use std::{
     env,

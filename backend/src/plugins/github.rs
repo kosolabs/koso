@@ -5,11 +5,11 @@ use crate::{
         model::Task,
         yproxy::{YDocProxy, YTaskProxy},
     },
-    plugins::{config::ConfigStorage, github::app::AppGithub, PluginSettings},
+    plugins::{PluginSettings, config::ConfigStorage, github::app::AppGithub},
 };
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use auth::Auth;
-use axum::{middleware, Router};
+use axum::{Router, middleware};
 use connect::ConnectHandler;
 use octocrab::models::pulls::PullRequest;
 use poller::Poller;
@@ -184,7 +184,7 @@ fn update_task(
 ) -> Result<()> {
     tracing::trace!("Updating task {}: {}", task.get_id(txn)?, external_task.url);
     task.set_name(txn, &external_task.name);
-    if task.get_status(txn)?.map_or(true, |s| s != "In Progress") {
+    if task.get_status(txn)?.is_none_or(|s| s != "In Progress") {
         task.set_status(txn, Some("In Progress"));
         task.set_status_time(txn, Some(now()?));
     }
@@ -197,7 +197,7 @@ fn resolve_task(txn: &mut TransactionMut, task: &YTaskProxy) -> Result<()> {
         task.get_id(txn)?,
         task.get_url(txn)?.unwrap_or_default()
     );
-    if task.get_status(txn)?.map_or(true, |s| s != "In Done") {
+    if task.get_status(txn)?.is_none_or(|s| s != "In Done") {
         task.set_status(txn, Some("Done"));
         task.set_status_time(txn, Some(now()?));
     }

@@ -6,7 +6,7 @@ use crate::{
             awareness::AwarenessState,
             msg_sync::{self, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
         },
-        google::test_utils::{encode_token, testonly_key_set, Claims, KID_1, PEM_1},
+        google::test_utils::{Claims, KID_1, PEM_1, encode_token, testonly_key_set},
         model::{CreateProject, Project, ProjectExport, Task},
         yproxy::YDocProxy,
     },
@@ -14,35 +14,35 @@ use crate::{
     server::{self, Config},
     tests::msg_sync::{MSG_KOSO_AWARENESS, MSG_KOSO_AWARENESS_STATE},
 };
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use axum::http::HeaderValue;
-use futures::{stream::FusedStream, SinkExt, StreamExt};
+use futures::{SinkExt, StreamExt, stream::FusedStream};
 use reqwest::{Client, Response, StatusCode};
 use serde_json::Value;
 use sqlx::PgPool;
 use tokio::{
     net::TcpStream,
     sync::{
-        oneshot::{self, channel},
         Mutex,
+        oneshot::{self, channel},
     },
     task::JoinHandle,
 };
 use tokio_tungstenite::{
-    tungstenite::{
-        protocol::{frame::coding::CloseCode, CloseFrame},
-        Message,
-    },
     MaybeTlsStream, WebSocketStream,
+    tungstenite::{
+        Message,
+        protocol::{CloseFrame, frame::coding::CloseCode},
+    },
 };
 use tungstenite::client::IntoClientRequest;
 use yrs::{
+    ReadTxn, StateVector, Update,
     encoding::read::Read as _,
     updates::{
         decoder::{Decode as _, DecoderV1},
         encoder::Encode,
     },
-    ReadTxn, StateVector, Update,
 };
 
 #[test_log::test(sqlx::test)]
