@@ -3,6 +3,7 @@
   import type { HTMLDialogAttributes } from "svelte/elements";
   import { tv, type VariantProps } from "tailwind-variants";
   import { events } from "..";
+  import { startTooltipCooldown } from "../tooltip";
   import type { ClassName, ToggleEventWithTarget } from "../utils";
 
   export const modalVariants = tv({
@@ -40,6 +41,7 @@
   }
 
   function handleToggle(event: ToggleEventWithTarget<HTMLDialogElement>) {
+    startTooltipCooldown();
     ontoggle?.(event);
     if (event.newState === "closed") {
       open = false;

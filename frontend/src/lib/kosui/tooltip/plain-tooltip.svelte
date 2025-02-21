@@ -29,6 +29,15 @@
     trigger?: Snippet<[Box<HTMLElement>, TooltipTriggerProps]> | HTMLElement;
   } & TooltipVariants &
     PopoverProps;
+
+  let tooltipCooldown = $state(false);
+  let tooltipTimeout: number;
+
+  export function startTooltipCooldown() {
+    tooltipCooldown = true;
+    window.clearTimeout(tooltipTimeout);
+    setTimeout(() => (tooltipCooldown = false), 100);
+  }
 </script>
 
 <script lang="ts">
@@ -48,17 +57,20 @@
     typeof trigger === "function" ? triggerBox.value : trigger,
   );
 
-  let timeout: number | undefined = $state();
-
   export function show(after?: number) {
-    timeout = window.setTimeout(
-      () => (open = true),
+    if (tooltipCooldown) return;
+    tooltipTimeout = window.setTimeout(
+      () => {
+        if (!tooltipCooldown) {
+          open = true;
+        }
+      },
       after === undefined ? delay : after,
     );
   }
 
   export function hide() {
-    window.clearTimeout(timeout);
+    window.clearTimeout(tooltipTimeout);
     open = false;
   }
 
