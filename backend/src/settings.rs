@@ -10,7 +10,6 @@ pub(crate) struct Settings {
     pub(crate) port: u16,
     pub(crate) secrets_dir: String,
     pub(crate) plugins: Plugins,
-    pub(crate) metrics: Metrics,
 }
 
 #[derive(Debug, Deserialize)]
@@ -24,12 +23,6 @@ pub(crate) struct Plugins {
 pub(crate) struct Github {
     pub(crate) client_id: String,
     pub(crate) app_id: u64,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct Metrics {
-    pub(crate) port: u16,
 }
 
 pub fn settings() -> &'static Settings {

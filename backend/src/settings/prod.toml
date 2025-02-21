@@ -6,6 +6,3 @@ env = "prod"
 [plugins.github]
 app_id = 1053272
 client_id = "Iv23lioB8K1C62NP3UbV"
-
-[metrics]
-port = 3001
