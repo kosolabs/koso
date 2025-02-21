@@ -3,7 +3,7 @@ use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use std::{future::ready, net::SocketAddr};
 use tokio::{sync::oneshot::Receiver, task::JoinHandle};
 
-use crate::{server::shutdown_signal, settings::settings};
+use crate::server::shutdown_signal;
 
 #[derive(Default)]
 pub struct Config {
@@ -28,7 +28,7 @@ pub async fn start_metrics_server(config: Config) -> (SocketAddr, JoinHandle<()>
 
     let app = Router::new().route("/metrics", get(move || ready(recorder.render())));
     // The `/metrics` endpoint should not be publicly available.
-    let port = config.port.unwrap_or(settings().metrics.port);
+    let port = config.port.unwrap_or(3001);
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{port}"))
         .await
         .unwrap();
