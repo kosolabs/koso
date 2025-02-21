@@ -197,7 +197,7 @@ fn resolve_task(txn: &mut TransactionMut, task: &YTaskProxy) -> Result<()> {
         task.get_id(txn)?,
         task.get_url(txn)?.unwrap_or_default()
     );
-    if task.get_status(txn)?.is_none_or(|s| s != "In Done") {
+    if task.get_status(txn)?.is_none_or(|s| s != "Done") {
         task.set_status(txn, Some("Done"));
         task.set_status_time(txn, Some(now()?));
     }
