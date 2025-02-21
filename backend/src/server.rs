@@ -204,9 +204,10 @@ pub(super) async fn shutdown_signal(name: &str, signal: Option<Receiver<()>>) {
 
 async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
     let start = Instant::now();
-    let path = match req.extensions().get::<MatchedPath>() {
-        Some(matched_path) => matched_path.as_str().to_owned(),
-        None => "404_UNMATCHED_PATH".to_string(),
+    let path = if let Some(matched_path) = req.extensions().get::<MatchedPath>() {
+        matched_path.as_str().to_owned()
+    } else {
+        "404_UNMATCHED_PATH".to_string()
     };
     let method = req.method().to_string();
 
