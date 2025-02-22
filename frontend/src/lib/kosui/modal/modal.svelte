@@ -5,7 +5,6 @@
   import { events } from "..";
   import { baseVariants } from "../base";
   import { mergeProps } from "../merge-props";
-  import { startTooltipCooldown } from "../tooltip";
   import { type ClassName, type ToggleEventWithTarget } from "../utils";
 
   export const modalVariants = tv({
@@ -46,7 +45,6 @@
   }
 
   function ontoggle(event: ToggleEventWithTarget<HTMLDialogElement>) {
-    startTooltipCooldown();
     if (event.newState === "closed") {
       open = false;
     } else {

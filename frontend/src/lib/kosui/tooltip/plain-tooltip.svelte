@@ -1,6 +1,6 @@
 <script lang="ts" module>
   import { type Snippet } from "svelte";
-  import type { FocusEventHandler, MouseEventHandler } from "svelte/elements";
+  import type { MouseEventHandler } from "svelte/elements";
   import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
   import { Box } from "../box.svelte";
   import type { PopoverProps } from "../popover";
@@ -11,8 +11,6 @@
   });
 
   export type TooltipTriggerProps = {
-    onfocus?: FocusEventHandler<HTMLElement> | undefined | null;
-    onblur?: FocusEventHandler<HTMLElement> | undefined | null;
     onmouseenter?: MouseEventHandler<HTMLElement> | undefined | null;
     onmouseleave?: MouseEventHandler<HTMLElement> | undefined | null;
   };
@@ -29,21 +27,12 @@
     trigger?: Snippet<[Box<HTMLElement>, TooltipTriggerProps]> | HTMLElement;
   } & TooltipVariants &
     PopoverProps;
-
-  let tooltipCooldown = $state(false);
-  let tooltipTimeout: number;
-
-  export function startTooltipCooldown() {
-    tooltipCooldown = true;
-    window.clearTimeout(tooltipTimeout);
-    setTimeout(() => (tooltipCooldown = false), 100);
-  }
 </script>
 
 <script lang="ts">
   let {
     class: className,
-    delay = 500,
+    delay = 1000,
     open = $bindable(false),
     children,
     trigger,
@@ -57,14 +46,11 @@
     typeof trigger === "function" ? triggerBox.value : trigger,
   );
 
+  let tooltipTimeout: number;
+
   export function show(after?: number) {
-    if (tooltipCooldown) return;
     tooltipTimeout = window.setTimeout(
-      () => {
-        if (!tooltipCooldown) {
-          open = true;
-        }
-      },
+      () => (open = true),
       after === undefined ? delay : after,
     );
   }
@@ -77,8 +63,6 @@
   export const triggerProps: TooltipTriggerProps = {
     onmouseenter: () => show(),
     onmouseleave: () => hide(),
-    onfocus: () => show(),
-    onblur: () => hide(),
   };
 </script>
 

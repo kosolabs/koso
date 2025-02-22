@@ -1,6 +1,5 @@
 export {
   default as PlainTooltip,
-  startTooltipCooldown,
   tooltipVariants,
   type TooltipProps,
   type TooltipTriggerProps,
