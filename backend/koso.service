@@ -10,8 +10,6 @@ WorkingDirectory=/root/koso/backend
 Environment="KOSO_IMAGE_DIGEST=main"
 ExecStart=docker run \
     --env KOSO_ENV=prod \
-    --env RUST_BACKTRACE=1 \
-    --env RUST_LIB_BACKTRACE=0 \
     -v /root/.secrets:/.secrets \
     --network=host \
     --rm \
