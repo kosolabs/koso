@@ -1,6 +1,7 @@
-[env]
 # Default variables for developers running cargo run and cargo test.
+[env]
 KOSO_ENV = "dev"
+# Configure sqlx::test.
 DATABASE_URL = "postgresql://localhost/koso"
 KOSO_SETTING_SECRETS_DIR = "../.secrets"
 RUST_BACKTRACE = "1"
