@@ -9,6 +9,7 @@ use crate::{
         PluginSettings,
         github::{self},
     },
+    settings::settings,
 };
 use axum::{
     Extension, Router,
@@ -54,9 +55,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         Some(pool) => pool,
         None => {
             // Connect to the Postgres database.
-            let db_connection_str = std::env::var("DATABASE_URL").expect(
-                "DATABASE_URL env variable is unset. Try DATABASE_URL=postgresql://localhost/koso",
-            );
+            let db_connection_str = &settings().database_url;
             tracing::info!("Connecting to database: {}", db_connection_str);
 
             Box::leak(Box::new(

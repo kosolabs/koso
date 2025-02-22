@@ -49,4 +49,7 @@ COPY backend/migrations ./migrations
 COPY --from=backend /app/backend/target/release/koso ./
 COPY --from=frontend /app/build ./static
 
+ENV RUST_BACKTRACE=1
+ENV RUST_LIB_BACKTRACE=0
+
 CMD ["./koso"]
