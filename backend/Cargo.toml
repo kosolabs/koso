@@ -37,7 +37,7 @@ async-stream = "0.3.6"
 yrs = { version = "0.22.0", features = ["sync"] }
 tokio-util = { version = "0.7.13", features = ["rt"] }
 jsonwebtoken = "9.3.1"
-reqwest = { version = "0.12.12", features = ["blocking", "json"] }
+reqwest = { version = "0.12.12", features = ["json"] }
 base64 = "0.22.1"
 dashmap = "6.1.0"
 anyhow = "1.0.96"
