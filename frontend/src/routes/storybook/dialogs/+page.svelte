@@ -94,10 +94,10 @@
   title="Cool Title Batman!"
   onSelect={handleSelect}
 >
-  <div class="flex flex-col">
+  <div class="text-m3-on-primary-container flex flex-col">
     <div>This is a custom dialog.</div>
     <div class="text-center text-4xl">where</div>
-    <div class="text-primary text-right">...anything can happen!</div>
+    <div class="text-right">...anything can happen!</div>
   </div>
 
   {#snippet actions()}

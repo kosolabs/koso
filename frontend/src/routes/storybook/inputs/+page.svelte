@@ -1,15 +1,16 @@
 <script lang="ts">
-  import { Input, inputVariants, type InputVariants } from "$lib/kosui/input";
+  import { baseVariants } from "$lib/kosui/base";
+  import { Input, type InputVariants } from "$lib/kosui/input";
   import { toTitleCase } from "$lib/kosui/utils";
 
   const inputVariantsVariants = Object.keys(
-    inputVariants.variants.variant,
+    baseVariants.variants.variant,
   ) as Exclude<InputVariants["variant"], undefined>[];
   const inputVariantsColors = Object.keys(
-    inputVariants.variants.color,
+    baseVariants.variants.color,
   ) as Exclude<InputVariants["color"], undefined>[];
   const inputVariantsSizes = Object.keys(
-    inputVariants.variants.scale,
+    baseVariants.variants.scale,
   ) as Exclude<InputVariants["scale"], undefined>[];
 
   let value: string = $state("");

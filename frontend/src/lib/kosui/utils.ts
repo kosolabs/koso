@@ -1,4 +1,4 @@
-import type { ClassValue } from "tailwind-variants";
+import { type ClassValue } from "tailwind-variants";
 
 export type ElementRef = { ref?: HTMLElement };
 

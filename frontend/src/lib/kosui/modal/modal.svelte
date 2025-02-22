@@ -3,11 +3,14 @@
   import type { HTMLDialogAttributes } from "svelte/elements";
   import { tv, type VariantProps } from "tailwind-variants";
   import { events } from "..";
+  import { baseVariants } from "../base";
+  import { mergeProps } from "../merge-props";
   import { startTooltipCooldown } from "../tooltip";
-  import type { ClassName, ToggleEventWithTarget } from "../utils";
+  import { type ClassName, type ToggleEventWithTarget } from "../utils";
 
   export const modalVariants = tv({
-    base: "bg-m3-surface-container-high modal-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-[28px] p-6 shadow-lg",
+    extend: baseVariants,
+    base: "bg-m3-surface-container-high modal-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-lg p-5 shadow-lg",
   });
 
   export type ModalVariants = VariantProps<typeof modalVariants>;
@@ -27,9 +30,11 @@
     open = $bindable(),
     enableEscapeHandler = false,
     class: className,
+    variant,
+    color,
+    scale,
     children,
-    ontoggle,
-    ...props
+    ...restProps
   }: ModalProps = $props();
 
   function handleEscape(event: KeyboardEvent) {
@@ -40,9 +45,8 @@
     }
   }
 
-  function handleToggle(event: ToggleEventWithTarget<HTMLDialogElement>) {
+  function ontoggle(event: ToggleEventWithTarget<HTMLDialogElement>) {
     startTooltipCooldown();
-    ontoggle?.(event);
     if (event.newState === "closed") {
       open = false;
     } else {
@@ -63,13 +67,14 @@
       }
     }
   });
+
+  const mergedProps = $derived(mergeProps({ ontoggle }, restProps));
 </script>
 
 <dialog
   bind:this={ref}
-  ontoggle={handleToggle}
-  class={modalVariants({ className })}
-  {...props}
+  class={modalVariants({ variant, color, scale, className })}
+  {...mergedProps}
 >
   {@render children()}
 </dialog>

@@ -3,6 +3,7 @@
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
   import { tv, type ClassValue } from "tailwind-variants";
+  import { mergeProps } from "../merge-props";
   import { Modal, type ModalProps } from "../modal";
   import type { ToggleEventWithTarget } from "../utils";
 
@@ -24,17 +25,15 @@
     ref = $bindable(),
     open = $bindable(),
     onSelect = () => {},
-    ontoggle,
     class: className,
     icon: IconComponent,
     title,
     children,
     actions,
-    ...props
+    ...restProps
   }: DialogProps = $props();
 
-  function handleToggle(event: ToggleEventWithTarget<HTMLDialogElement>) {
-    ontoggle?.(event);
+  function ontoggle(event: ToggleEventWithTarget<HTMLDialogElement>) {
     if (!ref) throw new Error("ref should be defined!");
     if (event.newState === "closed") {
       onSelect(ref.returnValue);
@@ -42,14 +41,15 @@
       ref.returnValue = "";
     }
   }
+
+  const mergedProps = $derived(mergeProps({ ontoggle }, restProps));
 </script>
 
 <Modal
   bind:ref
   bind:open
-  ontoggle={(event) => handleToggle(event)}
   class={dialogVariants({ className })}
-  {...props}
+  {...mergedProps}
 >
   <form method="dialog">
     <div class={twMerge("flex flex-col gap-4")}>
