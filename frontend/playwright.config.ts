@@ -4,11 +4,10 @@ const config: PlaywrightTestConfig = {
   webServer: {
     command: process.env.KOSO_IMAGE
       ? `docker run \
-        --env KOSO_SETTING_DATABASE_URL \
         --env KOSO_ENV=dev \
-        --env RUST_LOG=info \
+        --env KOSO_SETTING_DATABASE_URL \
         --env KOSO_SETTING_SECRETS_DIR=/.secrets \
-        --env RUST_BACKTRACE=1 \
+        --env RUST_LOG=info \
         -v ${process.env.KOSO_SETTING_SECRETS_DIR}:/.secrets \
         --network=host \
         --rm ${process.env.KOSO_IMAGE}`

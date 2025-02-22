@@ -21,8 +21,8 @@ jobs:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
-      KOSO_SETTING_DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
       DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
+      KOSO_SETTING_DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
 
     services:
       postgres:
@@ -88,8 +88,8 @@ jobs:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: postgres
-      KOSO_SETTING_DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
       DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
+      KOSO_SETTING_DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
       # Container registry domain
       REGISTRY: ghcr.io
     services:
