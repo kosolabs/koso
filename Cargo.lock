@@ -1555,7 +1555,6 @@ dependencies = [
  "teloxide",
  "test-log",
  "tokio",
- "tokio-stream",
  "tokio-tungstenite",
  "tokio-util",
  "tower",
