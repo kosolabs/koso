@@ -236,7 +236,6 @@ Build and run the docker image defined in `Dockerfile`.
    ```bash
    DOCKER_DEFAULT_PLATFORM=linux/amd64 docker run \
       --env KOSO_ENV=dev \
-      --env KOSO_SETTING_SECRETS_DIR=/.secrets \
       -v $HOME/.secrets:/.secrets \
       --network=host \
       --rm -it \

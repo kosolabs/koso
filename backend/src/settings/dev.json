@@ -1,5 +1,5 @@
 {
-  "secrets_dir": "../.secrets",
+  "secrets_dir": "/.secrets",
   "database_url": "postgresql://localhost/koso",
   "env": "dev",
 

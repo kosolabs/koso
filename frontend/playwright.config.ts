@@ -6,7 +6,6 @@ const config: PlaywrightTestConfig = {
       ? `docker run \
         --env KOSO_ENV=dev \
         --env KOSO_SETTING_DATABASE_URL \
-        --env KOSO_SETTING_SECRETS_DIR=/.secrets \
         --env RUST_LOG=info \
         -v ${process.env.KOSO_SETTING_SECRETS_DIR}:/.secrets \
         --network=host \

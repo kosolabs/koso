@@ -2,5 +2,6 @@
 # Default variables for developers running cargo run and cargo test.
 KOSO_ENV = "dev"
 DATABASE_URL = "postgresql://localhost/koso"
+KOSO_SETTING_SECRETS_DIR = "../.secrets"
 RUST_BACKTRACE = "1"
 RUST_LOG = "koso=trace,tower_http=trace,sqlx=trace,axum=trace,info"
