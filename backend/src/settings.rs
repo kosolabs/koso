@@ -36,11 +36,11 @@ fn load_settings_from_env() -> Settings {
 fn load_settings(env: &str) -> Settings {
     let settings = config::Config::builder()
         .add_source(match env {
-            "dev" => File::from_str(include_str!("settings/dev.toml"), FileFormat::Toml),
-            "prod" => File::from_str(include_str!("settings/prod.toml"), FileFormat::Toml),
+            "dev" => File::from_str(include_str!("settings/dev.json"), FileFormat::Json),
+            "prod" => File::from_str(include_str!("settings/prod.json"), FileFormat::Json),
             env => panic!("No settings file for '{env}' found. Expected 'dev' or 'prod'."),
         })
-        .add_source(File::new(".local_settings", FileFormat::Toml).required(false))
+        .add_source(File::new(".local_settings", FileFormat::Json).required(false))
         .add_source(Environment::with_prefix("KOSO_SETTING"))
         .build()
         .expect("Failed to load settings")
