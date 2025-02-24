@@ -53,7 +53,9 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
-          SECRETS_DIR=$(realpath ~/.secrets) cargo test --package koso
+          KOSO_SETTING_SECRETS_DIR=$(realpath ~/.secrets) \
+            KOSO_SETTING_DATABASE_URL=${{ env.DATABASE_URL }} \
+            cargo test --package koso
       - run: cargo clippy -- -D warnings
       - run: cargo fmt --all -- --check
 
@@ -183,7 +185,11 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
-          CI=true KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} SECRETS_DIR=$(realpath ~/.secrets)  pnpm exec playwright test --workers=4
+          CI=true \
+            KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} \
+            KOSO_SETTING_DATABASE_URL=${{ env.DATABASE_URL }} \
+            KOSO_SETTING_SECRETS_DIR=$(realpath ~/.secrets) \
+            pnpm exec playwright test --workers=4
 
   build-and-push-image:
     env:

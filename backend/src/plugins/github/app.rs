@@ -1,4 +1,7 @@
-use crate::secrets;
+use crate::{
+    secrets::{self},
+    settings::settings,
+};
 use anyhow::{Context, Result, anyhow};
 use octocrab::{
     Octocrab, OctocrabBuilder,
@@ -7,9 +10,6 @@ use octocrab::{
     },
     params::{Direction, State, pulls::Sort},
 };
-
-const PROD_APP_ID: u64 = 1053272;
-const DEV_APP_ID: u64 = 1066302;
 
 pub enum InstallationRef {
     InstallationId { id: u64 },
@@ -30,20 +30,9 @@ impl AppGithub {
         )?;
 
         let app_crab = OctocrabBuilder::new()
-            .app(AppId::from(Self::app_id()?), app_key)
+            .app(AppId::from(settings().plugins.github.app_id), app_key)
             .build()?;
         Ok(AppGithub { app_crab })
-    }
-
-    fn app_id() -> Result<u64> {
-        match std::env::var("GH_APP_ENV")
-            .context("GH_APP_ENV is unset. Try GH_APP_ENV=dev")?
-            .as_str()
-        {
-            "prod" => Ok(PROD_APP_ID),
-            "dev" => Ok(DEV_APP_ID),
-            env => Err(anyhow!("Invalid environment: {env}")),
-        }
     }
 
     /// Authenticate as the given installation.

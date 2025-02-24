@@ -1,7 +1,7 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::{User, bad_request_error, google};
-use crate::{api::ApiResult, flags::is_dev};
+use crate::{api::ApiResult, settings::settings};
 use anyhow::Context as _;
 use axum::{Extension, Router, routing::post};
 use chrono::{DateTime, Utc};
@@ -12,7 +12,7 @@ fn integ_test_user_suffix() -> String {
 }
 
 pub(super) fn router() -> Router {
-    if is_dev() {
+    if settings().is_dev() {
         tracing::info!("Enable dev mode. Something is WRONG if you see this in production.");
         return Router::new()
             .route("/cleanup_test_data", post(cleanup_test_data_handler))

@@ -6,7 +6,7 @@ use teloxide::payloads::SendMessageSetters;
 use teloxide::prelude::Requester;
 use teloxide::types::{ParseMode, UserId};
 
-use crate::flags::is_dev;
+use crate::settings::settings;
 
 pub(crate) mod telegram;
 
@@ -48,7 +48,7 @@ impl Notifier {
             bot: match telegram::bot_from_secrets() {
                 Ok(bot) => Some(bot),
                 Err(e) => {
-                    if is_dev() {
+                    if settings().is_dev() {
                         None
                     } else {
                         return Err(e.context("Failed to initialize telegram bot"));
