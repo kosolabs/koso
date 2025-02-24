@@ -1,6 +1,1 @@
-export {
-  default as Modal,
-  modalVariants,
-  type ModalProps,
-  type ModalVariants,
-} from "./modal.svelte";
+export { default as Modal, type ModalProps } from "./modal.svelte";

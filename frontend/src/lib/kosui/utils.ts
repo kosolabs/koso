@@ -1,8 +1,8 @@
-import { type ClassValue } from "tailwind-variants";
+import type { ClassNameValue } from "tailwind-merge";
 
 export type ElementRef = { ref?: HTMLElement };
 
-export type ClassName = { class?: ClassValue };
+export type ClassName = { class?: ClassNameValue };
 
 export type ToggleEventWithTarget<T extends HTMLElement> = ToggleEvent & {
   currentTarget: EventTarget & T;

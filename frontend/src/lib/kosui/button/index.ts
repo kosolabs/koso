@@ -1,5 +1,6 @@
 export {
   default as Button,
-  buttonVariants,
+  type ButtonColor,
+  type ButtonVariant,
   type ButtonVariants,
 } from "./button.svelte";

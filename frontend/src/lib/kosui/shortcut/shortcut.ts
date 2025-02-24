@@ -65,7 +65,7 @@ export class Shortcut {
   }
 
   toString(): string {
-    return [...this].join();
+    return [...this].join("");
   }
 
   *[Symbol.iterator](): Iterator<string> {

@@ -1,5 +1,6 @@
 export {
   default as Link,
-  linkVariants,
+  type LinkColor,
+  type LinkUnderline,
   type LinkVariants,
 } from "./link.svelte";

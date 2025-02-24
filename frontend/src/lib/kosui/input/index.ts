@@ -1,6 +1,6 @@
 export {
   default as Input,
-  inputVariants,
-  type InputProps,
+  type InputColor,
+  type InputVariant,
   type InputVariants,
 } from "./input.svelte";
