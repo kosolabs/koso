@@ -18,7 +18,6 @@ impl<T> Debug for Secret<T> {
 /// Read the secret from $secrets_dir/$sub_path.
 pub(crate) fn read_secret<T: std::convert::From<String>>(sub_path: &str) -> Result<Secret<T>> {
     let path = secret_path(sub_path)?;
-    tracing::info!("Using {sub_path} secret at {path}");
     let secret: String = fs::read_to_string(&path)
         .with_context(|| format!("Failed to read secret from {path}"))?
         .trim()
