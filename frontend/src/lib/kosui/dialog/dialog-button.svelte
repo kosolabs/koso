@@ -2,12 +2,12 @@
   import type { Snippet } from "svelte";
   import { Button, type ButtonVariants } from "../button";
 
-  type ButtonProps<T> = ButtonVariants & {
+  type ButtonProps<T> = {
     value: T;
     autofocus?: boolean;
     onSelect: (value: T) => void;
     children: Snippet;
-  };
+  } & ButtonVariants;
 </script>
 
 <script lang="ts" generics="T">

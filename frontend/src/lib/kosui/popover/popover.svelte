@@ -4,24 +4,18 @@
   import type { HTMLAttributes } from "svelte/elements";
   import { scale } from "svelte/transition";
   import { twMerge } from "tailwind-merge";
-  import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
   import { events } from "..";
   import { mergeProps } from "../merge-props";
-  import { type ToggleEventWithTarget } from "../utils";
-
-  export const popoverVariants = tv({});
-
-  export type PopoverVariants = VariantProps<typeof popoverVariants>;
+  import { type ClassName, type ToggleEventWithTarget } from "../utils";
 
   export type PopoverProps = {
-    class?: ClassValue;
     arrow?: boolean;
     placement?: floatingUi.Placement;
     strategy?: floatingUi.Strategy;
     open?: boolean;
     anchorEl?: HTMLElement;
     children: Snippet;
-  } & PopoverVariants &
+  } & ClassName &
     HTMLAttributes<HTMLDivElement>;
 </script>
 
@@ -122,7 +116,7 @@
     bind:this={popoverEl}
     popover="manual"
     role="tooltip"
-    class={popoverVariants({ className })}
+    class={twMerge(className)}
     transition:scale={{ duration: 150, start: 0.95 }}
     {...mergedProps}
   >

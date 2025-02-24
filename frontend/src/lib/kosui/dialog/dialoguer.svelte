@@ -5,11 +5,11 @@
   import { type ButtonVariants } from "../button";
   import Dialog from "./dialog.svelte";
 
-  type ButtonProps<T> = ButtonVariants & {
+  type ButtonProps<T> = {
     text: string;
     value: T;
     default?: boolean;
-  };
+  } & ButtonVariants;
 
   let message: Snippet | string = $state("");
   let icon: typeof Icon | undefined = $state();

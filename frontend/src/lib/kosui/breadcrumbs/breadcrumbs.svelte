@@ -1,23 +1,18 @@
 <script module lang="ts">
   import { page } from "$app/state";
   import type { Snippet } from "svelte";
-  import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
+  import { twMerge } from "tailwind-merge";
   import { Link } from "../link";
-  import { toTitleCase } from "../utils";
-
-  export const breadcrumbsVariants = tv({ base: "flex gap-2" });
-
-  export type BreadcrumbsVariants = VariantProps<typeof breadcrumbsVariants>;
+  import { toTitleCase, type ClassName } from "../utils";
 
   type Crumb = {
     path: string;
     title: string;
   };
 
-  type BreadcrumbsProps = BreadcrumbsVariants & {
+  type BreadcrumbsProps = {
     separator?: Snippet | string;
-    class?: ClassValue;
-  };
+  } & ClassName;
 </script>
 
 <script lang="ts">
@@ -36,7 +31,7 @@
   });
 </script>
 
-<div class={breadcrumbsVariants({ className })}>
+<div class={twMerge("flex gap-2", className)}>
   {#each crumbs as { path, title }, index}
     {#if index !== 0}
       <div>

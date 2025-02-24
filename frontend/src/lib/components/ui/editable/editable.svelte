@@ -121,14 +121,15 @@
   <Input
     bind:ref
     bind:value={edited}
-    class={cn("bg-background my-1 h-auto w-full p-1", classes)}
+    class={cn("bg-background my-1 h-auto w-full p-1 text-sm", classes)}
+    variant="plain"
+    color="primary"
     aria-label={ariaLabel}
     name={ariaLabel}
     onclick={(event) => event.stopPropagation()}
     onblur={save}
     onkeydown={handleInputKeydown}
     autocomplete="off"
-    scale="sm"
   />
 {:else}
   <Link

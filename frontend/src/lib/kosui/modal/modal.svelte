@@ -2,25 +2,16 @@
   import type { Snippet } from "svelte";
   import type { HTMLDialogAttributes } from "svelte/elements";
   import { scale } from "svelte/transition";
-  import { tv, type VariantProps } from "tailwind-variants";
+  import { twMerge } from "tailwind-merge";
   import { events } from "..";
-  import { baseVariants } from "../base";
   import { Shortcut } from "../shortcut";
   import { type ClassName } from "../utils";
-
-  export const modalVariants = tv({
-    extend: baseVariants,
-    base: "bg-m3-surface-container-high m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-lg p-5 shadow-lg",
-  });
-
-  export type ModalVariants = VariantProps<typeof modalVariants>;
 
   export type ModalProps = {
     ref?: HTMLDialogElement;
     useEscapeKey?: boolean;
     children: Snippet;
   } & ClassName &
-    ModalVariants &
     HTMLDialogAttributes;
 </script>
 
@@ -30,8 +21,6 @@
     useEscapeKey = false,
     open = $bindable(),
     class: className,
-    variant,
-    color,
     children,
     ...restProps
   }: ModalProps = $props();
@@ -59,7 +48,10 @@
 {#if open}
   <dialog
     bind:this={ref}
-    class={modalVariants({ variant, color, className })}
+    class={twMerge(
+      "bg-m3-surface-container-high m-auto max-w-[min(calc(100%-1em),36em)] min-w-72 overflow-hidden rounded-lg p-5 shadow-lg",
+      className,
+    )}
     {...restProps}
     transition:scale={{ duration: 150, start: 0.95 }}
     onintrostart={() => {
