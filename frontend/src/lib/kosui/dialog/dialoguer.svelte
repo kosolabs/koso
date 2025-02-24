@@ -1,34 +1,37 @@
 <script module lang="ts">
   import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
-  import { Button, type ButtonVariants } from "../button";
+  import { DialogButton } from ".";
+  import { type ButtonVariants } from "../button";
   import Dialog from "./dialog.svelte";
 
-  type ButtonProps = ButtonVariants & {
+  type ButtonProps<T> = ButtonVariants & {
     text: string;
-    value: string;
-    default: boolean;
+    value: T;
+    default?: boolean;
   };
 
   let message: Snippet | string = $state("");
   let icon: typeof Icon | undefined = $state();
   let title: string | undefined = $state();
-  let buttons: ButtonProps[] = $state.raw([]);
-  let resolve: (value: string) => void = $state(() => {});
+  let buttons: ButtonProps<unknown>[] = $state.raw([]);
+  let resolve: (value: unknown) => void = $state(() => {});
 
   let open: boolean = $state(false);
 
-  type ShowDialogProps = {
+  type ShowDialogProps<T> = {
     icon?: typeof Icon;
     title?: string;
     message: Snippet | string;
-    buttons: ButtonProps[];
+    buttons: ButtonProps<T>[];
   };
 
-  export function show(dialog: ShowDialogProps): Promise<string> {
+  export function show<T>(dialog: ShowDialogProps<T>): Promise<T> {
     ({ icon, title, message, buttons } = dialog);
     open = true;
-    return new Promise((newResolve) => (resolve = newResolve));
+    return new Promise<unknown>(
+      (newResolve) => (resolve = newResolve),
+    ) as Promise<T>;
   }
 
   type NoticeDialogProps = {
@@ -46,7 +49,7 @@
       buttons: [
         {
           text: dialog.acceptText ?? "OK",
-          value: "ok",
+          value: null,
           default: true,
         },
       ],
@@ -62,26 +65,24 @@
   };
 
   export async function confirm(dialog: ConfirmDialogProps): Promise<boolean> {
-    return (
-      (await show({
-        icon: dialog.icon,
-        title: dialog.title,
-        message: dialog.message,
-        buttons: [
-          {
-            text: dialog.cancelText ?? "Cancel",
-            value: "",
-            default: false,
-          },
-          {
-            text: dialog.acceptText ?? "Accept",
-            value: "ok",
-            variant: "filled",
-            default: true,
-          },
-        ],
-      })) === "ok"
-    );
+    return await show({
+      icon: dialog.icon,
+      title: dialog.title,
+      message: dialog.message,
+      buttons: [
+        {
+          text: dialog.cancelText ?? "Cancel",
+          value: false,
+          default: false,
+        },
+        {
+          text: dialog.acceptText ?? "Accept",
+          value: true,
+          variant: "filled",
+          default: true,
+        },
+      ],
+    });
   }
 </script>
 
@@ -91,9 +92,11 @@
   {:else}
     {message}
   {/if}
-  {#snippet actions()}
+  {#snippet actions(props)}
     {#each buttons as { value, variant, text, default: autofocus }}
-      <Button type="submit" {value} {variant} {autofocus}>{text}</Button>
+      <DialogButton {value} {variant} {autofocus} {...props}>
+        {text}
+      </DialogButton>
     {/each}
   {/snippet}
 </Dialog>

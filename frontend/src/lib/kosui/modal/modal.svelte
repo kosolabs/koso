@@ -1,22 +1,23 @@
 <script module lang="ts">
   import type { Snippet } from "svelte";
   import type { HTMLDialogAttributes } from "svelte/elements";
+  import { scale } from "svelte/transition";
   import { tv, type VariantProps } from "tailwind-variants";
   import { events } from "..";
   import { baseVariants } from "../base";
-  import { mergeProps } from "../merge-props";
-  import { type ClassName, type ToggleEventWithTarget } from "../utils";
+  import { Shortcut } from "../shortcut";
+  import { type ClassName } from "../utils";
 
   export const modalVariants = tv({
     extend: baseVariants,
-    base: "bg-m3-surface-container-high modal-animation m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-lg p-5 shadow-lg",
+    base: "bg-m3-surface-container-high m-auto max-w-[min(calc(100%-1em),36em)] min-w-[18em] overflow-hidden rounded-lg p-5 shadow-lg",
   });
 
   export type ModalVariants = VariantProps<typeof modalVariants>;
 
   export type ModalProps = {
     ref?: HTMLDialogElement;
-    enableEscapeHandler?: boolean;
+    useEscapeKey?: boolean;
     children: Snippet;
   } & ClassName &
     ModalVariants &
@@ -26,79 +27,68 @@
 <script lang="ts">
   let {
     ref = $bindable(),
+    useEscapeKey = false,
     open = $bindable(),
-    enableEscapeHandler = false,
     class: className,
     variant,
     color,
-    scale,
     children,
     ...restProps
   }: ModalProps = $props();
 
-  function handleEscape(event: KeyboardEvent) {
-    if (event.key === "Escape") {
-      open = false;
-      event.preventDefault();
-      event.stopImmediatePropagation();
+  $effect(() => {
+    if (ref) {
+      ref.showModal();
     }
-  }
+  });
 
-  function ontoggle(event: ToggleEventWithTarget<HTMLDialogElement>) {
-    if (event.newState === "closed") {
+  function handleEscape(event: KeyboardEvent) {
+    const ESCAPE = new Shortcut({ key: "Escape" });
+    if (ESCAPE.matches(event)) {
       open = false;
-    } else {
-      open = true;
     }
   }
 
   $effect(() => {
-    if (open) {
-      ref?.showModal();
-      if (enableEscapeHandler) {
-        events.on("keydown", handleEscape);
-      }
-    } else {
-      ref?.close();
-      if (enableEscapeHandler) {
-        events.remove("keydown", handleEscape);
-      }
+    if (useEscapeKey) {
+      return events.on("keydown", handleEscape);
     }
   });
-
-  const mergedProps = $derived(mergeProps({ ontoggle }, restProps));
 </script>
 
-<dialog
-  bind:this={ref}
-  class={modalVariants({ variant, color, scale, className })}
-  {...mergedProps}
->
-  {@render children()}
-</dialog>
+{#if open}
+  <dialog
+    bind:this={ref}
+    class={modalVariants({ variant, color, className })}
+    {...restProps}
+    transition:scale={{ duration: 150, start: 0.95 }}
+    onintrostart={() => {
+      if (ref) {
+        ref.classList.remove("backdrop-out");
+        ref.classList.add("backdrop-in");
+      }
+    }}
+    onoutrostart={() => {
+      if (ref) {
+        ref.classList.remove("backdrop-in");
+        ref.classList.add("backdrop-out");
+      }
+    }}
+  >
+    {@render children()}
+  </dialog>
+{/if}
 
 <style>
-  .modal-animation {
-    transition:
-      overlay 0.15s allow-discrete,
-      display 0.15s allow-discrete;
-
-    animation: close-dialog 0.15s forwards;
-    &[open] {
-      animation: open-dialog 0.15s forwards;
-    }
-
-    &::backdrop {
-      z-index: 50;
-      animation: close-backdrop 0.15s forwards;
-    }
-    &[open]::backdrop {
-      z-index: 50;
-      animation: open-backdrop 0.15s forwards;
-    }
+  .backdrop-in::backdrop {
+    animation: backdrop-in 150ms forwards;
   }
 
-  @keyframes open-backdrop {
+  .backdrop-out::backdrop {
+    animation: backdrop-out 150ms forwards;
+  }
+
+  @keyframes backdrop-in {
     from {
       background: rgba(0, 0, 0, 0);
       backdrop-filter: blur(0px);
@@ -109,7 +99,7 @@
     }
   }
 
-  @keyframes close-backdrop {
+  @keyframes backdrop-out {
     from {
       background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(2px);
@@ -117,28 +107,6 @@
     to {
       background: rgba(0, 0, 0, 0);
       backdrop-filter: blur(0px);
-    }
-  }
-
-  @keyframes open-dialog {
-    from {
-      opacity: 0;
-      scale: 0.95;
-    }
-    to {
-      opacity: 1;
-      scale: 1;
-    }
-  }
-
-  @keyframes close-dialog {
-    from {
-      opacity: 1;
-      scale: 1;
-    }
-    to {
-      opacity: 0;
-      scale: 0.95;
     }
   }
 </style>
