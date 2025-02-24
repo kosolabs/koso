@@ -56,7 +56,7 @@ class Auth {
   }
 
   ok(): boolean {
-    return this.#token !== null;
+    return this.#token !== null && this.#user !== null;
   }
 
   headers() {
