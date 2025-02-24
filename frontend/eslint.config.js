@@ -24,6 +24,10 @@ export default [
     languageOptions: {
       parserOptions: {
         parser: ts.parser,
+        svelteFeatures: {
+          runes: true,
+          experimentalGenerics: true,
+        },
       },
     },
   },

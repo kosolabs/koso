@@ -2,7 +2,7 @@
   import * as floatingUi from "@floating-ui/dom";
   import { type Snippet } from "svelte";
   import type { HTMLAttributes } from "svelte/elements";
-  import type { TransitionConfig } from "svelte/transition";
+  import { scale } from "svelte/transition";
   import { twMerge } from "tailwind-merge";
   import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
   import { events } from "..";
@@ -23,17 +23,6 @@
     children: Snippet;
   } & PopoverVariants &
     HTMLAttributes<HTMLDivElement>;
-
-  function kosui(node: Element, config?: TransitionConfig): TransitionConfig {
-    const { duration = 150, ...restProps } = config ?? {};
-    return {
-      duration,
-      ...restProps,
-      css: (t: number) => {
-        return `opacity: ${t};scale: ${0.95 + 0.05 * t};`;
-      },
-    };
-  }
 </script>
 
 <script lang="ts">
@@ -134,7 +123,7 @@
     popover="manual"
     role="tooltip"
     class={popoverVariants({ className })}
-    transition:kosui
+    transition:scale={{ duration: 150, start: 0.95 }}
     {...mergedProps}
   >
     {@render children()}

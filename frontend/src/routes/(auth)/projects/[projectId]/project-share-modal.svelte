@@ -116,7 +116,7 @@
   let searchInput: HTMLElement | undefined = $state();
 </script>
 
-<Modal bind:open class={cn("w-[min(calc(100%-1em),36em)]")} enableEscapeHandler>
+<Modal bind:open class={cn("w-[min(calc(100%-1em),36em)]")} useEscapeKey>
   <div class="flex flex-col gap-2">
     <div>
       <div class="flex items-center">

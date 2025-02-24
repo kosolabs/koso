@@ -1,27 +1,28 @@
 <script lang="ts">
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
-  import { Dialog, dialog } from "$lib/kosui/dialog";
+  import { Dialog, dialog, DialogButton } from "$lib/kosui/dialog";
   import { TriangleAlert } from "lucide-svelte";
 
   let noticeResult: Promise<void> | undefined = $state();
   let confirmResult: Promise<boolean> | undefined = $state();
 
+  type Cardinal = "North" | "South" | "East" | "West";
+  let directionResult: Promise<Cardinal> | undefined = $state();
+
   let open: boolean = $state(false);
-  let customResult: string | undefined = $state();
-  function handleSelect(value: string) {
+  let customResult: unknown | undefined = $state();
+  function handleSelect(value: unknown) {
     customResult = value;
-    console.log("handleSelect", value);
   }
 
   let customConfirmOpen: boolean = $state(false);
-  function handleConfirm(value: string) {
+  function handleConfirm(value: unknown) {
     if (value === "ok") {
       customResult = "four";
     } else {
       customResult = undefined;
     }
-    console.log("handleConfirm", value);
   }
 </script>
 
@@ -76,6 +77,36 @@
 <div class="flex flex-wrap items-center gap-2 rounded-lg border p-4">
   <Button
     onclick={() => {
+      directionResult = dialog.show<Cardinal>({
+        message: "Which way would you like to go?",
+        title: "Pick a direction.",
+        buttons: [
+          { text: "North", value: "North" },
+          { text: "South", value: "South" },
+          { text: "East", value: "East" },
+          { text: "West", value: "West" },
+        ],
+      });
+    }}>Pick a Direction</Button
+  >
+  {#if directionResult}
+    {#await directionResult}
+      <div>Dialog Open!</div>
+    {:then directionResult}
+      {#if directionResult}
+        <div class="text-primary">{directionResult}</div>
+      {:else}
+        <div class="text-destructive">Cancelled!</div>
+      {/if}
+    {/await}
+  {:else}
+    <div>Dialog Closed!</div>
+  {/if}
+</div>
+
+<div class="flex flex-wrap items-center gap-2 rounded-lg border p-4">
+  <Button
+    onclick={() => {
       open = true;
     }}>Show Custom</Button
   >
@@ -100,17 +131,15 @@
     <div class="text-right">...anything can happen!</div>
   </div>
 
-  {#snippet actions()}
-    <Button type="submit" variant="elevated" value="one">One</Button>
-    <Button type="submit" variant="filled" value="two">Two</Button>
+  {#snippet actions(props)}
+    <DialogButton variant="elevated" value="one" {...props}>One</DialogButton>
+    <DialogButton variant="filled" value="two" {...props}>Two</DialogButton>
     <Button
-      type="button"
       variant="tonal"
       value="three"
       onclick={() => toast.info("Three clicked!")}>Three</Button
     >
     <Button
-      type="button"
       onclick={() => {
         customConfirmOpen = true;
       }}>Four</Button
@@ -126,8 +155,10 @@
 >
   Are you sure you want to select four?
 
-  {#snippet actions()}
-    <Button type="submit" value="">No way!</Button>
-    <Button type="submit" value="ok" variant="filled">Absolutely!</Button>
+  {#snippet actions(props)}
+    <DialogButton value="" {...props}>No way!</DialogButton>
+    <DialogButton variant="filled" value="ok" {...props}>
+      Absolutely!
+    </DialogButton>
   {/snippet}
 </Dialog>
