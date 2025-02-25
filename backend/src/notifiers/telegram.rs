@@ -182,17 +182,26 @@ pub(crate) async fn start_telegram_server() -> Result<()> {
         .build();
 
     let token = dis.shutdown_token();
-    tokio::spawn(async move {
-        shutdown_signal("telegram bot", None).await;
-        match token.shutdown() {
-            Err(error) => {
-                tracing::error!("Error while shutting down Teloxide: {error}");
-            }
-            Ok(f) => f.await,
-        }
-    });
+    let abort_token = tokio::spawn(async move { dis.dispatch().await });
 
-    dis.dispatch().await;
+    shutdown_signal("telegram bot", None).await;
+    match token.shutdown() {
+        Err(error) => {
+            tracing::warn!("Error while shutting down Teloxide: {error}");
+        }
+        Ok(f) => {
+            if tokio::time::timeout(Duration::from_secs(2), f)
+                .await
+                .is_err()
+            {}
+        }
+    }
+    // Finally, in case we weren't able to cleanly shut down the dispatcher,
+    // abort the dispatcher task. This can happen when shutdown races with
+    // startup and the call to shutdown() above returns an error, or when
+    // waiting for the shutdown future to complete times out.
+    abort_token.abort();
+
     Ok(())
 }
 
