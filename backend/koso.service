@@ -5,6 +5,7 @@ After=network.target
 [Service]
 Restart=always
 RestartSec=1
+TimeoutStopSec=30
 User=root
 WorkingDirectory=/root/koso/backend
 Environment="KOSO_IMAGE_DIGEST=main"
