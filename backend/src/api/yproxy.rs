@@ -28,6 +28,10 @@ impl YDocProxy {
         Ok(graph)
     }
 
+    pub fn tasks<T: ReadTxn>(&self, txn: &T) -> Result<Vec<YTaskProxy>> {
+        self.graph.keys(txn).map(|id| self.get(txn, id)).collect()
+    }
+
     pub fn set(&self, txn: &mut yrs::TransactionMut, task: &Task) -> YTaskProxy {
         let y_task: MapRef = self.graph.get_or_init(txn, task.id.as_ref());
         let y_task = YTaskProxy::new(y_task);
