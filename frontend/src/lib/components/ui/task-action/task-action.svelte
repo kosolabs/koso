@@ -40,7 +40,7 @@
   let blocked = $derived(
     task.status !== "Done" &&
       task.kind === "Juggled" &&
-      progress.done < progress.total,
+      progress.done !== progress.total - 1,
   );
   let canSetStatus = $derived(
     koso.isEditable(task.id) &&
