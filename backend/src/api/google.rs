@@ -32,13 +32,6 @@ impl KeySet {
     const INTEG_TEST_KID: &'static str = "koso-integration-test";
 
     pub(crate) async fn new() -> Result<KeySet> {
-        let enable_test_creds = settings().is_dev();
-        if enable_test_creds {
-            tracing::info!(
-                "Insecure test credentials enabled. Something is WRONG if you see this in production."
-            )
-        }
-
         let distant_past =
             Instant::now() - KeySet::LOAD_DEBOUNCE_DURATION - Duration::from_secs(60 * 60);
         let key_set = KeySet {
@@ -48,7 +41,7 @@ impl KeySet {
                 }),
                 client: reqwest::Client::new(),
                 last_load: Mutex::new(distant_past),
-                enable_test_creds,
+                enable_test_creds: settings().is_dev(),
             }),
         };
         // Avoid a cold start by preloading keys initially.

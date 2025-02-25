@@ -13,7 +13,6 @@ fn integ_test_user_suffix() -> String {
 
 pub(super) fn router() -> Router {
     if settings().is_dev() {
-        tracing::info!("Enable dev mode. Something is WRONG if you see this in production.");
         return Router::new()
             .route("/cleanup_test_data", post(cleanup_test_data_handler))
             .route("/invite_test_user", post(invite_test_user_handler));
