@@ -131,12 +131,9 @@ impl EventProcessor {
 
                             let mut juggled = vec![];
                             for task in doc.tasks(&txn)? {
-                                if task
-                                    .get_kind(&txn)?
-                                    .as_ref()
-                                    .map(|k| k == "Juggled")
-                                    .unwrap_or(false)
+                                if task.get_kind(&txn)?.unwrap_or_default() == "Juggled"
                                     && task.get_children(&txn)?.contains(&event.task.id)
+                                    && task.get_assignee(&txn)?.unwrap_or_default() != user.email
                                 {
                                     let mut all_done = true;
                                     for child in &task.get_children(&txn)? {
@@ -148,23 +145,24 @@ impl EventProcessor {
                                         }
                                     }
                                     if all_done {
-                                        let id = task.get_id(&txn)?;
-                                        let assignee = task.get_assignee(&txn)?;
-                                        juggled.push((id, assignee));
+                                        juggled.push((
+                                            task.get_id(&txn)?,
+                                            task.get_assignee(&txn)?,
+                                            task.get_name(&txn)?,
+                                        ));
                                     }
                                 }
                             }
                             juggled
                         };
 
-                        for (_id, assignee) in juggled {
+                        for (_id, assignee, name) in juggled {
                             if let Some(assignee) = assignee {
                                 self.notifier.notify(
                                     &assignee,
-                                    // TODO: Deep link to task
                                     &format!(
                                         "🎁 <i>Koso Juggler</i> assigned to you:\n<a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
-                                        event.project.project_id, event.task.name
+                                        event.project.project_id, name
                                     ),
                                 ).await?;
                             }
