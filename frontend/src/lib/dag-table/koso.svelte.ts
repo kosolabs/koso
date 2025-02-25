@@ -539,41 +539,34 @@ export class Koso {
    */
   getProgress(taskId: string): Progress {
     const task = this.getTask(taskId);
-    if (task.children.length === 0) {
+
+    const result: Progress = {
+      inProgress: 0,
+      done: 0,
+      total: 0,
+      lastStatusTime: task.statusTime ?? 0,
+    };
+
+    if (task.children.length === 0 || task.kind === "Juggled") {
       switch (task.status || "Not Started") {
         case "Done":
-          return {
-            inProgress: 0,
-            done: 1,
-            total: 1,
-            lastStatusTime: task.statusTime ?? 0,
-          };
+          result.done = 1;
+          result.total = 1;
+          break;
         case "In Progress":
-          return {
-            inProgress: 1,
-            done: 0,
-            total: 1,
-            lastStatusTime: task.statusTime ?? 0,
-          };
+          result.inProgress = 1;
+          result.total = 1;
+          break;
         case "Not Started":
-          return {
-            inProgress: 0,
-            done: 0,
-            total: 1,
-            lastStatusTime: task.statusTime ?? 0,
-          };
+          result.total = 1;
+          break;
         default:
           throw new Error(
             `Invalid status ${task.status} for task ${task.name}`,
           );
       }
     }
-    const result: Progress = {
-      inProgress: 0,
-      done: 0,
-      total: 0,
-      lastStatusTime: 0,
-    };
+
     task.children.forEach((taskId) => {
       // If performance is ever an issue for large, nested graphs,
       // we can memoize the recursive call and trade memory for time.

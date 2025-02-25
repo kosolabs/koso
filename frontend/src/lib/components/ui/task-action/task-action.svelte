@@ -10,11 +10,18 @@
   import type { Koso, Node } from "$lib/dag-table";
   import { CANCEL } from "$lib/shortcuts";
   import { unmanagedKinds, type Kind, type Status } from "$lib/yproxy";
-  import { Bot, CircleCheck, LoaderCircle } from "lucide-svelte";
+  import {
+    Bot,
+    Check,
+    CircleCheck,
+    LoaderCircle,
+    OctagonPause,
+  } from "lucide-svelte";
   import { tick } from "svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../../../kosui/progress";
   import { confetti } from "../confetti";
+  import DropdownMenuSeparator from "../dropdown-menu/dropdown-menu-separator.svelte";
   import { ResponsiveText } from "../responsive-text";
 
   const statuses: Status[] = ["Not Started", "In Progress", "Done"];
@@ -29,20 +36,33 @@
   let statusElement: HTMLElement | null = $state(null);
 
   let task = $derived(koso.getTask(node.name));
+  let progress = $derived(koso.getProgress(task.id));
+  let blocked = $derived(
+    task.status !== "Done" &&
+      task.kind === "Juggled" &&
+      progress.done < progress.total,
+  );
   let canSetStatus = $derived(
-    koso.isEditable(task.id) && task.children.length === 0,
+    koso.isEditable(task.id) &&
+      !blocked &&
+      (task.children.length === 0 || task.kind === "Juggled"),
   );
   let canSetKind = $derived(
     koso.isEditable(task.id) && task.children.length > 0,
   );
   let rollupProgress = $derived(
-    task.children.length > 0 || task.kind === "Rollup"
+    (!task.kind && task.children.length > 0) || task.kind === "Rollup"
       ? koso.getProgress(task.id)
       : null,
   );
 
   function handleOnSelectKind(kind: Kind) {
     koso.setKind(task.id, kind);
+    if (kind === "Juggled") {
+      task.status = "Not Started";
+      task.statusTime = Date.now();
+      task.assignee = auth.user.email;
+    }
   }
 
   function handleOnSelectStatus(status: Status) {
@@ -107,6 +127,9 @@
         </CircularProgress>
         <ResponsiveText>In Progress</ResponsiveText>
       {/if}
+    {:else if blocked}
+      <OctagonPause class="text-m3-primary" />
+      <ResponsiveText>Blocked</ResponsiveText>
     {:else}
       <TaskStatusIcon status={task.status} />
       <ResponsiveText>{task.status || "Not Started"}</ResponsiveText>
@@ -136,6 +159,9 @@
           </DropdownMenu.Item>
         {/each}
       {/if}
+      {#if canSetStatus && canSetKind}
+        <DropdownMenuSeparator />
+      {/if}
       {#if canSetKind}
         {#each unmanagedKinds as kind}
           <DropdownMenu.Item
@@ -143,11 +169,14 @@
             onSelect={() => handleOnSelectKind(kind)}
           >
             {#if kind === "Rollup"}
-              <LoaderCircle />
+              <LoaderCircle class="text-m3-primary" />
             {:else if kind === "Juggled"}
-              <Bot />
+              <Bot class="text-m3-primary" />
             {/if}
             {kind}
+            {#if task.kind === kind}
+              <Check class="ml-auto" />
+            {/if}
           </DropdownMenu.Item>
         {/each}
       {/if}
