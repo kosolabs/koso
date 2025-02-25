@@ -29,7 +29,7 @@ export type Task = {
   url: string | null;
 };
 export type Status = "Not Started" | "In Progress" | "Done";
-export type Kind = "Rollup" | "Juggled" | string;
+export type Kind = "Rollup" | "Juggled" | "github" | "github_pr";
 export const unmanagedKinds: Set<Kind> = Set.of("Rollup", "Juggled");
 
 export type Slice = {
@@ -169,7 +169,7 @@ export class YTaskProxy {
   }
 
   get kind(): Kind | null {
-    return (this.#yTask.get("kind") as string) || null;
+    return (this.#yTask.get("kind") as Kind) || null;
   }
 
   set kind(value: Kind | null) {

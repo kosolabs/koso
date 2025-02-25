@@ -6,7 +6,7 @@ use crate::{
     api::{collab::txn_origin::Actor, model::Task, yproxy::YTaskProxy},
     notifiers::Notifier,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use sqlx::PgPool;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::mpsc::Receiver;
@@ -111,15 +111,63 @@ impl EventProcessor {
                 (
                     "assignee",
                     EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(recipient))),
-                ) if *user.email != *recipient => {
-                    self.notifier.notify(
-                        &recipient,
-                        &format!(
-                            "🎁 <i>{} &lt;{}&gt;</i> assigned to you:\n<a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
-                            user.name, user.email, event.project.project_id, event.task.name
-                        ),
-                    )
-                .await?;
+                ) => {
+                    if *user.email != *recipient {
+                        self.notifier.notify(
+                            &recipient,
+                            &format!(
+                                "🎁 <i>{} &lt;{}&gt;</i> assigned to you:\n<a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
+                                user.name, user.email, event.project.project_id, event.task.name
+                            ),
+                        ).await?;
+                    }
+                }
+                ("status", EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(status)))) => {
+                    if status.as_ref() == "Done" {
+                        let juggled = {
+                            let doc = event.project.doc_box.lock().await;
+                            let doc = &doc.as_ref().context("No doc initialized.")?.ydoc;
+                            let txn = doc.transact();
+
+                            let mut juggled = vec![];
+                            for task in doc.tasks(&txn)? {
+                                if task.get_kind(&txn)?.unwrap_or_default() == "Juggled"
+                                    && task.get_children(&txn)?.contains(&event.task.id)
+                                    && task.get_assignee(&txn)?.unwrap_or_default() != user.email
+                                {
+                                    let mut all_done = true;
+                                    for child in &task.get_children(&txn)? {
+                                        let child = doc.get(&txn, child)?;
+                                        // TODO: Handle rollups
+                                        if child.get_status(&txn)?.unwrap_or_default() != "Done" {
+                                            all_done = false;
+                                            break;
+                                        }
+                                    }
+                                    if all_done {
+                                        juggled.push((
+                                            task.get_id(&txn)?,
+                                            task.get_assignee(&txn)?,
+                                            task.get_name(&txn)?,
+                                        ));
+                                    }
+                                }
+                            }
+                            juggled
+                        };
+
+                        for (_id, assignee, name) in juggled {
+                            if let Some(assignee) = assignee {
+                                self.notifier.notify(
+                                    &assignee,
+                                    &format!(
+                                        "🎁 <i>Koso Juggler</i> assigned to you:\n<a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
+                                        event.project.project_id, name
+                                    ),
+                                ).await?;
+                            }
+                        }
+                    }
                 }
                 _ => continue,
             }
