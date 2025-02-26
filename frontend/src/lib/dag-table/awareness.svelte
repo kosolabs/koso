@@ -71,13 +71,13 @@
 
   export function getAwarenessBg(users: User[]): string {
     if (users.length === 0) return "";
-    if (users.length > 1) return "bg-secondary";
+    if (users.length > 1) return "bg-m3-tertiary";
     return getColor(users[0]).bg;
   }
 
   export function getAwarenessOutline(users: User[]): string {
     if (users.length === 0) return "";
-    if (users.length > 1) return "outline-secondary";
+    if (users.length > 1) return "outline-m3-tertiary";
     return getColor(users[0]).outline;
   }
 
