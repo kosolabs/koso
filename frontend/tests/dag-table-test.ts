@@ -1510,7 +1510,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Task 2 Peer Dropzone" }).hover();
       await page.getByRole("button", { name: "Task 2 Peer Dropzone" }).hover();
       await expect(
-        page.getByRole("button", { name: "Task 2 Peer Drop Indicator" }),
+        page.getByRole("tooltip", { name: "Task 2 Peer Drop Indicator" }),
       ).toBeVisible();
       await page.mouse.up();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
@@ -1535,7 +1535,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Task 2 Child Dropzone" }).hover();
       await page.getByRole("button", { name: "Task 2 Child Dropzone" }).hover();
       await expect(
-        page.getByRole("button", { name: "Task 2 Child Drop Indicator" }),
+        page.getByRole("tooltip", { name: "Task 2 Child Drop Indicator" }),
       ).toBeVisible();
       await page.mouse.up();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();

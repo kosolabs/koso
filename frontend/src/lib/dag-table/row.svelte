@@ -351,11 +351,12 @@
   tabindex="0"
   class={cn(
     "bg-opacity-50 rounded outline-2 outline-transparent",
-    index % 2 === 0 ? "bg-muted" : "",
-    isMoving ? "opacity-50" : "",
-    isHovered ? "bg-accent" : "",
+    index % 2 === 0 && "bg-muted",
+    isMoving && "opacity-50",
+    isHovered && "bg-accent",
     getAwarenessOutline(awareUsers),
-    isSelected ? "outline-primary" : "",
+    dragOverChild && "outline-m3-primary",
+    isSelected && "outline-m3-primary",
   )}
   aria-label={`Task ${task.num}`}
   data-testid={`Row ${node.id}`}
@@ -507,18 +508,19 @@
 </tr>
 
 {#if rowElement && idCellElement}
-  {@const cellWidth = idCellElement.clientWidth}
   {@const rowWidth = rowElement.clientWidth}
+  {@const rowHeight = rowElement.clientHeight}
   {@const peerOffset = node.length * 20}
   {@const childOffset = (node.length + 1) * 20}
 
   <button
     class={cn(
-      "absolute z-50 h-1 cursor-default transition-all",
-      koso.dragged ? "-my-3 h-8 " : "",
-      koso.debug ? "bg-primary/20" : "",
+      "absolute z-50 cursor-default transition-all",
+      koso.debug && "bg-primary/20",
     )}
-    style="width: {childOffset}px;"
+    style:width={`${rowWidth}px`}
+    style:height={koso.dragged ? `${rowHeight / 2}px` : "1px"}
+    style:margin-top={koso.dragged ? `-${rowHeight / 4}px` : "0"}
     aria-label={`Task ${task.num} Peer Dropzone`}
     ondragover={handleDragOverPeer}
     ondragenter={handleDragEnterPeer}
@@ -527,11 +529,12 @@
   ></button>
   <button
     class={cn(
-      "absolute z-50 h-1 cursor-default transition-all",
-      koso.dragged ? "-my-3 h-8" : "",
-      koso.debug ? "bg-secondary/20" : "",
+      "absolute z-50 cursor-default transition-all",
+      koso.debug && "bg-secondary/20",
     )}
-    style="width: {cellWidth - childOffset}px; margin-left: {childOffset}px;"
+    style:width={`${rowWidth}px`}
+    style:height={koso.dragged ? `${rowHeight / 2}px` : "1px"}
+    style:margin-top={koso.dragged ? `-${(rowHeight * 3) / 4}px` : "-1px"}
     aria-label={`Task ${task.num} Child Dropzone`}
     ondragover={handleDragOverChild}
     ondragenter={handleDragEnterChild}
@@ -545,6 +548,7 @@
       <DropIndicator
         src={source}
         dest={task}
+        height={rowHeight}
         width={rowWidth - peerOffset}
         offset={peerOffset}
         type="Peer"
@@ -554,6 +558,7 @@
       <DropIndicator
         src={source}
         dest={task}
+        height={rowHeight}
         width={rowWidth - childOffset}
         offset={childOffset}
         type="Child"

@@ -115,7 +115,6 @@
   <div
     bind:this={popoverEl}
     popover="manual"
-    role="tooltip"
     class={twMerge(className)}
     transition:scale={{ duration: 150, start: 0.95 }}
     {...mergedProps}
