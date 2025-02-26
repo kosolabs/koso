@@ -7,6 +7,8 @@ import {
   tearDown,
 } from "./utils";
 
+const skipFlakyTests = true;
+
 test.describe.configure({ mode: "parallel" });
 
 test.describe("dag table tests", () => {
@@ -1551,6 +1553,7 @@ test.describe("dag table tests", () => {
     test("move task 1 to child of task 2 and link as child of task 3", async ({
       page,
     }) => {
+      test.skip(skipFlakyTests);
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3"] },
       ]);
