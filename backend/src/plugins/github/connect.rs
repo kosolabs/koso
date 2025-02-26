@@ -5,8 +5,9 @@ use crate::{
         github::{self, Poller, auth::Auth},
     },
 };
+use anyhow::Result;
 use axum::{Extension, Json, Router, routing::post};
-use octocrab::{OctocrabBuilder, models::Installation};
+use octocrab::{Octocrab, OctocrabBuilder, models::Installation};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::Instrument;
@@ -28,6 +29,7 @@ pub(super) struct ConnectHandler {
     pool: &'static PgPool,
     storage: ConfigStorage,
     poller: Poller,
+    crab: Octocrab,
 }
 
 impl ConnectHandler {
@@ -36,13 +38,14 @@ impl ConnectHandler {
         pool: &'static PgPool,
         storage: ConfigStorage,
         poller: Poller,
-    ) -> ConnectHandler {
-        ConnectHandler {
+    ) -> Result<ConnectHandler> {
+        Ok(ConnectHandler {
             auth,
             pool,
             storage,
             poller,
-        }
+            crab: OctocrabBuilder::new().build()?,
+        })
     }
 
     pub(super) fn router(self) -> Router {
@@ -109,11 +112,7 @@ impl ConnectHandler {
 
     async fn fetch_installations(&self, user: &User) -> ApiResult<Vec<Installation>> {
         let token = self.auth.user_access_token(user).await?;
-        // TODO: It'd be nice to reuse the underlying connection with the specific access token
-        // rather than connecting from scratch on every call.
-        let crab = OctocrabBuilder::new()
-            .user_access_token(token.access_token.as_str())
-            .build()?;
+        let crab = self.crab.user_access_token(token.access_token.as_str())?;
 
         let installations = crab
             .current()

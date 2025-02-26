@@ -77,7 +77,7 @@ impl Plugin {
                     self.pool,
                     self.config_storage.clone(),
                     self.poller().clone(),
-                )
+                )?
                 .router(),
             )
             .layer((middleware::from_fn(google::authenticate),))
