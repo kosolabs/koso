@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { replaceState } from "$app/navigation";
   import { auth, type User } from "$lib/auth.svelte";
   import { CommandPalette } from "$lib/components/ui/command-palette";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
@@ -575,10 +576,12 @@
   });
 
   onMount(() => {
-    const taskId = sessionStorage.getItem("taskId");
+    const url = new URL(window.location.href);
+    const taskId = url.searchParams.get("taskId");
     if (taskId) {
       koso.select(taskId);
-      sessionStorage.removeItem("taskId");
+      url.searchParams.delete("taskId");
+      replaceState(url, {});
     }
   });
 
