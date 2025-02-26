@@ -3,6 +3,7 @@ import prettier from "eslint-config-prettier";
 import svelte from "eslint-plugin-svelte";
 import globals from "globals";
 import ts from "typescript-eslint";
+import svelteConfig from "./svelte.config.js";
 
 /** @type {import("eslint").Linter.FlatConfig[]} */
 export default [
@@ -20,14 +21,16 @@ export default [
     },
   },
   {
-    files: ["**/*.svelte"],
+    files: ["**/*.svelte", "**/*.svelte.ts", "**/*.svelte.js"],
     languageOptions: {
       parserOptions: {
+        extraFileExtensions: [".svelte"],
         parser: ts.parser,
         svelteFeatures: {
           runes: true,
           experimentalGenerics: true,
         },
+        svelteConfig,
       },
     },
   },
