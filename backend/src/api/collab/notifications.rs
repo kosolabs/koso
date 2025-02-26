@@ -116,8 +116,8 @@ impl EventProcessor {
                         self.notifier.notify(
                             &recipient,
                             &format!(
-                                "🎁 <i>{} &lt;{}&gt;</i> assigned to you:\n<a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
-                                user.name, user.email, event.project.project_id, event.task.name
+                                "🎁 <i>{} &lt;{}&gt;</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
+                                user.name, user.email, event.project.project_id, event.task.id, event.task.name
                             ),
                         ).await?;
                     }
@@ -156,13 +156,13 @@ impl EventProcessor {
                             juggled
                         };
 
-                        for (_id, assignee, name) in juggled {
+                        for (id, assignee, name) in juggled {
                             if let Some(assignee) = assignee {
                                 self.notifier.notify(
                                     &assignee,
                                     &format!(
-                                        "🎁 <i>Koso Juggler</i> assigned to you:\n<a href=\"https://koso.app/projects/{}\"><b>{}</b></a>",
-                                        event.project.project_id, name
+                                        "🎁 <i>Koso Juggler</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
+                                        event.project.project_id, id, name
                                     ),
                                 ).await?;
                             }

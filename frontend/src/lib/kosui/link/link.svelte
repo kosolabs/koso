@@ -62,6 +62,6 @@
   </a>
 {:else}
   <button bind:this={ref} class={classes} {...props}>
-    {@render children?.()}
+    {@render children()}
   </button>
 {/if}

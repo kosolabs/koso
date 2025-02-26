@@ -109,8 +109,7 @@
           event.stopPropagation();
 
           if (inboxView) {
-            sessionStorage.setItem("taskId", parent.id);
-            goto(`/projects/${koso.projectId}`);
+            goto(`/projects/${koso.projectId}?taskId=${parent.id}`);
             return;
           }
 
@@ -398,10 +397,8 @@
       {:else}
         <div class="overflow-x-hidden whitespace-nowrap">
           <Link
-            onclick={() => {
-              sessionStorage.setItem("taskId", task.id);
-              goto(`/projects/${koso.projectId}`);
-            }}
+            href={`/projects/${koso.projectId}?taskId=${task.id}`}
+            onclick={(event) => event.stopPropagation()}
           >
             {task.num}
           </Link>
