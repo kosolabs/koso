@@ -3,6 +3,7 @@
   import { toTitleCase } from "$lib/kosui/utils";
 
   const paths: string[] = [
+    "/storybook/alerts",
     "/storybook/buttons-and-links",
     "/storybook/dialogs",
     "/storybook/inputs",
