@@ -2,7 +2,7 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { headers, parse_response } from "$lib/api";
-  import { Alert } from "$lib/components/ui/alert";
+  import { Alert } from "$lib/kosui/alert";
   import { dialog } from "$lib/kosui/dialog";
   import { CircularProgress } from "$lib/kosui/progress";
   import Navbar from "$lib/navbar.svelte";

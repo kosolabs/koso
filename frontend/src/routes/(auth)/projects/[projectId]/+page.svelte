@@ -2,11 +2,11 @@
   import { page } from "$app/state";
   import { KosoError } from "$lib/api";
   import { showUnauthorizedDialog, type User } from "$lib/auth.svelte";
-  import { Alert } from "$lib/components/ui/alert";
   import { Editable } from "$lib/components/ui/editable";
   import { toast } from "$lib/components/ui/sonner";
   import { DagTable, Koso, KosoSocket } from "$lib/dag-table";
   import { githubInstallUrl } from "$lib/github";
+  import { Alert } from "$lib/kosui/alert";
   import { Button } from "$lib/kosui/button";
   import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
@@ -154,8 +154,10 @@
 </Navbar>
 
 {#if kosoSocket.offline}
-  <div class="m-4">
-    <Alert>Connection to server lost. Working offline.</Alert>
+  <div class="m-2">
+    <Alert variant="outlined" color="secondary">
+      Connection to server lost. Working offline.
+    </Alert>
   </div>
 {/if}
 

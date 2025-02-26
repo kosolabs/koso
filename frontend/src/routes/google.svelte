@@ -1,7 +1,7 @@
 <script lang="ts">
   import { headers } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
-  import { Alert } from "$lib/components/ui/alert";
+  import { Alert } from "$lib/kosui/alert";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { Settings2 } from "lucide-svelte";
   import { onMount } from "svelte";
@@ -127,7 +127,7 @@
   </div>
 </button>
 {#if error === "ThirdPartySigninDisabled"}
-  <Alert variant="destructive">
+  <Alert color="error">
     Third-party sign-in has been disabled. To login, click the
     <span class="border-destructive rounded-sm border px-1">
       <Settings2 class="inline" size={16} strokeWidth={3} />
@@ -139,17 +139,17 @@
     .
   </Alert>
 {:else if error === "ThirdPartyCookiesBlocked"}
-  <Alert variant="destructive">
+  <Alert color="error">
     Login cannot proceed because third-party cookies are blocked. Please allow
     third-party cookies, or add an exception for {location.host.split(":")[0]}.
   </Alert>
 {:else if error === "KosoBackendErrored"}
-  <Alert variant="destructive">
+  <Alert color="error">
     The Koso backend returned an error. Please see browser's console log for
     more information.
   </Alert>
 {:else if error === "Unknown"}
-  <Alert variant="destructive">Login failed unexpectedly.</Alert>
+  <Alert color="error">Login failed unexpectedly.</Alert>
 {/if}
 
 <style>

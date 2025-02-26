@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { auth, showUnauthorizedDialog, type User } from "$lib/auth.svelte";
-  import { Alert } from "$lib/components/ui/alert";
   import { DagTable, Koso, KosoSocket, Node } from "$lib/dag-table";
+  import { Alert } from "$lib/kosui/alert";
   import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
   import { fetchProject, fetchProjectUsers, type Project } from "$lib/projects";
@@ -83,8 +83,10 @@
 </Navbar>
 
 {#if kosoSocket.offline}
-  <div class="m-4">
-    <Alert>Connection to server lost. Working offline.</Alert>
+  <div class="m-2">
+    <Alert variant="outlined" color="secondary">
+      Connection to server lost. Working offline.
+    </Alert>
   </div>
 {/if}
 
