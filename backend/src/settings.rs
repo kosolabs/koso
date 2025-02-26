@@ -34,7 +34,7 @@ fn load_settings_from_env() -> Settings {
 }
 
 fn load_settings(env: &str) -> Settings {
-    let settings = config::Config::builder()
+    config::Config::builder()
         .add_source(match env {
             "dev" => File::from_str(include_str!("settings/dev.json"), FileFormat::Json),
             "prod" => File::from_str(include_str!("settings/prod.json"), FileFormat::Json),
@@ -45,10 +45,7 @@ fn load_settings(env: &str) -> Settings {
         .build()
         .expect("Failed to load settings")
         .try_deserialize()
-        .expect("Failed to deserialize settings");
-    println!("Using koso settings: {settings:?}");
-
-    settings
+        .expect("Failed to deserialize settings")
 }
 
 impl Settings {

@@ -23,6 +23,7 @@ async fn main() {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
+    tracing::info!("Using koso settings: {:?}", settings::settings());
 
     let (_main_server, _metrics_server, _telegram_server) = tokio::join!(
         async {
