@@ -1,17 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
-  import {
-    Avatar,
-    AvatarFallback,
-    AvatarImage,
-  } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { UserAvatar } from "$lib/components/ui/user-select";
+  import { Avatar } from "$lib/kosui/avatar";
   import { UserRound } from "lucide-svelte";
   import { resetMode, setMode } from "mode-watcher";
   import type { Snippet } from "svelte";
-  import { KosoLogo } from "./components/ui/koso-logo";
 
   type Props = {
     left?: Snippet;
@@ -42,14 +38,16 @@
           }
         }
       >
-        <DropdownMenu.Trigger title={auth.user.email}>
+        <DropdownMenu.Trigger
+          title={auth.user.email}
+          class="focus-visible:outline-m3-primary rounded-m3 focus-visible:outline-1"
+        >
           <Avatar
-            class="size-9 rounded transition-all hover:brightness-110 active:scale-95"
+            src={auth.user.picture}
+            alt={auth.user.email}
+            class="transition-all active:scale-95 active:brightness-110"
           >
-            <AvatarImage src={auth.user.picture} alt={auth.user.email} />
-            <AvatarFallback class="rounded">
-              <UserRound />
-            </AvatarFallback>
+            <UserRound />
           </Avatar>
         </DropdownMenu.Trigger>
         <div

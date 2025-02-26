@@ -4,6 +4,7 @@
 
   const paths: string[] = [
     "/storybook/alerts",
+    "/storybook/avatar",
     "/storybook/buttons-and-links",
     "/storybook/dialogs",
     "/storybook/inputs",

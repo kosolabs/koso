@@ -1,11 +1,7 @@
 <script lang="ts">
   import type { User } from "$lib/auth.svelte";
-  import {
-    Avatar,
-    AvatarFallback,
-    AvatarImage,
-  } from "$lib/components/ui/avatar";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { Avatar } from "$lib/kosui/avatar";
   import { Input } from "$lib/kosui/input";
   import { CANCEL } from "$lib/shortcuts";
   import { UserRound } from "lucide-svelte";
@@ -54,11 +50,8 @@
       class="flex items-center gap-2"
       title={value?.email || "Unassigned"}
     >
-      <Avatar class="size-6 rounded">
-        <AvatarImage src={value?.picture || ""} alt={value?.email} />
-        <AvatarFallback class="rounded">
-          <UserRound />
-        </AvatarFallback>
+      <Avatar class="size-6" src={value?.picture || ""} alt={value?.email}>
+        <UserRound size={20} />
       </Avatar>
       <ResponsiveText>{value?.name || unassigned}</ResponsiveText>
     </DropdownMenu.Trigger>
@@ -102,11 +95,8 @@
   </DropdownMenu.Root>
 {:else}
   <div class="flex items-center gap-2" title={value?.email || "Unassigned"}>
-    <Avatar class="size-6 rounded">
-      <AvatarImage src={value?.picture || ""} alt={value?.email} />
-      <AvatarFallback class="rounded">
-        <UserRound />
-      </AvatarFallback>
+    <Avatar class="size-6" src={value?.picture || ""} alt={value?.email}>
+      <UserRound size={20} />
     </Avatar>
     <ResponsiveText>{value?.name || unassigned}</ResponsiveText>
   </div>
