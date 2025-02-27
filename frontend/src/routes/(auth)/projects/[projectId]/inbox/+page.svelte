@@ -35,7 +35,10 @@
   }
 
   function isTaskVisible(task: YTaskProxy): boolean {
-    return task.assignee === auth.user.email && task.status !== "Done";
+    return (
+      task.assignee === auth.user.email &&
+      !koso.getProgress(task.id).isComplete()
+    );
   }
 
   function flatten(): List<Node> {
