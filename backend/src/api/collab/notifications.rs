@@ -3,7 +3,11 @@ use super::{
     txn_origin::{YOrigin, from_origin},
 };
 use crate::{
-    api::{collab::txn_origin::Actor, model::Task, yproxy::YTaskProxy},
+    api::{
+        collab::txn_origin::Actor,
+        model::{Task, User},
+        yproxy::YTaskProxy,
+    },
     notifiers::Notifier,
 };
 use anyhow::{Context, Result};
@@ -124,68 +128,22 @@ impl EventProcessor {
                 }
                 ("status", EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(status)))) => {
                     if status.as_ref() == "Done" {
-                        let actionable = {
-                            let doc = event.project.doc_box.lock().await;
-                            let doc = &doc.as_ref().context("No doc initialized.")?.ydoc;
-                            let txn = doc.transact();
+                        let actionable = Self::find_actionable_juggled_tasks(
+                            &event.task.id,
+                            &event.project,
+                            &user,
+                        )
+                        .await?;
 
-                            // Perform a DFS starting from all non-Done, juggled tasks not assigned to the
-                            // events triggering user.
-                            let mut actionable: Vec<(String, Option<String>, String)> = vec![];
-                            for task in doc.tasks(&txn)? {
-                                if task.get_kind(&txn)?.unwrap_or_default() == "Juggled"
-                                    && task.get_status(&txn)?.unwrap_or_default() != "Done"
-                                    && task.get_assignee(&txn)?.unwrap_or_default() != user.email
-                                {
-                                    let mut found = false;
-                                    let mut complete = true;
-                                    let mut stack = vec![];
-                                    stack.extend(task.get_children(&txn)?);
-                                    loop {
-                                        let Some(descendent_id) = stack.pop() else {
-                                            break;
-                                        };
-
-                                        // First, mark if the event's task was found.
-                                        if descendent_id == event.task.id {
-                                            found = true;
-                                        }
-
-                                        let descendent = doc.get(&txn, &descendent_id)?;
-                                        let children = descendent.get_children(&txn)?;
-                                        if children.is_empty() {
-                                            if descendent.get_status(&txn)?.unwrap_or_default()
-                                                != "Done"
-                                            {
-                                                complete = false;
-                                                break;
-                                            }
-                                        } else {
-                                            stack.extend(children);
-                                        }
-                                    }
-                                    if found && complete {
-                                        actionable.push((
-                                            task.get_id(&txn)?,
-                                            task.get_assignee(&txn)?,
-                                            task.get_name(&txn)?,
-                                        ));
-                                    }
-                                }
-                            }
-                            actionable
-                        };
-
+                        // TODO: We could parallelize this.
                         for (id, assignee, name) in actionable {
-                            if let Some(assignee) = assignee {
-                                self.notifier.notify(
+                            self.notifier.notify(
                                     &assignee,
                                     &format!(
                                         "🎁 <i>Koso Juggler</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
                                         event.project.project_id, id, name
                                     ),
                                 ).await?;
-                            }
                         }
                     }
                 }
@@ -193,5 +151,58 @@ impl EventProcessor {
             }
         }
         Ok(())
+    }
+
+    async fn find_actionable_juggled_tasks(
+        done_task_id: &String,
+        project: &ProjectState,
+        user: &User,
+    ) -> Result<Vec<(String, String, String)>> {
+        let doc = project.doc_box.lock().await;
+        let doc = &doc.as_ref().context("No doc initialized.")?.ydoc;
+        let txn = doc.transact();
+
+        // Perform a DFS starting from all non-Done, juggled tasks not assigned to the
+        // events triggering user.
+        let mut actionable: Vec<(String, String, String)> = vec![];
+        for task in doc.tasks(&txn)? {
+            if task.get_kind(&txn)?.unwrap_or_default() == "Juggled"
+                && task.get_status(&txn)?.unwrap_or_default() != "Done"
+                && task.get_assignee(&txn)?.unwrap_or_default() != user.email
+            {
+                let mut found = false;
+                let mut complete = true;
+                let mut stack = vec![];
+                stack.extend(task.get_children(&txn)?);
+                loop {
+                    let Some(descendent_id) = stack.pop() else {
+                        break;
+                    };
+
+                    // First, mark if the event's task was found.
+                    if descendent_id == *done_task_id {
+                        found = true;
+                    }
+
+                    // Next, check if this task or all of its descendants are complete.
+                    let descendent = doc.get(&txn, &descendent_id)?;
+                    let children = descendent.get_children(&txn)?;
+                    if children.is_empty() {
+                        if descendent.get_status(&txn)?.unwrap_or_default() != "Done" {
+                            complete = false;
+                            break;
+                        }
+                    } else {
+                        stack.extend(children);
+                    }
+                }
+                if found && complete {
+                    if let Some(assignee) = task.get_assignee(&txn)? {
+                        actionable.push((task.get_id(&txn)?, assignee, task.get_name(&txn)?));
+                    }
+                }
+            }
+        }
+        Ok(actionable)
     }
 }
