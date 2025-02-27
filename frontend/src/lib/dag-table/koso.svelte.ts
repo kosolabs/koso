@@ -82,12 +82,23 @@ export class Node extends NodeRecord {
 
 export type Nodes = Map<string, Node>;
 
-export type Progress = {
+export class Progress {
   inProgress: number;
   done: number;
   total: number;
   lastStatusTime: number;
-};
+
+  constructor(props: Partial<Progress> = {}) {
+    this.inProgress = props.inProgress ?? 0;
+    this.done = props.done ?? 0;
+    this.total = props.total ?? 0;
+    this.lastStatusTime = props.lastStatusTime ?? 0;
+  }
+
+  isComplete(): boolean {
+    return this.total === this.done;
+  }
+}
 
 export type SyncState = {
   // True when the indexed DB is sync'd with the Koso doc.
@@ -540,12 +551,12 @@ export class Koso {
   getProgress(taskId: string): Progress {
     const task = this.getTask(taskId);
 
-    const result: Progress = {
+    const result: Progress = new Progress({
       inProgress: 0,
       done: 0,
       total: 0,
       lastStatusTime: task.statusTime ?? 0,
-    };
+    });
 
     if (task.children.length === 0 || task.kind === "Juggled") {
       switch (task.status || "Not Started") {
