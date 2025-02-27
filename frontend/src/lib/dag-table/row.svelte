@@ -349,8 +349,8 @@
 <tr
   tabindex="0"
   class={cn(
-    "bg-opacity-50 rounded outline-2 outline-transparent",
-    index % 2 === 0 && "bg-muted",
+    "bg-m3-surface-container rounded-m3 outline-2 outline-transparent",
+    index % 2 === 0 && "bg-m3-surface-container-low",
     isMoving && "opacity-50",
     isHovered && "bg-accent",
     getAwarenessOutline(awareUsers),

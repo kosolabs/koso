@@ -27,6 +27,8 @@
     shape = "rounded",
     ...restProps
   }: AvatarProps = $props();
+
+  let error: boolean = $state(false);
 </script>
 
 <div
@@ -38,8 +40,8 @@
   )}
   {...restProps}
 >
-  {#if src}
-    <img {src} {alt} />
+  {#if src && !error}
+    <img {src} {alt} onerror={() => (error = true)} />
   {:else}
     {@render children?.()}
   {/if}
