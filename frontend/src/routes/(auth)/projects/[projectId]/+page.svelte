@@ -88,7 +88,7 @@
     a.click();
   }
 
-  export const extraActions: Action[] = [
+  const extraActions: Action[] = [
     new Action({
       callback: exportProjectToFile,
       title: "Export Project",
