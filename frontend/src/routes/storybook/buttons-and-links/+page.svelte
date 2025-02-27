@@ -33,8 +33,8 @@
 </script>
 
 <div class="flex flex-col gap-4 rounded-lg border p-4">
-  {#each buttonVariants as variant}
-    {#each buttonColors as color}
+  {#each buttonVariants as variant (variant)}
+    {#each buttonColors as color (color)}
       {@const title = toTitleCase(variant)}
       <div>
         <div class="mb-2">{title} Buttons ({color})</div>
@@ -52,12 +52,12 @@
 </div>
 
 <div class="flex flex-col gap-4 rounded-lg border p-4">
-  {#each linkUnderlines as underline}
+  {#each linkUnderlines as underline (underline)}
     {@const underlineTitle = toTitleCase(underline)}
     <div>
       <div class="mb-2">Underline {underlineTitle}</div>
       <ul>
-        {#each linkColors as color}
+        {#each linkColors as color (color)}
           <li>
             Here is a <Link {underline} {color} href="">{color}</Link>
             link.

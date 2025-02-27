@@ -16,7 +16,7 @@
 </script>
 
 <div class="flex flex-col items-start rounded-lg border p-4">
-  {#each paths as path}
+  {#each paths as path (path)}
     <Link href={path}>
       {toTitleCase(path.split("/").slice(-1)[0])}
     </Link>

@@ -120,7 +120,7 @@
   <div class="flex flex-col gap-2">
     <div>
       <div class="flex items-center">
-        <div class={"text-xl"}>Share &quot;{project.name}&quot;</div>
+        <div class="text-xl">Share &quot;{project.name}&quot;</div>
         <Button
           variant="plain"
           class="ml-auto"
@@ -130,7 +130,7 @@
           <X />
         </Button>
       </div>
-      <div class={"text-sm"}>Manage access to your project.</div>
+      <div class="text-sm">Manage access to your project.</div>
     </div>
     <Input
       bind:value={filter}

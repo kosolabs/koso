@@ -20,8 +20,8 @@
 </script>
 
 <div class="flex flex-col gap-4 rounded-lg border p-4">
-  {#each inputVariants as variant}
-    {#each inputColors as color}
+  {#each inputVariants as variant (variant)}
+    {#each inputColors as color (color)}
       {@const title = toTitleCase(variant)}
       <div>
         <div class="mb-2">{title} Inputs ({color})</div>

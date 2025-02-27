@@ -5,8 +5,8 @@
 </script>
 
 <div class="flex gap-4 rounded-lg border p-4">
-  {#each variants as variant}
-    {#each colors as color}
+  {#each variants as variant (variant)}
+    {#each colors as color (color)}
       <Avatar
         {variant}
         {color}
@@ -17,16 +17,16 @@
 </div>
 
 <div class="flex gap-4 rounded-lg border p-4">
-  {#each variants as variant}
-    {#each colors as color}
+  {#each variants as variant (variant)}
+    {#each colors as color (color)}
       <Avatar {variant} {color} shape="circle">FB</Avatar>
     {/each}
   {/each}
 </div>
 
 <div class="flex gap-4 rounded-lg border p-4">
-  {#each variants as variant}
-    {#each colors as color}
+  {#each variants as variant (variant)}
+    {#each colors as color (color)}
       <Avatar {variant} {color} shape="square"><UserRound /></Avatar>
     {/each}
   {/each}
