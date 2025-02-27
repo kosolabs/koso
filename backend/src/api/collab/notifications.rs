@@ -124,28 +124,48 @@ impl EventProcessor {
                 }
                 ("status", EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(status)))) => {
                     if status.as_ref() == "Done" {
-                        let juggled = {
+                        let actionable = {
                             let doc = event.project.doc_box.lock().await;
                             let doc = &doc.as_ref().context("No doc initialized.")?.ydoc;
                             let txn = doc.transact();
 
-                            let mut juggled = vec![];
+                            // Perform a DFS starting from all non-Done, juggled tasks not assigned to the
+                            // events triggering user.
+                            let mut actionable: Vec<(String, Option<String>, String)> = vec![];
                             for task in doc.tasks(&txn)? {
                                 if task.get_kind(&txn)?.unwrap_or_default() == "Juggled"
-                                    && task.get_children(&txn)?.contains(&event.task.id)
+                                    && task.get_status(&txn)?.unwrap_or_default() != "Done"
                                     && task.get_assignee(&txn)?.unwrap_or_default() != user.email
                                 {
-                                    let mut all_done = true;
-                                    for child in &task.get_children(&txn)? {
-                                        let child = doc.get(&txn, child)?;
-                                        // TODO: Handle rollups
-                                        if child.get_status(&txn)?.unwrap_or_default() != "Done" {
-                                            all_done = false;
+                                    let mut found = false;
+                                    let mut complete = true;
+                                    let mut stack = vec![];
+                                    stack.extend(task.get_children(&txn)?);
+                                    loop {
+                                        let Some(descendent_id) = stack.pop() else {
                                             break;
+                                        };
+
+                                        // First, mark if the event's task was found.
+                                        if descendent_id == event.task.id {
+                                            found = true;
+                                        }
+
+                                        let descendent = doc.get(&txn, &descendent_id)?;
+                                        let children = descendent.get_children(&txn)?;
+                                        if children.is_empty() {
+                                            if descendent.get_status(&txn)?.unwrap_or_default()
+                                                != "Done"
+                                            {
+                                                complete = false;
+                                                break;
+                                            }
+                                        } else {
+                                            stack.extend(children);
                                         }
                                     }
-                                    if all_done {
-                                        juggled.push((
+                                    if found && complete {
+                                        actionable.push((
                                             task.get_id(&txn)?,
                                             task.get_assignee(&txn)?,
                                             task.get_name(&txn)?,
@@ -153,10 +173,10 @@ impl EventProcessor {
                                     }
                                 }
                             }
-                            juggled
+                            actionable
                         };
 
-                        for (id, assignee, name) in juggled {
+                        for (id, assignee, name) in actionable {
                             if let Some(assignee) = assignee {
                                 self.notifier.notify(
                                     &assignee,
