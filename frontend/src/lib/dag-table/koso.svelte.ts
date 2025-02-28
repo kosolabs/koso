@@ -162,10 +162,15 @@ export class Koso {
     }
     return this.#flattenFn(new Node(), this.expanded, this.showDone);
   });
-  #syncState: SyncState = $state({
-    indexedDbSync: false,
-    serverSync: false,
-  });
+
+  #resolveIndexedDbSync: () => void = () => {};
+  #indexedDbSynced = new Promise<void>(
+    (resolve) => (this.#resolveIndexedDbSync = resolve),
+  );
+  #resolveServerSync: () => void = () => {};
+  #serverSynced = new Promise<void>(
+    (resolve) => (this.#resolveServerSync = resolve),
+  );
 
   #sequence: number = 0;
 
@@ -229,7 +234,7 @@ export class Koso {
     this.#flattenFn = flattenFn ?? this.#defaultFlatten;
 
     this.#yIndexedDb.whenSynced.then(() => {
-      this.#syncState.indexedDbSync = true;
+      this.#resolveIndexedDbSync();
     });
 
     $effect(() => {
@@ -265,7 +270,7 @@ export class Koso {
         if (this.graph.size === 0) {
           this.upsertRoot();
         }
-        this.#syncState.serverSync = true;
+        this.#resolveServerSync();
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdateV2(this.doc, message);
@@ -479,8 +484,8 @@ export class Koso {
     return this.#nodes;
   }
 
-  get syncState(): SyncState {
-    return this.#syncState;
+  get synced(): Promise<[void, void]> {
+    return Promise.all([this.#indexedDbSynced, this.#serverSynced]);
   }
 
   // composable functions that primarily operate on Tasks

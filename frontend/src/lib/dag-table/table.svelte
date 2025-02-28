@@ -575,13 +575,14 @@
     return events.on("keydown", keyDownListener);
   });
 
-  onMount(() => {
+  onMount(async () => {
     const url = new URL(window.location.href);
     const taskId = url.searchParams.get("taskId");
     if (taskId) {
-      koso.select(taskId);
+      await koso.synced;
       url.searchParams.delete("taskId");
       replaceState(url, {});
+      koso.select(taskId);
     }
   });
 
@@ -592,70 +593,72 @@
 <SearchPanel bind:open={searchPaletteOpen} />
 
 <Toolbar {actions}>
-  {#if !koso.syncState.serverSync && !koso.syncState.indexedDbSync}
-    <!-- Loading.-->
-  {:else if koso.nodes.size > 1}
-    <table class="rounded-m3 w-full border-separate border-spacing-0 border">
-      <thead class="text-left text-xs font-bold uppercase">
-        <tr>
-          <th class="w-32 p-2">ID</th>
-          {#if koso.debug}
-            <th class="border-l p-2">UUID</th>
-          {/if}
-          <th class="border-l p-2">
-            <SquarePen class="h-4 md:hidden" />
-            <div class="max-md:hidden">Status</div></th
-          >
-          <th class="border-l p-2">Name</th>
-          <th class="border-l p-2">
-            <UserRoundPlus class="h-4 md:hidden" />
-            <div class="max-md:hidden">Assignee</div>
-          </th>
-          {#if !inboxView}
-            <th class="border-l p-2 max-md:hidden">Reporter</th>
-          {/if}
-          <th class="relative m-0 w-0 p-0"></th>
-        </tr>
-      </thead>
+  {#await koso.synced then}
+    {#if koso.nodes.size > 1}
+      <table class="rounded-m3 w-full border-separate border-spacing-0 border">
+        <thead class="text-left text-xs font-bold uppercase">
+          <tr>
+            <th class="w-32 p-2">ID</th>
+            {#if koso.debug}
+              <th class="border-l p-2">UUID</th>
+            {/if}
+            <th class="border-l p-2">
+              <SquarePen class="h-4 md:hidden" />
+              <div class="max-md:hidden">Status</div></th
+            >
+            <th class="border-l p-2">Name</th>
+            <th class="border-l p-2">
+              <UserRoundPlus class="h-4 md:hidden" />
+              <div class="max-md:hidden">Assignee</div>
+            </th>
+            {#if !inboxView}
+              <th class="border-l p-2 max-md:hidden">Reporter</th>
+            {/if}
+            <th class="relative m-0 w-0 p-0"></th>
+          </tr>
+        </thead>
 
-      {#each [...koso.nodes].slice(1) as node, index (node.id)}
-        <tbody animate:flip={{ duration: 250 }}>
-          <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
-          <!-- svelte-ignore binding_property_non_reactive -->
-          <Row bind:this={rows[node.id]} {index} {node} {users} {inboxView} />
-        </tbody>
-      {/each}
-    </table>
-  {:else if !inboxView}
-    <div class="flex items-center justify-center pt-8">
-      <div class="bg-muted flex w-9/12 max-w-[425px] rounded-md border p-4">
-        <div class="min-w-16">
-          <KosoLogo class="size-16" />
-        </div>
-        <div class="ml-4">
-          <div class="text-md">Welcome to Koso!</div>
-          <div class="mt-2 text-sm">
-            Koso helps you to organize your work and be productive.
+        {#each [...koso.nodes].slice(1) as node, index (node.id)}
+          <tbody animate:flip={{ duration: 250 }}>
+            <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
+            <!-- svelte-ignore binding_property_non_reactive -->
+            <Row bind:this={rows[node.id]} {index} {node} {users} {inboxView} />
+          </tbody>
+        {/each}
+      </table>
+    {:else if !inboxView}
+      <div class="flex items-center justify-center pt-8">
+        <div class="bg-muted flex w-9/12 max-w-[425px] rounded-md border p-4">
+          <div class="min-w-16">
+            <KosoLogo class="size-16" />
           </div>
-          <div class="mt-4">
-            <Button variant="filled" icon={ListPlus} onclick={insert}>
-              Add task
-            </Button>
+          <div class="ml-4">
+            <div class="text-md">Welcome to Koso!</div>
+            <div class="mt-2 text-sm">
+              Koso helps you to organize your work and be productive.
+            </div>
+            <div class="mt-4">
+              <Button variant="filled" icon={ListPlus} onclick={insert}>
+                Add task
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  {:else}
-    <div class="flex items-center justify-center pt-8">
-      <div class="bg-muted flex w-9/12 max-w-[425px] rounded-md border p-4">
-        <div class="min-w-16">
-          <KosoLogo class="size-16" />
-        </div>
-        <div class="ml-4">
-          <div class="text-md">Inbox zero!</div>
-          <div class="mt-2 text-sm">You've achieved inbox zero. Great job!</div>
+    {:else}
+      <div class="flex items-center justify-center pt-8">
+        <div class="bg-muted flex w-9/12 max-w-[425px] rounded-md border p-4">
+          <div class="min-w-16">
+            <KosoLogo class="size-16" />
+          </div>
+          <div class="ml-4">
+            <div class="text-md">Inbox zero!</div>
+            <div class="mt-2 text-sm">
+              You've achieved inbox zero. Great job!
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  {/if}
+    {/if}
+  {/await}
 </Toolbar>
