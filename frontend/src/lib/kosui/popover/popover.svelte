@@ -6,6 +6,7 @@
   import { twMerge } from "tailwind-merge";
   import { events } from "..";
   import { mergeProps } from "../merge-props";
+  import { Shortcut } from "../shortcut";
   import { type ClassName, type ToggleEventWithTarget } from "../utils";
 
   export type PopoverProps = {
@@ -35,7 +36,7 @@
   let arrowEl: HTMLDivElement | undefined = $state();
 
   function handleEscape(event: KeyboardEvent) {
-    if (event.key === "Escape") {
+    if (Shortcut.ESCAPE.matches(event)) {
       popoverEl?.hidePopover();
       event.preventDefault();
       event.stopImmediatePropagation();
