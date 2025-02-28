@@ -908,7 +908,7 @@ describe("Koso tests", () => {
         {
           id: "root",
           name: "Root",
-          children: ["1", "github", "githubfoo", "github_pr_other"],
+          children: ["1", "github", "githubfoo", "github_pr_other", "4", "5"],
         },
         {
           id: "1",
@@ -945,6 +945,8 @@ describe("Koso tests", () => {
           children: ["github_pr_other"],
         },
         { id: "3", name: "Some Other PR", kind: "github_pr_other" },
+        { id: "4", name: "Some Rollup task", kind: "Rollup" },
+        { id: "5", name: "Some Juggled task", kind: "Juggled" },
       ]);
       koso.deleteNode(Node.parse("1/github"));
       koso.deleteNode(Node.parse("1/github_pr"));
@@ -956,6 +958,8 @@ describe("Koso tests", () => {
       koso.deleteNode(Node.parse("github/githubfoo"));
       koso.deleteNode(Node.parse("github_pr/githubfoo"));
       koso.deleteNode(Node.parse("github_pr_other"));
+      koso.deleteNode(Node.parse("4"));
+      koso.deleteNode(Node.parse("5"));
 
       expect(koso.toJSON()).toMatchObject({
         ["1"]: { id: "1", children: [] },
