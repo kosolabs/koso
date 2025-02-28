@@ -131,19 +131,14 @@
         {label}
       </div>
     {/snippet}
-    {#snippet children()}
-      <div class={cn("flex flex-col gap-1")}>
-        {#each users as user}
-          <div
-            class={cn(
-              "rounded p-1 text-xs text-nowrap",
-              getAwarenessBg([user]),
-            )}
-          >
-            {user.name} ({user.email})
-          </div>
-        {/each}
-      </div>
-    {/snippet}
+    <div class={cn("flex flex-col gap-1")}>
+      {#each users as user (user.email)}
+        <div
+          class={cn("rounded p-1 text-xs text-nowrap", getAwarenessBg([user]))}
+        >
+          {user.name} ({user.email})
+        </div>
+      {/each}
+    </div>
   </PlainTooltip>
 {/if}

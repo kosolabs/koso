@@ -36,7 +36,7 @@
   <Command.Input bind:value={query} placeholder="Type a command or search..." />
   <Command.List>
     <Command.Empty>No results found.</Command.Empty>
-    {#each filteredActions as action}
+    {#each filteredActions as action (action.title)}
       {@const { title, description, icon: Icon, callback, shortcut } = action}
       <Command.Item
         value={title}

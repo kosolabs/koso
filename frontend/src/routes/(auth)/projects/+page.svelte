@@ -174,7 +174,7 @@
         </div>
       </div>
       <div class="[&>*:nth-child(even)]:bg-muted flex flex-col items-stretch">
-        {#each projects as project}
+        {#each projects as project (project.projectId)}
           <div class="flex items-center border-t p-2">
             <Link class="text-lg" href="projects/{project.projectId}">
               {project.name}

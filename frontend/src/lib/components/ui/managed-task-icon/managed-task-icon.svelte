@@ -32,7 +32,5 @@
       <ManagedTaskIcon size={16} class="text-foreground" />
     </div>
   {/snippet}
-  {#snippet children()}
-    This task is managed by the {getManagedTaskName(kind)} plugin.
-  {/snippet}
+  This task is managed by the {getManagedTaskName(kind)} plugin.
 </PlainTooltip>

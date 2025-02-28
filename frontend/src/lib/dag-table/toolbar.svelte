@@ -26,7 +26,7 @@
     "max-sm-standalone-margin fixed bottom-0 left-0 z-10 flex w-full items-center overflow-x-scroll px-2 py-1 backdrop-blur-xs max-sm:border-t sm:sticky sm:top-0 sm:gap-2 sm:border-b",
   )}
 >
-  {#each toolbarActions as action}
+  {#each toolbarActions as action (action.title)}
     <ToolbarButton {...action} />
   {/each}
 </div>
