@@ -95,7 +95,7 @@
 </script>
 
 <script lang="ts">
-  import { PlainTooltip } from "$lib/kosui/tooltip";
+  import { Tooltip } from "$lib/kosui/tooltip";
   import { cn } from "$lib/utils";
 
   type Props = {
@@ -116,7 +116,7 @@
 </script>
 
 {#if users.length > 0}
-  <PlainTooltip arrow>
+  <Tooltip arrow>
     {#snippet trigger(ref, props)}
       <div
         bind:this={ref.value}
@@ -140,5 +140,5 @@
         </div>
       {/each}
     </div>
-  </PlainTooltip>
+  </Tooltip>
 {/if}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PlainTooltip } from "$lib/kosui/tooltip";
+  import { Tooltip } from "$lib/kosui/tooltip";
   import { cn } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
   import { ArrowBigRight } from "lucide-svelte";
@@ -14,11 +14,11 @@
   };
   const { src, dest, width, height, offset, type }: Props = $props();
 
-  let tooltip: PlainTooltip | undefined = $state();
+  let tooltip: Tooltip | undefined = $state();
   $effect(() => tooltip?.show());
 </script>
 
-<PlainTooltip
+<Tooltip
   bind:this={tooltip}
   arrow
   aria-label={`Task ${dest.num} ${type} Drop Indicator`}
@@ -41,4 +41,4 @@
     <span>of task</span>
     <span class="font-bold">{dest.num}</span>
   </div>
-</PlainTooltip>
+</Tooltip>

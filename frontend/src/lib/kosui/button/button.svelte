@@ -4,7 +4,7 @@
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { baseClasses, type Variants } from "../base";
-  import { PlainTooltip } from "../tooltip";
+  import { Tooltip } from "../tooltip";
   import type { ClassName, ElementRef } from "../utils";
 
   export type ButtonProps = {
@@ -29,7 +29,7 @@
     ...restProps
   }: ButtonProps = $props();
 
-  let tooltipRef: PlainTooltip | undefined = $state();
+  let tooltipRef: Tooltip | undefined = $state();
 </script>
 
 <button
@@ -76,11 +76,11 @@
 </button>
 
 {#if tooltip}
-  <PlainTooltip bind:this={tooltipRef} trigger={ref} arrow>
+  <Tooltip bind:this={tooltipRef} trigger={ref} arrow>
     {#if typeof tooltip === "function"}
       {@render tooltip()}
     {:else}
       {tooltip}
     {/if}
-  </PlainTooltip>
+  </Tooltip>
 {/if}

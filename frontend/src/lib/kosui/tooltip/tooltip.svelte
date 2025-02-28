@@ -18,7 +18,6 @@
     // If trigger is a Snippet, do render delegation.
     // If trigger is a HTMLElement, do fully controlled.
     trigger?: Snippet<[Box<HTMLElement>, TooltipTriggerProps]> | HTMLElement;
-    children: Snippet;
   } & ClassName &
     PopoverProps;
 </script>
@@ -28,7 +27,6 @@
     delay = 1000,
     open = $bindable(false),
     trigger,
-    children,
     class: className,
     ...restProps
   }: TooltipProps = $props();
@@ -69,9 +67,7 @@
     className,
   )}
   {...restProps}
->
-  {@render children()}
-</Popover>
+/>
 
 {#if typeof trigger === "function"}
   {@render trigger(triggerBox, triggerProps)}
