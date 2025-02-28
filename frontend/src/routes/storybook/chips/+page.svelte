@@ -4,9 +4,9 @@
 </script>
 
 <div class="flex flex-wrap gap-4 rounded-lg border p-4">
-  {#each shapes as shape}
-    {#each variants as variant}
-      {#each colors as color}
+  {#each shapes as shape (shape)}
+    {#each variants as variant (variant)}
+      {#each colors as color (color)}
         <div>
           <Chip
             {variant}

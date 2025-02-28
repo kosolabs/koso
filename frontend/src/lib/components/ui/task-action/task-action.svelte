@@ -149,7 +149,7 @@
       preventScroll={false}
     >
       {#if canSetStatus}
-        {#each statuses as status}
+        {#each statuses as status (status)}
           <DropdownMenu.Item
             class="flex items-center gap-2 rounded p-2"
             onSelect={() => handleOnSelectStatus(status)}
@@ -163,7 +163,7 @@
         <DropdownMenuSeparator />
       {/if}
       {#if canSetKind}
-        {#each unmanagedKinds as kind}
+        {#each unmanagedKinds as kind (kind)}
           <DropdownMenu.Item
             class="flex items-center gap-2 rounded p-2"
             onSelect={() => handleOnSelectKind(kind)}

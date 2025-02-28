@@ -33,14 +33,12 @@
       style:margin-left={`${offset}px`}
     ></div>
   {/snippet}
-  {#snippet children()}
-    <div class="flex items-center gap-1">
-      <span>Task</span>
-      <span class="font-bold">{src.num}</span>
-      <ArrowBigRight size={16} />
-      <span class="font-bold">{type}</span>
-      <span>of task</span>
-      <span class="font-bold">{dest.num}</span>
-    </div>
-  {/snippet}
+  <div class="flex items-center gap-1">
+    <span>Task</span>
+    <span class="font-bold">{src.num}</span>
+    <ArrowBigRight size={16} />
+    <span class="font-bold">{type}</span>
+    <span>of task</span>
+    <span class="font-bold">{dest.num}</span>
+  </div>
 </PlainTooltip>

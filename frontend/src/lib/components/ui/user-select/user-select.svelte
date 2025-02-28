@@ -84,7 +84,7 @@
               user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
             />
           </DropdownMenu.Item>
-          {#each users as user}
+          {#each users as user (user.email)}
             <DropdownMenu.Item onSelect={() => select(user)}>
               <UserAvatar {user} />
             </DropdownMenu.Item>
