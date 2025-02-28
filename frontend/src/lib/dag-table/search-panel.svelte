@@ -1,10 +1,7 @@
 <script lang="ts">
-  import {
-    Chip,
-    parseChipProps,
-    type ChipProps,
-  } from "$lib/components/ui/chip";
+  import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
   import * as Command from "$lib/components/ui/command";
+  import { Chip } from "$lib/kosui/chip";
   import { CANCEL } from "$lib/shortcuts";
   import { cn, match } from "$lib/utils";
   import { Clipboard, Network } from "lucide-svelte";
@@ -95,8 +92,8 @@
         <div class="table-cell rounded-r px-2 align-middle text-nowrap">
           <div class="flex items-center gap-1" title="Tags">
             <div class="flex flex-wrap items-center gap-x-1">
-              {#each getTags(task.id) as tag}
-                <Chip {...tag} />
+              {#each getTags(task.id) as { title, description }}
+                <Chip title={description}>{title}</Chip>
               {/each}
             </div>
           </div>
