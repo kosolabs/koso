@@ -36,34 +36,7 @@
   bind:this={ref}
   class={twMerge(
     baseClasses({ variant, color, shape }),
-
     "flex items-center gap-2 px-4 py-1.5 text-sm text-nowrap transition-all enabled:active:scale-95",
-
-    variant === "elevated" &&
-      color === "primary" &&
-      "enabled:hover:bg-m3-primary-container/30 focus-visible:bg-m3-primary-container/30",
-    variant === "elevated" &&
-      color === "secondary" &&
-      "enabled:hover:bg-m3-secondary-container/30 focus-visible:bg-m3-secondary-container/30",
-    variant === "elevated" &&
-      color === "tertiary" &&
-      "enabled:hover:bg-m3-tertiary-container/30 focus-visible:bg-m3-tertiary-container/30",
-    variant === "elevated" &&
-      color === "error" &&
-      "enabled:hover:bg-m3-error-container/30 focus-visible:bg-m3-error-container/30",
-
-    (variant === "outlined" || variant === "plain") &&
-      color === "primary" &&
-      "enabled:hover:bg-m3-primary/15 focus-visible:bg-m3-primary/15",
-    (variant === "outlined" || variant === "plain") &&
-      color === "secondary" &&
-      "enabled:hover:bg-m3-secondary/15 focus-visible:bg-m3-secondary/15",
-    (variant === "outlined" || variant === "plain") &&
-      color === "tertiary" &&
-      "enabled:hover:bg-m3-tertiary/15 focus-visible:bg-m3-tertiary/15",
-    (variant === "outlined" || variant === "plain") &&
-      color === "error" &&
-      "enabled:hover:bg-m3-error/15 focus-visible:bg-m3-error/15",
     className,
   )}
   {...restProps}

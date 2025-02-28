@@ -1,5 +1,6 @@
 <script module lang="ts">
   import { twMerge } from "tailwind-merge";
+  import { baseClasses } from "../base";
   import { Popover, type PopoverProps } from "../popover";
   import type { ClassName } from "../utils";
 
@@ -19,7 +20,8 @@
 <Popover
   bind:open
   class={twMerge(
-    "bg-m3-surface-container shadow-m3-shadow max-h-[calc(50%)] max-w-[min(calc(100%-1em),17.5em)] overflow-y-scroll rounded-sm py-2 not-disabled:shadow-xs",
+    baseClasses({ variant: "plain", color: "primary", shape: "rounded" }),
+    "bg-m3-surface-container-lowest border p-1 text-sm shadow",
     className,
   )}
   {placement}

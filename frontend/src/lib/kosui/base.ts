@@ -27,12 +27,12 @@ export const baseClasses = ({ variant, color, shape }: Variants) =>
     "shadow-m3-shadow/20",
 
     // Interactive base
-    "disabled:text-m3-on-surface/38 disabled:bg-m3-on-surface/12 disabled:cursor-not-allowed focus-visible:ring-1 focus-visible:outline-hidden transition-all",
+    "disabled:text-m3-on-surface/38 disabled:bg-m3-on-surface/12 disabled:cursor-not-allowed focus-visible:ring-1 focus-visible:outline-hidden",
 
     variant === "elevated" && "bg-m3-surface-container-low shadow",
     variant === "filled" && "enabled:hover:opacity-90 focus-visible:opacity-90",
     variant === "tonal" && "enabled:hover:opacity-80 focus-visible:opacity-80",
-    variant === "outlined" && "ring-1 focus-visible:ring-2",
+    variant === "outlined" && "ring-1",
     variant === "plain" && "",
 
     shape === "square" && "",
@@ -44,6 +44,19 @@ export const baseClasses = ({ variant, color, shape }: Variants) =>
       "text-m3-secondary focus-visible:ring-m3-secondary",
     color === "tertiary" && "text-m3-tertiary focus-visible:ring-m3-tertiary",
     color === "error" && "text-m3-error focus-visible:ring-m3-error",
+
+    variant === "elevated" &&
+      color === "primary" &&
+      "enabled:hover:bg-m3-primary-container/30 focus-visible:bg-m3-primary-container/30",
+    variant === "elevated" &&
+      color === "secondary" &&
+      "enabled:hover:bg-m3-secondary-container/30 focus-visible:bg-m3-secondary-container/30",
+    variant === "elevated" &&
+      color === "tertiary" &&
+      "enabled:hover:bg-m3-tertiary-container/30 focus-visible:bg-m3-tertiary-container/30",
+    variant === "elevated" &&
+      color === "error" &&
+      "enabled:hover:bg-m3-error-container/30 focus-visible:bg-m3-error-container/30",
 
     variant === "filled" &&
       color === "primary" &&
@@ -70,4 +83,17 @@ export const baseClasses = ({ variant, color, shape }: Variants) =>
     variant === "tonal" &&
       color === "error" &&
       "bg-m3-error-container text-m3-on-error-container",
+
+    (variant === "outlined" || variant === "plain") &&
+      color === "primary" &&
+      "enabled:hover:bg-m3-primary/15 focus-visible:bg-m3-primary/15",
+    (variant === "outlined" || variant === "plain") &&
+      color === "secondary" &&
+      "enabled:hover:bg-m3-secondary/15 focus-visible:bg-m3-secondary/15",
+    (variant === "outlined" || variant === "plain") &&
+      color === "tertiary" &&
+      "enabled:hover:bg-m3-tertiary/15 focus-visible:bg-m3-tertiary/15",
+    (variant === "outlined" || variant === "plain") &&
+      color === "error" &&
+      "enabled:hover:bg-m3-error/15 focus-visible:bg-m3-error/15",
   );

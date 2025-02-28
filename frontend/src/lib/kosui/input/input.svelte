@@ -28,6 +28,10 @@
   class={twMerge(
     "bg-m3-surface-container",
     baseClasses({ variant, color, shape }),
+
+    (variant === "outlined" || variant === "plain") &&
+      "enabled:hover:bg-m3-surface-container-low focus-visible:bg-m3-surface-container-low",
+
     "h-9 px-3",
     className,
   )}
