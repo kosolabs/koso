@@ -35,9 +35,9 @@
 <button
   bind:this={ref}
   class={twMerge(
-    "flex items-center gap-2 px-4 py-1.5 text-sm text-nowrap transition-all enabled:active:scale-95",
-
     baseClasses({ variant, color, shape }),
+
+    "flex items-center gap-2 px-4 py-1.5 text-sm text-nowrap transition-all enabled:active:scale-95",
 
     variant === "elevated" &&
       color === "primary" &&

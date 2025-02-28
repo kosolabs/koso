@@ -26,8 +26,9 @@
   bind:this={ref}
   bind:value
   class={twMerge(
-    "bg-m3-surface-container h-9 px-3",
+    "bg-m3-surface-container",
     baseClasses({ variant, color, shape }),
+    "h-9 px-3",
     className,
   )}
   {...restProps}
