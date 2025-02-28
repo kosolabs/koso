@@ -1,6 +1,7 @@
 <script module lang="ts">
   import type { HTMLInputAttributes } from "svelte/elements";
   import { twMerge, type ClassNameValue } from "tailwind-merge";
+  import { baseClasses } from "../base";
   import type { ClassName, ElementRef } from "../utils";
   import type { Shortcut } from "./shortcut";
 
@@ -24,7 +25,8 @@
   {#each shortcut as symbol}
     <div
       class={twMerge(
-        "bg-m3-surface-container text-m3-on-surface shadow-m3-shadow/10 border-m3-outline flex h-5 min-w-5 items-center justify-center rounded border p-1 text-xs shadow",
+        baseClasses({ variant: "elevated", color: "secondary" }),
+        "flex h-5 min-w-5 items-center justify-center rounded border p-1 text-xs",
         badgeClass,
       )}
     >

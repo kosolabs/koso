@@ -28,8 +28,9 @@
 <div
   bind:this={ref}
   class={twMerge(
-    "bg-m3-surface-container p-3",
+    "bg-m3-surface-container",
     baseClasses({ variant, color, shape }),
+    "p-3",
     className,
   )}
   {...restProps}

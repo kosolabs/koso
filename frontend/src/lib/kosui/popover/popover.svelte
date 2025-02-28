@@ -21,13 +21,13 @@
 
 <script lang="ts">
   let {
-    class: className,
     arrow = false,
     placement = "top",
     strategy = "fixed",
     open = $bindable(false),
     anchorEl,
     children,
+    class: className,
     ...restProps
   }: PopoverProps = $props();
 

@@ -1,41 +1,35 @@
 <script lang="ts" module>
   import { type Snippet } from "svelte";
   import type { MouseEventHandler } from "svelte/elements";
-  import { tv, type ClassValue, type VariantProps } from "tailwind-variants";
+  import { twMerge } from "tailwind-merge";
   import { Box } from "../box.svelte";
   import type { PopoverProps } from "../popover";
   import { Popover } from "../popover";
-
-  export const tooltipVariants = tv({
-    base: "bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
-  });
+  import type { ClassName } from "../utils";
 
   export type TooltipTriggerProps = {
     onmouseenter?: MouseEventHandler<HTMLElement> | undefined | null;
     onmouseleave?: MouseEventHandler<HTMLElement> | undefined | null;
   };
 
-  export type TooltipVariants = VariantProps<typeof tooltipVariants>;
-
-  export type TooltipProps = TooltipVariants & {
-    class?: ClassValue;
+  export type TooltipProps = {
     delay?: number;
     open?: boolean;
-    children: Snippet;
     // If trigger is a Snippet, do render delegation.
     // If trigger is a HTMLElement, do fully controlled.
     trigger?: Snippet<[Box<HTMLElement>, TooltipTriggerProps]> | HTMLElement;
-  } & TooltipVariants &
+    children: Snippet;
+  } & ClassName &
     PopoverProps;
 </script>
 
 <script lang="ts">
   let {
-    class: className,
     delay = 1000,
     open = $bindable(false),
-    children,
     trigger,
+    children,
+    class: className,
     ...restProps
   }: TooltipProps = $props();
 
@@ -70,7 +64,10 @@
   bind:open
   role="tooltip"
   anchorEl={triggerEl}
-  class={tooltipVariants({ className })}
+  class={twMerge(
+    "bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
+    className,
+  )}
   {...restProps}
 >
   {@render children()}

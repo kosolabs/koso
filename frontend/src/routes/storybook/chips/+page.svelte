@@ -3,7 +3,7 @@
   import { Chip } from "$lib/kosui/chip";
 </script>
 
-<div class="flex flex-col gap-4 rounded-lg border p-4">
+<div class="flex flex-wrap gap-4 rounded-lg border p-4">
   {#each shapes as shape}
     {#each variants as variant}
       {#each colors as color}
@@ -12,8 +12,11 @@
             {variant}
             {color}
             {shape}
-            onDelete={() => console.log("delete!")}>Chip</Chip
+            onClick={() => console.log("click!")}
+            onDelete={() => console.log("delete!")}
           >
+            Chip
+          </Chip>
         </div>
       {/each}
     {/each}
