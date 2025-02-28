@@ -1867,7 +1867,8 @@ test.describe("dag table tests", () => {
 
       await page
         .getByTestId("Row m2/f3")
-        .getByRole("button", { name: "Milestone 1" })
+        .getByRole("option")
+        .filter({ hasText: "Milestone 1" })
         .getByRole("button", { name: "Delete chip" })
         .click();
       await expect(page.getByTestId("Row m1/f3")).not.toBeVisible();
