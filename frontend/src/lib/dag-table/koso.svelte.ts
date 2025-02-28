@@ -1004,7 +1004,7 @@ export class Koso {
    */
   #isCanonicalManagedLink(task: string, parent: string): boolean {
     const kind = this.getTask(task).kind;
-    if (!kind) {
+    if (!kind || unmanagedKinds.includes(kind)) {
       return false;
     }
     // Is an immediate child of a plugin container OR is a plugin container.
