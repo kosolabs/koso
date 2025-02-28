@@ -1,9 +1,1 @@
-export {
-  default as Alert,
-  alertColors,
-  alertVariants,
-  type AlertColor,
-  type AlertProps,
-  type AlertVariant,
-  type AlertVariants,
-} from "./alert.svelte";
+export { default as Alert, type AlertProps } from "./alert.svelte";

@@ -85,4 +85,8 @@ export class Shortcut {
       shift: event.shiftKey,
     });
   }
+
+  static ENTER = new Shortcut({ key: "Enter" });
+  static ESCAPE = new Shortcut({ key: "Escape" });
+  static SPACE = new Shortcut({ key: " " });
 }

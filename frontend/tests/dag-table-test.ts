@@ -1821,33 +1821,33 @@ test.describe("dag table tests", () => {
 
       await page
         .getByTestId("Row f3")
-        .getByRole("button", { name: "Jump to Milestone 1" })
+        .getByRole("button", { name: "Milestone 1" })
         .click();
       await expect(page.getByTestId("Row m1/f3")).toBeVisible();
       await expect(page.getByTestId("Row m1/f3")).toBeFocused();
 
       await page
         .getByTestId("Row m1/f3")
-        .getByRole("button", { name: "Jump to Root" })
+        .getByRole("button", { name: "Root" })
         .click();
       await expect(page.getByTestId("Row f3")).toBeVisible();
       await expect(page.getByTestId("Row f3")).toBeFocused();
 
       await page
         .getByTestId("Row m1/f2")
-        .getByRole("button", { name: "Jump to Component 2" })
+        .getByRole("button", { name: "Component 2" })
         .click();
       await expect(page.getByTestId("Row c2/f2")).toBeVisible();
       await expect(page.getByTestId("Row c2/f2")).toBeFocused();
       await expect(
         page
           .getByTestId("Row c2/f2")
-          .getByRole("button", { name: "Jump to Milestone 1" }),
+          .getByRole("button", { name: "Milestone 1" }),
       ).toBeVisible();
       await expect(
         page
           .getByTestId("Row c2/f2")
-          .getByRole("button", { name: "Jump to Component 1" }),
+          .getByRole("button", { name: "Component 1" }),
       ).toBeVisible();
     });
 
@@ -1867,7 +1867,8 @@ test.describe("dag table tests", () => {
 
       await page
         .getByTestId("Row m2/f3")
-        .getByRole("button", { name: "Delete Milestone 1" })
+        .getByRole("button", { name: "Milestone 1" })
+        .getByRole("button", { name: "Delete chip" })
         .click();
       await expect(page.getByTestId("Row m1/f3")).not.toBeVisible();
     });

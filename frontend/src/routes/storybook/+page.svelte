@@ -6,6 +6,7 @@
     "/storybook/alerts",
     "/storybook/avatar",
     "/storybook/buttons-and-links",
+    "/storybook/chips",
     "/storybook/dialogs",
     "/storybook/inputs",
     "/storybook/menus",

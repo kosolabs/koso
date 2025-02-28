@@ -9,11 +9,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { type User } from "$lib/auth.svelte";
-  import {
-    Chip,
-    parseChipProps,
-    type ChipProps,
-  } from "$lib/components/ui/chip";
+  import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
   import { toast } from "$lib/components/ui/sonner";
@@ -21,6 +17,7 @@
     type TaskActionType,
   } from "$lib/components/ui/task-action/task-action.svelte";
   import { UserSelect } from "$lib/components/ui/user-select";
+  import { Chip } from "$lib/kosui/chip";
   import { Link } from "$lib/kosui/link";
   import { INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
@@ -96,7 +93,7 @@
       .map((parent) => koso.getTask(parent))
       .filter((parent) => parent.name.length > 0)
       .map((parent) => {
-        const props = parseChipProps(parent.name);
+        const props: ChipProps = parseChipProps(parent.name);
         if (!inboxView && koso.canUnlink(node.name, parent.id)) {
           props.onDelete = (event) => {
             console.log(event);
@@ -352,7 +349,7 @@
     "bg-m3-surface-container rounded-m3 outline-2 outline-transparent",
     index % 2 === 0 && "bg-m3-surface-container-low",
     isMoving && "opacity-50",
-    isHovered && "bg-accent",
+    isHovered && "bg-m3-surface-container-high",
     getAwarenessOutline(awareUsers),
     dragOverChild && "outline-m3-primary",
     isSelected && "outline-m3-primary",
@@ -417,7 +414,7 @@
   >
     <TaskAction {node} {koso} bind:this={taskAction} />
   </td>
-  <td class={cn("w-full border-t border-l px-2")}>
+  <td class={cn("w-full border-t border-l px-2 py-1")}>
     <div class={cn("flex items-center gap-x-1")}>
       {#if koso.isManagedTask(task.id)}
         <ManagedTaskIcon kind={task.kind ?? ""} />
@@ -425,8 +422,10 @@
       <div class="flex w-full flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}
           <div class="flex flex-wrap items-center gap-x-1">
-            {#each tags as tag}
-              <Chip {...tag} />
+            {#each tags as { title, description, onClick, onDelete }}
+              <Chip color="tertiary" title={description} {onClick} {onDelete}>
+                {title}
+              </Chip>
             {/each}
           </div>
         {/if}

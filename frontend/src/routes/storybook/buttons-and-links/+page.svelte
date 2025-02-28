@@ -1,26 +1,9 @@
 <script lang="ts">
-  import {
-    Button,
-    type ButtonColor,
-    type ButtonVariant,
-  } from "$lib/kosui/button";
+  import { colors, variants } from "$lib/kosui/base";
+  import { Button } from "$lib/kosui/button";
   import { Link, type LinkColor, type LinkUnderline } from "$lib/kosui/link";
   import { toTitleCase } from "$lib/kosui/utils";
   import { Link2 } from "lucide-svelte";
-
-  const buttonVariants: ButtonVariant[] = [
-    "elevated",
-    "filled",
-    "tonal",
-    "outlined",
-    "plain",
-  ];
-  const buttonColors: ButtonColor[] = [
-    "primary",
-    "secondary",
-    "tertiary",
-    "error",
-  ];
 
   const linkUnderlines: LinkUnderline[] = ["always", "hover", "none"];
   const linkColors: LinkColor[] = [
@@ -33,8 +16,8 @@
 </script>
 
 <div class="flex flex-col gap-4 rounded-lg border p-4">
-  {#each buttonVariants as variant (variant)}
-    {#each buttonColors as color (color)}
+  {#each variants as variant (variant)}
+    {#each colors as color (color)}
       {@const title = toTitleCase(variant)}
       <div>
         <div class="mb-2">{title} Buttons ({color})</div>

@@ -2,14 +2,14 @@
   import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
   import { DialogButton } from ".";
-  import { type ButtonVariants } from "../button";
+  import type { Variants } from "../base";
   import Dialog from "./dialog.svelte";
 
   type ButtonProps<T> = {
     text: string;
     value: T;
     default?: boolean;
-  } & ButtonVariants;
+  } & Variants;
 
   let message: Snippet | string = $state("");
   let icon: typeof Icon | undefined = $state();
@@ -93,8 +93,8 @@
     {message}
   {/if}
   {#snippet actions(props)}
-    {#each buttons as { value, variant, text, default: autofocus }}
-      <DialogButton {value} {variant} {autofocus} {...props}>
+    {#each buttons as { text, value, default: autofocus }}
+      <DialogButton {value} {autofocus} {...props}>
         {text}
       </DialogButton>
     {/each}

@@ -1,10 +1,8 @@
-export { default as Chip } from "./chip.svelte";
-
 export type ChipProps = {
   title: string;
   description?: string;
-  onClick?: (event: MouseEvent) => void;
-  onDelete?: (event: MouseEvent) => void;
+  onClick?: (event: MouseEvent | KeyboardEvent) => void;
+  onDelete?: (event: MouseEvent | KeyboardEvent) => void;
 };
 
 export function parseChipProps(name: string): ChipProps {

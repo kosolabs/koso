@@ -1,27 +1,14 @@
 <script lang="ts">
-  import { Input, type InputColor, type InputVariant } from "$lib/kosui/input";
+  import { colors, variants } from "$lib/kosui/base";
+  import { Input } from "$lib/kosui/input";
   import { toTitleCase } from "$lib/kosui/utils";
-
-  const inputVariants: InputVariant[] = [
-    "elevated",
-    "filled",
-    "tonal",
-    "outlined",
-    "plain",
-  ];
-  const inputColors: InputColor[] = [
-    "primary",
-    "secondary",
-    "tertiary",
-    "error",
-  ];
 
   let value: string = $state("");
 </script>
 
 <div class="flex flex-col gap-4 rounded-lg border p-4">
-  {#each inputVariants as variant (variant)}
-    {#each inputColors as color (color)}
+  {#each variants as variant (variant)}
+    {#each colors as color (color)}
       {@const title = toTitleCase(variant)}
       <div>
         <div class="mb-2">{title} Inputs ({color})</div>
