@@ -60,6 +60,10 @@
       activeIndex = (activeIndex - 1 + menuItems.length) % menuItems.length;
     } else if (Shortcut.ARROW_DOWN.matches(event)) {
       activeIndex = (activeIndex + 1) % menuItems.length;
+    } else if (Shortcut.HOME.matches(event)) {
+      activeIndex = 0;
+    } else if (Shortcut.END.matches(event)) {
+      activeIndex = menuItems.length - 1;
     } else {
       return;
     }

@@ -9,9 +9,13 @@ const keys: { [key: string]: string } = {
   Control: "⌃",
   Dead: "☠️",
   Delete: "⌦",
+  End: "⇲",
   Enter: "⏎",
   Escape: "⎋",
+  Home: "⌂",
   Meta: "⌘",
+  PageDown: "⇟",
+  PageUp: "⇞",
   Shift: "⇧",
   Tab: "↹",
   " ": "␣",
@@ -86,9 +90,11 @@ export class Shortcut {
     });
   }
 
-  static ENTER = new Shortcut({ key: "Enter" });
-  static ESCAPE = new Shortcut({ key: "Escape" });
-  static SPACE = new Shortcut({ key: " " });
   static ARROW_UP = new Shortcut({ key: "ArrowUp" });
   static ARROW_DOWN = new Shortcut({ key: "ArrowDown" });
+  static END = new Shortcut({ key: "End" });
+  static ENTER = new Shortcut({ key: "Enter" });
+  static ESCAPE = new Shortcut({ key: "Escape" });
+  static HOME = new Shortcut({ key: "Home" });
+  static SPACE = new Shortcut({ key: " " });
 }
