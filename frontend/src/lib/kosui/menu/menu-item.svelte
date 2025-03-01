@@ -2,31 +2,48 @@
   import type { Snippet } from "svelte";
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
-  import { baseClasses } from "../base";
+  import type { Menu } from ".";
+  import { baseClasses, type Variants } from "../base";
   import type { ClassName } from "../utils";
 
-  export type MenuButtonProps = {
+  export type MenuItemProps = {
+    menuRef: Menu;
+    onSelect?: () => void;
+    closeOnSelect?: boolean;
     children: Snippet<[]>;
   } & ClassName &
-    Omit<HTMLButtonAttributes, "type">;
+    Variants &
+    Omit<HTMLButtonAttributes, "type" | "value">;
 </script>
 
 <script lang="ts">
   let {
-    class: className,
+    menuRef,
+    onSelect,
     children,
-    value,
+    closeOnSelect = true,
+    class: className,
+    variant = "plain",
+    color = "secondary",
+    shape = "rounded",
     ...restProps
-  }: MenuButtonProps = $props();
+  }: MenuItemProps = $props();
+
+  function handleSelect() {
+    if (closeOnSelect) {
+      menuRef.close();
+    }
+    onSelect?.();
+  }
 </script>
 
 <button
   class={twMerge(
-    baseClasses({ variant: "plain", color: "primary", shape: "rounded" }),
-    "block",
+    baseClasses({ variant, color, shape }),
+    "block px-2 py-1",
     className,
   )}
-  {value}
+  onclick={handleSelect}
   {...restProps}
 >
   {@render children()}
