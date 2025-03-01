@@ -155,16 +155,19 @@
       }}
       class="w-[min(calc(100%-1em),32em)] max-w-full"
     >
-      {#each users as user (user.email)}
-        <MenuItem
-          onclick={() => {
-            wantSearchResultsOpen = false;
-            addUser(user);
-          }}
-        >
-          <UserAvatar {user} />
-        </MenuItem>
-      {/each}
+      {#snippet content(menuRef)}
+        {#each users as user (user.email)}
+          <MenuItem
+            {menuRef}
+            onclick={() => {
+              wantSearchResultsOpen = false;
+              addUser(user);
+            }}
+          >
+            <UserAvatar {user} />
+          </MenuItem>
+        {/each}
+      {/snippet}
     </Menu>
 
     <div class="h3">People with access</div>

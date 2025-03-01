@@ -40,7 +40,7 @@
 <button
   class={twMerge(
     baseClasses({ variant, color, shape }),
-    "block px-2 py-1",
+    "block w-full px-2 py-1",
     className,
   )}
   onclick={handleSelect}

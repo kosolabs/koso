@@ -36,7 +36,7 @@
   bind:open
   class={twMerge(
     baseClasses({ variant, color, shape }),
-    "bg-m3-surface-container-lowest border p-1 shadow",
+    "bg-m3-surface-container-highest border p-1 shadow",
     className,
   )}
   {placement}
