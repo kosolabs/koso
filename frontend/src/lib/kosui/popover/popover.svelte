@@ -36,10 +36,21 @@
   let arrowEl: HTMLDivElement | undefined = $state();
 
   function handleEscape(event: KeyboardEvent) {
-    if (Shortcut.ESCAPE.matches(event)) {
-      popoverEl?.hidePopover();
+    if (popoverEl && Shortcut.ESCAPE.matches(event)) {
+      popoverEl.hidePopover();
       event.preventDefault();
       event.stopImmediatePropagation();
+    }
+  }
+
+  function handleClickOutside(event: MouseEvent) {
+    if (
+      popoverEl &&
+      event.target instanceof Node &&
+      !popoverEl.contains(event.target) &&
+      (!anchorEl || !anchorEl.contains(event.target))
+    ) {
+      popoverEl.hidePopover();
     }
   }
 
@@ -55,8 +66,10 @@
     if (popoverEl) {
       popoverEl.showPopover();
       events.on("keydown", handleEscape);
+      events.on("mousedown", handleClickOutside);
     } else {
       events.remove("keydown", handleEscape);
+      events.remove("mousedown", handleClickOutside);
     }
   });
 
