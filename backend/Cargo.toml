@@ -15,7 +15,7 @@ axum-extra = { version = "0.10.0", features = ["typed-header"] }
 tokio = { version = "1.43.0", features = ["full"] }
 serde = { version = "1.0.218", features = ["derive"] }
 serde_json = "1.0.139"
-uuid = { version = "1.14.0", features = [
+uuid = { version = "1.15.1", features = [
     "v4",       # Lets you generate random UUIDs
     "fast-rng", # Use a faster (but still sufficiently random) RNG
 ] }
@@ -42,7 +42,7 @@ anyhow = "1.0.96"
 rand = "0.9.0"
 tower = "0.5.2"
 similar = "2.7.0"
-chrono = { version = "0.4.39", features = ["serde"] }
+chrono = { version = "0.4.40", features = ["serde"] }
 octocrab = "0.43.0"
 hmac = "0.12.1"
 hex = "0.4.3"
