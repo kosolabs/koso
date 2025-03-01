@@ -7,6 +7,7 @@
   import type { ClassName } from "../utils";
 
   export type MenuProps = {
+    uncontrolled?: boolean;
     content: Snippet<[Menu]>;
   } & ClassName &
     Variants &
@@ -15,6 +16,7 @@
 
 <script lang="ts">
   let {
+    uncontrolled = false,
     content,
     class: className,
     variant = "elevated",
@@ -26,6 +28,7 @@
   }: MenuProps = $props();
 
   export function close() {
+    if (uncontrolled) return;
     open = false;
   }
 
