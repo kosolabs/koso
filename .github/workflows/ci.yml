@@ -106,7 +106,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Cache Playwright install
         id: playwright-cache
-        uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4.2.1
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/frontend/pnpm-lock.yaml') }}
@@ -148,7 +148,7 @@ jobs:
 
       # Build a backend docker image that will be ran by playwright.
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f7ce87c1d6bead3e36075b2ce75da1f6cc28aaca # v3.9.0
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
       # Log in to the Container registry registry using the account and password
       # that will publish the cache.
       - name: Log in to the Container registry
@@ -159,7 +159,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Backend Docker Image
         id: build-backend
-        uses: docker/build-push-action@0adf9959216b96bec444f325f1e493d4aa344497 # v6.14.0
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
         env:
           DOCKER_BUILD_SUMMARY: ${{ github.ref == 'refs/heads/main'}}
           DOCKER_BUILD_RECORD_UPLOAD: ${{ github.ref == 'refs/heads/main'}}
@@ -211,7 +211,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f7ce87c1d6bead3e36075b2ce75da1f6cc28aaca # v3.9.0
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
       # Log in to the Container registry registry using the account and password
       # that will publish the packages.
       # Once published, the packages are scoped to the account defined here.
@@ -225,7 +225,7 @@ jobs:
       - name: Extract metadata (tags, labels) for Docker
         # allows the output of this step to be referenced in a subsequent step.
         id: meta
-        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5.6.1
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
         with:
           # Base name for the tags and labels.
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
@@ -258,7 +258,7 @@ jobs:
       # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
       - name: Build and push Docker image
         id: push
-        uses: docker/build-push-action@0adf9959216b96bec444f325f1e493d4aa344497 # v6.14.0
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
         env:
           DOCKER_BUILD_SUMMARY: ${{ github.ref == 'refs/heads/main'}}
           DOCKER_BUILD_RECORD_UPLOAD: ${{ github.ref == 'refs/heads/main'}}
@@ -276,7 +276,7 @@ jobs:
       # It increases supply chain security for people who consume the image.
       # For more information, see "[AUTOTITLE](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds)."
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@520d128f165991a6c774bcb264f323e3d70747f4 # v2.2.0
+        uses: actions/attest-build-provenance@bd77c077858b8d561b7a36cbe48ef4cc642ca39d # v2.2.2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
