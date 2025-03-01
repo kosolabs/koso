@@ -1,17 +1,18 @@
 <script module lang="ts">
-  import type { Snippet } from "svelte";
+  import { type Snippet } from "svelte";
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import type { Menu } from ".";
   import { baseClasses, type Variants } from "../base";
-  import type { ClassName } from "../utils";
+  import type { ClassName, ElementRef } from "../utils";
 
   export type MenuItemProps = {
     menuRef: Menu;
     onSelect?: () => void;
     closeOnSelect?: boolean;
     children: Snippet<[]>;
-  } & ClassName &
+  } & ElementRef &
+    ClassName &
     Variants &
     Omit<HTMLButtonAttributes, "type" | "value">;
 </script>
@@ -22,6 +23,7 @@
     onSelect,
     children,
     closeOnSelect = true,
+    ref = $bindable(),
     class: className,
     variant = "plain",
     color = "secondary",
@@ -35,15 +37,25 @@
     }
     onSelect?.();
   }
+
+  $effect(() => {
+    if (ref) {
+      menuRef.register(ref);
+      return () => menuRef.unregister(ref);
+    }
+  });
 </script>
 
 <button
+  bind:this={ref}
   class={twMerge(
     baseClasses({ variant, color, shape }),
-    "block w-full px-2 py-1",
+    "block w-full px-2 py-1 focus-visible:ring-0",
     className,
   )}
   onclick={handleSelect}
+  onmouseenter={() => menuRef.focus(ref)}
+  onfocus={() => menuRef.focus(ref)}
   {...restProps}
 >
   {@render children()}
