@@ -9,7 +9,13 @@
 <div class="flex flex-wrap items-center gap-2 rounded-lg border p-4">
   <Button bind:ref onclick={() => (open = true)}>Select</Button>
   <Menu bind:open anchorEl={ref}>
-    <MenuItem value="item1">Item 1</MenuItem>
-    <MenuItem value="item2">Item 2</MenuItem>
+    {#snippet content(menuRef)}
+      <MenuItem {menuRef} onSelect={() => console.log("item 1")}>
+        Item 1
+      </MenuItem>
+      <MenuItem {menuRef} onSelect={() => console.log("item 1")}>
+        Item 2
+      </MenuItem>
+    {/snippet}
   </Menu>
 </div>
