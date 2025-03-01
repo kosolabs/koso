@@ -147,6 +147,7 @@
 
     <Menu
       open={openDropDown}
+      uncontrolled
       anchorEl={searchInput}
       ontoggle={(event) => {
         if (event.newState === "closed") {
@@ -159,7 +160,7 @@
         {#each users as user (user.email)}
           <MenuItem
             {menuRef}
-            onclick={() => {
+            onSelect={() => {
               wantSearchResultsOpen = false;
               addUser(user);
             }}
