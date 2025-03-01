@@ -71,6 +71,11 @@
       events.remove("keydown", handleEscape);
       events.remove("mousedown", handleClickOutside);
     }
+
+    return () => {
+      events.remove("keydown", handleEscape);
+      events.remove("mousedown", handleClickOutside);
+    };
   });
 
   $effect(() => {
