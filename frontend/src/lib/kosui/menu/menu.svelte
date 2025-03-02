@@ -4,12 +4,14 @@
   import type { Menu } from ".";
   import { events } from "..";
   import { baseClasses, type Variants } from "../base";
+  import { Box } from "../box.svelte";
   import { Popover, type PopoverProps } from "../popover";
   import { Shortcut } from "../shortcut";
   import type { ClassName } from "../utils";
 
   export type MenuProps = {
     uncontrolled?: boolean;
+    trigger?: Snippet<[{ ref: Box<HTMLElement>; onclick: () => void }]>;
     content: Snippet<[Menu]>;
   } & ClassName &
     Variants &
@@ -19,12 +21,13 @@
 <script lang="ts">
   let {
     uncontrolled = false,
+    trigger,
     content,
     class: className,
     variant = "elevated",
     color = "primary",
     shape = "rounded",
-    open = $bindable(),
+    open = $bindable(false),
     placement = "bottom",
     ...restProps
   }: MenuProps = $props();
@@ -85,11 +88,23 @@
     menuItems[activeIndex]?.focus();
   });
 
+  const refBox = new Box<HTMLElement>();
   const self: Menu = { close, focus, register, unregister };
 </script>
 
+{#if trigger}
+  {@render trigger({
+    ref: refBox,
+    onclick: () => {
+      open = true;
+      console.log("open");
+    },
+  })}
+{/if}
+
 <Popover
   bind:open
+  anchorEl={refBox.value}
   class={twMerge(
     baseClasses({ variant, color, shape }),
     "bg-m3-surface-container-highest max-h-[40%] border p-1 shadow",
