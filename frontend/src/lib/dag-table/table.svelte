@@ -50,7 +50,7 @@
   import { onMount, setContext, tick } from "svelte";
   import { flip } from "svelte/animate";
   import { Node, type Koso } from ".";
-  import Row, { type RowType } from "./row.svelte";
+  import Row from "./row.svelte";
   import SearchPanel from "./search-panel.svelte";
   import Toolbar from "./toolbar.svelte";
 
@@ -62,7 +62,7 @@
   };
   const { koso, users, extraActions, inboxView }: Props = $props();
 
-  const rows: { [key: string]: RowType } = {};
+  const rows: { [key: string]: Row } = {};
 
   function getRow(node: Node) {
     const maybeRow = rows[node.id];
