@@ -1,8 +1,7 @@
 import type { EventHandler } from "svelte/elements";
-import { twMerge } from "tailwind-merge";
-import type { ClassValue } from "tailwind-variants";
+import { twMerge, type ClassNameValue } from "tailwind-merge";
 
-function isClassValue(value: unknown): value is ClassValue {
+function isClass(value: unknown): value is ClassNameValue {
   if (value === null || value === undefined) {
     return true;
   }
@@ -10,7 +9,7 @@ function isClassValue(value: unknown): value is ClassValue {
     return true;
   }
   if (Array.isArray(value)) {
-    return value.every((item) => isClassValue(item));
+    return value.every((item) => isClass(item));
   }
   return false;
 }
@@ -109,7 +108,7 @@ export function mergeProps<T extends Props[]>(...args: [...T]): PropsUnion<T> {
         continue;
       }
 
-      if (key === "class" && isClassValue(prevVal) && isClassValue(currVal)) {
+      if (key === "class" && isClass(prevVal) && isClass(currVal)) {
         result[key] = twMerge(prevVal, currVal);
         continue;
       }

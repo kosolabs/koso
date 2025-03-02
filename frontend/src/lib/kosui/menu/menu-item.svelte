@@ -4,6 +4,7 @@
   import { twMerge } from "tailwind-merge";
   import type { Menu } from ".";
   import { baseClasses, type Variants } from "../base";
+  import { mergeProps } from "../merge-props";
   import type { ClassName, ElementRef } from "../utils";
 
   export type MenuItemProps = {
@@ -49,14 +50,15 @@
 <button
   bind:this={ref}
   class={twMerge(
-    baseClasses({ variant, color, shape }),
-    "block w-full px-2 py-1 focus-visible:ring-0",
+    baseClasses({ variant, color, shape, focus: true }),
+    "block w-full px-2 py-1 focus:ring-0",
     className,
   )}
-  onclick={handleSelect}
-  onmouseenter={() => menuRef.focus(ref)}
-  onfocus={() => menuRef.focus(ref)}
-  {...restProps}
+  {...mergeProps(restProps, {
+    onclick: handleSelect,
+    onmouseenter: () => menuRef.focus(ref),
+    onfocus: () => menuRef.focus(ref),
+  })}
 >
   {@render children()}
 </button>

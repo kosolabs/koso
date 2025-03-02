@@ -5,6 +5,7 @@
   import { events } from "..";
   import { baseClasses, type Variants } from "../base";
   import { Box } from "../box.svelte";
+  import { mergeProps } from "../merge-props";
   import { Popover, type PopoverProps } from "../popover";
   import { Shortcut } from "../shortcut";
   import type { ClassName } from "../utils";
@@ -33,7 +34,7 @@
   }: MenuProps = $props();
 
   const menuItems: HTMLElement[] = [];
-  let activeIndex = $state(-1);
+  let focusedItem: HTMLElement | undefined = $state(undefined);
 
   export function close() {
     if (uncontrolled) return;
@@ -42,7 +43,8 @@
 
   export function focus(menuItem?: HTMLElement) {
     if (!menuItem) return;
-    activeIndex = menuItems.indexOf(menuItem);
+    focusedItem = menuItem;
+    focusedItem.focus();
   }
 
   export function register(menuItem?: HTMLElement) {
@@ -58,15 +60,33 @@
     }
   }
 
+  function blur() {
+    focusedItem?.blur();
+    focusedItem = undefined;
+  }
+
   function handleKeyDown(event: KeyboardEvent) {
+    if (!menuItems) return;
     if (Shortcut.ARROW_UP.matches(event)) {
-      activeIndex = (activeIndex - 1 + menuItems.length) % menuItems.length;
+      if (!focusedItem) {
+        focus(menuItems[menuItems.length - 1]);
+      } else {
+        let activeIndex = menuItems.indexOf(focusedItem);
+        activeIndex = (activeIndex - 1 + menuItems.length) % menuItems.length;
+        focus(menuItems[activeIndex]);
+      }
     } else if (Shortcut.ARROW_DOWN.matches(event)) {
-      activeIndex = (activeIndex + 1) % menuItems.length;
+      if (!focusedItem) {
+        focus(menuItems[0]);
+      } else {
+        let activeIndex = menuItems.indexOf(focusedItem);
+        activeIndex = (activeIndex + 1) % menuItems.length;
+        focus(menuItems[activeIndex]);
+      }
     } else if (Shortcut.HOME.matches(event)) {
-      activeIndex = 0;
+      focus(menuItems[0]);
     } else if (Shortcut.END.matches(event)) {
-      activeIndex = menuItems.length - 1;
+      focus(menuItems[menuItems.length - 1]);
     } else {
       return;
     }
@@ -84,10 +104,6 @@
     return () => events.remove("keydown", handleKeyDown);
   });
 
-  $effect(() => {
-    menuItems[activeIndex]?.focus();
-  });
-
   const refBox = new Box<HTMLElement>();
   const self: Menu = { close, focus, register, unregister };
 </script>
@@ -95,23 +111,22 @@
 {#if trigger}
   {@render trigger({
     ref: refBox,
-    onclick: () => {
-      open = true;
-      console.log("open");
-    },
+    onclick: () => (open = true),
   })}
 {/if}
 
 <Popover
   bind:open
-  anchorEl={refBox.value}
   class={twMerge(
     baseClasses({ variant, color, shape }),
     "bg-m3-surface-container-highest max-h-[40%] border p-1 shadow",
     className,
   )}
-  {placement}
-  {...restProps}
+  {...mergeProps(restProps, {
+    onmouseleave: blur,
+    placement,
+    anchorEl: refBox.value,
+  })}
 >
   {@render content(self)}
 </Popover>
