@@ -1,9 +1,3 @@
-<script module lang="ts">
-  export type TaskActionType = {
-    showDoneConfetti(): void;
-  };
-</script>
-
 <script lang="ts">
   import { auth } from "$lib/auth.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";

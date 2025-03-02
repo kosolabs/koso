@@ -1,11 +1,3 @@
-<script module lang="ts">
-  export type RowType = {
-    edit(editing: boolean): void;
-    showDoneConfetti(): void;
-    linkPanel(open: boolean): void;
-  };
-</script>
-
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { type User } from "$lib/auth.svelte";
@@ -13,9 +5,7 @@
   import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
   import { toast } from "$lib/components/ui/sonner";
-  import TaskAction, {
-    type TaskActionType,
-  } from "$lib/components/ui/task-action/task-action.svelte";
+  import TaskAction from "$lib/components/ui/task-action/task-action.svelte";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { Chip } from "$lib/kosui/chip";
   import { Link } from "$lib/kosui/link";
@@ -45,7 +35,7 @@
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
   let handleElement: HTMLButtonElement | undefined = $state();
-  let taskAction = $state<TaskActionType | undefined>();
+  let taskAction = $state<TaskAction | undefined>();
 
   let dragOverPeer = $state(false);
   let dragOverChild = $state(false);
