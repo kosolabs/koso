@@ -127,7 +127,7 @@
     }
   }
 
-  const mergedProps = $derived(mergeProps({ ontoggle }, restProps));
+  const mergedProps = $derived(mergeProps(restProps, { ontoggle }));
 </script>
 
 {#if open}

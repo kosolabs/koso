@@ -27,7 +27,7 @@
   bind:value
   class={twMerge(
     "bg-m3-surface-container",
-    baseClasses({ variant, color, shape }),
+    baseClasses({ variant, color, shape, hover: true, focus: true }),
 
     (variant === "outlined" || variant === "plain") &&
       "enabled:hover:bg-m3-surface-container-low focus-visible:bg-m3-surface-container-low",
