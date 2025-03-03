@@ -109,7 +109,7 @@
       {#if rollupProgress.done === rollupProgress.total}
         <CircleCheck color="hsl(var(--primary))" />
         <ResponsiveText>Done</ResponsiveText>
-      {:else if rollupProgress.done === 0 && rollupProgress.inProgress == 0}
+      {:else if rollupProgress.done === 0 && rollupProgress.inProgress === 0}
         <CircularProgress progress={0} color="hsl(var(--primary))" />
         <ResponsiveText>Not Started</ResponsiveText>
       {:else}

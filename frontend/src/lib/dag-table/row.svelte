@@ -101,7 +101,7 @@
           }
 
           let targetNode = koso.nodes
-            .filter((n) => n.name == node.name && n.parent.name === parent.id)
+            .filter((n) => n.name === node.name && n.parent.name === parent.id)
             // Prefer the least nested linkage of this node under the given parent.
             // i.e. the one closed to the root.
             .minBy((n) => n.path.size);

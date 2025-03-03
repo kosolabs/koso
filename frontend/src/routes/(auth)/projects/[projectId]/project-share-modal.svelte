@@ -62,7 +62,7 @@
     }
 
     let i = projectUsers.findIndex((u) => u.email === remove.email);
-    if (i == -1) throw new Error("Could not find user");
+    if (i === -1) throw new Error("Could not find user");
 
     await updateProjectUsers({
       projectId: project.projectId,

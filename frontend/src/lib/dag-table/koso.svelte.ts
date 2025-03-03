@@ -1087,7 +1087,7 @@ export class Koso {
     };
     const nearestGrandchildAncestor = (n: Node, targetGrandParent: Node) => {
       while (!n.parent.parent.equals(targetGrandParent)) {
-        if (n.length == 0) {
+        if (n.length === 0) {
           throw new Error("No more parents");
         }
         n = n.parent;
@@ -1095,7 +1095,7 @@ export class Koso {
       return n;
     };
 
-    const initPrevAdj = adjIndex == 0 ? null : this.nodes.get(adjIndex);
+    const initPrevAdj = adjIndex === 0 ? null : this.nodes.get(adjIndex);
     if (!initPrevAdj) {
       // The node in the "zeroth" position is the root, don't move it.
       return;
@@ -1110,7 +1110,7 @@ export class Koso {
     }
 
     while (true) {
-      const adj = adjIndex == 0 ? null : this.nodes.get(adjIndex);
+      const adj = adjIndex === 0 ? null : this.nodes.get(adjIndex);
       if (!adj) {
         toast.info("Cannot move up without conflict.");
         return;
@@ -1122,7 +1122,7 @@ export class Koso {
         }
 
         adjIndex--;
-        const adjAdj = adjIndex == 0 ? null : this.nodes.get(adjIndex);
+        const adjAdj = adjIndex === 0 ? null : this.nodes.get(adjIndex);
         if (
           adjAdj &&
           !adjAdj.parent.equals(adj.parent) &&

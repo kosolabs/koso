@@ -28,7 +28,7 @@ export class KosoSocket {
 
       const socketPingInterval = window.setInterval(
         () => {
-          if (this.#socket && this.#socket.readyState == WebSocket.OPEN) {
+          if (this.#socket && this.#socket.readyState === WebSocket.OPEN) {
             this.#socket.send("");
           }
         },
@@ -72,8 +72,8 @@ export class KosoSocket {
   #openWebSocket() {
     if (
       this.#socket &&
-      (this.#socket.readyState == WebSocket.OPEN ||
-        this.#socket.readyState == WebSocket.CONNECTING)
+      (this.#socket.readyState === WebSocket.OPEN ||
+        this.#socket.readyState === WebSocket.CONNECTING)
     ) {
       console.debug("Socket already connected");
       return;
@@ -97,7 +97,7 @@ export class KosoSocket {
       console.debug("WebSocket opened", event);
       this.#setOnline();
       this.#koso.setSendAndSync((update) => {
-        if (socket.readyState == WebSocket.OPEN) {
+        if (socket.readyState === WebSocket.OPEN) {
           socket.send(update);
         } else {
           console.warn(
@@ -124,7 +124,7 @@ export class KosoSocket {
     socket.onclose = (event) => {
       // Sometimes onclose events are delayed while, in the meantime,
       // a new socket was opened.
-      if (this.#socket && this.#socket != socket) {
+      if (this.#socket && this.#socket !== socket) {
         console.debug("Socket already reopened");
         return;
       }
