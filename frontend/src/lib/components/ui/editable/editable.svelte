@@ -42,7 +42,6 @@
   }: Props = $props();
 
   let edited: string = $state(value);
-  let ref: HTMLInputElement | undefined = $state();
 
   const actions: Action[] = [
     new Action({
@@ -109,18 +108,12 @@
     edited = value;
     done();
   }
-
-  $effect(() => {
-    if (ref) {
-      ref.focus();
-    }
-  });
 </script>
 
 {#if editing}
   <Input
-    bind:ref
     bind:value={edited}
+    ref={(el) => el.focus()}
     class={cn("bg-background h-auto w-full p-1 text-sm", classes)}
     variant="plain"
     color="primary"

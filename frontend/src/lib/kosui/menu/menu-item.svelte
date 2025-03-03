@@ -24,8 +24,8 @@
     onSelect,
     children,
     closeOnSelect = true,
-    ref = $bindable(),
-    useRef = noop,
+    el = $bindable(),
+    ref = noop,
     class: className,
     variant = "plain",
     color = "secondary",
@@ -41,16 +41,16 @@
   }
 
   $effect(() => {
-    if (ref) {
-      menuRef.register(ref);
-      return () => menuRef.unregister(ref);
+    if (el) {
+      menuRef.register(el);
+      return () => menuRef.unregister(el);
     }
   });
 </script>
 
 <button
-  bind:this={ref}
-  use:useRef
+  bind:this={el}
+  use:ref
   class={twMerge(
     baseClasses({ variant, color, shape, focus: true }),
     "block w-full px-2 py-1 focus:ring-0",
@@ -58,8 +58,8 @@
   )}
   {...mergeProps(restProps, {
     onclick: handleSelect,
-    onmouseenter: () => menuRef.focus(ref),
-    onfocus: () => menuRef.focus(ref),
+    onmouseenter: () => menuRef.focus(el),
+    onfocus: () => menuRef.focus(el),
   })}
 >
   {@render children()}

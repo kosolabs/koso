@@ -21,8 +21,8 @@
     title,
     onClick,
     onDelete,
-    ref = $bindable(),
-    useRef = noop,
+    el = $bindable(),
+    ref = noop,
     class: className,
     variant = "filled",
     color = "primary",
@@ -32,8 +32,8 @@
 </script>
 
 <div
-  bind:this={ref}
-  use:useRef
+  bind:this={el}
+  use:ref
   role="option"
   class={twMerge(
     baseClasses({ variant, color, shape }),

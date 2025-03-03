@@ -32,8 +32,8 @@
 <script lang="ts">
   let {
     children,
-    ref = $bindable(),
-    useRef = noop,
+    el = $bindable(),
+    ref = noop,
     class: className,
     underline = "hover",
     color = "primary",
@@ -58,11 +58,11 @@
 </script>
 
 {#if href}
-  <a bind:this={ref} use:useRef class={classes} {href} {...props}>
+  <a bind:this={el} use:ref class={classes} {href} {...props}>
     {@render children()}
   </a>
 {:else}
-  <button bind:this={ref} use:useRef class={classes} {...props}>
+  <button bind:this={el} use:ref class={classes} {...props}>
     {@render children()}
   </button>
 {/if}

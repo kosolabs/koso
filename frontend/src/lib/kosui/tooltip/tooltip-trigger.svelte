@@ -1,16 +1,16 @@
 <script lang="ts" module>
-  import type { Snippet } from "svelte";
+  import { type Snippet } from "svelte";
   import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
-  import { baseClasses, type Variants } from "../base";
+  import type { Variants } from "../base";
   import { noop, type ClassName, type ElementRef } from "../utils";
 
-  export type AlertProps = {
+  export type TooltipTriggerProps = {
     children?: Snippet;
   } & ElementRef &
     ClassName &
     Variants &
-    HTMLAttributes<HTMLDivElement>;
+    HTMLAttributes<HTMLElement>;
 </script>
 
 <script lang="ts">
@@ -19,23 +19,10 @@
     el = $bindable(),
     ref = noop,
     class: className,
-    variant = "elevated",
-    color = "primary",
-    shape = "rounded",
     ...restProps
-  }: AlertProps = $props();
+  }: TooltipTriggerProps = $props();
 </script>
 
-<div
-  bind:this={el}
-  use:ref
-  class={twMerge(
-    "bg-m3-surface-container",
-    baseClasses({ variant, color, shape }),
-    "p-3",
-    className,
-  )}
-  {...restProps}
->
+<div bind:this={el} use:ref class={twMerge(className)} {...restProps}>
   {@render children?.()}
 </div>

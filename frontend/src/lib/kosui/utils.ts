@@ -3,8 +3,8 @@ import type { ClassNameValue } from "tailwind-merge";
 export function noop() {}
 
 export type ElementRef = {
-  ref?: HTMLElement;
-  useRef?: (ref: HTMLElement) => void;
+  el?: HTMLElement;
+  ref?: (el: HTMLElement) => void;
 };
 
 export type ClassName = { class?: ClassNameValue };

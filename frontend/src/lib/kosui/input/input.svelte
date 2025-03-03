@@ -13,8 +13,8 @@
 <script lang="ts">
   let {
     value = $bindable(),
-    ref = $bindable(),
-    useRef = noop,
+    el = $bindable(),
+    ref = noop,
     class: className,
     variant = "outlined",
     color = "secondary",
@@ -24,8 +24,8 @@
 </script>
 
 <input
-  bind:this={ref}
-  use:useRef
+  bind:this={el}
+  use:ref
   bind:value
   class={twMerge(
     "bg-m3-surface-container",

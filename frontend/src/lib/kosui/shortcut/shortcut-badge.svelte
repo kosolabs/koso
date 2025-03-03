@@ -16,16 +16,16 @@
 <script lang="ts">
   let {
     shortcut,
-    ref = $bindable(),
-    useRef = noop,
+    el = $bindable(),
+    ref = noop,
     class: className,
     badgeClass,
   }: ShortcutBadgeProps = $props();
 </script>
 
 <div
-  bind:this={ref}
-  use:useRef
+  bind:this={el}
+  use:ref
   class={twMerge("text-m3-on-surface flex gap-1", className)}
 >
   {#each shortcut as symbol}

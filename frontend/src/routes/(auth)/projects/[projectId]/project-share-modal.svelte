@@ -134,7 +134,7 @@
     </div>
     <Input
       bind:value={filter}
-      bind:ref={searchInput}
+      bind:el={searchInput}
       autofocus
       type="text"
       placeholder="Add people"

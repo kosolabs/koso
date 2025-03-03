@@ -3,12 +3,12 @@
   import { Menu, MenuItem } from "$lib/kosui/menu";
 
   let open = $state(false);
-  let ref = $state();
+  let el = $state();
 </script>
 
 <div class="flex flex-wrap items-center gap-2 rounded-lg border p-4">
-  <Button bind:ref onclick={() => (open = true)}>Controlled</Button>
-  <Menu bind:open anchorEl={ref}>
+  <Button bind:el onclick={() => (open = true)}>Controlled</Button>
+  <Menu bind:open anchorEl={el}>
     {#snippet content(menuRef)}
       <MenuItem {menuRef} onSelect={() => console.log("controlled item 1")}>
         Item 1
