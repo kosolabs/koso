@@ -3,7 +3,7 @@
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
   import { baseClasses, type Variants } from "../base";
-  import type { ClassName, ElementRef } from "../utils";
+  import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type ChipProps = {
     children: Snippet;
@@ -22,6 +22,7 @@
     onClick,
     onDelete,
     ref = $bindable(),
+    useRef = noop,
     class: className,
     variant = "filled",
     color = "primary",
@@ -32,6 +33,7 @@
 
 <div
   bind:this={ref}
+  use:useRef
   role="option"
   class={twMerge(
     baseClasses({ variant, color, shape }),

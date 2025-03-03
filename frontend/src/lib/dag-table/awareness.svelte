@@ -117,10 +117,10 @@
 
 {#if users.length > 0}
   <Tooltip arrow>
-    {#snippet trigger(ref, props)}
+    {#snippet trigger({ useRef, ...restProps })}
       <div
-        bind:this={ref.value}
-        {...props}
+        use:useRef
+        {...restProps}
         role="note"
         aria-label={`${label} selected`}
         class={cn(

@@ -27,8 +27,8 @@
 </script>
 
 <Tooltip arrow>
-  {#snippet trigger(ref, props)}
-    <div bind:this={ref.value} {...props} class={cn("max-w-4 min-w-4")}>
+  {#snippet trigger({ useRef, ...props })}
+    <div use:useRef {...props} class={cn("max-w-4 min-w-4")}>
       <ManagedTaskIcon size={16} class="text-foreground" />
     </div>
   {/snippet}

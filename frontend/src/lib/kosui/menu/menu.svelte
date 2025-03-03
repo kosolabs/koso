@@ -4,7 +4,6 @@
   import type { Menu } from ".";
   import { events } from "..";
   import { baseClasses, type Variants } from "../base";
-  import { Box } from "../box.svelte";
   import { mergeProps } from "../merge-props";
   import { Popover, type PopoverProps } from "../popover";
   import { Shortcut } from "../shortcut";
@@ -12,7 +11,9 @@
 
   export type MenuProps = {
     uncontrolled?: boolean;
-    trigger?: Snippet<[{ ref: Box<HTMLElement>; onclick: () => void }]>;
+    trigger?: Snippet<
+      [{ useRef: (el: HTMLElement) => void; onclick: () => void }]
+    >;
     content: Snippet<[Menu]>;
   } & ClassName &
     Variants &
@@ -39,11 +40,7 @@
   let buffer = new TypingBuffer();
 
   function focusAnchor() {
-    if (anchorEl) {
-      anchorEl.focus();
-    } else {
-      refBox.value?.focus();
-    }
+    anchorEl?.focus();
   }
 
   export function close() {
@@ -123,13 +120,12 @@
     return () => events.remove("keydown", handleKeyDown);
   });
 
-  const refBox = new Box<HTMLElement>();
   const self: Menu = { close, focus, register, unregister };
 </script>
 
 {#if trigger}
   {@render trigger({
-    ref: refBox,
+    useRef: (ref) => (anchorEl = ref),
     onclick: () => (open = true),
   })}
 {/if}
@@ -144,7 +140,7 @@
   {...mergeProps(restProps, {
     onmouseleave: blur,
     placement,
-    anchorEl: refBox.value ?? anchorEl,
+    anchorEl,
   })}
 >
   {@render content(self)}

@@ -2,7 +2,7 @@
   import type { HTMLInputAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { baseClasses, type Variants } from "../base";
-  import type { ClassName, ElementRef } from "../utils";
+  import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type InputProps = ElementRef &
     ClassName &
@@ -14,6 +14,7 @@
   let {
     value = $bindable(),
     ref = $bindable(),
+    useRef = noop,
     class: className,
     variant = "outlined",
     color = "secondary",
@@ -24,6 +25,7 @@
 
 <input
   bind:this={ref}
+  use:useRef
   bind:value
   class={twMerge(
     "bg-m3-surface-container",
