@@ -5,7 +5,7 @@
   import { twMerge } from "tailwind-merge";
   import { baseClasses, type Variants } from "../base";
   import { Tooltip } from "../tooltip";
-  import type { ClassName, ElementRef } from "../utils";
+  import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type ButtonProps = {
     icon?: typeof Icon;
@@ -22,6 +22,7 @@
     tooltip,
     children,
     ref = $bindable(),
+    useRef = noop,
     class: className,
     variant = "outlined",
     color = "primary",
@@ -30,10 +31,17 @@
   }: ButtonProps = $props();
 
   let tooltipRef: Tooltip | undefined = $state();
+
+  $effect(() => {
+    if (ref && useRef) {
+      useRef(ref);
+    }
+  });
 </script>
 
 <button
   bind:this={ref}
+  use:useRef
   class={twMerge(
     baseClasses({ variant, color, shape, hover: true, focus: true }),
     "flex items-center gap-2 px-4 py-1.5 text-sm text-nowrap transition-all enabled:active:scale-95",
@@ -49,7 +57,7 @@
 </button>
 
 {#if tooltip}
-  <Tooltip bind:this={tooltipRef} trigger={ref} arrow>
+  <Tooltip bind:this={tooltipRef} anchorEl={ref} arrow>
     {#if typeof tooltip === "function"}
       {@render tooltip()}
     {:else}

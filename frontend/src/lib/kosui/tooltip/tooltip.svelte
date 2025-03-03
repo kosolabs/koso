@@ -2,12 +2,12 @@
   import { type Snippet } from "svelte";
   import type { MouseEventHandler } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
-  import { Box } from "../box.svelte";
   import type { PopoverProps } from "../popover";
   import { Popover } from "../popover";
   import type { ClassName } from "../utils";
 
   export type TooltipTriggerProps = {
+    useRef: (el: HTMLElement) => void;
     onmouseenter?: MouseEventHandler<HTMLElement> | undefined | null;
     onmouseleave?: MouseEventHandler<HTMLElement> | undefined | null;
   };
@@ -15,9 +15,7 @@
   export type TooltipProps = {
     delay?: number;
     open?: boolean;
-    // If trigger is a Snippet, do render delegation.
-    // If trigger is a HTMLElement, do fully controlled.
-    trigger?: Snippet<[Box<HTMLElement>, TooltipTriggerProps]> | HTMLElement;
+    trigger?: Snippet<[TooltipTriggerProps]>;
   } & ClassName &
     PopoverProps;
 </script>
@@ -27,16 +25,10 @@
     delay = 1000,
     open = $bindable(false),
     trigger,
+    anchorEl,
     class: className,
     ...restProps
   }: TooltipProps = $props();
-
-  let triggerBox = new Box<HTMLElement>();
-  let triggerEl = $derived(
-    // If trigger is a snippet, get the trigger element from the box.
-    // Otherwise, use the passed in element.
-    typeof trigger === "function" ? triggerBox.value : trigger,
-  );
 
   let tooltipTimeout: number;
 
@@ -53,6 +45,7 @@
   }
 
   export const triggerProps: TooltipTriggerProps = {
+    useRef: (ref) => (anchorEl = ref),
     onmouseenter: () => show(),
     onmouseleave: () => hide(),
   };
@@ -61,7 +54,7 @@
 <Popover
   bind:open
   role="tooltip"
-  anchorEl={triggerEl}
+  {anchorEl}
   class={twMerge(
     "bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
     className,
@@ -69,6 +62,4 @@
   {...restProps}
 />
 
-{#if typeof trigger === "function"}
-  {@render trigger(triggerBox, triggerProps)}
-{/if}
+{@render trigger?.(triggerProps)}

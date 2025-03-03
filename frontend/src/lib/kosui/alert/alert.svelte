@@ -3,7 +3,7 @@
   import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { baseClasses, type Variants } from "../base";
-  import type { ClassName, ElementRef } from "../utils";
+  import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type AlertProps = {
     children?: Snippet;
@@ -17,6 +17,7 @@
   let {
     children,
     ref = $bindable(),
+    useRef = noop,
     class: className,
     variant = "elevated",
     color = "primary",
@@ -27,6 +28,7 @@
 
 <div
   bind:this={ref}
+  use:useRef
   class={twMerge(
     "bg-m3-surface-container",
     baseClasses({ variant, color, shape }),

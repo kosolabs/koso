@@ -2,7 +2,7 @@
   import type { HTMLInputAttributes } from "svelte/elements";
   import { twMerge, type ClassNameValue } from "tailwind-merge";
   import { baseClasses } from "../base";
-  import type { ClassName, ElementRef } from "../utils";
+  import { noop, type ClassName, type ElementRef } from "../utils";
   import type { Shortcut } from "./shortcut";
 
   export type ShortcutBadgeProps = {
@@ -14,14 +14,20 @@
 </script>
 
 <script lang="ts">
-  const {
+  let {
     shortcut,
+    ref = $bindable(),
+    useRef = noop,
     class: className,
     badgeClass,
   }: ShortcutBadgeProps = $props();
 </script>
 
-<div class={twMerge("text-m3-on-surface flex gap-1", className)}>
+<div
+  bind:this={ref}
+  use:useRef
+  class={twMerge("text-m3-on-surface flex gap-1", className)}
+>
   {#each shortcut as symbol}
     <div
       class={twMerge(

@@ -23,9 +23,9 @@
   arrow
   aria-label={`Task ${dest.num} ${type} Drop Indicator`}
 >
-  {#snippet trigger(ref)}
+  {#snippet trigger({ useRef })}
     <div
-      bind:this={ref.value}
+      use:useRef
       class={cn("bg-m3-primary absolute rounded")}
       style:height={type === "Peer" ? "4px" : "0"}
       style:margin-top={type === "Peer" ? "-2px" : `-${height / 2}px`}

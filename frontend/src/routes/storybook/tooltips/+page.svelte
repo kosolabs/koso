@@ -19,7 +19,7 @@
   >
     Fully Controlled
   </Button>
-  <Tooltip bind:this={tooltip} trigger={ref} arrow>
+  <Tooltip bind:this={tooltip} anchorEl={ref} arrow>
     <div class="flex items-center gap-2">
       I'm a fully controlled tooltip
       <div class="font-bold">
@@ -29,8 +29,8 @@
   </Tooltip>
 
   <Tooltip arrow>
-    {#snippet trigger(ref, props)}
-      <Button bind:ref={ref.value} {...props}>Render Delegated</Button>
+    {#snippet trigger(props)}
+      <Button {...props}>Render Delegated</Button>
     {/snippet}
     <div class="flex items-center gap-2">
       I'm a render delegated tooltip

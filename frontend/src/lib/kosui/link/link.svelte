@@ -5,7 +5,7 @@
     HTMLButtonAttributes,
   } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
-  import type { ClassName, ElementRef } from "../utils";
+  import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type LinkUnderline = "always" | "hover" | "none";
   export type LinkColor =
@@ -33,6 +33,7 @@
   let {
     children,
     ref = $bindable(),
+    useRef = noop,
     class: className,
     underline = "hover",
     color = "primary",
@@ -57,11 +58,11 @@
 </script>
 
 {#if href}
-  <a bind:this={ref} class={classes} {href} {...props}>
+  <a bind:this={ref} use:useRef class={classes} {href} {...props}>
     {@render children()}
   </a>
 {:else}
-  <button bind:this={ref} class={classes} {...props}>
+  <button bind:this={ref} use:useRef class={classes} {...props}>
     {@render children()}
   </button>
 {/if}

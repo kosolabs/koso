@@ -5,7 +5,7 @@
   import type { Menu } from ".";
   import { baseClasses, type Variants } from "../base";
   import { mergeProps } from "../merge-props";
-  import type { ClassName, ElementRef } from "../utils";
+  import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type MenuItemProps = {
     menuRef: Menu;
@@ -25,6 +25,7 @@
     children,
     closeOnSelect = true,
     ref = $bindable(),
+    useRef = noop,
     class: className,
     variant = "plain",
     color = "secondary",
@@ -49,6 +50,7 @@
 
 <button
   bind:this={ref}
+  use:useRef
   class={twMerge(
     baseClasses({ variant, color, shape, focus: true }),
     "block w-full px-2 py-1 focus:ring-0",

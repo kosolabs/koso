@@ -20,8 +20,8 @@
   </Menu>
 
   <Menu>
-    {#snippet trigger({ ref, ...restProps })}
-      <Button bind:ref={ref.value} {...restProps}>Render Delegated</Button>
+    {#snippet trigger(props)}
+      <Button {...props}>Render Delegated</Button>
     {/snippet}
     {#snippet content(menuRef)}
       <MenuItem {menuRef} onSelect={() => console.log("delegated item 1")}>

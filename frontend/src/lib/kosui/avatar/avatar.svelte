@@ -3,7 +3,7 @@
   import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { baseClasses, type Variants } from "../base";
-  import type { ClassName, ElementRef } from "../utils";
+  import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type AvatarProps = {
     src?: string;
@@ -21,6 +21,7 @@
     alt,
     children,
     ref = $bindable(),
+    useRef = noop,
     class: className,
     variant = "tonal",
     color = "secondary",
@@ -33,6 +34,7 @@
 
 <div
   bind:this={ref}
+  use:useRef
   class={twMerge(
     baseClasses({ variant, color, shape }),
     "flex aspect-square size-9 items-center justify-center overflow-clip text-xl",
