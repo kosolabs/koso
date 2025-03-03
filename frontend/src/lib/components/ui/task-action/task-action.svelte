@@ -46,7 +46,7 @@
   );
   let rollupProgress = $derived(
     (!task.kind && task.children.length > 0) || task.kind === "Rollup"
-      ? koso.getProgress(task.id)
+      ? progress
       : null,
   );
 
