@@ -104,11 +104,7 @@ export class Progress {
   }
 
   isBlocked(): boolean {
-    return (
-      !this.isComplete() &&
-      this.kind === "Juggled" &&
-      this.done !== this.total - 1
-    );
+    return this.status === "Blocked";
   }
 }
 
@@ -611,6 +607,10 @@ export class Koso {
         result.status = "In Progress";
       } else {
         result.status = "Not Started";
+      }
+    } else if (result.kind === "Juggled") {
+      if (result.status !== "Done" && result.done !== result.total - 1) {
+        result.status = "Blocked";
       }
     }
 
@@ -1422,6 +1422,7 @@ export class Koso {
   }
 
   setKind(taskId: string, kind: Kind | null) {
+    kind = kind === "Rollup" ? null : kind;
     this.doc.transact(() => {
       const task = this.getTask(taskId);
       if (kind === null && task.kind !== null) {
@@ -1433,6 +1434,8 @@ export class Koso {
   }
 
   setTaskStatus(node: Node, status: Status, user: User) {
+    if (status === "Blocked") throw new Error("Cannot set blocked status");
+
     const taskId = node.name;
     this.doc.transact(() => {
       const task = this.getTask(taskId);

@@ -17,8 +17,12 @@ export function compareTasks(
         return 0;
       case "Not Started":
         return 1;
-      case "Done":
+      case "Blocked":
         return 2;
+      case "Done":
+        return 3;
+      default:
+        throw new Error(`Invalid status ${status}`);
     }
   }
 

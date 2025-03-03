@@ -4,13 +4,7 @@
   import type { Koso, Node } from "$lib/dag-table";
   import { CANCEL } from "$lib/shortcuts";
   import { unmanagedKinds, type Kind, type Status } from "$lib/yproxy";
-  import {
-    Bot,
-    Check,
-    CircleCheck,
-    LoaderCircle,
-    OctagonPause,
-  } from "lucide-svelte";
+  import { Bot, Check, CircleCheck, LoaderCircle } from "lucide-svelte";
   import { tick } from "svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../../../kosui/progress";
@@ -42,12 +36,14 @@
   );
 
   function handleOnSelectKind(kind: Kind) {
-    koso.setKind(task.id, kind);
-    if (kind === "Juggled") {
-      task.status = "Not Started";
-      task.statusTime = Date.now();
-      task.assignee = auth.user.email;
-    }
+    koso.doc.transact(() => {
+      koso.setKind(task.id, kind);
+      if (kind === "Juggled") {
+        task.status = "Not Started";
+        task.statusTime = Date.now();
+        task.assignee = auth.user.email;
+      }
+    });
   }
 
   function handleOnSelectStatus(status: Status) {
@@ -112,9 +108,6 @@
         </CircularProgress>
         <ResponsiveText>In Progress</ResponsiveText>
       {/if}
-    {:else if progress.isBlocked()}
-      <OctagonPause class="text-m3-primary" />
-      <ResponsiveText>Blocked</ResponsiveText>
     {:else}
       <TaskStatusIcon status={progress.status} />
       <ResponsiveText>{progress.status}</ResponsiveText>
