@@ -80,6 +80,15 @@ export class Shortcut {
     yield this.toChar();
   }
 
+  static isChar(event: KeyboardEvent): boolean {
+    return (
+      event.key.length === 1 &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey
+    );
+  }
+
   static fromEvent(event: KeyboardEvent): Shortcut {
     return new Shortcut({
       key: event.key,

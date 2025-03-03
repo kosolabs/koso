@@ -27,7 +27,7 @@
       <MenuItem {menuRef} onSelect={() => console.log("item 1")}>
         Item 1
       </MenuItem>
-      <MenuItem {menuRef} onSelect={() => console.log("item 1")}>
+      <MenuItem {menuRef} onSelect={() => console.log("item 2")}>
         Item 2
       </MenuItem>
     {/snippet}

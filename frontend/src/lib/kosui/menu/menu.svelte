@@ -24,6 +24,7 @@
     uncontrolled = false,
     trigger,
     content,
+    anchorEl,
     class: className,
     variant = "elevated",
     color = "primary",
@@ -33,18 +34,35 @@
     ...restProps
   }: MenuProps = $props();
 
-  const menuItems: HTMLElement[] = [];
+  let menuItems: HTMLElement[] = [];
   let focusedItem: HTMLElement | undefined = $state(undefined);
+
+  let typedPrefix: string = "";
+  let typingTimer: number | undefined;
+
+  function focusAnchor() {
+    if (anchorEl) {
+      anchorEl.focus();
+    } else {
+      refBox.value?.focus();
+    }
+  }
 
   export function close() {
     if (uncontrolled) return;
     open = false;
+    focusAnchor();
   }
 
   export function focus(menuItem?: HTMLElement) {
     if (!menuItem) return;
     focusedItem = menuItem;
     focusedItem.focus();
+  }
+
+  function blur() {
+    focusedItem?.blur();
+    focusedItem = undefined;
   }
 
   export function register(menuItem?: HTMLElement) {
@@ -58,11 +76,6 @@
     if (index !== -1) {
       menuItems.splice(index, 1);
     }
-  }
-
-  function blur() {
-    focusedItem?.blur();
-    focusedItem = undefined;
   }
 
   function handleKeyDown(event: KeyboardEvent) {
@@ -87,6 +100,16 @@
       focus(menuItems[0]);
     } else if (Shortcut.END.matches(event)) {
       focus(menuItems[menuItems.length - 1]);
+    } else if (Shortcut.isChar(event)) {
+      typedPrefix += event.key;
+      window.clearTimeout(typingTimer);
+      typingTimer = window.setTimeout(() => (typedPrefix = ""), 500);
+      const matchedItem = menuItems.find((menuItem) =>
+        (menuItem.textContent?.trim().toLowerCase() ?? "").startsWith(
+          typedPrefix.toLowerCase(),
+        ),
+      );
+      focus(matchedItem);
     } else {
       return;
     }
@@ -125,7 +148,7 @@
   {...mergeProps(restProps, {
     onmouseleave: blur,
     placement,
-    anchorEl: refBox.value,
+    anchorEl: refBox.value ?? anchorEl,
   })}
 >
   {@render content(self)}

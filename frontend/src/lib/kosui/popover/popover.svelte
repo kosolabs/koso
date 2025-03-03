@@ -38,6 +38,7 @@
   function handleEscape(event: KeyboardEvent) {
     if (popoverEl && Shortcut.ESCAPE.matches(event)) {
       popoverEl.hidePopover();
+      anchorEl?.focus();
       event.preventDefault();
       event.stopImmediatePropagation();
     }
