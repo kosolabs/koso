@@ -1,21 +1,19 @@
 <script lang="ts" module>
   import { type Snippet } from "svelte";
-  import type { MouseEventHandler } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
+  import type { TooltipTriggerProps } from ".";
   import type { PopoverProps } from "../popover";
   import { Popover } from "../popover";
   import type { ClassName } from "../utils";
 
-  export type TooltipTriggerProps = {
-    useRef: (el: HTMLElement) => void;
-    onmouseenter?: MouseEventHandler<HTMLElement> | undefined | null;
-    onmouseleave?: MouseEventHandler<HTMLElement> | undefined | null;
-  };
+  type SnippetTooltipTriggerProps = {
+    ref: (el: HTMLElement) => void;
+  } & Omit<TooltipTriggerProps, "ref">;
 
   export type TooltipProps = {
     delay?: number;
     open?: boolean;
-    trigger?: Snippet<[TooltipTriggerProps]>;
+    trigger?: Snippet<[SnippetTooltipTriggerProps]>;
   } & ClassName &
     PopoverProps;
 </script>
@@ -44,8 +42,8 @@
     open = false;
   }
 
-  export const triggerProps: TooltipTriggerProps = {
-    useRef: (ref) => (anchorEl = ref),
+  export const triggerProps: SnippetTooltipTriggerProps = {
+    ref: (ref) => (anchorEl = ref),
     onmouseenter: () => show(),
     onmouseleave: () => hide(),
   };

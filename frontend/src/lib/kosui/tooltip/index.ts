@@ -1,5 +1,5 @@
 export {
-  default as Tooltip,
-  type TooltipProps,
+  default as TooltipTrigger,
   type TooltipTriggerProps,
-} from "./tooltip.svelte";
+} from "./tooltip-trigger.svelte";
+export { default as Tooltip, type TooltipProps } from "./tooltip.svelte";

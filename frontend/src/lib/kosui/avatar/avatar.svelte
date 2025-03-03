@@ -20,8 +20,8 @@
     src,
     alt,
     children,
-    ref = $bindable(),
-    useRef = noop,
+    el = $bindable(),
+    ref = noop,
     class: className,
     variant = "tonal",
     color = "secondary",
@@ -33,8 +33,8 @@
 </script>
 
 <div
-  bind:this={ref}
-  use:useRef
+  bind:this={el}
+  use:ref
   class={twMerge(
     baseClasses({ variant, color, shape }),
     "flex aspect-square size-9 items-center justify-center overflow-clip text-xl",

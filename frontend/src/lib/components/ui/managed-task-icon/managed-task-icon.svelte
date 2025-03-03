@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Tooltip } from "$lib/kosui/tooltip";
+  import TooltipTrigger from "$lib/kosui/tooltip/tooltip-trigger.svelte";
   import { cn } from "$lib/utils";
   import { Github, ToyBrick, type Icon } from "lucide-svelte";
 
@@ -27,10 +28,10 @@
 </script>
 
 <Tooltip arrow>
-  {#snippet trigger({ useRef, ...props })}
-    <div use:useRef {...props} class={cn("max-w-4 min-w-4")}>
+  {#snippet trigger(props)}
+    <TooltipTrigger {...props} class={cn("max-w-4 min-w-4")}>
       <ManagedTaskIcon size={16} class="text-foreground" />
-    </div>
+    </TooltipTrigger>
   {/snippet}
   This task is managed by the {getManagedTaskName(kind)} plugin.
 </Tooltip>
