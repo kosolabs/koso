@@ -87,16 +87,28 @@ export class Progress {
   done: number;
   total: number;
   lastStatusTime: number;
+  status: Status;
+  kind: Kind | null;
 
   constructor(props: Partial<Progress> = {}) {
     this.inProgress = props.inProgress ?? 0;
     this.done = props.done ?? 0;
     this.total = props.total ?? 0;
     this.lastStatusTime = props.lastStatusTime ?? 0;
+    this.status = props.status ?? "Not Started";
+    this.kind = props.kind ?? null;
   }
 
   isComplete(): boolean {
-    return this.total === this.done;
+    return this.status === "Done";
+  }
+
+  isBlocked(): boolean {
+    return (
+      !this.isComplete() &&
+      this.kind === "Juggled" &&
+      this.done !== this.total - 1
+    );
   }
 }
 
@@ -528,14 +540,7 @@ export class Koso {
    * the status is derived from the progress of its children.
    */
   getStatus(taskId: string): Status {
-    const progress = this.getProgress(taskId);
-    if (progress.done === progress.total) {
-      return "Done";
-    } else if (progress.inProgress > 0 || progress.done > 0) {
-      return "In Progress";
-    } else {
-      return "Not Started";
-    }
+    return this.getProgress(taskId).status;
   }
 
   /**
@@ -561,20 +566,24 @@ export class Koso {
       done: 0,
       total: 0,
       lastStatusTime: task.statusTime ?? 0,
+      kind: task.kind || (task.children.length > 0 ? "Rollup" : null),
     });
 
-    if (task.children.length === 0 || task.kind === "Juggled") {
+    if (result.kind !== "Rollup") {
       switch (task.status || "Not Started") {
         case "Done":
           result.done = 1;
           result.total = 1;
+          result.status = "Done";
           break;
         case "In Progress":
           result.inProgress = 1;
           result.total = 1;
+          result.status = "In Progress";
           break;
         case "Not Started":
           result.total = 1;
+          result.status = "Not Started";
           break;
         default:
           throw new Error(
@@ -595,6 +604,16 @@ export class Koso {
         childProgress.lastStatusTime,
       );
     });
+    if (result.kind === "Rollup") {
+      if (result.done === result.total) {
+        result.status = "Done";
+      } else if (result.inProgress > 0 || result.done > 0) {
+        result.status = "In Progress";
+      } else {
+        result.status = "Not Started";
+      }
+    }
+
     return result;
   }
 
@@ -1467,7 +1486,7 @@ export class Koso {
   #defaultIsVisible(node: Node) {
     if (!this.showDone) {
       const progress = this.getProgress(node.name);
-      if (progress.total === progress.done) {
+      if (progress.isComplete()) {
         const doneTime = progress.lastStatusTime;
         const threeDays = 3 * 24 * 60 * 60 * 1000;
         return Date.now() - doneTime < threeDays;
