@@ -35,10 +35,24 @@
   }
 
   function isTaskVisible(task: YTaskProxy): boolean {
-    return (
-      task.assignee === auth.user.email &&
-      !koso.getProgress(task.id).isComplete()
-    );
+    // Only show incomplete tasks assigned to this user.
+    if (task.assignee !== auth.user.email) {
+      return false;
+    }
+    const progress = koso.getProgress(task.id);
+    if (progress.isComplete()) {
+      return false;
+    }
+    // Only show actionable juggled tasks.
+    if (task.kind === "Juggled") {
+      if (task.status === "Done") {
+        return false;
+      }
+      const blocked = progress.done !== progress.total - 1;
+      return !blocked;
+    }
+
+    return true;
   }
 
   function flatten(): List<Node> {
