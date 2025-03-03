@@ -8,7 +8,7 @@
   import { mergeProps } from "../merge-props";
   import { Popover, type PopoverProps } from "../popover";
   import { Shortcut } from "../shortcut";
-  import type { ClassName } from "../utils";
+  import { TypingBuffer, type ClassName } from "../utils";
 
   export type MenuProps = {
     uncontrolled?: boolean;
@@ -36,9 +36,7 @@
 
   let menuItems: HTMLElement[] = [];
   let focusedItem: HTMLElement | undefined = $state(undefined);
-
-  let typedPrefix: string = "";
-  let typingTimer: number | undefined;
+  let buffer = new TypingBuffer();
 
   function focusAnchor() {
     if (anchorEl) {
@@ -101,12 +99,10 @@
     } else if (Shortcut.END.matches(event)) {
       focus(menuItems[menuItems.length - 1]);
     } else if (Shortcut.isChar(event)) {
-      typedPrefix += event.key;
-      window.clearTimeout(typingTimer);
-      typingTimer = window.setTimeout(() => (typedPrefix = ""), 500);
+      const prefix = buffer.append(event.key);
       const matchedItem = menuItems.find((menuItem) =>
         (menuItem.textContent?.trim().toLowerCase() ?? "").startsWith(
-          typedPrefix.toLowerCase(),
+          prefix.toLowerCase(),
         ),
       );
       focus(matchedItem);

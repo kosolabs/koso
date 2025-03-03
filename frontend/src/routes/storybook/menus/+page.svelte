@@ -10,10 +10,10 @@
   <Button bind:ref onclick={() => (open = true)}>Controlled</Button>
   <Menu bind:open anchorEl={ref}>
     {#snippet content(menuRef)}
-      <MenuItem {menuRef} onSelect={() => console.log("item 1")}>
+      <MenuItem {menuRef} onSelect={() => console.log("controlled item 1")}>
         Item 1
       </MenuItem>
-      <MenuItem {menuRef} onSelect={() => console.log("item 1")}>
+      <MenuItem {menuRef} onSelect={() => console.log("controlled item 2")}>
         Item 2
       </MenuItem>
     {/snippet}
@@ -24,10 +24,10 @@
       <Button bind:ref={ref.value} {...restProps}>Render Delegated</Button>
     {/snippet}
     {#snippet content(menuRef)}
-      <MenuItem {menuRef} onSelect={() => console.log("item 1")}>
+      <MenuItem {menuRef} onSelect={() => console.log("delegated item 1")}>
         Item 1
       </MenuItem>
-      <MenuItem {menuRef} onSelect={() => console.log("item 2")}>
+      <MenuItem {menuRef} onSelect={() => console.log("delegated item 2")}>
         Item 2
       </MenuItem>
     {/snippet}

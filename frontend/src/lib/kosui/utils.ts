@@ -23,3 +23,26 @@ export function toTitleCase(kebab: string) {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
+
+export class TypingBuffer {
+  #prefix: string = "";
+  #timer: ReturnType<typeof setTimeout> | undefined;
+  #timeout: number = 500;
+
+  constructor(timeout?: number) {
+    if (timeout !== undefined) {
+      this.#timeout = timeout;
+    }
+  }
+
+  get prefix(): string {
+    return this.#prefix;
+  }
+
+  append(char: string): string {
+    clearTimeout(this.#timer);
+    this.#prefix += char;
+    this.#timer = setTimeout(() => (this.#prefix = ""), this.#timeout);
+    return this.prefix;
+  }
+}
