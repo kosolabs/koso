@@ -1805,6 +1805,104 @@ describe("Koso tests", () => {
     });
   });
 
+  describe("setKind", () => {
+    it("set task 2's status to juggled succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2", status: "Done" },
+      ]);
+
+      koso.setKind("2", "Juggled", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: null, children: [], assignee: null },
+        ["2"]: {
+          kind: "Juggled",
+          status: "Not Started",
+          children: [],
+          assignee: "t@koso.app",
+        },
+      });
+    });
+
+    it("set existing juggled task to juggled makes no changes", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2", status: "Done", kind: "Juggled" },
+      ]);
+
+      koso.setKind("2", "Juggled", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: null, children: [], assignee: null },
+        ["2"]: {
+          kind: "Juggled",
+          status: "Done",
+          children: [],
+          assignee: null,
+        },
+      });
+    });
+
+    it("set task 2's status to rollup succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        {
+          id: "2",
+          name: "Task 2",
+          kind: "Juggled",
+          status: "Done",
+          children: ["1"],
+        },
+      ]);
+
+      koso.setKind("2", "Rollup", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: null, children: [], assignee: null },
+        ["2"]: {
+          kind: null,
+          status: null,
+          children: ["1"],
+          assignee: null,
+        },
+      });
+    });
+
+    it("set existing rollup task to rollup does nothing", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        {
+          id: "2",
+          name: "Task 2",
+          kind: null,
+          status: "Done",
+          children: ["1"],
+        },
+      ]);
+
+      koso.setKind("2", "Rollup", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: null, children: [], assignee: null },
+        ["2"]: {
+          kind: null,
+          status: null,
+          children: ["1"],
+          assignee: null,
+        },
+      });
+    });
+  });
+
   describe("getPrevLink", { sequential: true }, () => {
     it("loops through expanded nodes", () => {
       init([
