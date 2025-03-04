@@ -36,14 +36,7 @@
   );
 
   function handleOnSelectKind(kind: Kind) {
-    koso.doc.transact(() => {
-      koso.setKind(task.id, kind);
-      if (kind === "Juggled") {
-        task.yStatus = "Not Started";
-        task.statusTime = Date.now();
-        task.assignee = auth.user.email;
-      }
-    });
+    koso.setKind(task.id, kind, auth.user);
   }
 
   function handleOnSelectStatus(status: Status) {

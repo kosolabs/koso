@@ -1421,14 +1421,19 @@ export class Koso {
     });
   }
 
-  setKind(taskId: string, kind: Kind | null) {
-    kind = kind === "Rollup" ? null : kind;
+  setKind(taskId: string, kind: Kind, user: User) {
     this.doc.transact(() => {
       const task = this.getTask(taskId);
-      if (kind === null && task.yKind !== null) {
-        task.yKind = null;
-      } else if (kind && kind !== task.yKind) {
-        task.yKind = kind;
+      if (task.yKind === kind) return;
+
+      task.yKind = kind === "Rollup" ? null : kind;
+      if (kind === "Juggled") {
+        task.yStatus = "Not Started";
+        task.statusTime = Date.now();
+        task.assignee = user.email;
+      } else if (kind === "Rollup") {
+        task.yStatus = null;
+        task.statusTime = Date.now();
       }
     });
   }
