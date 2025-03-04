@@ -25,6 +25,7 @@
    ```sh
    brew install rustup
    rustup-init
+   rustup show active-toolchain || rustup toolchain install
    ```
 
 1. The backend uses SQLx to interact with PostgreSQL. Install the [SQLx](https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md) in order to run migrations and perform other administrative operations.

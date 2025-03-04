@@ -39,6 +39,8 @@ jobs:
         uses: dtolnay/rust-toolchain@c5a29ddb4d9d194e7c84ec8c3fba61b1c31fee8c # master
         with:
           toolchain: stable
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
       - name: Rust build cache
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # v2.7.7
         with:

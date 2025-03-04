@@ -7,6 +7,7 @@ WORKDIR /app/healthz
 # in a separate layer.
 COPY ./healthz/Cargo.toml Cargo.lock rust-toolchain.toml  ./
 COPY ./healthz/build/dummy.rs ./build/dummy.rs
+RUN rustup show active-toolchain || rustup toolchain install
 RUN cargo build --release --lib
 
 # Build the backend.

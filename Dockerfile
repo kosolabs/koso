@@ -8,6 +8,7 @@ WORKDIR /app
 COPY backend/Cargo.toml Cargo.lock rust-toolchain.toml ./backend/
 COPY backend/build/dummy.rs backend/build/dummy.rs
 WORKDIR /app/backend
+RUN rustup show active-toolchain || rustup toolchain install
 RUN cargo build --release --lib
 
 # Build the backend.
@@ -19,6 +20,8 @@ RUN cargo build --release
 # Build the sqlx binary, used to apply database migrations.
 FROM rust:1.85.0@sha256:caa4a0e7bd1fe2e648caf3d904bc54c3bfcae9e74b4df2eb9ebe558c9e9e88c5 AS sqlx
 WORKDIR /app
+COPY rust-toolchain.toml ./
+RUN rustup show active-toolchain || rustup toolchain install
 RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres --root ./
 
 FROM node:23.9.0@sha256:c29271c7f2b4788fe9b90a7506d790dc8f2ff46132e1b70e71bf0c0679c8451c AS frontend
