@@ -14,11 +14,11 @@
 </script>
 
 {#if status === "Done"}
-  <CircleCheck color="hsl(var(--primary))" />
+  <CircleCheck class="text-m3-primary" />
 {:else if status === "In Progress"}
-  <CircleFadingArrowUp color="hsl(var(--primary))" />
+  <CircleFadingArrowUp class="text-m3-primary" />
 {:else if status === "Blocked"}
-  <OctagonPause color="hsl(var(--primary))" />
+  <OctagonPause class="text-m3-primary" />
 {:else}
-  <CircularProgress progress={0} color="hsl(var(--primary))" />
+  <CircularProgress progress={0} class="text-m3-primary" />
 {/if}
