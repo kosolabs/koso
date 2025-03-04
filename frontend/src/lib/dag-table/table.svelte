@@ -133,15 +133,21 @@
     if (!koso.selected) return;
 
     const task = koso.getTask(koso.selected.name);
-    if (task.children.length > 0) {
+    let progress = koso.getProgress(task.id);
+    if (progress.kind === "Rollup") {
       toast.warning(
-        "Cannot change the status of a composite task. Change the status of the task's children instead.",
+        "Cannot change the status of a Rollup task. Change the status of the task's children instead.",
       );
       return;
     }
 
-    switch (task.yStatus || "Not Started") {
+    switch (progress.status) {
       case "Done":
+        return;
+      case "Blocked":
+        toast.warning(
+          "Cannot change the status of a Blocked task. Change the status of the task's children instead.",
+        );
         return;
       case "In Progress":
         getRow(koso.selected).showDoneConfetti();
