@@ -36,10 +36,12 @@
   );
 
   function handleOnSelectKind(kind: Kind) {
+    if (progress.kind === kind) return;
     koso.setKind(task.id, kind, auth.user);
   }
 
   function handleOnSelectStatus(status: YStatus) {
+    if (progress.status === status) return;
     if (status === "Done") showDoneConfetti();
     koso.setTaskStatus(node, status, auth.user);
   }
