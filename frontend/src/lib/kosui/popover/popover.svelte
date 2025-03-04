@@ -7,7 +7,12 @@
   import { events } from "..";
   import { mergeProps } from "../merge-props";
   import { Shortcut } from "../shortcut";
-  import { type ClassName, type ToggleEventWithTarget } from "../utils";
+  import {
+    noop,
+    type ClassName,
+    type ElementRef,
+    type ToggleEventWithTarget,
+  } from "../utils";
 
   export type PopoverProps = {
     arrow?: boolean;
@@ -17,6 +22,7 @@
     anchorEl?: HTMLElement;
     children: Snippet;
   } & ClassName &
+    ElementRef &
     HTMLAttributes<HTMLDivElement>;
 </script>
 
@@ -28,14 +34,16 @@
     open = $bindable(false),
     anchorEl,
     children,
+    el: popoverEl = $bindable(),
+    ref = noop,
     class: className,
     ...restProps
   }: PopoverProps = $props();
 
-  let popoverEl: HTMLDivElement | undefined = $state();
   let arrowEl: HTMLDivElement | undefined = $state();
 
   function handleEscape(event: KeyboardEvent) {
+    console.log(event);
     if (popoverEl && Shortcut.ESCAPE.matches(event)) {
       popoverEl.hidePopover();
       anchorEl?.focus();
@@ -134,6 +142,7 @@
 {#if open}
   <div
     bind:this={popoverEl}
+    use:ref
     popover="manual"
     class={twMerge(className)}
     transition:scale={{ duration: 150, start: 0.95 }}

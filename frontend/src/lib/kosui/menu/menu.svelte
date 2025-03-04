@@ -12,7 +12,7 @@
   export type MenuProps = {
     uncontrolled?: boolean;
     trigger?: Snippet<
-      [{ useRef: (el: HTMLElement) => void; onclick: () => void }]
+      [{ ref: (el: HTMLElement) => void; onclick: () => void }]
     >;
     content: Snippet<[Menu]>;
   } & ClassName &
@@ -83,6 +83,8 @@
         activeIndex = (activeIndex - 1 + menuItems.length) % menuItems.length;
         focus(menuItems[activeIndex]);
       }
+      event.preventDefault();
+      event.stopImmediatePropagation();
     } else if (Shortcut.ARROW_DOWN.matches(event)) {
       if (!focusedItem) {
         focus(menuItems[0]);
@@ -91,10 +93,18 @@
         activeIndex = (activeIndex + 1) % menuItems.length;
         focus(menuItems[activeIndex]);
       }
+      event.preventDefault();
+      event.stopImmediatePropagation();
     } else if (Shortcut.HOME.matches(event)) {
       focus(menuItems[0]);
+      event.preventDefault();
+      event.stopImmediatePropagation();
     } else if (Shortcut.END.matches(event)) {
       focus(menuItems[menuItems.length - 1]);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    } else if (Shortcut.ENTER.matches(event)) {
+      event.stopImmediatePropagation();
     } else if (Shortcut.isChar(event)) {
       const prefix = buffer.append(event.key);
       const matchedItem = menuItems.find((menuItem) =>
@@ -103,11 +113,9 @@
         ),
       );
       focus(matchedItem);
-    } else {
-      return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
     }
-    event.preventDefault();
-    event.stopImmediatePropagation();
   }
 
   $effect(() => {
@@ -125,13 +133,14 @@
 
 {#if trigger}
   {@render trigger({
-    useRef: (ref) => (anchorEl = ref),
-    onclick: () => (open = true),
+    ref: (ref) => (anchorEl = ref),
+    onclick: () => (open = !open),
   })}
 {/if}
 
 <Popover
   bind:open
+  role="menu"
   class={twMerge(
     baseClasses({ variant, color, shape }),
     "bg-m3-surface-container-highest max-h-[40%] border p-1 shadow",
