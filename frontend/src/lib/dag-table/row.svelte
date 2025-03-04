@@ -336,10 +336,10 @@
 <tr
   tabindex="0"
   class={cn(
-    "bg-m3-surface-container rounded-m3 outline-2 outline-transparent",
-    index % 2 === 0 && "bg-m3-surface-container-low",
+    "rounded-m3 outline-2 outline-transparent",
+    index % 2 === 0 && "bg-m3-surface-container/30",
     isMoving && "opacity-50",
-    isHovered && "bg-m3-surface-container-high",
+    isHovered && "bg-m3-surface-container",
     getAwarenessOutline(awareUsers),
     dragOverChild && "outline-m3-primary",
     isSelected && "outline-m3-primary",
@@ -398,10 +398,7 @@
       {task.id}
     </td>
   {/if}
-  <td
-    class={cn("border-t border-l p-2")}
-    onkeydown={(e) => e.stopPropagation()}
-  >
+  <td class={cn("border-t border-l p-2")}>
     <TaskAction {node} {koso} bind:this={taskAction} />
   </td>
   <td class={cn("w-full border-t border-l px-2 py-1")}>

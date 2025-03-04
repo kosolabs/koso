@@ -1,15 +1,13 @@
 <script lang="ts">
   import { auth } from "$lib/auth.svelte";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import type { Koso, Node } from "$lib/dag-table";
-  import { CANCEL } from "$lib/shortcuts";
+  import { Menu, MenuItem, MenuTrigger } from "$lib/kosui/menu";
+  import { Shortcut } from "$lib/kosui/shortcut";
   import { unmanagedKinds, type Kind, type YStatus } from "$lib/yproxy";
   import { Bot, Check, CircleCheck, LoaderCircle } from "lucide-svelte";
-  import { tick } from "svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../../../kosui/progress";
   import { confetti } from "../confetti";
-  import DropdownMenuSeparator from "../dropdown-menu/dropdown-menu-separator.svelte";
   import { ResponsiveText } from "../responsive-text";
 
   const statuses: YStatus[] = ["Not Started", "In Progress", "Done"];
@@ -21,7 +19,7 @@
   let { node, koso }: Props = $props();
 
   let open = $state(false);
-  let statusElement: HTMLElement | null = $state(null);
+  let statusElement: HTMLElement | undefined = $state();
 
   let task = $derived(koso.getTask(node.name));
   let progress = $derived(koso.getProgress(task.id));
@@ -69,90 +67,83 @@
     if (!statusElement) throw new Error("Status element is undefined");
     return statusElement.getBoundingClientRect();
   }
-</script>
 
-<DropdownMenu.Root
-  bind:open={
-    () => open,
-    (newOpen) => {
-      koso.selected = node;
-      tick().then(() => (open = newOpen));
+  function handleKeyDown(event: KeyboardEvent) {
+    console.log(event);
+    if (Shortcut.ESCAPE.matches(event)) {
+      statusElement?.blur();
+      event.stopImmediatePropagation();
     }
   }
->
-  <DropdownMenu.Trigger
-    bind:ref={statusElement}
-    class="flex items-center gap-2"
-    title={triggerTitle()}
-    disabled={!canSetStatus && !canSetKind}
-    aria-label="task-status"
-  >
-    {#if progress.kind === "Rollup"}
-      {#if progress.status === "Done"}
-        <CircleCheck color="hsl(var(--primary))" />
-        <ResponsiveText>Done</ResponsiveText>
-      {:else if progress.status === "Not Started"}
-        <CircularProgress progress={0} color="hsl(var(--primary))" />
-        <ResponsiveText>Not Started</ResponsiveText>
-      {:else}
-        <CircularProgress
-          progress={progress.done / progress.total}
-          color="hsl(var(--primary))"
-        >
-          {Math.round((progress.done * 100) / progress.total)}%
-        </CircularProgress>
-        <ResponsiveText>In Progress</ResponsiveText>
-      {/if}
-    {:else}
-      <TaskStatusIcon status={progress.status} />
-      <ResponsiveText>{progress.status}</ResponsiveText>
-    {/if}
-  </DropdownMenu.Trigger>
-  <div
-    role="none"
-    onkeydown={(event) => {
-      if (CANCEL.matches(event)) {
-        open = false;
-      }
-      event.stopPropagation();
-    }}
-  >
-    <DropdownMenu.Content
-      portalProps={{ disabled: true }}
-      preventScroll={false}
+</script>
+
+<Menu bind:open>
+  {#snippet trigger(props)}
+    <MenuTrigger
+      bind:el={statusElement}
+      class="rounded-m3 focus:ring-m3-primary flex items-center gap-2 focus-visible:ring-1 focus-visible:outline-hidden"
+      title={triggerTitle()}
+      aria-label="task-status"
+      disabled={!canSetStatus && !canSetKind}
+      onkeydown={handleKeyDown}
+      {...props}
     >
-      {#if canSetStatus}
-        {#each statuses as status (status)}
-          <DropdownMenu.Item
-            class="flex items-center gap-2 rounded p-2"
-            onSelect={() => handleOnSelectStatus(status)}
+      {#if progress.kind === "Rollup"}
+        {#if progress.status === "Done"}
+          <CircleCheck color="hsl(var(--primary))" />
+          <ResponsiveText>Done</ResponsiveText>
+        {:else if progress.status === "Not Started"}
+          <CircularProgress progress={0} color="hsl(var(--primary))" />
+          <ResponsiveText>Not Started</ResponsiveText>
+        {:else}
+          <CircularProgress
+            progress={progress.done / progress.total}
+            color="hsl(var(--primary))"
           >
-            <TaskStatusIcon {status} />
-            {status}
-          </DropdownMenu.Item>
-        {/each}
+            {Math.round((progress.done * 100) / progress.total)}%
+          </CircularProgress>
+          <ResponsiveText>In Progress</ResponsiveText>
+        {/if}
+      {:else}
+        <TaskStatusIcon status={progress.status} />
+        <ResponsiveText>{progress.status}</ResponsiveText>
       {/if}
-      {#if canSetStatus && canSetKind}
-        <DropdownMenuSeparator />
-      {/if}
-      {#if canSetKind}
-        {#each unmanagedKinds as kind (kind)}
-          <DropdownMenu.Item
-            class="flex items-center gap-2 rounded p-2"
-            onSelect={() => handleOnSelectKind(kind)}
-          >
-            {#if kind === "Rollup"}
-              <LoaderCircle class="text-m3-primary" />
-            {:else if kind === "Juggled"}
-              <Bot class="text-m3-primary" />
-            {/if}
-            {kind}
-            {#if progress.kind === kind}
-              <Check class="ml-auto" />
-            {/if}
-          </DropdownMenu.Item>
-        {/each}
-      {/if}
-    </DropdownMenu.Content>
-  </div>
-</DropdownMenu.Root>
+    </MenuTrigger>
+  {/snippet}
+  {#snippet content(menuRef)}
+    {#if canSetStatus}
+      {#each statuses as status (status)}
+        <MenuItem
+          {menuRef}
+          class="flex items-center gap-2 rounded text-sm"
+          onSelect={() => handleOnSelectStatus(status)}
+        >
+          <TaskStatusIcon {status} />
+          {status}
+        </MenuItem>
+      {/each}
+    {/if}
+    {#if canSetStatus && canSetKind}
+      <hr class="my-1" />
+    {/if}
+    {#if canSetKind}
+      {#each unmanagedKinds as kind (kind)}
+        <MenuItem
+          {menuRef}
+          class="flex items-center gap-2 rounded text-sm"
+          onSelect={() => handleOnSelectKind(kind)}
+        >
+          {#if kind === "Rollup"}
+            <LoaderCircle class="text-m3-primary" />
+          {:else if kind === "Juggled"}
+            <Bot class="text-m3-primary" />
+          {/if}
+          {kind}
+          {#if progress.kind === kind}
+            <Check class="text-m3-primary ml-auto" size={20} />
+          {/if}
+        </MenuItem>
+      {/each}
+    {/if}
+  {/snippet}
+</Menu>
