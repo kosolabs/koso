@@ -3,7 +3,7 @@
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import type { Koso, Node } from "$lib/dag-table";
   import { CANCEL } from "$lib/shortcuts";
-  import { unmanagedKinds, type Kind, type Status } from "$lib/yproxy";
+  import { unmanagedKinds, type Kind, type YStatus } from "$lib/yproxy";
   import { Bot, Check, CircleCheck, LoaderCircle } from "lucide-svelte";
   import { tick } from "svelte";
   import { TaskStatusIcon } from ".";
@@ -12,7 +12,7 @@
   import DropdownMenuSeparator from "../dropdown-menu/dropdown-menu-separator.svelte";
   import { ResponsiveText } from "../responsive-text";
 
-  const statuses: Status[] = ["Not Started", "In Progress", "Done"];
+  const statuses: YStatus[] = ["Not Started", "In Progress", "Done"];
 
   type Props = {
     node: Node;
@@ -39,7 +39,7 @@
     koso.setKind(task.id, kind, auth.user);
   }
 
-  function handleOnSelectStatus(status: Status) {
+  function handleOnSelectStatus(status: YStatus) {
     if (status === "Done") showDoneConfetti();
     koso.setTaskStatus(node, status, auth.user);
   }

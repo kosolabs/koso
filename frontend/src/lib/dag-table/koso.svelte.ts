@@ -21,6 +21,7 @@ import {
   type Status,
   type Task,
   type YEvent,
+  type YStatus,
   type YTask,
 } from "../yproxy";
 
@@ -1438,9 +1439,7 @@ export class Koso {
     });
   }
 
-  setTaskStatus(node: Node, status: Status, user: User) {
-    if (status === "Blocked") throw new Error("Cannot set blocked status");
-
+  setTaskStatus(node: Node, status: YStatus, user: User) {
     const taskId = node.name;
     this.doc.transact(() => {
       const task = this.getTask(taskId);
