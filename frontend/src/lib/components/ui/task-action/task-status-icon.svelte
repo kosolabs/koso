@@ -18,7 +18,7 @@
 {:else if status === "In Progress"}
   <CircleFadingArrowUp color="hsl(var(--primary))" />
 {:else if status === "Blocked"}
-  <OctagonPause class="text-m3-primary" />
+  <OctagonPause color="hsl(var(--primary))" />
 {:else}
   <CircularProgress progress={0} color="hsl(var(--primary))" />
 {/if}
