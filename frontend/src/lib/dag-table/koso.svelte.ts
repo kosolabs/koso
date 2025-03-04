@@ -563,7 +563,10 @@ export class Koso {
       done: 0,
       total: 0,
       lastStatusTime: task.statusTime ?? 0,
-      kind: task.yKind || (task.children.length > 0 ? "Rollup" : null),
+      kind:
+        task.yKind == "Juggled" && task.children.length === 0
+          ? null
+          : task.yKind || (task.children.length > 0 ? "Rollup" : null),
     });
 
     if (result.kind !== "Rollup") {
@@ -1425,9 +1428,10 @@ export class Koso {
   setKind(taskId: string, kind: Kind, user: User) {
     this.doc.transact(() => {
       const task = this.getTask(taskId);
-      if (task.yKind === kind) return;
+      const newKind = kind === "Rollup" ? null : kind;
+      if (task.yKind === newKind) return;
 
-      task.yKind = kind === "Rollup" ? null : kind;
+      task.yKind = newKind;
       if (kind === "Juggled") {
         task.yStatus = "Not Started";
         task.statusTime = Date.now();

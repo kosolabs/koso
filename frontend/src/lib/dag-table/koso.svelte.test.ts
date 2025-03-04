@@ -1351,6 +1351,28 @@ describe("Koso tests", () => {
       });
     });
 
+    it("juggled task no children returns null kind", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        {
+          id: "1",
+          children: [],
+          statusTime: now,
+          kind: "Juggled",
+          status: "In Progress",
+        },
+      ]);
+
+      expect(koso.getProgress("1")).toEqual({
+        inProgress: 1,
+        done: 0,
+        total: 1,
+        lastStatusTime: now,
+        kind: null,
+        status: "In Progress",
+      });
+    });
+
     it("parent task with all children done has 2 of 2 progress", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
@@ -1895,7 +1917,7 @@ describe("Koso tests", () => {
         ["1"]: { status: null, children: [], assignee: null },
         ["2"]: {
           kind: null,
-          status: null,
+          status: "Done",
           children: ["1"],
           assignee: null,
         },
