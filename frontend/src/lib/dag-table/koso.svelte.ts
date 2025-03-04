@@ -21,6 +21,7 @@ import {
   type Status,
   type Task,
   type YEvent,
+  type YStatus,
   type YTask,
 } from "../yproxy";
 
@@ -87,16 +88,24 @@ export class Progress {
   done: number;
   total: number;
   lastStatusTime: number;
+  status: Status;
+  kind: Kind | null;
 
   constructor(props: Partial<Progress> = {}) {
     this.inProgress = props.inProgress ?? 0;
     this.done = props.done ?? 0;
     this.total = props.total ?? 0;
     this.lastStatusTime = props.lastStatusTime ?? 0;
+    this.status = props.status ?? "Not Started";
+    this.kind = props.kind ?? null;
   }
 
   isComplete(): boolean {
-    return this.total === this.done;
+    return this.status === "Done";
+  }
+
+  isBlocked(): boolean {
+    return this.status === "Blocked";
   }
 }
 
@@ -528,14 +537,7 @@ export class Koso {
    * the status is derived from the progress of its children.
    */
   getStatus(taskId: string): Status {
-    const progress = this.getProgress(taskId);
-    if (progress.done === progress.total) {
-      return "Done";
-    } else if (progress.inProgress > 0 || progress.done > 0) {
-      return "In Progress";
-    } else {
-      return "Not Started";
-    }
+    return this.getProgress(taskId).status;
   }
 
   /**
@@ -561,24 +563,31 @@ export class Koso {
       done: 0,
       total: 0,
       lastStatusTime: task.statusTime ?? 0,
+      kind:
+        task.yKind == "Juggled" && task.children.length === 0
+          ? null
+          : task.yKind || (task.children.length > 0 ? "Rollup" : null),
     });
 
-    if (task.children.length === 0 || task.kind === "Juggled") {
-      switch (task.status || "Not Started") {
+    if (result.kind !== "Rollup") {
+      switch (task.yStatus || "Not Started") {
         case "Done":
           result.done = 1;
           result.total = 1;
+          result.status = "Done";
           break;
         case "In Progress":
           result.inProgress = 1;
           result.total = 1;
+          result.status = "In Progress";
           break;
         case "Not Started":
           result.total = 1;
+          result.status = "Not Started";
           break;
         default:
           throw new Error(
-            `Invalid status ${task.status} for task ${task.name}`,
+            `Invalid status ${task.yStatus} for task ${task.name}`,
           );
       }
     }
@@ -595,6 +604,20 @@ export class Koso {
         childProgress.lastStatusTime,
       );
     });
+    if (result.kind === "Rollup") {
+      if (result.done === result.total) {
+        result.status = "Done";
+      } else if (result.inProgress > 0 || result.done > 0) {
+        result.status = "In Progress";
+      } else {
+        result.status = "Not Started";
+      }
+    } else if (result.kind === "Juggled") {
+      if (result.status !== "Done" && result.done !== result.total - 1) {
+        result.status = "Blocked";
+      }
+    }
+
     return result;
   }
 
@@ -978,7 +1001,7 @@ export class Koso {
    * property.
    */
   isManagedTask(taskId: string): boolean {
-    const kind = this.getTask(taskId).kind;
+    const kind = this.getTask(taskId).yKind;
     return !!kind && !unmanagedKinds.includes(kind);
   }
 
@@ -1003,7 +1026,7 @@ export class Koso {
    * example.
    */
   #isCanonicalManagedLink(task: string, parent: string): boolean {
-    const kind = this.getTask(task).kind;
+    const kind = this.getTask(task).yKind;
     if (!kind || unmanagedKinds.includes(kind)) {
       return false;
     }
@@ -1402,24 +1425,31 @@ export class Koso {
     });
   }
 
-  setKind(taskId: string, kind: Kind | null) {
+  setKind(taskId: string, kind: Kind, user: User) {
     this.doc.transact(() => {
       const task = this.getTask(taskId);
-      if (kind === null && task.kind !== null) {
-        task.kind = null;
-      } else if (kind && kind !== task.kind) {
-        task.kind = kind;
+      const newKind = kind === "Rollup" ? null : kind;
+      if (task.yKind === newKind) return;
+
+      task.yKind = newKind;
+      if (kind === "Juggled") {
+        task.yStatus = "Not Started";
+        task.statusTime = Date.now();
+        task.assignee = user.email;
+      } else if (kind === "Rollup") {
+        task.yStatus = null;
+        task.statusTime = Date.now();
       }
     });
   }
 
-  setTaskStatus(node: Node, status: Status, user: User) {
+  setTaskStatus(node: Node, status: YStatus, user: User) {
     const taskId = node.name;
     this.doc.transact(() => {
       const task = this.getTask(taskId);
-      if (task.status === status) return;
+      if (task.yStatus === status) return;
 
-      task.status = status;
+      task.yStatus = status;
       task.statusTime = Date.now();
       // When a task is marked done, make it the last child
       // and select an adjacent peer.
@@ -1467,7 +1497,7 @@ export class Koso {
   #defaultIsVisible(node: Node) {
     if (!this.showDone) {
       const progress = this.getProgress(node.name);
-      if (progress.total === progress.done) {
+      if (progress.isComplete()) {
         const doneTime = progress.lastStatusTime;
         const threeDays = 3 * 24 * 60 * 60 * 1000;
         return Date.now() - doneTime < threeDays;

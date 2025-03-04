@@ -22,14 +22,16 @@ export type Task = {
   statusTime: number | null;
   // The kind of task, either directly associated with Koso
   // or a plugin. e.g. github.
-  kind: string | null;
+  kind: Kind | null;
   // URL associated with the task. Typically provided by a plugin
   // to associate this task with some external entity.
   // e.g. a Github PR URL.
   url: string | null;
 };
-export type Status = "Not Started" | "In Progress" | "Done";
-export type Kind = "Rollup" | "Juggled" | "github" | "github_pr";
+export type Status = YStatus | "Blocked";
+export type YStatus = "Not Started" | "In Progress" | "Done";
+export type Kind = YKind | "Rollup";
+export type YKind = "Juggled" | "github" | "github_pr";
 export const unmanagedKinds: Set<Kind> = Set.of("Rollup", "Juggled");
 
 export type Slice = {
@@ -152,11 +154,11 @@ export class YTaskProxy {
     this.#yTask.set("reporter", value);
   }
 
-  get status(): Status | null {
-    return (this.#yTask.get("status") as Status) || null;
+  get yStatus(): YStatus | null {
+    return (this.#yTask.get("status") as YStatus) || null;
   }
 
-  set status(value: Status | null) {
+  set yStatus(value: YStatus | null) {
     this.#yTask.set("status", value);
   }
 
@@ -168,11 +170,11 @@ export class YTaskProxy {
     this.#yTask.set("statusTime", value);
   }
 
-  get kind(): Kind | null {
-    return (this.#yTask.get("kind") as Kind) || null;
+  get yKind(): YKind | null {
+    return (this.#yTask.get("kind") as YKind) || null;
   }
 
-  set kind(value: Kind | null) {
+  set yKind(value: YKind | null) {
     this.#yTask.set("kind", value);
   }
 

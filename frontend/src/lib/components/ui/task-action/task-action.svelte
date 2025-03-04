@@ -3,14 +3,8 @@
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import type { Koso, Node } from "$lib/dag-table";
   import { CANCEL } from "$lib/shortcuts";
-  import { unmanagedKinds, type Kind, type Status } from "$lib/yproxy";
-  import {
-    Bot,
-    Check,
-    CircleCheck,
-    LoaderCircle,
-    OctagonPause,
-  } from "lucide-svelte";
+  import { unmanagedKinds, type Kind, type YStatus } from "$lib/yproxy";
+  import { Bot, Check, CircleCheck, LoaderCircle } from "lucide-svelte";
   import { tick } from "svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../../../kosui/progress";
@@ -18,7 +12,7 @@
   import DropdownMenuSeparator from "../dropdown-menu/dropdown-menu-separator.svelte";
   import { ResponsiveText } from "../responsive-text";
 
-  const statuses: Status[] = ["Not Started", "In Progress", "Done"];
+  const statuses: YStatus[] = ["Not Started", "In Progress", "Done"];
 
   type Props = {
     node: Node;
@@ -31,45 +25,33 @@
 
   let task = $derived(koso.getTask(node.name));
   let progress = $derived(koso.getProgress(task.id));
-  let blocked = $derived(
-    task.status !== "Done" &&
-      task.kind === "Juggled" &&
-      progress.done !== progress.total - 1,
-  );
   let canSetStatus = $derived(
     koso.isEditable(task.id) &&
-      !blocked &&
-      (task.children.length === 0 || task.kind === "Juggled"),
+      !progress.isBlocked() &&
+      progress.kind !== "Rollup",
   );
   let canSetKind = $derived(
-    koso.isEditable(task.id) && task.children.length > 0,
-  );
-  let rollupProgress = $derived(
-    (!task.kind && task.children.length > 0) || task.kind === "Rollup"
-      ? progress
-      : null,
+    koso.isEditable(task.id) &&
+      (progress.kind === "Rollup" || progress.kind === "Juggled"),
   );
 
   function handleOnSelectKind(kind: Kind) {
-    koso.setKind(task.id, kind);
-    if (kind === "Juggled") {
-      task.status = "Not Started";
-      task.statusTime = Date.now();
-      task.assignee = auth.user.email;
-    }
+    if (progress.kind === kind) return;
+    koso.setKind(task.id, kind, auth.user);
   }
 
-  function handleOnSelectStatus(status: Status) {
+  function handleOnSelectStatus(status: YStatus) {
+    if (progress.status === status) return;
     if (status === "Done") showDoneConfetti();
     koso.setTaskStatus(node, status, auth.user);
   }
 
   function triggerTitle() {
-    if (!rollupProgress) {
-      return `${task.status || "Not Started"}${task.statusTime ? ` - ${new Date(task.statusTime).toLocaleString()}` : ""}`;
+    if (progress.kind !== "Rollup") {
+      return `${progress.status}${progress.lastStatusTime ? ` - ${new Date(progress.lastStatusTime).toLocaleString()}` : ""}`;
     }
-    return `${rollupProgress.done} of ${rollupProgress.total} (${Math.round(
-      (rollupProgress.done * 100) / rollupProgress.total,
+    return `${progress.done} of ${progress.total} (${Math.round(
+      (progress.done * 100) / progress.total,
     )}%)`;
   }
 
@@ -105,28 +87,25 @@
     disabled={!canSetStatus && !canSetKind}
     aria-label="task-status"
   >
-    {#if rollupProgress}
-      {#if rollupProgress.done === rollupProgress.total}
+    {#if progress.kind === "Rollup"}
+      {#if progress.status === "Done"}
         <CircleCheck color="hsl(var(--primary))" />
         <ResponsiveText>Done</ResponsiveText>
-      {:else if rollupProgress.done === 0 && rollupProgress.inProgress == 0}
+      {:else if progress.status === "Not Started"}
         <CircularProgress progress={0} color="hsl(var(--primary))" />
         <ResponsiveText>Not Started</ResponsiveText>
       {:else}
         <CircularProgress
-          progress={rollupProgress.done / rollupProgress.total}
+          progress={progress.done / progress.total}
           color="hsl(var(--primary))"
         >
-          {Math.round((rollupProgress.done * 100) / rollupProgress.total)}%
+          {Math.round((progress.done * 100) / progress.total)}%
         </CircularProgress>
         <ResponsiveText>In Progress</ResponsiveText>
       {/if}
-    {:else if blocked}
-      <OctagonPause class="text-m3-primary" />
-      <ResponsiveText>Blocked</ResponsiveText>
     {:else}
-      <TaskStatusIcon status={task.status} />
-      <ResponsiveText>{task.status || "Not Started"}</ResponsiveText>
+      <TaskStatusIcon status={progress.status} />
+      <ResponsiveText>{progress.status}</ResponsiveText>
     {/if}
   </DropdownMenu.Trigger>
   <div
@@ -168,7 +147,7 @@
               <Bot class="text-m3-primary" />
             {/if}
             {kind}
-            {#if task.kind === kind}
+            {#if progress.kind === kind}
               <Check class="ml-auto" />
             {/if}
           </DropdownMenu.Item>

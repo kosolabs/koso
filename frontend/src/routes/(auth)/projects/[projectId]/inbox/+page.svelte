@@ -40,19 +40,7 @@
       return false;
     }
     const progress = koso.getProgress(task.id);
-    if (progress.isComplete()) {
-      return false;
-    }
-    // Only show actionable juggled tasks.
-    if (task.kind === "Juggled") {
-      if (task.status === "Done") {
-        return false;
-      }
-      const blocked = progress.done !== progress.total - 1;
-      return !blocked;
-    }
-
-    return true;
+    return !progress.isComplete() && !progress.isBlocked();
   }
 
   function flatten(): List<Node> {

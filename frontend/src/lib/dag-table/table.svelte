@@ -140,13 +140,18 @@
       return;
     }
 
-    if (task.status === "Done") {
-      return;
-    } else if (task.status === "In Progress") {
-      getRow(koso.selected).showDoneConfetti();
-      koso.setTaskStatus(koso.selected, "Done", auth.user);
-    } else {
-      koso.setTaskStatus(koso.selected, "In Progress", auth.user);
+    switch (task.yStatus || "Not Started") {
+      case "Done":
+        return;
+      case "In Progress":
+        getRow(koso.selected).showDoneConfetti();
+        koso.setTaskStatus(koso.selected, "Done", auth.user);
+        break;
+      case "Not Started":
+        koso.setTaskStatus(koso.selected, "In Progress", auth.user);
+        break;
+      default:
+        throw new Error(`Unhandled status ${task.yStatus}`);
     }
   }
 
