@@ -407,7 +407,7 @@
   <td class={cn("w-full border-t border-l px-2 py-1")}>
     <div class={cn("flex items-center gap-x-1")}>
       {#if koso.isManagedTask(task.id)}
-        <ManagedTaskIcon kind={task.kind ?? ""} />
+        <ManagedTaskIcon kind={task.yKind ?? ""} />
       {/if}
       <div class="flex w-full flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}

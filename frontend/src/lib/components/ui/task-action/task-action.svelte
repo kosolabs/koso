@@ -39,7 +39,7 @@
     koso.doc.transact(() => {
       koso.setKind(task.id, kind);
       if (kind === "Juggled") {
-        task.status = "Not Started";
+        task.yStatus = "Not Started";
         task.statusTime = Date.now();
         task.assignee = auth.user.email;
       }

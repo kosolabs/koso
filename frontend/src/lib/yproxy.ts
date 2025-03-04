@@ -152,11 +152,11 @@ export class YTaskProxy {
     this.#yTask.set("reporter", value);
   }
 
-  get status(): Status | null {
-    return (this.#yTask.get("status") as Status) || null;
+  get yStatus(): Exclude<Status, "Blocked"> | null {
+    return (this.#yTask.get("status") as Exclude<Status, "Blocked">) || null;
   }
 
-  set status(value: Exclude<Status, "Blocked"> | null) {
+  set yStatus(value: Exclude<Status, "Blocked"> | null) {
     this.#yTask.set("status", value);
   }
 
@@ -168,11 +168,11 @@ export class YTaskProxy {
     this.#yTask.set("statusTime", value);
   }
 
-  get kind(): Kind | null {
+  get yKind(): Kind | null {
     return (this.#yTask.get("kind") as Kind) || null;
   }
 
-  set kind(value: Exclude<Kind, "Rollup"> | null) {
+  set yKind(value: Exclude<Kind, "Rollup"> | null) {
     this.#yTask.set("kind", value);
   }
 

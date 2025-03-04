@@ -140,7 +140,7 @@
       return;
     }
 
-    switch (task.status || "Not Started") {
+    switch (task.yStatus || "Not Started") {
       case "Done":
         return;
       case "In Progress":
@@ -151,7 +151,7 @@
         koso.setTaskStatus(koso.selected, "In Progress", auth.user);
         break;
       default:
-        throw new Error(`Unhandled status ${task.status}`);
+        throw new Error(`Unhandled status ${task.yStatus}`);
     }
   }
 

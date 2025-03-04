@@ -562,11 +562,11 @@ export class Koso {
       done: 0,
       total: 0,
       lastStatusTime: task.statusTime ?? 0,
-      kind: task.kind || (task.children.length > 0 ? "Rollup" : null),
+      kind: task.yKind || (task.children.length > 0 ? "Rollup" : null),
     });
 
     if (result.kind !== "Rollup") {
-      switch (task.status || "Not Started") {
+      switch (task.yStatus || "Not Started") {
         case "Done":
           result.done = 1;
           result.total = 1;
@@ -583,7 +583,7 @@ export class Koso {
           break;
         default:
           throw new Error(
-            `Invalid status ${task.status} for task ${task.name}`,
+            `Invalid status ${task.yStatus} for task ${task.name}`,
           );
       }
     }
@@ -997,7 +997,7 @@ export class Koso {
    * property.
    */
   isManagedTask(taskId: string): boolean {
-    const kind = this.getTask(taskId).kind;
+    const kind = this.getTask(taskId).yKind;
     return !!kind && !unmanagedKinds.includes(kind);
   }
 
@@ -1022,7 +1022,7 @@ export class Koso {
    * example.
    */
   #isCanonicalManagedLink(task: string, parent: string): boolean {
-    const kind = this.getTask(task).kind;
+    const kind = this.getTask(task).yKind;
     if (!kind || unmanagedKinds.includes(kind)) {
       return false;
     }
@@ -1425,10 +1425,10 @@ export class Koso {
     kind = kind === "Rollup" ? null : kind;
     this.doc.transact(() => {
       const task = this.getTask(taskId);
-      if (kind === null && task.kind !== null) {
-        task.kind = null;
-      } else if (kind && kind !== task.kind) {
-        task.kind = kind;
+      if (kind === null && task.yKind !== null) {
+        task.yKind = null;
+      } else if (kind && kind !== task.yKind) {
+        task.yKind = kind;
       }
     });
   }
@@ -1439,9 +1439,9 @@ export class Koso {
     const taskId = node.name;
     this.doc.transact(() => {
       const task = this.getTask(taskId);
-      if (task.status === status) return;
+      if (task.yStatus === status) return;
 
-      task.status = status;
+      task.yStatus = status;
       task.statusTime = Date.now();
       // When a task is marked done, make it the last child
       // and select an adjacent peer.
