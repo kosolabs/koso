@@ -5,10 +5,11 @@
   const paths: string[] = [
     "/storybook/alerts",
     "/storybook/avatar",
-    "/storybook/buttons-and-links",
+    "/storybook/buttons",
     "/storybook/chips",
     "/storybook/dialogs",
     "/storybook/inputs",
+    "/storybook/links",
     "/storybook/menus",
     "/storybook/progress-indicators",
     "/storybook/shortcuts",
