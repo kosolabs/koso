@@ -20,6 +20,7 @@
     strategy?: floatingUi.Strategy;
     open?: boolean;
     anchorEl?: HTMLElement;
+    onKeydownWhileOpen?: (event: KeyboardEvent) => void;
     children: Snippet;
   } & ClassName &
     ElementRef &
@@ -34,6 +35,7 @@
     open = $bindable(false),
     anchorEl,
     children,
+    onKeydownWhileOpen,
     el: popoverEl = $bindable(),
     ref = noop,
     class: className,
@@ -75,16 +77,15 @@
     if (popoverEl) {
       popoverEl.showPopover();
       events.on("keydown", handleEscape);
+      events.on("keydown", onKeydownWhileOpen);
       events.on("mousedown", handleClickOutside);
-    } else {
-      events.remove("keydown", handleEscape);
-      events.remove("mousedown", handleClickOutside);
-    }
 
-    return () => {
-      events.remove("keydown", handleEscape);
-      events.remove("mousedown", handleClickOutside);
-    };
+      return () => {
+        events.remove("keydown", handleEscape);
+        events.remove("keydown", onKeydownWhileOpen);
+        events.remove("mousedown", handleClickOutside);
+      };
+    }
   });
 
   $effect(() => {
