@@ -1,6 +1,7 @@
 import type { EventHandler } from "svelte/elements";
 import { on } from "svelte/events";
 import { runEventHandlers } from "./merge-props";
+import { noop } from "./utils";
 
 type EventType = keyof DocumentEventMap;
 
@@ -18,7 +19,8 @@ export class EventManager {
   #listeners: { [K in EventType]?: Listener<K>[] } = {};
   #destroyers: { [K in EventType]?: () => void } = {};
 
-  on<K extends EventType>(type: K, listener: Listener<K>) {
+  on<K extends EventType>(type: K, listener?: Listener<K>) {
+    if (listener === undefined) return noop;
     this.#listeners[type] ??= [];
     if (this.#listeners[type].length === 0) {
       this.#destroyers[type] = on(document, type, (event) => {
@@ -33,8 +35,8 @@ export class EventManager {
     return () => this.remove(type, listener);
   }
 
-  remove<K extends EventType>(type: K, listener: Listener<K>) {
-    if (this.#listeners[type] === undefined) {
+  remove<K extends EventType>(type: K, listener?: Listener<K>) {
+    if (listener === undefined || this.#listeners[type] === undefined) {
       return;
     }
     const index = this.#listeners[type].indexOf(listener);

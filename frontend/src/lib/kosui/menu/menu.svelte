@@ -2,9 +2,8 @@
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
   import type { Menu } from ".";
-  import { events } from "..";
   import { baseClasses, type Variants } from "../base";
-  import { mergeProps } from "../merge-props";
+  import { mergeComponentProps } from "../merge-props";
   import { Popover, type PopoverProps } from "../popover";
   import { Shortcut } from "../shortcut";
   import { TypingBuffer, type ClassName } from "../utils";
@@ -118,16 +117,6 @@
     }
   }
 
-  $effect(() => {
-    if (open) {
-      events.on("keydown", handleKeyDown);
-    } else {
-      events.remove("keydown", handleKeyDown);
-    }
-
-    return () => events.remove("keydown", handleKeyDown);
-  });
-
   const self: Menu = { close, focus, register, unregister };
 </script>
 
@@ -146,10 +135,11 @@
     "bg-m3-surface-container-highest max-h-[40%] border p-1 shadow",
     className,
   )}
-  {...mergeProps(restProps, {
+  {placement}
+  {anchorEl}
+  {...mergeComponentProps(Popover, restProps, {
     onmouseleave: blur,
-    placement,
-    anchorEl,
+    onKeydownWhileOpen: handleKeyDown,
   })}
 >
   {@render content(self)}

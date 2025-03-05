@@ -1,3 +1,4 @@
+import type { Component, ComponentProps } from "svelte";
 import type { EventHandler } from "svelte/elements";
 import { twMerge, type ClassNameValue } from "tailwind-merge";
 
@@ -118,4 +119,12 @@ export function mergeProps<T extends Props[]>(...args: [...T]): PropsUnion<T> {
   }
 
   return result as PropsUnion<T>;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mergeComponentProps<C extends Component<any>>(
+  _component: C,
+  ...args: Partial<ComponentProps<C>>[]
+): Partial<ComponentProps<C>> {
+  return mergeProps(...args) as Partial<ComponentProps<C>>;
 }
