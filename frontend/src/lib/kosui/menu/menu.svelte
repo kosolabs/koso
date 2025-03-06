@@ -8,12 +8,19 @@
   import { Shortcut } from "../shortcut";
   import { TypingBuffer, type ClassName } from "../utils";
 
+  export type MenuTriggerProps = {
+    ref: (el: HTMLElement) => void;
+    onclick: () => void;
+  };
+
+  export type MenuItemProps = {
+    menu: Menu;
+  };
+
   export type MenuProps = {
     uncontrolled?: boolean;
-    trigger?: Snippet<
-      [{ ref: (el: HTMLElement) => void; onclick: () => void }]
-    >;
-    content: Snippet<[Menu]>;
+    trigger?: Snippet<[MenuTriggerProps]>;
+    content: Snippet<[MenuItemProps]>;
   } & ClassName &
     Variants &
     Omit<PopoverProps, "children">;
@@ -117,7 +124,7 @@
     }
   }
 
-  const self: Menu = { close, focus, register, unregister };
+  const menu: Menu = { close, focus, register, unregister };
 </script>
 
 {#if trigger}
@@ -142,5 +149,5 @@
     onKeydownWhileOpen: handleKeyDown,
   })}
 >
-  {@render content(self)}
+  {@render content({ menu })}
 </Popover>

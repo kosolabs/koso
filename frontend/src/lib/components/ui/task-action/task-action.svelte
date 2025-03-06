@@ -69,7 +69,6 @@
   }
 
   function handleKeyDown(event: KeyboardEvent) {
-    console.log(event);
     if (Shortcut.ESCAPE.matches(event)) {
       statusElement?.blur();
       event.stopImmediatePropagation();
@@ -78,15 +77,15 @@
 </script>
 
 <Menu bind:open>
-  {#snippet trigger(props)}
+  {#snippet trigger(menuTriggerProps)}
     <MenuTrigger
       bind:el={statusElement}
-      class="rounded-m3 focus:ring-m3-primary flex items-center gap-2 focus-visible:ring-1 focus-visible:outline-hidden"
+      class="rounded-m3 focus:ring-m3-primary flex w-full items-center gap-2 focus-visible:ring-1 focus-visible:outline-hidden"
       title={triggerTitle()}
       aria-label="task-status"
       disabled={!canSetStatus && !canSetKind}
       onkeydown={handleKeyDown}
-      {...props}
+      {...menuTriggerProps}
     >
       {#if progress.kind === "Rollup"}
         {#if progress.status === "Done"}
@@ -110,13 +109,13 @@
       {/if}
     </MenuTrigger>
   {/snippet}
-  {#snippet content(menuRef)}
+  {#snippet content(menuItemProps)}
     {#if canSetStatus}
       {#each statuses as status (status)}
         <MenuItem
-          {menuRef}
           class="flex items-center gap-2 rounded text-sm"
           onSelect={() => handleOnSelectStatus(status)}
+          {...menuItemProps}
         >
           <TaskStatusIcon {status} />
           {status}
@@ -129,9 +128,9 @@
     {#if canSetKind}
       {#each unmanagedKinds as kind (kind)}
         <MenuItem
-          {menuRef}
           class="flex items-center gap-2 rounded text-sm"
           onSelect={() => handleOnSelectKind(kind)}
+          {...menuItemProps}
         >
           {#if kind === "Rollup"}
             <LoaderCircle class="text-m3-primary" />
