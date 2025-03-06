@@ -106,4 +106,6 @@ export class Shortcut {
   static ESCAPE = new Shortcut({ key: "Escape" });
   static HOME = new Shortcut({ key: "Home" });
   static SPACE = new Shortcut({ key: " " });
+  static TAB_BACKWARD = new Shortcut({ key: "Tab", shift: true });
+  static TAB_FORWARD = new Shortcut({ key: "Tab" });
 }

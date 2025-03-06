@@ -42,6 +42,12 @@
       >
         Item 2
       </MenuItem>
+      <MenuItem
+        onSelect={() => console.log("delegated item 3")}
+        {...menuItemProps}
+      >
+        Item 3
+      </MenuItem>
     {/snippet}
   </Menu>
 </div>

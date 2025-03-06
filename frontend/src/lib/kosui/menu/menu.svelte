@@ -1,7 +1,6 @@
 <script module lang="ts">
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
-  import type { Menu } from ".";
   import { baseClasses, type Variants } from "../base";
   import { mergeComponentProps } from "../merge-props";
   import { Popover, type PopoverProps } from "../popover";
@@ -14,7 +13,11 @@
   };
 
   export type MenuItemProps = {
-    menu: Menu;
+    ref: (el: HTMLElement) => void;
+    unref: (el: HTMLElement) => void;
+    onclick: () => void;
+    onmouseenter: (event: MouseEvent) => void;
+    onfocus: (event: FocusEvent) => void;
   };
 
   export type MenuProps = {
@@ -49,13 +52,13 @@
     anchorEl?.focus();
   }
 
-  export function close() {
+  function close() {
     if (uncontrolled) return;
     open = false;
     focusAnchor();
   }
 
-  export function focus(menuItem?: HTMLElement) {
+  function focus(menuItem?: HTMLElement) {
     if (!menuItem) return;
     focusedItem = menuItem;
     focusedItem.focus();
@@ -66,12 +69,12 @@
     focusedItem = undefined;
   }
 
-  export function register(menuItem?: HTMLElement) {
+  function register(menuItem?: HTMLElement) {
     if (!menuItem) return;
     menuItems.push(menuItem);
   }
 
-  export function unregister(menuItem?: HTMLElement) {
+  function unregister(menuItem?: HTMLElement) {
     if (!menuItem) return;
     const index = menuItems.indexOf(menuItem);
     if (index !== -1) {
@@ -79,9 +82,28 @@
     }
   }
 
+  function handleSelect() {
+    close();
+  }
+
+  function handleMouseEnter(event: MouseEvent) {
+    if (event.target instanceof HTMLElement) {
+      focus(event.target);
+    }
+  }
+
+  function handleFocus(event: FocusEvent) {
+    if (event.target instanceof HTMLElement) {
+      focus(event.target);
+    }
+  }
+
   function handleKeyDown(event: KeyboardEvent) {
     if (!menuItems) return;
-    if (Shortcut.ARROW_UP.matches(event)) {
+    if (
+      Shortcut.ARROW_UP.matches(event) ||
+      Shortcut.TAB_BACKWARD.matches(event)
+    ) {
       if (!focusedItem) {
         focus(menuItems[menuItems.length - 1]);
       } else {
@@ -91,7 +113,10 @@
       }
       event.preventDefault();
       event.stopImmediatePropagation();
-    } else if (Shortcut.ARROW_DOWN.matches(event)) {
+    } else if (
+      Shortcut.ARROW_DOWN.matches(event) ||
+      Shortcut.TAB_FORWARD.matches(event)
+    ) {
       if (!focusedItem) {
         focus(menuItems[0]);
       } else {
@@ -124,7 +149,11 @@
     }
   }
 
-  const menu: Menu = { close, focus, register, unregister };
+  $effect(() => {
+    if (!open) {
+      menuItems = [];
+    }
+  });
 </script>
 
 {#if trigger}
@@ -149,5 +178,11 @@
     onKeydownWhileOpen: handleKeyDown,
   })}
 >
-  {@render content({ menu })}
+  {@render content({
+    ref: register,
+    unref: unregister,
+    onclick: handleSelect,
+    onmouseenter: handleMouseEnter,
+    onfocus: handleFocus,
+  })}
 </Popover>
