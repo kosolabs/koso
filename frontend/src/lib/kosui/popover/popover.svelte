@@ -45,7 +45,6 @@
   let arrowEl: HTMLDivElement | undefined = $state();
 
   function handleEscape(event: KeyboardEvent) {
-    console.log(event);
     if (popoverEl && Shortcut.ESCAPE.matches(event)) {
       popoverEl.hidePopover();
       anchorEl?.focus();
@@ -136,8 +135,6 @@
       }
     }
   }
-
-  const mergedProps = $derived(mergeProps(restProps, { ontoggle }));
 </script>
 
 {#if open}
@@ -147,7 +144,7 @@
     popover="manual"
     class={twMerge(className)}
     transition:scale={{ duration: 150, start: 0.95 }}
-    {...mergedProps}
+    {...mergeProps(restProps, { ontoggle })}
   >
     {@render children()}
     <div

@@ -9,25 +9,37 @@
 <div class="flex flex-wrap items-center gap-2 rounded-lg border p-4">
   <Button bind:el onclick={() => (open = true)}>Controlled</Button>
   <Menu bind:open anchorEl={el}>
-    {#snippet content(menuRef)}
-      <MenuItem {menuRef} onSelect={() => console.log("controlled item 1")}>
+    {#snippet content(menuItemProps)}
+      <MenuItem
+        onSelect={() => console.log("controlled item 1")}
+        {...menuItemProps}
+      >
         Item 1
       </MenuItem>
-      <MenuItem {menuRef} onSelect={() => console.log("controlled item 2")}>
+      <MenuItem
+        onSelect={() => console.log("controlled item 2")}
+        {...menuItemProps}
+      >
         Item 2
       </MenuItem>
     {/snippet}
   </Menu>
 
   <Menu>
-    {#snippet trigger(props)}
-      <Button {...props}>Render Delegated</Button>
+    {#snippet trigger(menuTriggerProps)}
+      <Button {...menuTriggerProps}>Render Delegated</Button>
     {/snippet}
-    {#snippet content(menuRef)}
-      <MenuItem {menuRef} onSelect={() => console.log("delegated item 1")}>
+    {#snippet content(menuItemProps)}
+      <MenuItem
+        onSelect={() => console.log("delegated item 1")}
+        {...menuItemProps}
+      >
         Item 1
       </MenuItem>
-      <MenuItem {menuRef} onSelect={() => console.log("delegated item 2")}>
+      <MenuItem
+        onSelect={() => console.log("delegated item 2")}
+        {...menuItemProps}
+      >
         Item 2
       </MenuItem>
     {/snippet}

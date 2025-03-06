@@ -8,7 +8,7 @@
   import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type MenuItemProps = {
-    menuRef: Menu;
+    menu: Menu;
     onSelect?: () => void;
     closeOnSelect?: boolean;
     children: Snippet<[]>;
@@ -20,7 +20,7 @@
 
 <script lang="ts">
   let {
-    menuRef,
+    menu,
     onSelect,
     children,
     closeOnSelect = true,
@@ -35,15 +35,15 @@
 
   function handleSelect() {
     if (closeOnSelect) {
-      menuRef.close();
+      menu.close();
     }
     onSelect?.();
   }
 
   $effect(() => {
     if (el) {
-      menuRef.register(el);
-      return () => menuRef.unregister(el);
+      menu.register(el);
+      return () => menu.unregister(el);
     }
   });
 </script>
@@ -59,8 +59,8 @@
   )}
   {...mergeProps(restProps, {
     onclick: handleSelect,
-    onmouseenter: () => menuRef.focus(el),
-    onfocus: () => menuRef.focus(el),
+    onmouseenter: () => menu.focus(el),
+    onfocus: () => menu.focus(el),
   })}
 >
   {@render children()}

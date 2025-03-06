@@ -156,14 +156,14 @@
       }}
       class="w-[min(calc(100%-1em),32em)] max-w-full"
     >
-      {#snippet content(menuRef)}
+      {#snippet content(menuItemProps)}
         {#each users as user (user.email)}
           <MenuItem
-            {menuRef}
             onSelect={() => {
               wantSearchResultsOpen = false;
               addUser(user);
             }}
+            {...menuItemProps}
           >
             <UserAvatar {user} />
           </MenuItem>

@@ -1,11 +1,8 @@
 <script lang="ts">
   import type { User } from "$lib/auth.svelte";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Avatar } from "$lib/kosui/avatar";
-  import { Input } from "$lib/kosui/input";
-  import { CANCEL } from "$lib/shortcuts";
+  import { Menu, MenuItem, MenuTrigger } from "$lib/kosui/menu";
   import { UserRound } from "lucide-svelte";
-  import { tick } from "svelte";
   import { UserAvatar } from ".";
   import ResponsiveText from "../responsive-text/responsive-text.svelte";
 
@@ -14,7 +11,6 @@
     value: User | null;
     unassigned?: string;
     editable?: boolean;
-    onOpenChange?: (open: boolean) => void;
     onSelect?: (select: User | null) => void;
   };
   let {
@@ -22,11 +18,8 @@
     value = null,
     unassigned = "Unassigned",
     editable = true,
-    onOpenChange,
     onSelect,
   }: Props = $props();
-
-  let filter: string = $state("");
 
   function select(user: User | null) {
     value = user;
@@ -37,62 +30,31 @@
 </script>
 
 {#if editable}
-  <DropdownMenu.Root
-    bind:open={
-      () => open,
-      (newOpen) => {
-        onOpenChange?.(newOpen);
-        tick().then(() => (open = newOpen));
-      }
-    }
-  >
-    <DropdownMenu.Trigger
-      class="flex items-center gap-2"
-      title={value?.email || "Unassigned"}
-    >
-      <Avatar class="size-6" src={value?.picture || ""} alt={value?.email}>
-        <UserRound size={20} />
-      </Avatar>
-      <ResponsiveText>{value?.name || unassigned}</ResponsiveText>
-    </DropdownMenu.Trigger>
-    <div
-      role="none"
-      onkeydown={(event) => {
-        if (CANCEL.matches(event)) {
-          open = false;
-        }
-        event.stopPropagation();
-      }}
-    >
-      <DropdownMenu.Content
-        class="min-w-64"
-        portalProps={{ disabled: true }}
-        preventScroll={false}
+  <Menu bind:open>
+    {#snippet trigger(menuTriggerProps)}
+      <MenuTrigger
+        class="flex items-center gap-2"
+        title={value?.email || "Unassigned"}
+        {...menuTriggerProps}
       >
-        <DropdownMenu.Label>
-          <Input
-            bind:value={filter}
-            class="w-full"
-            placeholder="Filter users"
-            name="Filter users"
-          />
-        </DropdownMenu.Label>
-        <DropdownMenu.Separator />
-        <DropdownMenu.Group class="max-h-64 overflow-y-auto">
-          <DropdownMenu.Item onSelect={() => select(null)}>
-            <UserAvatar
-              user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
-            />
-          </DropdownMenu.Item>
-          {#each users as user (user.email)}
-            <DropdownMenu.Item onSelect={() => select(user)}>
-              <UserAvatar {user} />
-            </DropdownMenu.Item>
-          {/each}
-        </DropdownMenu.Group>
-      </DropdownMenu.Content>
-    </div>
-  </DropdownMenu.Root>
+        <Avatar class="size-6" src={value?.picture || ""} alt={value?.email}>
+          <UserRound size={20} />
+        </Avatar>
+        <ResponsiveText>{value?.name || unassigned}</ResponsiveText>
+      </MenuTrigger>
+    {/snippet}
+    {#snippet content(menuItemProps)}
+      <MenuItem onSelect={() => select(null)} {...menuItemProps}>
+        <UserAvatar
+          user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
+        />
+      </MenuItem>
+      {#each users as user (user.email)}
+        <MenuItem onSelect={() => select(user)} {...menuItemProps}>
+          <UserAvatar {user} />
+        </MenuItem>
+      {/each}{/snippet}
+  </Menu>
 {:else}
   <div class="flex items-center gap-2" title={value?.email || "Unassigned"}>
     <Avatar class="size-6" src={value?.picture || ""} alt={value?.email}>
