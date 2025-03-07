@@ -24,6 +24,15 @@
       "matchStrings": ["use-node-version=(?<currentValue>.*?)\\n"],
       "depNameTemplate": "node",
       "datasourceTemplate": "node-version"
+    },
+    {
+      "description": "Update crate versions installed by Cargo in Dockerfiles",
+      "customType": "regex",
+      "fileMatch": ["(^|/)([^/]+\\.)?Dockerfile$"],
+      "matchStrings": [
+        "cargo install\\s+(?<depName>\\S+)@(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "crate"
     }
   ],
   "lockFileMaintenance": {
