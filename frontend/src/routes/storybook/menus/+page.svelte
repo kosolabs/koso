@@ -34,19 +34,19 @@
         onSelect={() => console.log("delegated item 1")}
         {...menuItemProps}
       >
-        Item 1
+        1st Item
       </MenuItem>
       <MenuItem
         onSelect={() => console.log("delegated item 2")}
         {...menuItemProps}
       >
-        Item 2
+        2nd Item
       </MenuItem>
       <MenuItem
         onSelect={() => console.log("delegated item 3")}
         {...menuItemProps}
       >
-        Item 3
+        3rd Item
       </MenuItem>
     {/snippet}
   </Menu>

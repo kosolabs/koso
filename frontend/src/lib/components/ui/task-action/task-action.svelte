@@ -2,6 +2,7 @@
   import { auth } from "$lib/auth.svelte";
   import type { Koso, Node } from "$lib/dag-table";
   import { Menu, MenuItem, MenuTrigger } from "$lib/kosui/menu";
+  import { mergeProps } from "$lib/kosui/merge-props";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { unmanagedKinds, type Kind, type YStatus } from "$lib/yproxy";
   import { Bot, Check, CircleCheck, LoaderCircle } from "lucide-svelte";
@@ -84,8 +85,7 @@
       title={triggerTitle()}
       aria-label="task-status"
       disabled={!canSetStatus && !canSetKind}
-      onkeydown={handleKeyDown}
-      {...menuTriggerProps}
+      {...mergeProps(menuTriggerProps, { onkeydown: handleKeyDown })}
     >
       {#if progress.kind === "Rollup"}
         {#if progress.status === "Done"}

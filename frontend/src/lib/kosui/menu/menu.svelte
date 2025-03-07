@@ -5,19 +5,25 @@
   import { mergeComponentProps } from "../merge-props";
   import { Popover, type PopoverProps } from "../popover";
   import { Shortcut } from "../shortcut";
-  import { TypingBuffer, type ClassName } from "../utils";
+  import { TypingBuffer, uid, type ClassName } from "../utils";
 
   export type MenuTriggerProps = {
     ref: (el: HTMLElement) => void;
-    onclick: () => void;
+    onclick: (event: MouseEvent) => void;
+    onkeydown: (event: KeyboardEvent) => void;
+    "aria-controls": string;
+    "aria-haspopup": "menu";
+    "aria-expanded": boolean;
   };
 
   export type MenuItemProps = {
     ref: (el: HTMLElement) => void;
     unref: (el: HTMLElement) => void;
-    onclick: () => void;
+    onclick: (event: MouseEvent) => void;
     onmouseenter: (event: MouseEvent) => void;
     onfocus: (event: FocusEvent) => void;
+    onkeydown: (event: KeyboardEvent) => void;
+    role: "menuitem";
   };
 
   export type MenuProps = {
@@ -44,6 +50,7 @@
     ...restProps
   }: MenuProps = $props();
 
+  let menuId = "menu-" + uid();
   let menuItems: HTMLElement[] = [];
   let focusedItem: HTMLElement | undefined = $state(undefined);
   let buffer = new TypingBuffer();
@@ -160,11 +167,20 @@
   {@render trigger({
     ref: (ref) => (anchorEl = ref),
     onclick: () => (open = !open),
+    onkeydown: (event: KeyboardEvent) => {
+      if (Shortcut.ENTER.matches(event) || Shortcut.SPACE.matches(event)) {
+        event.stopImmediatePropagation();
+      }
+    },
+    "aria-controls": menuId,
+    "aria-haspopup": "menu",
+    "aria-expanded": open,
   })}
 {/if}
 
 <Popover
   bind:open
+  id={menuId}
   role="menu"
   class={twMerge(
     baseClasses({ variant, color, shape }),
@@ -184,5 +200,11 @@
     onclick: handleSelect,
     onmouseenter: handleMouseEnter,
     onfocus: handleFocus,
+    onkeydown: (event: KeyboardEvent) => {
+      if (Shortcut.ENTER.matches(event) || Shortcut.SPACE.matches(event)) {
+        event.stopImmediatePropagation();
+      }
+    },
+    role: "menuitem",
   })}
 </Popover>

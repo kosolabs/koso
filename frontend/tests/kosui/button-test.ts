@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe.configure({ mode: "parallel" });
 
-test.describe("Kosui Button Component Tests", () => {
+test.describe("Button Component Tests", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/storybook/buttons");
   });

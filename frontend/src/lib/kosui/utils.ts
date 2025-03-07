@@ -13,6 +13,10 @@ export type ToggleEventWithTarget<T extends HTMLElement> = ToggleEvent & {
   currentTarget: EventTarget & T;
 };
 
+export function uid(): string {
+  return Math.random().toString(36).substring(2, 10);
+}
+
 /**
  * Converts a kebab-case string to Title Case.
  *

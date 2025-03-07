@@ -40,7 +40,6 @@
 
 <button
   bind:this={el}
-  role="menuitem"
   class={twMerge(
     baseClasses({ variant, color, shape, focus: true }),
     "block w-full px-2 py-1 focus:ring-0",
