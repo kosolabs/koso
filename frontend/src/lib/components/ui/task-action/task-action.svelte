@@ -4,14 +4,12 @@
   import { Menu, MenuItem, MenuTrigger } from "$lib/kosui/menu";
   import { mergeProps } from "$lib/kosui/merge-props";
   import { Shortcut } from "$lib/kosui/shortcut";
-  import { unmanagedKinds, type Kind, type YStatus } from "$lib/yproxy";
+  import { unmanagedKinds, type Kind, type Status } from "$lib/yproxy";
   import { Bot, Check, CircleCheck, LoaderCircle } from "lucide-svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../../../kosui/progress";
   import { confetti } from "../confetti";
   import { ResponsiveText } from "../responsive-text";
-
-  const statuses: YStatus[] = ["Not Started", "In Progress", "Done"];
 
   type Props = {
     node: Node;
@@ -25,13 +23,16 @@
   let task = $derived(koso.getTask(node.name));
   let progress = $derived(koso.getProgress(task.id));
   let canSetStatus = $derived(
-    koso.isEditable(task.id) &&
-      !progress.isBlocked() &&
-      progress.kind !== "Rollup",
+    koso.isEditable(task.id) && progress.kind !== "Rollup",
   );
   let canSetKind = $derived(
     koso.isEditable(task.id) &&
       (progress.kind === "Rollup" || progress.kind === "Juggled"),
+  );
+  let statuses: Status[] = $derived(
+    progress.kind === "Juggled"
+      ? ["Not Started", "In Progress", "Done", "Blocked"]
+      : ["Not Started", "In Progress", "Done"],
   );
 
   function handleOnSelectKind(kind: Kind) {
@@ -39,7 +40,7 @@
     koso.setKind(task.id, kind, auth.user);
   }
 
-  function handleOnSelectStatus(status: YStatus) {
+  function handleOnSelectStatus(status: Status) {
     if (progress.status === status) return;
     if (status === "Done") showDoneConfetti();
     koso.setTaskStatus(node, status, auth.user);
@@ -119,6 +120,9 @@
         >
           <TaskStatusIcon {status} />
           {status}
+          {#if progress.status === status}
+            <Check class="text-m3-primary ml-auto" size={20} />
+          {/if}
         </MenuItem>
       {/each}
     {/if}

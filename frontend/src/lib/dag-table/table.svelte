@@ -145,9 +145,7 @@
       case "Done":
         return;
       case "Blocked":
-        toast.warning(
-          "Cannot change the status of a Blocked task. Change the status of the task's children instead.",
-        );
+        koso.setTaskStatus(koso.selected, "Not Started", auth.user);
         return;
       case "In Progress":
         getRow(koso.selected).showDoneConfetti();
