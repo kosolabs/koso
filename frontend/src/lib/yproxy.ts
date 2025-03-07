@@ -157,10 +157,6 @@ export class YTaskProxy {
     return (this.#yTask.get("status") as Status) || null;
   }
 
-  get status(): Status {
-    return this.yStatus || "Not Started";
-  }
-
   set yStatus(value: Status | null) {
     this.#yTask.set("status", value);
   }
@@ -175,10 +171,6 @@ export class YTaskProxy {
 
   get yKind(): YKind | null {
     return (this.#yTask.get("kind") as YKind) || null;
-  }
-
-  get kind(): Kind | null {
-    return this.yKind || this.children.length > 0 ? "Rollup" : null;
   }
 
   set yKind(value: YKind | null) {
