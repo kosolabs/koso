@@ -20,7 +20,7 @@ RUN cargo build --release
 FROM rust:1.85.0@sha256:caa4a0e7bd1fe2e648caf3d904bc54c3bfcae9e74b4df2eb9ebe558c9e9e88c5 AS sqlx
 WORKDIR /app
 COPY rust-toolchain.toml ./
-RUN cargo install sqlx-cli@0.8.2 --locked --no-default-features --features native-tls,postgres --root ./
+RUN cargo install sqlx-cli@=0.8.2 --locked --no-default-features --features native-tls,postgres --root ./
 
 FROM node:23.9.0@sha256:c29271c7f2b4788fe9b90a7506d790dc8f2ff46132e1b70e71bf0c0679c8451c AS frontend
 ENV PNPM_HOME="/pnpm"
