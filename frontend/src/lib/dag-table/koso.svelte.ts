@@ -625,7 +625,7 @@ export class Koso {
         result.status = "Not Started";
       }
     } else if (result.kind === "Juggled") {
-      if (result.status !== "Done" && childDone !== childTotal) {
+      if (childDone !== childTotal) {
         result.juggledStatus = "Blocked";
       }
     }
