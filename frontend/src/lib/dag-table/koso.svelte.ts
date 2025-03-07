@@ -627,6 +627,11 @@ export class Koso {
     } else if (result.kind === "Juggled") {
       if (childDone !== childTotal) {
         result.juggledStatus = "Blocked";
+      } else {
+        // Auto-unblock unblocked tasks with the Blocked status
+        if (result.status === "Blocked") {
+          result.status = "Not Started";
+        }
       }
     }
 
