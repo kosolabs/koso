@@ -5,6 +5,7 @@ use crate::{
         collab::{
             awareness::AwarenessState,
             msg_sync::{self, MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE},
+            txn_origin::{self, YOrigin},
         },
         google::test_utils::{Claims, KID_1, PEM_1, encode_token, testonly_key_set},
         model::{CreateProject, Project, ProjectExport, Task},
@@ -37,7 +38,7 @@ use tokio_tungstenite::{
 };
 use tungstenite::client::IntoClientRequest;
 use yrs::{
-    ReadTxn, StateVector, Update,
+    Origin, ReadTxn, StateVector, Update,
     encoding::read::Read as _,
     updates::{
         decoder::{Decode as _, DecoderV1},
@@ -476,7 +477,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
     let ydoc_2 = YDocProxy::new();
     {
-        let mut txn_2 = ydoc_2.transact_mut();
+        let mut txn_2 = ydoc_2.transact_mut_with(origin());
         ydoc_2.set(
             &mut txn_2,
             &Task {
@@ -544,7 +545,10 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 
     // Read the broadcast update applied by socket_2.
     let sync_update = read_sync_update(socket_1).await;
-    ydoc_1.transact_mut().apply_update(sync_update).unwrap();
+    ydoc_1
+        .transact_mut_with(origin())
+        .apply_update(sync_update)
+        .unwrap();
     assert_eq!(
         ydoc_1.to_graph(&ydoc_1.transact()).unwrap(),
         ydoc_2.to_graph(&ydoc_2.transact()).unwrap()
@@ -567,7 +571,10 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         .await
         .unwrap();
     let sync_response = read_sync_response(socket_3).await;
-    ydoc_3.transact_mut().apply_update(sync_response).unwrap();
+    ydoc_3
+        .transact_mut_with(origin())
+        .apply_update(sync_response)
+        .unwrap();
     assert_eq!(
         ydoc_1.to_graph(&ydoc_1.transact()).unwrap(),
         ydoc_3.to_graph(&ydoc_3.transact()).unwrap()
@@ -615,7 +622,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 
     // Apply enough updates to trigger compaction on shutdown.
     for i in 0..10 {
-        let mut txn = ydoc_1.transact_mut();
+        let mut txn = ydoc_1.transact_mut_with(origin());
         ydoc_1.set(
             &mut txn,
             &Task {
@@ -639,11 +646,11 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     }
     for _ in 0..10 {
         ydoc_2
-            .transact_mut()
+            .transact_mut_with(origin())
             .apply_update(read_sync_update(socket_2).await)
             .unwrap();
         ydoc_3
-            .transact_mut()
+            .transact_mut_with(origin())
             .apply_update(read_sync_update(socket_3).await)
             .unwrap();
     }
@@ -781,7 +788,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
 
         let doc: YDocProxy = YDocProxy::new();
         doc.set(
-            &mut doc.transact_mut(),
+            &mut doc.transact_mut_with(origin()),
             &Task {
                 id: "root".to_string(),
                 num: "0".to_string(),
@@ -818,7 +825,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         )))
         .await
         .unwrap();
-    doc.transact_mut()
+    doc.transact_mut_with(origin())
         .apply_update(read_sync_response(socket).await)
         .unwrap();
 
@@ -846,7 +853,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         .expect("Failed to post event.");
     assert_eq!(res.status(), StatusCode::OK);
     {
-        doc.transact_mut()
+        doc.transact_mut_with(origin())
             .apply_update(read_sync_update(socket).await)
             .unwrap();
         let graph = doc.to_graph(&doc.transact()).unwrap();
@@ -893,7 +900,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         .expect("Failed to post event.");
     assert_eq!(res.status(), StatusCode::OK);
     {
-        doc.transact_mut()
+        doc.transact_mut_with(origin())
             .apply_update(read_sync_update(socket).await)
             .unwrap();
         let graph = doc.to_graph(&doc.transact()).unwrap();
@@ -1129,6 +1136,16 @@ async fn set_user_invited(email: &str, pool: &PgPool) -> Result<()> {
         .execute(pool)
         .await?;
     Ok(())
+}
+
+fn origin() -> Origin {
+    YOrigin {
+        who: "tests.rs".to_string(),
+        id: "test".to_string(),
+        actor: txn_origin::Actor::Server,
+    }
+    .as_origin()
+    .unwrap()
 }
 
 struct ServerHandle {

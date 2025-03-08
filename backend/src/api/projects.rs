@@ -1,7 +1,10 @@
 use crate::{
     api::{
         ApiResult, bad_request_error,
-        collab::{Collab, storage},
+        collab::{
+            Collab, storage,
+            txn_origin::{self, YOrigin},
+        },
         google::User,
         model::{
             CreateProject, Project, ProjectExport, ProjectUser, UpdateProjectUsers,
@@ -89,7 +92,14 @@ async fn create_project_handler(
 
     let import_update = if let Some(import_data) = project.project_export {
         let ydoc = YDocProxy::new();
-        let mut txn: yrs::TransactionMut<'_> = ydoc.transact_mut();
+        let mut txn: yrs::TransactionMut<'_> = ydoc.transact_mut_with(
+            YOrigin {
+                who: "importer".to_string(),
+                id: "import".to_string(),
+                actor: txn_origin::Actor::Server,
+            }
+            .as_origin()?,
+        );
         for import_task in import_data.graph.values() {
             ydoc.set(&mut txn, import_task);
         }

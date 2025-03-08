@@ -84,10 +84,6 @@ impl YDocProxy {
         self.doc.transact()
     }
 
-    pub fn transact_mut(&self) -> TransactionMut<'_> {
-        self.doc.transact_mut()
-    }
-
     pub fn transact_mut_with<T: Into<Origin>>(&self, origin: T) -> TransactionMut {
         self.doc.transact_mut_with(origin)
     }
@@ -305,14 +301,23 @@ impl YTaskProxy {
 
 #[cfg(test)]
 mod tests {
+    use crate::api::collab::txn_origin::{self, YOrigin};
+
     use super::*;
 
     #[test]
     fn set_and_get_task_succeeds() {
         let ydoc = YDocProxy::new();
+        let origin = YOrigin {
+            who: "set_and_get_task_succeeds".to_string(),
+            id: "test".to_string(),
+            actor: txn_origin::Actor::Server,
+        }
+        .as_origin()
+        .unwrap();
 
         {
-            let mut txn = ydoc.transact_mut();
+            let mut txn = ydoc.transact_mut_with(origin.clone());
             ydoc.set(
                 &mut txn,
                 &Task {
@@ -331,7 +336,7 @@ mod tests {
         }
 
         {
-            let mut txn = ydoc.transact_mut();
+            let mut txn = ydoc.transact_mut_with(origin.clone());
             ydoc.set(
                 &mut txn,
                 &Task {
