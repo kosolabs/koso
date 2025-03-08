@@ -3,7 +3,10 @@ use anyhow::{Context as _, Result};
 use sqlx::PgPool;
 use yrs::{Update, updates::decoder::Decode as _};
 
-use super::YDocProxy;
+use super::{
+    YDocProxy,
+    txn_origin::{self, YOrigin},
+};
 
 pub(super) async fn persist_update(
     project_id: &ProjectId,
@@ -28,7 +31,14 @@ pub(super) async fn load_doc(project_id: &ProjectId, pool: &PgPool) -> Result<(Y
 
     let ydoc = YDocProxy::new();
     {
-        let mut txn = ydoc.transact_mut();
+        let mut txn = ydoc.transact_mut_with(
+            YOrigin {
+                who: "load_doc".to_string(),
+                id: project_id.to_string(),
+                actor: txn_origin::Actor::Server,
+            }
+            .as_origin()?,
+        );
         for (update,) in updates {
             txn.apply_update(Update::decode_v2(&update)?)
                 .context("Failed to apply loaded update")?

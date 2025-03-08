@@ -179,12 +179,7 @@ impl GraphObserver {
                 }
 
                 let project = project.clone();
-                let origin = from_origin(txn.origin())?;
-                let origin = YOrigin {
-                    who: format!("rw-{}", origin.who),
-                    id: format!("rw-{}", origin.id),
-                    actor: origin.actor,
-                };
+                let origin = from_origin(txn.origin())?.delegated("rw");
                 let mod_id = mod_id.clone();
                 self.tracker.spawn(
                     async move {

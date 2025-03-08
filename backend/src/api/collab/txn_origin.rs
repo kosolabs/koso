@@ -9,6 +9,7 @@ pub(crate) enum Actor {
     None,
     User(User),
     GitHub,
+    Server,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -29,5 +30,13 @@ pub(crate) fn from_origin(origin: Option<&Origin>) -> Result<YOrigin> {
 impl YOrigin {
     pub(crate) fn as_origin(&self) -> Result<Origin> {
         Ok(serde_json::to_string(self)?.into())
+    }
+
+    pub(crate) fn delegated(&self, prefix: &str) -> YOrigin {
+        YOrigin {
+            who: format!("{}-{}", prefix, self.who),
+            id: format!("{}-{}", prefix, self.id),
+            actor: Actor::Server,
+        }
     }
 }
