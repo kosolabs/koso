@@ -170,29 +170,13 @@ impl EventProcessor {
                     match (field.as_str(), change) {
                         (
                             "assignee",
-                            EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(recipient))),
+                            EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(assignee))),
                         )
                         | (
                             "assignee",
-                            EntryChange::Inserted(yrs::Out::Any(yrs::Any::String(recipient))),
+                            EntryChange::Inserted(yrs::Out::Any(yrs::Any::String(assignee))),
                         ) => {
-                            if let Actor::User(user) = &event.origin.actor {
-                                if user.email == recipient.as_ref() {
-                                    continue;
-                                }
-                            };
-                            let sender = match &event.origin.actor {
-                                Actor::User(user) => Sender::User(user),
-                                _ => Sender::KosoJuggler,
-                            };
-                            let msg = format!(
-                                "🎁 <i>{}</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
-                                sender.format(),
-                                event.project.project_id,
-                                event.task.id,
-                                event.task.name
-                            );
-                            self.notifier.notify(recipient, &msg).await?;
+                            self.notify_assignee(&event, assignee).await?;
                         }
                         (
                             "status",
@@ -211,6 +195,26 @@ impl EventProcessor {
             }
         }
         Ok(())
+    }
+
+    async fn notify_assignee(&self, event: &KosoEvent, assignee: &str) -> Result<()> {
+        if let Actor::User(user) = &event.origin.actor {
+            if user.email == assignee {
+                return Ok(());
+            }
+        };
+        let sender = match &event.origin.actor {
+            Actor::User(user) => Sender::User(user),
+            _ => Sender::KosoJuggler,
+        };
+        let msg = format!(
+            "🎁 <i>{}</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
+            sender.format(),
+            event.project.project_id,
+            event.task.id,
+            event.task.name
+        );
+        self.notifier.notify(assignee, &msg).await
     }
 
     async fn unblock_and_notify_actionable_tasks(&self, event: &KosoEvent) -> Result<()> {
