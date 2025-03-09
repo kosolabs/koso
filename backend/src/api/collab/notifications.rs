@@ -198,18 +198,16 @@ impl EventProcessor {
     }
 
     async fn notify_assignee(&self, event: &KosoEvent, assignee: &str) -> Result<()> {
+        // Don't notify a user if they assigned the task to themself.
         if let Actor::User(user) = &event.origin.actor {
             if user.email == assignee {
                 return Ok(());
             }
         };
-        let sender = match &event.origin.actor {
-            Actor::User(user) => Sender::User(user),
-            _ => Sender::KosoJuggler,
-        };
+
         let msg = format!(
             "🎁 <i>{}</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
-            sender.format(),
+            Sender::from_actor(&event.origin.actor).format(),
             event.project.project_id,
             event.task.id,
             event.task.name
@@ -246,37 +244,41 @@ impl EventProcessor {
 
         // TODO: We could parallelize this.
         for (task_id, assignee, name) in actionable {
-            let should_send = match &event.origin.actor {
-                Actor::User(user) => user.email != assignee,
-                _ => true,
-            };
-            if should_send {
-                let msg = format!(
-                    "🎁 <i>Koso Juggler</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
-                    event.project.project_id, task_id, name
-                );
-                self.notifier.notify(&assignee, &msg).await?;
+            // Don't notify a user if they unblocked the task themself.
+            if let Actor::User(user) = &event.origin.actor {
+                if user.email != assignee {
+                    continue;
+                }
             }
+
+            let msg = format!(
+                "🎁 <i>Koso Juggler</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
+                event.project.project_id, task_id, name
+            );
+            self.notifier.notify(&assignee, &msg).await?;
         }
         Ok(())
     }
 
     async fn find_actionable_juggled_tasks(
-        done_task_id: &String,
+        event_task_id: &String,
         project: &ProjectState,
     ) -> Result<Vec<(String, String, String)>> {
         let doc = project.doc_box.lock().await;
         let doc = &doc.as_ref().context("No doc initialized.")?.ydoc;
         let txn = doc.transact();
 
-        // Perform a DFS starting from all Blocked, juggled tasks not assigned to the
-        // events triggering user.
+        // Perform a DFS starting from all Blocked, juggled tasks.
         let mut actionable: Vec<(String, String, String)> = vec![];
         for task in doc.tasks(&txn)? {
             if task.get_kind(&txn)?.unwrap_or_default() == "Juggled"
                 && task.get_status(&txn)?.unwrap_or_default() == "Blocked"
             {
-                let mut found = *done_task_id == task.get_id(&txn)?;
+                // In the case of removing a child of the juggled task, the
+                // event_task_id will be the id of the juggled task and not
+                // the removed child since YRS doesn't allow us to discover
+                // which element was removed from a YArray.
+                let mut found = *event_task_id == task.get_id(&txn)?;
                 let mut complete = true;
                 let mut stack = vec![];
                 stack.extend(task.get_children(&txn)?);
@@ -286,7 +288,7 @@ impl EventProcessor {
                     };
 
                     // First, mark if the event's task was found.
-                    if descendent_id == *done_task_id {
+                    if descendent_id == *event_task_id {
                         found = true;
                     }
 
@@ -331,6 +333,13 @@ impl Sender<'_> {
         match self {
             Sender::User(user) => format!("{} &lt;{}&gt;", user.name, user.email),
             Sender::KosoJuggler => "Koso Juggler".to_string(),
+        }
+    }
+
+    fn from_actor(actor: &Actor) -> Sender {
+        match actor {
+            Actor::User(user) => Sender::User(user),
+            _ => Sender::KosoJuggler,
         }
     }
 }
