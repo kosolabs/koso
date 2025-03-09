@@ -110,7 +110,7 @@ async fn github_webhook(
     tracing::Span::current().record("gh_installation_id", headers.installation_id);
 
     webhook
-        .process_event(
+        .process_webhook_event(
             WebhookEvent::try_from_header_and_body(headers.event, &body)?,
             request_id
                 .header_value()
@@ -196,7 +196,7 @@ fn validate_signature(
 
 impl Webhook {
     #[tracing::instrument(skip(self, event, request_id), fields(target))]
-    async fn process_event(self, event: WebhookEvent, request_id: String) -> ApiResult<()> {
+    async fn process_webhook_event(self, event: WebhookEvent, request_id: String) -> ApiResult<()> {
         match event.specific {
             WebhookEventPayload::PullRequest(pr_event) => {
                 let installation_id: u64 = match event

@@ -1,5 +1,5 @@
 use crate::api::model::{Graph, Task};
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use similar::{Algorithm, capture_diff_slices};
 use std::collections::HashMap;
 use yrs::{
@@ -18,6 +18,13 @@ impl YDocProxy {
         let doc = Doc::new();
         let graph = doc.get_or_insert_map("graph");
         YDocProxy { doc, graph }
+    }
+
+    pub fn new_from_existing_doc<T: ReadTxn>(doc: Doc, txn: &T) -> Result<Self> {
+        Ok(YDocProxy {
+            doc,
+            graph: txn.get_map("graph").context("graph map missing")?,
+        })
     }
 
     pub fn to_graph<T: ReadTxn>(&self, txn: &T) -> Result<Graph> {
