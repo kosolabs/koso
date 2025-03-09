@@ -613,6 +613,10 @@ export class Koso {
         childProgress.lastStatusTime,
       );
     });
+    result.lastStatusTime = Math.max(
+      result.lastStatusTime,
+      childLastStatusTime,
+    );
     if (result.kind === "Rollup") {
       result.inProgress += childInProgress;
       result.done += childDone;
