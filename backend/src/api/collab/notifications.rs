@@ -15,7 +15,7 @@ use sqlx::PgPool;
 use std::{collections::HashMap, sync::Arc, time::SystemTime};
 use tokio::sync::mpsc::Receiver;
 use yrs::{
-    TransactionMut,
+    ReadTxn, TransactionMut,
     types::{EntryChange, Event, Events, PathSegment},
 };
 
@@ -210,7 +210,7 @@ impl EventProcessor {
             Sender::from_actor(&event.origin.actor).format(),
             event.project.project_id,
             event.task.id,
-            event.task.name
+            task_display_name(&event.task)
         );
         self.notifier.notify(assignee, &msg).await
     }
@@ -246,7 +246,7 @@ impl EventProcessor {
         for (task_id, assignee, name) in actionable {
             // Don't notify a user if they unblocked the task themself.
             if let Actor::User(user) = &event.origin.actor {
-                if user.email != assignee {
+                if user.email == assignee {
                     continue;
                 }
             }
@@ -307,13 +307,32 @@ impl EventProcessor {
                 }
                 if found && complete {
                     if let Some(assignee) = task.get_assignee(&txn)? {
-                        actionable.push((task.get_id(&txn)?, assignee, task.get_name(&txn)?));
+                        actionable.push((
+                            task.get_id(&txn)?,
+                            assignee,
+                            ytask_display_name(&task, &txn)?,
+                        ));
                     }
                 }
             }
         }
         Ok(actionable)
     }
+}
+
+fn ytask_display_name<T: ReadTxn>(task: &YTaskProxy, txn: &T) -> Result<String> {
+    let name = task.get_name(txn)?;
+    if !name.is_empty() {
+        return Ok(name);
+    }
+    Ok(format!("Task #{}", task.get_num(txn)?))
+}
+
+fn task_display_name(task: &Task) -> String {
+    if !task.name.is_empty() {
+        return task.name.clone();
+    }
+    format!("Task #{}", task.num)
 }
 
 fn now() -> Result<i64> {
