@@ -1220,7 +1220,7 @@ describe("Koso tests", () => {
         lastStatusTime: 0,
         kind: null,
         status: "Not Started",
-        juggledStatus: null,
+        childrenStatus: null,
       });
     });
 
@@ -1237,7 +1237,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: null,
         status: "Not Started",
-        juggledStatus: null,
+        childrenStatus: null,
       });
     });
 
@@ -1254,7 +1254,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: null,
         status: "Done",
-        juggledStatus: null,
+        childrenStatus: null,
       });
     });
 
@@ -1271,7 +1271,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: null,
         status: "In Progress",
-        juggledStatus: null,
+        childrenStatus: null,
       });
     });
 
@@ -1296,7 +1296,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: "Juggled",
         status: "In Progress",
-        juggledStatus: null,
+        childrenStatus: "Done",
       });
     });
 
@@ -1321,7 +1321,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: "Juggled",
         status: "Done",
-        juggledStatus: "Blocked",
+        childrenStatus: "In Progress",
       });
     });
 
@@ -1346,7 +1346,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: "Juggled",
         status: "In Progress",
-        juggledStatus: "Blocked",
+        childrenStatus: "In Progress",
       });
     });
 
@@ -1371,7 +1371,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: "Juggled",
         status: "Done",
-        juggledStatus: "Blocked",
+        childrenStatus: "In Progress",
       });
     });
 
@@ -1394,7 +1394,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: null,
         status: "In Progress",
-        juggledStatus: null,
+        childrenStatus: null,
       });
     });
 
@@ -1413,7 +1413,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: "Rollup",
         status: "Done",
-        juggledStatus: null,
+        childrenStatus: "Done",
       });
     });
 
@@ -1432,7 +1432,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: "Rollup",
         status: "In Progress",
-        juggledStatus: null,
+        childrenStatus: "In Progress",
       });
     });
 
@@ -1451,7 +1451,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: "Rollup",
         status: "Not Started",
-        juggledStatus: null,
+        childrenStatus: "Not Started",
       });
     });
 
@@ -1471,7 +1471,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: "Rollup",
         status: "In Progress",
-        juggledStatus: null,
+        childrenStatus: "In Progress",
       });
     });
 
@@ -1490,7 +1490,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: "Rollup",
         status: "Done",
-        juggledStatus: null,
+        childrenStatus: "Done",
       });
     });
 
@@ -1510,7 +1510,7 @@ describe("Koso tests", () => {
         lastStatusTime: now,
         kind: "Rollup",
         status: "In Progress",
-        juggledStatus: null,
+        childrenStatus: "In Progress",
       });
     });
   });

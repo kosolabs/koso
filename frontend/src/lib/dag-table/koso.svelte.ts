@@ -88,7 +88,7 @@ export class Progress {
   total: number;
   lastStatusTime: number;
   status: Status;
-  juggledStatus: "Blocked" | null;
+  childrenStatus: Status | null;
   kind: Kind | null;
 
   constructor(props: Partial<Progress> = {}) {
@@ -98,7 +98,7 @@ export class Progress {
     this.lastStatusTime = props.lastStatusTime ?? 0;
     this.status = props.status ?? "Not Started";
     this.kind = props.kind ?? null;
-    this.juggledStatus = props.juggledStatus ?? null;
+    this.childrenStatus = props.childrenStatus ?? null;
   }
 
   isComplete(): boolean {
@@ -617,25 +617,28 @@ export class Koso {
       result.lastStatusTime,
       childLastStatusTime,
     );
+    if (childTotal > 0) {
+      if (childDone === childTotal) {
+        result.childrenStatus = "Done";
+      } else if (childInProgress > 0 || childDone > 0) {
+        result.childrenStatus = "In Progress";
+      } else {
+        result.childrenStatus = "Not Started";
+      }
+    }
+
     if (result.kind === "Rollup") {
       result.inProgress += childInProgress;
       result.done += childDone;
       result.total += childTotal;
-      if (result.done === result.total) {
-        result.status = "Done";
-      } else if (result.inProgress > 0 || result.done > 0) {
-        result.status = "In Progress";
-      } else {
-        result.status = "Not Started";
-      }
+      result.status = result.childrenStatus || "Not Started";
     } else if (result.kind === "Juggled") {
-      if (childDone !== childTotal) {
-        result.juggledStatus = "Blocked";
-      } else {
+      if (
+        result.status === "Blocked" &&
+        (result.childrenStatus === "Done" || result.childrenStatus === null)
+      ) {
         // Auto-unblock unblocked tasks with the Blocked status
-        if (result.status === "Blocked") {
-          result.status = "Not Started";
-        }
+        result.status = "Not Started";
       }
     }
 
@@ -1454,7 +1457,7 @@ export class Koso {
       task.yKind = newKind;
       if (kind === "Juggled") {
         const progress = this.getProgress(taskId);
-        if (progress.juggledStatus === "Blocked") {
+        if (progress.childrenStatus && progress.childrenStatus !== "Done") {
           task.yStatus = "Blocked";
           task.statusTime = Date.now();
           task.assignee = user.email;
@@ -1522,7 +1525,7 @@ export class Koso {
         }
 
         const progress = this.getProgress(taskId);
-        if (progress.juggledStatus === "Blocked") {
+        if (progress.childrenStatus !== "Done") {
           task.yStatus = status;
           task.statusTime = Date.now();
         } else {
