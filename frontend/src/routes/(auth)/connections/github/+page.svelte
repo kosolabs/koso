@@ -11,7 +11,12 @@
     const urlParams = new URLSearchParams(window.location.search);
 
     const state = parseAndValidateState(urlParams);
-    if (!state || !state.projectId || !state.installationId) {
+    if (
+      !state ||
+      !state.projectId ||
+      !state.installationId ||
+      !state.clientId
+    ) {
       await goto("/");
       return;
     }
@@ -19,7 +24,7 @@
     const code = urlParams.get("code");
     if (!code) {
       toast.info("Redirecting to Github for authorization");
-      github.redirectToGitubOAuth(github.encodeState(state));
+      github.redirectToGitubOAuth(state);
       return;
     }
 
@@ -88,6 +93,13 @@
       console.log("No project ID selected");
       toast.warning(
         "No project selected. Connect via the 'Connect to Github' button on your project page",
+      );
+      return null;
+    }
+    if (!state.clientId) {
+      console.warn("No client id present in state");
+      toast.error(
+        "Something went wrong, invalid state. Connect via the 'Connect' button on your project page",
       );
       return null;
     }

@@ -127,7 +127,8 @@
         variant="plain"
         tooltip="Connect to GitHub"
         aria-label="Connect to GitHub"
-        onclick={() => window.location.assign(githubInstallUrl(projectId))}
+        onclick={async () =>
+          window.location.assign(await githubInstallUrl(projectId))}
       >
         <PlugZap />
       </Button>

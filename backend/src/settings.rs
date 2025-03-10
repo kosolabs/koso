@@ -22,6 +22,7 @@ pub(crate) struct Plugins {
 pub(crate) struct Github {
     pub(crate) client_id: String,
     pub(crate) app_id: u64,
+    pub(crate) app_name: String,
 }
 
 pub fn settings() -> &'static Settings {

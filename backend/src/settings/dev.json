@@ -6,6 +6,7 @@
   "plugins": {
     "github": {
       "app_id": 1066302,
+      "app_name": "development-koso",
       "client_id": "Iv23lif5pPjNjiQVtgPH"
     }
   }

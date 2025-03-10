@@ -3,6 +3,11 @@ import { headers, parse_response } from "./api";
 const stateSessionKey = "github_csrf_state";
 const loginExpirationSessionKey = "github_login_expires_at";
 
+export type InitResponse = {
+  clientId: string;
+  appName: string;
+};
+
 export type AuthResult = {
   expiresIn: number;
 };
@@ -12,17 +17,23 @@ export type AuthResult = {
  * See
  * https://docs.github.com/en/apps/sharing-github-apps/sharing-your-github-app
  */
-export function githubInstallUrl(projectId: string) {
-  // TODO: Figure out how to make this work with static builds locally
-  const app =
-    import.meta.env.MODE === "production" ? "koso-github" : "development-koso";
-  const state = encodeURIComponent(
-    encodeState({
-      csrf: generateCsrfValue(),
-      projectId: projectId,
-    }),
-  );
-  return `https://github.com/apps/${app}/installations/new?state=${state}`;
+export async function githubInstallUrl(projectId: string) {
+  const response = await fetch(`/plugins/github/init`, {
+    method: "GET",
+    headers: {
+      ...headers(),
+      "Content-Type": "application/json",
+    },
+  });
+  const init: InitResponse = await parse_response(response);
+
+  const state = encodeState({
+    csrf: generateCsrfValue(),
+    projectId: projectId,
+    clientId: init.clientId,
+  });
+  sessionStorage.setItem(stateSessionKey, state);
+  return `https://github.com/apps/${init.appName}/installations/new?state=${encodeURIComponent(state)}`;
 }
 
 /**
@@ -33,18 +44,19 @@ export function githubInstallUrl(projectId: string) {
  * See
  * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#generating-a-user-access-token-when-a-user-installs-your-app
  */
-export function redirectToGitubOAuth(state: string) {
-  const clientId =
-    import.meta.env.MODE === "production"
-      ? "Iv23lioB8K1C62NP3UbV"
-      : "Iv23lif5pPjNjiQVtgPH";
+export function redirectToGitubOAuth(state: State) {
+  if (!state.clientId) {
+    console.warn("Missing client id");
+    throw new Error("Missing client id");
+  }
 
   const url = new URL("https://github.com/login/oauth/authorize");
-  url.searchParams.append("client_id", clientId);
+  url.searchParams.append("client_id", state.clientId);
   const redirectUri = `${location.origin}/connections/github`;
   url.searchParams.append("redirect_uri", redirectUri);
-  url.searchParams.append("state", state);
-  sessionStorage.setItem(stateSessionKey, state);
+  const stateStr = encodeState(state);
+  url.searchParams.append("state", stateStr);
+  sessionStorage.setItem(stateSessionKey, stateStr);
   console.log(`Redirecting to github oauth: ${url.toString()}`);
   window.location.replace(url);
 }
@@ -53,6 +65,7 @@ export type State = {
   csrf?: string | null;
   projectId?: string | null;
   installationId?: string | null;
+  clientId?: string | null;
 };
 
 function generateCsrfValue(): string {
@@ -67,15 +80,20 @@ export function decodeState(state: string): State {
   return JSON.parse(atob(state));
 }
 
-export function validateStateForCsrf(state: string | null): boolean {
+export function validateStateForCsrf(state: string): boolean {
   const sessionCsrfState = sessionStorage.getItem(stateSessionKey);
   sessionStorage.removeItem(stateSessionKey);
-  if (sessionCsrfState && state && sessionCsrfState !== state) {
+  if (!sessionCsrfState) {
+    console.warn(`CSRF state not present in session storage. Got: '${state}'`);
+    return false;
+  }
+  if (sessionCsrfState !== state) {
     console.warn(
-      `CSRF state mismatch. Expected:'${sessionCsrfState}'', got:'${state}''`,
+      `CSRF state mismatch. Expected:'${sessionCsrfState}', got:'${state}'`,
     );
     return false;
   }
+  console.log("Validated CSRF session state");
   return true;
 }
 

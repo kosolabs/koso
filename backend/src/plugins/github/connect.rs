@@ -4,9 +4,13 @@ use crate::{
         config::{Config, ConfigStorage, GithubSettings, Settings},
         github::{self, Poller, auth::Auth},
     },
+    settings::settings,
 };
 use anyhow::Result;
-use axum::{Extension, Json, Router, routing::post};
+use axum::{
+    Extension, Json, Router,
+    routing::{get, post},
+};
 use octocrab::{Octocrab, OctocrabBuilder, models::Installation};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -23,6 +27,13 @@ struct ConnectRequest {
 #[serde(rename_all = "camelCase")]
 struct ConnectResponse {}
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InitResponse {
+    app_name: String,
+    client_id: String,
+}
+
 #[derive(Clone)]
 pub(super) struct ConnectHandler {
     auth: Auth,
@@ -30,6 +41,8 @@ pub(super) struct ConnectHandler {
     storage: ConfigStorage,
     poller: Poller,
     crab: Octocrab,
+    client_id: String,
+    app_name: String,
 }
 
 impl ConnectHandler {
@@ -45,13 +58,26 @@ impl ConnectHandler {
             storage,
             poller,
             crab: OctocrabBuilder::new().build()?,
+            client_id: settings().plugins.github.client_id.clone(),
+            app_name: settings().plugins.github.app_name.clone(),
         })
     }
 
     pub(super) fn router(self) -> Router {
         Router::new()
             .route("/connect", post(Self::connect_project_handler))
+            .route("/init", get(Self::init_handler))
             .layer((Extension(self),))
+    }
+
+    #[tracing::instrument(skip(handler))]
+    async fn init_handler(
+        Extension(handler): Extension<ConnectHandler>,
+    ) -> ApiResult<Json<InitResponse>> {
+        Ok(Json(InitResponse {
+            app_name: handler.app_name,
+            client_id: handler.client_id,
+        }))
     }
 
     #[tracing::instrument(skip(user, handler))]
