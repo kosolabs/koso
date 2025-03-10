@@ -109,10 +109,9 @@ fn handle_deep_graph_update_event_internal(
 
             let origin = from_origin(txn.origin())?;
 
-            let doc = YDocProxy::new_from_existing_doc(txn.doc().clone(), txn).unwrap();
+            let doc = YDocProxy::new_from_existing_doc(txn.doc().clone(), txn)?;
             let task = doc
-                .get(txn, task_id)
-                .unwrap()
+                .get(txn, task_id)?
                 .to_task(txn)
                 .context("Failed to convert ArrayEvent to Koso Task")?;
             let event = KosoEvent {
