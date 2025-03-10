@@ -1459,7 +1459,9 @@ export class Koso {
           task.yKind = "Juggled";
           task.yStatus = "Blocked";
           task.statusTime = Date.now();
-          task.assignee = user.email;
+          if (!task.assignee) {
+            task.assignee = user.email;
+          }
         } else {
           toast.info(
             "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
@@ -1530,6 +1532,9 @@ export class Koso {
         if (progress.isChildrenIncomplete()) {
           task.yStatus = status;
           task.statusTime = Date.now();
+          if (!task.assignee) {
+            task.assignee = user.email;
+          }
         } else {
           toast.info(
             "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",

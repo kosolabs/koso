@@ -1856,14 +1856,58 @@ describe("Koso tests", () => {
 
       expect(children).toEqual(["t1", "t5", "t2", "t3", "t4"]);
     });
+
+    it("set Juggled task with complete children to blocked rejected", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        {
+          id: "1",
+          name: "Task 1",
+          kind: "Juggled",
+          children: ["2"],
+          status: "In Progress",
+        },
+        { id: "2", name: "Task 2", status: "Done" },
+      ]);
+
+      koso.setTaskStatus(Node.parse("1"), "Blocked", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: "In Progress", children: ["2"], assignee: null },
+        ["2"]: { status: "Done", children: [], assignee: null },
+      });
+    });
+
+    it("set Juggled task with incomplete children to blocked changes status and assignee", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        {
+          id: "1",
+          name: "Task 1",
+          kind: "Juggled",
+          children: ["2"],
+          status: "In Progress",
+        },
+        { id: "2", name: "Task 2", status: "In Progress" },
+      ]);
+
+      koso.setTaskStatus(Node.parse("1"), "Blocked", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: "Blocked", children: ["2"], assignee: "t@koso.app" },
+        ["2"]: { status: "In Progress", children: [], assignee: null },
+      });
+    });
   });
 
   describe("setKind", () => {
-    it("set task 2's status to juggled succeeds and leaves Done status unchanged", () => {
+    it("set task 2's status to juggled succeeds and changes status to Blocked", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", name: "Task 1" },
-        { id: "2", name: "Task 2", status: "Done" },
+        { id: "2", name: "Task 2", children: ["1"] },
       ]);
 
       koso.setKind("2", "Juggled", USER);
@@ -1873,8 +1917,36 @@ describe("Koso tests", () => {
         ["1"]: { status: null, children: [], assignee: null },
         ["2"]: {
           kind: "Juggled",
-          status: "Done",
-          children: [],
+          status: "Blocked",
+          children: ["1"],
+          assignee: "t@koso.app",
+        },
+      });
+    });
+
+    it("set task with complete children leaves task unchanged", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", status: "Done" },
+        {
+          id: "2",
+          name: "Task 2",
+          children: ["1", "3"],
+          status: "In Progress",
+        },
+        { id: "3", name: "Task 3", status: "Done" },
+      ]);
+
+      koso.setKind("2", "Juggled", USER);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: "Done", children: [], assignee: null },
+        ["3"]: { status: "Done", children: [], assignee: null },
+        ["2"]: {
+          kind: null,
+          status: "In Progress",
+          children: ["1", "3"],
           assignee: null,
         },
       });
