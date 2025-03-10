@@ -278,12 +278,12 @@ impl ProjectState {
                 // This will never happen because the observer is invoked syncronously in
                 // ProjectState.apply_update while holding a strong reference to the project.
                 tracing::error!(
-                    "handle_deep_graph_update_event but weak project reference was destroyed"
+                    "handle_deep_graph_update_events but weak project reference was destroyed"
                 );
                 return;
             };
 
-            notifications::handle_deep_graph_update_event(txn, events, project);
+            notifications::handle_deep_graph_update_events(txn, events, project);
         })
     }
 

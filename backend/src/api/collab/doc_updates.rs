@@ -86,15 +86,19 @@ impl DocUpdateProcessor {
             let Some(update) = self.doc_update_rx.recv().await else {
                 break;
             };
-            if let Err(e) = self.process_doc_update(update).await {
-                tracing::warn!("Failed to process doc update: {e:?}");
-            }
+            self.process_doc_update(update).await;
         }
         tracing::info!("Stopped processing doc updates");
     }
 
     #[tracing::instrument(skip(self))]
-    async fn process_doc_update(&self, update: DocUpdate) -> Result<()> {
+    async fn process_doc_update(&self, update: DocUpdate) {
+        if let Err(e) = self.process_doc_update_internal(update).await {
+            tracing::warn!("Failed to process doc update: {e:?}");
+        }
+    }
+
+    async fn process_doc_update_internal(&self, update: DocUpdate) -> Result<()> {
         storage::persist_update(&update.project.project_id, &update.data, self.pool)
             .await
             .context("Failed to persist update")?;
@@ -156,8 +160,6 @@ impl GraphObserver {
         txn: &yrs::TransactionMut,
         event: &MapEvent,
     ) -> Result<()> {
-        tracing::trace!("Handling graph update event {:?}", event.target());
-
         for (mod_id, change) in event.keys(txn).iter() {
             tracing::trace!("Handling graph update change {mod_id} - {change:?}");
             let yrs::types::EntryChange::Inserted(yrs::Out::YMap(mod_task)) = change else {

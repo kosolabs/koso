@@ -1327,6 +1327,49 @@ test.describe("dag table tests", () => {
       });
     });
 
+    test("change status from blocked with space key", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+        { id: "1", children: ["2"], status: "Blocked", kind: "Juggled" },
+        { id: "2", children: [] },
+        { id: "3", children: [] },
+        { id: "4", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1", "2", "3", "4"] },
+        ["1"]: { children: ["2"], status: "Not Started" },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+
+      await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1", "2", "3", "4"] },
+        ["1"]: { children: ["2"], status: "In Progress" },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+
+      await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["2", "3", "4", "1"] },
+        ["1"]: { children: ["2"], status: "Done" },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+    });
+
     test("change status to in progress by clicking", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
@@ -1957,6 +2000,157 @@ test.describe("dag table tests", () => {
         root: { children: ["1"] },
         ["1"]: { children: [], reporter: null },
       });
+    });
+  });
+
+  test.describe("juggling tasks", () => {
+    test("block and unblock a task by resolving children", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3"] },
+        { id: "2", children: [] },
+        { id: "3", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Task 1 Toggle Expand" }).click();
+
+      let statusButton = page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Not Started");
+      statusButton.click();
+      page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("menuitem", { name: "Juggled" })
+        .click();
+      statusButton = page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Blocked");
+      let graph = await getKosoGraph(page);
+      expect(graph).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "3"], status: "Blocked" },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+      });
+      expect(graph["1"].assignee).toContain("-test@test.koso.app");
+
+      statusButton = page
+        .getByRole("row", { name: "Task 2" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Not Started");
+      statusButton.click();
+      page
+        .getByRole("row", { name: "Task 2" })
+        .getByRole("menuitem", { name: "Done" })
+        .click();
+      statusButton = page
+        .getByRole("row", { name: "Task 2" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Done");
+
+      statusButton = page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Blocked");
+
+      statusButton = page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Not Started");
+      statusButton.click();
+      page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("menuitem", { name: "Done" })
+        .click();
+      statusButton = page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Done");
+
+      statusButton = page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Not Started");
+      graph = await getKosoGraph(page);
+      expect(graph).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["3", "2"], status: "Not Started" },
+        ["2"]: { children: [], status: "Done" },
+        ["3"]: { children: [], status: "Done" },
+      });
+      expect(graph["1"].assignee).toContain("-test@test.koso.app");
+    });
+
+    test("block and unblock a task by removing children", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3"] },
+        { id: "2", children: [], status: "Done" },
+        { id: "3", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Task 1 Toggle Expand" }).click();
+
+      let statusButton = page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("50% In Progress");
+      statusButton.click();
+      page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("menuitem", { name: "Juggled" })
+        .click();
+      statusButton = page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Blocked");
+      let graph = await getKosoGraph(page);
+      expect(graph).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "3"], status: "Blocked" },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+      });
+      expect(graph["1"].assignee).toContain("-test@test.koso.app");
+
+      await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
+      await page.getByRole("button", { name: "Delete" }).click();
+
+      statusButton = page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toBeVisible();
+      await expect(statusButton).toHaveText("Not Started");
+      graph = await getKosoGraph(page);
+      expect(graph["1"].assignee).toContain("-test@test.koso.app");
+
+      await expect
+        .poll(
+          async () => {
+            return await getKosoGraph(page);
+          },
+          {
+            timeout: 6000,
+            intervals: [50],
+          },
+        )
+        .toMatchObject({
+          root: { children: ["1"] },
+          ["1"]: { children: ["2"], status: "Not Started" },
+          ["2"]: { children: [], status: "Done" },
+        });
     });
   });
 });

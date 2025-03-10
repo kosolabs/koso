@@ -28,8 +28,7 @@ export type Task = {
   // e.g. a Github PR URL.
   url: string | null;
 };
-export type Status = YStatus | "Blocked";
-export type YStatus = "Not Started" | "In Progress" | "Done";
+export type Status = "Not Started" | "In Progress" | "Done" | "Blocked";
 export type Kind = YKind | "Rollup";
 export type YKind = "Juggled" | "github" | "github_pr";
 export const unmanagedKinds: Set<Kind> = Set.of("Rollup", "Juggled");
@@ -154,11 +153,11 @@ export class YTaskProxy {
     this.#yTask.set("reporter", value);
   }
 
-  get yStatus(): YStatus | null {
-    return (this.#yTask.get("status") as YStatus) || null;
+  get yStatus(): Status | null {
+    return (this.#yTask.get("status") as Status) || null;
   }
 
-  set yStatus(value: YStatus | null) {
+  set yStatus(value: Status | null) {
     this.#yTask.set("status", value);
   }
 

@@ -21,7 +21,6 @@ import {
   type Status,
   type Task,
   type YEvent,
-  type YStatus,
   type YTask,
 } from "../yproxy";
 
@@ -89,6 +88,7 @@ export class Progress {
   total: number;
   lastStatusTime: number;
   status: Status;
+  childrenStatus: Status | null;
   kind: Kind | null;
 
   constructor(props: Partial<Progress> = {}) {
@@ -98,6 +98,7 @@ export class Progress {
     this.lastStatusTime = props.lastStatusTime ?? 0;
     this.status = props.status ?? "Not Started";
     this.kind = props.kind ?? null;
+    this.childrenStatus = props.childrenStatus ?? null;
   }
 
   isComplete(): boolean {
@@ -106,6 +107,10 @@ export class Progress {
 
   isBlocked(): boolean {
     return this.status === "Blocked";
+  }
+
+  isChildrenIncomplete(): boolean {
+    return this.childrenStatus !== null && this.childrenStatus !== "Done";
   }
 }
 
@@ -585,6 +590,10 @@ export class Koso {
           result.total = 1;
           result.status = "Not Started";
           break;
+        case "Blocked":
+          result.total = 1;
+          result.status = "Blocked";
+          break;
         default:
           throw new Error(
             `Invalid status ${task.yStatus} for task ${task.name}`,
@@ -592,29 +601,45 @@ export class Koso {
       }
     }
 
+    let childInProgress = 0;
+    let childDone = 0;
+    let childTotal = 0;
+    let childLastStatusTime = 0;
     task.children.forEach((taskId) => {
       // If performance is ever an issue for large, nested graphs,
       // we can memoize the recursive call and trade memory for time.
       const childProgress = this.getProgress(taskId);
-      result.inProgress += childProgress.inProgress;
-      result.done += childProgress.done;
-      result.total += childProgress.total;
-      result.lastStatusTime = Math.max(
-        result.lastStatusTime,
+      childInProgress += childProgress.inProgress;
+      childDone += childProgress.done;
+      childTotal += childProgress.total;
+      childLastStatusTime = Math.max(
+        childLastStatusTime,
         childProgress.lastStatusTime,
       );
     });
-    if (result.kind === "Rollup") {
-      if (result.done === result.total) {
-        result.status = "Done";
-      } else if (result.inProgress > 0 || result.done > 0) {
-        result.status = "In Progress";
+    result.lastStatusTime = Math.max(
+      result.lastStatusTime,
+      childLastStatusTime,
+    );
+    if (childTotal > 0) {
+      if (childDone === childTotal) {
+        result.childrenStatus = "Done";
+      } else if (childInProgress > 0 || childDone > 0) {
+        result.childrenStatus = "In Progress";
       } else {
-        result.status = "Not Started";
+        result.childrenStatus = "Not Started";
       }
+    }
+
+    if (result.kind === "Rollup") {
+      result.inProgress += childInProgress;
+      result.done += childDone;
+      result.total += childTotal;
+      result.status = result.childrenStatus || "Not Started";
     } else if (result.kind === "Juggled") {
-      if (result.status !== "Done" && result.done !== result.total - 1) {
-        result.status = "Blocked";
+      if (result.status === "Blocked" && !result.isChildrenIncomplete()) {
+        // Auto-unblock unblocked tasks with the Blocked status
+        result.status = "Not Started";
       }
     }
 
@@ -1428,32 +1453,42 @@ export class Koso {
   setKind(taskId: string, kind: Kind, user: User) {
     this.doc.transact(() => {
       const task = this.getTask(taskId);
-      const newKind = kind === "Rollup" ? null : kind;
-      if (task.yKind === newKind) return;
-
-      task.yKind = newKind;
       if (kind === "Juggled") {
-        task.yStatus = "Not Started";
-        task.statusTime = Date.now();
-        task.assignee = user.email;
+        const progress = this.getProgress(taskId);
+        if (progress.isChildrenIncomplete()) {
+          task.yKind = "Juggled";
+          task.yStatus = "Blocked";
+          task.statusTime = Date.now();
+          if (!task.assignee) {
+            task.assignee = user.email;
+          }
+        } else {
+          toast.info(
+            "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
+          );
+        }
       } else if (kind === "Rollup") {
+        task.yKind = null;
         task.yStatus = null;
         task.statusTime = Date.now();
+      } else {
+        throw new Error(`Tried to set invalid kind: ${kind}`);
       }
     });
   }
 
-  setTaskStatus(node: Node, status: YStatus, user: User) {
+  setTaskStatus(node: Node, status: Status, user: User) {
     const taskId = node.name;
     this.doc.transact(() => {
       const task = this.getTask(taskId);
       if (task.yStatus === status) return;
 
-      task.yStatus = status;
-      task.statusTime = Date.now();
       // When a task is marked done, make it the last child
       // and select an adjacent peer.
       if (status === "Done") {
+        task.yStatus = status;
+        task.statusTime = Date.now();
+
         const peer = this.getPrevPeer(node) || this.getNextPeer(node);
         if (peer) {
           this.selected = peer;
@@ -1472,6 +1507,9 @@ export class Koso {
       // When a task is marked in progress, make it the first child
       // and, if unassigned, assign to the current user
       else if (status === "In Progress") {
+        task.yStatus = status;
+        task.statusTime = Date.now();
+
         if (!task.assignee) {
           task.assignee = user.email;
         }
@@ -1485,6 +1523,26 @@ export class Koso {
           );
           this.reorder(taskId, parentId, index + 1);
         }
+      } else if (status === "Blocked") {
+        if (task.yKind !== "Juggled") {
+          throw new Error(`Can only set Juggled tasks to blocked: ${taskId}`);
+        }
+
+        const progress = this.getProgress(taskId);
+        if (progress.isChildrenIncomplete()) {
+          task.yStatus = status;
+          task.statusTime = Date.now();
+          if (!task.assignee) {
+            task.assignee = user.email;
+          }
+        } else {
+          toast.info(
+            "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
+          );
+        }
+      } else {
+        task.yStatus = status;
+        task.statusTime = Date.now();
       }
     });
   }
