@@ -108,6 +108,10 @@ export class Progress {
   isBlocked(): boolean {
     return this.status === "Blocked";
   }
+
+  isChildrenIncomplete(): boolean {
+    return this.childrenStatus !== null && this.childrenStatus !== "Done";
+  }
 }
 
 export type SyncState = {
@@ -633,10 +637,7 @@ export class Koso {
       result.total += childTotal;
       result.status = result.childrenStatus || "Not Started";
     } else if (result.kind === "Juggled") {
-      if (
-        result.status === "Blocked" &&
-        (result.childrenStatus === "Done" || result.childrenStatus === null)
-      ) {
+      if (result.status === "Blocked" && !result.isChildrenIncomplete()) {
         // Auto-unblock unblocked tasks with the Blocked status
         result.status = "Not Started";
       }
@@ -1457,7 +1458,7 @@ export class Koso {
       task.yKind = newKind;
       if (kind === "Juggled") {
         const progress = this.getProgress(taskId);
-        if (progress.childrenStatus && progress.childrenStatus !== "Done") {
+        if (progress.isChildrenIncomplete()) {
           task.yStatus = "Blocked";
           task.statusTime = Date.now();
           task.assignee = user.email;
@@ -1525,7 +1526,7 @@ export class Koso {
         }
 
         const progress = this.getProgress(taskId);
-        if (progress.childrenStatus !== "Done") {
+        if (progress.isChildrenIncomplete()) {
           task.yStatus = status;
           task.statusTime = Date.now();
         } else {
