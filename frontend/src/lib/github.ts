@@ -31,6 +31,7 @@ export async function githubInstallUrl(projectId: string) {
     csrf: generateCsrfValue(),
     projectId: projectId,
     clientId: init.clientId,
+    installationId: undefined,
   });
   sessionStorage.setItem(stateSessionKey, state);
   return `https://github.com/apps/${init.appName}/installations/new?state=${encodeURIComponent(state)}`;
@@ -45,11 +46,6 @@ export async function githubInstallUrl(projectId: string) {
  * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#generating-a-user-access-token-when-a-user-installs-your-app
  */
 export function redirectToGitubOAuth(state: State) {
-  if (!state.clientId) {
-    console.warn("Missing client id");
-    throw new Error("Missing client id");
-  }
-
   const url = new URL("https://github.com/login/oauth/authorize");
   url.searchParams.append("client_id", state.clientId);
   const redirectUri = `${location.origin}/connections/github`;
@@ -62,21 +58,23 @@ export function redirectToGitubOAuth(state: State) {
 }
 
 export type State = {
-  csrf?: string | null;
-  projectId?: string | null;
-  installationId?: string | null;
-  clientId?: string | null;
+  csrf: string;
+  projectId: string;
+  installationId: string;
+  clientId: string;
 };
 
 function generateCsrfValue(): string {
   return `csrf_${Math.random().toString(36).substring(2)}`;
 }
 
-export function encodeState(state: State): string {
+export function encodeState(
+  state: Omit<State, "installationId"> & { installationId?: string },
+): string {
   return btoa(JSON.stringify(state));
 }
 
-export function decodeState(state: string): State {
+export function decodeState(state: string): Partial<State> {
   return JSON.parse(atob(state));
 }
 

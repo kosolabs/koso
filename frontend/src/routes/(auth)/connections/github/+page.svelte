@@ -11,12 +11,7 @@
     const urlParams = new URLSearchParams(window.location.search);
 
     const state = parseAndValidateState(urlParams);
-    if (
-      !state ||
-      !state.projectId ||
-      !state.installationId ||
-      !state.clientId
-    ) {
+    if (!state) {
       await goto("/");
       return;
     }
@@ -60,12 +55,12 @@
       return null;
     }
 
-    const state: github.State = github.decodeState(stateParam);
+    const state = github.decodeState(stateParam);
     console.log("Decoded state", state);
 
     // Add the installation ID passed as a query parameter to the state.
     const installationIdParam = urlParams.get("installation_id");
-    if (!state.installationId) {
+    if (!state.installationId && installationIdParam) {
       state.installationId = installationIdParam;
     }
     if (installationIdParam && state.installationId !== installationIdParam) {
@@ -96,15 +91,20 @@
       );
       return null;
     }
-    if (!state.clientId) {
-      console.warn("No client id present in state");
+    if (!state.clientId || !state.csrf) {
+      console.warn("No client id or csrf present in state", state);
       toast.error(
         "Something went wrong, invalid state. Connect via the 'Connect' button on your project page",
       );
       return null;
     }
 
-    return state;
+    return {
+      projectId: state.projectId,
+      installationId: state.installationId,
+      clientId: state.clientId,
+      csrf: state.csrf,
+    };
   }
 
   async function authWithCode(code: string): Promise<void> {
