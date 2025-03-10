@@ -2134,12 +2134,23 @@ test.describe("dag table tests", () => {
       await expect(statusButton).toBeVisible();
       await expect(statusButton).toHaveText("Not Started");
       graph = await getKosoGraph(page);
-      expect(graph).toMatchObject({
-        root: { children: ["1"] },
-        ["1"]: { children: ["2"], status: "Not Started" },
-        ["2"]: { children: [], status: "Done" },
-      });
       expect(graph["1"].assignee).toContain("-test@test.koso.app");
+
+      await expect
+        .poll(
+          async () => {
+            return await getKosoGraph(page);
+          },
+          {
+            timeout: 6000,
+            intervals: [50],
+          },
+        )
+        .toMatchObject({
+          root: { children: ["1"] },
+          ["1"]: { children: ["2"], status: "Not Started" },
+          ["2"]: { children: [], status: "Done" },
+        });
     });
   });
 });
