@@ -1453,12 +1453,10 @@ export class Koso {
   setKind(taskId: string, kind: Kind, user: User) {
     this.doc.transact(() => {
       const task = this.getTask(taskId);
-      const newKind = kind === "Rollup" ? null : kind;
-
-      task.yKind = newKind;
       if (kind === "Juggled") {
         const progress = this.getProgress(taskId);
         if (progress.isChildrenIncomplete()) {
+          task.yKind = "Juggled";
           task.yStatus = "Blocked";
           task.statusTime = Date.now();
           task.assignee = user.email;
@@ -1468,8 +1466,11 @@ export class Koso {
           );
         }
       } else if (kind === "Rollup") {
+        task.yKind = null;
         task.yStatus = null;
         task.statusTime = Date.now();
+      } else {
+        throw new Error(`Tried to set invalid kind: ${kind}`);
       }
     });
   }
