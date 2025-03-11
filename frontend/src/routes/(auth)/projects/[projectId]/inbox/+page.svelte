@@ -51,15 +51,14 @@
     for (const task of koso.tasks) {
       if (isTaskVisible(task)) {
         // Walk up the tree to craft the full path.
-        let id = "";
         let parent = parents.get(task.id);
+        const path = [task.id];
         while (parent) {
           let parentId = parent[0];
-          id += `${parentId}/`;
+          path.unshift(parentId);
           parent = parents.get(parentId);
         }
-        id += task.id;
-        nodes = nodes.push(Node.parse(id));
+        nodes = nodes.push(Node.parse(path.join("/")));
       }
     }
 
