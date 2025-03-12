@@ -42,7 +42,7 @@
   bind:this={el}
   class={twMerge(
     baseClasses({ variant, color, shape, focus: true }),
-    "block w-full px-2 py-1 focus:ring-0",
+    "flex w-full items-center gap-1 px-2 py-1 text-left text-sm focus:ring-0",
     className,
   )}
   {...mergeProps(restProps, {

@@ -1,6 +1,8 @@
 <script>
+  import { baseClasses } from "$lib/kosui/base";
   import { Button } from "$lib/kosui/button";
-  import { Menu, MenuItem } from "$lib/kosui/menu";
+  import { Menu, MenuItem, MenuTrigger } from "$lib/kosui/menu";
+  import { twMerge } from "tailwind-merge";
 
   let open = $state(false);
   let el = $state();
@@ -27,7 +29,19 @@
 
   <Menu>
     {#snippet trigger(menuTriggerProps)}
-      <Button {...menuTriggerProps}>Render Delegated</Button>
+      <MenuTrigger
+        class={twMerge(
+          baseClasses({
+            variant: "outlined",
+            color: "primary",
+            shape: "rounded",
+            hover: true,
+            focus: true,
+          }),
+          "px-4 py-1.5 text-sm transition-all enabled:active:scale-95",
+        )}
+        {...menuTriggerProps}>Open Menu</MenuTrigger
+      >
     {/snippet}
     {#snippet content(menuItemProps)}
       <MenuItem

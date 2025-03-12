@@ -9,7 +9,7 @@ test.describe("Menu Component Tests", () => {
 
   test("menus should have correct roles", async ({ page }) => {
     const trigger = page.getByRole("button", {
-      name: "Render Delegated",
+      name: "Open Menu",
     });
 
     // Initial state
@@ -23,7 +23,7 @@ test.describe("Menu Component Tests", () => {
   });
 
   test("menu should have correct role and structure", async ({ page }) => {
-    const trigger = page.getByRole("button", { name: "Render Delegated" });
+    const trigger = page.getByRole("button", { name: "Open Menu" });
     await trigger.click();
 
     const menu = page.getByRole("menu");
@@ -36,7 +36,7 @@ test.describe("Menu Component Tests", () => {
   });
 
   test("keyboard navigation should work correctly", async ({ page }) => {
-    const trigger = page.getByRole("button", { name: "Render Delegated" });
+    const trigger = page.getByRole("button", { name: "Open Menu" });
     await trigger.click();
 
     // Arrow down should focus first item
@@ -61,7 +61,7 @@ test.describe("Menu Component Tests", () => {
   });
 
   test("menu should close on escape and return focus", async ({ page }) => {
-    const trigger = page.getByRole("button", { name: "Render Delegated" });
+    const trigger = page.getByRole("button", { name: "Open Menu" });
     await trigger.click();
 
     await page.keyboard.press("Escape");
@@ -70,7 +70,7 @@ test.describe("Menu Component Tests", () => {
   });
 
   test("menu should support character search", async ({ page }) => {
-    const trigger = page.getByRole("button", { name: "Render Delegated" });
+    const trigger = page.getByRole("button", { name: "Open Menu" });
     await trigger.click();
 
     // Type first character of menu item
@@ -79,7 +79,7 @@ test.describe("Menu Component Tests", () => {
   });
 
   test("menu should maintain focus within menu", async ({ page }) => {
-    const trigger = page.getByRole("button", { name: "Render Delegated" });
+    const trigger = page.getByRole("button", { name: "Open Menu" });
     await trigger.click();
 
     // Tab should cycle through menu items
@@ -92,7 +92,7 @@ test.describe("Menu Component Tests", () => {
   });
 
   test("menu items should be selectable by enter/space", async ({ page }) => {
-    const trigger = page.getByRole("button", { name: "Render Delegated" });
+    const trigger = page.getByRole("button", { name: "Open Menu" });
     await trigger.click();
 
     await page.getByRole("menuitem").first().press("Enter");
