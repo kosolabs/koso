@@ -2,11 +2,11 @@
   import { headers, parse_response } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
   import { toast } from "$lib/components/ui/sonner";
-  import { Toggle } from "$lib/components/ui/toggle";
   import { Button } from "$lib/kosui/button";
   import { dialog } from "$lib/kosui/dialog";
   import { Link } from "$lib/kosui/link";
   import { CircularProgress } from "$lib/kosui/progress";
+  import { Toggle } from "$lib/kosui/toggle";
   import Navbar from "$lib/navbar.svelte";
   import { CircleX, Moon, Send, Sun, SunMoon, Trash2 } from "lucide-svelte";
   import { userPrefersMode as mode, setMode } from "mode-watcher";
@@ -112,27 +112,29 @@
 
 <div class="flex flex-col gap-4 p-2">
   <Section title="Theme">
-    <Toggle
-      variant="outline"
-      bind:pressed={() => $mode === "light", () => setMode("light")}
-    >
-      <Sun />
-      Light
-    </Toggle>
-    <Toggle
-      variant="outline"
-      bind:pressed={() => $mode === "dark", () => setMode("dark")}
-    >
-      <Moon />
-      Dark
-    </Toggle>
-    <Toggle
-      variant="outline"
-      bind:pressed={() => $mode === "system", () => setMode("system")}
-    >
-      <SunMoon />
-      System
-    </Toggle>
+    <div class="flex items-center gap-2">
+      <Toggle
+        pressed={$mode === "light"}
+        onclick={() => setMode("light")}
+        icon={Sun}
+      >
+        Light
+      </Toggle>
+      <Toggle
+        pressed={$mode === "dark"}
+        onclick={() => setMode("dark")}
+        icon={Moon}
+      >
+        Dark
+      </Toggle>
+      <Toggle
+        pressed={$mode === "system"}
+        onclick={() => setMode("system")}
+        icon={SunMoon}
+      >
+        System
+      </Toggle>
+    </div>
   </Section>
   <Section title="Notifications">
     {#await profile}
