@@ -1,13 +1,17 @@
 <script lang="ts">
   import type { User } from "$lib/auth.svelte";
   import { Avatar } from "$lib/kosui/avatar";
+  import type { ClassName } from "$lib/kosui/utils";
   import { UserRound } from "lucide-svelte";
+  import { twMerge } from "tailwind-merge";
 
-  type Props = { user: User };
-  const { user }: Props = $props();
+  type Props = {
+    user: User;
+  } & ClassName;
+  const { user, class: className }: Props = $props();
 </script>
 
-<div class="flex items-center gap-2 text-left">
+<div class={twMerge("flex items-center gap-2 text-left", className)}>
   <Avatar src={user.picture} alt={user.email}>
     <UserRound />
   </Avatar>
