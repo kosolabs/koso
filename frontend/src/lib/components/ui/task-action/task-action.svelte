@@ -14,8 +14,9 @@
   type Props = {
     node: Node;
     koso: Koso;
+    inboxView: boolean;
   };
-  let { node, koso }: Props = $props();
+  let { node, koso, inboxView }: Props = $props();
 
   let open = $state(false);
   let statusElement: HTMLElement | undefined = $state();
@@ -42,8 +43,19 @@
 
   function handleOnSelectStatus(status: Status) {
     if (progress.status === status) return;
-    if (status === "Done") showDoneConfetti();
-    koso.setTaskStatus(node, status, auth.user);
+    if (status === "Done") {
+      const peer = koso.getPrevPeer(node) || koso.getNextPeer(node);
+
+      showDoneConfetti();
+      koso.setTaskStatus(node, "Done", auth.user);
+
+      // Select an adjacent peer.
+      if (!inboxView && peer) {
+        koso.selected = peer;
+      }
+    } else {
+      koso.setTaskStatus(node, status, auth.user);
+    }
   }
 
   function triggerTitle() {

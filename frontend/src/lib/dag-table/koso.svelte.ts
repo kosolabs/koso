@@ -141,7 +141,7 @@ export class Koso {
     console.debug("Client message handler was invoked but was not set");
   };
 
-  #selected: Node | null = $state(null);
+  #selected: [Node, number | null] | null = $state(null);
   #focus: boolean = $state(false);
   #highlighted: string | null = $state(null);
   #dragged: Node | null = $state(null);
@@ -409,19 +409,40 @@ export class Koso {
   }
 
   get selected(): Node | null {
-    return this.#selected;
+    const selected = this.#selected;
+    if (!selected) {
+      return null;
+    }
+    if (this.nodes.indexOf(selected[0]) < 0) {
+      return null;
+    }
+    return selected[0];
+  }
+
+  get selectedUnchecked(): Node | null {
+    return this.#selected ? this.#selected[0] : null;
+  }
+
+  get selectedIndex(): number | null {
+    return this.#selected ? this.#selected[1] : null;
   }
 
   set selected(value: Node | null) {
     if (value && value.id === "root") {
       throw new Error("Cannot select root");
     }
-    const shouldUpdateAwareness = this.#selected !== value;
 
-    this.#selected = value;
-    if (this.#selected) {
-      this.expand(this.#selected.parent);
+    const shouldUpdateAwareness =
+      !!this.#selected !== !!value ||
+      (this.#selected && !this.#selected[0].equals(value));
+
+    if (value) {
+      const index = this.nodes.indexOf(value);
+      this.#selected = [value, index >= 0 ? index : null];
+      this.expand(value.parent);
       this.focus = true;
+    } else {
+      this.#selected = value;
     }
 
     if (shouldUpdateAwareness) {
@@ -1509,11 +1530,7 @@ export class Koso {
         task.yStatus = status;
         task.statusTime = Date.now();
 
-        const peer = this.getPrevPeer(node) || this.getNextPeer(node);
-        if (peer) {
-          this.selected = peer;
-        }
-
+        // Reposition the done task in all locations.
         for (const parentId of this.getParents(taskId)) {
           const peers = this.getChildren(parentId);
           const index = findEntryIndex(

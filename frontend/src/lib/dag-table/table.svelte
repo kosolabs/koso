@@ -147,10 +147,19 @@
       case "Blocked":
         koso.setTaskStatus(koso.selected, "Not Started", auth.user);
         return;
-      case "In Progress":
-        getRow(koso.selected).showDoneConfetti();
-        koso.setTaskStatus(koso.selected, "Done", auth.user);
+      case "In Progress": {
+        const node = koso.selected;
+        const peer = koso.getPrevPeer(node) || koso.getNextPeer(node);
+
+        getRow(node).showDoneConfetti();
+        koso.setTaskStatus(node, "Done", auth.user);
+
+        // Select an adjacent peer.
+        if (!inboxView && peer) {
+          koso.selected = peer;
+        }
         break;
+      }
       case "Not Started":
         koso.setTaskStatus(koso.selected, "In Progress", auth.user);
         break;
@@ -166,12 +175,14 @@
 
     koso.deleteNode(toDelete);
 
-    // Select the next (or previous) node following deletion.
-    if (koso.nodes.size < 2 || toDeleteIndex <= 0) {
-      koso.selected = null;
-    } else {
-      koso.selected =
-        koso.nodes.get(Math.min(toDeleteIndex, koso.nodes.size - 1)) || null;
+    if (!inboxView) {
+      // Select the next (or previous) node following deletion.
+      if (koso.nodes.size < 2 || toDeleteIndex <= 0) {
+        koso.selected = null;
+      } else {
+        koso.selected =
+          koso.nodes.get(Math.min(toDeleteIndex, koso.nodes.size - 1)) || null;
+      }
     }
   }
 
@@ -602,6 +613,42 @@
   });
 
   setContext<Koso>("koso", koso);
+
+  // This effect selects a new node when the
+  // selected node no longer exists. For example, when
+  // the user marks a task as done or blocked in the inbox
+  // or a different user deletes the user's currently selected node.
+  $effect(() => {
+    const selected = koso.selectedUnchecked;
+    const selectedIndex = koso.selectedIndex;
+
+    if (selected) {
+      if (koso.nodes.indexOf(selected) < 0) {
+        // The selected node no longer exists. Select the
+        // node at the same index or the one at the end of the list.
+        // The first node is not selectable.
+        if (koso.nodes.size > 1) {
+          koso.selected =
+            koso.nodes.get(
+              Math.min(selectedIndex || -1, koso.nodes.size - 1),
+            ) || null;
+        } else {
+          console.log(
+            `Clearing non-existent selected node ${selected.id} expected at index ${selectedIndex}`,
+          );
+          koso.selected = null;
+        }
+      } else if (
+        !selectedIndex ||
+        !selected.equals(koso.nodes.get(selectedIndex))
+      ) {
+        console.log(
+          `Refreshing selected index for node ${selected.id} at prior index ${selectedIndex}`,
+        );
+        koso.selected = selected;
+      }
+    }
+  });
 </script>
 
 <CommandPalette bind:open={commandPaletteOpen} {actions} />

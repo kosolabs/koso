@@ -399,7 +399,7 @@
     </td>
   {/if}
   <td class={cn("border-t border-l p-2")}>
-    <TaskAction {node} {koso} bind:this={taskAction} />
+    <TaskAction {node} {koso} {inboxView} bind:this={taskAction} />
   </td>
   <td class={cn("w-full border-t border-l px-2 py-1")}>
     <div class={cn("flex items-center gap-x-1")}>
