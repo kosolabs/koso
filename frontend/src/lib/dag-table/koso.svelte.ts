@@ -204,7 +204,7 @@ export class Koso {
     this.#yUndoManager = new Y.UndoManager(graph);
     // Save and restore node selection on undo/redo.
     this.#yUndoManager.on("stack-item-added", (event) => {
-      event.stackItem.meta.set("selected-node", this.selected);
+      event.stackItem.meta.set("selected-node", this.selectedUnchecked);
     });
     this.#yUndoManager.on("stack-item-popped", (event) => {
       const selected = event.stackItem.meta.get("selected-node");
