@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { KosoError } from "$lib/api";
   import { showUnauthorizedDialog, type User } from "$lib/auth.svelte";
@@ -18,7 +19,7 @@
     updateProject,
   } from "$lib/projects";
   import { Action } from "$lib/shortcuts";
-  import { FileDown, PlugZap, UserPlus } from "lucide-svelte";
+  import { FileDown, Mail, PlugZap, UserPlus } from "lucide-svelte";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
 
@@ -139,6 +140,14 @@
         onclick={exportProjectToFile}
       >
         <FileDown />
+      </Button>
+      <Button
+        variant="plain"
+        tooltip="Zero inbox view"
+        aria-label="Zero inbox view"
+        onclick={() => goto(`/projects/${projectId}/inbox`)}
+      >
+        <Mail />
       </Button>
       <Button
         variant="plain"
