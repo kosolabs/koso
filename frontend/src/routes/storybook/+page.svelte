@@ -7,12 +7,14 @@
     "/storybook/avatar",
     "/storybook/buttons",
     "/storybook/chips",
+    "/storybook/command",
     "/storybook/dialogs",
     "/storybook/inputs",
     "/storybook/links",
     "/storybook/menus",
     "/storybook/progress-indicators",
     "/storybook/shortcuts",
+    "/storybook/toggles",
     "/storybook/tooltips",
   ];
 </script>

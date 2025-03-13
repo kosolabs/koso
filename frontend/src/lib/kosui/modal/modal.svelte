@@ -9,7 +9,6 @@
 
   export type ModalProps = {
     ref?: HTMLDialogElement;
-    useEscapeKey?: boolean;
     children: Snippet;
   } & ClassName &
     HTMLDialogAttributes;
@@ -18,29 +17,54 @@
 <script lang="ts">
   let {
     ref = $bindable(),
-    useEscapeKey = false,
     open = $bindable(),
     class: className,
     children,
     ...restProps
   }: ModalProps = $props();
 
-  $effect(() => {
-    if (ref) {
-      ref.showModal();
-    }
-  });
-
   function handleEscape(event: KeyboardEvent) {
     const ESCAPE = new Shortcut({ key: "Escape" });
     if (ESCAPE.matches(event)) {
       open = false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }
+
+  // const clickedInDialog = (
+  // rect.top <= e.clientY &&
+  //     e.clientY <= rect.top + rect.height &&
+  //     rect.left <= e.clientX &&
+  //     e.clientX <= rect.left + rect.width
+  // );
+
+  function handleClickOutside(event: MouseEvent) {
+    if (ref && ref === event.target) {
+      const rect = ref.getBoundingClientRect();
+      if (
+        event.clientY < rect.top ||
+        event.clientY > rect.top + rect.height ||
+        event.clientX < rect.left ||
+        event.clientX > rect.left + rect.width
+      ) {
+        open = false;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
     }
   }
 
   $effect(() => {
-    if (useEscapeKey) {
-      return events.on("keydown", handleEscape);
+    if (ref) {
+      ref.showModal();
+      events.on("keydown", handleEscape);
+      events.on("mousedown", handleClickOutside);
+
+      return () => {
+        events.remove("keydown", handleEscape);
+        events.remove("mousedown", handleClickOutside);
+      };
     }
   });
 </script>
@@ -49,7 +73,7 @@
   <dialog
     bind:this={ref}
     class={twMerge(
-      "bg-m3-surface-container-high m-auto max-w-[min(calc(100%-1em),36em)] min-w-72 overflow-hidden rounded-lg p-5 shadow-lg",
+      "bg-m3-surface-container-high m-auto max-w-[min(calc(100%-1em),36em)] min-w-72 rounded-lg p-5 shadow-lg",
       className,
     )}
     {...restProps}
