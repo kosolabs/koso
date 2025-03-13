@@ -269,6 +269,51 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Meta+ArrowUp");
       await expect(page.getByTestId("Row 3")).toBeFocused();
     });
+
+    test("meta+up and down arrows select next/prev linked task and wraps around", async ({
+      page,
+    }) => {
+      await init(
+        page,
+        [
+          { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
+          { id: "2", children: ["1"] },
+          { id: "4", children: ["5"] },
+          { id: "5", children: ["1"] },
+        ],
+        true,
+      );
+
+      page
+        .getByTestId("Row 1")
+        .getByRole("button", { name: "Task 1 Drag Handle" })
+        .click();
+      await expect(page.getByTestId("Row 1")).toBeFocused();
+
+      await page.keyboard.press("Meta+ArrowDown");
+      await expect(page.getByTestId("Row 2/1")).toBeFocused();
+
+      await page.keyboard.press("Meta+ArrowDown");
+      await expect(page.getByTestId("Row 4/5/1")).toBeFocused();
+
+      await page.keyboard.press("Meta+ArrowDown");
+      await expect(page.getByTestId("Row 1")).toBeFocused();
+
+      await page.keyboard.press("Meta+ArrowDown");
+      await expect(page.getByTestId("Row 2/1")).toBeFocused();
+
+      await page.keyboard.press("Meta+ArrowUp");
+      await expect(page.getByTestId("Row 1")).toBeFocused();
+
+      await page.keyboard.press("Meta+ArrowUp");
+      await expect(page.getByTestId("Row 4/5/1")).toBeFocused();
+
+      await page.keyboard.press("Meta+ArrowUp");
+      await expect(page.getByTestId("Row 2/1")).toBeFocused();
+
+      await page.keyboard.press("Meta+ArrowUp");
+      await expect(page.getByTestId("Row 1")).toBeFocused();
+    });
   });
 
   test.describe("editing tasks", () => {
