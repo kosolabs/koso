@@ -13,8 +13,18 @@ export type ToggleEventWithTarget<T extends HTMLElement> = ToggleEvent & {
   currentTarget: EventTarget & T;
 };
 
-export function uid(): string {
-  return Math.random().toString(36).substring(2, 10);
+type UidProps = {
+  prefix?: string;
+  separator?: string;
+};
+
+export function uid({ prefix = "", separator = "-" }: UidProps = {}): string {
+  const parts = [];
+  if (prefix) {
+    parts.push(prefix);
+  }
+  parts.push(Math.random().toString(36).substring(2, 10));
+  return parts.join(separator);
 }
 
 /**
