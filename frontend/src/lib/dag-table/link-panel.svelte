@@ -1,11 +1,10 @@
 <script lang="ts">
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
-  import * as Command from "$lib/components/ui/command";
-  import * as Popover from "$lib/components/ui/popover";
   import { Chip } from "$lib/kosui/chip";
-  import { CANCEL } from "$lib/shortcuts";
+  import { Command, CommandInput, CommandItem } from "$lib/kosui/command";
+  import { Popover } from "$lib/kosui/popover";
   import { match } from "$lib/utils";
-  import { Clipboard, Network } from "lucide-svelte";
+  import { Clipboard, Network, SearchIcon } from "lucide-svelte";
   import { getContext } from "svelte";
   import { compareTasks, type Koso, type Node } from ".";
 
@@ -14,10 +13,11 @@
     closeFocus?: HTMLElement;
     node: Node;
   };
-  let { open = $bindable(false), closeFocus, node }: Props = $props();
+  let { open = $bindable(false), node }: Props = $props();
 
   const koso = getContext<Koso>("koso");
 
+  let anchorEl: HTMLElement | undefined = $state();
   let query = $state("");
   let tasks = $derived(
     open
@@ -46,40 +46,38 @@
   }
 </script>
 
-<Popover.Root bind:open>
-  <Popover.Trigger class="absolute left-[calc(100%/2)] h-6" />
-  <div
-    role="none"
-    onkeydown={(event) => {
-      if (CANCEL.matches(event)) {
-        open = false;
-      }
-      event.stopPropagation();
-    }}
-  >
-    <Popover.Content
-      class="w-[calc(100%)] max-w-[calc(100vw-1em)]"
-      portalProps={{ disabled: true }}
-      onCloseAutoFocus={(event) => {
-        event.preventDefault();
-        closeFocus?.focus();
-      }}
-    >
-      <Command.Root shouldFilter={false}>
-        <Command.Input
-          placeholder="Search by task name or number..."
+<div bind:this={anchorEl} class="absolute left-[calc(100%/2)] h-6"></div>
+
+<Popover
+  bind:open
+  {anchorEl}
+  placement="bottom"
+  class="shadow-m3-shadow/20 bg-m3-surface-container-high h-[min(40%,24em)] w-[min(calc(100%-1em),36em)] rounded-lg border shadow"
+>
+  <Command class="flex h-full flex-col">
+    {#snippet input(command)}
+      <div class="flex items-center px-2">
+        <SearchIcon size={16} />
+        <CommandInput
+          autofocus
           bind:value={query}
+          {command}
+          placeholder="Search by task name or number..."
         />
-        <Command.List>
-          <Command.Empty>No tasks found.</Command.Empty>
+      </div>
+    {/snippet}
+    {#snippet content(command)}
+      <div class="h-full overflow-scroll">
+        {#if tasks.length > 0}
           {#each tasks as task (task.id)}
-            <Command.Item
+            <CommandItem
+              {command}
               class="table-row"
               onSelect={() => link(task.id)}
               aria-label="Task {task.id} Command Item"
             >
-              <div class="table-cell rounded-l px-2 align-middle">
-                <div class="flex items-center gap-1 py-2" title="Task Number">
+              <div class="table-cell rounded-l px-2 py-2 align-middle">
+                <div class="flex items-center gap-1" title="Task Number">
                   <Clipboard size={16} />
                   {task.num}
                 </div>
@@ -89,13 +87,13 @@
                   {task.name || "Untitled task"}
                 </div>
               </div>
-              <div class="table-cell rounded-r px-2 align-middle text-nowrap">
+              <div class="table-cell px-2 align-middle text-nowrap">
                 <div class="flex items-center gap-1" title="Subtasks">
                   {task.children.length}
                   <Network size={16} />
                 </div>
               </div>
-              <div class="table-cell rounded-r px-2 align-middle text-nowrap">
+              <div class="table-cell px-2 align-middle text-nowrap">
                 <div class="flex items-center gap-1" title="Status">
                   {koso.getStatus(task.id)}
                 </div>
@@ -109,10 +107,12 @@
                   </div>
                 </div>
               </div>
-            </Command.Item>
+            </CommandItem>
           {/each}
-        </Command.List>
-      </Command.Root>
-    </Popover.Content>
-  </div>
-</Popover.Root>
+        {:else}
+          <div class="text-center">No results found.</div>
+        {/if}
+      </div>
+    {/snippet}
+  </Command>
+</Popover>

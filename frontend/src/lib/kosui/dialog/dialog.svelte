@@ -2,17 +2,13 @@
   import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
-  import { tv, type ClassValue } from "tailwind-variants";
   import { events } from "..";
   import { mergeProps } from "../merge-props";
   import { Modal, type ModalProps } from "../modal";
 
-  const dialogVariants = tv({});
-
   type DialogProps<T> = {
     ref?: HTMLDialogElement;
     onSelect?: (value?: T) => void;
-    class?: ClassValue;
     icon?: typeof Icon;
     title?: string;
     children: Snippet;
@@ -61,7 +57,7 @@
 <Modal
   bind:ref
   bind:open
-  class={dialogVariants({ className })}
+  class={twMerge("w-[min(calc(100%-1em),36em)]", className)}
   {...mergedProps}
 >
   <div class={twMerge("flex flex-col gap-4")}>
