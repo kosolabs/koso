@@ -235,7 +235,6 @@
   function selectNext() {
     if (koso.nodes.size > 1) {
       if (koso.selected) {
-        koso.nodes.indexOf(koso.selected);
         const index = Math.min(
           koso.nodes.indexOf(koso.selected) + 1,
           koso.nodes.size - 1,

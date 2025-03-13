@@ -903,6 +903,10 @@ export class Koso {
 
   getPrevLink(node: Node): Node | null {
     const curr = this.nodes.indexOf(node);
+    if (curr <= 0) {
+      return null;
+    }
+
     for (let i = curr - 1; i > 0; i--) {
       const n = this.#nodes.get(i);
       if (!n) throw new Error(`Node at ${i} does not exist.`);
@@ -926,7 +930,7 @@ export class Koso {
 
   getNextLink(node: Node): Node | null {
     const curr = this.nodes.indexOf(node);
-    if (curr <= 1) {
+    if (curr <= 0) {
       return null;
     }
 
@@ -1304,6 +1308,11 @@ export class Koso {
     const taskIds = this.getChildren(node.parent.name);
     const offset = taskIds.indexOf(node.name);
 
+    if (offset === -1) {
+      throw new Error(
+        `Node ${node.name} not found in parent ${node.parent.id}`,
+      );
+    }
     if (offset === 0) {
       toast.warning(`This task is already at the top`);
       return;
@@ -1327,6 +1336,11 @@ export class Koso {
     const taskIds = this.getChildren(node.parent.name);
     const offset = taskIds.indexOf(node.name);
 
+    if (offset === -1) {
+      throw new Error(
+        `Node ${node.name} not found in parent ${node.parent.id}`,
+      );
+    }
     if (offset === taskIds.length - 1) {
       toast.warning(`This task is already at the bottom`);
       return;
