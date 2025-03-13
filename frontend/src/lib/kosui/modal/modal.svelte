@@ -4,6 +4,7 @@
   import { scale } from "svelte/transition";
   import { twMerge } from "tailwind-merge";
   import { events } from "..";
+  import { mergeProps } from "../merge-props";
   import { Shortcut } from "../shortcut";
   import { type ClassName } from "../utils";
 
@@ -18,8 +19,8 @@
   let {
     ref = $bindable(),
     open = $bindable(),
-    class: className,
     children,
+    class: className,
     ...restProps
   }: ModalProps = $props();
 
@@ -31,13 +32,6 @@
       event.stopImmediatePropagation();
     }
   }
-
-  // const clickedInDialog = (
-  // rect.top <= e.clientY &&
-  //     e.clientY <= rect.top + rect.height &&
-  //     rect.left <= e.clientX &&
-  //     e.clientX <= rect.left + rect.width
-  // );
 
   function handleClickOutside(event: MouseEvent) {
     if (ref && ref === event.target) {
@@ -76,20 +70,21 @@
       "bg-m3-surface-container-high m-auto max-w-[min(calc(100%-1em),36em)] min-w-72 rounded-lg p-5 shadow-lg",
       className,
     )}
-    {...restProps}
     transition:scale={{ duration: 150, start: 0.95 }}
-    onintrostart={() => {
-      if (ref) {
-        ref.classList.remove("backdrop-out");
-        ref.classList.add("backdrop-in");
-      }
-    }}
-    onoutrostart={() => {
-      if (ref) {
-        ref.classList.remove("backdrop-in");
-        ref.classList.add("backdrop-out");
-      }
-    }}
+    {...mergeProps(restProps, {
+      onintrostart: () => {
+        if (ref) {
+          ref.classList.remove("backdrop-out");
+          ref.classList.add("backdrop-in");
+        }
+      },
+      onoutrostart: () => {
+        if (ref) {
+          ref.classList.remove("backdrop-in");
+          ref.classList.add("backdrop-out");
+        }
+      },
+    })}
   >
     {@render children()}
   </dialog>

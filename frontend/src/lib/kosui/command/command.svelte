@@ -43,7 +43,7 @@
 
   function getItemIds(): string[] {
     if (!el) return [];
-    return Array.from(el.getElementsByTagName("button"))
+    return Array.from(el.getElementsByTagName("div"))
       .filter((button) => button.role === "option")
       .map((button) => button.id)
       .filter((id) => id in items);

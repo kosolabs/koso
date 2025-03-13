@@ -21,6 +21,12 @@
           match(action.title, query) || match(action.description, query),
       ),
   );
+
+  function handleSelect(action: Action) {
+    action.callback();
+    query = "";
+    open = false;
+  }
 </script>
 
 <Modal bind:open class="h-96 min-h-96 rounded p-0 sm:w-96 sm:min-w-96">
@@ -39,26 +45,15 @@
       <div class="h-full overflow-scroll">
         {#if filteredActions.length > 0}
           {#each filteredActions as action (action.title)}
-            {@const {
-              title,
-              description,
-              icon: Icon,
-              callback,
-              shortcut,
-            } = action}
             <CommandItem
-              value={title}
+              title={action.title}
               {command}
-              onSelect={() => {
-                callback();
-                query = "";
-                open = false;
-              }}
+              onSelect={() => handleSelect(action)}
             >
-              <Icon class="mr-2 h-4 w-4" />
-              {description}
-              {#if shortcut}
-                <ShortcutBadge class="ml-auto" {shortcut} />
+              <action.icon class="mr-2 h-4 w-4" />
+              {action.description}
+              {#if action.shortcut}
+                <ShortcutBadge class="ml-auto" shortcut={action.shortcut} />
               {/if}
             </CommandItem>
           {/each}
