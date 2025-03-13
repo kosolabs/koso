@@ -1,6 +1,6 @@
 <script module lang="ts">
   import { type Snippet } from "svelte";
-  import type { HTMLButtonAttributes } from "svelte/elements";
+  import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { Command, CommandItem } from ".";
   import { baseClasses, type Variants } from "../base";
@@ -13,7 +13,7 @@
   } & ElementRef &
     ClassName &
     Variants &
-    HTMLButtonAttributes;
+    HTMLAttributes<HTMLDivElement>;
 </script>
 
 <script lang="ts">
@@ -58,7 +58,7 @@
   });
 </script>
 
-<button
+<div
   {id}
   bind:this={el}
   role="option"
@@ -74,4 +74,4 @@
   })}
 >
   {@render children()}
-</button>
+</div>
