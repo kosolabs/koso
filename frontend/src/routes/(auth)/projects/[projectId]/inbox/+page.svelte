@@ -1,13 +1,16 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { auth, showUnauthorizedDialog, type User } from "$lib/auth.svelte";
   import { DagTable, Koso, KosoSocket, Node } from "$lib/dag-table";
   import { Alert } from "$lib/kosui/alert";
+  import { Button } from "$lib/kosui/button";
   import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
   import { fetchProject, fetchProjectUsers, type Project } from "$lib/projects";
   import type { YTaskProxy } from "$lib/yproxy";
   import { List } from "immutable";
+  import { Notebook } from "lucide-svelte";
   import * as Y from "yjs";
 
   const projectId = page.params.projectId;
@@ -83,6 +86,16 @@
         {/await}
       </h1>
     </div>
+  {/snippet}
+  {#snippet right()}
+    <Button
+      variant="plain"
+      tooltip="Project planning view"
+      aria-label="Project planning view"
+      onclick={() => goto(`/projects/${projectId}`)}
+    >
+      <Notebook />
+    </Button>
   {/snippet}
 </Navbar>
 
