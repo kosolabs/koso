@@ -413,6 +413,9 @@ export class Koso {
   }
 
   set selected(value: Node | null) {
+    if (value && value.id === "root") {
+      throw new Error("Cannot select root");
+    }
     const shouldUpdateAwareness = this.#selected !== value;
 
     this.#selected = value;
@@ -1055,6 +1058,9 @@ export class Koso {
    * example.
    */
   #isCanonicalManagedLink(task: string, parent: string): boolean {
+    if (task === "root") {
+      return true;
+    }
     const kind = this.getTask(task).yKind;
     if (!kind || unmanagedKinds.includes(kind)) {
       return false;

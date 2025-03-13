@@ -61,6 +61,9 @@ export class YGraphProxy {
   }
 
   delete(taskId: string) {
+    if (taskId === "root") {
+      throw new Error("Cannot delete root node");
+    }
     this.#yGraph.delete(taskId);
   }
 
