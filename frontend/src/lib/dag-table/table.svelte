@@ -167,7 +167,7 @@
     koso.deleteNode(toDelete);
 
     // Select the next (or previous) node following deletion.
-    if (koso.nodes.size < 2) {
+    if (koso.nodes.size < 2 || toDeleteIndex <= 0) {
       koso.selected = null;
     } else {
       koso.selected =
@@ -235,11 +235,13 @@
   function selectNext() {
     if (koso.nodes.size > 1) {
       if (koso.selected) {
-        const index = Math.min(
-          koso.nodes.indexOf(koso.selected) + 1,
-          koso.nodes.size - 1,
-        );
-        koso.selected = koso.nodes.get(index, null);
+        const selectedIndex = koso.nodes.indexOf(koso.selected);
+        if (selectedIndex <= 0) {
+          koso.selected = null;
+        } else {
+          const index = Math.min(selectedIndex + 1, koso.nodes.size - 1);
+          koso.selected = koso.nodes.get(index, null);
+        }
       } else {
         koso.selected = koso.nodes.get(1, null);
       }
@@ -249,8 +251,13 @@
   function selectPrev() {
     if (koso.nodes.size > 1) {
       if (koso.selected) {
-        const index = Math.max(koso.nodes.indexOf(koso.selected) - 1, 1);
-        koso.selected = koso.nodes.get(index, null);
+        const selectedIndex = koso.nodes.indexOf(koso.selected);
+        if (selectedIndex <= 0) {
+          koso.selected = null;
+        } else {
+          const index = Math.max(selectedIndex - 1, 1);
+          koso.selected = koso.nodes.get(index, null);
+        }
       } else {
         koso.selected = koso.nodes.get(koso.nodes.size - 1, null);
       }
