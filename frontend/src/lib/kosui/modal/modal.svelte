@@ -66,10 +66,7 @@
 {#if open}
   <dialog
     bind:this={ref}
-    class={twMerge(
-      "bg-m3-surface-container-high m-auto max-w-[min(calc(100%-1em),36em)] min-w-72 rounded-lg p-5 shadow-lg",
-      className,
-    )}
+    class={twMerge("m-auto rounded-lg p-5 shadow-lg", className)}
     transition:scale={{ duration: 150, start: 0.95 }}
     {...mergeProps(restProps, {
       onintrostart: () => {

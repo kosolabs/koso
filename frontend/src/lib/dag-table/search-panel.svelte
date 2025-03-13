@@ -53,7 +53,7 @@
 <Modal
   bind:open
   onoutroend={finalize}
-  class="h-96 min-h-96 rounded p-0 sm:w-96 sm:min-w-96"
+  class="bg-m3-surface-container-high h-[min(40%,24em)] w-[min(calc(100%-1em),36em)] rounded-lg p-0"
 >
   <Command class="flex h-full flex-col">
     {#snippet input(command)}
