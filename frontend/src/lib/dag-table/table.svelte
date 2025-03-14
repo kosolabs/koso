@@ -619,34 +619,42 @@
   // the user marks a task as done or blocked in the inbox
   // or a different user deletes the user's currently selected node.
   $effect(() => {
-    const selected = koso.selectedUnchecked;
-    const selectedIndex = koso.selectedIndex;
+    const selected = koso.selectedRaw;
+    const selectedNode = selected.node;
+    const selectedIndex = selected.index;
 
-    if (selected) {
-      if (koso.nodes.indexOf(selected) < 0) {
-        // The selected node no longer exists. Select the
-        // node at the same index or the one at the end of the list.
-        // The first node is not selectable.
-        if (koso.nodes.size > 1) {
-          koso.selected =
-            koso.nodes.get(
-              Math.min(selectedIndex || -1, koso.nodes.size - 1),
-            ) || null;
-        } else {
-          console.log(
-            `Clearing non-existent selected node ${selected.id} expected at index ${selectedIndex}`,
-          );
-          koso.selected = null;
-        }
-      } else if (
-        !selectedIndex ||
-        !selected.equals(koso.nodes.get(selectedIndex))
-      ) {
-        console.log(
-          `Refreshing selected index for node ${selected.id} at prior index ${selectedIndex}`,
+    if (!selectedNode) {
+      return;
+    }
+
+    const selectedNodeNotFound = koso.nodes.indexOf(selectedNode) === -1;
+    if (selectedNodeNotFound) {
+      // The selected node no longer exists. Select the
+      // node at the same index or the one at the end of the list.
+      // The first node is not selectable.
+
+      if (koso.nodes.size > 1) {
+        console.debug(
+          `Node ${selectedNode.id} no longer exists. Selecting new node.`,
         );
-        koso.selected = selected;
+        koso.selected = koso.nodes.get(
+          Math.min(selectedIndex || -1, koso.nodes.size - 1),
+          null,
+        );
+      } else {
+        console.debug(
+          `Node ${selectedNode.id} no longer exists. Clearing selection.`,
+        );
+        koso.selected = null;
       }
+      return;
+    }
+
+    if (!selectedIndex || !selectedNode.equals(koso.nodes.get(selectedIndex))) {
+      console.debug(
+        `Refreshing selected index for node ${selectedNode.id} at prior index ${selectedIndex}`,
+      );
+      koso.selected = selectedNode;
     }
   });
 </script>

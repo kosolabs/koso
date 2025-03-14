@@ -82,6 +82,10 @@ export class Node extends NodeRecord {
 
 export type Nodes = Map<string, Node>;
 
+type SelectedProps = { node: Node | null; index: number | null };
+const SelectedRecord = Record<SelectedProps>({ node: null, index: null });
+export class Selected extends SelectedRecord {}
+
 export class Progress {
   inProgress: number;
   done: number;
@@ -141,7 +145,7 @@ export class Koso {
     console.debug("Client message handler was invoked but was not set");
   };
 
-  #selected: [Node, number | null] | null = $state(null);
+  #selectedRaw: Selected = $state(new Selected());
   #focus: boolean = $state(false);
   #highlighted: string | null = $state(null);
   #dragged: Node | null = $state(null);
@@ -176,6 +180,13 @@ export class Koso {
     }
     return this.#flattenFn(new Node(), this.expanded, this.showDone);
   });
+  #selected: Node | null = $derived.by(() => {
+    const node = this.#selectedRaw.node;
+    if (!node || this.nodes.indexOf(node) < 0) {
+      return null;
+    }
+    return node;
+  });
 
   #resolveIndexedDbSync: () => void = () => {};
   #indexedDbSynced = new Promise<void>(
@@ -204,7 +215,7 @@ export class Koso {
     this.#yUndoManager = new Y.UndoManager(graph);
     // Save and restore node selection on undo/redo.
     this.#yUndoManager.on("stack-item-added", (event) => {
-      event.stackItem.meta.set("selected-node", this.selectedUnchecked);
+      event.stackItem.meta.set("selected-node", this.selectedRaw.node);
     });
     this.#yUndoManager.on("stack-item-popped", (event) => {
       const selected = event.stackItem.meta.get("selected-node");
@@ -408,23 +419,12 @@ export class Koso {
     return this.#yUndoManager;
   }
 
+  get selectedRaw(): Selected {
+    return this.#selectedRaw;
+  }
+
   get selected(): Node | null {
-    const selected = this.#selected;
-    if (!selected) {
-      return null;
-    }
-    if (this.nodes.indexOf(selected[0]) < 0) {
-      return null;
-    }
-    return selected[0];
-  }
-
-  get selectedUnchecked(): Node | null {
-    return this.#selected ? this.#selected[0] : null;
-  }
-
-  get selectedIndex(): number | null {
-    return this.#selected ? this.#selected[1] : null;
+    return this.#selected;
   }
 
   set selected(value: Node | null) {
@@ -433,16 +433,24 @@ export class Koso {
     }
 
     const shouldUpdateAwareness =
-      !!this.#selected !== !!value ||
-      (this.#selected && !this.#selected[0].equals(value));
+      !!this.#selectedRaw.node !== !!value ||
+      (this.#selectedRaw.node && !this.#selectedRaw.node.equals(value));
 
     if (value) {
       const index = this.nodes.indexOf(value);
-      this.#selected = [value, index >= 0 ? index : null];
+      if (index === -1) {
+        // TODO: This happens when handleRow click is triggered when setting status to done in the inbox.
+        // It'd be better if this threw.
+        console.warn(
+          `Selected node ${value.id} not found in nodes: ${this.nodes.map((n) => n.id).join(",")}.`,
+        );
+        return;
+      }
+      this.#selectedRaw = new Selected({ node: value, index: index });
       this.expand(value.parent);
       this.focus = true;
     } else {
-      this.#selected = value;
+      this.#selectedRaw = new Selected({ node: null, index: null });
     }
 
     if (shouldUpdateAwareness) {
