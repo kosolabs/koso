@@ -64,9 +64,9 @@
       <div>Dialog Open!</div>
     {:then confirmResult}
       {#if confirmResult}
-        <div class="text-primary">Accepted!</div>
+        <div class="text-m3-primary">Accepted!</div>
       {:else}
-        <div class="text-destructive">Cancelled!</div>
+        <div class="text-m3-error">Cancelled!</div>
       {/if}
     {/await}
   {:else}
@@ -94,9 +94,9 @@
       <div>Dialog Open!</div>
     {:then directionResult}
       {#if directionResult}
-        <div class="text-primary">{directionResult}</div>
+        <div class="text-m3-primary">{directionResult}</div>
       {:else}
-        <div class="text-destructive">Cancelled!</div>
+        <div class="text-m3-error">Cancelled!</div>
       {/if}
     {/await}
   {:else}
@@ -113,7 +113,7 @@
   {#if open}
     <div>Dialog Open!</div>
   {:else if customResult}
-    <div>Selected: <span class="text-primary">{customResult}</span></div>
+    <div>Selected: <span class="text-m3-primary">{customResult}</span></div>
   {:else}
     <div>Dialog Closed!</div>
   {/if}

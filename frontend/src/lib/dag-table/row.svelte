@@ -491,7 +491,7 @@
   <button
     class={cn(
       "absolute z-50 cursor-default transition-all",
-      koso.debug && "bg-primary/20",
+      koso.debug && "bg-m3-primary/20",
     )}
     style:width={`${rowWidth}px`}
     style:height={koso.dragged ? `${rowHeight / 2}px` : "1px"}
@@ -505,7 +505,7 @@
   <button
     class={cn(
       "absolute z-50 cursor-default transition-all",
-      koso.debug && "bg-secondary/20",
+      koso.debug && "bg-m3-tertiary/20",
     )}
     style:width={`${rowWidth}px`}
     style:height={koso.dragged ? `${rowHeight / 2}px` : "1px"}

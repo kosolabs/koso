@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
   import { toast } from "$lib/components/ui/sonner";
+  import { Alert } from "$lib/kosui/alert";
   import { Button } from "$lib/kosui/button";
   import { Link } from "$lib/kosui/link";
   import Navbar from "$lib/navbar.svelte";
@@ -131,8 +132,9 @@
   />
 
   {#if projects.length === 0}
-    <div
-      class="bg-card m-2 flex flex-col items-center gap-6 rounded border p-8"
+    <Alert
+      color="primary"
+      class="m-2 flex flex-col items-center gap-6 rounded border p-8"
     >
       <div><Layers /></div>
       <div class="text-xl">Create your first Koso project!</div>
@@ -152,7 +154,7 @@
           Import
         </Button>
       </div>
-    </div>
+    </Alert>
   {:else}
     <div class="m-2 flex flex-col rounded border">
       <div class="flex flex-col items-end p-2">
@@ -173,7 +175,9 @@
           </Button>
         </div>
       </div>
-      <div class="[&>*:nth-child(even)]:bg-muted flex flex-col items-stretch">
+      <div
+        class="[&>*:nth-child(even)]:bg-m3-surface-container-low flex flex-col items-stretch"
+      >
         {#each projects as project (project.projectId)}
           <div class="flex items-center border-t p-2">
             <Link class="text-lg" href="projects/{project.projectId}">

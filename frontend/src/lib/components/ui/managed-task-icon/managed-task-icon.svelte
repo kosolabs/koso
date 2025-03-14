@@ -30,7 +30,7 @@
 <Tooltip arrow>
   {#snippet trigger(props)}
     <TooltipTrigger {...props} class={cn("max-w-4 min-w-4")}>
-      <ManagedTaskIcon size={16} class="text-foreground" />
+      <ManagedTaskIcon size={16} />
     </TooltipTrigger>
   {/snippet}
   This task is managed by the {getManagedTaskName(kind)} plugin.

@@ -25,34 +25,7 @@ layer(base);
 
 @layer base {
   :root {
-    --background: 0deg 0% 100%;
-    --foreground: 195deg 10% 5%;
-    --card: 0deg 0% 100%;
-    --card-foreground: 195deg 10% 5%;
-    --popover: 0deg 0% 100%;
-    --popover-foreground: 195deg 10% 5%;
-    --primary: 195deg 75% 25%;
-    --primary-foreground: 0deg 0% 100%;
-    --secondary: 250deg 35% 60%;
-    --secondary-foreground: 0deg 0% 100%;
-    --muted: 195deg 5% 98%;
-    --muted-foreground: 195deg 5% 45%;
-    --accent: 195deg 5% 95%;
-    --accent-foreground: 195deg 5% 10%;
-    --destructive: 0deg 70% 50%;
-    --destructive-foreground: 0deg 0% 98%;
-    --border: 195deg 5% 90%;
-    --input: 195deg 5% 90%;
-    --ring: 195deg 75% 25%;
     --radius: 0.5rem;
-    --sidebar-background: 0deg 0% 98%;
-    --sidebar-foreground: 240deg 5% 25%;
-    --sidebar-primary: 240deg 5% 10%;
-    --sidebar-primary-foreground: 0deg 0% 98%;
-    --sidebar-accent: 240deg 5% 95%;
-    --sidebar-accent-foreground: 240deg 5% 10%;
-    --sidebar-border: 220deg 15% 90%;
-    --sidebar-ring: 220deg 90% 60%;
 
     --md-sys-color-primary: rgb(17 102 130);
     --md-sys-color-surface-tint: rgb(17 102 130);
@@ -106,34 +79,6 @@ layer(base);
   }
 
   .dark {
-    --background: 220deg 15% 10%;
-    --foreground: 0deg 0% 95%;
-    --card: 220deg 15% 15%;
-    --card-foreground: 0deg 0% 95%;
-    --popover: 0deg 0% 9%;
-    --popover-foreground: 0deg 0% 95%;
-    --primary: 195deg 70% 65%;
-    --primary-foreground: 195deg 80% 10%;
-    --secondary: 250deg 30% 75%;
-    --secondary-foreground: 250deg 80% 10%;
-    --muted: 220deg 15% 15%;
-    --muted-foreground: 195deg 5% 65%;
-    --accent: 220deg 15% 20%;
-    --accent-foreground: 0deg 0% 98%;
-    --destructive: 0deg 60% 50%;
-    --destructive-foreground: 0deg 85% 98%;
-    --border: 220deg 10% 25%;
-    --input: 220deg 5% 15%;
-    --ring: 195deg 70% 30%;
-    --sidebar-background: 240deg 5% 10%;
-    --sidebar-foreground: 240deg 5% 95%;
-    --sidebar-primary: 225deg 75% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240deg 5% 15%;
-    --sidebar-accent-foreground: 240deg 5% 95%;
-    --sidebar-border: 240deg 5% 15%;
-    --sidebar-ring: 220deg 90% 60%;
-
     --md-sys-color-primary: rgb(139 208 239);
     --md-sys-color-surface-tint: rgb(139 208 239);
     --md-sys-color-on-primary: rgb(0 53 70);
