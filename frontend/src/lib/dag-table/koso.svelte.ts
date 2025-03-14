@@ -71,6 +71,10 @@ export class Node extends NodeRecord {
     return new Node({ path: this.path.slice(0, -generation) });
   }
 
+  isDescendantOf(ancestor: Node): boolean {
+    return this.id.startsWith(ancestor.id);
+  }
+
   get parent(): Node {
     return this.ancestor(1);
   }
@@ -437,8 +441,8 @@ export class Koso {
       (this.#selectedRaw.node && !this.#selectedRaw.node.equals(value));
 
     if (value) {
-      // Only expanded nodes are present in the nodes list so
-      // we need to expand before checking for the presence of the node.
+      // We need to expand the selected node's ancestors to ensure
+      // the selected node is visible.
       this.expand(value.parent);
 
       const index = this.nodes.indexOf(value);
@@ -450,7 +454,6 @@ export class Koso {
         );
         return;
       }
-      // TODO: Better handle the case where a node is selected and its parent is collapsed.
       this.#selectedRaw = new Selected({ node: value, index: index });
       this.focus = true;
     } else {
@@ -857,7 +860,11 @@ export class Koso {
   }
 
   collapse(node: Node) {
+    const selected = this.selectedRaw;
     this.expanded = this.expanded.delete(node);
+    if (selected.node && selected.node.isDescendantOf(node)) {
+      this.selected = node;
+    }
   }
 
   /**
@@ -887,6 +894,7 @@ export class Koso {
   /** Collapses all tasks. */
   collapseAll() {
     this.expanded = this.expanded.clear();
+    this.selected = null;
   }
 
   getOffset(node: Node): number {

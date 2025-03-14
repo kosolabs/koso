@@ -1282,6 +1282,9 @@ test.describe("dag table tests", () => {
       );
       await expect(page.getByTestId("Row 1/2/3")).toBeVisible();
 
+      await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
+      await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
+
       await page.getByRole("button", { name: "Palette" }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
 
@@ -1289,9 +1292,12 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Enter");
       await expect(page.getByTestId("Row 1/2/3")).not.toBeVisible();
       await expect(page.getByTestId("Row 1/2")).not.toBeVisible();
+      await expect(page.getByRole("button", { name: "Delete" })).toBeHidden();
     });
 
-    test("collapse unselects selected, hidden child node", async ({ page }) => {
+    test("collapse unselects selected, hidden child node and selects ancestor", async ({
+      page,
+    }) => {
       await init(
         page,
         [
@@ -1312,7 +1318,12 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Task 2 Toggle Expand" }).click();
       await expect(page.getByTestId("Row 1/2/3")).not.toBeVisible();
       await expect(page.getByTestId("Row 1/2/4")).not.toBeVisible();
-      await expect(page.getByRole("row", { name: "Task 7" })).toBeFocused();
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
+
+      await page.getByRole("button", { name: "Task 1 Toggle Expand" }).click();
+      await expect(page.getByTestId("Row 1/2")).not.toBeVisible();
+      await expect(page.getByTestId("Row 1/6")).not.toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
     });
   });
 
