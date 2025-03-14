@@ -3,6 +3,7 @@
   import { Chip } from "$lib/kosui/chip";
   import { Command, CommandInput, CommandItem } from "$lib/kosui/command";
   import { Popover } from "$lib/kosui/popover";
+  import { Shortcut } from "$lib/kosui/shortcut";
   import { match } from "$lib/utils";
   import { Clipboard, Network, SearchIcon } from "lucide-svelte";
   import { getContext } from "svelte";
@@ -53,6 +54,11 @@
   {anchorEl}
   placement="bottom"
   class="shadow-m3-shadow/20 bg-m3-surface-container-high h-[min(40%,24em)] w-[min(calc(100%-1em),36em)] rounded-lg border shadow"
+  onkeydown={(event) => {
+    if (!Shortcut.ESCAPE.matches(event)) {
+      event.stopImmediatePropagation();
+    }
+  }}
 >
   <Command class="flex h-full flex-col">
     {#snippet input(command)}

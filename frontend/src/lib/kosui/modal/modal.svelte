@@ -24,13 +24,12 @@
     ...restProps
   }: ModalProps = $props();
 
-  function handleEscape(event: KeyboardEvent) {
-    const ESCAPE = new Shortcut({ key: "Escape" });
-    if (ESCAPE.matches(event)) {
+  function handleKeydown(event: KeyboardEvent) {
+    if (Shortcut.ESCAPE.matches(event)) {
       open = false;
       event.preventDefault();
-      event.stopImmediatePropagation();
     }
+    event.stopImmediatePropagation();
   }
 
   function handleClickOutside(event: MouseEvent) {
@@ -52,11 +51,11 @@
   $effect(() => {
     if (ref) {
       ref.showModal();
-      events.on("keydown", handleEscape);
+      events.on("keydown", handleKeydown);
       events.on("mousedown", handleClickOutside);
 
       return () => {
-        events.remove("keydown", handleEscape);
+        events.remove("keydown", handleKeydown);
         events.remove("mousedown", handleClickOutside);
       };
     }
