@@ -1256,6 +1256,7 @@ test.describe("dag table tests", () => {
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2"] },
         { id: "2", children: ["3"] },
+        { id: "3" },
       ]);
       await expect(page.getByTestId("Row 1/2/3")).not.toBeVisible();
 
@@ -1265,6 +1266,7 @@ test.describe("dag table tests", () => {
       await page.keyboard.type("Expand All");
       await page.keyboard.press("Enter");
       await expect(page.getByTestId("Row 1/2/3")).toBeVisible();
+      await expect(page.getByTestId("Row 1/2")).toBeVisible();
     });
 
     test("collapse all hides all children", async ({ page }) => {
@@ -1274,6 +1276,7 @@ test.describe("dag table tests", () => {
           { id: "root", name: "Root", children: ["1"] },
           { id: "1", children: ["2"] },
           { id: "2", children: ["3"] },
+          { id: "3" },
         ],
         true,
       );
@@ -1285,6 +1288,31 @@ test.describe("dag table tests", () => {
       await page.keyboard.type("Collapse All");
       await page.keyboard.press("Enter");
       await expect(page.getByTestId("Row 1/2/3")).not.toBeVisible();
+      await expect(page.getByTestId("Row 1/2")).not.toBeVisible();
+    });
+
+    test("collapse unselects selected, hidden child node", async ({ page }) => {
+      await init(
+        page,
+        [
+          { id: "root", name: "Root", children: ["1", "7"] },
+          { id: "1", children: ["2", "6"] },
+          { id: "2", children: ["5", "3", "4"] },
+          { id: "3" },
+          { id: "4" },
+          { id: "5" },
+          { id: "6" },
+          { id: "7" },
+        ],
+        true,
+      );
+      await expect(page.getByTestId("Row 1/2/3")).toBeVisible();
+      await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
+
+      await page.getByRole("button", { name: "Task 2 Toggle Expand" }).click();
+      await expect(page.getByTestId("Row 1/2/3")).not.toBeVisible();
+      await expect(page.getByTestId("Row 1/2/4")).not.toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 7" })).toBeFocused();
     });
   });
 

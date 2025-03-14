@@ -437,6 +437,10 @@ export class Koso {
       (this.#selectedRaw.node && !this.#selectedRaw.node.equals(value));
 
     if (value) {
+      // Only expanded nodes are present in the nodes list so
+      // we need to expand before checking for the presence of the node.
+      this.expand(value.parent);
+
       const index = this.nodes.indexOf(value);
       if (index === -1) {
         // TODO: This happens when handleRow click is triggered when setting status to done in the inbox.
@@ -446,8 +450,8 @@ export class Koso {
         );
         return;
       }
+      // TODO: Better handle the case where a node is selected and its parent is collapsed.
       this.#selectedRaw = new Selected({ node: value, index: index });
-      this.expand(value.parent);
       this.focus = true;
     } else {
       this.#selectedRaw = new Selected({ node: null, index: null });
