@@ -64,6 +64,10 @@
     }
   }
 
+  function handleClickInside(event: MouseEvent) {
+    event.stopImmediatePropagation();
+  }
+
   function ontoggle(event: ToggleEventWithTarget<HTMLDivElement>) {
     if (event.newState === "closed") {
       open = false;
@@ -144,7 +148,7 @@
     popover="manual"
     class={twMerge(className)}
     transition:scale={{ duration: 150, start: 0.95 }}
-    {...mergeProps(restProps, { ontoggle })}
+    {...mergeProps(restProps, { ontoggle, onclick: handleClickInside })}
   >
     {@render children()}
     <div
