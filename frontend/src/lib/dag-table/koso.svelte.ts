@@ -1549,8 +1549,8 @@ export class Koso {
     });
   }
 
-  setKind(taskId: string, kind: Kind, user: User) {
-    this.doc.transact(() => {
+  setKind(taskId: string, kind: Kind, user: User): boolean {
+    return this.doc.transact(() => {
       const task = this.getTask(taskId);
       if (kind === "Juggled") {
         const progress = this.getProgress(taskId);
@@ -1561,15 +1561,18 @@ export class Koso {
           if (!task.assignee) {
             task.assignee = user.email;
           }
+          return true;
         } else {
           toast.info(
             "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
           );
+          return false;
         }
       } else if (kind === "Rollup") {
         task.yKind = null;
         task.yStatus = null;
         task.statusTime = Date.now();
+        return true;
       } else {
         throw new Error(`Tried to set invalid kind: ${kind}`);
       }
