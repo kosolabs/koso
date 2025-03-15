@@ -88,7 +88,24 @@ export type Nodes = Map<string, Node>;
 
 type SelectedProps = { node: Node | null; index: number | null };
 const SelectedRecord = Record<SelectedProps>({ node: null, index: null });
-export class Selected extends SelectedRecord {}
+
+export class Selected extends SelectedRecord {
+  constructor(props: Partial<SelectedProps>) {
+    if (props.index && props.index < 0) {
+      props.index = null;
+    }
+    super(props);
+  }
+
+  static default(): Selected {
+    return DEFAULT_SELECTED;
+  }
+
+  static create(node: Node, index: number) {
+    return new Selected({ node, index });
+  }
+}
+const DEFAULT_SELECTED = new Selected({ node: null, index: null });
 
 export class Progress {
   inProgress: number;
@@ -149,7 +166,7 @@ export class Koso {
     console.debug("Client message handler was invoked but was not set");
   };
 
-  #selectedRaw: Selected = $state(new Selected());
+  #selectedRaw: Selected = $state(Selected.default());
   #focus: boolean = $state(false);
   #highlighted: string | null = $state(null);
   #dragged: Node | null = $state(null);
@@ -423,41 +440,57 @@ export class Koso {
     return this.#yUndoManager;
   }
 
+  /**
+   * Returns the currently selected node, even if it no longer exists in the
+   * nodes list.
+   *
+   * Most usages should prefer to use the `selected` getter below instead which
+   * applies a filter to ensure the node exists.
+   */
   get selectedRaw(): Selected {
     return this.#selectedRaw;
   }
 
+  /**
+   * Returns the currently selected node or null if none is selected.
+   *
+   * Note: this can change if, for example, a task is deleted from the graph
+   * causing the selected node to no longer exist.
+   */
   get selected(): Node | null {
     return this.#selected;
   }
 
-  set selected(value: Node | null) {
-    if (value && value.id === "root") {
+  set selected(node: Node | null) {
+    if (node && node.id === "root") {
       throw new Error("Cannot select root");
     }
 
     const shouldUpdateAwareness =
-      !!this.#selectedRaw.node !== !!value ||
-      (this.#selectedRaw.node && !this.#selectedRaw.node.equals(value));
+      !!this.#selectedRaw.node !== !!node ||
+      (this.#selectedRaw.node && !this.#selectedRaw.node.equals(node));
 
-    if (value) {
+    if (node) {
       // We need to expand the selected node's ancestors to ensure
       // the selected node is visible.
-      this.expand(value.parent);
+      this.expand(node.parent);
 
-      const index = this.nodes.indexOf(value);
+      const index = this.nodes.indexOf(node);
       if (index === -1) {
         // TODO: This happens when handleRow click is triggered when setting status to done in the inbox.
         // It'd be better if this threw.
-        console.warn(
-          `Selected node ${value.id} not found in nodes: ${this.nodes.map((n) => n.id).join(",")}.`,
-        );
+        console.warn(`Selected node ${node.id} not found in nodes.`);
         return;
       }
-      this.#selectedRaw = new Selected({ node: value, index: index });
+      if (index === 0) {
+        throw new Error(
+          `Cannot selected root node ${node.id} at nodes index 0`,
+        );
+      }
+      this.#selectedRaw = Selected.create(node, index);
       this.focus = true;
     } else {
-      this.#selectedRaw = new Selected({ node: null, index: null });
+      this.#selectedRaw = Selected.default();
     }
 
     if (shouldUpdateAwareness) {
