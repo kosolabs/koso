@@ -25,8 +25,6 @@ layer(base);
 
 @layer base {
   :root {
-    --radius: 0.5rem;
-
     --md-sys-color-primary: rgb(17 102 130);
     --md-sys-color-surface-tint: rgb(17 102 130);
     --md-sys-color-on-primary: rgb(255 255 255);
