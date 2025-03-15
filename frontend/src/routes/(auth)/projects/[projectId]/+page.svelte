@@ -8,7 +8,9 @@
   import { DagTable, Koso, KosoSocket } from "$lib/dag-table";
   import { githubInstallUrl } from "$lib/github";
   import { Alert } from "$lib/kosui/alert";
-  import { Button } from "$lib/kosui/button";
+  import { baseClasses } from "$lib/kosui/base";
+  import { Menu, MenuTrigger } from "$lib/kosui/menu";
+  import MenuItem from "$lib/kosui/menu/menu-item.svelte";
   import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
   import {
@@ -19,7 +21,8 @@
     updateProject,
   } from "$lib/projects";
   import { Action } from "$lib/shortcuts";
-  import { FileDown, Mail, PlugZap, UserPlus } from "lucide-svelte";
+  import { cn } from "$lib/utils";
+  import { FileDown, Mail, MenuIcon, PlugZap, UserPlus } from "lucide-svelte";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
 
@@ -123,43 +126,63 @@
     </div>
   {/snippet}
   {#snippet right()}
-    <div class="flex">
-      <Button
-        variant="plain"
-        tooltip="Connect to GitHub"
-        aria-label="Connect to GitHub"
-        onclick={async () =>
-          window.location.assign(await githubInstallUrl(projectId))}
-      >
-        <PlugZap />
-      </Button>
-      <Button
-        variant="plain"
-        tooltip="Export project"
-        aria-label="Export project"
-        onclick={exportProjectToFile}
-      >
-        <FileDown />
-      </Button>
-      <Button
-        variant="plain"
-        tooltip="Zero inbox view"
-        aria-label="Zero inbox view"
-        onclick={() => goto(`/projects/${projectId}/inbox`)}
-      >
-        <Mail />
-      </Button>
-      <Button
-        variant="plain"
-        tooltip="Share project"
-        aria-label="Share project"
-        onclick={() => {
-          openShareModal = true;
-        }}
-      >
-        <UserPlus />
-      </Button>
-    </div>
+    <Menu>
+      {#snippet trigger(menuTriggerProps)}
+        <MenuTrigger
+          title="Project menu"
+          class={cn(
+            baseClasses({
+              variant: "filled",
+              color: "primary",
+              shape: "rounded",
+              focus: true,
+              hover: true,
+            }),
+            "flex size-9 place-content-center items-center transition-all active:scale-95",
+          )}
+          {...menuTriggerProps}
+        >
+          <MenuIcon />
+        </MenuTrigger>
+      {/snippet}
+      {#snippet content(menuItemProps)}
+        <MenuItem
+          class="gap-2"
+          onSelect={async () =>
+            window.location.assign(await githubInstallUrl(projectId))}
+          {...menuItemProps}
+        >
+          <PlugZap size={16} />
+          Connect to GitHub
+        </MenuItem>
+        <MenuItem
+          class="gap-2"
+          onSelect={exportProjectToFile}
+          {...menuItemProps}
+        >
+          <FileDown size={16} />
+          Export project
+        </MenuItem>
+        <MenuItem
+          class="gap-2"
+          onSelect={() => goto(`/projects/${projectId}/inbox`)}
+          {...menuItemProps}
+        >
+          <Mail size={16} />
+          Navigate to Zero Inbox
+        </MenuItem>
+        <MenuItem
+          class="gap-2"
+          onSelect={() => {
+            openShareModal = true;
+          }}
+          {...menuItemProps}
+        >
+          <UserPlus size={16} />
+          Share project
+        </MenuItem>
+      {/snippet}
+    </Menu>
   {/snippet}
 </Navbar>
 
