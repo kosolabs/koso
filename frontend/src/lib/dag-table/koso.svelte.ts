@@ -71,6 +71,10 @@ export class Node extends NodeRecord {
     return new Node({ path: this.path.slice(0, -generation) });
   }
 
+  isDescendantOf(ancestor: Node): boolean {
+    return this.id.startsWith(ancestor.id);
+  }
+
   get parent(): Node {
     return this.ancestor(1);
   }
@@ -81,6 +85,27 @@ export class Node extends NodeRecord {
 }
 
 export type Nodes = Map<string, Node>;
+
+type SelectedProps = { node: Node | null; index: number | null };
+const SelectedRecord = Record<SelectedProps>({ node: null, index: null });
+
+export class Selected extends SelectedRecord {
+  constructor(props: Partial<SelectedProps>) {
+    if (props.index && props.index < 0) {
+      props.index = null;
+    }
+    super(props);
+  }
+
+  static default(): Selected {
+    return DEFAULT_SELECTED;
+  }
+
+  static create(node: Node, index: number) {
+    return new Selected({ node, index });
+  }
+}
+const DEFAULT_SELECTED = new Selected({ node: null, index: null });
 
 export class Progress {
   inProgress: number;
@@ -141,7 +166,7 @@ export class Koso {
     console.debug("Client message handler was invoked but was not set");
   };
 
-  #selected: Node | null = $state(null);
+  #selectedRaw: Selected = $state(Selected.default());
   #focus: boolean = $state(false);
   #highlighted: string | null = $state(null);
   #dragged: Node | null = $state(null);
@@ -176,6 +201,13 @@ export class Koso {
     }
     return this.#flattenFn(new Node(), this.expanded, this.showDone);
   });
+  #selected: Node | null = $derived.by(() => {
+    const node = this.#selectedRaw.node;
+    if (!node || this.nodes.indexOf(node) < 0) {
+      return null;
+    }
+    return node;
+  });
 
   #resolveIndexedDbSync: () => void = () => {};
   #indexedDbSynced = new Promise<void>(
@@ -204,7 +236,7 @@ export class Koso {
     this.#yUndoManager = new Y.UndoManager(graph);
     // Save and restore node selection on undo/redo.
     this.#yUndoManager.on("stack-item-added", (event) => {
-      event.stackItem.meta.set("selected-node", this.selected);
+      event.stackItem.meta.set("selected-node", this.selectedRaw.node);
     });
     this.#yUndoManager.on("stack-item-popped", (event) => {
       const selected = event.stackItem.meta.get("selected-node");
@@ -408,20 +440,57 @@ export class Koso {
     return this.#yUndoManager;
   }
 
+  /**
+   * Returns the currently selected node, even if it no longer exists in the
+   * nodes list.
+   *
+   * Most usages should prefer to use the `selected` getter below instead which
+   * applies a filter to ensure the node exists.
+   */
+  get selectedRaw(): Selected {
+    return this.#selectedRaw;
+  }
+
+  /**
+   * Returns the currently selected node or null if none is selected.
+   *
+   * Note: this can change if, for example, a task is deleted from the graph
+   * causing the selected node to no longer exist.
+   */
   get selected(): Node | null {
     return this.#selected;
   }
 
-  set selected(value: Node | null) {
-    if (value && value.id === "root") {
+  set selected(node: Node | null) {
+    if (node && node.id === "root") {
       throw new Error("Cannot select root");
     }
-    const shouldUpdateAwareness = this.#selected !== value;
 
-    this.#selected = value;
-    if (this.#selected) {
-      this.expand(this.#selected.parent);
+    const shouldUpdateAwareness =
+      !!this.#selectedRaw.node !== !!node ||
+      (this.#selectedRaw.node && !this.#selectedRaw.node.equals(node));
+
+    if (node) {
+      // We need to expand the selected node's ancestors to ensure
+      // the selected node is visible.
+      this.expand(node.parent);
+
+      const index = this.nodes.indexOf(node);
+      if (index === -1) {
+        // TODO: This happens when handleRow click is triggered when setting status to done in the inbox.
+        // It'd be better if this threw.
+        console.warn(`Selected node ${node.id} not found in nodes.`);
+        return;
+      }
+      if (index === 0) {
+        throw new Error(
+          `Cannot selected root node ${node.id} at nodes index 0`,
+        );
+      }
+      this.#selectedRaw = Selected.create(node, index);
       this.focus = true;
+    } else {
+      this.#selectedRaw = Selected.default();
     }
 
     if (shouldUpdateAwareness) {
@@ -824,7 +893,11 @@ export class Koso {
   }
 
   collapse(node: Node) {
+    const selected = this.selectedRaw;
     this.expanded = this.expanded.delete(node);
+    if (selected.node && selected.node.isDescendantOf(node)) {
+      this.selected = node;
+    }
   }
 
   /**
@@ -854,6 +927,7 @@ export class Koso {
   /** Collapses all tasks. */
   collapseAll() {
     this.expanded = this.expanded.clear();
+    this.selected = null;
   }
 
   getOffset(node: Node): number {
@@ -1509,11 +1583,7 @@ export class Koso {
         task.yStatus = status;
         task.statusTime = Date.now();
 
-        const peer = this.getPrevPeer(node) || this.getNextPeer(node);
-        if (peer) {
-          this.selected = peer;
-        }
-
+        // Reposition the done task in all locations.
         for (const parentId of this.getParents(taskId)) {
           const peers = this.getChildren(parentId);
           const index = findEntryIndex(

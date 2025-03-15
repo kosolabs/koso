@@ -117,6 +117,39 @@ test.describe("Collaboration tests", () => {
     expect(graph).toStrictEqual(await getKosoGraph(page2));
   });
 
+  test("Adjacent node selected when task deleted by other user", async ({
+    page1,
+    page2,
+  }) => {
+    await page1.getByRole("button", { name: "Add" }).first().click();
+    await page1.getByRole("button", { name: "Add" }).first().click();
+    await page1.getByRole("button", { name: "Add" }).first().click();
+
+    await expect(page1.getByRole("row", { name: "Task 1" })).toBeVisible();
+    await expect(page1.getByRole("row", { name: "Task 2" })).toBeVisible();
+    await expect(page1.getByRole("row", { name: "Task 3" })).toBeVisible();
+
+    await page2.getByRole("button", { name: "Task 2 Drag Handle" }).click();
+    await page1.getByRole("button", { name: "Task 2 Drag Handle" }).click();
+    await page1.getByRole("button", { name: "Delete" }).click();
+    await expect(page2.getByRole("row", { name: "Task 2" })).toBeHidden();
+    await expect(page1.getByRole("row", { name: "Task 3" })).toBeFocused();
+    await expect(page2.getByRole("row", { name: "Task 3" })).toBeFocused();
+
+    await page1.getByRole("button", { name: "Delete" }).click();
+    await expect(page2.getByRole("row", { name: "Task 3" })).toBeHidden();
+    await expect(page1.getByRole("row", { name: "Task 1" })).toBeFocused();
+    await expect(page2.getByRole("row", { name: "Task 1" })).toBeFocused();
+
+    await page1.getByRole("button", { name: "Delete" }).click();
+    await expect(page2.getByRole("row", { name: "Task 1" })).toBeHidden();
+    await expect(page2.getByRole("row", { name: "Task 1" })).toBeHidden();
+    await expect(page1.getByRole("button", { name: "Delete" })).toBeHidden();
+    await expect(page2.getByRole("button", { name: "Delete" })).toBeHidden();
+    await expect(page1.getByRole("button", { name: "Add Task" })).toBeVisible();
+    await expect(page1.getByRole("button", { name: "Add Task" })).toBeVisible();
+  });
+
   test("Awareness shows other users", async ({ page1, page2, page3 }) => {
     await init(page1, [
       { id: "root", name: "Root", children: ["1", "2", "3"] },
