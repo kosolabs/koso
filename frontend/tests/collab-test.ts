@@ -21,7 +21,8 @@ type CollabFixtures = {
 };
 
 async function shareProject(page: Page, email: string) {
-  await page.getByRole("button", { name: "Share Project" }).click();
+  await page.getByRole("button", { name: "Project menu" }).click();
+  await page.getByRole("menuitem", { name: "Share project" }).click();
   await page.getByRole("textbox", { name: "Add people" }).click();
   await page.keyboard.type(email);
   await page.getByText(email).click();

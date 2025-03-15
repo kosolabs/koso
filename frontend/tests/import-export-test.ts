@@ -35,7 +35,8 @@ test.describe("import export tests", () => {
 
     // Export the project
     const downloadPromise = download(page);
-    await page.getByRole("button", { name: "Export Project" }).click();
+    await page.getByRole("button", { name: "Project menu" }).click();
+    await page.getByRole("menuitem", { name: "Export project" }).click();
     const projectExport1 = await downloadPromise;
     expect(projectExport1.filename).toContain("export");
     expect(projectExport1.data.projectId).toEqual(await getKosoProjectId(page));
@@ -55,7 +56,8 @@ test.describe("import export tests", () => {
 
     // Export the newly imported project.
     const downloadPromise2 = download(page);
-    await page.getByRole("button", { name: "Export Project" }).click();
+    await page.getByRole("button", { name: "Project menu" }).click();
+    await page.getByRole("menuitem", { name: "Export project" }).click();
     const projectExport2 = await downloadPromise2;
     expect(projectExport2.filename).toContain("export");
     expect(projectExport2.data.projectId).toEqual(await getKosoProjectId(page));
