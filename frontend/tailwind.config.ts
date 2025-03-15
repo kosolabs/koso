@@ -1,23 +1,11 @@
 import type { Config } from "tailwindcss";
-import tailwindcssAnimate from "tailwindcss-animate";
-import { fontFamily } from "tailwindcss/defaultTheme";
 
 function m3(prop: string): string {
   return `rgb(from var(--md-sys-color-${prop}) r g b / <alpha-value>)`;
 }
 
 const config: Config = {
-  darkMode: ["class"],
-  content: ["./src/**/*.{html,js,svelte,ts}"],
-  safelist: ["dark"],
   theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
     extend: {
       colors: {
         "m3-primary": m3("primary"),
@@ -70,19 +58,11 @@ const config: Config = {
         "m3-surface-container-high": m3("surface-container-high"),
         "m3-surface-container-highest": m3("surface-container-highest"),
       },
-      borderRadius: {
-        m3: "6px",
-        xl: "calc(var(--radius) + 4px)",
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
       fontFamily: {
-        sans: ["Nunito", ...fontFamily.sans],
+        sans: ["Nunito"],
       },
     },
   },
-  plugins: [tailwindcssAnimate],
 };
 
 export default config;

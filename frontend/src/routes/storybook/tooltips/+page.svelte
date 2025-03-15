@@ -42,7 +42,7 @@
 
   <Tooltip arrow>
     {#snippet trigger(props)}
-      <TooltipTrigger {...props} class="rounded-m3 border p-1">
+      <TooltipTrigger {...props} class="rounded border p-1">
         Tooltip Trigger
       </TooltipTrigger>
     {/snippet}
@@ -51,7 +51,7 @@
 
   <Tooltip arrow>
     {#snippet trigger({ ref, ...props })}
-      <div use:ref {...props} class="rounded-m3 border p-1">Just a Div</div>
+      <div use:ref {...props} class="rounded border p-1">Just a Div</div>
     {/snippet}
     Trigger is just a styled div
   </Tooltip>

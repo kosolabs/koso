@@ -336,7 +336,7 @@
 <tr
   tabindex="0"
   class={cn(
-    "rounded-m3 outline-2 outline-transparent",
+    "rounded outline-2 outline-transparent",
     index % 2 === 0 && "bg-m3-surface-container/30",
     isMoving && "opacity-50",
     isHovered && "bg-m3-surface-container",

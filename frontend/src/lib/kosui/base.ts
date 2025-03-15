@@ -38,7 +38,7 @@ export const baseClasses = ({
     "disabled:text-m3-on-surface/38 disabled:bg-m3-on-surface/12 disabled:cursor-not-allowed",
 
     shape === "square" && "",
-    shape === "rounded" && "rounded-m3",
+    shape === "rounded" && "rounded-md",
     shape === "circle" && "rounded-full",
 
     focus && "focus:ring-1 focus-visible:outline-hidden",

@@ -610,7 +610,7 @@
 <Toolbar {actions}>
   {#await koso.synced then}
     {#if koso.nodes.size > 1}
-      <table class="rounded-m3 w-full border-separate border-spacing-0 border">
+      <table class="w-full border-separate border-spacing-0 rounded-md border">
         <thead class="text-left text-xs font-bold uppercase">
           <tr>
             <th class="w-32 p-2">ID</th>

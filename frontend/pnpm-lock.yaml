@@ -119,9 +119,6 @@ importers:
       tailwindcss:
         specifier: 4.0.12
         version: 4.0.12
-      tailwindcss-animate:
-        specifier: 1.0.7
-        version: 1.0.7(tailwindcss@4.0.12)
       tslib:
         specifier: 2.8.1
         version: 2.8.1
@@ -1788,11 +1785,6 @@ packages:
     engines: {node: '>=16.x', pnpm: '>=7.x'}
     peerDependencies:
       tailwindcss: '*'
-
-  tailwindcss-animate@1.0.7:
-    resolution: {integrity: sha512-bl6mpH3T7I3UFxuvDEXLxy/VuFxBk5bbzplh7tXI68mwMokNYd1t9qPBHlnyTwfa4JGC4zP516I1hYYtQ/vspA==}
-    peerDependencies:
-      tailwindcss: '>=3.0.0 || insiders'
 
   tailwindcss@4.0.12:
     resolution: {integrity: sha512-bT0hJo91FtncsAMSsMzUkoo/iEU0Xs5xgFgVC9XmdM9bw5MhZuQFjPNl6wxAE0SiQF/YTZJa+PndGWYSDtuxAg==}
@@ -3603,10 +3595,6 @@ snapshots:
   tailwind-variants@1.0.0(tailwindcss@4.0.12):
     dependencies:
       tailwind-merge: 3.0.2
-      tailwindcss: 4.0.12
-
-  tailwindcss-animate@1.0.7(tailwindcss@4.0.12):
-    dependencies:
       tailwindcss: 4.0.12
 
   tailwindcss@4.0.12: {}

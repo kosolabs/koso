@@ -82,7 +82,7 @@
   {#snippet trigger(menuTriggerProps)}
     <MenuTrigger
       bind:el={statusElement}
-      class="rounded-m3 focus:ring-m3-primary flex w-full items-center gap-2 focus-visible:ring-1 focus-visible:outline-hidden"
+      class="focus:ring-m3-primary flex w-full items-center gap-2 focus-visible:ring-1 focus-visible:outline-hidden"
       title={triggerTitle()}
       aria-label="task-status"
       disabled={!canSetStatus && !canSetKind}

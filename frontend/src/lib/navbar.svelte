@@ -35,7 +35,7 @@
         {#snippet trigger(menuTriggerProps)}
           <MenuTrigger
             title={auth.user.email}
-            class="focus-visible:outline-m3-primary rounded-m3 focus-visible:outline-1"
+            class="focus-visible:outline-m3-primary focus-visible:outline-1"
             {...menuTriggerProps}
           >
             <Avatar
