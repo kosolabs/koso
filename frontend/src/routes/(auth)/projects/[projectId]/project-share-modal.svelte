@@ -3,10 +3,10 @@
   import { auth, type User } from "$lib/auth.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
+  import { AutocompleteInput, AutocompleteItem } from "$lib/kosui/autocomplete";
+  import Autocomplete from "$lib/kosui/autocomplete/autocomplete.svelte";
   import { Button } from "$lib/kosui/button";
   import { dialog } from "$lib/kosui/dialog";
-  import { Input } from "$lib/kosui/input";
-  import { Menu, MenuItem } from "$lib/kosui/menu";
   import { Modal } from "$lib/kosui/modal";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
@@ -30,10 +30,8 @@
 
   let filter: string = $state("");
   let users: User[] = $state([]);
-  let wantSearchResultsOpen: boolean = $state(false);
-  let openDropDown: boolean = $derived(
-    wantSearchResultsOpen && users.length > 0,
-  );
+  let wantCompletions: boolean = $state(false);
+  let showCompletions: boolean = $derived(wantCompletions && users.length > 0);
 
   async function addUser(add: User) {
     await updateProjectUsers({
@@ -109,11 +107,9 @@
 
   $effect(() => {
     if (filter) {
-      wantSearchResultsOpen = true;
+      wantCompletions = true;
     }
   });
-
-  let searchInput: HTMLElement | undefined = $state();
 </script>
 
 <Modal bind:open class={cn("w-[min(calc(100%-1em),36em)]")}>
@@ -132,44 +128,41 @@
       </div>
       <div class="text-sm">Manage access to your project.</div>
     </div>
-    <Input
-      bind:value={filter}
-      bind:el={searchInput}
-      autofocus
-      type="text"
-      placeholder="Add people"
-      name="Add people"
-      autocomplete="off"
-      class="my-2"
-      onclick={() => (wantSearchResultsOpen = true)}
-      onfocus={() => (wantSearchResultsOpen = true)}
-    />
-
-    <Menu
-      open={openDropDown}
-      uncontrolled
-      anchorEl={searchInput}
+    <Autocomplete
+      {showCompletions}
       ontoggle={(event) => {
         if (event.newState === "closed") {
-          wantSearchResultsOpen = false;
+          wantCompletions = false;
         }
       }}
       class="w-[min(calc(100%-1em),32em)] max-w-full"
     >
-      {#snippet content(menuItemProps)}
+      {#snippet input(autocomplete)}
+        <AutocompleteInput
+          bind:value={filter}
+          {autocomplete}
+          autofocus
+          class="my-2"
+          placeholder="Add people"
+          name="Add people"
+          onclick={() => (wantCompletions = true)}
+          onfocus={() => (wantCompletions = true)}
+        />
+      {/snippet}
+      {#snippet content(autocomplete)}
         {#each users as user (user.email)}
-          <MenuItem
+          <AutocompleteItem
+            {autocomplete}
             onSelect={() => {
-              wantSearchResultsOpen = false;
+              wantCompletions = false;
               addUser(user);
             }}
-            {...menuItemProps}
           >
             <UserAvatar {user} />
-          </MenuItem>
+          </AutocompleteItem>
         {/each}
       {/snippet}
-    </Menu>
+    </Autocomplete>
 
     <div class="h3">People with access</div>
     <div class="flex h-64 w-full flex-col items-stretch overflow-y-auto">
