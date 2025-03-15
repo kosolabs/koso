@@ -114,7 +114,7 @@
   <Input
     bind:value={edited}
     ref={(el) => el.focus()}
-    class={cn("bg-background h-auto w-full p-1 text-sm", classes)}
+    class={cn("h-auto w-full p-1 text-sm", classes)}
     variant="plain"
     color="primary"
     aria-label={ariaLabel}

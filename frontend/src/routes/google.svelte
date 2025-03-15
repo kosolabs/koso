@@ -129,11 +129,11 @@
 {#if error === "ThirdPartySigninDisabled"}
   <Alert color="error">
     Third-party sign-in has been disabled. To login, click the
-    <span class="border-destructive rounded-sm border px-1">
+    <span class="border-m3-error rounded-sm border px-1">
       <Settings2 class="inline" size={16} strokeWidth={3} />
     </span>
     button in the URL bar and in the Permissions section click
-    <span class="border-destructive rounded-sm border px-1 font-bold">
+    <span class="border-m3-error rounded-sm border px-1 font-bold">
       Reset permission
     </span>
     .

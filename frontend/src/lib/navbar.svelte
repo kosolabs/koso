@@ -17,7 +17,9 @@
   const { left, right }: Props = $props();
 </script>
 
-<nav class="bg-card flex items-center border-b p-2 shadow-sm">
+<nav
+  class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center border-b p-2 shadow"
+>
   <div class="flex items-center">
     <a href="/projects" aria-label="Home">
       <KosoLogo class="size-10" />

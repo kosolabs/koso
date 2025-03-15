@@ -90,15 +90,15 @@
     >
       {#if progress.kind === "Rollup"}
         {#if progress.status === "Done"}
-          <CircleCheck color="hsl(var(--primary))" />
+          <CircleCheck class="text-m3-primary" />
           <ResponsiveText>Done</ResponsiveText>
         {:else if progress.status === "Not Started"}
-          <CircularProgress progress={0} color="hsl(var(--primary))" />
+          <CircularProgress progress={0} class="text-m3-primary" />
           <ResponsiveText>Not Started</ResponsiveText>
         {:else}
           <CircularProgress
             progress={progress.done / progress.total}
-            color="hsl(var(--primary))"
+            class="text-m3-primary"
           >
             {Math.round((progress.done * 100) / progress.total)}%
           </CircularProgress>
