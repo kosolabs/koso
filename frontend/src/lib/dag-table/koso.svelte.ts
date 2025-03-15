@@ -1493,7 +1493,7 @@ export class Koso {
       throw new Error(`Cannot insert node under parent ${parent}`);
     }
     const taskId = this.newId();
-    this.doc.transact(() => {
+    const node = this.doc.transact(() => {
       this.upsert({
         id: taskId,
         num: this.newNum(),
@@ -1507,8 +1507,10 @@ export class Koso {
         url: null,
       });
       this.link(taskId, parent.name, offset);
+      const node = parent.child(taskId);
+      this.autoAssign(node, user);
+      return node;
     });
-    const node = parent.child(taskId);
     this.selected = node;
     return node;
   }
@@ -1544,7 +1546,8 @@ export class Koso {
     });
   }
 
-  setKind(taskId: string, kind: Kind, user: User) {
+  setKind(node: Node, kind: Kind, user: User) {
+    const taskId = node.name;
     this.doc.transact(() => {
       const task = this.getTask(taskId);
       if (kind === "Juggled") {
@@ -1553,9 +1556,7 @@ export class Koso {
           task.yKind = "Juggled";
           task.yStatus = "Blocked";
           task.statusTime = Date.now();
-          if (!task.assignee) {
-            task.assignee = user.email;
-          }
+          this.autoAssign(node, user);
         } else {
           toast.info(
             "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
@@ -1599,10 +1600,7 @@ export class Koso {
       else if (status === "In Progress") {
         task.yStatus = status;
         task.statusTime = Date.now();
-
-        if (!task.assignee) {
-          task.assignee = user.email;
-        }
+        this.autoAssign(node, user);
 
         for (const parentId of this.getParents(taskId)) {
           const peers = this.getChildren(parentId);
@@ -1622,9 +1620,7 @@ export class Koso {
         if (progress.isChildrenIncomplete()) {
           task.yStatus = status;
           task.statusTime = Date.now();
-          if (!task.assignee) {
-            task.assignee = user.email;
-          }
+          this.autoAssign(node, user);
         } else {
           toast.info(
             "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
@@ -1635,6 +1631,20 @@ export class Koso {
         task.statusTime = Date.now();
       }
     });
+  }
+
+  autoAssign(node: Node, actor: User) {
+    const task = this.getTask(node.name);
+    if (task.assignee) {
+      return;
+    }
+
+    const parentAssignee = this.getTask(node.parent.name).assignee;
+    if (parentAssignee) {
+      task.assignee = parentAssignee;
+    } else {
+      task.assignee = actor.email;
+    }
   }
 
   isVisible(node: Node, showDone: boolean) {
