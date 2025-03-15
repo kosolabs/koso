@@ -158,6 +158,9 @@
         if (!inboxView && peer) {
           koso.selected = peer;
         }
+        if (inboxView) {
+          toast.info("🚀 Great work! Task complete!");
+        }
         break;
       }
       case "Not Started":
