@@ -6,10 +6,10 @@
   import { dialog } from "$lib/kosui/dialog";
   import { Link } from "$lib/kosui/link";
   import { CircularProgress } from "$lib/kosui/progress";
-  import { Toggle } from "$lib/kosui/toggle";
+  import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
   import Navbar from "$lib/navbar.svelte";
   import { CircleX, Moon, Send, Sun, SunMoon, Trash2 } from "lucide-svelte";
-  import { userPrefersMode as mode, setMode } from "mode-watcher";
+  import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
   import SubSection from "./sub-section.svelte";
 
@@ -112,29 +112,22 @@
 
 <div class="flex flex-col gap-4 p-2">
   <Section title="Theme">
-    <div class="flex items-center gap-2">
-      <Toggle
-        pressed={$mode === "light"}
-        onclick={() => setMode("light")}
-        icon={Sun}
-      >
-        Light
-      </Toggle>
-      <Toggle
-        pressed={$mode === "dark"}
-        onclick={() => setMode("dark")}
-        icon={Moon}
-      >
-        Dark
-      </Toggle>
-      <Toggle
-        pressed={$mode === "system"}
-        onclick={() => setMode("system")}
-        icon={SunMoon}
-      >
-        System
-      </Toggle>
-    </div>
+    <ToggleGroup bind:value={$mode}>
+      {#snippet children(toggleGroup)}
+        <ToggleButton {toggleGroup} value="light">
+          <Sun size={16} />
+          Light
+        </ToggleButton>
+        <ToggleButton {toggleGroup} value="dark">
+          <Moon size={16} />
+          Dark
+        </ToggleButton>
+        <ToggleButton {toggleGroup} value="system">
+          <SunMoon size={16} />
+          System
+        </ToggleButton>
+      {/snippet}
+    </ToggleGroup>
   </Section>
   <Section title="Notifications">
     {#await profile}
