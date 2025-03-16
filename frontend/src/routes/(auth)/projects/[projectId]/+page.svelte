@@ -9,6 +9,7 @@
   import { githubInstallUrl } from "$lib/github";
   import { Alert } from "$lib/kosui/alert";
   import { baseClasses } from "$lib/kosui/base";
+  import { Button } from "$lib/kosui/button";
   import { Menu, MenuTrigger } from "$lib/kosui/menu";
   import MenuItem from "$lib/kosui/menu/menu-item.svelte";
   import { nav } from "$lib/nav.svelte";
@@ -126,63 +127,85 @@
     </div>
   {/snippet}
   {#snippet right()}
-    <Menu>
-      {#snippet trigger(menuTriggerProps)}
-        <MenuTrigger
-          title="Project menu"
-          class={cn(
-            baseClasses({
-              variant: "filled",
-              color: "primary",
-              shape: "rounded",
-              focus: true,
-              hover: true,
-            }),
-            "flex size-9 place-content-center items-center transition-all active:scale-95",
-          )}
-          {...menuTriggerProps}
-        >
-          <MenuIcon />
-        </MenuTrigger>
-      {/snippet}
-      {#snippet content(menuItemProps)}
-        <MenuItem
-          class="gap-2"
-          onSelect={async () =>
-            window.location.assign(await githubInstallUrl(projectId))}
-          {...menuItemProps}
-        >
-          <PlugZap size={16} />
-          Connect to GitHub
-        </MenuItem>
-        <MenuItem
-          class="gap-2"
-          onSelect={exportProjectToFile}
-          {...menuItemProps}
-        >
-          <FileDown size={16} />
-          Export project
-        </MenuItem>
-        <MenuItem
-          class="gap-2"
-          onSelect={() => goto(`/projects/${projectId}/inbox`)}
-          {...menuItemProps}
-        >
-          <Mail size={16} />
-          Navigate to Zero Inbox
-        </MenuItem>
-        <MenuItem
-          class="gap-2"
-          onSelect={() => {
-            openShareModal = true;
-          }}
-          {...menuItemProps}
-        >
-          <UserPlus size={16} />
-          Share project
-        </MenuItem>
-      {/snippet}
-    </Menu>
+    <div class="hidden gap-1 sm:flex">
+      <Button
+        variant="plain"
+        tooltip="Zero inbox view"
+        aria-label="Zero inbox view"
+        onclick={() => goto(`/projects/${projectId}/inbox`)}
+        class="px-3 py-1.5 transition-all active:scale-95"
+      >
+        <Mail />
+      </Button>
+      <Button
+        variant="plain"
+        tooltip="Share project"
+        aria-label="Share project"
+        onclick={() => {
+          openShareModal = true;
+        }}
+        class="px-3 py-1.5 transition-all active:scale-95"
+      >
+        <UserPlus />
+      </Button>
+      <Menu>
+        {#snippet trigger(menuTriggerProps)}
+          <MenuTrigger
+            title="Project menu"
+            class={cn(
+              baseClasses({
+                variant: "plain",
+                color: "primary",
+                shape: "rounded",
+                focus: true,
+                hover: true,
+              }),
+              "px-3 py-1.5 transition-all active:scale-95",
+            )}
+            {...menuTriggerProps}
+          >
+            <MenuIcon />
+          </MenuTrigger>
+        {/snippet}
+        {#snippet content(menuItemProps)}
+          <MenuItem
+            class="gap-2"
+            onSelect={async () =>
+              window.location.assign(await githubInstallUrl(projectId))}
+            {...menuItemProps}
+          >
+            <PlugZap size={16} />
+            Connect to GitHub
+          </MenuItem>
+          <MenuItem
+            class="gap-2"
+            onSelect={exportProjectToFile}
+            {...menuItemProps}
+          >
+            <FileDown size={16} />
+            Export project
+          </MenuItem>
+          <MenuItem
+            class="gap-2"
+            onSelect={() => goto(`/projects/${projectId}/inbox`)}
+            {...menuItemProps}
+          >
+            <Mail size={16} />
+            Navigate to Zero Inbox
+          </MenuItem>
+          <MenuItem
+            class="gap-2"
+            onSelect={() => {
+              openShareModal = true;
+            }}
+            {...menuItemProps}
+          >
+            <UserPlus size={16} />
+            Share project
+          </MenuItem>
+        {/snippet}
+      </Menu>
+    </div>
   {/snippet}
 </Navbar>
 
