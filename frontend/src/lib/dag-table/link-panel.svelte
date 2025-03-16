@@ -1,21 +1,28 @@
 <script lang="ts">
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
-  import { Button } from "$lib/kosui/button";
   import { Chip } from "$lib/kosui/chip";
   import { Command, CommandInput, CommandItem } from "$lib/kosui/command";
   import { Popover } from "$lib/kosui/popover";
   import { Shortcut } from "$lib/kosui/shortcut";
+  import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
   import { match } from "$lib/utils";
   import { Clipboard, Network, SearchIcon } from "lucide-svelte";
   import { getContext } from "svelte";
   import { compareTasks, type Koso, type Node } from ".";
 
+  type Mode = "link" | "block";
+
   type Props = {
     open: boolean;
+    mode?: Mode;
     closeFocus?: HTMLElement;
     node: Node;
   };
-  let { open = $bindable(false), node }: Props = $props();
+  let {
+    open = $bindable(false),
+    mode = $bindable("link"),
+    node,
+  }: Props = $props();
 
   const koso = getContext<Koso>("koso");
 
@@ -25,14 +32,24 @@
     open
       ? koso.tasks
           .filter((task) => match(task.num, query) || match(task.name, query))
-          .filter((task) => koso.canLink(node.name, task.id))
+          .filter((task) => {
+            if (mode === "link") {
+              return koso.canLink(node.name, task.id);
+            } else {
+              return koso.canLink(task.id, node.name);
+            }
+          })
           .sort((t1, t2) => compareTasks(t1, t2, koso))
           .slice(0, 50)
       : [],
   );
 
   function link(taskId: string) {
-    koso.link(node.name, taskId);
+    if (mode === "link") {
+      koso.link(node.name, taskId);
+    } else {
+      koso.link(taskId, node.name);
+    }
     query = "";
     open = false;
   }
@@ -61,7 +78,15 @@
     }
   }}
 >
-  <Button>Hi</Button>
+  <div class="flex place-content-center p-1">
+    <ToggleGroup bind:value={mode}>
+      {#snippet children(toggleGroup)}
+        <ToggleButton {toggleGroup} value="link">Link to</ToggleButton>
+        <ToggleButton {toggleGroup} value="block">Block on</ToggleButton>
+      {/snippet}
+    </ToggleGroup>
+  </div>
+  <hr />
   <Command class="flex h-full flex-col">
     {#snippet input(command)}
       <div class="flex items-center px-2">

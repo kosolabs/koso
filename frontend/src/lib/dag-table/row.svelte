@@ -451,7 +451,12 @@
             {task.name || "Untitled"}
           </Link>
         {/if}
-        <LinkPanel {node} bind:open={linkOpen} closeFocus={rowElement} />
+        <LinkPanel
+          {node}
+          bind:open={linkOpen}
+          mode={inboxView ? "block" : "link"}
+          closeFocus={rowElement}
+        />
       </div>
     </div>
   </td>
