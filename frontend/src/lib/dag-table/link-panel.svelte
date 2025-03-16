@@ -1,5 +1,6 @@
 <script lang="ts">
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
+  import { Button } from "$lib/kosui/button";
   import { Chip } from "$lib/kosui/chip";
   import { Command, CommandInput, CommandItem } from "$lib/kosui/command";
   import { Popover } from "$lib/kosui/popover";
@@ -60,6 +61,7 @@
     }
   }}
 >
+  <Button>Hi</Button>
   <Command class="flex h-full flex-col">
     {#snippet input(command)}
       <div class="flex items-center px-2">
