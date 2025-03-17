@@ -1,4 +1,5 @@
 import type { User } from "$lib/auth.svelte";
+import type { Kind } from "$lib/yproxy";
 import { List, Set } from "immutable";
 import * as encoding from "lib0/encoding";
 import { uuidv4 } from "lib0/random.js";
@@ -6,7 +7,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { Koso, Node } from ".";
 import { type TaskBuilder } from "../../../tests/utils";
-import type { Kind } from "$lib/yproxy";
 
 const USER: User = {
   email: "t@koso.app",
@@ -1031,23 +1031,23 @@ describe("Koso tests", () => {
     });
 
     it("parents of 1 is root", () => {
-      expect(koso.getParents("1")).toEqual(["root"]);
+      expect(koso.getParentIds("1")).toEqual(["root"]);
     });
 
     it("parents of 2 is 1", () => {
-      expect(koso.getParents("2")).toEqual(["1"]);
+      expect(koso.getParentIds("2")).toEqual(["1"]);
     });
 
     it("parents of 3 are root and 1", () => {
-      expect(koso.getParents("3")).toEqual(["root", "1"]);
+      expect(koso.getParentIds("3")).toEqual(["root", "1"]);
     });
 
     it("parents of 4 are 3 and 2", () => {
-      expect(koso.getParents("4")).toEqual(["3", "2"]);
+      expect(koso.getParentIds("4")).toEqual(["3", "2"]);
     });
 
     it("parents of root throws", () => {
-      expect(() => koso.getParents("root")).toThrow();
+      expect(() => koso.getParentIds("root")).toThrow();
     });
   });
 

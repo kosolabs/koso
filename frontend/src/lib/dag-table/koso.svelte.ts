@@ -586,8 +586,13 @@ export class Koso {
     return this.graph.get(taskId);
   }
 
+  /** Retrieves the parent tasks of the given task ID. */
+  getParents(taskId: string): YTaskProxy[] {
+    return this.getParentIds(taskId).map((parentId) => this.getTask(parentId));
+  }
+
   /** Retrieves the parent task IDs of the given task ID. */
-  getParents(taskId: string): string[] {
+  getParentIds(taskId: string): string[] {
     const parents = this.#parents.get(taskId);
     if (!parents) throw new Error(`No parents entry found for ${taskId}`);
     return parents;
@@ -759,7 +764,7 @@ export class Koso {
     }
     slugs = slugs.insert(0, taskId);
     const nodes: Node[] = [];
-    for (const parent of this.getParents(taskId)) {
+    for (const parent of this.getParentIds(taskId)) {
       nodes.push(...this.getNodes(parent, slugs));
     }
     return nodes;
@@ -1584,7 +1589,7 @@ export class Koso {
         task.statusTime = Date.now();
 
         // Reposition the done task in all locations.
-        for (const parentId of this.getParents(taskId)) {
+        for (const parentId of this.getParentIds(taskId)) {
           const peers = this.getChildren(parentId);
           const index = findEntryIndex(
             peers.entries({ start: peers.indexOf(taskId) + 1 }),
@@ -1604,7 +1609,7 @@ export class Koso {
           task.assignee = user.email;
         }
 
-        for (const parentId of this.getParents(taskId)) {
+        for (const parentId of this.getParentIds(taskId)) {
           const peers = this.getChildren(parentId);
           const index = findEntryIndex(
             peers.entries({ start: peers.indexOf(taskId) - 1, step: -1 }),
