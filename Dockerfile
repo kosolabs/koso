@@ -22,7 +22,7 @@ WORKDIR /app
 COPY rust-toolchain.toml ./
 RUN cargo install sqlx-cli@=0.8.3 --locked --no-default-features --features native-tls,postgres --root ./
 
-FROM node:23.9.0@sha256:c29271c7f2b4788fe9b90a7506d790dc8f2ff46132e1b70e71bf0c0679c8451c AS frontend
+FROM node:23.10.0@sha256:e940261391ab78a883bbcfba448bcbb6d36803053f67017e6e270ef095f213ca AS frontend
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
