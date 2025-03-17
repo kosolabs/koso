@@ -111,6 +111,65 @@
 </script>
 
 <Navbar>
+  {#snippet context()}
+    <Menu>
+      {#snippet trigger(menuTriggerProps)}
+        <MenuTrigger
+          title="Project menu"
+          class={cn(
+            baseClasses({
+              variant: "plain",
+              color: "primary",
+              shape: "rounded",
+              focus: true,
+              hover: true,
+            }),
+            "px-3 py-1.5 transition-all active:scale-95",
+          )}
+          {...menuTriggerProps}
+        >
+          <MenuIcon />
+        </MenuTrigger>
+      {/snippet}
+      {#snippet content(menuItemProps)}
+        <MenuItem
+          class="gap-2"
+          onSelect={async () =>
+            window.location.assign(await githubInstallUrl(projectId))}
+          {...menuItemProps}
+        >
+          <PlugZap size={16} />
+          Connect to GitHub
+        </MenuItem>
+        <MenuItem
+          class="gap-2"
+          onSelect={exportProjectToFile}
+          {...menuItemProps}
+        >
+          <FileDown size={16} />
+          Export project
+        </MenuItem>
+        <MenuItem
+          class="gap-2"
+          onSelect={() => goto(`/projects/${projectId}/inbox`)}
+          {...menuItemProps}
+        >
+          <Mail size={16} />
+          Navigate to Zero Inbox
+        </MenuItem>
+        <MenuItem
+          class="gap-2"
+          onSelect={() => {
+            openShareModal = true;
+          }}
+          {...menuItemProps}
+        >
+          <UserPlus size={16} />
+          Share project
+        </MenuItem>
+      {/snippet}
+    </Menu>
+  {/snippet}
   {#snippet left()}
     <div>
       {#await project then project}
@@ -148,63 +207,6 @@
       >
         <UserPlus />
       </Button>
-      <Menu>
-        {#snippet trigger(menuTriggerProps)}
-          <MenuTrigger
-            title="Project menu"
-            class={cn(
-              baseClasses({
-                variant: "plain",
-                color: "primary",
-                shape: "rounded",
-                focus: true,
-                hover: true,
-              }),
-              "px-3 py-1.5 transition-all active:scale-95",
-            )}
-            {...menuTriggerProps}
-          >
-            <MenuIcon />
-          </MenuTrigger>
-        {/snippet}
-        {#snippet content(menuItemProps)}
-          <MenuItem
-            class="gap-2"
-            onSelect={async () =>
-              window.location.assign(await githubInstallUrl(projectId))}
-            {...menuItemProps}
-          >
-            <PlugZap size={16} />
-            Connect to GitHub
-          </MenuItem>
-          <MenuItem
-            class="gap-2"
-            onSelect={exportProjectToFile}
-            {...menuItemProps}
-          >
-            <FileDown size={16} />
-            Export project
-          </MenuItem>
-          <MenuItem
-            class="gap-2"
-            onSelect={() => goto(`/projects/${projectId}/inbox`)}
-            {...menuItemProps}
-          >
-            <Mail size={16} />
-            Navigate to Zero Inbox
-          </MenuItem>
-          <MenuItem
-            class="gap-2"
-            onSelect={() => {
-              openShareModal = true;
-            }}
-            {...menuItemProps}
-          >
-            <UserPlus size={16} />
-            Share project
-          </MenuItem>
-        {/snippet}
-      </Menu>
     </div>
   {/snippet}
 </Navbar>
