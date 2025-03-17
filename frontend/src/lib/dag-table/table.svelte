@@ -425,6 +425,7 @@
       icon: Trash,
       toolbar: true,
       enabled: () =>
+        !inboxView &&
         !!koso.selected &&
         koso.canDeleteNode(koso.selected.name, koso.selected.parent.name),
       shortcut: new Shortcut({ key: "Delete" }),
