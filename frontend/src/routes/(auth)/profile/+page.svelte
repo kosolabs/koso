@@ -113,16 +113,16 @@
 <div class="flex flex-col gap-4 p-2">
   <Section title="Theme">
     <ToggleGroup bind:value={$mode}>
-      {#snippet children(toggleGroup)}
-        <ToggleButton {toggleGroup} value="light">
+      {#snippet children(state)}
+        <ToggleButton {state} value="light">
           <Sun size={16} />
           Light
         </ToggleButton>
-        <ToggleButton {toggleGroup} value="dark">
+        <ToggleButton {state} value="dark">
           <Moon size={16} />
           Dark
         </ToggleButton>
-        <ToggleButton {toggleGroup} value="system">
+        <ToggleButton {state} value="system">
           <SunMoon size={16} />
           System
         </ToggleButton>

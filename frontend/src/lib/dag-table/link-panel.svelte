@@ -80,9 +80,9 @@
 >
   <div class="flex place-content-center p-1">
     <ToggleGroup bind:value={mode}>
-      {#snippet children(toggleGroup)}
-        <ToggleButton {toggleGroup} value="link">Link to</ToggleButton>
-        <ToggleButton {toggleGroup} value="block">Block on</ToggleButton>
+      {#snippet children(state)}
+        <ToggleButton {state} value="link">Link to</ToggleButton>
+        <ToggleButton {state} value="block">Block on</ToggleButton>
       {/snippet}
     </ToggleGroup>
   </div>

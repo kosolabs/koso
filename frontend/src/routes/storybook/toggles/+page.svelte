@@ -33,14 +33,14 @@
       {@const title = toTitleCase(shape) + " " + toTitleCase(color)}
       <div>
         <ToggleGroup bind:value>
-          {#snippet children(toggleGroup)}
-            <ToggleButton {toggleGroup} {shape} {color} value="1">
+          {#snippet children(state)}
+            <ToggleButton {state} {shape} {color} value="1">
               {title} 1
             </ToggleButton>
-            <ToggleButton {toggleGroup} {shape} {color} value="2">
+            <ToggleButton {state} {shape} {color} value="2">
               {title} 2
             </ToggleButton>
-            <ToggleButton {toggleGroup} {shape} {color} value="3">
+            <ToggleButton {state} {shape} {color} value="3">
               {title} 3
             </ToggleButton>
           {/snippet}
