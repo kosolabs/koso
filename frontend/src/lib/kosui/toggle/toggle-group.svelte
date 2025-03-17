@@ -2,13 +2,13 @@
   import type { Snippet } from "svelte";
   import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
-  import { ToggleButton, type ToggleGroup } from ".";
   import { noop, type ClassName, type ElementRef } from "../utils";
+  import { ToggleState } from "./toggle-state.svelte";
 
   export type ToggleGroupProps = {
     value?: string;
     onChange?: (value?: string) => void;
-    children: Snippet<[ToggleGroup]>;
+    children: Snippet<[ToggleState]>;
   } & ElementRef &
     ClassName &
     Omit<HTMLAttributes<HTMLDivElement>, "children">;
@@ -25,33 +25,15 @@
     ...restProps
   }: ToggleGroupProps = $props();
 
-  let items: Record<string, ToggleButton> = {};
-
-  export function register(value: string, button: ToggleButton) {
-    items[value] = button;
-  }
-
-  export function unregister(value: string) {
-    delete items[value];
-  }
-
-  export function setValue(newValue: string) {
-    value = newValue;
-  }
-
-  const self: ToggleGroup = { register, unregister, setValue };
-
-  $effect(() => {
-    onChange?.(value);
-    for (const key in items) {
-      items[key].blur();
-    }
-    if (value && items[value]) {
-      items[value].focus();
-    }
-  });
+  const state = new ToggleState(
+    () => value,
+    (newValue) => {
+      value = newValue;
+      onChange?.(newValue);
+    },
+  );
 </script>
 
 <div bind:this={el} use:ref class={twMerge("flex", className)} {...restProps}>
-  {@render children(self)}
+  {@render children(state)}
 </div>

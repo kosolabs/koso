@@ -2,15 +2,14 @@
   import type { Snippet } from "svelte";
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
-  import { type ToggleButton } from ".";
   import { type Variants } from "../base";
   import { mergeProps } from "../merge-props";
   import { noop, type ClassName, type ElementRef } from "../utils";
-  import ToggleGroup from "./toggle-group.svelte";
+  import type { ToggleState } from "./toggle-state.svelte";
 
   export type ToggleButtonProps = {
     value: string;
-    toggleGroup: ToggleGroup;
+    state: ToggleState;
     children: Snippet;
   } & ElementRef &
     ClassName &
@@ -21,7 +20,7 @@
 <script lang="ts">
   let {
     value,
-    toggleGroup,
+    state,
     children,
     el = $bindable(),
     ref = noop,
@@ -30,30 +29,13 @@
     shape = "rounded",
     ...restProps
   }: ToggleButtonProps = $props();
-
-  let focused: boolean = $state(false);
-
-  export function focus() {
-    focused = true;
-  }
-
-  export function blur() {
-    focused = false;
-  }
-
-  const self: ToggleButton = { blur, focus };
-
-  $effect(() => {
-    toggleGroup.register(value, self);
-    return () => toggleGroup.unregister(value);
-  });
 </script>
 
 <button
   bind:this={el}
   use:ref
   role="option"
-  aria-selected={focused}
+  aria-selected={state.value === value}
   class={twMerge(
     "bg-md-background text-md-on-surface flex items-center gap-1 border-y border-l px-4 py-1.5 text-sm last:border-r",
 
@@ -72,7 +54,7 @@
 
     className,
   )}
-  {...mergeProps(restProps, { onclick: () => toggleGroup.setValue(value) })}
+  {...mergeProps(restProps, { onclick: () => (state.value = value) })}
 >
   {@render children()}
 </button>
