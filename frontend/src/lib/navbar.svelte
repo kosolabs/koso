@@ -11,16 +11,18 @@
   import MenuTrigger from "./kosui/menu/menu-trigger.svelte";
 
   type Props = {
+    context?: Snippet;
     left?: Snippet;
     right?: Snippet;
   };
-  const { left, right }: Props = $props();
+  const { context, left, right }: Props = $props();
 </script>
 
 <nav
   class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center border-b p-2 shadow"
 >
   <div class="flex items-center">
+    {@render context?.()}
     <a href="/projects" aria-label="Home">
       <KosoLogo class="size-10" />
     </a>
