@@ -38,8 +38,26 @@
   }
 
   function isTaskVisible(task: YTaskProxy): boolean {
-    // Only show incomplete tasks assigned to this user.
-    if (task.assignee !== auth.user.email) {
+    // Don't show the root task
+    if (task.id === "root") {
+      return false;
+    }
+    // Don't show tasks not assigned to the user
+    if (task.assignee !== null && task.assignee !== auth.user.email) {
+      return false;
+    }
+    // Don't show rollup tasks
+    if (task.yKind === null && task.children.length > 0) {
+      return false;
+    }
+    // Don't show unassigned task where none of the parents are assigned to the user
+    if (
+      task.assignee === null &&
+      koso
+        .getParents(task.id)
+        .filter((parent) => parent.yKind === null)
+        .every((parent) => parent.assignee !== auth.user.email)
+    ) {
       return false;
     }
     const progress = koso.getProgress(task.id);

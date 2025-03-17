@@ -1,13 +1,13 @@
 export class ToggleState {
   #value: string | undefined = $state(undefined);
-  #onChange: (val: string | undefined) => void;
+  setValue: (val: string | undefined) => void;
 
   constructor(
     getValue: () => string | undefined,
-    onChange: (val: string | undefined) => void,
+    setValue: (val: string | undefined) => void,
   ) {
     this.#value = getValue();
-    this.#onChange = onChange;
+    this.setValue = setValue;
 
     $effect(() => {
       if (this.#value !== getValue()) {
@@ -23,7 +23,7 @@ export class ToggleState {
   set value(value: string | undefined) {
     if (this.#value !== value) {
       this.#value = value;
-      this.#onChange(value);
+      this.setValue(value);
     }
   }
 }
