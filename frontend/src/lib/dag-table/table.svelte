@@ -1,18 +1,16 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
   import { auth, type User } from "$lib/auth.svelte";
-  import { CommandPalette } from "$lib/components/ui/command-palette";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { toast } from "$lib/components/ui/sonner";
-  import { events } from "$lib/kosui";
   import { Button } from "$lib/kosui/button";
+  import { command } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
   import {
     Action,
     CANCEL,
     INSERT_CHILD_NODE,
     INSERT_NODE,
-    ShortcutRegistry,
   } from "$lib/shortcuts";
   import {
     Cable,
@@ -28,7 +26,6 @@
     ListPlus,
     ListStart,
     ListTree,
-    Moon,
     MoveDown,
     MoveUp,
     Pencil,
@@ -39,14 +36,10 @@
     SquarePen,
     StepBack,
     StepForward,
-    Sun,
-    SunMoon,
-    Terminal,
     Trash,
     Undo,
     UserRoundPlus,
   } from "lucide-svelte";
-  import { resetMode, setMode } from "mode-watcher";
   import { onMount, setContext, tick } from "svelte";
   import { flip } from "svelte/animate";
   import { Node, type Koso } from ".";
@@ -57,10 +50,9 @@
   type Props = {
     koso: Koso;
     users: User[];
-    extraActions: Action[];
     inboxView: boolean;
   };
-  const { koso, users, extraActions, inboxView }: Props = $props();
+  const { koso, users, inboxView }: Props = $props();
 
   const rows: { [key: string]: Row } = {};
 
@@ -75,11 +67,6 @@
   let searchPaletteOpen: boolean = $state(false);
   function showSearchPalette() {
     searchPaletteOpen = true;
-  }
-
-  let commandPaletteOpen: boolean = $state(false);
-  function showCommandPalette() {
-    commandPaletteOpen = true;
   }
 
   function insertAndEdit(parent: Node, offset: number, user: User) {
@@ -309,7 +296,7 @@
     getRow(koso.selected).linkPanel(true);
   }
 
-  export const actions: Action[] = [
+  const actions: Action[] = [
     new Action({
       callback: selectNext,
       title: "Next",
@@ -526,24 +513,6 @@
       enabled: () => !inboxView && !koso.showDone,
     }),
     new Action({
-      callback: () => setMode("light"),
-      title: "Light",
-      description: "Set the theme to light mode",
-      icon: Sun,
-    }),
-    new Action({
-      callback: () => setMode("dark"),
-      title: "Dark",
-      description: "Set the theme to dark mode",
-      icon: Moon,
-    }),
-    new Action({
-      callback: () => resetMode(),
-      title: "System",
-      description: "Set the theme to system",
-      icon: SunMoon,
-    }),
-    new Action({
       callback: showSearchPalette,
       title: "Search",
       description: "Show the search palette",
@@ -551,14 +520,6 @@
       toolbar: true,
       enabled: () => !inboxView,
       shortcut: new Shortcut({ key: "p", meta: true }),
-    }),
-    new Action({
-      callback: showCommandPalette,
-      title: "Palette",
-      description: "Show the command palette",
-      icon: Terminal,
-      toolbar: true,
-      shortcut: new Shortcut({ key: "p", shift: true, meta: true }),
     }),
     new Action({
       callback: linkTask,
@@ -587,23 +548,7 @@
       enabled: () => !inboxView && !!koso.selected,
       shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
     }),
-    ...extraActions,
   ];
-
-  const shortcutRegistry = new ShortcutRegistry(actions);
-
-  onMount(() => {
-    const keyDownListener = (event: KeyboardEvent) => {
-      if (koso.debug) {
-        if (["Alt", "Control", "Meta", "Shift"].includes(event.key)) return;
-        console.log(Shortcut.fromEvent(event).toString());
-      }
-
-      shortcutRegistry.handle(event);
-    };
-
-    return events.on("keydown", keyDownListener);
-  });
 
   onMount(async () => {
     const url = new URL(window.location.href);
@@ -617,6 +562,18 @@
   });
 
   setContext<Koso>("koso", koso);
+
+  $effect(() => {
+    for (const action of actions) {
+      command.register(action);
+    }
+
+    return () => {
+      for (const action of actions) {
+        command.unregister(action);
+      }
+    };
+  });
 
   // This effect selects a new node when the
   // selected node no longer exists. For example, when
@@ -659,10 +616,9 @@
   });
 </script>
 
-<CommandPalette bind:open={commandPaletteOpen} {actions} />
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<Toolbar {actions}>
+<Toolbar actions={Array.from(command.actions) as Action[]}>
   {#await koso.synced then}
     {#if koso.nodes.size > 1}
       <table class="w-full border-separate border-spacing-0 rounded-md border">

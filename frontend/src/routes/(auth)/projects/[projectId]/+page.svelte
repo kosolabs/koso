@@ -10,6 +10,7 @@
   import { Alert } from "$lib/kosui/alert";
   import { baseClasses } from "$lib/kosui/base";
   import { Button } from "$lib/kosui/button";
+  import { command } from "$lib/kosui/command";
   import { Menu, MenuTrigger } from "$lib/kosui/menu";
   import MenuItem from "$lib/kosui/menu/menu-item.svelte";
   import { nav } from "$lib/nav.svelte";
@@ -93,7 +94,7 @@
     a.click();
   }
 
-  const extraActions: Action[] = [
+  const actions: Action[] = [
     new Action({
       callback: exportProjectToFile,
       title: "Export Project",
@@ -107,6 +108,18 @@
     if (kosoSocket.unauthorized) {
       showUnauthorizedDialog();
     }
+  });
+
+  $effect(() => {
+    for (const action of actions) {
+      command.register(action);
+    }
+
+    return () => {
+      for (const action of actions) {
+        command.unregister(action);
+      }
+    };
   });
 </script>
 
@@ -233,5 +246,5 @@
     <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
   {/await}
 
-  <DagTable {koso} users={projectUsers} {extraActions} inboxView={false} />
+  <DagTable {koso} users={projectUsers} inboxView={false} />
 {/await}
