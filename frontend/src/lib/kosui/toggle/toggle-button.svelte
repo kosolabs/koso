@@ -5,11 +5,10 @@
   import { type Variants } from "../base";
   import { mergeProps } from "../merge-props";
   import { noop, type ClassName, type ElementRef } from "../utils";
-  import type { ToggleState } from "./toggle-state.svelte";
+  import { getToggleContext } from "./toggle-state.svelte";
 
   export type ToggleButtonProps = {
     value: string;
-    state: ToggleState;
     children: Snippet;
   } & ElementRef &
     ClassName &
@@ -20,7 +19,6 @@
 <script lang="ts">
   let {
     value,
-    state,
     children,
     el = $bindable(),
     ref = noop,
@@ -29,6 +27,8 @@
     shape = "rounded",
     ...restProps
   }: ToggleButtonProps = $props();
+
+  const state = getToggleContext();
 </script>
 
 <button
