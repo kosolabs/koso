@@ -1579,11 +1579,11 @@ export class Koso {
     });
   }
 
-  setTaskStatus(node: Node, status: Status, user: User) {
+  setTaskStatus(node: Node, status: Status, user: User): boolean {
     const taskId = node.name;
-    this.doc.transact(() => {
+    return this.doc.transact(() => {
       const task = this.getTask(taskId);
-      if (task.yStatus === status) return;
+      if (task.yStatus === status) return false;
 
       // When a task is marked done, make it the last child
       // and select an adjacent peer.
@@ -1601,6 +1601,7 @@ export class Koso {
           );
           this.reorder(taskId, parentId, index);
         }
+        return true;
       }
       // When a task is marked in progress, make it the first child
       // and, if unassigned, assign to the current user
@@ -1621,6 +1622,7 @@ export class Koso {
           );
           this.reorder(taskId, parentId, index + 1);
         }
+        return true;
       } else if (status === "Blocked") {
         if (task.yKind !== "Juggled") {
           throw new Error(`Can only set Juggled tasks to blocked: ${taskId}`);
@@ -1633,14 +1635,17 @@ export class Koso {
           if (!task.assignee) {
             task.assignee = user.email;
           }
+          return true;
         } else {
           toast.info(
             "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
           );
+          return false;
         }
       } else {
         task.yStatus = status;
         task.statusTime = Date.now();
+        return true;
       }
     });
   }

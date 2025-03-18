@@ -39,8 +39,8 @@
 
   function handleOnSelectKind(kind: Kind) {
     if (progress.kind === kind) return;
-    let res = koso.setKind(task.id, kind, auth.user);
-    if (res && kind === "Juggled") {
+    let applied = koso.setKind(task.id, kind, auth.user);
+    if (applied && kind === "Juggled") {
       toast.info(
         "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
       );
@@ -63,7 +63,12 @@
         toast.info("🚀 Great work! Task complete!");
       }
     } else {
-      koso.setTaskStatus(node, status, auth.user);
+      const applied = koso.setTaskStatus(node, status, auth.user);
+      if (applied && status === "Blocked") {
+        toast.info(
+          "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
+        );
+      }
     }
   }
 
