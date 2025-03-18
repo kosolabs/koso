@@ -79,7 +79,11 @@
     const parents = allParents.get(node.name);
     if (!parents) return [];
     return parents
-      .filter((parent) => parent !== node.parent.name)
+      .filter((parent) => {
+        // Don't output a tag for this node's parent, it's duplicative.
+        // Except in the inbox view where nodes are a flat list.
+        return parent !== node.parent.name || inboxView;
+      })
       .map((parent) => koso.getTask(parent))
       .filter((parent) => parent.name.length > 0)
       .map((parent) => {
