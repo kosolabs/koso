@@ -3,7 +3,7 @@
   import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { noop, type ClassName, type ElementRef } from "../utils";
-  import { newToggleContext } from "./toggle-state.svelte";
+  import { newToggleContext } from "./toggle-context.svelte";
 
   export type ToggleGroupProps = {
     value?: string;
