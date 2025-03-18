@@ -10,6 +10,7 @@
   import { CircularProgress } from "../../../kosui/progress";
   import { confetti } from "../confetti";
   import { ResponsiveText } from "../responsive-text";
+  import { toast } from "$lib/components/ui/sonner";
 
   type Props = {
     node: Node;
@@ -38,7 +39,12 @@
 
   function handleOnSelectKind(kind: Kind) {
     if (progress.kind === kind) return;
-    koso.setKind(task.id, kind, auth.user);
+    let applied = koso.setKind(task.id, kind, auth.user);
+    if (applied && kind === "Juggled") {
+      toast.info(
+        "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
+      );
+    }
   }
 
   function handleOnSelectStatus(status: Status) {
@@ -53,8 +59,16 @@
       if (!inboxView && peer) {
         koso.selected = peer;
       }
+      if (inboxView) {
+        toast.info("🚀 Great work! Task complete!");
+      }
     } else {
-      koso.setTaskStatus(node, status, auth.user);
+      const applied = koso.setTaskStatus(node, status, auth.user);
+      if (applied && status === "Blocked") {
+        toast.info(
+          "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
+        );
+      }
     }
   }
 
