@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { Command, CommandInput, CommandItem } from "$lib/kosui/command";
+  import {
+    Command,
+    CommandDivider,
+    CommandInput,
+    CommandItem,
+  } from "$lib/kosui/command";
 
   type Item = {
     title: string;
@@ -29,19 +34,15 @@
 
 <div class="flex flex-col gap-4 rounded-lg border p-4">
   <Command>
-    {#snippet input(command)}
-      <CommandInput
-        bind:value={filter}
-        {command}
-        placeholder="Type a command or search..."
-      />
-    {/snippet}
-    {#snippet content(command)}
-      {#each filteredItems as item (item.title)}
-        <CommandItem {command} onSelect={() => (selected = item.title)}>
-          {item.title}
-        </CommandItem>
-      {/each}
-    {/snippet}
+    <CommandInput
+      bind:value={filter}
+      placeholder="Type a command or search..."
+    />
+    <CommandDivider />
+    {#each filteredItems as item (item.title)}
+      <CommandItem onSelect={() => (selected = item.title)}>
+        {item.title}
+      </CommandItem>
+    {/each}
   </Command>
 </div>
