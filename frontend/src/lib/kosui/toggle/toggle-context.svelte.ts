@@ -1,6 +1,6 @@
 import { getContext, setContext } from "svelte";
 
-export class ToggleState {
+export class ToggleContext {
   #value: string | undefined = $state(undefined);
   setValue: (val: string | undefined) => void;
 
@@ -34,13 +34,13 @@ export function newToggleContext(
   getValue: () => string | undefined,
   setValue: (val: string | undefined) => void,
 ) {
-  return setToggleContext(new ToggleState(getValue, setValue));
+  return setToggleContext(new ToggleContext(getValue, setValue));
 }
 
-export function setToggleContext(state: ToggleState): ToggleState {
-  return setContext<ToggleState>(ToggleState, state);
+export function setToggleContext(state: ToggleContext): ToggleContext {
+  return setContext<ToggleContext>(ToggleContext, state);
 }
 
-export function getToggleContext(): ToggleState {
-  return getContext<ToggleState>(ToggleState);
+export function getToggleContext(): ToggleContext {
+  return getContext<ToggleContext>(ToggleContext);
 }

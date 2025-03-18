@@ -5,7 +5,7 @@
   import { type Variants } from "../base";
   import { mergeProps } from "../merge-props";
   import { noop, type ClassName, type ElementRef } from "../utils";
-  import { getToggleContext } from "./toggle-state.svelte";
+  import { getToggleContext } from "./toggle-context.svelte";
 
   export type ToggleButtonProps = {
     value: string;
@@ -28,14 +28,14 @@
     ...restProps
   }: ToggleButtonProps = $props();
 
-  const state = getToggleContext();
+  const ctx = getToggleContext();
 </script>
 
 <button
   bind:this={el}
   use:ref
   role="option"
-  aria-selected={state.value === value}
+  aria-selected={ctx.value === value}
   class={twMerge(
     "bg-md-background text-md-on-surface flex items-center gap-1 border-y border-l px-4 py-1.5 text-sm last:border-r",
 
@@ -54,7 +54,7 @@
 
     className,
   )}
-  {...mergeProps(restProps, { onclick: () => (state.value = value) })}
+  {...mergeProps(restProps, { onclick: () => (ctx.value = value) })}
 >
   {@render children()}
 </button>
