@@ -1702,7 +1702,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      koso.setTaskStatus(Node.parse("2"), "Done", USER);
+      expect(koso.setTaskStatus(Node.parse("2"), "Done", USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -1718,7 +1718,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      koso.setTaskStatus(Node.parse("1"), "Done", USER);
+      expect(koso.setTaskStatus(Node.parse("1"), "Done", USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["2", "1"], assignee: null },
@@ -1734,7 +1734,9 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      koso.setTaskStatus(Node.parse("2"), "In Progress", USER);
+      expect(koso.setTaskStatus(Node.parse("2"), "In Progress", USER)).toBe(
+        true,
+      );
 
       expect(koso.toJSON()).toMatchObject({
         root: {
@@ -1758,7 +1760,9 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      koso.setTaskStatus(Node.parse("2"), "In Progress", OTHER_USER);
+      expect(
+        koso.setTaskStatus(Node.parse("2"), "In Progress", OTHER_USER),
+      ).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: {
@@ -1784,7 +1788,7 @@ describe("Koso tests", () => {
         },
       ]);
 
-      koso.setTaskStatus(Node.parse("t2"), "Done", USER);
+      expect(koso.setTaskStatus(Node.parse("t2"), "Done", USER)).toBe(true);
       const children = koso.toJSON().root.children;
 
       expect(children).toEqual(["t1", "t3", "t4", "t5", "t2"]);
@@ -1799,7 +1803,9 @@ describe("Koso tests", () => {
         },
       ]);
 
-      koso.setTaskStatus(Node.parse("t4"), "In Progress", USER);
+      expect(koso.setTaskStatus(Node.parse("t4"), "In Progress", USER)).toBe(
+        true,
+      );
       const children = koso.toJSON().root.children;
 
       expect(children).toEqual(["t4", "t1", "t2", "t3", "t5"]);
@@ -1816,7 +1822,9 @@ describe("Koso tests", () => {
         { id: "t5", status: "Done" },
       ]);
 
-      koso.setTaskStatus(Node.parse("t4"), "In Progress", USER);
+      expect(koso.setTaskStatus(Node.parse("t4"), "In Progress", USER)).toBe(
+        true,
+      );
       const children = koso.toJSON().root.children;
 
       expect(children).toEqual(["t1", "t2", "t4", "t3", "t5"]);
@@ -1833,7 +1841,7 @@ describe("Koso tests", () => {
         { id: "t4", status: "Done" },
       ]);
 
-      koso.setTaskStatus(Node.parse("t2"), "Done", USER);
+      expect(koso.setTaskStatus(Node.parse("t2"), "Done", USER)).toBe(true);
       const children = koso.toJSON().root.children;
 
       expect(children).toEqual(["t1", "t3", "t2", "t4", "t5"]);
@@ -1851,10 +1859,37 @@ describe("Koso tests", () => {
         { id: "t5", status: "Done" },
       ]);
 
-      koso.setTaskStatus(Node.parse("t5"), "In Progress", USER);
+      expect(koso.setTaskStatus(Node.parse("t5"), "In Progress", USER)).toBe(
+        true,
+      );
       const children = koso.toJSON().root.children;
 
       expect(children).toEqual(["t1", "t5", "t2", "t3", "t4"]);
+    });
+
+    it("setting a Done task to Done leaves task unchanged", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5"],
+        },
+        { id: "t1", status: "In Progress" },
+        { id: "t4", status: "Done" },
+        { id: "t5", status: "In Progress" },
+      ]);
+
+      expect(koso.setTaskStatus(Node.parse("t4"), "Done", USER)).toBe(false);
+      expect(koso.toJSON()).toMatchObject({
+        root: {
+          children: ["t1", "t2", "t3", "t4", "t5"],
+        },
+        ["t4"]: {
+          status: "Done",
+          children: [],
+          assignee: null,
+        },
+      });
     });
 
     it("set Juggled task with complete children to blocked rejected", () => {
@@ -1870,7 +1905,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2", status: "Done" },
       ]);
 
-      koso.setTaskStatus(Node.parse("1"), "Blocked", USER);
+      expect(koso.setTaskStatus(Node.parse("1"), "Blocked", USER)).toBe(false);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -1892,7 +1927,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2", status: "In Progress" },
       ]);
 
-      koso.setTaskStatus(Node.parse("1"), "Blocked", USER);
+      expect(koso.setTaskStatus(Node.parse("1"), "Blocked", USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -1910,7 +1945,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2", children: ["1"] },
       ]);
 
-      koso.setKind("2", "Juggled", USER);
+      expect(koso.setKind("2", "Juggled", USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -1937,7 +1972,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3", status: "Done" },
       ]);
 
-      koso.setKind("2", "Juggled", USER);
+      expect(koso.setKind("2", "Juggled", USER)).toBe(false);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -1959,7 +1994,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2", status: "Done", kind: "Juggled" },
       ]);
 
-      koso.setKind("2", "Juggled", USER);
+      expect(koso.setKind("2", "Juggled", USER)).toBe(false);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -1986,7 +2021,7 @@ describe("Koso tests", () => {
         },
       ]);
 
-      koso.setKind("2", "Rollup", USER);
+      expect(koso.setKind("2", "Rollup", USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -2013,7 +2048,7 @@ describe("Koso tests", () => {
         },
       ]);
 
-      koso.setKind("2", "Rollup", USER);
+      expect(koso.setKind("2", "Rollup", USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
