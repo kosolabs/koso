@@ -78,7 +78,7 @@ export class CommandContext {
 
   #updateItems() {
     const items = this.el
-      ? Array.from(this.el.getElementsByTagName("div")).filter(
+      ? Array.from(this.el.getElementsByTagName("button")).filter(
           (button) => button.role === "option" && this.#reg.has(button),
         )
       : [];

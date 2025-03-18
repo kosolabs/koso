@@ -1,6 +1,6 @@
 <script module lang="ts">
   import { type Snippet } from "svelte";
-  import type { HTMLAttributes } from "svelte/elements";
+  import type { HTMLButtonAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { baseClasses, type Variants } from "../base";
   import { mergeProps } from "../merge-props";
@@ -13,7 +13,7 @@
   } & ElementRef &
     ClassName &
     Variants &
-    HTMLAttributes<HTMLDivElement>;
+    HTMLButtonAttributes;
 </script>
 
 <script lang="ts">
@@ -37,13 +37,14 @@
   });
 </script>
 
-<div
+<button
   bind:this={el}
   role="option"
+  tabindex="-1"
   aria-selected={ctx.focused === el}
   class={twMerge(
     baseClasses({ variant, color, shape }),
-    "aria-selected:bg-m3-secondary/15 flex w-full items-center gap-1 px-2 py-1 text-left text-sm focus:ring-0",
+    "aria-selected:bg-m3-secondary/15 flex w-full items-center gap-1 px-2 py-1 text-left text-sm focus:ring-0 disabled:bg-transparent",
     className,
   )}
   {...mergeProps(restProps, {
@@ -52,4 +53,4 @@
   })}
 >
   {@render children()}
-</div>
+</button>
