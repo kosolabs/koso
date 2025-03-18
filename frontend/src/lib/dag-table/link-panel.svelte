@@ -1,7 +1,12 @@
 <script lang="ts">
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
   import { Chip } from "$lib/kosui/chip";
-  import { Command, CommandInput, CommandItem } from "$lib/kosui/command";
+  import {
+    Command,
+    CommandDivider,
+    CommandInput,
+    CommandItem,
+  } from "$lib/kosui/command";
   import { Popover } from "$lib/kosui/popover";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
@@ -86,64 +91,59 @@
   </div>
   <hr />
   <Command class="flex h-full flex-col">
-    {#snippet input(command)}
-      <div class="flex items-center px-2">
-        <SearchIcon size={16} />
-        <CommandInput
-          autofocus
-          bind:value={query}
-          {command}
-          placeholder="Search by task name or number..."
-        />
-      </div>
-    {/snippet}
-    {#snippet content(command)}
-      <div class="h-full overflow-scroll">
-        {#if tasks.length > 0}
-          {#each tasks as task (task.id)}
-            <CommandItem
-              {command}
-              class="table-row"
-              onSelect={() => link(task.id)}
-              aria-label="Task {task.id} Command Item"
-            >
-              <div class="table-cell rounded-l px-2 py-2 align-middle">
-                <div class="flex items-center gap-1" title="Task Number">
-                  <Clipboard size={16} />
-                  {task.num}
+    <div class="flex items-center px-2">
+      <SearchIcon size={16} />
+      <CommandInput
+        autofocus
+        bind:value={query}
+        placeholder="Search by task name or number..."
+      />
+    </div>
+    <CommandDivider />
+    <div class="h-full overflow-scroll">
+      {#if tasks.length > 0}
+        {#each tasks as task (task.id)}
+          <CommandItem
+            class="table-row"
+            onSelect={() => link(task.id)}
+            aria-label="Task {task.id} Command Item"
+          >
+            <div class="table-cell rounded-l px-2 py-2 align-middle">
+              <div class="flex items-center gap-1" title="Task Number">
+                <Clipboard size={16} />
+                {task.num}
+              </div>
+            </div>
+            <div class="table-cell w-full px-2 align-middle">
+              <div class="flex items-center" title="Task Name">
+                {task.name || "Untitled task"}
+              </div>
+            </div>
+            <div class="table-cell px-2 align-middle text-nowrap">
+              <div class="flex items-center gap-1" title="Subtasks">
+                {task.children.length}
+                <Network size={16} />
+              </div>
+            </div>
+            <div class="table-cell px-2 align-middle text-nowrap">
+              <div class="flex items-center gap-1" title="Status">
+                {koso.getStatus(task.id)}
+              </div>
+            </div>
+            <div class="table-cell rounded-r px-2 align-middle text-nowrap">
+              <div class="flex items-center gap-1" title="Tags">
+                <div class="flex flex-wrap items-center gap-x-1">
+                  {#each getTags(task.id) as { title, description }}
+                    <Chip title={description}>{title}</Chip>
+                  {/each}
                 </div>
               </div>
-              <div class="table-cell w-full px-2 align-middle">
-                <div class="flex items-center" title="Task Name">
-                  {task.name || "Untitled task"}
-                </div>
-              </div>
-              <div class="table-cell px-2 align-middle text-nowrap">
-                <div class="flex items-center gap-1" title="Subtasks">
-                  {task.children.length}
-                  <Network size={16} />
-                </div>
-              </div>
-              <div class="table-cell px-2 align-middle text-nowrap">
-                <div class="flex items-center gap-1" title="Status">
-                  {koso.getStatus(task.id)}
-                </div>
-              </div>
-              <div class="table-cell rounded-r px-2 align-middle text-nowrap">
-                <div class="flex items-center gap-1" title="Tags">
-                  <div class="flex flex-wrap items-center gap-x-1">
-                    {#each getTags(task.id) as { title, description }}
-                      <Chip title={description}>{title}</Chip>
-                    {/each}
-                  </div>
-                </div>
-              </div>
-            </CommandItem>
-          {/each}
-        {:else}
-          <div class="text-center">No results found.</div>
-        {/if}
-      </div>
-    {/snippet}
+            </div>
+          </CommandItem>
+        {/each}
+      {:else}
+        <div class="text-center">No results found.</div>
+      {/if}
+    </div>
   </Command>
 </Popover>

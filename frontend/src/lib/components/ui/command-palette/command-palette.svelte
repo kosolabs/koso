@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { Command, CommandInput, CommandItem } from "$lib/kosui/command";
+  import {
+    Command,
+    CommandDivider,
+    CommandInput,
+    CommandItem,
+  } from "$lib/kosui/command";
   import { Modal } from "$lib/kosui/modal";
   import ShortcutBadge from "$lib/kosui/shortcut/shortcut-badge.svelte";
   import { type Action } from "$lib/shortcuts";
@@ -34,36 +39,31 @@
   class="bg-m3-surface-container h-[min(40%,24em)] w-[min(calc(100%-1em),36em)] rounded-lg p-0"
 >
   <Command class="flex h-full flex-col">
-    {#snippet input(command)}
-      <div class="flex items-center px-2">
-        <SearchIcon size={16} />
-        <CommandInput
-          bind:value={query}
-          {command}
-          placeholder="Type a command or search..."
-        />
-      </div>
-    {/snippet}
-    {#snippet content(command)}
-      <div class="h-full overflow-scroll">
-        {#if filteredActions.length > 0}
-          {#each filteredActions as action (action.title)}
-            <CommandItem
-              title={action.title}
-              {command}
-              onSelect={() => handleSelect(action)}
-            >
-              <action.icon class="mr-2 h-4 w-4" />
-              {action.description}
-              {#if action.shortcut}
-                <ShortcutBadge class="ml-auto" shortcut={action.shortcut} />
-              {/if}
-            </CommandItem>
-          {/each}
-        {:else}
-          <div class="text-center">No results found.</div>
-        {/if}
-      </div>
-    {/snippet}
+    <div class="flex items-center px-2">
+      <SearchIcon size={16} />
+      <CommandInput
+        bind:value={query}
+        placeholder="Type a command or search..."
+      />
+    </div>
+    <CommandDivider />
+    <div class="h-full overflow-scroll">
+      {#if filteredActions.length > 0}
+        {#each filteredActions as action (action.title)}
+          <CommandItem
+            title={action.title}
+            onSelect={() => handleSelect(action)}
+          >
+            <action.icon class="mr-2 h-4 w-4" />
+            {action.description}
+            {#if action.shortcut}
+              <ShortcutBadge class="ml-auto" shortcut={action.shortcut} />
+            {/if}
+          </CommandItem>
+        {/each}
+      {:else}
+        <div class="text-center">No results found.</div>
+      {/if}
+    </div>
   </Command>
 </Modal>
