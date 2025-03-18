@@ -99,7 +99,9 @@
           event.stopPropagation();
 
           if (inboxView) {
-            goto(`/projects/${koso.projectId}?taskId=${parent.id}`);
+            goto(
+              `/projects/${koso.projectId}?taskId=${node.name}&parentId=${parent.id}`,
+            );
             return;
           }
 

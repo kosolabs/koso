@@ -553,11 +553,17 @@
   onMount(async () => {
     const url = new URL(window.location.href);
     const taskId = url.searchParams.get("taskId");
+    url.searchParams.delete("taskId");
+    const parentId = url.searchParams.get("parentId");
+    url.searchParams.delete("parentId");
     if (taskId) {
       await koso.synced;
-      url.searchParams.delete("taskId");
       replaceState(url, {});
-      koso.select(taskId);
+      if (parentId) {
+        koso.selectWithParent(taskId, parentId);
+      } else {
+        koso.select(taskId);
+      }
     }
   });
 
