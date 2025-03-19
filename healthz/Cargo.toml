@@ -6,7 +6,7 @@ edition = "2024"
 # Target built docker to speed up dependency compilation.
 # See Dockerfile.
 [lib]
-name = "build_dummy"
+name = "build_healthz_dummy"
 path = "build/dummy.rs"
 
 [dependencies]
