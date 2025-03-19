@@ -48,10 +48,12 @@ export class CommandContext {
       if (this.items.length !== 0) {
         if (!this.focused) {
           this.focused = this.items[this.items.length - 1];
+          this.focused.scrollIntoView(false);
         } else {
           const index = this.items.indexOf(this.focused);
           this.focused =
             this.items[(index - 1 + this.items.length) % this.items.length];
+          this.focused.scrollIntoView(false);
         }
       }
       event.preventDefault();
@@ -60,9 +62,11 @@ export class CommandContext {
       if (this.items.length !== 0) {
         if (!this.focused) {
           this.focused = this.items[0];
+          this.focused.scrollIntoView(false);
         } else {
           const index = this.items.indexOf(this.focused);
           this.focused = this.items[(index + 1) % this.items.length];
+          this.focused.scrollIntoView(false);
         }
       }
       event.preventDefault();
