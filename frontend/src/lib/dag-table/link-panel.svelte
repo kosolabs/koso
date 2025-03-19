@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { auth } from "$lib/auth.svelte";
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
   import { Chip } from "$lib/kosui/chip";
   import {
@@ -23,6 +24,7 @@
     closeFocus?: HTMLElement;
     node: Node;
   };
+
   let {
     open = $bindable(false),
     mode = $bindable("link"),
@@ -33,6 +35,7 @@
 
   let anchorEl: HTMLElement | undefined = $state();
   let query = $state("");
+  let setStatusJuggled: boolean = $state(true);
   let tasks = $derived(
     open
       ? koso.tasks
@@ -52,8 +55,13 @@
   function link(taskId: string) {
     if (mode === "link") {
       koso.link(node.name, taskId);
-    } else {
+    } else if (mode === "block") {
       koso.link(taskId, node.name);
+      if (setStatusJuggled) {
+        koso.setKind(taskId, "Juggled", auth.user);
+      }
+    } else {
+      throw new Error(`Unknown mode: ${mode}`);
     }
     query = "";
     open = false;
@@ -84,12 +92,22 @@
   }}
 >
   <Command class="flex h-full flex-col">
-    <div class="flex place-content-center p-1">
+    <div class="flex place-content-center gap-1 p-1">
       <ToggleGroup bind:value={mode}>
         <ToggleButton value="link">Link to</ToggleButton>
         <ToggleButton value="block">Block on</ToggleButton>
       </ToggleGroup>
     </div>
+    {#if mode === "block"}
+      <div class="flex place-content-center gap-1 p-1 text-sm">
+        <input
+          type="checkbox"
+          id="also-juggle"
+          bind:checked={setStatusJuggled}
+        />
+        <label for="also-juggle">Set task to blocked after linking</label>
+      </div>
+    {/if}
     <CommandDivider />
     <div class="flex items-center gap-2 px-2">
       <SearchIcon size={16} />
