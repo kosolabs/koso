@@ -1,5 +1,4 @@
 import { Shortcut } from "$lib/kosui/shortcut";
-import { Map } from "immutable";
 import { CircleSlash, Icon } from "lucide-svelte";
 
 export const OK = new Shortcut({ key: "Enter" });
@@ -10,26 +9,6 @@ export const INSERT_CHILD_NODE = new Shortcut({
   alt: true,
   shift: true,
 });
-
-export class ShortcutRegistry {
-  registry: Map<string, Action>;
-
-  constructor(actions: Action[]) {
-    this.registry = Map<string, Action>(
-      actions
-        .filter((action) => action.shortcut)
-        .map((action) => [action.shortcut!.toString(), action]),
-    );
-  }
-
-  handle(event: KeyboardEvent): boolean {
-    const action = this.registry.get(Shortcut.fromEvent(event).toString());
-    if (!action || (action.enabled && !action.enabled())) return false;
-    action.callback();
-    event.preventDefault();
-    return true;
-  }
-}
 
 type ActionProps = {
   callback: () => void;
