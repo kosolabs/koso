@@ -38,10 +38,6 @@
   }
 
   function isTaskVisible(task: YTaskProxy): boolean {
-    // Don't show the root task
-    if (task.id === "root") {
-      return false;
-    }
     // Don't show tasks not assigned to the user
     if (task.assignee !== null && task.assignee !== auth.user.email) {
       return false;
@@ -70,7 +66,7 @@
     nodes = nodes.push(new Node());
 
     for (const task of koso.tasks) {
-      if (isTaskVisible(task)) {
+      if (task.id !== "root" && isTaskVisible(task)) {
         // Walk up the tree to craft the full path.
         let parent = parents.get(task.id);
         const path = [task.id];
@@ -79,7 +75,11 @@
           path.unshift(parentId);
           parent = parents.get(parentId);
         }
-        nodes = nodes.push(Node.parse(path.join("/")));
+        // We omit the leading 'root' id from the node path.
+        if (path[0] === "root") {
+          path.shift();
+        }
+        nodes = nodes.push(new Node({ path: List.of(...path) }));
       }
     }
 
