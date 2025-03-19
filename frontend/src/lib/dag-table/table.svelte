@@ -146,7 +146,7 @@
           koso.selected = peer;
         }
         if (inboxView) {
-          toast.info("🚀 Great work! Task complete!");
+          toast.success("🚀 Great work! Task complete!");
         }
         break;
       }
