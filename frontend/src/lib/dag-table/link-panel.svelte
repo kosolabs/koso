@@ -83,14 +83,14 @@
     }
   }}
 >
-  <div class="flex place-content-center p-1">
-    <ToggleGroup bind:value={mode}>
-      <ToggleButton value="link">Link to</ToggleButton>
-      <ToggleButton value="block">Block on</ToggleButton>
-    </ToggleGroup>
-  </div>
-  <hr />
   <Command class="flex h-full flex-col">
+    <div class="flex place-content-center p-1">
+      <ToggleGroup bind:value={mode}>
+        <ToggleButton value="link">Link to</ToggleButton>
+        <ToggleButton value="block">Block on</ToggleButton>
+      </ToggleGroup>
+    </div>
+    <CommandDivider />
     <div class="flex items-center gap-2 px-2">
       <SearchIcon size={16} />
       <CommandInput
