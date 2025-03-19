@@ -1,14 +1,7 @@
 <script lang="ts">
   import { Input } from "$lib/kosui/input";
   import { Link } from "$lib/kosui/link";
-  import {
-    Action,
-    CANCEL,
-    INSERT_CHILD_NODE,
-    INSERT_NODE,
-    OK,
-    ShortcutRegistry,
-  } from "$lib/shortcuts";
+  import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE, OK } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import { tick } from "svelte";
 
@@ -38,36 +31,21 @@
     onclick,
     onsave,
     ondone,
-    onkeydown,
   }: Props = $props();
 
   let edited: string = $state(value);
 
-  const actions: Action[] = [
-    new Action({
-      callback: save,
-      shortcut: INSERT_NODE,
-    }),
-    new Action({
-      callback: save,
-      shortcut: INSERT_CHILD_NODE,
-    }),
-    new Action({
-      callback: save,
-      shortcut: OK,
-    }),
-    new Action({
-      callback: revert,
-      shortcut: CANCEL,
-    }),
-  ];
-
-  const registry = new ShortcutRegistry(actions);
-
-  function handleInputKeydown(event: KeyboardEvent) {
-    onkeydown?.(event);
-    if (!registry.handle(event)) {
-      event.stopPropagation();
+  function handleKeyDown(event: KeyboardEvent) {
+    if (OK.matches(event)) {
+      save();
+      event.stopImmediatePropagation();
+    } else if (INSERT_NODE.matches(event) || INSERT_CHILD_NODE.matches(event)) {
+      save();
+    } else if (CANCEL.matches(event)) {
+      revert();
+      event.stopImmediatePropagation();
+    } else {
+      event.stopImmediatePropagation();
     }
   }
 
@@ -121,7 +99,7 @@
     name={ariaLabel}
     onclick={(event) => event.stopPropagation()}
     onblur={save}
-    onkeydown={handleInputKeydown}
+    onkeydown={handleKeyDown}
     autocomplete="off"
   />
 {:else}

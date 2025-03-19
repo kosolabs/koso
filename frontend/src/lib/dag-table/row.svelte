@@ -9,7 +9,6 @@
   import { UserSelect } from "$lib/components/ui/user-select";
   import { Chip } from "$lib/kosui/chip";
   import { Link } from "$lib/kosui/link";
-  import { INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
@@ -432,11 +431,6 @@
               koso.setTaskName(task.id, name);
             }}
             ondone={() => edit(false)}
-            onkeydown={(e) => {
-              if (!INSERT_NODE.matches(e) && !INSERT_CHILD_NODE.matches(e)) {
-                e.stopPropagation();
-              }
-            }}
           />
         {:else}
           <Link
