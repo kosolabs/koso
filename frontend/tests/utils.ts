@@ -18,6 +18,18 @@ export async function getKosoGraph(page: Page): Promise<Graph> {
   return page.evaluate("koso.toJSON()");
 }
 
+export function expectKosoGraph(page: Page) {
+  return expect.poll(
+    async () => {
+      return await getKosoGraph(page);
+    },
+    {
+      timeout: 6000,
+      intervals: [50],
+    },
+  );
+}
+
 export async function getKosoProjectId(page: Page): Promise<Graph> {
   return page.evaluate("koso.projectId");
 }
