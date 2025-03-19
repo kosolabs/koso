@@ -42,10 +42,20 @@
     if (task.assignee !== null && task.assignee !== auth.user.email) {
       return false;
     }
-    // Don't show rollup tasks
-    if (task.yKind === null && task.children.length > 0) {
+    // Don't show rollup tasks where every child is assigned.
+    if (
+      task.yKind === null &&
+      task.children.length > 0 &&
+      Array.from(task.children.slice())
+        .map((childId) => koso.getTask(childId))
+        .every(
+          (child) =>
+            child.assignee !== null || koso.getProgress(child.id).isComplete(),
+        )
+    ) {
       return false;
     }
+
     // Don't show unassigned task where none of the parents are assigned to the user
     if (
       task.assignee === null &&
