@@ -1561,6 +1561,9 @@ export class Koso {
           if (!task.assignee) {
             task.assignee = user.email;
           }
+          toast.success(
+            "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
+          );
           return true;
         } else {
           toast.info(
@@ -1635,6 +1638,9 @@ export class Koso {
           if (!task.assignee) {
             task.assignee = user.email;
           }
+          toast.success(
+            "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
+          );
           return true;
         } else {
           toast.info(

@@ -4,7 +4,14 @@ export { default as CommandItem } from "./command-item.svelte";
 export { default as Command } from "./command.svelte";
 export { default as Commander } from "./commander.svelte";
 
-import { actions, close, register, show, unregister } from "./commander.svelte";
+import {
+  actions,
+  call,
+  close,
+  register,
+  show,
+  unregister,
+} from "./commander.svelte";
 
 export const command = {
   show,
@@ -12,4 +19,5 @@ export const command = {
   register,
   unregister,
   actions,
+  call,
 };

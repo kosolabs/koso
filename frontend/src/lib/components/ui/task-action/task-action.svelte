@@ -1,6 +1,8 @@
 <script lang="ts">
   import { auth } from "$lib/auth.svelte";
+  import { toast } from "$lib/components/ui/sonner";
   import type { Koso, Node } from "$lib/dag-table";
+  import { command } from "$lib/kosui/command";
   import { Menu, MenuItem, MenuTrigger } from "$lib/kosui/menu";
   import { mergeProps } from "$lib/kosui/merge-props";
   import { Shortcut } from "$lib/kosui/shortcut";
@@ -10,7 +12,6 @@
   import { CircularProgress } from "../../../kosui/progress";
   import { confetti } from "../confetti";
   import { ResponsiveText } from "../responsive-text";
-  import { toast } from "$lib/components/ui/sonner";
 
   type Props = {
     node: Node;
@@ -31,20 +32,11 @@
     koso.isEditable(task.id) &&
       (progress.kind === "Rollup" || progress.kind === "Juggled"),
   );
-  let statuses: Status[] = $derived(
-    progress.kind === "Juggled"
-      ? ["Not Started", "In Progress", "Done", "Blocked"]
-      : ["Not Started", "In Progress", "Done"],
-  );
+  let statuses: Status[] = ["Not Started", "In Progress", "Done", "Blocked"];
 
   function handleOnSelectKind(kind: Kind) {
     if (progress.kind === kind) return;
-    let applied = koso.setKind(task.id, kind, auth.user);
-    if (applied && kind === "Juggled") {
-      toast.success(
-        "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
-      );
-    }
+    koso.setKind(task.id, kind, auth.user);
   }
 
   function handleOnSelectStatus(status: Status) {
@@ -62,13 +54,10 @@
       if (inboxView) {
         toast.success("🚀 Great work! Task complete!");
       }
+    } else if (task.children.length === 0 && status === "Blocked") {
+      command.call("Block");
     } else {
-      const applied = koso.setTaskStatus(node, status, auth.user);
-      if (applied && status === "Blocked") {
-        toast.success(
-          "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
-        );
-      }
+      koso.setTaskStatus(node, status, auth.user);
     }
   }
 

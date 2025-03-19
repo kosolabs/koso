@@ -28,6 +28,7 @@
     ListTree,
     MoveDown,
     MoveUp,
+    OctagonX,
     Pencil,
     Redo,
     Search,
@@ -293,7 +294,12 @@
 
   function linkTask() {
     if (!koso.selected) return;
-    getRow(koso.selected).linkPanel(true);
+    getRow(koso.selected).linkPanel(true, "link");
+  }
+
+  function blockTask() {
+    if (!koso.selected) return;
+    getRow(koso.selected).linkPanel(true, "block");
   }
 
   const actions: Action[] = [
@@ -522,15 +528,6 @@
       shortcut: new Shortcut({ key: "p", meta: true }),
     }),
     new Action({
-      callback: linkTask,
-      title: "Link",
-      description: "Link current task to another task",
-      icon: Cable,
-      toolbar: true,
-      enabled: () => !!koso.selected,
-      shortcut: new Shortcut({ key: "/", meta: true }),
-    }),
-    new Action({
       callback: selectNextLink,
       title: "Next Link",
       description: "Select next link to current task",
@@ -549,6 +546,46 @@
       shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
     }),
   ];
+
+  if (inboxView) {
+    actions.push(
+      new Action({
+        callback: linkTask,
+        title: "Link",
+        description: "Link current task to another task",
+        icon: Cable,
+        enabled: () => !!koso.selected,
+      }),
+      new Action({
+        callback: blockTask,
+        title: "Block",
+        description: "Block current task to another task",
+        icon: OctagonX,
+        toolbar: true,
+        enabled: () => !!koso.selected,
+        shortcut: new Shortcut({ key: "/", meta: true }),
+      }),
+    );
+  } else {
+    actions.push(
+      new Action({
+        callback: linkTask,
+        title: "Link",
+        description: "Link current task to another task",
+        icon: Cable,
+        toolbar: true,
+        enabled: () => !!koso.selected,
+        shortcut: new Shortcut({ key: "/", meta: true }),
+      }),
+      new Action({
+        callback: blockTask,
+        title: "Block",
+        description: "Block current task to another task",
+        icon: OctagonX,
+        enabled: () => !!koso.selected,
+      }),
+    );
+  }
 
   onMount(async () => {
     const url = new URL(window.location.href);
@@ -618,7 +655,7 @@
 
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<Toolbar actions={Array.from(command.actions) as Action[]}>
+<Toolbar actions={Object.values(command.actions) as Action[]}>
   {#await koso.synced then}
     {#if koso.nodes.size > 1}
       <table class="w-full border-separate border-spacing-0 rounded-md border">

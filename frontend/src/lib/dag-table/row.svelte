@@ -19,7 +19,7 @@
     getUniqueUsers,
   } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
-  import LinkPanel from "./link-panel.svelte";
+  import LinkPanel, { type Mode } from "./link-panel.svelte";
 
   type Props = {
     index: number;
@@ -40,6 +40,7 @@
   let dragOverChild = $state(false);
   let isEditing = $state(false);
   let linkOpen = $state(false);
+  let linkMode: Mode = $state(inboxView ? "block" : "link");
 
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
@@ -70,8 +71,9 @@
     taskAction?.showDoneConfetti();
   }
 
-  export function linkPanel(visible: boolean) {
+  export function linkPanel(visible: boolean, mode: Mode) {
     linkOpen = visible;
+    linkMode = mode;
   }
 
   function getTags(allParents: Map<string, string[]>): ChipProps[] {
@@ -452,7 +454,7 @@
         <LinkPanel
           {node}
           bind:open={linkOpen}
-          mode={inboxView ? "block" : "link"}
+          bind:mode={linkMode}
           closeFocus={rowElement}
         />
       </div>
