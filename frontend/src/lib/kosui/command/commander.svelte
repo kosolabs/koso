@@ -1,7 +1,6 @@
 <script module lang="ts">
   import { match } from "$lib/utils";
   import { Icon, SearchIcon } from "lucide-svelte";
-  import { SvelteSet } from "svelte/reactivity";
   import { Command, CommandDivider, CommandInput, CommandItem } from ".";
   import { events } from "..";
   import { Modal } from "../modal";
@@ -19,11 +18,11 @@
   let open: boolean = $state(false);
   let query: string = $state("");
 
-  export const actions: Set<Action> = new SvelteSet();
+  export const actions: Record<string, Action> = $state({});
   const shortcuts: Record<string, Action> = {};
 
   const filteredActions = $derived(
-    Array.from(actions).filter(
+    Object.values(actions).filter(
       (action) =>
         action.enabled() &&
         (match(action.title, query) || match(action.description, query)),
@@ -39,7 +38,7 @@
   }
 
   export function register(action: Action) {
-    actions.add(action);
+    actions[action.title] = action;
     if (action.shortcut) {
       shortcuts[action.shortcut.toString()] = action;
     }
@@ -47,9 +46,17 @@
   }
 
   export function unregister(action: Action) {
-    actions.delete(action);
+    delete actions[action.title];
     if (action.shortcut) {
       delete shortcuts[action.shortcut.toString()];
+    }
+  }
+
+  export function call(title: string) {
+    if (title in actions) {
+      actions[title].callback();
+    } else {
+      throw new Error(`No action with "${title}" is registered`);
     }
   }
 
