@@ -91,12 +91,15 @@
   </div>
   <hr />
   <Command class="flex h-full flex-col">
-    <div class="flex items-center px-2">
+    <div class="flex items-center gap-2 px-2">
       <SearchIcon size={16} />
       <CommandInput
         autofocus
         bind:value={query}
-        placeholder="Search by task name or number..."
+        placeholder={mode === "link"
+          ? "Link this task to..."
+          : "Block this task on..."}
+        class="h-10"
       />
     </div>
     <CommandDivider />
@@ -108,9 +111,9 @@
             onSelect={() => link(task.id)}
             aria-label="Task {task.id} Command Item"
           >
-            <div class="table-cell rounded-l px-2 py-2 align-middle">
+            <div class="table-cell rounded-l px-2 py-1 align-middle">
               <div class="flex items-center gap-1" title="Task Number">
-                <Clipboard size={16} />
+                <Clipboard size={14} />
                 {task.num}
               </div>
             </div>
@@ -122,7 +125,7 @@
             <div class="table-cell px-2 align-middle text-nowrap">
               <div class="flex items-center gap-1" title="Subtasks">
                 {task.children.length}
-                <Network size={16} />
+                <Network size={14} />
               </div>
             </div>
             <div class="table-cell px-2 align-middle text-nowrap">
