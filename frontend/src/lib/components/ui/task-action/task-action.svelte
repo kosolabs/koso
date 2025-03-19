@@ -41,7 +41,7 @@
     if (progress.kind === kind) return;
     let applied = koso.setKind(task.id, kind, auth.user);
     if (applied && kind === "Juggled") {
-      toast.info(
+      toast.success(
         "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
       );
     }
@@ -60,12 +60,12 @@
         koso.selected = peer;
       }
       if (inboxView) {
-        toast.info("🚀 Great work! Task complete!");
+        toast.success("🚀 Great work! Task complete!");
       }
     } else {
       const applied = koso.setTaskStatus(node, status, auth.user);
       if (applied && status === "Blocked") {
-        toast.info(
+        toast.success(
           "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
         );
       }
