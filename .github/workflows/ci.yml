@@ -18,9 +18,6 @@ jobs:
       run:
         working-directory: ./backend
     env:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
       DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
 
     services:
@@ -86,9 +83,6 @@ jobs:
       run:
         working-directory: ./frontend
     env:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
       DATABASE_URL: postgres://postgres:password@localhost:5432/postgres
       # Container registry domain
       REGISTRY: ghcr.io
