@@ -130,7 +130,7 @@ jobs:
               return 'pr-' + context.issue.number;
             }
             if (context.ref == 'refs/heads/main') {
-              return 'pr' + (
+              return 'pr-' + (
                 await github.rest.repos.listPullRequestsAssociatedWithCommit({
                   commit_sha: context.sha,
                   owner: context.repo.owner,
