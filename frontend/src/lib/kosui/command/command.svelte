@@ -14,6 +14,6 @@
   const ctx = newCommandContext();
 </script>
 
-<div bind:this={ctx.el} class={twMerge("p-1", className)}>
+<div bind:this={ctx.el} class={twMerge("flex h-full flex-col p-1", className)}>
   {@render children()}
 </div>

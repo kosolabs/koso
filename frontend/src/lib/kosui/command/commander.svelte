@@ -1,7 +1,13 @@
 <script module lang="ts">
   import { match } from "$lib/utils";
-  import { Icon, SearchIcon } from "lucide-svelte";
-  import { Command, CommandDivider, CommandInput, CommandItem } from ".";
+  import { Icon } from "lucide-svelte";
+  import {
+    Command,
+    CommandContent,
+    CommandDivider,
+    CommandItem,
+    CommandSearch,
+  } from ".";
   import { events } from "..";
   import { Modal } from "../modal";
   import { Shortcut, ShortcutBadge } from "../shortcut";
@@ -86,18 +92,10 @@
   onoutroend={() => (query = "")}
   class="bg-m3-surface-container h-[min(60%,48em)] w-[min(calc(100%-1em),36em)] rounded-lg p-0"
 >
-  <Command class="flex h-full flex-col">
-    <div class="flex items-center gap-2 px-2">
-      <SearchIcon size={16} />
-      <CommandInput
-        autofocus
-        bind:value={query}
-        placeholder="Search..."
-        class="h-10"
-      />
-    </div>
+  <Command>
+    <CommandSearch bind:value={query} />
     <CommandDivider />
-    <div class="h-full overflow-scroll">
+    <CommandContent>
       {#if filteredActions.length > 0}
         {#each filteredActions as action (action.title)}
           {@const { description, shortcut, ...restProps } = action}
@@ -112,6 +110,6 @@
       {:else}
         <div class="text-center">No results found.</div>
       {/if}
-    </div>
+    </CommandContent>
   </Command>
 </Modal>
