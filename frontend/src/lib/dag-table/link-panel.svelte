@@ -1,4 +1,4 @@
-<script lang="ts">
+<script module lang="ts">
   import { auth } from "$lib/auth.svelte";
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
   import { Chip } from "$lib/kosui/chip";
@@ -9,7 +9,8 @@
     CommandItem,
     CommandSearch,
   } from "$lib/kosui/command";
-  import { Popover } from "$lib/kosui/popover";
+  import { mergeComponentProps } from "$lib/kosui/merge-props";
+  import { Popover, type PopoverProps } from "$lib/kosui/popover";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
   import { match } from "$lib/utils";
@@ -19,22 +20,24 @@
 
   export type Mode = "link" | "block";
 
-  type Props = {
+  export type LinkPanelProps = {
     open: boolean;
     mode?: Mode;
-    closeFocus?: HTMLElement;
     node: Node;
-  };
+  } & Omit<PopoverProps, "children">;
+</script>
 
+<script lang="ts">
   let {
     open = $bindable(false),
     mode = $bindable("link"),
     node,
-  }: Props = $props();
+    anchorEl,
+    ...restProps
+  }: LinkPanelProps = $props();
 
   const koso = getContext<Koso>("koso");
 
-  let anchorEl: HTMLElement | undefined = $state();
   let query = $state("");
   let setStatusJuggled: boolean = $state(true);
   let tasks = $derived(
@@ -64,7 +67,6 @@
     } else {
       throw new Error(`Unknown mode: ${mode}`);
     }
-    query = "";
     open = false;
   }
 
@@ -79,18 +81,23 @@
   }
 </script>
 
-<div bind:this={anchorEl} class="absolute left-[calc(100%/2)] h-6"></div>
-
 <Popover
   bind:open
   {anchorEl}
   placement="bottom"
   class="shadow-m3-shadow/20 bg-m3-surface-container-high h-[min(40%,24em)] w-[min(calc(100%-1em),36em)] rounded-lg border shadow"
-  onkeydown={(event) => {
-    if (!Shortcut.ESCAPE.matches(event)) {
-      event.stopImmediatePropagation();
-    }
-  }}
+  {...mergeComponentProps(
+    Popover,
+    {
+      onoutroend: () => (query = ""),
+      onkeydown: (event) => {
+        if (!Shortcut.ESCAPE.matches(event)) {
+          event.stopImmediatePropagation();
+        }
+      },
+    },
+    restProps,
+  )}
 >
   <Command>
     <div class="flex place-content-center gap-1 p-1">
