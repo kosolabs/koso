@@ -455,7 +455,7 @@
           {node}
           bind:open={linkOpen}
           bind:mode={linkMode}
-          closeFocus={rowElement}
+          anchorEl={rowElement}
         />
       </div>
     </div>
