@@ -3,13 +3,14 @@
   import { Chip } from "$lib/kosui/chip";
   import {
     Command,
+    CommandContent,
     CommandDivider,
-    CommandInput,
     CommandItem,
+    CommandSearch,
   } from "$lib/kosui/command";
   import { Modal } from "$lib/kosui/modal";
   import { match } from "$lib/utils";
-  import { Clipboard, Network, SearchIcon } from "lucide-svelte";
+  import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
   import { compareTasks, type Koso } from ".";
 
@@ -60,16 +61,10 @@
   onoutroend={finalize}
   class="bg-m3-surface-container-high h-[min(40%,24em)] w-[min(calc(100%-1em),36em)] rounded-lg p-0"
 >
-  <Command class="flex h-full flex-col">
-    <div class="flex items-center px-2">
-      <SearchIcon size={16} />
-      <CommandInput
-        bind:value={query}
-        placeholder="Search by task name or number..."
-      />
-    </div>
+  <Command>
+    <CommandSearch bind:value={query} />
     <CommandDivider />
-    <div class="h-full overflow-scroll">
+    <CommandContent>
       {#if tasks.length > 0}
         {#each tasks as task (task.id)}
           <CommandItem
@@ -79,7 +74,7 @@
           >
             <div class="table-cell rounded-l px-2 py-2 align-middle">
               <div class="flex items-center gap-1" title="Task Number">
-                <Clipboard size={16} />
+                <Clipboard size={14} />
                 {task.num}
               </div>
             </div>
@@ -91,7 +86,7 @@
             <div class="table-cell px-2 align-middle text-nowrap">
               <div class="flex items-center gap-1" title="Subtasks">
                 {task.children.length}
-                <Network size={16} />
+                <Network size={14} />
               </div>
             </div>
             <div class="table-cell px-2 align-middle text-nowrap">
@@ -113,6 +108,6 @@
       {:else}
         <div class="text-center">No results found.</div>
       {/if}
-    </div>
+    </CommandContent>
   </Command>
 </Modal>

@@ -4,15 +4,16 @@
   import { Chip } from "$lib/kosui/chip";
   import {
     Command,
+    CommandContent,
     CommandDivider,
-    CommandInput,
     CommandItem,
+    CommandSearch,
   } from "$lib/kosui/command";
   import { Popover } from "$lib/kosui/popover";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
   import { match } from "$lib/utils";
-  import { Clipboard, Network, SearchIcon } from "lucide-svelte";
+  import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
   import { compareTasks, type Koso, type Node } from ".";
 
@@ -91,7 +92,7 @@
     }
   }}
 >
-  <Command class="flex h-full flex-col">
+  <Command>
     <div class="flex place-content-center gap-1 p-1">
       <ToggleGroup bind:value={mode}>
         <ToggleButton value="link">Link to</ToggleButton>
@@ -109,19 +110,14 @@
       </div>
     {/if}
     <CommandDivider />
-    <div class="flex items-center gap-2 px-2">
-      <SearchIcon size={16} />
-      <CommandInput
-        autofocus
-        bind:value={query}
-        placeholder={mode === "link"
-          ? "Link this task to..."
-          : "Block this task on..."}
-        class="h-10"
-      />
-    </div>
+    <CommandSearch
+      bind:value={query}
+      placeholder={mode === "link"
+        ? "Link this task to..."
+        : "Block this task on..."}
+    />
     <CommandDivider />
-    <div class="h-full overflow-scroll">
+    <CommandContent>
       {#if tasks.length > 0}
         {#each tasks as task (task.id)}
           <CommandItem
@@ -165,6 +161,6 @@
       {:else}
         <div class="text-center">No results found.</div>
       {/if}
-    </div>
+    </CommandContent>
   </Command>
 </Popover>
