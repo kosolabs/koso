@@ -10,6 +10,7 @@
 
   export type ModalProps = {
     ref?: HTMLDialogElement;
+    onCancel?: () => void;
     children: Snippet;
   } & ClassName &
     HTMLDialogAttributes;
@@ -19,6 +20,7 @@
   let {
     ref = $bindable(),
     open = $bindable(),
+    onCancel,
     children,
     class: className,
     ...restProps
@@ -27,6 +29,7 @@
   function handleKeydown(event: KeyboardEvent) {
     if (Shortcut.ESCAPE.matches(event)) {
       open = false;
+      onCancel?.();
       event.preventDefault();
     }
     event.stopImmediatePropagation();
@@ -42,6 +45,7 @@
         event.clientX > rect.left + rect.width
       ) {
         open = false;
+        onCancel?.();
         event.preventDefault();
         event.stopImmediatePropagation();
       }

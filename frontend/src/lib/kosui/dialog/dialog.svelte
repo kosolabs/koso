@@ -2,8 +2,7 @@
   import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
-  import { events } from "..";
-  import { mergeProps } from "../merge-props";
+  import { mergeComponentProps } from "../merge-props";
   import { Modal, type ModalProps } from "../modal";
 
   type DialogProps<T> = {
@@ -34,31 +33,20 @@
     open = false;
   }
 
-  function handleEscape(event: KeyboardEvent) {
-    if (event.key === "Escape") {
-      open = false;
-      onSelect?.();
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    }
+  function handleCancel() {
+    onSelect?.();
   }
-
-  $effect(() => {
-    if (open) {
-      events.on("keydown", handleEscape);
-    } else {
-      events.remove("keydown", handleEscape);
-    }
-  });
-
-  const mergedProps = $derived(mergeProps({ ontoggle }, restProps));
 </script>
 
 <Modal
   bind:ref
   bind:open
   class={twMerge("w-[min(calc(100%-1em),36em)]", className)}
-  {...mergedProps}
+  {...mergeComponentProps(
+    Modal,
+    { role: "dialog", "aria-modal": "true", ontoggle, onCancel: handleCancel },
+    restProps,
+  )}
 >
   <div class={twMerge("flex flex-col gap-4")}>
     {#if IconComponent}
