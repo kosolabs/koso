@@ -11,17 +11,16 @@
   let directionResult: Promise<Cardinal> | undefined = $state();
 
   let open: boolean = $state(false);
-  let customResult: unknown | undefined = $state();
-  function handleSelect(value: unknown) {
+  let customResult: "one" | "two" | "four" | undefined = $state();
+  function handleSelect(value: "one" | "two" | "four" | undefined) {
     customResult = value;
   }
 
   let customConfirmOpen: boolean = $state(false);
-  function handleConfirm(value: unknown) {
+  function handleConfirm(value: "ok" | "" | undefined) {
     if (value === "ok") {
-      customResult = "four";
-    } else {
-      customResult = undefined;
+      open = false;
+      handleSelect("four");
     }
   }
 </script>
@@ -39,12 +38,12 @@
   >
   {#if noticeResult}
     {#await noticeResult}
-      <div>Dialog Open!</div>
+      <div>Notice Dialog Open!</div>
     {:then}
-      <div>Dialog Closed!</div>
+      <div>Notice Dialog Closed!</div>
     {/await}
   {:else}
-    <div>Dialog Closed!</div>
+    <div>Notice Dialog Closed!</div>
   {/if}
 </div>
 
@@ -61,16 +60,16 @@
   >
   {#if confirmResult}
     {#await confirmResult}
-      <div>Dialog Open!</div>
+      <div>Confirm Dialog Open!</div>
     {:then confirmResult}
       {#if confirmResult}
-        <div class="text-m3-primary">Accepted!</div>
+        <div class="text-m3-primary">Confirm Dialog Accepted!</div>
       {:else}
-        <div class="text-m3-error">Cancelled!</div>
+        <div class="text-m3-error">Confirm Dialog Cancelled!</div>
       {/if}
     {/await}
   {:else}
-    <div>Dialog Closed!</div>
+    <div>Confirm Dialog Closed!</div>
   {/if}
 </div>
 
@@ -87,20 +86,20 @@
           { text: "West", value: "West" },
         ],
       });
-    }}>Pick a Direction</Button
+    }}>Show Select</Button
   >
   {#if directionResult}
     {#await directionResult}
-      <div>Dialog Open!</div>
+      <div>Select Dialog Open!</div>
     {:then directionResult}
       {#if directionResult}
-        <div class="text-m3-primary">{directionResult}</div>
+        <div class="text-m3-primary">Select Dialog {directionResult}</div>
       {:else}
-        <div class="text-m3-error">Cancelled!</div>
+        <div class="text-m3-error">Select Dialog Cancelled!</div>
       {/if}
     {/await}
   {:else}
-    <div>Dialog Closed!</div>
+    <div>Select Dialog Closed!</div>
   {/if}
 </div>
 
