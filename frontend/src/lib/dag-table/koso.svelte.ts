@@ -758,6 +758,16 @@ export class Koso {
     this.selected = nodes[0];
   }
 
+  selectWithParent(taskId: string, parentId: string) {
+    const slugs = List([parentId, taskId]);
+    const nodes: Node[] = [];
+    for (const parent of this.getParentIds(parentId)) {
+      nodes.push(...this.getNodes(parent, slugs));
+    }
+    if (!nodes.length) throw new Error("Expected at least one Node");
+    this.selected = nodes[0];
+  }
+
   getNodes(taskId: string, slugs: List<string> = List()): Node[] {
     if (taskId === "root") {
       return [new Node({ path: slugs })];
