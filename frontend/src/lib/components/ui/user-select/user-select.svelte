@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { User } from "$lib/auth.svelte";
   import { Avatar } from "$lib/kosui/avatar";
-  import { Menu, MenuItem, MenuTrigger } from "$lib/kosui/menu";
+  import { Menu, MenuContent, MenuItem, MenuTrigger } from "$lib/kosui/menu";
   import { UserRound } from "lucide-svelte";
   import { UserAvatar } from ".";
   import ResponsiveText from "../responsive-text/responsive-text.svelte";
@@ -31,29 +31,27 @@
 
 {#if editable}
   <Menu bind:open>
-    {#snippet trigger(menuTriggerProps)}
-      <MenuTrigger
-        class="flex items-center gap-2"
-        title={value?.email || "Unassigned"}
-        {...menuTriggerProps}
-      >
-        <Avatar class="size-6" src={value?.picture || ""} alt={value?.email}>
-          <UserRound size={20} />
-        </Avatar>
-        <ResponsiveText>{value?.name || unassigned}</ResponsiveText>
-      </MenuTrigger>
-    {/snippet}
-    {#snippet content(menuItemProps)}
-      <MenuItem onSelect={() => select(null)} {...menuItemProps}>
+    <MenuTrigger
+      class="flex items-center gap-2"
+      title={value?.email || "Unassigned"}
+    >
+      <Avatar class="size-6" src={value?.picture || ""} alt={value?.email}>
+        <UserRound size={20} />
+      </Avatar>
+      <ResponsiveText>{value?.name || unassigned}</ResponsiveText>
+    </MenuTrigger>
+    <MenuContent>
+      <MenuItem onSelect={() => select(null)}>
         <UserAvatar
           user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
         />
       </MenuItem>
       {#each users as user (user.email)}
-        <MenuItem onSelect={() => select(user)} {...menuItemProps}>
+        <MenuItem onSelect={() => select(user)}>
           <UserAvatar {user} />
         </MenuItem>
-      {/each}{/snippet}
+      {/each}</MenuContent
+    >
   </Menu>
 {:else}
   <div class="flex items-center gap-2" title={value?.email || "Unassigned"}>

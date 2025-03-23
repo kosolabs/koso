@@ -11,7 +11,7 @@
   import { baseClasses } from "$lib/kosui/base";
   import { Button } from "$lib/kosui/button";
   import { command } from "$lib/kosui/command";
-  import { Menu, MenuTrigger } from "$lib/kosui/menu";
+  import { Menu, MenuContent, MenuTrigger } from "$lib/kosui/menu";
   import MenuItem from "$lib/kosui/menu/menu-item.svelte";
   import { nav } from "$lib/nav.svelte";
   import Navbar from "$lib/navbar.svelte";
@@ -126,46 +126,37 @@
 <Navbar>
   {#snippet context()}
     <Menu>
-      {#snippet trigger(menuTriggerProps)}
-        <MenuTrigger
-          title="Project menu"
-          class={cn(
-            baseClasses({
-              variant: "plain",
-              color: "primary",
-              shape: "rounded",
-              focus: true,
-              hover: true,
-            }),
-            "px-3 py-1.5 transition-all active:scale-95",
-          )}
-          {...menuTriggerProps}
-        >
-          <MenuIcon />
-        </MenuTrigger>
-      {/snippet}
-      {#snippet content(menuItemProps)}
+      <MenuTrigger
+        title="Project menu"
+        class={cn(
+          baseClasses({
+            variant: "plain",
+            color: "primary",
+            shape: "rounded",
+            focus: true,
+            hover: true,
+          }),
+          "px-3 py-1.5 transition-all active:scale-95",
+        )}
+      >
+        <MenuIcon />
+      </MenuTrigger>
+      <MenuContent>
         <MenuItem
           class="gap-2"
           onSelect={async () =>
             window.location.assign(await githubInstallUrl(projectId))}
-          {...menuItemProps}
         >
           <PlugZap size={16} />
           Connect to GitHub
         </MenuItem>
-        <MenuItem
-          class="gap-2"
-          onSelect={exportProjectToFile}
-          {...menuItemProps}
-        >
+        <MenuItem class="gap-2" onSelect={exportProjectToFile}>
           <FileDown size={16} />
           Export project
         </MenuItem>
         <MenuItem
           class="gap-2"
           onSelect={() => goto(`/projects/${projectId}/inbox`)}
-          {...menuItemProps}
         >
           <Mail size={16} />
           Navigate to Zero Inbox
@@ -175,12 +166,11 @@
           onSelect={() => {
             openShareModal = true;
           }}
-          {...menuItemProps}
         >
           <UserPlus size={16} />
           Share project
         </MenuItem>
-      {/snippet}
+      </MenuContent>
     </Menu>
   {/snippet}
   {#snippet left()}

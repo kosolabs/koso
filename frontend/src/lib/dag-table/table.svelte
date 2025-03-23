@@ -670,6 +670,7 @@
               <div class="max-md:hidden">Status</div></th
             >
             <th class="border-l p-2">Name</th>
+            <th class="p-2"></th>
             <th class="border-l p-2">
               <UserRoundPlus class="h-4 md:hidden" />
               <div class="max-md:hidden">Assignee</div>

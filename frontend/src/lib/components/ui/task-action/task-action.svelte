@@ -3,8 +3,13 @@
   import { toast } from "$lib/components/ui/sonner";
   import type { Koso, Node } from "$lib/dag-table";
   import { command } from "$lib/kosui/command";
-  import { Menu, MenuItem, MenuTrigger } from "$lib/kosui/menu";
-  import { mergeProps } from "$lib/kosui/merge-props";
+  import {
+    Menu,
+    MenuContent,
+    MenuDivider,
+    MenuItem,
+    MenuTrigger,
+  } from "$lib/kosui/menu";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { unmanagedKinds, type Kind, type Status } from "$lib/yproxy";
   import { Bot, Check, CircleCheck, LoaderCircle } from "lucide-svelte";
@@ -93,45 +98,41 @@
   }
 </script>
 
-<Menu bind:open>
-  {#snippet trigger(menuTriggerProps)}
-    <MenuTrigger
-      bind:el={statusElement}
-      class="focus:ring-m3-primary flex w-full items-center gap-2 focus-visible:ring-1 focus-visible:outline-hidden"
-      title={triggerTitle()}
-      aria-label="task-status"
-      disabled={!canSetStatus && !canSetKind}
-      {...mergeProps(menuTriggerProps, { onkeydown: handleKeyDown })}
-    >
-      {#if progress.kind === "Rollup"}
-        {#if progress.status === "Done"}
-          <CircleCheck class="text-m3-primary" />
-          <ResponsiveText>Done</ResponsiveText>
-        {:else if progress.status === "Not Started"}
-          <CircularProgress progress={0} class="text-m3-primary" />
-          <ResponsiveText>Not Started</ResponsiveText>
-        {:else}
-          <CircularProgress
-            progress={progress.done / progress.total}
-            class="text-m3-primary"
-          >
-            {Math.round((progress.done * 100) / progress.total)}%
-          </CircularProgress>
-          <ResponsiveText>In Progress</ResponsiveText>
-        {/if}
+<Menu bind:open bind:el={statusElement}>
+  <MenuTrigger
+    class="focus:ring-m3-primary flex w-full items-center gap-2 focus-visible:ring-1 focus-visible:outline-hidden"
+    title={triggerTitle()}
+    aria-label="task-status"
+    disabled={!canSetStatus && !canSetKind}
+    onkeydown={handleKeyDown}
+  >
+    {#if progress.kind === "Rollup"}
+      {#if progress.status === "Done"}
+        <CircleCheck class="text-m3-primary" />
+        <ResponsiveText>Done</ResponsiveText>
+      {:else if progress.status === "Not Started"}
+        <CircularProgress progress={0} class="text-m3-primary" />
+        <ResponsiveText>Not Started</ResponsiveText>
       {:else}
-        <TaskStatusIcon status={progress.status} />
-        <ResponsiveText>{progress.status}</ResponsiveText>
+        <CircularProgress
+          progress={progress.done / progress.total}
+          class="text-m3-primary"
+        >
+          {Math.round((progress.done * 100) / progress.total)}%
+        </CircularProgress>
+        <ResponsiveText>In Progress</ResponsiveText>
       {/if}
-    </MenuTrigger>
-  {/snippet}
-  {#snippet content(menuItemProps)}
+    {:else}
+      <TaskStatusIcon status={progress.status} />
+      <ResponsiveText>{progress.status}</ResponsiveText>
+    {/if}
+  </MenuTrigger>
+  <MenuContent>
     {#if canSetStatus}
       {#each statuses as status (status)}
         <MenuItem
           class="flex items-center gap-2 rounded text-sm"
           onSelect={() => handleOnSelectStatus(status)}
-          {...menuItemProps}
         >
           <TaskStatusIcon {status} />
           {status}
@@ -142,14 +143,13 @@
       {/each}
     {/if}
     {#if canSetStatus && canSetKind}
-      <hr class="my-1" />
+      <MenuDivider />
     {/if}
     {#if canSetKind}
       {#each unmanagedKinds as kind (kind)}
         <MenuItem
           class="flex items-center gap-2 rounded text-sm"
           onSelect={() => handleOnSelectKind(kind)}
-          {...menuItemProps}
         >
           {#if kind === "Rollup"}
             <LoaderCircle class="text-m3-primary" />
@@ -163,5 +163,5 @@
         </MenuItem>
       {/each}
     {/if}
-  {/snippet}
+  </MenuContent>
 </Menu>
