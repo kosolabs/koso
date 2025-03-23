@@ -1,12 +1,12 @@
 import { getContext, setContext } from "svelte";
+import { OrderedHTMLElements } from "../ordered-html-elements.svelte";
 import { Shortcut } from "../shortcut";
 
 export class CommandContext {
   el: HTMLElement | undefined = $state();
   #value: string = $state("");
   #setValue: ((val: string) => void) | undefined;
-  #reg: Set<HTMLElement> = new Set();
-  items: HTMLElement[] = $state.raw([]);
+  #items: OrderedHTMLElements = new OrderedHTMLElements();
   focused: HTMLElement | undefined = $state();
 
   bind(getValue: () => string, setValue: (val: string) => void) {
@@ -31,15 +31,19 @@ export class CommandContext {
     }
   }
 
+  get items(): HTMLElement[] {
+    return this.#items.items;
+  }
+
   add(item: HTMLElement) {
-    this.#reg.add(item);
-    this.#updateItems();
+    this.#items.add(item);
+    this.focused = this.#value === "" ? undefined : this.items[0];
     return () => this.delete(item);
   }
 
   delete(item: HTMLElement) {
-    this.#reg.delete(item);
-    this.#updateItems();
+    this.#items.delete(item);
+    this.focused = this.#value === "" ? undefined : this.items[0];
   }
 
   handleKeyDown(event: KeyboardEvent) {
@@ -78,17 +82,6 @@ export class CommandContext {
         event.stopImmediatePropagation();
       }
     }
-  }
-
-  #updateItems() {
-    const items = this.el
-      ? Array.from(this.el.getElementsByTagName("div")).filter(
-          (button) => button.role === "option" && this.#reg.has(button),
-        )
-      : [];
-    this.items = items;
-    this.focused = this.#value === "" ? undefined : items[0];
-    return items;
   }
 }
 
