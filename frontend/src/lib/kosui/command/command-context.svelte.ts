@@ -1,34 +1,24 @@
 import { getContext, setContext } from "svelte";
+import { Bindable } from "../bindable.svelte";
 import { OrderedHTMLElements } from "../ordered-html-elements";
 import { Shortcut } from "../shortcut";
 
 export class CommandContext {
   el: HTMLElement | undefined = $state();
-  #value: string = $state("");
-  #setValue: ((val: string) => void) | undefined;
+  #value = new Bindable<string>("");
   #items: OrderedHTMLElements = new OrderedHTMLElements();
   focused: HTMLElement | undefined = $state();
 
-  bind(getValue: () => string, setValue: (val: string) => void) {
-    this.#value = getValue();
-    this.#setValue = setValue;
-
-    $effect(() => {
-      if (this.#value !== getValue()) {
-        this.#value = getValue();
-      }
-    });
+  bind(getValue: () => string, setValue: (value: string) => void) {
+    this.#value.bind(getValue, setValue);
   }
 
   get value(): string {
-    return this.#value;
+    return this.#value.value;
   }
 
   set value(value: string) {
-    if (this.#value !== value) {
-      this.#value = value;
-      this.#setValue?.(value);
-    }
+    this.#value.value = value;
   }
 
   get items(): HTMLElement[] {
@@ -37,13 +27,13 @@ export class CommandContext {
 
   add(item: HTMLElement) {
     this.#items.add(item);
-    this.focused = this.#value === "" ? undefined : this.items[0];
+    this.focused = this.value === "" ? undefined : this.items[0];
     return () => this.delete(item);
   }
 
   delete(item: HTMLElement) {
     this.#items.delete(item);
-    this.focused = this.#value === "" ? undefined : this.items[0];
+    this.focused = this.value === "" ? undefined : this.items[0];
   }
 
   handleKeyDown(event: KeyboardEvent) {
