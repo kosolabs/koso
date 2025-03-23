@@ -1,5 +1,5 @@
 export class OrderedHTMLElements {
-  #items: HTMLElement[] = $state.raw([]);
+  #items: HTMLElement[] = [];
 
   get items(): HTMLElement[] {
     return this.#items;
@@ -19,13 +19,11 @@ export class OrderedHTMLElements {
   }
 
   add(item: HTMLElement) {
-    console.log("add", item);
     const index = this.getInsertionIndex(item);
     this.#items.splice(index, 0, item);
   }
 
   delete(item: HTMLElement) {
-    console.log("delete", item);
     const index = this.#items.indexOf(item);
     if (index === -1) {
       return;

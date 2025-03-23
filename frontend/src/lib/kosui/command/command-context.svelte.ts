@@ -1,5 +1,5 @@
 import { getContext, setContext } from "svelte";
-import { OrderedHTMLElements } from "../ordered-html-elements.svelte";
+import { OrderedHTMLElements } from "../ordered-html-elements";
 import { Shortcut } from "../shortcut";
 
 export class CommandContext {
