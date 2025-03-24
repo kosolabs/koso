@@ -1349,7 +1349,7 @@ test.describe("dag table tests", () => {
       await expect(statusButton).toBeVisible();
       await expect(statusButton).toHaveText("In Progress");
       expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["3", "1", "2", "4"] },
+        root: { children: ["1", "2", "3", "4"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
         ["3"]: { children: [], status: "In Progress" },
@@ -1362,7 +1362,7 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Space");
 
       expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["3", "2", "1", "4"] },
+        root: { children: ["1", "2", "3", "4"] },
         ["1"]: { children: [], status: "In Progress" },
         ["2"]: { children: [], status: "In Progress" },
         ["3"]: { children: [], status: "In Progress" },
@@ -1383,7 +1383,7 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Space");
 
       expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["1", "3", "4", "2"] },
+        root: { children: ["1", "2", "3", "4"] },
         ["1"]: { children: [], status: "In Progress" },
         ["2"]: { children: [], status: "Done" },
         ["3"]: { children: [] },
@@ -1394,7 +1394,7 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Space");
 
       expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["3", "4", "1", "2"] },
+        root: { children: ["1", "2", "3", "4"] },
         ["1"]: { children: [], status: "Done" },
         ["2"]: { children: [], status: "Done" },
         ["3"]: { children: [] },
@@ -1406,7 +1406,7 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Space");
 
       expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["3", "4", "1", "2"] },
+        root: { children: ["1", "2", "3", "4"] },
         ["1"]: { children: [], status: "Done" },
         ["2"]: { children: [], status: "Done" },
         ["3"]: { children: [] },
@@ -1449,7 +1449,7 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Space");
 
       expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["2", "3", "4", "1"] },
+        root: { children: ["1", "2", "3", "4"] },
         ["1"]: { children: ["2"], status: "Done" },
         ["2"]: { children: [] },
         ["3"]: { children: [] },
@@ -1483,7 +1483,7 @@ test.describe("dag table tests", () => {
       await expect(statusButton).toHaveText("In Progress");
 
       expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["3", "1", "2", "4"] },
+        root: { children: ["1", "2", "3", "4"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
         ["3"]: { children: [], status: "In Progress" },
@@ -1516,7 +1516,7 @@ test.describe("dag table tests", () => {
       await expect(statusButton).toHaveText("Done");
 
       expect(await getKosoGraph(page)).toMatchObject({
-        root: { children: ["1", "2", "4", "3"] },
+        root: { children: ["3", "1", "2", "4"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
         ["3"]: { children: [], status: "Done" },
@@ -2189,7 +2189,7 @@ test.describe("dag table tests", () => {
       graph = await getKosoGraph(page);
       expect(graph).toMatchObject({
         root: { children: ["1"] },
-        ["1"]: { children: ["3", "2"], status: "Not Started" },
+        ["1"]: { children: ["2", "3"], status: "Not Started" },
         ["2"]: { children: [], status: "Done" },
         ["3"]: { children: [], status: "Done" },
       });
