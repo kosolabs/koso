@@ -137,15 +137,9 @@
         return;
       case "In Progress": {
         const node = koso.selected;
-        const peer = koso.getPrevPeer(node) || koso.getNextPeer(node);
 
         getRow(node).showDoneConfetti();
         koso.setTaskStatus(node, "Done", auth.user);
-
-        // Select an adjacent peer.
-        if (!inboxView && peer) {
-          koso.selected = peer;
-        }
         if (inboxView) {
           toast.success("🚀 Great work! Task complete!");
         }

@@ -1594,16 +1594,6 @@ export class Koso {
         task.yStatus = status;
         task.statusTime = Date.now();
 
-        // Reposition the done task in all locations.
-        for (const parentId of this.getParentIds(taskId)) {
-          const peers = this.getChildren(parentId);
-          const index = findEntryIndex(
-            peers.entries({ start: peers.indexOf(taskId) + 1 }),
-            (peerId) => this.getStatus(peerId) === "Done",
-            peers.length,
-          );
-          this.reorder(taskId, parentId, index);
-        }
         return true;
       }
       // When a task is marked in progress, make it the first child
@@ -1616,15 +1606,6 @@ export class Koso {
           task.assignee = user.email;
         }
 
-        for (const parentId of this.getParentIds(taskId)) {
-          const peers = this.getChildren(parentId);
-          const index = findEntryIndex(
-            peers.entries({ start: peers.indexOf(taskId) - 1, step: -1 }),
-            (peerId) => this.getStatus(peerId) === "In Progress",
-            -1,
-          );
-          this.reorder(taskId, parentId, index + 1);
-        }
         return true;
       } else if (status === "Blocked") {
         if (task.yKind !== "Juggled") {

@@ -1711,23 +1711,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("set non-trailing node status to done succeeds and moves done task to end", () => {
-      init([
-        { id: "root", name: "Root", children: ["1", "2"] },
-        { id: "1", name: "Task 1" },
-        { id: "2", name: "Task 2" },
-      ]);
-
-      expect(koso.setTaskStatus(Node.parse("1"), "Done", USER)).toBe(true);
-
-      expect(koso.toJSON()).toMatchObject({
-        root: { status: null, children: ["2", "1"], assignee: null },
-        ["1"]: { status: "Done", children: [], assignee: null },
-        ["2"]: { status: null, children: [], assignee: null },
-      });
-    });
-
-    it("set node status to in-progress succeeds and moves done task to front and assigns to user", () => {
+    it("set node status to in-progress succeeds and assigns to user", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", name: "Task 1" },
@@ -1741,7 +1725,7 @@ describe("Koso tests", () => {
       expect(koso.toJSON()).toMatchObject({
         root: {
           status: null,
-          children: ["2", "1"],
+          children: ["1", "2"],
           assignee: null,
         },
         ["1"]: { status: null, children: [], assignee: null },
@@ -1753,7 +1737,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("set node status to in-progress succeeds and moves done task to front and assigns to user", () => {
+    it("set node status to in-progress succeeds and assigns to user", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", name: "Task 1" },
@@ -1767,7 +1751,7 @@ describe("Koso tests", () => {
       expect(koso.toJSON()).toMatchObject({
         root: {
           status: null,
-          children: ["2", "1"],
+          children: ["1", "2"],
           assignee: null,
         },
         ["1"]: { status: null, children: [], assignee: null },
@@ -1777,94 +1761,6 @@ describe("Koso tests", () => {
           assignee: OTHER_USER.email,
         },
       });
-    });
-
-    it("setting a task to Done moves task to the bottom", () => {
-      init([
-        {
-          id: "root",
-          name: "Root",
-          children: ["t1", "t2", "t3", "t4", "t5"],
-        },
-      ]);
-
-      expect(koso.setTaskStatus(Node.parse("t2"), "Done", USER)).toBe(true);
-      const children = koso.toJSON().root.children;
-
-      expect(children).toEqual(["t1", "t3", "t4", "t5", "t2"]);
-    });
-
-    it("setting a task to In Progress moves task to the top", () => {
-      init([
-        {
-          id: "root",
-          name: "Root",
-          children: ["t1", "t2", "t3", "t4", "t5"],
-        },
-      ]);
-
-      expect(koso.setTaskStatus(Node.parse("t4"), "In Progress", USER)).toBe(
-        true,
-      );
-      const children = koso.toJSON().root.children;
-
-      expect(children).toEqual(["t4", "t1", "t2", "t3", "t5"]);
-    });
-
-    it("setting task to In Progress moves next to the last In Progress task", () => {
-      init([
-        {
-          id: "root",
-          name: "Root",
-          children: ["t1", "t2", "t3", "t4", "t5"],
-        },
-        { id: "t2", status: "In Progress" },
-        { id: "t5", status: "Done" },
-      ]);
-
-      expect(koso.setTaskStatus(Node.parse("t4"), "In Progress", USER)).toBe(
-        true,
-      );
-      const children = koso.toJSON().root.children;
-
-      expect(children).toEqual(["t1", "t2", "t4", "t3", "t5"]);
-    });
-
-    it("setting task to Done moves next to the first Done task", () => {
-      init([
-        {
-          id: "root",
-          name: "Root",
-          children: ["t1", "t2", "t3", "t4", "t5"],
-        },
-        { id: "t1", status: "In Progress" },
-        { id: "t4", status: "Done" },
-      ]);
-
-      expect(koso.setTaskStatus(Node.parse("t2"), "Done", USER)).toBe(true);
-      const children = koso.toJSON().root.children;
-
-      expect(children).toEqual(["t1", "t3", "t2", "t4", "t5"]);
-    });
-
-    it("setting a Done task to In Progress moves up", () => {
-      init([
-        {
-          id: "root",
-          name: "Root",
-          children: ["t1", "t2", "t3", "t4", "t5"],
-        },
-        { id: "t1", status: "In Progress" },
-        { id: "t4", status: "Done" },
-        { id: "t5", status: "Done" },
-      ]);
-
-      expect(koso.setTaskStatus(Node.parse("t5"), "In Progress", USER)).toBe(
-        true,
-      );
-      const children = koso.toJSON().root.children;
-
-      expect(children).toEqual(["t1", "t5", "t2", "t3", "t4"]);
     });
 
     it("setting a Done task to Done leaves task unchanged", () => {

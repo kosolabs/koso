@@ -45,17 +45,9 @@
   }
 
   function handleOnSelectStatus(status: Status) {
-    if (progress.status === status) return;
     if (status === "Done") {
-      const peer = koso.getPrevPeer(node) || koso.getNextPeer(node);
-
       showDoneConfetti();
       koso.setTaskStatus(node, "Done", auth.user);
-
-      // Select an adjacent peer.
-      if (!inboxView && peer) {
-        koso.selected = peer;
-      }
       if (inboxView) {
         toast.success("🚀 Great work! Task complete!");
       }
