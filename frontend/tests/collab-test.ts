@@ -150,6 +150,70 @@ test.describe("Collaboration tests", () => {
     await expect(page1.getByRole("button", { name: "Add Task" })).toBeVisible();
   });
 
+  test("Undo ignores tasks inserted by other user", async ({
+    page1,
+    page2,
+  }) => {
+    page1.evaluate(() => {
+      window.koso.undoManager.captureTimeout = 0;
+    });
+    page2.evaluate(() => {
+      window.koso.undoManager.captureTimeout = 0;
+    });
+
+    await page1.getByRole("button", { name: "Add" }).first().click();
+    await expect(page1.getByRole("row", { name: "Task 1" })).toBeVisible();
+    await expect(page2.getByRole("row", { name: "Task 1" })).toBeVisible();
+
+    await page2.getByRole("button", { name: "Undo" }).click();
+    await expect(page2.getByRole("row", { name: "Task 1" })).toBeVisible();
+    await expect(page1.getByRole("row", { name: "Task 1" })).toBeVisible();
+
+    await page1.getByRole("button", { name: "Undo" }).click();
+    await expect(page2.getByRole("row", { name: "Task 1" })).toBeHidden();
+    await expect(page1.getByRole("row", { name: "Task 1" })).toBeHidden();
+    await page1.getByRole("button", { name: "Redo" }).click();
+    await expect(page2.getByRole("row", { name: "Task 1" })).toBeVisible();
+    await expect(page1.getByRole("row", { name: "Task 1" })).toBeVisible();
+  });
+
+  test("Undo ignores task edits by other user", async ({ page1, page2 }) => {
+    page1.evaluate(() => {
+      window.koso.undoManager.captureTimeout = 0;
+    });
+    page2.evaluate(() => {
+      window.koso.undoManager.captureTimeout = 0;
+    });
+
+    await page1.getByRole("button", { name: "Add" }).first().click();
+    await expect(page1.getByRole("row", { name: "Task 1" })).toBeVisible();
+    await expect(page2.getByRole("row", { name: "Task 1" })).toBeVisible();
+    await page1.keyboard.type("EditedTask");
+    await page1.keyboard.press("Enter");
+    await expect(
+      page1.getByRole("button", { name: "Task 1 Edit Name" }),
+    ).toHaveText("EditedTask");
+    await expect(
+      page2.getByRole("button", { name: "Task 1 Edit Name" }),
+    ).toHaveText("EditedTask");
+
+    await page2.getByRole("button", { name: "Undo" }).click();
+    await expect(
+      page2.getByRole("button", { name: "Task 1 Edit Name" }),
+    ).toHaveText("EditedTask");
+    await expect(
+      page1.getByRole("button", { name: "Task 1 Edit Name" }),
+    ).toHaveText("EditedTask");
+
+    await page1.getByRole("button", { name: "Undo" }).click();
+    await expect(
+      page1.getByRole("button", { name: "Task 1 Edit Name" }),
+    ).not.toHaveText("EditedTask");
+    await expect(
+      page2.getByRole("button", { name: "Task 1 Edit Name" }),
+    ).not.toHaveText("EditedTask");
+  });
+
   test("Awareness shows other users", async ({ page1, page2, page3 }) => {
     await init(page1, [
       { id: "root", name: "Root", children: ["1", "2", "3"] },
