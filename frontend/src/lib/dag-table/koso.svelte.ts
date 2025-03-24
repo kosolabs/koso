@@ -233,7 +233,9 @@ export class Koso {
     this.#yDoc = yDoc;
     const graph = yDoc.getMap<YTask>("graph");
     this.#yGraph = new YGraphProxy(graph);
-    this.#yUndoManager = new Y.UndoManager(graph);
+    this.#yUndoManager = new Y.UndoManager(graph, {
+      captureTransaction: (txn) => txn.local,
+    });
     // Save and restore node selection on undo/redo.
     this.#yUndoManager.on("stack-item-added", (event) => {
       event.stackItem.meta.set("selected-node", this.selectedRaw.node);
@@ -312,14 +314,14 @@ export class Koso {
         this.#send(encoding.toUint8Array(encoder));
       } else if (syncType === MSG_SYNC_RESPONSE) {
         const message = decoding.readVarUint8Array(decoder);
-        Y.applyUpdateV2(this.doc, message);
+        Y.applyUpdateV2(this.doc, message, "koso.SYNC_RESPONSE");
         if (this.graph.size === 0) {
           this.upsertRoot();
         }
         this.#resolveServerSync();
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
-        Y.applyUpdateV2(this.doc, message);
+        Y.applyUpdateV2(this.doc, message, "koso.SYNC_UPDATE");
       } else {
         throw new Error(`Unknown sync type: ${syncType}`);
       }
@@ -748,7 +750,7 @@ export class Koso {
         kind: null,
         url: null,
       });
-    });
+    }, "koso.upsertRoot");
     this.undoManager.clear();
   }
 
