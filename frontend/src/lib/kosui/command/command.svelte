@@ -11,9 +11,9 @@
 
 <script lang="ts">
   let { children, class: className }: CommandProps = $props();
-  const ctx = newCommandContext();
+  newCommandContext();
 </script>
 
-<div bind:this={ctx.el} class={twMerge("flex h-full flex-col p-1", className)}>
+<div class={twMerge("flex h-full flex-col p-1", className)}>
   {@render children()}
 </div>

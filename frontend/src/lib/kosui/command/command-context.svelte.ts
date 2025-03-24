@@ -4,7 +4,6 @@ import { OrderedHTMLElements } from "../ordered-html-elements";
 import { Shortcut } from "../shortcut";
 
 export class CommandContext {
-  el: HTMLElement | undefined = $state();
   #value = new Bindable<string>("");
   #items: OrderedHTMLElements = new OrderedHTMLElements();
   focused: HTMLElement | undefined = $state();

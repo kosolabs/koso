@@ -53,7 +53,7 @@
   aria-selected={ctx.focused === el}
   class={twMerge(
     baseClasses({ variant, color, shape }),
-    "aria-selected:bg-m3-secondary/15 flex w-full items-center gap-1 px-2 py-1 text-left text-sm focus:ring-0",
+    "aria-selected:bg-m3-secondary/15 flex w-full cursor-pointer items-center gap-1 px-2 py-1 text-left text-sm focus:ring-0 disabled:bg-transparent",
     className,
   )}
   {...mergeProps(

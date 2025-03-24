@@ -8,7 +8,7 @@
   import { getCommandContext } from "./command-context.svelte";
 
   export type CommandItemProps = {
-    onSelect?: () => void;
+    onSelect?: (el: HTMLElement) => void;
     children: Snippet<[]>;
   } & ElementRef &
     ClassName &
@@ -30,6 +30,16 @@
 
   const ctx = getCommandContext();
 
+  function handleClick() {
+    if (el) {
+      onSelect?.(el);
+    }
+  }
+
+  function handleMouseEnter() {
+    ctx.focused = el;
+  }
+
   $effect(() => {
     if (el) {
       return ctx.add(el);
@@ -48,8 +58,8 @@
     className,
   )}
   {...mergeProps(restProps, {
-    onclick: onSelect,
-    onmouseenter: () => (ctx.focused = el),
+    onclick: handleClick,
+    onmouseenter: handleMouseEnter,
   })}
 >
   {@render children()}

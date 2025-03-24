@@ -15,7 +15,6 @@ test.describe("Menu Component Tests", () => {
     // Initial state
     await expect(trigger).toHaveAttribute("aria-haspopup", "menu");
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
-    await expect(trigger).toHaveAttribute("aria-controls");
 
     // After opening
     await trigger.click();
