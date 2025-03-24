@@ -60,9 +60,9 @@ export class MenuContext {
     this.#items.delete(item);
   }
 
-  focus(menuItem?: HTMLElement) {
-    if (!menuItem) return;
-    this.focused = menuItem;
+  focus(item?: HTMLElement) {
+    if (!item) return;
+    this.focused = item;
     this.focused.focus();
   }
 

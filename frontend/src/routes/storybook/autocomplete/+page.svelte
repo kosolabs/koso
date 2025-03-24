@@ -1,6 +1,7 @@
 <script lang="ts">
   import {
     Autocomplete,
+    AutocompleteContent,
     AutocompleteInput,
     AutocompleteItem,
   } from "$lib/kosui/autocomplete";
@@ -49,24 +50,18 @@
 {/if}
 
 <div class="flex flex-col gap-4 rounded-lg border p-4">
-  <Autocomplete bind:showCompletions>
-    {#snippet input(autocomplete)}
-      <AutocompleteInput
-        bind:value={filter}
-        {autocomplete}
-        onclick={wantCompletions}
-        placeholder="Type stuff..."
-      />
-    {/snippet}
-    {#snippet content(autocomplete)}
+  <Autocomplete>
+    <AutocompleteInput
+      bind:value={filter}
+      onclick={wantCompletions}
+      placeholder="Type stuff..."
+    />
+    <AutocompleteContent bind:open={showCompletions}>
       {#each filteredItems as item (item.title)}
-        <AutocompleteItem
-          {autocomplete}
-          onSelect={() => (selected = item.title)}
-        >
+        <AutocompleteItem onSelect={() => (selected = item.title)}>
           {item.title}
         </AutocompleteItem>
       {/each}
-    {/snippet}
+    </AutocompleteContent>
   </Autocomplete>
 </div>

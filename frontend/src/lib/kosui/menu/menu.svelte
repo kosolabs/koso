@@ -12,8 +12,8 @@
 <script lang="ts">
   let {
     open = $bindable(false),
-    el = $bindable(),
     children,
+    el = $bindable(),
   }: MenuProps = $props();
 
   newMenuContext(
