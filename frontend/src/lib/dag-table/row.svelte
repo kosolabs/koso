@@ -11,7 +11,7 @@
   import { Link } from "$lib/kosui/link";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
-  import { ChevronRight, Grip } from "lucide-svelte";
+  import { ChevronRight, Grip, MoreVertical } from "lucide-svelte";
   import { getContext } from "svelte";
   import { Node, type Koso } from ".";
   import Awareness, {
@@ -459,6 +459,9 @@
         />
       </div>
     </div>
+  </td>
+  <td class={cn("border-t p-2")}>
+    <MoreVertical size={16} />
   </td>
   <td class={cn("border-t border-l p-2")}>
     <UserSelect
