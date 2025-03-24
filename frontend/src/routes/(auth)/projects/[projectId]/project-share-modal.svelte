@@ -3,7 +3,11 @@
   import { auth, type User } from "$lib/auth.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
-  import { AutocompleteInput, AutocompleteItem } from "$lib/kosui/autocomplete";
+  import {
+    AutocompleteContent,
+    AutocompleteInput,
+    AutocompleteItem,
+  } from "$lib/kosui/autocomplete";
   import Autocomplete from "$lib/kosui/autocomplete/autocomplete.svelte";
   import { Button } from "$lib/kosui/button";
   import { dialog } from "$lib/kosui/dialog";
@@ -128,31 +132,27 @@
       </div>
       <div class="text-sm">Manage access to your project.</div>
     </div>
-    <Autocomplete
-      {showCompletions}
-      ontoggle={(event) => {
-        if (event.newState === "closed") {
-          wantCompletions = false;
-        }
-      }}
-      class="w-[min(calc(100%-1em),32em)] max-w-full"
-    >
-      {#snippet input(autocomplete)}
-        <AutocompleteInput
-          bind:value={filter}
-          {autocomplete}
-          autofocus
-          class="my-2"
-          placeholder="Add people"
-          name="Add people"
-          onclick={() => (wantCompletions = true)}
-          onfocus={() => (wantCompletions = true)}
-        />
-      {/snippet}
-      {#snippet content(autocomplete)}
+    <Autocomplete>
+      <AutocompleteInput
+        bind:value={filter}
+        autofocus
+        class="my-2"
+        placeholder="Add people"
+        name="Add people"
+        onclick={() => (wantCompletions = true)}
+        onfocus={() => (wantCompletions = true)}
+      />
+      <AutocompleteContent
+        open={showCompletions}
+        ontoggle={(event) => {
+          if (event.newState === "closed") {
+            wantCompletions = false;
+          }
+        }}
+        class="w-[min(calc(100%-1em),32em)] max-w-full"
+      >
         {#each users as user (user.email)}
           <AutocompleteItem
-            {autocomplete}
             onSelect={() => {
               wantCompletions = false;
               addUser(user);
@@ -161,7 +161,7 @@
             <UserAvatar {user} />
           </AutocompleteItem>
         {/each}
-      {/snippet}
+      </AutocompleteContent>
     </Autocomplete>
 
     <div class="h3">People with access</div>

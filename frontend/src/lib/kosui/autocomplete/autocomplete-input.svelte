@@ -1,32 +1,43 @@
 <script module lang="ts">
   import type { HTMLInputAttributes } from "svelte/elements";
-  import type { Autocomplete } from ".";
   import { type Variants } from "../base";
   import { Input } from "../input";
   import type { ClassName, ElementRef } from "../utils";
+  import { getAutocompleteContext } from "./autocomplete-context.svelte";
 
-  export type AutocompleteInputProps = {
-    autocomplete: Autocomplete;
-  } & ElementRef &
+  export type AutocompleteInputProps = {} & ElementRef &
     ClassName &
     Variants &
     Omit<HTMLInputAttributes, "autocomplete">;
 </script>
 
 <script lang="ts">
+  import { mergeComponentProps } from "../merge-props";
+
   let {
+    el = $bindable(),
     value = $bindable(""),
-    autocomplete,
     ...restProps
   }: AutocompleteInputProps = $props();
 
-  $effect(() => autocomplete.setInputValue(value));
+  const ctx = getAutocompleteContext();
+  ctx.bindInput(
+    () => value,
+    (newval) => (value = newval),
+  );
+  ctx.bindAnchorEl(
+    () => el,
+    (newval) => (el = newval),
+  );
+
+  function handleKeyDown(event: KeyboardEvent) {
+    ctx.handleKeyDown(event);
+  }
 </script>
 
 <Input
-  bind:value
+  bind:el={ctx.anchorEl}
+  bind:value={ctx.input}
   autocomplete="off"
-  ref={autocomplete.setAnchorEl}
-  onkeydown={autocomplete.handleKeyDown}
-  {...restProps}
+  {...mergeComponentProps(Input, { onkeydown: handleKeyDown }, restProps)}
 />

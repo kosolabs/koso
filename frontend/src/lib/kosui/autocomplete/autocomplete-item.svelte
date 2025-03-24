@@ -2,15 +2,14 @@
   import { type Snippet } from "svelte";
   import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
-  import type { Autocomplete, AutocompleteItem } from ".";
   import { baseClasses, type Variants } from "../base";
   import { mergeProps } from "../merge-props";
-  import { uid, type ClassName, type ElementRef } from "../utils";
+  import { type ClassName, type ElementRef } from "../utils";
+  import { getAutocompleteContext } from "./autocomplete-context.svelte";
 
   export type AutocompleteItemProps = {
-    onSelect?: () => void;
-    autocomplete: Autocomplete;
-    children: Snippet<[]>;
+    onSelect?: (el: HTMLElement) => void;
+    children: Snippet;
   } & ElementRef &
     ClassName &
     Variants &
@@ -20,7 +19,6 @@
 <script lang="ts">
   let {
     onSelect,
-    autocomplete,
     children,
     el = $bindable(),
     class: className,
@@ -30,47 +28,41 @@
     ...restProps
   }: AutocompleteItemProps = $props();
 
-  let id: string = $state(uid({ prefix: "autocomplete" }));
-  let focused: boolean = $state(false);
+  const ctx = getAutocompleteContext();
 
-  export function getId() {
-    return id;
+  function handleClick() {
+    if (el) {
+      onSelect?.(el);
+    }
   }
 
-  export function focus() {
-    focused = true;
+  function handleMouseEnter() {
+    ctx.focused = el;
   }
-
-  export function blur() {
-    focused = false;
-  }
-
-  export function select() {
-    onSelect?.();
-  }
-
-  const self: AutocompleteItem = { getId, focus, blur, select };
 
   $effect(() => {
-    autocomplete.register(self);
-    return () => autocomplete.unregister(self);
+    if (el) {
+      return ctx.add(el);
+    }
   });
 </script>
 
 <div
-  {id}
   bind:this={el}
   role="option"
-  aria-selected={focused}
+  aria-selected={ctx.focused === el}
   class={twMerge(
     baseClasses({ variant, color, shape }),
     "aria-selected:bg-m3-secondary/15 flex w-full items-center gap-1 px-2 py-1 text-left text-sm focus:ring-0",
     className,
   )}
-  {...mergeProps(restProps, {
-    onclick: select,
-    onmouseenter: () => autocomplete.focus(id),
-  })}
+  {...mergeProps(
+    {
+      onclick: handleClick,
+      onmouseenter: handleMouseEnter,
+    },
+    restProps,
+  )}
 >
   {@render children()}
 </div>
