@@ -32,7 +32,6 @@
           event.stopImmediatePropagation();
         }
       },
-      "aria-controls": ctx.menuId,
       "aria-haspopup": "menu",
       "aria-expanded": ctx.open,
     },

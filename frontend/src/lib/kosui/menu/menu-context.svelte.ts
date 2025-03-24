@@ -2,11 +2,10 @@ import { getContext, setContext } from "svelte";
 import { Bindable } from "../bindable.svelte";
 import { OrderedHTMLElements } from "../ordered-html-elements";
 import { Shortcut } from "../shortcut";
-import { TypingBuffer, uid } from "../utils";
+import { TypingBuffer } from "../utils";
 
 export class MenuContext {
   #open: Bindable<boolean>;
-  menuId: string = $state("");
   #anchorEl: Bindable<HTMLElement | undefined>;
   #items = new OrderedHTMLElements();
   focused: HTMLElement | undefined = $state();
@@ -17,13 +16,11 @@ export class MenuContext {
     setOpen: (val: boolean) => void,
     getAnchorEl: () => HTMLElement | undefined,
     setAnchorEl: (anchorEl: HTMLElement | undefined) => void,
-    menuId: string,
   ) {
     this.#open = new Bindable(getOpen());
     this.#open.bind(getOpen, setOpen);
     this.#anchorEl = new Bindable<HTMLElement | undefined>(getAnchorEl());
     this.#anchorEl.bind(getAnchorEl, setAnchorEl);
-    this.menuId = menuId;
   }
 
   get open(): boolean {
@@ -130,13 +127,7 @@ export function newMenuContext(
   setAnchorEl: (anchorEl: HTMLElement | undefined) => void,
 ) {
   return setMenuContext(
-    new MenuContext(
-      getOpen,
-      setOpen,
-      getAnchorEl,
-      setAnchorEl,
-      "menu-" + uid(),
-    ),
+    new MenuContext(getOpen, setOpen, getAnchorEl, setAnchorEl),
   );
 }
 

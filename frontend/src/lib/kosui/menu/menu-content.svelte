@@ -30,7 +30,6 @@
 
 <Popover
   bind:open={ctx.open}
-  id={ctx.menuId}
   role="menu"
   class={twMerge(
     baseClasses({ variant, color, shape }),

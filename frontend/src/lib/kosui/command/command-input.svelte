@@ -2,6 +2,7 @@
   import type { HTMLInputAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { baseClasses, type Variants } from "../base";
+  import { mergeProps } from "../merge-props";
   import type { ClassName, ElementRef } from "../utils";
   import { getCommandContext } from "./command-context.svelte";
 
@@ -26,15 +27,18 @@
     () => value,
     (newValue) => (value = newValue),
   );
+
+  function handleKeyDown(event: KeyboardEvent) {
+    ctx.handleKeyDown(event);
+  }
 </script>
 
 <input
   bind:value={ctx.value}
-  onkeydown={(event) => ctx.handleKeyDown(event)}
   class={twMerge(
     baseClasses({ variant, color, shape }),
     "w-full p-1 focus-visible:outline-hidden",
     className,
   )}
-  {...restProps}
+  {...mergeProps({ onkeydown: handleKeyDown }, restProps)}
 />
