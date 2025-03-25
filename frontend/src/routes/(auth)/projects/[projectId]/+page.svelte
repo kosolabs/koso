@@ -24,6 +24,7 @@
   import { Action } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import { FileDown, Mail, MenuIcon, PlugZap, UserPlus } from "lucide-svelte";
+  import { onMount } from "svelte";
   import * as Y from "yjs";
   import ProjectShareModal from "./project-share-modal.svelte";
 
@@ -109,16 +110,8 @@
     }
   });
 
-  $effect(() => {
-    for (const action of actions) {
-      command.register(action);
-    }
-
-    return () => {
-      for (const action of actions) {
-        command.unregister(action);
-      }
-    };
+  onMount(() => {
+    return command.register(...actions);
   });
 </script>
 

@@ -594,16 +594,8 @@
 
   setContext<Koso>("koso", koso);
 
-  $effect(() => {
-    for (const action of actions) {
-      command.register(action);
-    }
-
-    return () => {
-      for (const action of actions) {
-        command.unregister(action);
-      }
-    };
+  onMount(() => {
+    return command.register(...actions);
   });
 
   // This effect selects a new node when the
@@ -649,7 +641,7 @@
 
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<Toolbar actions={Object.values(command.actions) as Action[]}>
+<Toolbar actions={command.actions() as Action[]}>
   {#await koso.synced then}
     {#if koso.nodes.size > 1}
       <table class="w-full border-separate border-spacing-0 rounded-md border">
