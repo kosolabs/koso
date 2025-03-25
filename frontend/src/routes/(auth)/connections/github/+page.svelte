@@ -1,9 +1,9 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
+  import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
   import * as github from "$lib/github";
-  import Navbar from "$lib/navbar.svelte";
   import { onMount } from "svelte";
 
   onMount(async () => {

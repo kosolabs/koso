@@ -1,13 +1,13 @@
 <script lang="ts">
   import { headers, parse_response } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
+  import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
   import { dialog } from "$lib/kosui/dialog";
   import { Link } from "$lib/kosui/link";
   import { CircularProgress } from "$lib/kosui/progress";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
-  import Navbar from "$lib/navbar.svelte";
   import { CircleX, Moon, Send, Sun, SunMoon, Trash2 } from "lucide-svelte";
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";

@@ -9,6 +9,7 @@
 
   export type ButtonProps = {
     icon?: typeof Icon;
+    size?: number;
     tooltip?: Snippet | string;
   } & ElementRef &
     ClassName &
@@ -19,6 +20,7 @@
 <script lang="ts">
   let {
     icon: IconComponent,
+    size = 16,
     tooltip,
     children,
     el = $bindable(),
@@ -45,7 +47,7 @@
   {...tooltipRef?.triggerProps}
 >
   {#if IconComponent}
-    <IconComponent size={16} />
+    <IconComponent {size} />
   {/if}
   {@render children?.()}
 </button>
