@@ -1,11 +1,11 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
+  import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
   import { Alert } from "$lib/kosui/alert";
   import { Button } from "$lib/kosui/button";
   import { Link } from "$lib/kosui/link";
-  import Navbar from "$lib/navbar.svelte";
   import * as rest from "$lib/projects";
   import { type Project, type ProjectExport } from "$lib/projects";
   import { HardDriveUpload, Layers, PackagePlus, Trash2 } from "lucide-svelte";

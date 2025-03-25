@@ -8,8 +8,8 @@
   import { Check, UserRound } from "lucide-svelte";
   import { userPrefersMode as mode, resetMode, setMode } from "mode-watcher";
   import type { Snippet } from "svelte";
-  import MenuHeader from "./kosui/menu/menu-header.svelte";
-  import MenuTrigger from "./kosui/menu/menu-trigger.svelte";
+  import MenuHeader from "../../../kosui/menu/menu-header.svelte";
+  import MenuTrigger from "../../../kosui/menu/menu-trigger.svelte";
 
   type Props = {
     context?: Snippet;
@@ -42,6 +42,7 @@
           <Avatar
             src={auth.user.picture}
             alt={auth.user.email}
+            shape="circle"
             class="transition-all active:scale-95 active:brightness-110"
           >
             <UserRound />

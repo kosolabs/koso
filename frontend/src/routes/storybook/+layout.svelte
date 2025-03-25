@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Navbar } from "$lib/components/ui/navbar";
   import { Breadcrumbs } from "$lib/kosui/breadcrumbs";
-  import Navbar from "$lib/navbar.svelte";
   import { type Snippet } from "svelte";
 
   type Props = {

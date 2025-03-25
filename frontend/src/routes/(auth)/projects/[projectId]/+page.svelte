@@ -4,17 +4,16 @@
   import { KosoError } from "$lib/api";
   import { showUnauthorizedDialog, type User } from "$lib/auth.svelte";
   import { Editable } from "$lib/components/ui/editable";
+  import { Navbar, NavbarButton } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
   import { DagTable, Koso, KosoSocket } from "$lib/dag-table";
   import { githubInstallUrl } from "$lib/github";
   import { Alert } from "$lib/kosui/alert";
   import { baseClasses } from "$lib/kosui/base";
-  import { Button } from "$lib/kosui/button";
   import { command } from "$lib/kosui/command";
   import { Menu, MenuContent, MenuTrigger } from "$lib/kosui/menu";
   import MenuItem from "$lib/kosui/menu/menu-item.svelte";
   import { nav } from "$lib/nav.svelte";
-  import Navbar from "$lib/navbar.svelte";
   import {
     exportProject,
     fetchProject,
@@ -132,14 +131,14 @@
           baseClasses({
             variant: "plain",
             color: "primary",
-            shape: "rounded",
+            shape: "circle",
             focus: true,
             hover: true,
           }),
-          "px-3 py-1.5 transition-all active:scale-95",
+          "mr-1 p-2 transition-all active:scale-95",
         )}
       >
-        <MenuIcon />
+        <MenuIcon size={20} />
       </MenuTrigger>
       <MenuContent>
         <MenuItem
@@ -189,28 +188,20 @@
     </div>
   {/snippet}
   {#snippet right()}
-    <div class="hidden gap-1 sm:flex">
-      <Button
-        variant="plain"
-        tooltip="Zero inbox view"
-        aria-label="Zero inbox view"
-        onclick={() => goto(`/projects/${projectId}/inbox`)}
-        class="px-3 py-1.5 transition-all active:scale-95"
-      >
-        <Mail />
-      </Button>
-      <Button
-        variant="plain"
-        tooltip="Share project"
-        aria-label="Share project"
-        onclick={() => {
-          openShareModal = true;
-        }}
-        class="px-3 py-1.5 transition-all active:scale-95"
-      >
-        <UserPlus />
-      </Button>
-    </div>
+    <NavbarButton
+      icon={UserPlus}
+      tooltip="Share project"
+      aria-label="Share project"
+      onclick={() => {
+        openShareModal = true;
+      }}
+    />
+    <NavbarButton
+      icon={Mail}
+      tooltip="Zero inbox view"
+      aria-label="Zero inbox view"
+      onclick={() => goto(`/projects/${projectId}/inbox`)}
+    />
   {/snippet}
 </Navbar>
 

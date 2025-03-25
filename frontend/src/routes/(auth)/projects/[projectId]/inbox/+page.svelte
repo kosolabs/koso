@@ -2,11 +2,11 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { auth, showUnauthorizedDialog, type User } from "$lib/auth.svelte";
+  import { Navbar } from "$lib/components/ui/navbar";
   import { DagTable, Koso, KosoSocket, Node } from "$lib/dag-table";
   import { Alert } from "$lib/kosui/alert";
   import { Button } from "$lib/kosui/button";
   import { nav } from "$lib/nav.svelte";
-  import Navbar from "$lib/navbar.svelte";
   import { fetchProject, fetchProjectUsers, type Project } from "$lib/projects";
   import type { YTaskProxy } from "$lib/yproxy";
   import { List } from "immutable";
@@ -118,11 +118,13 @@
   {#snippet right()}
     <Button
       variant="plain"
+      shape="circle"
       tooltip="Project planning view"
       aria-label="Project planning view"
       onclick={() => goto(`/projects/${projectId}`)}
+      class="p-2"
     >
-      <Notebook />
+      <Notebook size={20} />
     </Button>
   {/snippet}
 </Navbar>
