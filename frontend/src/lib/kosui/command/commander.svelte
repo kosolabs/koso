@@ -24,11 +24,11 @@
   let open: boolean = $state(false);
   let query: string = $state("");
 
-  export const actions: Record<string, Action> = $state({});
+  export const registry: Record<string, Action> = $state({});
   const shortcuts: Record<string, Action> = {};
 
   const filteredActions = $derived(
-    Object.values(actions).filter(
+    actions().filter(
       (action) =>
         action.enabled() &&
         (match(action.title, query) || match(action.description, query)),
@@ -43,27 +43,45 @@
     open = false;
   }
 
-  export function register(action: Action) {
-    actions[action.title] = action;
-    if (action.shortcut) {
-      shortcuts[action.shortcut.toString()] = action;
+  export function register(...actions: Action[]) {
+    for (const action of actions) {
+      if (action.title in registry) {
+        throw new Error(`${action.title} is already registered`);
+      }
+      registry[action.title] = action;
+      if (action.shortcut) {
+        if (action.shortcut.toString() in shortcuts) {
+          throw new Error(`${action.shortcut} is already registered`);
+        }
+        shortcuts[action.shortcut.toString()] = action;
+      }
     }
-    return () => unregister(action);
+    return () => unregister(...actions);
   }
 
-  export function unregister(action: Action) {
-    delete actions[action.title];
-    if (action.shortcut) {
-      delete shortcuts[action.shortcut.toString()];
+  export function unregister(...actions: Action[]) {
+    for (const action of actions) {
+      delete registry[action.title];
+      if (action.shortcut) {
+        delete shortcuts[action.shortcut.toString()];
+      }
     }
+  }
+
+  export function get(title: string): Action | undefined {
+    return registry[title];
   }
 
   export function call(title: string) {
-    if (title in actions) {
-      actions[title].callback();
-    } else {
-      throw new Error(`No action with "${title}" is registered`);
+    const action = get(title);
+    if (!action) {
+      throw new Error(`No action named "${title}" is registered`);
     }
+    return action;
+  }
+
+  export function actions(): Action[] {
+    return Object.values(registry);
   }
 
   function handleSelect(action: Action) {

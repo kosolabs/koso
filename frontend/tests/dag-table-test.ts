@@ -1263,7 +1263,7 @@ test.describe("dag table tests", () => {
       ]);
       await expect(page.getByTestId("Row 1/2/3")).not.toBeVisible();
 
-      await page.getByRole("button", { name: "Palette" }).click();
+      await page.getByRole("button", { name: "Command Palette" }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
 
       await page.keyboard.type("Expand All");
@@ -1288,7 +1288,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
       await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
 
-      await page.getByRole("button", { name: "Palette" }).click();
+      await page.getByRole("button", { name: "Command Palette" }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
 
       await page.keyboard.type("Collapse All");

@@ -10,16 +10,18 @@ import {
   actions,
   call,
   close,
+  get,
   register,
   show,
   unregister,
 } from "./commander.svelte";
 
 export const command = {
-  show,
-  close,
-  register,
-  unregister,
   actions,
   call,
+  close,
+  get,
+  register,
+  show,
+  unregister,
 };

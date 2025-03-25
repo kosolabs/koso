@@ -10,6 +10,7 @@
   import type { Snippet } from "svelte";
   import MenuHeader from "../../../kosui/menu/menu-header.svelte";
   import MenuTrigger from "../../../kosui/menu/menu-trigger.svelte";
+  import NavbarCommandButton from "./navbar-command-button.svelte";
 
   type Props = {
     context?: Snippet;
@@ -32,6 +33,8 @@
 
   <div class="ml-auto flex items-center gap-2">
     {@render right?.()}
+
+    <NavbarCommandButton name="Command Palette" />
 
     {#if auth.ok()}
       <Menu>

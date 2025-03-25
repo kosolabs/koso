@@ -9,6 +9,7 @@
   import { Action } from "$lib/shortcuts";
   import { Moon, Sun, SunMoon, Terminal } from "lucide-svelte";
   import { ModeWatcher, resetMode, setMode } from "mode-watcher";
+  import { onMount } from "svelte";
   import { Workbox } from "workbox-window";
   import "../app.css";
 
@@ -32,10 +33,9 @@
   const actions: Action[] = [
     new Action({
       callback: command.show,
-      title: "Palette",
+      title: "Command Palette",
       description: "Show the command palette",
       icon: Terminal,
-      toolbar: true,
       shortcut: new Shortcut({ key: "p", shift: true, meta: true }),
     }),
     new Action({
@@ -65,16 +65,8 @@
     }
   });
 
-  $effect(() => {
-    for (const action of actions) {
-      command.register(action);
-    }
-
-    return () => {
-      for (const action of actions) {
-        command.unregister(action);
-      }
-    };
+  onMount(() => {
+    return command.register(...actions);
   });
 </script>
 
