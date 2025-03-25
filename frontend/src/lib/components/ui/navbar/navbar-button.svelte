@@ -13,4 +13,4 @@
   }: NavbarButtonProps = $props();
 </script>
 
-<Button {variant} {shape} class="p-2" {icon} {size} {...restProps} />
+<Button {variant} {shape} {icon} {size} {...restProps} />
