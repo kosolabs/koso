@@ -40,7 +40,8 @@
   use:ref
   class={twMerge(
     baseClasses({ variant, color, shape, hover: true, focus: true }),
-    "flex items-center gap-2 px-4 py-1.5 text-sm text-nowrap transition-all enabled:active:scale-95",
+    "flex items-center gap-2 text-sm text-nowrap transition-all enabled:active:scale-95",
+    children ? "px-4 py-1.5" : "p-2",
     className,
   )}
   {...restProps}
