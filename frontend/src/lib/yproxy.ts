@@ -28,7 +28,7 @@ export type Task = {
   // e.g. a Github PR URL.
   url: string | null;
 };
-export type Status = "Not Started" | "In Progress" | "Done" | "Blocked";
+export type Status = "Not Started" | "In Progress" | "Done" | "JUGGLED_STATUS";
 export type Kind = YKind | "Rollup";
 export type YKind = "JUGGLED_KIND" | "github" | "github_pr";
 export const unmanagedKinds: Set<Kind> = Set.of("Rollup", "JUGGLED_KIND");

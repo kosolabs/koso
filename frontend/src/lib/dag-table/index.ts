@@ -17,7 +17,7 @@ export function compareTasks(
         return 0;
       case "Not Started":
         return 1;
-      case "Blocked":
+      case "JUGGLED_STATUS":
         return 2;
       case "Done":
         return 3;

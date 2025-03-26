@@ -131,7 +131,7 @@ export class Progress {
   }
 
   isBlocked(): boolean {
-    return this.status === "Blocked";
+    return this.status === "JUGGLED_STATUS";
   }
 
   isChildrenIncomplete(): boolean {
@@ -669,9 +669,9 @@ export class Koso {
           result.total = 1;
           result.status = "Not Started";
           break;
-        case "Blocked":
+        case "JUGGLED_STATUS":
           result.total = 1;
-          result.status = "Blocked";
+          result.status = "JUGGLED_STATUS";
           break;
         default:
           throw new Error(
@@ -716,7 +716,10 @@ export class Koso {
       result.total += childTotal;
       result.status = result.childrenStatus || "Not Started";
     } else if (result.kind === "JUGGLED_KIND") {
-      if (result.status === "Blocked" && !result.isChildrenIncomplete()) {
+      if (
+        result.status === "JUGGLED_STATUS" &&
+        !result.isChildrenIncomplete()
+      ) {
         // Auto-unblock unblocked tasks with the Blocked status
         result.status = "Not Started";
       }
@@ -1537,7 +1540,7 @@ export class Koso {
         const progress = this.getProgress(taskId);
         if (progress.isChildrenIncomplete()) {
           task.yKind = "JUGGLED_KIND";
-          task.yStatus = "Blocked";
+          task.yStatus = "JUGGLED_STATUS";
           task.statusTime = Date.now();
           if (!task.assignee) {
             task.assignee = user.email;
@@ -1588,7 +1591,7 @@ export class Koso {
         }
 
         return true;
-      } else if (status === "Blocked") {
+      } else if (status === "JUGGLED_STATUS") {
         if (task.yKind !== "JUGGLED_KIND") {
           throw new Error(`Can only set Juggled tasks to blocked: ${taskId}`);
         }
@@ -1654,7 +1657,7 @@ export class Koso {
           return 0;
         case "Not Started":
           return 1;
-        case "Blocked":
+        case "JUGGLED_STATUS":
           return 2;
         case "Done":
           return 3;

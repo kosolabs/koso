@@ -133,7 +133,7 @@
     switch (progress.status) {
       case "Done":
         return;
-      case "Blocked":
+      case "JUGGLED_STATUS":
         koso.setTaskStatus(koso.selected, "Not Started", auth.user);
         return;
       case "In Progress": {

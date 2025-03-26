@@ -17,7 +17,7 @@
   <CircleCheck class="text-m3-primary" />
 {:else if status === "In Progress"}
   <CircleFadingArrowUp class="text-m3-primary" />
-{:else if status === "Blocked"}
+{:else if status === "JUGGLED_STATUS"}
   <OctagonPause class="text-m3-primary" />
 {:else}
   <CircularProgress progress={0} class="text-m3-primary" />

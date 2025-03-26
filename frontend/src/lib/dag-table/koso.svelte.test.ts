@@ -1185,12 +1185,12 @@ describe("Koso tests", () => {
           id: "1",
           children: ["2", "3"],
           kind: "JUGGLED_KIND",
-          status: "Blocked",
+          status: "JUGGLED_STATUS",
         },
         { id: "2", status: "Not Started" },
         { id: "3", status: "Not Started" },
       ]);
-      expect(koso.getStatus("1")).toBe("Blocked");
+      expect(koso.getStatus("1")).toBe("JUGGLED_STATUS");
     });
 
     it("returns original status for a not blocked juggled task with all children not started", () => {
@@ -1806,7 +1806,9 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2", status: "Done" },
       ]);
 
-      expect(koso.setTaskStatus(Node.parse("1"), "Blocked", USER)).toBe(false);
+      expect(koso.setTaskStatus(Node.parse("1"), "JUGGLED_STATUS", USER)).toBe(
+        false,
+      );
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -1828,11 +1830,17 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2", status: "In Progress" },
       ]);
 
-      expect(koso.setTaskStatus(Node.parse("1"), "Blocked", USER)).toBe(true);
+      expect(koso.setTaskStatus(Node.parse("1"), "JUGGLED_STATUS", USER)).toBe(
+        true,
+      );
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
-        ["1"]: { status: "Blocked", children: ["2"], assignee: "t@koso.app" },
+        ["1"]: {
+          status: "JUGGLED_STATUS",
+          children: ["2"],
+          assignee: "t@koso.app",
+        },
         ["2"]: { status: "In Progress", children: [], assignee: null },
       });
     });
@@ -1853,7 +1861,7 @@ describe("Koso tests", () => {
         ["1"]: { status: null, children: [], assignee: null },
         ["2"]: {
           kind: "JUGGLED_KIND",
-          status: "Blocked",
+          status: "JUGGLED_STATUS",
           children: ["1"],
           assignee: "t@koso.app",
         },
@@ -2117,8 +2125,8 @@ describe("Koso tests", () => {
         { id: "t2", status: "Not Started" },
         { id: "t3", status: "Done" },
         { id: "t4", status: "Done" },
-        { id: "t5", status: "Blocked" },
-        { id: "t6", status: "Blocked" },
+        { id: "t5", status: "JUGGLED_STATUS" },
+        { id: "t6", status: "JUGGLED_STATUS" },
         { id: "t7", status: "In Progress" },
         { id: "t8", status: "In Progress" },
       ]);
@@ -2141,8 +2149,8 @@ describe("Koso tests", () => {
         { id: "t2", status: "Not Started" },
         { id: "t3", status: "Done" },
         { id: "t4", status: "Done" },
-        { id: "t5", status: "Blocked" },
-        { id: "t6", status: "Blocked" },
+        { id: "t5", status: "JUGGLED_STATUS" },
+        { id: "t6", status: "JUGGLED_STATUS" },
         { id: "t7", status: "In Progress" },
         { id: "t8", status: "In Progress" },
       ]);

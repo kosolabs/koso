@@ -37,7 +37,12 @@
     koso.isEditable(task.id) &&
       (progress.kind === "Rollup" || progress.kind === "JUGGLED_KIND"),
   );
-  let statuses: Status[] = ["Not Started", "In Progress", "Done", "Blocked"];
+  let statuses: Status[] = [
+    "Not Started",
+    "In Progress",
+    "Done",
+    "JUGGLED_STATUS",
+  ];
 
   function handleOnSelectKind(kind: Kind) {
     if (progress.kind === kind) return;
@@ -51,7 +56,7 @@
       if (inboxView) {
         toast.success("🚀 Great work! Task complete!");
       }
-    } else if (task.children.length === 0 && status === "Blocked") {
+    } else if (task.children.length === 0 && status === "JUGGLED_STATUS") {
       command.call("Block");
     } else {
       koso.setTaskStatus(node, status, auth.user);
