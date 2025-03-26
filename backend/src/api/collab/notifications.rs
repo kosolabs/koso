@@ -182,7 +182,7 @@ impl EventProcessor {
                             EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(status))),
                         ) => {
                             if status.as_ref() == "Done" {
-                                self.unblock_and_notify_actionable_tasks(&event).await?;
+                                self.unjuggle_and_notify_actionable_tasks(&event).await?;
                             }
                         }
                         _ => continue,
@@ -190,7 +190,7 @@ impl EventProcessor {
                 }
             }
             KosoEventChanges::Children() => {
-                self.unblock_and_notify_actionable_tasks(&event).await?;
+                self.unjuggle_and_notify_actionable_tasks(&event).await?;
             }
         }
         Ok(())
@@ -214,7 +214,7 @@ impl EventProcessor {
         self.notifier.notify(assignee, &msg).await
     }
 
-    async fn unblock_and_notify_actionable_tasks(&self, event: &KosoEvent) -> Result<()> {
+    async fn unjuggle_and_notify_actionable_tasks(&self, event: &KosoEvent) -> Result<()> {
         let actionable =
             Self::find_actionable_juggled_tasks(&event.task.id, &event.project).await?;
         if actionable.is_empty() {
@@ -227,7 +227,7 @@ impl EventProcessor {
             let mut txn = doc.transact_mut_with(event.origin.delegated("juggle").as_origin()?);
             // TODO: Handle partial failures.
             for (task_id, _, _) in actionable.iter() {
-                tracing::debug!("Unblocking task {task_id}");
+                tracing::debug!("Unjuggling task {task_id}");
                 match doc.get(&txn, task_id) {
                     Ok(task) => {
                         task.set_status(&mut txn, Some("Not Started"));
@@ -243,7 +243,7 @@ impl EventProcessor {
 
         // TODO: We could parallelize this.
         for (task_id, assignee, name) in actionable {
-            // Don't notify a user if they unblocked the task themself.
+            // Don't notify a user if they themselves. make the task actionable.
             if let Actor::User(user) = &event.origin.actor {
                 if user.email == assignee {
                     continue;
@@ -267,7 +267,7 @@ impl EventProcessor {
         let doc = &doc.as_ref().context("No doc initialized.")?.ydoc;
         let txn = doc.transact();
 
-        // Perform a DFS starting from all Blocked, juggled tasks.
+        // Perform a DFS starting from all Juggled tasks.
         let mut actionable: Vec<(String, String, String)> = vec![];
         for task in doc.tasks(&txn)? {
             if task.get_kind(&txn)?.unwrap_or_default() == "Task"

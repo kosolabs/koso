@@ -67,7 +67,7 @@
       return false;
     }
     const progress = koso.getProgress(task.id);
-    return !progress.isComplete() && !progress.isBlocked();
+    return !progress.isComplete() && !progress.isJuggled();
   }
 
   function flatten(): List<Node> {

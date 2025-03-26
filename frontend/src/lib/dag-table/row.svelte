@@ -41,7 +41,7 @@
   let dragOverChild = $state(false);
   let isEditing = $state(false);
   let linkOpen = $state(false);
-  let linkMode: Mode = $state(inboxView ? "block" : "link");
+  let linkMode: Mode = $state(inboxView ? "juggle" : "link");
 
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));

@@ -1417,7 +1417,7 @@ test.describe("dag table tests", () => {
       });
     });
 
-    test("change status from blocked with space key", async ({ page }) => {
+    test("change status from Juggled with space key", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
         {
@@ -2114,7 +2114,9 @@ test.describe("dag table tests", () => {
   });
 
   test.describe("juggling tasks", () => {
-    test("block and unblock a task by resolving children", async ({ page }) => {
+    test("juggle and unjuggle a task by resolving children", async ({
+      page,
+    }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3"] },
@@ -2201,7 +2203,9 @@ test.describe("dag table tests", () => {
       expect(graph["1"].assignee).toContain("-test@test.koso.app");
     });
 
-    test("block and unblock a task by removing children", async ({ page }) => {
+    test("juggle and unjuggle a task by removing children", async ({
+      page,
+    }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3"] },

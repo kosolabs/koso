@@ -18,7 +18,7 @@
   import { getContext } from "svelte";
   import { compareTasks, type Koso, type Node } from ".";
 
-  export type Mode = "link" | "block";
+  export type Mode = "link" | "juggle";
 
   export type LinkPanelProps = {
     open: boolean;
@@ -59,7 +59,7 @@
   function link(taskId: string) {
     if (mode === "link") {
       koso.link(node.name, taskId);
-    } else if (mode === "block") {
+    } else if (mode === "juggle") {
       koso.link(taskId, node.name);
       if (setStatusJuggled) {
         koso.setKind(node.name, "Task", auth.user);
@@ -103,17 +103,17 @@
     <div class="flex place-content-center gap-1 p-1">
       <ToggleGroup bind:value={mode}>
         <ToggleButton value="link">Link to</ToggleButton>
-        <ToggleButton value="block">Block on</ToggleButton>
+        <ToggleButton value="juggle">Block on</ToggleButton>
       </ToggleGroup>
     </div>
-    {#if mode === "block"}
+    {#if mode === "juggle"}
       <div class="flex place-content-center gap-1 p-1 text-sm">
         <input
           type="checkbox"
           id="also-juggle"
           bind:checked={setStatusJuggled}
         />
-        <label for="also-juggle">Set task to blocked after linking</label>
+        <label for="also-juggle">Set task to juggled after linking</label>
       </div>
     {/if}
     <CommandDivider />

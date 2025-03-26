@@ -130,7 +130,7 @@ export class Progress {
     return this.status === "Done";
   }
 
-  isBlocked(): boolean {
+  isJuggled(): boolean {
     return this.status === "Juggled";
   }
 
@@ -717,7 +717,7 @@ export class Koso {
       result.status = result.childrenStatus || "Not Started";
     } else if (result.kind === "Task") {
       if (result.status === "Juggled" && !result.isChildrenIncomplete()) {
-        // Auto-unblock unblocked tasks with the Blocked status
+        // Auto-update actionable tasks with the Juggled status
         result.status = "Not Started";
       }
     }
@@ -1543,12 +1543,12 @@ export class Koso {
             task.assignee = user.email;
           }
           toast.success(
-            "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
+            "Task is Juggled. Koso Juggler will let you know when the task is actionable! 🤹",
           );
           return true;
         } else {
           toast.info(
-            "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
+            "Task is immediately actionable. Add a not done child first and then set the task to Juggled.",
           );
           return false;
         }
@@ -1590,7 +1590,7 @@ export class Koso {
         return true;
       } else if (status === "Juggled") {
         if (task.yKind !== "Task") {
-          throw new Error(`Can only set Juggled tasks to blocked: ${taskId}`);
+          throw new Error(`Can only set kind Task to Juggled: ${taskId}`);
         }
 
         const progress = this.getProgress(taskId);
@@ -1601,12 +1601,12 @@ export class Koso {
             task.assignee = user.email;
           }
           toast.success(
-            "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
+            "Task is Juggled. Koso Juggler will let you know when the task is actionable! 🤹",
           );
           return true;
         } else {
           toast.info(
-            "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
+            "Task is immediately actionable. Add a not done child first and then set the task to Juggled.",
           );
           return false;
         }

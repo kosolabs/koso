@@ -292,9 +292,9 @@
     getRow(koso.selected).linkPanel(true, "link");
   }
 
-  function blockTask() {
+  function juggleTask() {
     if (!koso.selected) return;
-    getRow(koso.selected).linkPanel(true, "block");
+    getRow(koso.selected).linkPanel(true, "juggle");
   }
 
   function organizeTasks() {
@@ -546,7 +546,7 @@
         enabled: () => !!koso.selected,
       }),
       new Action({
-        callback: blockTask,
+        callback: juggleTask,
         title: "Block task on...",
         description: "Block current task to another task",
         icon: OctagonX,
@@ -565,7 +565,7 @@
         shortcut: new Shortcut({ key: "/", meta: true }),
       }),
       new Action({
-        callback: blockTask,
+        callback: juggleTask,
         title: "Block task on...",
         description: "Block current task to another task",
         icon: OctagonX,
@@ -600,7 +600,7 @@
 
   // This effect selects a new node when the
   // selected node no longer exists. For example, when
-  // the user marks a task as done or blocked in the inbox
+  // the user marks a task as done or juggled in the inbox
   // or a different user deletes the user's currently selected node.
   $effect(() => {
     const selected = koso.selectedRaw;

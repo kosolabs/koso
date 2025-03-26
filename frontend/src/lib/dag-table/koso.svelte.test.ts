@@ -1178,7 +1178,7 @@ describe("Koso tests", () => {
       expect(koso.getStatus("1")).toBe("Not Started");
     });
 
-    it("returns Blocked for a Blocked juggled task with all children not started", () => {
+    it("returns Juggled for a Juggled task with all children not started", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         {
@@ -1193,7 +1193,7 @@ describe("Koso tests", () => {
       expect(koso.getStatus("1")).toBe("Juggled");
     });
 
-    it("returns original status for a not blocked juggled task with all children not started", () => {
+    it("returns original status for actionable task with all children not started", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         {
@@ -1330,7 +1330,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("juggled task with in progress status and in progress children has blocked status ", () => {
+    it("task with in progress status and in progress children has Juggled status ", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         {
@@ -1355,7 +1355,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("juggled task with nested not done children has blocked status ", () => {
+    it("task with nested not done children has Juggled status ", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         {
@@ -1793,7 +1793,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("set Juggled task with complete children to blocked rejected", () => {
+    it("set task with complete children to Juggled rejected", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         {
@@ -1815,7 +1815,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("set Juggled task with incomplete children to blocked changes status and assignee", () => {
+    it("set task with incomplete children to Juggled changes status and assignee", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         {
@@ -1843,7 +1843,7 @@ describe("Koso tests", () => {
   });
 
   describe("setKind", () => {
-    it("set task 2's status to juggled succeeds and changes status to Blocked", () => {
+    it("set task 2's status to juggled succeeds and changes status to Juggled", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", name: "Task 1" },
