@@ -1420,7 +1420,7 @@ test.describe("dag table tests", () => {
     test("change status from blocked with space key", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
-        { id: "1", children: ["2"], status: "Blocked", kind: "Juggled" },
+        { id: "1", children: ["2"], status: "Blocked", kind: "JUGGLED_KIND" },
         { id: "2", children: [] },
         { id: "3", children: [] },
         { id: "4", children: [] },
@@ -2127,7 +2127,7 @@ test.describe("dag table tests", () => {
       statusButton.click();
       page
         .getByRole("row", { name: "Task 1" })
-        .getByRole("menuitem", { name: "Juggled" })
+        .getByRole("menuitem", { name: "JUGGLED_KIND" })
         .click();
       statusButton = page
         .getByRole("row", { name: "Task 1" })
@@ -2214,7 +2214,7 @@ test.describe("dag table tests", () => {
       statusButton.click();
       page
         .getByRole("row", { name: "Task 1" })
-        .getByRole("menuitem", { name: "Juggled" })
+        .getByRole("menuitem", { name: "JUGGLED_KIND" })
         .click();
       statusButton = page
         .getByRole("row", { name: "Task 1" })

@@ -62,7 +62,7 @@
     } else if (mode === "block") {
       koso.link(taskId, node.name);
       if (setStatusJuggled) {
-        koso.setKind(node.name, "Juggled", auth.user);
+        koso.setKind(node.name, "JUGGLED_KIND", auth.user);
       }
     } else {
       throw new Error(`Unknown mode: ${mode}`);
