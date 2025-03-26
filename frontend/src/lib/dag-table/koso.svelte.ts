@@ -1643,6 +1643,10 @@ export class Koso {
     this.undoManager.redo();
   }
 
+  /**
+   * Organizes the given node and its peers by status, etc. In other words, the
+   * given node's parent's children.
+   */
   organizeTasks(node: Node) {
     function mapStatus(status: Status) {
       switch (status) {

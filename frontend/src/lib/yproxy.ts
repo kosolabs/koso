@@ -255,6 +255,11 @@ export class YChildrenProxy {
     this.#yChildren.delete(index, length);
   }
 
+  /**
+   * Replaces the current children with the given ones.
+   *
+   * If the new children match the existing children, no changes are performed.
+   */
   replace(content: string[]) {
     if (
       this.#yChildren.length === content.length &&
