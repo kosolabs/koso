@@ -271,7 +271,7 @@ impl EventProcessor {
         let mut actionable: Vec<(String, String, String)> = vec![];
         for task in doc.tasks(&txn)? {
             if task.get_kind(&txn)?.unwrap_or_default() == "Task"
-                && task.get_status(&txn)?.unwrap_or_default() == "JUGGLED_STATUS"
+                && task.get_status(&txn)?.unwrap_or_default() == "Juggled"
             {
                 // In the case of removing a child of the juggled task, the
                 // event_task_id will be the id of the juggled task and not

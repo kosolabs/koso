@@ -1423,7 +1423,7 @@ test.describe("dag table tests", () => {
         {
           id: "1",
           children: ["2"],
-          status: "JUGGLED_STATUS",
+          status: "Juggled",
           kind: "Task",
         },
         { id: "2", children: [] },
@@ -2138,11 +2138,11 @@ test.describe("dag table tests", () => {
         .getByRole("row", { name: "Task 1" })
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
-      await expect(statusButton).toHaveText("JUGGLED_STATUS");
+      await expect(statusButton).toHaveText("Juggled");
       let graph = await getKosoGraph(page);
       expect(graph).toMatchObject({
         root: { children: ["1"] },
-        ["1"]: { children: ["2", "3"], status: "JUGGLED_STATUS" },
+        ["1"]: { children: ["2", "3"], status: "Juggled" },
         ["2"]: { children: [] },
         ["3"]: { children: [] },
       });
@@ -2168,7 +2168,7 @@ test.describe("dag table tests", () => {
         .getByRole("row", { name: "Task 1" })
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
-      await expect(statusButton).toHaveText("JUGGLED_STATUS");
+      await expect(statusButton).toHaveText("Juggled");
 
       statusButton = page
         .getByRole("row", { name: "Task 3" })
@@ -2225,11 +2225,11 @@ test.describe("dag table tests", () => {
         .getByRole("row", { name: "Task 1" })
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
-      await expect(statusButton).toHaveText("JUGGLED_STATUS");
+      await expect(statusButton).toHaveText("Juggled");
       let graph = await getKosoGraph(page);
       expect(graph).toMatchObject({
         root: { children: ["1"] },
-        ["1"]: { children: ["2", "3"], status: "JUGGLED_STATUS" },
+        ["1"]: { children: ["2", "3"], status: "Juggled" },
         ["2"]: { children: [] },
         ["3"]: { children: [] },
       });
