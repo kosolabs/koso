@@ -1676,7 +1676,7 @@ export class Koso {
       .map((c) => c.taskId);
 
     this.doc.transact(() => {
-      parent.children.set(children);
+      parent.children.replace(children);
     });
   }
 }

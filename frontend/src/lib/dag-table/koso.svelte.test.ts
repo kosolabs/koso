@@ -2147,6 +2147,14 @@ describe("Koso tests", () => {
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["t7", "t8", "t1", "t2", "t5", "t6", "t3", "t4"] },
       });
+
+      koso.organizeTasks(Node.parse("t3"));
+
+      expect(koso.toJSON()).toMatchObject({
+        root: {
+          children: ["t7", "t8", "t1", "t2", "t5", "t6", "t3", "t4"],
+        },
+      });
     });
 
     it("sorts rollup tasks by rollup status", () => {

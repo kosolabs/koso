@@ -255,7 +255,13 @@ export class YChildrenProxy {
     this.#yChildren.delete(index, length);
   }
 
-  set(content: string[]) {
+  replace(content: string[]) {
+    if (
+      this.#yChildren.length === content.length &&
+      this.#yChildren.toArray().every((v, i) => v === content[i])
+    ) {
+      return;
+    }
     // TODO: Improve this with a clever diff. a la Rust.
     this.#yChildren.delete(0, this.#yChildren.length);
     this.#yChildren.push(content);
