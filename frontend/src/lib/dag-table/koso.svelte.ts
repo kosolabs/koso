@@ -861,27 +861,6 @@ export class Koso {
     );
   }
 
-  reorder(task: string, parent: string, offset: number) {
-    if (offset < 0) {
-      throw new Error(`Offset ${offset} is negative`);
-    }
-
-    const peers = this.getChildren(parent);
-    const srcOffset = peers.indexOf(task);
-
-    if (srcOffset === -1) {
-      throw new Error(`Parent ${parent} does not contain ${task}`);
-    }
-
-    this.doc.transact(() => {
-      peers.delete(srcOffset);
-      if (srcOffset < offset) {
-        offset -= 1;
-      }
-      this.#linkUnchecked(task, parent, offset);
-    });
-  }
-
   // business logic that operate on Nodes
 
   canExpand(node: Node) {
@@ -1662,5 +1641,42 @@ export class Koso {
 
   redo() {
     this.undoManager.redo();
+  }
+
+  organizeTasks(node: Node) {
+    function mapStatus(status: Status) {
+      switch (status) {
+        case "In Progress":
+          return 0;
+        case "Not Started":
+          return 1;
+        case "Blocked":
+          return 2;
+        case "Done":
+          return 3;
+        default:
+          throw new Error(`Invalid status ${status}`);
+      }
+    }
+
+    const parent = this.getTask(node.parent.name);
+    // Sort tasks by status, otherwise
+    // leaving the ordering unchanged thanks to sort() being stable.
+    const children = parent.children
+      .toArray()
+      .map((taskId) => ({
+        taskId,
+        progress: this.getProgress(taskId),
+      }))
+      .sort((c1, c2) => {
+        const status1 = mapStatus(c1.progress.status);
+        const status2 = mapStatus(c2.progress.status);
+        return status1 - status2;
+      })
+      .map((c) => c.taskId);
+
+    this.doc.transact(() => {
+      parent.children.set(children);
+    });
   }
 }

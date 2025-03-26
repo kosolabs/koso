@@ -255,6 +255,12 @@ export class YChildrenProxy {
     this.#yChildren.delete(index, length);
   }
 
+  set(content: string[]) {
+    // TODO: Improve this with a clever diff. a la Rust.
+    this.#yChildren.delete(0, this.#yChildren.length);
+    this.#yChildren.push(content);
+  }
+
   indexOf(content: string): number {
     for (let i = 0; i < this.length; i++) {
       if (this.get(i) === content) {

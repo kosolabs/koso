@@ -40,6 +40,7 @@
     Trash,
     Undo,
     UserRoundPlus,
+    Wrench,
   } from "lucide-svelte";
   import { onMount, setContext, tick } from "svelte";
   import { flip } from "svelte/animate";
@@ -294,6 +295,11 @@
   function blockTask() {
     if (!koso.selected) return;
     getRow(koso.selected).linkPanel(true, "block");
+  }
+
+  function organizeTasks() {
+    if (!koso.selected) return;
+    koso.organizeTasks(koso.selected);
   }
 
   const actions: Action[] = [
@@ -576,6 +582,14 @@
         title: "Block",
         description: "Block current task to another task",
         icon: OctagonX,
+        enabled: () => !!koso.selected,
+      }),
+      new Action({
+        callback: organizeTasks,
+        title: "Organize Tasks",
+        description: "Organize the current task and its peers",
+        icon: Wrench,
+        toolbar: false,
         enabled: () => !!koso.selected,
       }),
     );
