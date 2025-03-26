@@ -1,6 +1,7 @@
 <script module lang="ts">
   import { match } from "$lib/utils";
-  import { Icon } from "lucide-svelte";
+  import { Icon, Terminal } from "lucide-svelte";
+  import { onMount } from "svelte";
   import {
     Command,
     CommandContent,
@@ -12,6 +13,14 @@
   import { Modal } from "../modal";
   import { Shortcut, ShortcutBadge } from "../shortcut";
 
+  export type CommanderProps = {
+    title?: string;
+    description?: string;
+    icon?: typeof Icon;
+    enabled?: () => boolean;
+    shortcut?: Shortcut;
+  };
+
   export type Action = {
     callback: () => void;
     title: string;
@@ -21,87 +30,106 @@
     shortcut?: Shortcut;
   };
 
+  class Registry {
+    #actions: Record<string, Action> = $state({});
+    #shortcuts: Record<string, Action> = {};
+
+    get actions(): Action[] {
+      return Object.values(this.#actions);
+    }
+
+    get(title: string): Action | undefined {
+      return this.#actions[title];
+    }
+
+    getByShortcut(shortcut: Shortcut): Action | undefined {
+      return this.#shortcuts[shortcut.toString()];
+    }
+
+    call(title: string) {
+      const action = this.get(title);
+      if (!action) {
+        throw new Error(`No action named "${title}" is registered`);
+      }
+      return action;
+    }
+
+    register(...actions: Action[]) {
+      for (const action of actions) {
+        if (action.title in this.#actions) {
+          throw new Error(`${action.title} is already registered`);
+        }
+        this.#actions[action.title] = action;
+        if (action.shortcut) {
+          if (action.shortcut.toString() in this.#shortcuts) {
+            throw new Error(`${action.shortcut} is already registered`);
+          }
+          this.#shortcuts[action.shortcut.toString()] = action;
+        }
+      }
+      return () => this.unregister(...actions);
+    }
+
+    unregister(...actions: Action[]) {
+      for (const action of actions) {
+        delete this.#actions[action.title];
+        if (action.shortcut) {
+          delete this.#shortcuts[action.shortcut.toString()];
+        }
+      }
+    }
+  }
+
+  export const command = new Registry();
+</script>
+
+<script lang="ts">
+  let {
+    title = "Command Palette",
+    description = "Show the command palette",
+    icon = Terminal,
+    enabled = () => true,
+    shortcut = new Shortcut({ key: "p", shift: true, meta: true }),
+  }: CommanderProps = $props();
+
   let open: boolean = $state(false);
   let query: string = $state("");
 
-  export const registry: Record<string, Action> = $state({});
-  const shortcuts: Record<string, Action> = {};
-
   const filteredActions = $derived(
-    actions().filter(
+    command.actions.filter(
       (action) =>
         action.enabled() &&
         (match(action.title, query) || match(action.description, query)),
     ),
   );
 
-  export function show() {
-    open = true;
-  }
-
-  export function close() {
+  function handleSelect(action: Action) {
+    action.callback();
     open = false;
   }
 
-  export function register(...actions: Action[]) {
-    for (const action of actions) {
-      if (action.title in registry) {
-        throw new Error(`${action.title} is already registered`);
-      }
-      registry[action.title] = action;
-      if (action.shortcut) {
-        if (action.shortcut.toString() in shortcuts) {
-          throw new Error(`${action.shortcut} is already registered`);
-        }
-        shortcuts[action.shortcut.toString()] = action;
-      }
-    }
-    return () => unregister(...actions);
-  }
-
-  export function unregister(...actions: Action[]) {
-    for (const action of actions) {
-      delete registry[action.title];
-      if (action.shortcut) {
-        delete shortcuts[action.shortcut.toString()];
-      }
-    }
-  }
-
-  export function get(title: string): Action | undefined {
-    return registry[title];
-  }
-
-  export function call(title: string) {
-    const action = get(title);
-    if (!action) {
-      throw new Error(`No action named "${title}" is registered`);
-    }
-    return action;
-  }
-
-  export function actions(): Action[] {
-    return Object.values(registry);
-  }
-
-  function handleSelect(action: Action) {
-    action.callback();
-    close();
-  }
-
   function handleKeyDown(event: KeyboardEvent) {
-    const action = shortcuts[Shortcut.fromEvent(event).toString()];
+    const action = command.getByShortcut(Shortcut.fromEvent(event));
     if (action && action.enabled()) {
       action.callback();
       event.preventDefault();
       event.stopImmediatePropagation();
     }
   }
-</script>
 
-<script lang="ts">
   $effect(() => {
     return events.on("keydown", handleKeyDown);
+  });
+
+  onMount(() => {
+    return command.register({
+      callback: () => (open = true),
+      title,
+      description,
+      icon,
+      enabled,
+      shortcut,
+    });
   });
 </script>
 

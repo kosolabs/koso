@@ -655,7 +655,7 @@
 
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<Toolbar actions={command.actions() as Action[]}>
+<Toolbar actions={command.actions as Action[]}>
   {#await koso.synced then}
     {#if koso.nodes.size > 1}
       <table class="w-full border-separate border-spacing-0 rounded-md border">
