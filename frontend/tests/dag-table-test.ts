@@ -1424,7 +1424,7 @@ test.describe("dag table tests", () => {
           id: "1",
           children: ["2"],
           status: "JUGGLED_STATUS",
-          kind: "JUGGLED_KIND",
+          kind: "Task",
         },
         { id: "2", children: [] },
         { id: "3", children: [] },
@@ -2132,7 +2132,7 @@ test.describe("dag table tests", () => {
       statusButton.click();
       page
         .getByRole("row", { name: "Task 1" })
-        .getByRole("menuitem", { name: "JUGGLED_KIND" })
+        .getByRole("menuitem", { name: "Task" })
         .click();
       statusButton = page
         .getByRole("row", { name: "Task 1" })
@@ -2219,7 +2219,7 @@ test.describe("dag table tests", () => {
       statusButton.click();
       page
         .getByRole("row", { name: "Task 1" })
-        .getByRole("menuitem", { name: "JUGGLED_KIND" })
+        .getByRole("menuitem", { name: "Task" })
         .click();
       statusButton = page
         .getByRole("row", { name: "Task 1" })

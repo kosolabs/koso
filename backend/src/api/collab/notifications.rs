@@ -270,7 +270,7 @@ impl EventProcessor {
         // Perform a DFS starting from all Blocked, juggled tasks.
         let mut actionable: Vec<(String, String, String)> = vec![];
         for task in doc.tasks(&txn)? {
-            if task.get_kind(&txn)?.unwrap_or_default() == "JUGGLED_KIND"
+            if task.get_kind(&txn)?.unwrap_or_default() == "Task"
                 && task.get_status(&txn)?.unwrap_or_default() == "JUGGLED_STATUS"
             {
                 // In the case of removing a child of the juggled task, the

@@ -947,7 +947,7 @@ describe("Koso tests", () => {
         },
         { id: "3", name: "Some Other PR", kind: "github_pr_other" },
         { id: "4", name: "Some Rollup task", kind: "Rollup" },
-        { id: "5", name: "Some Juggled task", kind: "JUGGLED_KIND" },
+        { id: "5", name: "Some Juggled task", kind: "Task" },
       ]);
       koso.deleteNode(Node.parse("1/github"));
       koso.deleteNode(Node.parse("1/github_pr"));
@@ -1184,7 +1184,7 @@ describe("Koso tests", () => {
         {
           id: "1",
           children: ["2", "3"],
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           status: "JUGGLED_STATUS",
         },
         { id: "2", status: "Not Started" },
@@ -1199,7 +1199,7 @@ describe("Koso tests", () => {
         {
           id: "1",
           children: ["2", "3"],
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           status: "Not Started",
         },
         { id: "2", status: "Not Started" },
@@ -1287,7 +1287,7 @@ describe("Koso tests", () => {
           id: "1",
           children: ["2", "3"],
           statusTime: now,
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           status: "In Progress",
         },
         { id: "2", status: "Done", statusTime: 0 },
@@ -1299,7 +1299,7 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-        kind: "JUGGLED_KIND",
+        kind: "Task",
         status: "In Progress",
         childrenStatus: "Done",
       });
@@ -1312,7 +1312,7 @@ describe("Koso tests", () => {
           id: "1",
           children: ["2", "3"],
           statusTime: now,
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           status: "Done",
         },
         { id: "2", status: "Not Started", statusTime: 0 },
@@ -1324,7 +1324,7 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-        kind: "JUGGLED_KIND",
+        kind: "Task",
         status: "Done",
         childrenStatus: "In Progress",
       });
@@ -1337,7 +1337,7 @@ describe("Koso tests", () => {
           id: "1",
           children: ["2", "3"],
           statusTime: now,
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           status: "In Progress",
         },
         { id: "2", status: "Not Started", statusTime: 0 },
@@ -1349,7 +1349,7 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-        kind: "JUGGLED_KIND",
+        kind: "Task",
         status: "In Progress",
         childrenStatus: "In Progress",
       });
@@ -1362,7 +1362,7 @@ describe("Koso tests", () => {
           id: "1",
           children: ["2"],
           statusTime: now,
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           status: "Done",
         },
         { id: "2", status: "Done", children: ["3"], statusTime: 0 },
@@ -1374,7 +1374,7 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-        kind: "JUGGLED_KIND",
+        kind: "Task",
         status: "Done",
         childrenStatus: "In Progress",
       });
@@ -1387,7 +1387,7 @@ describe("Koso tests", () => {
           id: "1",
           children: [],
           statusTime: now,
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           status: "In Progress",
         },
       ]);
@@ -1799,7 +1799,7 @@ describe("Koso tests", () => {
         {
           id: "1",
           name: "Task 1",
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           children: ["2"],
           status: "In Progress",
         },
@@ -1823,7 +1823,7 @@ describe("Koso tests", () => {
         {
           id: "1",
           name: "Task 1",
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           children: ["2"],
           status: "In Progress",
         },
@@ -1854,13 +1854,13 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2", children: ["1"] },
       ]);
 
-      expect(koso.setKind("2", "JUGGLED_KIND", USER)).toBe(true);
+      expect(koso.setKind("2", "Task", USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
         ["1"]: { status: null, children: [], assignee: null },
         ["2"]: {
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           status: "JUGGLED_STATUS",
           children: ["1"],
           assignee: "t@koso.app",
@@ -1881,7 +1881,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3", status: "Done" },
       ]);
 
-      expect(koso.setKind("2", "JUGGLED_KIND", USER)).toBe(false);
+      expect(koso.setKind("2", "Task", USER)).toBe(false);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -1900,16 +1900,16 @@ describe("Koso tests", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", name: "Task 1" },
-        { id: "2", name: "Task 2", status: "Done", kind: "JUGGLED_KIND" },
+        { id: "2", name: "Task 2", status: "Done", kind: "Task" },
       ]);
 
-      expect(koso.setKind("2", "JUGGLED_KIND", USER)).toBe(false);
+      expect(koso.setKind("2", "Task", USER)).toBe(false);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
         ["1"]: { status: null, children: [], assignee: null },
         ["2"]: {
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           status: "Done",
           children: [],
           assignee: null,
@@ -1924,7 +1924,7 @@ describe("Koso tests", () => {
         {
           id: "2",
           name: "Task 2",
-          kind: "JUGGLED_KIND",
+          kind: "Task",
           status: "Done",
           children: ["1"],
         },
