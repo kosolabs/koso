@@ -2248,4 +2248,27 @@ test.describe("dag table tests", () => {
       });
     });
   });
+
+  test.describe("organizing tasks", () => {
+    test("organize task action sorts tasks", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
+        { id: "1", status: "Done" },
+        { id: "2", status: "Not Started" },
+        { id: "3", status: "In Progress" },
+      ]);
+
+      await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
+
+      await page.getByRole("button", { name: "Palette" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+
+      await page.keyboard.type("Organize Tasks");
+      await page.keyboard.press("Enter");
+
+      await expectKosoGraph(page).toMatchObject({
+        root: { children: ["3", "2", "1"] },
+      });
+    });
+  });
 });

@@ -2099,4 +2099,90 @@ describe("Koso tests", () => {
       expect(koso.getNextLink(Node.parse("t2"))).toBeNull();
     });
   });
+
+  describe("organizeTasks", () => {
+    it("sorts peer tasks by status", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8"],
+        },
+        { id: "t1", status: "Not Started" },
+        { id: "t2", status: "Not Started" },
+        { id: "t3", status: "Done" },
+        { id: "t4", status: "Done" },
+        { id: "t5", status: "Blocked" },
+        { id: "t6", status: "Blocked" },
+        { id: "t7", status: "In Progress" },
+        { id: "t8", status: "In Progress" },
+      ]);
+
+      koso.organizeTasks(Node.parse("t4"));
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["t7", "t8", "t1", "t2", "t5", "t6", "t3", "t4"] },
+      });
+    });
+
+    it("sort is stable", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t7", "t8", "t1", "t2", "t5", "t6", "t3", "t4"],
+        },
+        { id: "t1", status: "Not Started" },
+        { id: "t2", status: "Not Started" },
+        { id: "t3", status: "Done" },
+        { id: "t4", status: "Done" },
+        { id: "t5", status: "Blocked" },
+        { id: "t6", status: "Blocked" },
+        { id: "t7", status: "In Progress" },
+        { id: "t8", status: "In Progress" },
+      ]);
+
+      koso.organizeTasks(Node.parse("t4"));
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["t7", "t8", "t1", "t2", "t5", "t6", "t3", "t4"] },
+      });
+
+      koso.organizeTasks(Node.parse("t3"));
+
+      expect(koso.toJSON()).toMatchObject({
+        root: {
+          children: ["t7", "t8", "t1", "t2", "t5", "t6", "t3", "t4"],
+        },
+      });
+    });
+
+    it("sorts rollup tasks by rollup status", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t4", "t3", "t2"],
+        },
+        { id: "t1", status: "In Progress" },
+        { id: "t2", status: "Not Started", children: ["t5", "t6"] },
+        { id: "t3", status: "In Progress", children: ["t7", "t8"] },
+        { id: "t4", status: "In Progress", children: ["t9", "t10"] },
+        { id: "t5", status: "In Progress" },
+        { id: "t6", status: "Not Started" },
+        { id: "t7", status: "Not Started" },
+        { id: "t8" },
+        { id: "t9", status: "Done" },
+        { id: "t10", status: "Done" },
+      ]);
+
+      koso.organizeTasks(Node.parse("t1"));
+
+      expect(koso.toJSON()).toMatchObject({
+        root: {
+          children: ["t1", "t2", "t3", "t4"],
+        },
+      });
+    });
+  });
 });

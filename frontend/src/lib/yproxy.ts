@@ -255,6 +255,23 @@ export class YChildrenProxy {
     this.#yChildren.delete(index, length);
   }
 
+  /**
+   * Replaces the current children with the given ones.
+   *
+   * If the new children match the existing children, no changes are performed.
+   */
+  replace(content: string[]) {
+    if (
+      this.#yChildren.length === content.length &&
+      this.#yChildren.toArray().every((v, i) => v === content[i])
+    ) {
+      return;
+    }
+    // TODO: Improve this with a clever diff. a la Rust.
+    this.#yChildren.delete(0, this.#yChildren.length);
+    this.#yChildren.push(content);
+  }
+
   indexOf(content: string): number {
     for (let i = 0; i < this.length; i++) {
       if (this.get(i) === content) {
