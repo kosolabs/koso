@@ -5,9 +5,8 @@
   import { toast, Toaster } from "$lib/components/ui/sonner";
   import { command, Commander } from "$lib/kosui/command";
   import { Dialoguer } from "$lib/kosui/dialog";
-  import { Shortcut } from "$lib/kosui/shortcut";
   import { Action } from "$lib/shortcuts";
-  import { Moon, Sun, SunMoon, Terminal } from "lucide-svelte";
+  import { Moon, Sun, SunMoon } from "lucide-svelte";
   import { ModeWatcher, resetMode, setMode } from "mode-watcher";
   import { onMount } from "svelte";
   import { Workbox } from "workbox-window";
@@ -31,13 +30,6 @@
   const wb = register();
 
   const actions: Action[] = [
-    new Action({
-      callback: command.show,
-      title: "Command Palette",
-      description: "Show the command palette",
-      icon: Terminal,
-      shortcut: new Shortcut({ key: "p", shift: true, meta: true }),
-    }),
     new Action({
       callback: () => setMode("light"),
       title: "Light",
