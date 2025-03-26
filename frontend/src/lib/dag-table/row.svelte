@@ -5,7 +5,7 @@
   import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
   import { toast } from "$lib/components/ui/sonner";
-  import TaskAction from "$lib/components/ui/task-action/task-action.svelte";
+  import { TaskStatus } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { Chip } from "$lib/kosui/chip";
   import { Link } from "$lib/kosui/link";
@@ -34,7 +34,7 @@
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
   let handleElement: HTMLButtonElement | undefined = $state();
-  let taskAction = $state<TaskAction | undefined>();
+  let taskAction = $state<TaskStatus | undefined>();
 
   let dragOverPeer = $state(false);
   let dragOverChild = $state(false);
@@ -404,7 +404,7 @@
     </td>
   {/if}
   <td class={cn("border-t border-l p-2")}>
-    <TaskAction {node} {koso} {inboxView} bind:this={taskAction} />
+    <TaskStatus {node} {koso} {inboxView} bind:this={taskAction} />
   </td>
   <td class={cn("w-full border-t border-l px-2 py-1")}>
     <div class={cn("flex items-center gap-x-1")}>
