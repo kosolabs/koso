@@ -648,7 +648,7 @@ export class Koso {
       total: 0,
       lastStatusTime: task.statusTime ?? 0,
       kind:
-        task.yKind == "Juggled" && task.children.length === 0
+        task.yKind == "Task" && task.children.length === 0
           ? null
           : task.yKind || (task.children.length > 0 ? "Rollup" : null),
     });
@@ -715,7 +715,7 @@ export class Koso {
       result.done += childDone;
       result.total += childTotal;
       result.status = result.childrenStatus || "Not Started";
-    } else if (result.kind === "Juggled") {
+    } else if (result.kind === "Task") {
       if (result.status === "Blocked" && !result.isChildrenIncomplete()) {
         // Auto-unblock unblocked tasks with the Blocked status
         result.status = "Not Started";
@@ -1533,10 +1533,10 @@ export class Koso {
   setKind(taskId: string, kind: Kind, user: User): boolean {
     return this.doc.transact(() => {
       const task = this.getTask(taskId);
-      if (kind === "Juggled") {
+      if (kind === "Task") {
         const progress = this.getProgress(taskId);
         if (progress.isChildrenIncomplete()) {
-          task.yKind = "Juggled";
+          task.yKind = "Task";
           task.yStatus = "Blocked";
           task.statusTime = Date.now();
           if (!task.assignee) {
@@ -1589,7 +1589,7 @@ export class Koso {
 
         return true;
       } else if (status === "Blocked") {
-        if (task.yKind !== "Juggled") {
+        if (task.yKind !== "Task") {
           throw new Error(`Can only set Juggled tasks to blocked: ${taskId}`);
         }
 

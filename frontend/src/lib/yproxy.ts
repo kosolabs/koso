@@ -30,8 +30,8 @@ export type Task = {
 };
 export type Status = "Not Started" | "In Progress" | "Done" | "Blocked";
 export type Kind = YKind | "Rollup";
-export type YKind = "Juggled" | "github" | "github_pr";
-export const unmanagedKinds: Set<Kind> = Set.of("Rollup", "Juggled");
+export type YKind = "Task" | "github" | "github_pr";
+export const unmanagedKinds: Set<Kind> = Set.of("Rollup", "Task");
 
 export type Slice = {
   start?: number;

@@ -35,7 +35,7 @@
   );
   let canSetKind = $derived(
     koso.isEditable(task.id) &&
-      (progress.kind === "Rollup" || progress.kind === "Juggled"),
+      (progress.kind === "Rollup" || progress.kind === "Task"),
   );
   let statuses: Status[] = ["Not Started", "In Progress", "Done", "Blocked"];
 
@@ -145,7 +145,7 @@
         >
           {#if kind === "Rollup"}
             <LoaderCircle class="text-m3-primary" />
-          {:else if kind === "Juggled"}
+          {:else if kind === "Task"}
             <Bot class="text-m3-primary" />
           {/if}
           {kind}
