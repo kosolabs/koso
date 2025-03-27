@@ -11,7 +11,7 @@
   import { Link } from "$lib/kosui/link";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
-  import { ChevronRight, Grip, MoreVertical } from "lucide-svelte";
+  import { ChevronRight, Grip } from "lucide-svelte";
   import { getContext } from "svelte";
   import { Node, type Koso } from ".";
   import Awareness, {
@@ -20,6 +20,7 @@
   } from "./awareness.svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel, { type Mode } from "./link-panel.svelte";
+  import TaskAction from "./task-action.svelte";
 
   type Props = {
     index: number;
@@ -34,7 +35,7 @@
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
   let handleElement: HTMLButtonElement | undefined = $state();
-  let taskAction = $state<TaskStatus | undefined>();
+  let taskStatus = $state<TaskStatus | undefined>();
 
   let dragOverPeer = $state(false);
   let dragOverChild = $state(false);
@@ -68,7 +69,7 @@
   }
 
   export function showDoneConfetti() {
-    taskAction?.showDoneConfetti();
+    taskStatus?.showDoneConfetti();
   }
 
   export function linkPanel(visible: boolean, mode: Mode) {
@@ -404,7 +405,7 @@
     </td>
   {/if}
   <td class={cn("border-t border-l p-2")}>
-    <TaskStatus {node} {koso} {inboxView} bind:this={taskAction} />
+    <TaskStatus {node} {koso} {inboxView} bind:this={taskStatus} />
   </td>
   <td class={cn("w-full border-t border-l px-2 py-1")}>
     <div class={cn("flex items-center gap-x-1")}>
@@ -460,8 +461,8 @@
       </div>
     </div>
   </td>
-  <td class={cn("border-t p-2")}>
-    <MoreVertical size={16} />
+  <td class={cn("border-t px-1")}>
+    <TaskAction />
   </td>
   <td class={cn("border-t border-l p-2")}>
     <UserSelect

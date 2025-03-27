@@ -33,7 +33,7 @@
   role="menu"
   class={twMerge(
     baseClasses({ variant, color, shape }),
-    "bg-m3-surface-container-highest max-h-[40%] border p-1 shadow",
+    "bg-m3-surface-container-highest max-h-[60%] border p-1 shadow",
     className,
   )}
   {placement}

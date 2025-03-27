@@ -18,6 +18,13 @@ export async function getKosoGraph(page: Page): Promise<Graph> {
   return page.evaluate("koso.toJSON()");
 }
 
+export async function expectNothingFocused(page: Page) {
+  const isFocusOnBody = await page.evaluate(
+    () => document.activeElement === document.body,
+  );
+  expect(isFocusOnBody).toBeTruthy();
+}
+
 export function expectKosoGraph(page: Page) {
   return expect.poll(
     async () => {

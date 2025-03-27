@@ -1018,12 +1018,12 @@ export class Koso {
     return null;
   }
 
-  canDeleteNode(task: string, parent: string): boolean {
-    return !this.#isCanonicalManagedLink(task, parent);
+  canDeleteNode(node: Node): boolean {
+    return !this.#isCanonicalManagedLink(node.name, node.parent.name);
   }
 
   deleteNode(node: Node) {
-    if (!this.canDeleteNode(node.name, node.parent.name)) {
+    if (!this.canDeleteNode(node)) {
       throw new Error(`Cannot delete node ${node}`);
     }
 

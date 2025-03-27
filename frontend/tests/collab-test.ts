@@ -5,6 +5,7 @@ import {
   type Page,
 } from "@playwright/test";
 import {
+  expectNothingFocused,
   generateEmail,
   getKosoGraph,
   getTaskNumToTaskIdMap,
@@ -98,7 +99,11 @@ test.describe("Collaboration tests", () => {
     await expect(page1.getByRole("row", { name: "Task 2" })).toBeVisible();
     expect(graph).toStrictEqual(await getKosoGraph(page2));
 
-    await page1.getByRole("button", { name: "Delete" }).click();
+    await page1
+      .getByRole("row", { name: "Task 1" })
+      .getByRole("button", { name: "Task Actions" })
+      .click();
+    await page1.getByRole("menuitem", { name: "Delete" }).click();
 
     await expect(page1.getByRole("row", { name: "Task 1" })).toBeHidden();
     graph = await getKosoGraph(page1);
@@ -107,7 +112,11 @@ test.describe("Collaboration tests", () => {
     await expect(page2.getByRole("row", { name: "Task 1" })).toBeHidden();
     expect(graph).toStrictEqual(await getKosoGraph(page2));
 
-    await page2.getByRole("button", { name: "Delete" }).click();
+    await page2
+      .getByRole("row", { name: "Task 2" })
+      .getByRole("button", { name: "Task Actions" })
+      .click();
+    await page2.getByRole("menuitem", { name: "Delete" }).click();
 
     await expect(page2.getByRole("row", { name: "Task 2" })).toBeHidden();
     graph = await getKosoGraph(page2);
@@ -131,21 +140,24 @@ test.describe("Collaboration tests", () => {
 
     await page2.getByRole("button", { name: "Task 2 Drag Handle" }).click();
     await page1.getByRole("button", { name: "Task 2 Drag Handle" }).click();
-    await page1.getByRole("button", { name: "Delete" }).click();
+    await page1.keyboard.press("Delete");
     await expect(page2.getByRole("row", { name: "Task 2" })).toBeHidden();
     await expect(page1.getByRole("row", { name: "Task 3" })).toBeFocused();
     await expect(page2.getByRole("row", { name: "Task 3" })).toBeFocused();
 
-    await page1.getByRole("button", { name: "Delete" }).click();
+    await page1.keyboard.press("Delete");
     await expect(page2.getByRole("row", { name: "Task 3" })).toBeHidden();
     await expect(page1.getByRole("row", { name: "Task 1" })).toBeFocused();
     await expect(page2.getByRole("row", { name: "Task 1" })).toBeFocused();
 
-    await page1.getByRole("button", { name: "Delete" }).click();
+    await page1.keyboard.press("Delete");
     await expect(page2.getByRole("row", { name: "Task 1" })).toBeHidden();
     await expect(page2.getByRole("row", { name: "Task 1" })).toBeHidden();
-    await expect(page1.getByRole("button", { name: "Delete" })).toBeHidden();
-    await expect(page2.getByRole("button", { name: "Delete" })).toBeHidden();
+    console.log(
+      await page1.evaluate(() => document.activeElement === document.body),
+    );
+    await expectNothingFocused(page1);
+    await expectNothingFocused(page2);
     await expect(page1.getByRole("button", { name: "Add Task" })).toBeVisible();
     await expect(page1.getByRole("button", { name: "Add Task" })).toBeVisible();
   });

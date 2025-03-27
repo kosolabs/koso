@@ -111,8 +111,11 @@ test.describe("dag table tests", () => {
         { id: "root", name: "Root", children: ["1", "2", "3"] },
       ]);
 
-      await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
-      await page.getByRole("button", { name: "Delete" }).click();
+      await page
+        .getByRole("row", { name: "Task 2" })
+        .getByRole("button", { name: "Task Actions" })
+        .click();
+      await page.getByRole("menuitem", { name: "Delete task" }).click();
 
       await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
       await expect(page.getByRole("row", { name: "Task 3" })).toBeFocused();
@@ -1571,7 +1574,6 @@ test.describe("dag table tests", () => {
       await page.keyboard.press("Delete");
       await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-      await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1"] },
         ["1"]: { children: [] },
@@ -1580,8 +1582,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Undo" }).click();
       await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
       await expect(page.getByRole("row", { name: "Task 2" })).toBeFocused();
-      await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expectKosoGraph(page).toMatchObject({
         root: { children: ["1", "2"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
@@ -1614,8 +1615,7 @@ test.describe("dag table tests", () => {
       await page.getByRole("button", { name: "Undo" }).click();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
-      await expect(page.getByRole("button", { name: "Delete" })).toBeVisible();
-      expect(await getKosoGraph(page)).toMatchObject({
+      await expectKosoGraph(page).toMatchObject({
         root: { children: ["1"] },
         ["1"]: { children: [] },
       });
@@ -2230,8 +2230,11 @@ test.describe("dag table tests", () => {
       });
       expect(graph["1"].assignee).toContain("-test@test.koso.app");
 
-      await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
-      await page.getByRole("button", { name: "Delete" }).click();
+      await page
+        .getByRole("row", { name: "Task 3" })
+        .getByRole("button", { name: "Task Actions" })
+        .click();
+      await page.getByRole("menuitem", { name: "Delete" }).click();
 
       statusButton = page
         .getByRole("row", { name: "Task 1" })
