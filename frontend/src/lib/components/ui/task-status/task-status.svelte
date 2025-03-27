@@ -35,7 +35,8 @@
   );
   let canSetKind = $derived(
     koso.isEditable(task.id) &&
-      (progress.kind === "Rollup" || progress.kind === "Task"),
+      (progress.kind === "Rollup" ||
+        (progress.kind === "Task" && progress.childrenStatus != null)),
   );
   let statuses: Status[] = ["Not Started", "In Progress", "Done", "Blocked"];
 
