@@ -2108,7 +2108,7 @@ test.describe("dag table tests", () => {
     });
   });
 
-  test.describe("juggling tasks", () => {
+  test.describe("blocking tasks", () => {
     test("block and unblock a task by resolving children", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1"] },

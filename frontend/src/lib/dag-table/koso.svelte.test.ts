@@ -947,7 +947,7 @@ describe("Koso tests", () => {
         },
         { id: "3", name: "Some Other PR", kind: "github_pr_other" },
         { id: "4", name: "Some Rollup task", kind: "Rollup" },
-        { id: "5", name: "Some Juggled task", kind: "Task" },
+        { id: "5", name: "Some task", kind: "Task" },
       ]);
       koso.deleteNode(Node.parse("1/github"));
       koso.deleteNode(Node.parse("1/github_pr"));
@@ -1178,7 +1178,7 @@ describe("Koso tests", () => {
       expect(koso.getStatus("1")).toBe("Not Started");
     });
 
-    it("returns Blocked for a Blocked juggled task with all children not started", () => {
+    it("returns Blocked for a Blocked task with all children not started", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "3"], kind: "Task", status: "Blocked" },
@@ -1188,7 +1188,7 @@ describe("Koso tests", () => {
       expect(koso.getStatus("1")).toBe("Blocked");
     });
 
-    it("returns original status for a not blocked juggled task with all children not started", () => {
+    it("returns original status for a not blocked task with all children not started", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         {
@@ -1275,7 +1275,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("juggled task with all children done and In Progress status has In Progress status ", () => {
+    it("task with all children done and In Progress status has In Progress status ", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         {
@@ -1300,7 +1300,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("juggled task with done status and in progress children has Done status ", () => {
+    it("task with done status and in progress children has Done status ", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         {
@@ -1325,7 +1325,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("juggled task with in progress status and in progress children has blocked status ", () => {
+    it("task with in progress status and in progress children has blocked status ", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         {
@@ -1350,7 +1350,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("juggled task with nested not done children has blocked status ", () => {
+    it("task with nested not done children has blocked status ", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         {
@@ -1375,7 +1375,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("juggled task no children returns null kind", () => {
+    it("task no children returns null kind", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         {
@@ -1788,7 +1788,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("set Juggled task with complete children to blocked rejected", () => {
+    it("set task with complete children to blocked rejected", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         {
@@ -1810,7 +1810,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("set Juggled task with incomplete children to blocked changes status and assignee", () => {
+    it("set task with incomplete children to blocked changes status and assignee", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         {
@@ -1834,7 +1834,7 @@ describe("Koso tests", () => {
   });
 
   describe("setKind", () => {
-    it("set task 2's status to juggled succeeds and changes status to Blocked", () => {
+    it("set task 2's status to succeeds and changes status to Blocked", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", name: "Task 1" },
@@ -1883,7 +1883,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("set existing juggled task to juggled makes no changes", () => {
+    it("set existing task to makes no changes", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", name: "Task 1" },
