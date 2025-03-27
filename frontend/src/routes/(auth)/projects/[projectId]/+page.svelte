@@ -10,7 +10,7 @@
   import { githubInstallUrl } from "$lib/github";
   import { Alert } from "$lib/kosui/alert";
   import { baseClasses } from "$lib/kosui/base";
-  import { command } from "$lib/kosui/command";
+  import { Action, command } from "$lib/kosui/command";
   import { Menu, MenuContent, MenuTrigger } from "$lib/kosui/menu";
   import MenuItem from "$lib/kosui/menu/menu-item.svelte";
   import { nav } from "$lib/nav.svelte";
@@ -21,7 +21,6 @@
     type Project,
     updateProject,
   } from "$lib/projects";
-  import { Action } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import { FileDown, Mail, MenuIcon, PlugZap, UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
@@ -100,7 +99,6 @@
       title: "Export Project",
       description: "Export project to JSON",
       icon: FileDown,
-      toolbar: false,
     }),
   ];
 

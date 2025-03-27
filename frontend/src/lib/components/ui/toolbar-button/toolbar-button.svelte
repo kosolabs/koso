@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button } from "$lib/kosui/button";
-  import type { Action } from "$lib/shortcuts";
+  import type { Action } from "$lib/kosui/command";
 
   const { icon, title, description, shortcut, callback }: Action = $props();
 </script>

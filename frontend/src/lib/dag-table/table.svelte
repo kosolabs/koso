@@ -4,14 +4,9 @@
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
-  import { command } from "$lib/kosui/command";
+  import { Action, command } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
-  import {
-    Action,
-    CANCEL,
-    INSERT_CHILD_NODE,
-    INSERT_NODE,
-  } from "$lib/shortcuts";
+  import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
   import {
     Cable,
     Check,
@@ -302,6 +297,40 @@
     koso.organizeTasks(koso.selected);
   }
 
+  const insertAction: Action = {
+    callback: insert,
+    title: "Add",
+    description: "Add or insert a new task",
+    icon: ListPlus,
+    shortcut: INSERT_NODE,
+    enabled: () =>
+      !inboxView &&
+      (!koso.selected || koso.canInsert(koso.selected.parent.name)),
+  };
+
+  const undoAction = new Action({
+    callback: undo,
+    title: "Undo",
+    icon: Undo,
+    shortcut: new Shortcut({ key: "z", meta: true }),
+  });
+
+  const redoAction = new Action({
+    callback: redo,
+    title: "Redo",
+    icon: Redo,
+    shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
+  });
+
+  const searchAction = new Action({
+    callback: showSearchPalette,
+    title: "Search",
+    description: "Show the search palette",
+    icon: Search,
+    enabled: () => !inboxView,
+    shortcut: new Shortcut({ key: "p", meta: true }),
+  });
+
   const actions: Action[] = [
     new Action({
       callback: selectNext,
@@ -349,17 +378,7 @@
       icon: ChevronsDownUp,
       enabled: () => !inboxView,
     }),
-    new Action({
-      callback: insert,
-      title: "Add",
-      description: "Add or insert a new task",
-      icon: ListPlus,
-      toolbar: true,
-      shortcut: INSERT_NODE,
-      enabled: () =>
-        !inboxView &&
-        (!koso.selected || koso.canInsert(koso.selected.parent.name)),
-    }),
+    insertAction,
     new Action({
       callback: insertAbove,
       title: "Insert Above",
@@ -473,20 +492,8 @@
         !inboxView && !!koso.selected && koso.canIndentNode(koso.selected),
       shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
     }),
-    new Action({
-      callback: undo,
-      title: "Undo",
-      icon: Undo,
-      toolbar: true,
-      shortcut: new Shortcut({ key: "z", meta: true }),
-    }),
-    new Action({
-      callback: redo,
-      title: "Redo",
-      icon: Redo,
-      toolbar: true,
-      shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
-    }),
+    undoAction,
+    redoAction,
     new Action({
       callback: toggleStatus,
       title: "Toggle Task Status",
@@ -509,15 +516,7 @@
       icon: Eye,
       enabled: () => !inboxView && !koso.showDone,
     }),
-    new Action({
-      callback: showSearchPalette,
-      title: "Search",
-      description: "Show the search palette",
-      icon: Search,
-      toolbar: true,
-      enabled: () => !inboxView,
-      shortcut: new Shortcut({ key: "p", meta: true }),
-    }),
+    searchAction,
     new Action({
       callback: selectNextLink,
       title: "Next Link",
@@ -641,7 +640,7 @@
 
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<Toolbar actions={command.actions as Action[]}>
+<Toolbar actions={[insertAction, undoAction, redoAction, searchAction]}>
   {#await koso.synced then}
     {#if koso.nodes.size > 1}
       <table class="w-full border-separate border-spacing-0 rounded-md border">
