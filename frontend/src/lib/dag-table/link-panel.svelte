@@ -60,11 +60,13 @@
     if (mode === "link") {
       koso.link(node.name, taskId);
     } else if (mode === "block") {
-      koso.link(taskId, node.name);
-      if (setStatusBlocked) {
-        koso.setKind(node.name, "Task");
-        koso.setTaskStatus(node, "Blocked", auth.user);
-      }
+      koso.doc.transact(() => {
+        koso.link(taskId, node.name);
+        if (setStatusBlocked) {
+          koso.setKind(node.name, "Task");
+          koso.setTaskStatus(node, "Blocked", auth.user);
+        }
+      });
     } else {
       throw new Error(`Unknown mode: ${mode}`);
     }
