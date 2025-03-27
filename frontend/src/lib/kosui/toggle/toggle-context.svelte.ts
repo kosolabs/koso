@@ -1,12 +1,12 @@
 import { getContext, setContext } from "svelte";
 
-export class ToggleContext {
-  #value: string | undefined = $state(undefined);
-  setValue: (val: string | undefined) => void;
+export class ToggleContext<T> {
+  #value: T | undefined = $state(undefined);
+  setValue: (val: T | undefined) => void;
 
   constructor(
-    getValue: () => string | undefined,
-    setValue: (val: string | undefined) => void,
+    getValue: () => T | undefined,
+    setValue: (val: T | undefined) => void,
   ) {
     this.#value = getValue();
     this.setValue = setValue;
@@ -18,11 +18,11 @@ export class ToggleContext {
     });
   }
 
-  get value(): string | undefined {
+  get value(): T | undefined {
     return this.#value;
   }
 
-  set value(value: string | undefined) {
+  set value(value: T | undefined) {
     if (this.#value !== value) {
       this.#value = value;
       this.setValue(value);
@@ -30,17 +30,17 @@ export class ToggleContext {
   }
 }
 
-export function newToggleContext(
-  getValue: () => string | undefined,
-  setValue: (val: string | undefined) => void,
+export function newToggleContext<T>(
+  getValue: () => T | undefined,
+  setValue: (val: T | undefined) => void,
 ) {
   return setToggleContext(new ToggleContext(getValue, setValue));
 }
 
-export function setToggleContext(state: ToggleContext): ToggleContext {
-  return setContext<ToggleContext>(ToggleContext, state);
+export function setToggleContext<T>(state: ToggleContext<T>): ToggleContext<T> {
+  return setContext<ToggleContext<T>>(ToggleContext, state);
 }
 
-export function getToggleContext(): ToggleContext {
-  return getContext<ToggleContext>(ToggleContext);
+export function getToggleContext<T>(): ToggleContext<T> {
+  return getContext<ToggleContext<T>>(ToggleContext);
 }

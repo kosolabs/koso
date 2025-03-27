@@ -7,16 +7,16 @@
   import { noop, type ClassName, type ElementRef } from "../utils";
   import { getToggleContext } from "./toggle-context.svelte";
 
-  export type ToggleButtonProps = {
-    value: string;
+  export type ToggleButtonProps<T> = {
+    value: T;
     children: Snippet;
   } & ElementRef &
     ClassName &
     Omit<Variants, "variant"> &
-    HTMLButtonAttributes;
+    Omit<HTMLButtonAttributes, "value">;
 </script>
 
-<script lang="ts">
+<script lang="ts" generics="T">
   let {
     value,
     children,
@@ -26,9 +26,9 @@
     color = "primary",
     shape = "rounded",
     ...restProps
-  }: ToggleButtonProps = $props();
+  }: ToggleButtonProps<T> = $props();
 
-  const ctx = getToggleContext();
+  const ctx = getToggleContext<T>();
 </script>
 
 <button
