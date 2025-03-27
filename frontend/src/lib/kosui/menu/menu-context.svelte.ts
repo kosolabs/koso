@@ -78,7 +78,10 @@ export class MenuContext {
         this.focus(this.items[this.items.length - 1]);
       } else {
         let activeIndex = this.items.indexOf(this.focused);
-        activeIndex = (activeIndex - 1 + this.items.length) % this.items.length;
+        do {
+          activeIndex =
+            (activeIndex - 1 + this.items.length) % this.items.length;
+        } while ((this.items[activeIndex] as HTMLButtonElement).disabled);
         this.focus(this.items[activeIndex]);
       }
       event.preventDefault();
@@ -91,7 +94,9 @@ export class MenuContext {
         this.focus(this.items[0]);
       } else {
         let activeIndex = this.items.indexOf(this.focused);
-        activeIndex = (activeIndex + 1) % this.items.length;
+        do {
+          activeIndex = (activeIndex + 1) % this.items.length;
+        } while ((this.items[activeIndex] as HTMLButtonElement).disabled);
         this.focus(this.items[activeIndex]);
       }
       event.preventDefault();

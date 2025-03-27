@@ -1,7 +1,7 @@
 <script module lang="ts">
   import { match } from "$lib/utils";
   import { Icon, Terminal } from "lucide-svelte";
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import {
     Command,
     CommandContent,
@@ -21,6 +21,7 @@
     shortcut?: Shortcut;
   };
 
+  // TODO: Add a name field
   export type Action = {
     callback: () => void;
     title: string;
@@ -56,9 +57,11 @@
 
     register(...actions: Action[]) {
       for (const action of actions) {
-        if (action.title in this.#actions) {
-          throw new Error(`${action.title} is already registered`);
-        }
+        untrack(() => {
+          if (action.title in this.#actions) {
+            throw new Error(`${action.title} is already registered`);
+          }
+        });
         this.#actions[action.title] = action;
         if (action.shortcut) {
           if (action.shortcut.toString() in this.#shortcuts) {
