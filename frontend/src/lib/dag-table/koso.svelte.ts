@@ -114,7 +114,12 @@ export class Progress {
   lastStatusTime: number;
   status: Status;
   childrenStatus: Status | null;
-  kind: Kind | null;
+  /**
+   * Unlike task.yKind which may be null, this Kind applies auto-kind rules.
+   * Namely, if yKind is null, kind is inferred based on the presence of
+   * children or not, "Rollup" or "Task" respectively.
+   */
+  kind: Kind;
 
   constructor(props: Partial<Progress> = {}) {
     this.inProgress = props.inProgress ?? 0;
@@ -122,7 +127,7 @@ export class Progress {
     this.total = props.total ?? 0;
     this.lastStatusTime = props.lastStatusTime ?? 0;
     this.status = props.status ?? "Not Started";
-    this.kind = props.kind ?? null;
+    this.kind = props.kind ?? "Task";
     this.childrenStatus = props.childrenStatus ?? null;
   }
 
@@ -647,38 +652,8 @@ export class Koso {
       done: 0,
       total: 0,
       lastStatusTime: task.statusTime ?? 0,
-      kind:
-        task.yKind == "Task" && task.children.length === 0
-          ? null
-          : task.yKind || (task.children.length > 0 ? "Rollup" : null),
+      kind: task.yKind || (task.children.length > 0 ? "Rollup" : "Task"),
     });
-
-    if (result.kind !== "Rollup") {
-      switch (task.yStatus || "Not Started") {
-        case "Done":
-          result.done = 1;
-          result.total = 1;
-          result.status = "Done";
-          break;
-        case "In Progress":
-          result.inProgress = 1;
-          result.total = 1;
-          result.status = "In Progress";
-          break;
-        case "Not Started":
-          result.total = 1;
-          result.status = "Not Started";
-          break;
-        case "Blocked":
-          result.total = 1;
-          result.status = "Blocked";
-          break;
-        default:
-          throw new Error(
-            `Invalid status ${task.yStatus} for task ${task.name}`,
-          );
-      }
-    }
 
     let childInProgress = 0;
     let childDone = 0;
@@ -715,10 +690,37 @@ export class Koso {
       result.done += childDone;
       result.total += childTotal;
       result.status = result.childrenStatus || "Not Started";
-    } else if (result.kind === "Task") {
-      if (result.status === "Blocked" && !result.isChildrenIncomplete()) {
-        // Auto-unblock unblocked tasks with the Blocked status
-        result.status = "Not Started";
+    } else {
+      switch (task.yStatus || "Not Started") {
+        case "Done":
+          result.done = 1;
+          result.total = 1;
+          result.status = "Done";
+          break;
+        case "In Progress":
+          result.inProgress = 1;
+          result.total = 1;
+          result.status = "In Progress";
+          break;
+        case "Not Started":
+          result.total = 1;
+          result.status = "Not Started";
+          break;
+        case "Blocked":
+          result.total = 1;
+          result.status = "Blocked";
+          break;
+        default:
+          throw new Error(
+            `Invalid status ${task.yStatus} for task ${task.name}`,
+          );
+      }
+
+      if (result.kind === "Task") {
+        if (result.status === "Blocked" && !result.isChildrenIncomplete()) {
+          // Auto-unblock unblocked tasks with the Blocked status
+          result.status = "Not Started";
+        }
       }
     }
 

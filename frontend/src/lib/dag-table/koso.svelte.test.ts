@@ -1218,7 +1218,7 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: 0,
-        kind: null,
+        kind: "Task",
         status: "Not Started",
         childrenStatus: null,
       });
@@ -1235,7 +1235,7 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-        kind: null,
+        kind: "Task",
         status: "Not Started",
         childrenStatus: null,
       });
@@ -1252,7 +1252,7 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-        kind: null,
+        kind: "Task",
         status: "Done",
         childrenStatus: null,
       });
@@ -1269,7 +1269,7 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-        kind: null,
+        kind: "Task",
         status: "In Progress",
         childrenStatus: null,
       });
@@ -1392,7 +1392,7 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-        kind: null,
+        kind: "Task",
         status: "In Progress",
         childrenStatus: null,
       });
