@@ -648,7 +648,7 @@ export class Koso {
       total: 0,
       lastStatusTime: task.statusTime ?? 0,
       kind:
-        task.yKind == "Juggled" && task.children.length === 0
+        task.yKind == "Task" && task.children.length === 0
           ? null
           : task.yKind || (task.children.length > 0 ? "Rollup" : null),
     });
@@ -715,7 +715,7 @@ export class Koso {
       result.done += childDone;
       result.total += childTotal;
       result.status = result.childrenStatus || "Not Started";
-    } else if (result.kind === "Juggled") {
+    } else if (result.kind === "Task") {
       if (result.status === "Blocked" && !result.isChildrenIncomplete()) {
         // Auto-unblock unblocked tasks with the Blocked status
         result.status = "Not Started";
@@ -1530,28 +1530,19 @@ export class Koso {
     });
   }
 
-  setKind(taskId: string, kind: Kind, user: User): boolean {
+  setKind(taskId: string, kind: Kind): boolean {
     return this.doc.transact(() => {
       const task = this.getTask(taskId);
-      if (kind === "Juggled") {
+      if (task.yKind === kind) return false;
+
+      if (kind === "Task") {
         const progress = this.getProgress(taskId);
-        if (progress.isChildrenIncomplete()) {
-          task.yKind = "Juggled";
-          task.yStatus = "Blocked";
+        task.yKind = "Task";
+        if (progress.status !== task.yStatus) {
+          task.yStatus = progress.status;
           task.statusTime = Date.now();
-          if (!task.assignee) {
-            task.assignee = user.email;
-          }
-          toast.success(
-            "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
-          );
-          return true;
-        } else {
-          toast.info(
-            "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
-          );
-          return false;
         }
+        return true;
       } else if (kind === "Rollup") {
         task.yKind = null;
         task.yStatus = null;
@@ -1589,8 +1580,8 @@ export class Koso {
 
         return true;
       } else if (status === "Blocked") {
-        if (task.yKind !== "Juggled") {
-          throw new Error(`Can only set Juggled tasks to blocked: ${taskId}`);
+        if (task.yKind !== "Task") {
+          throw new Error(`Can only set Tasks to blocked: ${taskId}`);
         }
 
         const progress = this.getProgress(taskId);
@@ -1601,7 +1592,7 @@ export class Koso {
             task.assignee = user.email;
           }
           toast.success(
-            "Task is blocked. Koso Juggler will let you know when the task is unblocked! 🤹",
+            "Task is blocked. Koso will let you know when the task is unblocked! 🤹",
           );
           return true;
         } else {

@@ -286,7 +286,7 @@ test.describe("dag table tests", () => {
         true,
       );
 
-      page
+      await page
         .getByTestId("Row 1")
         .getByRole("button", { name: "Task 1 Drag Handle" })
         .click();
@@ -1420,7 +1420,7 @@ test.describe("dag table tests", () => {
     test("change status from blocked with space key", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1", "2", "3", "4"] },
-        { id: "1", children: ["2"], status: "Blocked", kind: "Juggled" },
+        { id: "1", children: ["2"], status: "Blocked", kind: "Task" },
         { id: "2", children: [] },
         { id: "3", children: [] },
         { id: "4", children: [] },
@@ -1474,8 +1474,8 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
       await expect(statusButton).toHaveText("Not Started");
-      statusButton.click();
-      page
+      await statusButton.click();
+      await page
         .getByRole("row", { name: "Task 3" })
         .getByRole("menuitem", { name: "In Progress" })
         .click();
@@ -1507,8 +1507,8 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
       await expect(statusButton).toHaveText("In Progress");
-      statusButton.click();
-      page
+      await statusButton.click();
+      await page
         .getByRole("row", { name: "Task 3" })
         .getByRole("menuitem", { name: "Done" })
         .click();
@@ -1540,8 +1540,8 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
       await expect(statusButton).toHaveText("Done");
-      statusButton.click();
-      page
+      await statusButton.click();
+      await page
         .getByRole("row", { name: "Task 3" })
         .getByRole("menuitem", { name: "Not Started" })
         .click();
@@ -2108,7 +2108,7 @@ test.describe("dag table tests", () => {
     });
   });
 
-  test.describe("juggling tasks", () => {
+  test.describe("blocking tasks", () => {
     test("block and unblock a task by resolving children", async ({ page }) => {
       await init(page, [
         { id: "root", name: "Root", children: ["1"] },
@@ -2124,17 +2124,41 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
       await expect(statusButton).toHaveText("Not Started");
-      statusButton.click();
-      page
+      await statusButton.click();
+      await page
         .getByRole("row", { name: "Task 1" })
-        .getByRole("menuitem", { name: "Juggled" })
+        .getByRole("menuitem", { name: "Task" })
         .click();
+
       statusButton = page
         .getByRole("row", { name: "Task 1" })
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
-      await expect(statusButton).toHaveText("Blocked");
+      await expect(statusButton).toHaveText("Not Started");
       let graph = await getKosoGraph(page);
+      expect(graph).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: {
+          children: ["2", "3"],
+          status: "Not Started",
+          kind: "Task",
+          assignee: null,
+        },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+      });
+
+      await statusButton.click();
+      await page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("menuitem", { name: "Blocked" })
+        .click();
+      statusButton = page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toHaveText("Blocked");
+
+      graph = await getKosoGraph(page);
       expect(graph).toMatchObject({
         root: { children: ["1"] },
         ["1"]: { children: ["2", "3"], status: "Blocked" },
@@ -2148,8 +2172,8 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
       await expect(statusButton).toHaveText("Not Started");
-      statusButton.click();
-      page
+      await statusButton.click();
+      await page
         .getByRole("row", { name: "Task 2" })
         .getByRole("menuitem", { name: "Done" })
         .click();
@@ -2170,8 +2194,8 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
       await expect(statusButton).toHaveText("Not Started");
-      statusButton.click();
-      page
+      await statusButton.click();
+      await page
         .getByRole("row", { name: "Task 3" })
         .getByRole("menuitem", { name: "Done" })
         .click();
@@ -2211,17 +2235,35 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
       await expect(statusButton).toHaveText("50% In Progress");
-      statusButton.click();
-      page
+      await statusButton.click();
+      await page
         .getByRole("row", { name: "Task 1" })
-        .getByRole("menuitem", { name: "Juggled" })
+        .getByRole("menuitem", { name: "Task" })
         .click();
       statusButton = page
         .getByRole("row", { name: "Task 1" })
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
-      await expect(statusButton).toHaveText("Blocked");
+      await expect(statusButton).toHaveText("In Progress");
       let graph = await getKosoGraph(page);
+      expect(graph).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "3"], status: "In Progress", kind: "Task" },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+      });
+
+      await statusButton.click();
+      await page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("menuitem", { name: "Blocked" })
+        .click();
+      statusButton = page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "task-status" });
+      await expect(statusButton).toHaveText("Blocked");
+
+      graph = await getKosoGraph(page);
       expect(graph).toMatchObject({
         root: { children: ["1"] },
         ["1"]: { children: ["2", "3"], status: "Blocked" },

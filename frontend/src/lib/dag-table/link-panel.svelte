@@ -39,7 +39,7 @@
   const koso = getContext<Koso>("koso");
 
   let query = $state("");
-  let setStatusJuggled: boolean = $state(true);
+  let setStatusBlocked: boolean = $state(true);
   let tasks = $derived(
     open
       ? koso.tasks
@@ -60,10 +60,13 @@
     if (mode === "link") {
       koso.link(node.name, taskId);
     } else if (mode === "block") {
-      koso.link(taskId, node.name);
-      if (setStatusJuggled) {
-        koso.setKind(node.name, "Juggled", auth.user);
-      }
+      koso.doc.transact(() => {
+        koso.link(taskId, node.name);
+        if (setStatusBlocked) {
+          koso.setKind(node.name, "Task");
+          koso.setTaskStatus(node, "Blocked", auth.user);
+        }
+      });
     } else {
       throw new Error(`Unknown mode: ${mode}`);
     }
@@ -110,10 +113,10 @@
       <div class="flex place-content-center gap-1 p-1 text-sm">
         <input
           type="checkbox"
-          id="also-juggle"
-          bind:checked={setStatusJuggled}
+          id="also-block"
+          bind:checked={setStatusBlocked}
         />
-        <label for="also-juggle">Set task to blocked after linking</label>
+        <label for="also-block">Set task to blocked after linking</label>
       </div>
     {/if}
     <CommandDivider />

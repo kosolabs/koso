@@ -142,8 +142,8 @@
     <h2 class="text-2xl lg:text-4xl">Self Organizing Zero Inbox</h2>
     <p>
       Only see tasks that are actionable. If an unactionable task appears in
-      your inbox, add a blocker by linking the dependent task. Koso's task
-      juggler will notify you when your task becomes actionable.
+      your inbox, add a blocker by linking the dependent task. Koso will notify
+      you when your task becomes actionable.
     </p>
     <div
       class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"

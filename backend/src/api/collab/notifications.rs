@@ -215,8 +215,7 @@ impl EventProcessor {
     }
 
     async fn unblock_and_notify_actionable_tasks(&self, event: &KosoEvent) -> Result<()> {
-        let actionable =
-            Self::find_actionable_juggled_tasks(&event.task.id, &event.project).await?;
+        let actionable = Self::find_actionable_tasks(&event.task.id, &event.project).await?;
         if actionable.is_empty() {
             return Ok(());
         }
@@ -224,7 +223,7 @@ impl EventProcessor {
         {
             let doc = event.project.doc_box.lock().await;
             let doc = &doc.as_ref().context("No doc initialized.")?.ydoc;
-            let mut txn = doc.transact_mut_with(event.origin.delegated("juggle").as_origin()?);
+            let mut txn = doc.transact_mut_with(event.origin.delegated("unblock").as_origin()?);
             // TODO: Handle partial failures.
             for (task_id, _, _) in actionable.iter() {
                 tracing::debug!("Unblocking task {task_id}");
@@ -251,7 +250,7 @@ impl EventProcessor {
             }
 
             let msg = format!(
-                "🎁 <i>Koso Juggler</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
+                "🎁 <i>Koso</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
                 event.project.project_id, task_id, name
             );
             self.notifier.notify(&assignee, &msg).await?;
@@ -259,7 +258,7 @@ impl EventProcessor {
         Ok(())
     }
 
-    async fn find_actionable_juggled_tasks(
+    async fn find_actionable_tasks(
         event_task_id: &String,
         project: &ProjectState,
     ) -> Result<Vec<(String, String, String)>> {
@@ -267,14 +266,14 @@ impl EventProcessor {
         let doc = &doc.as_ref().context("No doc initialized.")?.ydoc;
         let txn = doc.transact();
 
-        // Perform a DFS starting from all Blocked, juggled tasks.
+        // Perform a DFS starting from all Blocked tasks.
         let mut actionable: Vec<(String, String, String)> = vec![];
         for task in doc.tasks(&txn)? {
-            if task.get_kind(&txn)?.unwrap_or_default() == "Juggled"
+            if task.get_kind(&txn)?.unwrap_or_default() == "Task"
                 && task.get_status(&txn)?.unwrap_or_default() == "Blocked"
             {
-                // In the case of removing a child of the juggled task, the
-                // event_task_id will be the id of the juggled task and not
+                // In the case of removing a child of the task, the
+                // event_task_id will be the id of the task and not
                 // the removed child since YRS doesn't allow us to discover
                 // which element was removed from a YArray.
                 let mut found = *event_task_id == task.get_id(&txn)?;
@@ -343,21 +342,21 @@ fn now() -> Result<i64> {
 
 enum Sender<'a> {
     User(&'a User),
-    KosoJuggler,
+    Koso,
 }
 
 impl Sender<'_> {
     fn format(&self) -> String {
         match self {
             Sender::User(user) => format!("{} &lt;{}&gt;", user.name, user.email),
-            Sender::KosoJuggler => "Koso Juggler".to_string(),
+            Sender::Koso => "Koso".to_string(),
         }
     }
 
     fn from_actor(actor: &Actor) -> Sender {
         match actor {
             Actor::User(user) => Sender::User(user),
-            _ => Sender::KosoJuggler,
+            _ => Sender::Koso,
         }
     }
 }
