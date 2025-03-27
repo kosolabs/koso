@@ -1834,28 +1834,28 @@ describe("Koso tests", () => {
   });
 
   describe("setKind", () => {
-    it("set task 2's status to succeeds and changes status to Blocked", () => {
+    it("set task 2's kind to Task updates kind and leaves status unchanged", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
-        { id: "1", name: "Task 1" },
-        { id: "2", name: "Task 2", children: ["1"] },
+        { id: "1", name: "Task 1", status: "In Progress" },
+        { id: "2", name: "Task 2", children: ["1"], status: "Not Started" },
       ]);
 
       expect(koso.setKind("2", "Task")).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
-        ["1"]: { status: null, children: [], assignee: null },
+        ["1"]: { status: "In Progress", children: [], assignee: null },
         ["2"]: {
           kind: "Task",
-          status: "Blocked",
+          status: "In Progress",
           children: ["1"],
-          assignee: "t@koso.app",
+          assignee: null,
         },
       });
     });
 
-    it("set task with complete children leaves task unchanged", () => {
+    it("set task kind to Task with complete children updates kind and leaves status done", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", name: "Task 1", status: "Done" },
@@ -1868,15 +1868,15 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3", status: "Done" },
       ]);
 
-      expect(koso.setKind("2", "Task")).toBe(false);
+      expect(koso.setKind("2", "Task")).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
         ["1"]: { status: "Done", children: [], assignee: null },
         ["3"]: { status: "Done", children: [], assignee: null },
         ["2"]: {
-          kind: null,
-          status: "In Progress",
+          kind: "Task",
+          status: "Done",
           children: ["1", "3"],
           assignee: null,
         },
