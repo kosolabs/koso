@@ -153,9 +153,7 @@ test.describe("Collaboration tests", () => {
     await page1.keyboard.press("Delete");
     await expect(page2.getByRole("row", { name: "Task 1" })).toBeHidden();
     await expect(page2.getByRole("row", { name: "Task 1" })).toBeHidden();
-    console.log(
-      await page1.evaluate(() => document.activeElement === document.body),
-    );
+
     await expectNothingFocused(page1);
     await expectNothingFocused(page2);
     await expect(page1.getByRole("button", { name: "Add Task" })).toBeVisible();

@@ -52,7 +52,7 @@
         toast.success("🚀 Great work! Task complete!");
       }
     } else if (task.children.length === 0 && status === "Blocked") {
-      command.call("Block");
+      command.call("Block task on...");
     } else {
       koso.setTaskStatus(node, status, auth.user);
     }

@@ -3,6 +3,7 @@
   import { Icon, Terminal } from "lucide-svelte";
   import { onMount, untrack } from "svelte";
   import {
+    Action,
     Command,
     CommandContent,
     CommandDivider,
@@ -18,16 +19,6 @@
     description?: string;
     icon?: typeof Icon;
     enabled?: () => boolean;
-    shortcut?: Shortcut;
-  };
-
-  // TODO: Add a name field
-  export type Action = {
-    callback: () => void;
-    title: string;
-    description: string;
-    icon: typeof Icon;
-    enabled: () => boolean;
     shortcut?: Shortcut;
   };
 
@@ -52,7 +43,7 @@
       if (!action) {
         throw new Error(`No action named "${title}" is registered`);
       }
-      return action;
+      action.callback();
     }
 
     register(...actions: Action[]) {
@@ -125,14 +116,16 @@
   });
 
   onMount(() => {
-    return command.register({
-      callback: () => (open = true),
-      title,
-      description,
-      icon,
-      enabled,
-      shortcut,
-    });
+    return command.register(
+      new Action({
+        callback: () => (open = true),
+        title,
+        description,
+        icon,
+        enabled,
+        shortcut,
+      }),
+    );
   });
 </script>
 

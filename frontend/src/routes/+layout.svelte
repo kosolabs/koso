@@ -3,9 +3,8 @@
   import { updated } from "$app/stores";
   import { Confetti } from "$lib/components/ui/confetti";
   import { toast, Toaster } from "$lib/components/ui/sonner";
-  import { command, Commander } from "$lib/kosui/command";
+  import { Action, command, Commander } from "$lib/kosui/command";
   import { Dialoguer } from "$lib/kosui/dialog";
-  import { Action } from "$lib/shortcuts";
   import { Moon, Sun, SunMoon } from "lucide-svelte";
   import { ModeWatcher, resetMode, setMode } from "mode-watcher";
   import { onMount } from "svelte";
