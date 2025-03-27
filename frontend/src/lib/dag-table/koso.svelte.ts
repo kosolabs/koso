@@ -1530,28 +1530,19 @@ export class Koso {
     });
   }
 
-  setKind(taskId: string, kind: Kind, user: User): boolean {
+  setKind(taskId: string, kind: Kind): boolean {
     return this.doc.transact(() => {
       const task = this.getTask(taskId);
+      if (task.yKind === kind) return false;
+
       if (kind === "Task") {
         const progress = this.getProgress(taskId);
-        if (progress.isChildrenIncomplete()) {
-          task.yKind = "Task";
-          task.yStatus = "Blocked";
+        task.yKind = "Task";
+        if (progress.status !== task.yStatus) {
+          task.yStatus = progress.status;
           task.statusTime = Date.now();
-          if (!task.assignee) {
-            task.assignee = user.email;
-          }
-          toast.success(
-            "Task is blocked. Koso will let you know when the task is unblocked! 🤹",
-          );
-          return true;
-        } else {
-          toast.info(
-            "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
-          );
-          return false;
         }
+        return true;
       } else if (kind === "Rollup") {
         task.yKind = null;
         task.yStatus = null;

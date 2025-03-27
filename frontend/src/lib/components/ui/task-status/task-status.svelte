@@ -41,7 +41,7 @@
 
   function handleOnSelectKind(kind: Kind) {
     if (progress.kind === kind) return;
-    koso.setKind(task.id, kind, auth.user);
+    koso.setKind(task.id, kind);
   }
 
   function handleOnSelectStatus(status: Status) {
