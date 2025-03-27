@@ -5,16 +5,16 @@
   import { noop, type ClassName, type ElementRef } from "../utils";
   import { newToggleContext } from "./toggle-context.svelte";
 
-  export type ToggleGroupProps = {
-    value?: string;
-    onChange?: (value?: string) => void;
+  export type ToggleGroupProps<T> = {
+    value?: T;
+    onChange?: (value?: T) => void;
     children: Snippet<[]>;
   } & ElementRef &
     ClassName &
     Omit<HTMLAttributes<HTMLDivElement>, "children">;
 </script>
 
-<script lang="ts">
+<script lang="ts" generics="T">
   let {
     value = $bindable(),
     onChange,
@@ -23,7 +23,7 @@
     ref = noop,
     class: className,
     ...restProps
-  }: ToggleGroupProps = $props();
+  }: ToggleGroupProps<T> = $props();
 
   newToggleContext(
     () => value,
