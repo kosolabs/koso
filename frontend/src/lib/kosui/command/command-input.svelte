@@ -23,7 +23,7 @@
   }: CommandInputProps = $props();
 
   const ctx = getCommandContext();
-  ctx.bind(
+  ctx.bindInput(
     () => value,
     (newValue) => (value = newValue),
   );
@@ -34,7 +34,7 @@
 </script>
 
 <input
-  bind:value={ctx.value}
+  bind:value={ctx.input}
   class={twMerge(
     baseClasses({ variant, color, shape }),
     "w-full p-1 focus-visible:outline-hidden",
