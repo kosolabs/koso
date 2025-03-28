@@ -43,7 +43,12 @@
   {...restProps}
 >
   {#if src && !error}
-    <img {src} {alt} onerror={() => (error = true)} />
+    <img
+      {src}
+      {alt}
+      onerror={() => (error = true)}
+      referrerpolicy="no-referrer"
+    />
   {:else}
     {@render children?.()}
   {/if}
