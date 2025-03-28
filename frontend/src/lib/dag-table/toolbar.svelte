@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { ActionID } from "$lib/components/ui/command-palette";
   import { ToolbarButton } from "$lib/components/ui/toolbar-button";
   import type { Action } from "$lib/kosui/command";
   import { cn } from "$lib/utils";
@@ -6,7 +7,7 @@
 
   type Props = {
     children: Snippet;
-    actions: Action[];
+    actions: Action<ActionID>[];
   };
   let { children, actions }: Props = $props();
 

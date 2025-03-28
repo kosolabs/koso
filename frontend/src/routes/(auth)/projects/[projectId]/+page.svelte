@@ -3,6 +3,7 @@
   import { page } from "$app/state";
   import { KosoError } from "$lib/api";
   import { showUnauthorizedDialog, type User } from "$lib/auth.svelte";
+  import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { Editable } from "$lib/components/ui/editable";
   import { Navbar, NavbarButton } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
@@ -10,7 +11,7 @@
   import { githubInstallUrl } from "$lib/github";
   import { Alert } from "$lib/kosui/alert";
   import { baseClasses } from "$lib/kosui/base";
-  import { Action, command } from "$lib/kosui/command";
+  import { Action } from "$lib/kosui/command";
   import { Menu, MenuContent, MenuTrigger } from "$lib/kosui/menu";
   import MenuItem from "$lib/kosui/menu/menu-item.svelte";
   import { nav } from "$lib/nav.svelte";
@@ -18,8 +19,8 @@
     exportProject,
     fetchProject,
     fetchProjectUsers,
-    type Project,
     updateProject,
+    type Project,
   } from "$lib/projects";
   import { cn } from "$lib/utils";
   import { FileDown, Mail, MenuIcon, PlugZap, UserPlus } from "lucide-svelte";
@@ -93,8 +94,9 @@
     a.click();
   }
 
-  const actions: Action[] = [
+  const actions: Action<ActionID>[] = [
     new Action({
+      id: "ExportProject",
       callback: exportProjectToFile,
       title: "Export Project",
       description: "Export project to JSON",

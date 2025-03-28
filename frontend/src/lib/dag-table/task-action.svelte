@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { baseClasses } from "$lib/kosui/base";
-  import { type Action, command } from "$lib/kosui/command";
   import {
     Menu,
     MenuContent,
@@ -11,22 +11,10 @@
   } from "$lib/kosui/menu";
   import { MoreVertical } from "lucide-svelte";
   import { twMerge } from "tailwind-merge";
-
-  const indentTask = command.get("Indent task");
-  const unindentTask = command.get("Unindent task");
-  const subTask = command.get("Insert subtask");
-  const deleteTask = command.get("Delete task");
-
-  const moveUp = command.get("Move up");
-  const moveDown = command.get("Move down");
-  const moveToStart = command.get("Move to start");
-  const moveToEnd = command.get("Move to end");
-
-  const linkTask = command.get("Link task to...");
-  const blockTask = command.get("Block task on...");
 </script>
 
-{#snippet item(action: Action | undefined)}
+{#snippet item(id: ActionID)}
+  {@const action = command.get(id)}
   {#if action}
     <MenuItem
       onSelect={action.callback}
@@ -61,19 +49,19 @@
   </MenuTrigger>
   <MenuContent>
     <MenuHeader>Actions</MenuHeader>
-    {@render item(indentTask)}
-    {@render item(unindentTask)}
-    {@render item(subTask)}
-    {@render item(deleteTask)}
+    {@render item("Indent")}
+    {@render item("Undent")}
+    {@render item("InsertSubtask")}
+    {@render item("Delete")}
     <MenuDivider />
     <MenuHeader>Reorder</MenuHeader>
-    {@render item(moveUp)}
-    {@render item(moveDown)}
-    {@render item(moveToStart)}
-    {@render item(moveToEnd)}
+    {@render item("MoveUp")}
+    {@render item("MoveDown")}
+    {@render item("MoveToStart")}
+    {@render item("MoveToEnd")}
     <MenuDivider />
     <MenuHeader>Linking</MenuHeader>
-    {@render item(linkTask)}
-    {@render item(blockTask)}
+    {@render item("Link")}
+    {@render item("Block")}
   </MenuContent>
 </Menu>

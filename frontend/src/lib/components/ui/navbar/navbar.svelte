@@ -34,7 +34,7 @@
   <div class="ml-auto flex items-center gap-2">
     {@render right?.()}
 
-    <NavbarCommandButton name="Command Palette" />
+    <NavbarCommandButton name="CommandPalette" />
 
     {#if auth.ok()}
       <Menu>
