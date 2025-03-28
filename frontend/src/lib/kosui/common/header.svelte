@@ -5,7 +5,7 @@
   import { baseClasses, type Variants } from "../base";
   import type { ClassName } from "../utils";
 
-  export type MenuHeaderProps = {
+  export type HeaderProps = {
     children: Snippet;
   } & ClassName &
     Variants &
@@ -20,7 +20,7 @@
     color = "primary",
     shape = "rounded",
     ...restProps
-  }: MenuHeaderProps = $props();
+  }: HeaderProps = $props();
 </script>
 
 <div

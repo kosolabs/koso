@@ -3,11 +3,11 @@
   import { twMerge } from "tailwind-merge";
   import type { ClassName } from "../utils";
 
-  export type MenuDividerProps = {} & ClassName & HTMLAttributes<HTMLHRElement>;
+  export type DividerProps = {} & ClassName & HTMLAttributes<HTMLHRElement>;
 </script>
 
 <script lang="ts">
-  let { class: className, ...restProps }: MenuDividerProps = $props();
+  let { class: className, ...restProps }: DividerProps = $props();
 </script>
 
 <hr class={twMerge("-mx-1 my-1", className)} {...restProps} />
