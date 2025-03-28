@@ -1,10 +1,11 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
   import { auth, type User } from "$lib/auth.svelte";
+  import { command, type ActionID } from "$lib/components/ui/command-palette";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
-  import { Action, command } from "$lib/kosui/command";
+  import { Action } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
   import {
@@ -297,7 +298,8 @@
     koso.organizeTasks(koso.selected);
   }
 
-  const insertAction: Action = {
+  const insertAction: Action<ActionID> = {
+    id: "Insert",
     callback: insert,
     title: "Add",
     description: "Add or insert a new task",
@@ -309,46 +311,46 @@
   };
 
   const undoAction = new Action({
+    id: "Undo",
     callback: undo,
-    title: "Undo",
     icon: Undo,
     shortcut: new Shortcut({ key: "z", meta: true }),
   });
 
   const redoAction = new Action({
+    id: "Redo",
     callback: redo,
-    title: "Redo",
     icon: Redo,
     shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
   });
 
   const searchAction = new Action({
+    id: "Search",
     callback: showSearchPalette,
-    title: "Search",
     description: "Show the search palette",
     icon: Search,
     enabled: () => !inboxView,
     shortcut: new Shortcut({ key: "p", meta: true }),
   });
 
-  const actions: Action[] = [
+  const actions: Action<ActionID>[] = [
     new Action({
+      id: "Next",
       callback: selectNext,
-      title: "Next",
       description: "Select next task",
       icon: StepForward,
       shortcut: new Shortcut({ key: "ArrowDown" }),
     }),
     new Action({
+      id: "Previous",
       callback: selectPrev,
-      title: "Previous",
       description: "Select previous task",
       icon: StepBack,
       shortcut: new Shortcut({ key: "ArrowUp" }),
     }),
     new Action({
+      id: "Expand",
       callback: expand,
-      title: "Expand",
       description: "Expand the current task",
       icon: ChevronsUpDown,
       enabled: () =>
@@ -356,8 +358,8 @@
       shortcut: new Shortcut({ key: "ArrowRight" }),
     }),
     new Action({
+      id: "Collapse",
       callback: collapse,
-      title: "Collapse",
       description: "Collapse the current task",
       icon: ChevronsDownUp,
       enabled: () =>
@@ -365,6 +367,7 @@
       shortcut: new Shortcut({ key: "ArrowLeft" }),
     }),
     new Action({
+      id: "ExpandAll",
       callback: () => koso.expandAll(),
       title: "Expand All",
       description: "Expand all tasks",
@@ -372,6 +375,7 @@
       enabled: () => !inboxView,
     }),
     new Action({
+      id: "CollapseAll",
       callback: () => koso.collapseAll(),
       title: "Collapse All",
       description: "Collapse all tasks",
@@ -380,6 +384,7 @@
     }),
     insertAction,
     new Action({
+      id: "InsertAbove",
       callback: insertAbove,
       title: "Insert Above",
       description: "Insert a new task above",
@@ -391,6 +396,7 @@
         koso.canInsert(koso.selected.parent.name),
     }),
     new Action({
+      id: "InsertSubtask",
       callback: insertChild,
       title: "Insert subtask",
       description: "Insert a new task as a child",
@@ -400,8 +406,9 @@
       shortcut: INSERT_CHILD_NODE,
     }),
     new Action({
+      id: "InsertSubtaskAbove",
       callback: insertChildAbove,
-      title: "Insert Subtask Above",
+      title: "Insert subtask above",
       description: "Insert a new task as a child of the previous task",
       icon: ListTree,
       enabled: () => {
@@ -419,21 +426,22 @@
       }),
     }),
     new Action({
+      id: "Edit",
       callback: edit,
-      title: "Edit",
       description: "Edit the current task",
       icon: Pencil,
       shortcut: new Shortcut({ key: "Enter" }),
       enabled: () => !!koso.selected && koso.isEditable(koso.selected.name),
     }),
     new Action({
+      id: "Clear",
       callback: unselect,
-      title: "Clear",
       description: "Clear the current selection",
       icon: CircleX,
       shortcut: CANCEL,
     }),
     new Action({
+      id: "Delete",
       callback: remove,
       title: "Delete task",
       description: "Delete the current task",
@@ -443,6 +451,7 @@
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
+      id: "MoveUp",
       callback: moveUp,
       title: "Move up",
       description: "Move the current task up",
@@ -451,6 +460,7 @@
       shortcut: new Shortcut({ key: "ArrowUp", alt: true }),
     }),
     new Action({
+      id: "MoveDown",
       callback: moveDown,
       title: "Move down",
       description: "Move the current task down",
@@ -459,6 +469,7 @@
       shortcut: new Shortcut({ key: "ArrowDown", alt: true }),
     }),
     new Action({
+      id: "MoveToStart",
       callback: moveStart,
       title: "Move to start",
       description: "Move the current task to the top of its group",
@@ -467,6 +478,7 @@
       shortcut: new Shortcut({ key: "ArrowUp", alt: true, shift: true }),
     }),
     new Action({
+      id: "MoveToEnd",
       callback: moveEnd,
       title: "Move to end",
       description: "Move the current task to the bottom of its group",
@@ -475,6 +487,7 @@
       shortcut: new Shortcut({ key: "ArrowDown", alt: true, shift: true }),
     }),
     new Action({
+      id: "Undent",
       callback: undent,
       title: "Unindent task",
       description: "Make the current task a peer of its parent",
@@ -484,6 +497,7 @@
       shortcut: new Shortcut({ key: "ArrowLeft", alt: true }),
     }),
     new Action({
+      id: "Indent",
       callback: indent,
       title: "Indent task",
       description: "Make the current task a child of its peer",
@@ -495,6 +509,7 @@
     undoAction,
     redoAction,
     new Action({
+      id: "ToggleTaskStatus",
       callback: toggleStatus,
       title: "Toggle Task Status",
       description: "Toggle the task status to In Progress or Done",
@@ -503,6 +518,7 @@
       enabled: () => !!koso.selected && koso.isEditable(koso.selected.name),
     }),
     new Action({
+      id: "HideDoneTasks",
       callback: hideDoneTasks,
       title: "Hide Done Tasks",
       description: "Hide tasks that have been marked done",
@@ -510,6 +526,7 @@
       enabled: () => !inboxView && koso.showDone,
     }),
     new Action({
+      id: "ShowDoneTasks",
       callback: showDoneTasks,
       title: "Show Done Tasks",
       description: "Show tasks that have been marked done",
@@ -518,6 +535,7 @@
     }),
     searchAction,
     new Action({
+      id: "NextLink",
       callback: selectNextLink,
       title: "Next Link",
       description: "Select next link to current task",
@@ -526,6 +544,7 @@
       shortcut: new Shortcut({ key: "ArrowDown", meta: true }),
     }),
     new Action({
+      id: "PreviousLink",
       callback: selectPrevLink,
       title: "Previous Link",
       description: "Select previous link to current task",
@@ -538,6 +557,7 @@
   if (inboxView) {
     actions.push(
       new Action({
+        id: "Link",
         callback: linkTask,
         title: "Link task to...",
         description: "Link current task to another task",
@@ -545,6 +565,7 @@
         enabled: () => !!koso.selected,
       }),
       new Action({
+        id: "Block",
         callback: blockTask,
         title: "Block task on...",
         description: "Block current task to another task",
@@ -556,6 +577,7 @@
   } else {
     actions.push(
       new Action({
+        id: "Link",
         callback: linkTask,
         title: "Link task to...",
         description: "Link current task to another task",
@@ -564,6 +586,7 @@
         shortcut: new Shortcut({ key: "/", meta: true }),
       }),
       new Action({
+        id: "Block",
         callback: blockTask,
         title: "Block task on...",
         description: "Block current task to another task",
@@ -571,6 +594,7 @@
         enabled: () => !!koso.selected,
       }),
       new Action({
+        id: "Organize",
         callback: organizeTasks,
         title: "Organize Tasks",
         description: "Organize the current task and its peers",

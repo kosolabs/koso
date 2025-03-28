@@ -1,9 +1,14 @@
 <script lang="ts">
   import { dev } from "$app/environment";
   import { updated } from "$app/stores";
+  import {
+    command,
+    CommandPalette,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { Confetti } from "$lib/components/ui/confetti";
   import { toast, Toaster } from "$lib/components/ui/sonner";
-  import { Action, command, Commander } from "$lib/kosui/command";
+  import { Action } from "$lib/kosui/command";
   import { Dialoguer } from "$lib/kosui/dialog";
   import { Moon, Sun, SunMoon } from "lucide-svelte";
   import { ModeWatcher, resetMode, setMode } from "mode-watcher";
@@ -28,20 +33,23 @@
   }
   const wb = register();
 
-  const actions: Action[] = [
+  const actions: Action<ActionID>[] = [
     new Action({
+      id: "LightTheme",
       callback: () => setMode("light"),
       title: "Light",
       description: "Set the theme to light mode",
       icon: Sun,
     }),
     new Action({
+      id: "DarkTheme",
       callback: () => setMode("dark"),
       title: "Dark",
       description: "Set the theme to dark mode",
       icon: Moon,
     }),
     new Action({
+      id: "SystemTheme",
       callback: () => resetMode(),
       title: "System",
       description: "Set the theme to system",
@@ -64,6 +72,6 @@
 <ModeWatcher />
 <Toaster richColors />
 <Dialoguer />
-<Commander />
+<CommandPalette />
 <Confetti />
 {@render children()}

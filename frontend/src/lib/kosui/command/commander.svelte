@@ -1,7 +1,5 @@
 <script module lang="ts">
   import { match } from "$lib/utils";
-  import { Icon, Terminal } from "lucide-svelte";
-  import { onMount, untrack } from "svelte";
   import {
     Action,
     Command,
@@ -9,95 +7,37 @@
     CommandDivider,
     CommandItem,
     CommandSearch,
+    Registry,
   } from ".";
   import { events } from "..";
   import { Modal } from "../modal";
   import { Shortcut, ShortcutBadge } from "../shortcut";
 
-  export type CommanderProps = {
-    title?: string;
-    description?: string;
-    icon?: typeof Icon;
-    enabled?: () => boolean;
-    shortcut?: Shortcut;
+  export type CommanderProps<T extends string> = {
+    open?: boolean;
+    query?: string;
+    command: Registry<T>;
   };
-
-  class Registry {
-    #actions: Record<string, Action> = $state({});
-    #shortcuts: Record<string, Action> = {};
-
-    get actions(): Action[] {
-      return Object.values(this.#actions);
-    }
-
-    get(title: string): Action | undefined {
-      return this.#actions[title];
-    }
-
-    getByShortcut(shortcut: Shortcut): Action | undefined {
-      return this.#shortcuts[shortcut.toString()];
-    }
-
-    call(title: string) {
-      const action = this.get(title);
-      if (!action) {
-        throw new Error(`No action named "${title}" is registered`);
-      }
-      action.callback();
-    }
-
-    register(...actions: Action[]) {
-      for (const action of actions) {
-        untrack(() => {
-          if (action.title in this.#actions) {
-            throw new Error(`${action.title} is already registered`);
-          }
-        });
-        this.#actions[action.title] = action;
-        if (action.shortcut) {
-          if (action.shortcut.toString() in this.#shortcuts) {
-            throw new Error(`${action.shortcut} is already registered`);
-          }
-          this.#shortcuts[action.shortcut.toString()] = action;
-        }
-      }
-      return () => this.unregister(...actions);
-    }
-
-    unregister(...actions: Action[]) {
-      for (const action of actions) {
-        delete this.#actions[action.title];
-        if (action.shortcut) {
-          delete this.#shortcuts[action.shortcut.toString()];
-        }
-      }
-    }
-  }
-
-  export const command = new Registry();
 </script>
 
-<script lang="ts">
+<script lang="ts" generics="T extends string">
   let {
-    title = "Command Palette",
-    description = "Show the command palette",
-    icon = Terminal,
-    enabled = () => true,
-    shortcut = new Shortcut({ key: "p", shift: true, meta: true }),
-  }: CommanderProps = $props();
+    open = $bindable(false),
+    query = $bindable(""),
+    command,
+  }: CommanderProps<T> = $props();
 
-  let open: boolean = $state(false);
-  let query: string = $state("");
-
-  const filteredActions = $derived(
+  const actions = $derived(
     command.actions.filter(
       (action) =>
         action.enabled() &&
-        (match(action.title, query) || match(action.description, query)),
+        (match(action.id, query) ||
+          match(action.title, query) ||
+          match(action.description, query)),
     ),
   );
 
-  function handleSelect(action: Action) {
+  function handleSelect(action: Action<T>) {
     action.callback();
     open = false;
   }
@@ -114,19 +54,6 @@
   $effect(() => {
     return events.on("keydown", handleKeyDown);
   });
-
-  onMount(() => {
-    return command.register(
-      new Action({
-        callback: () => (open = true),
-        title,
-        description,
-        icon,
-        enabled,
-        shortcut,
-      }),
-    );
-  });
 </script>
 
 <Modal
@@ -138,8 +65,8 @@
     <CommandSearch bind:value={query} />
     <CommandDivider />
     <CommandContent>
-      {#if filteredActions.length > 0}
-        {#each filteredActions as action (action.title)}
+      {#if actions.length > 0}
+        {#each actions as action (action.title)}
           {@const { description, shortcut, ...restProps } = action}
           <CommandItem onSelect={() => handleSelect(action)} {...restProps}>
             <action.icon size={14} class="mr-2" />

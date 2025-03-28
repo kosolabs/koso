@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { command } from "$lib/kosui/command";
+  import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { NavbarButton } from ".";
 
   type Props = {
-    name: string;
+    name: ActionID;
   };
 
   const { name }: Props = $props();

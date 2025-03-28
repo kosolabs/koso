@@ -1,8 +1,8 @@
 <script lang="ts">
   import { auth } from "$lib/auth.svelte";
+  import { command } from "$lib/components/ui/command-palette";
   import { toast } from "$lib/components/ui/sonner";
   import type { Koso, Node } from "$lib/dag-table";
-  import { command } from "$lib/kosui/command";
   import {
     Menu,
     MenuContent,
@@ -53,7 +53,7 @@
         toast.success("🚀 Great work! Task complete!");
       }
     } else if (task.children.length === 0 && status === "Blocked") {
-      command.call("Block task on...");
+      command.call("Block");
     } else {
       koso.setTaskStatus(node, status, auth.user);
     }
