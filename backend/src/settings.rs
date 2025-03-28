@@ -6,6 +6,7 @@ use std::sync::OnceLock;
 #[serde(deny_unknown_fields)]
 pub(crate) struct Settings {
     pub(crate) env: String,
+    pub(crate) log_format: String,
     pub(crate) database_url: String,
     pub(crate) secrets_dir: String,
     pub(crate) plugins: Plugins,
