@@ -4,12 +4,17 @@
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { Avatar } from "$lib/kosui/avatar";
-  import { Menu, MenuContent, MenuDivider, MenuItem } from "$lib/kosui/menu";
+  import {
+    Menu,
+    MenuContent,
+    MenuDivider,
+    MenuHeader,
+    MenuItem,
+    MenuTrigger,
+  } from "$lib/kosui/menu";
   import { Check, UserRound } from "lucide-svelte";
   import { userPrefersMode as mode, resetMode, setMode } from "mode-watcher";
   import type { Snippet } from "svelte";
-  import MenuHeader from "../../../kosui/menu/menu-header.svelte";
-  import MenuTrigger from "../../../kosui/menu/menu-trigger.svelte";
   import NavbarCommandButton from "./navbar-command-button.svelte";
 
   type Props = {

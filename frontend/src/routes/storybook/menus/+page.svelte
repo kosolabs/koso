@@ -5,10 +5,10 @@
     Menu,
     MenuContent,
     MenuDivider,
+    MenuHeader,
     MenuItem,
     MenuTrigger,
   } from "$lib/kosui/menu";
-  import MenuHeader from "$lib/kosui/menu/menu-header.svelte";
   import { twMerge } from "tailwind-merge";
 
   let open = $state(false);
