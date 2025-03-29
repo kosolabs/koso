@@ -664,7 +664,11 @@
 
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<Toolbar actions={[insertAction, undoAction, redoAction, searchAction]}>
+<Toolbar
+  actions={inboxView
+    ? [undoAction, redoAction]
+    : [insertAction, undoAction, redoAction, searchAction]}
+>
   {#await koso.synced then}
     {#if koso.nodes.size > 1}
       <table class="w-full border-separate border-spacing-0 rounded-md border">
