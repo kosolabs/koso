@@ -8,8 +8,8 @@
   import { Navbar, NavbarButton } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
   import { DagTable, Koso, KosoSocket } from "$lib/dag-table";
+  import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import { githubInstallUrl } from "$lib/github";
-  import { Alert } from "$lib/kosui/alert";
   import { baseClasses } from "$lib/kosui/base";
   import { Action } from "$lib/kosui/command";
   import { Menu, MenuContent, MenuTrigger } from "$lib/kosui/menu";
@@ -198,13 +198,7 @@
   {/snippet}
 </Navbar>
 
-{#if kosoSocket.offline}
-  <div class="m-2">
-    <Alert variant="outlined" color="secondary">
-      Connection to server lost. Working offline.
-    </Alert>
-  </div>
-{/if}
+<OfflineAlert offline={kosoSocket.offline} />
 
 {#await projectUsersPromise}
   {#await deflicker}

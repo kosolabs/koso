@@ -4,7 +4,7 @@
   import { auth, showUnauthorizedDialog, type User } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { DagTable, Koso, KosoSocket, Node } from "$lib/dag-table";
-  import { Alert } from "$lib/kosui/alert";
+  import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import { Button } from "$lib/kosui/button";
   import { nav } from "$lib/nav.svelte";
   import { fetchProject, fetchProjectUsers, type Project } from "$lib/projects";
@@ -129,13 +129,7 @@
   {/snippet}
 </Navbar>
 
-{#if kosoSocket.offline}
-  <div class="m-2">
-    <Alert variant="outlined" color="secondary">
-      Connection to server lost. Working offline.
-    </Alert>
-  </div>
-{/if}
+<OfflineAlert offline={kosoSocket.offline} />
 
 {#await projectUsersPromise}
   {#await deflicker}
