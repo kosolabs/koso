@@ -146,7 +146,8 @@ impl ConnectHandler {
             .per_page(100)
             .send()
             .await?;
-        if installations.total_count.unwrap_or_default() > installations.items.len().try_into()? {
+        if installations.total_count.unwrap_or_default() > u64::try_from(installations.items.len())?
+        {
             tracing::warn!("Need to paginate installations");
         }
         Ok(installations.items)
