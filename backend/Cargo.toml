@@ -10,12 +10,12 @@ name = "build_backend_dummy"
 path = "build/dummy.rs"
 
 [dependencies]
-axum = { version = "0.8.1", features = ["http2", "ws", "macros"] }
-axum-extra = { version = "0.10.0", features = ["typed-header"] }
-tokio = { version = "1.43.0", features = ["full"] }
-serde = { version = "1.0.218", features = ["derive"] }
-serde_json = "1.0.139"
-uuid = { version = "1.15.1", features = [
+axum = { version = "0.8.3", features = ["http2", "ws", "macros"] }
+axum-extra = { version = "0.10.1", features = ["typed-header"] }
+tokio = { version = "1.44.1", features = ["full"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+uuid = { version = "1.16.0", features = [
     "v4",       # Lets you generate random UUIDs
     "fast-rng", # Use a faster (but still sufficiently random) RNG
 ] }
@@ -33,26 +33,26 @@ metrics = { version = "0.24.1", default-features = false }
 metrics-exporter-prometheus = { version = "0.16.2", default-features = false }
 futures = "0.3.31"
 yrs = { version = "0.23.0", features = ["sync"] }
-tokio-util = { version = "0.7.13", features = ["rt"] }
+tokio-util = { version = "0.7.14", features = ["rt"] }
 jsonwebtoken = "9.3.1"
-reqwest = { version = "0.12.12", features = ["json"] }
+reqwest = { version = "0.12.15", features = ["json"] }
 base64 = "0.22.1"
 dashmap = "6.1.0"
-anyhow = "1.0.96"
+anyhow = "1.0.97"
 rand = "0.9.0"
 tower = "0.5.2"
 similar = "2.7.0"
 chrono = { version = "0.4.40", features = ["serde"] }
-octocrab = "0.43.0"
+octocrab = "0.44.0"
 hmac = "0.12.1"
 hex = "0.4.3"
 sha2 = "0.10.8"
-async-trait = "0.1.86"
+async-trait = "0.1.88"
 teloxide = { version = "0.13.0", features = ["macros"] }
-config = { version = "0.15.8", default-features = false, features = ["json"] }
+config = { version = "0.15.11", default-features = false, features = ["json"] }
 
 [dev-dependencies]
 test-log = { version = "0.2.17", features = ["trace", "color"] }
 tokio-tungstenite = { version = "0.26.2", features = ["url"] }
 tungstenite = "0.26.2"
-rsa = "0.9.7"
+rsa = "0.9.8"
