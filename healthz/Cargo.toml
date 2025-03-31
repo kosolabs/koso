@@ -17,7 +17,8 @@ reqwest-middleware = "0.4.1"
 reqwest-retry = "0.7.0"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
-teloxide = { version = "0.14.1", features = ["macros"] }
+# TODO: Teloxide is broken at 0.14.1. Stop using the patched version when fixed in https://github.com/teloxide/teloxide/issues/1236
+teloxide = { git = "https://github.com/kyle-leonhard/teloxide.git", rev = "ff5c99d91d7dde6de32becc6f48f98d789ddc736", features = ["macros"] }
 tokio = { version = "1.44.1", features = ["full"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
