@@ -130,13 +130,14 @@ jobs:
               return 'pr-' + context.issue.number;
             }
             if (context.ref == 'refs/heads/main') {
-              return 'pr-' + (
+              const prNum = (
                 await github.rest.repos.listPullRequestsAssociatedWithCommit({
                   commit_sha: context.sha,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                 })
-              ).data[0].number;
+              )?.data[0]?.number;
+              return prNum ? 'pr-' + prNum : 'main';
             }
             return 'main'
 
@@ -234,13 +235,14 @@ jobs:
               return 'pr-' + context.issue.number;
             }
             if (context.ref == 'refs/heads/main') {
-              return 'pr-' + (
+              const prNum = (
                 await github.rest.repos.listPullRequestsAssociatedWithCommit({
                   commit_sha: context.sha,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                 })
-              ).data[0].number;
+              )?.data[0]?.number;
+              return prNum ? 'pr-' + prNum : 'main';
             }
             return 'main'
 

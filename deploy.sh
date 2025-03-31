@@ -72,7 +72,7 @@ if [ "${DISABLE_ROLLBACK}" != "true" ]; then
             git checkout $ROLLBACK_SHA
             git status
 
-            systemctl --no-pager status koso.service
+            systemctl --no-pager -l --lines 20 status koso.service
 
             echo "Running ./deploy.sh in rollback mode..."
             DISABLE_ROLLBACK="true" GITHUB_SHA="${ROLLBACK_SHA}" KOSO_IMAGE_DIGEST="${ROLLBACK_IMAGE}" ./deploy.sh
@@ -104,7 +104,7 @@ systemctl daemon-reload
 systemctl restart koso.service
 systemctl is-active koso.service && echo Koso service is running
 systemctl enable koso.service
-systemctl --no-pager status koso.service
+systemctl --no-pager -l --lines 20 status koso.service
 echo "Restarted service."
 
 # Wait for the server to respond healthy.
@@ -113,6 +113,8 @@ curl -sS --verbose --fail \
     --retry 30 \
     --retry-connrefused \
     --retry-delay 1 \
+    --retry-max-time 120 \
+    --max-time 15 \
     http://localhost:3000/healthz
 echo "\nHealth check passed."
 
