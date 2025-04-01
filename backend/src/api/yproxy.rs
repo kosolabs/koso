@@ -80,6 +80,9 @@ impl YDocProxy {
             let task = self.get(txn, id)?;
             if nums.contains(&task.get_num(txn)?) {
                 tasks.push(task);
+                if tasks.len() == nums.len() {
+                    break;
+                }
             }
         }
         Ok(tasks)
