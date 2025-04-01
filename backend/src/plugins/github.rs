@@ -13,11 +13,12 @@ use axum::{Router, middleware};
 use connect::ConnectHandler;
 use octocrab::models::pulls::PullRequest;
 use poller::Poller;
+use regex::Regex;
 use sqlx::PgPool;
-use std::{fmt::Debug, time::SystemTime};
+use std::{cell::LazyCell, time::SystemTime};
 use tokio::task::JoinHandle;
 use webhook::Webhook;
-use yrs::TransactionMut;
+use yrs::{ReadTxn, TransactionMut};
 
 mod app;
 mod auth;
@@ -147,6 +148,7 @@ fn create_container(
 struct ExternalTask {
     url: String,
     name: String,
+    description: String,
 }
 
 impl ExternalTask {
@@ -156,7 +158,12 @@ impl ExternalTask {
         if url.is_empty() {
             return Err(anyhow!("Found PR with empty html_url: {}", pr.url));
         }
-        Ok(ExternalTask { url, name })
+        let description = pr.body.unwrap_or_default();
+        Ok(ExternalTask {
+            url,
+            name,
+            description,
+        })
     }
 }
 
@@ -202,6 +209,53 @@ fn resolve_task(txn: &mut TransactionMut, task: &YTaskProxy) -> Result<()> {
         task.set_status_time(txn, Some(now()?));
     }
     Ok(())
+}
+
+thread_local! {
+    static RE: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"(?i)(?-u:\b)koso[#_-](\d+)").unwrap());
+}
+
+/// Searches the external task's name and description for references to Koso Tasks
+/// of the form: koso#<num>, koso_<num> or koso-<num>
+fn find_referenced_task_nums(github_task: &ExternalTask) -> Vec<String> {
+    RE.with(|re| {
+        let res = re
+            .captures_iter(&github_task.description)
+            .chain(re.captures_iter(&github_task.name))
+            .map(|g| g[1].to_owned())
+            .collect();
+
+        res
+    })
+}
+
+fn add_referenced_task_links(
+    txn: &mut TransactionMut,
+    doc: &YDocProxy,
+    task_id: &str,
+    github_task: &ExternalTask,
+) -> Result<()> {
+    for link in find_referenced_task_nums(github_task) {
+        let Some(link) = doc.get_by_num(txn, &link)? else {
+            continue;
+        };
+        // Disallow linking to managed links this, additionally,
+        // prevents circular links because the given task is
+        // itself always managed.
+        if is_managed_task(txn, &link)? {
+            continue;
+        }
+
+        link.push_child(txn, task_id)?;
+    }
+    Ok(())
+}
+
+fn is_managed_task<T: ReadTxn>(txn: &T, link: &YTaskProxy) -> Result<bool> {
+    Ok(link
+        .get_kind(txn)?
+        .map(|kind| kind != "Task" || kind != "Rollup")
+        .unwrap_or(false))
 }
 
 fn now() -> Result<i64> {

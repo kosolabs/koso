@@ -12,8 +12,8 @@ use crate::{
     plugins::{
         config::{Config, ConfigStorage},
         github::{
-            ExternalTask, Kind, PLUGIN_KIND, PR_KIND, get_or_create_kind_parent, new_task,
-            resolve_task, update_task,
+            ExternalTask, Kind, PLUGIN_KIND, PR_KIND, add_referenced_task_links,
+            get_or_create_kind_parent, new_task, resolve_task, update_task,
         },
     },
     secrets::{Secret, read_secret},
@@ -298,11 +298,17 @@ impl Webhook {
         ) {
             (Some(task), KosoGithubEventAction::Opened | KosoGithubEventAction::Edited) => {
                 update_task(&mut txn, &task, &event.task)?;
+
+                let task_id = task.get_id(&txn)?;
+                add_referenced_task_links(&mut txn, doc, &task_id, &event.task)?;
             }
             (None, KosoGithubEventAction::Opened | KosoGithubEventAction::Edited) => {
                 create_task(&mut txn, doc, &event.task)?;
             }
             (Some(task), KosoGithubEventAction::Closed) => {
+                let task_id = task.get_id(&txn)?;
+                add_referenced_task_links(&mut txn, doc, &task_id, &event.task)?;
+
                 resolve_task(&mut txn, &task)?;
             }
             (None, KosoGithubEventAction::Closed) => {
@@ -349,6 +355,8 @@ fn create_task(
     // Add the new task as a child of the plugin parent.
     children.push(task.id.clone());
     parent.set_children(txn, &children);
+
+    add_referenced_task_links(txn, doc, &task.id, external_task)?;
 
     Ok(())
 }

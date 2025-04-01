@@ -66,6 +66,16 @@ impl YDocProxy {
         Ok(YTaskProxy::new(y_task))
     }
 
+    pub fn get_by_num<T: ReadTxn>(&self, txn: &T, num: &str) -> Result<Option<YTaskProxy>> {
+        for id in self.graph.keys(txn) {
+            let task = self.get(txn, id)?;
+            if task.get_num(txn)? == num {
+                return Ok(Some(task));
+            }
+        }
+        Ok(None)
+    }
+
     pub fn observe_update_v2<F>(&self, f: F) -> Result<Subscription, TransactionAcqError>
     where
         F: Fn(&TransactionMut, &UpdateEvent) + Send + Sync + 'static,
@@ -255,6 +265,22 @@ impl YTaskProxy {
                 }
             }
         }
+    }
+
+    /// Appends the given child.
+    ///
+    /// If the child already exists, this method returns false and leaves children unchanged.
+    pub fn push_child(&self, txn: &mut TransactionMut, child: &str) -> Result<bool> {
+        let y_children: ArrayRef = self.y_task.get_or_init(txn, "children");
+
+        if y_children.iter(txn).any(|item| match item {
+            Out::Any(Any::String(item)) => item.as_ref() == child,
+            _ => false,
+        }) {
+            return Ok(false);
+        }
+        y_children.push_back(txn, child);
+        Ok(true)
     }
 
     pub fn get_assignee<T: ReadTxn>(&self, txn: &T) -> Result<Option<String>> {
