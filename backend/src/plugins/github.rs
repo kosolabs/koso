@@ -15,7 +15,7 @@ use octocrab::models::pulls::PullRequest;
 use poller::Poller;
 use regex::Regex;
 use sqlx::PgPool;
-use std::{cell::LazyCell, time::SystemTime};
+use std::{cell::LazyCell, collections::HashSet, time::SystemTime};
 use tokio::task::JoinHandle;
 use webhook::Webhook;
 use yrs::{ReadTxn, TransactionMut};
@@ -211,44 +211,38 @@ fn resolve_task(txn: &mut TransactionMut, task: &YTaskProxy) -> Result<()> {
     Ok(())
 }
 
-thread_local! {
-    static RE: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"(?i)(?-u:\b)koso[#_-](\d+)").unwrap());
-}
-
-/// Searches the external task's name and description for references to Koso Tasks
-/// of the form: koso#<num>, koso_<num> or koso-<num>
-fn find_referenced_task_nums(github_task: &ExternalTask) -> Vec<String> {
-    RE.with(|re| {
-        let res = re
-            .captures_iter(&github_task.description)
-            .chain(re.captures_iter(&github_task.name))
-            .map(|g| g[1].to_owned())
-            .collect();
-
-        res
-    })
-}
-
+/// Adds the given task ID as a child of any tasks referenced in the github task.
 fn add_referenced_task_links(
     txn: &mut TransactionMut,
     doc: &YDocProxy,
     task_id: &str,
     github_task: &ExternalTask,
 ) -> Result<()> {
-    for link in find_referenced_task_nums(github_task) {
-        let Some(link) = doc.get_by_num(txn, &link)? else {
-            continue;
-        };
-        // Disallow linking to managed links this, additionally,
-        // prevents circular links because the given task is
-        // itself always managed.
-        if is_managed_task(txn, &link)? {
+    for link_task in doc.get_by_nums(txn, &find_referenced_task_nums(github_task))? {
+        // Disallow linking to managed links this, additionally, prevents circular links
+        // because the given task is itself always managed.
+        if is_managed_task(txn, &link_task)? {
             continue;
         }
 
-        link.push_child(txn, task_id)?;
+        link_task.push_child(txn, task_id)?;
     }
     Ok(())
+}
+
+thread_local! {
+    static RE: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"(?i)(?-u:\b)koso[#_-](\d+)").unwrap());
+}
+
+/// Searches the external task's name and description for references to Koso Tasks
+/// of the form: koso#<num>, koso_<num> or koso-<num>
+fn find_referenced_task_nums(github_task: &ExternalTask) -> HashSet<String> {
+    RE.with(|re| {
+        re.captures_iter(&github_task.description)
+            .chain(re.captures_iter(&github_task.name))
+            .map(|g| g[1].to_owned())
+            .collect()
+    })
 }
 
 fn is_managed_task<T: ReadTxn>(txn: &T, link: &YTaskProxy) -> Result<bool> {

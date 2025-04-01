@@ -1,7 +1,7 @@
 use crate::api::model::{Graph, Task};
 use anyhow::{Context, Result, anyhow};
 use similar::{Algorithm, capture_diff_slices};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use yrs::{
     Any, Array, ArrayRef, DeepObservable, Doc, Map, MapRef, Observable, Origin, Out, ReadTxn,
     Subscription, Transact, TransactionAcqError, TransactionMut, UpdateEvent,
@@ -66,14 +66,19 @@ impl YDocProxy {
         Ok(YTaskProxy::new(y_task))
     }
 
-    pub fn get_by_num<T: ReadTxn>(&self, txn: &T, num: &str) -> Result<Option<YTaskProxy>> {
+    pub fn get_by_nums<T: ReadTxn>(
+        &self,
+        txn: &T,
+        nums: &HashSet<String>,
+    ) -> Result<Vec<YTaskProxy>> {
+        let mut tasks = Vec::with_capacity(nums.len());
         for id in self.graph.keys(txn) {
             let task = self.get(txn, id)?;
-            if task.get_num(txn)? == num {
-                return Ok(Some(task));
+            if nums.contains(&task.get_num(txn)?) {
+                tasks.push(task);
             }
         }
-        Ok(None)
+        Ok(tasks)
     }
 
     pub fn observe_update_v2<F>(&self, f: F) -> Result<Subscription, TransactionAcqError>
