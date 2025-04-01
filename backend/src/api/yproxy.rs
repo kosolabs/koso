@@ -71,6 +71,10 @@ impl YDocProxy {
         txn: &T,
         nums: &HashSet<String>,
     ) -> Result<Vec<YTaskProxy>> {
+        if nums.is_empty() {
+            return Ok(Vec::with_capacity(0));
+        }
+
         let mut tasks = Vec::with_capacity(nums.len());
         for id in self.graph.keys(txn) {
             let task = self.get(txn, id)?;

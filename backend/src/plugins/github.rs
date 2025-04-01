@@ -330,4 +330,42 @@ mod tests {
         let res = PLUGIN_KIND.validate();
         assert!(res.is_ok(), "PLUGIN_KIND is invalid {res:?}");
     }
+
+    #[test_log::test]
+    fn find_referenced_task_nums_matches_name() {
+        assert_eq!(
+            find_referenced_task_nums(&ExternalTask {
+                url: "https://github.com/kosolabs/koso/pull/121".into(),
+                name: "koso-15: Something else".into(),
+                description: "Something something".into(),
+            }),
+            HashSet::from_iter(vec!["15".to_string()].into_iter())
+        );
+    }
+
+    #[test_log::test]
+    fn find_referenced_task_nums_matches_description() {
+        assert_eq!(
+            find_referenced_task_nums(&ExternalTask {
+                url: "https://github.com/kosolabs/koso/pull/121".into(),
+                name: "Something else".into(),
+                description: "Something something koso#17, koso#19".into(),
+            }),
+            HashSet::from_iter(vec!["17".to_string(), "19".to_string()].into_iter())
+        );
+    }
+
+    #[test_log::test]
+    fn find_referenced_task_nums_matches_description_and_name() {
+        assert_eq!(
+            find_referenced_task_nums(&ExternalTask {
+                url: "https://github.com/kosolabs/koso/pull/121".into(),
+                name: "Something else KoSo_18".into(),
+                description: "Somethingkoso#14 something KOSO-17, koso#19".into(),
+            }),
+            HashSet::from_iter(
+                vec!["17".to_string(), "18".to_string(), "19".to_string()].into_iter()
+            )
+        );
+    }
 }
