@@ -11,7 +11,7 @@ use crate::{
     plugins::{
         config::{Config, ConfigStorage},
         github::{
-            ExternalTask, Kind, PLUGIN_KIND, PR_KIND,
+            ExternalTask, Kind, PLUGIN_KIND, PR_KIND, add_referenced_task_links,
             app::{AppGithub, InstallationRef},
             get_or_create_kind_parent, new_task, resolve_task, update_task,
         },
@@ -149,8 +149,19 @@ impl Poller {
         // Resolve or update tasks that already exist in the doc.
         for (url, task) in doc_tasks_by_url.iter() {
             match github_tasks_by_url.get(url) {
-                Some(github_task) => update_task(&mut txn, task, github_task)?,
-                None => resolve_task(&mut txn, task)?,
+                Some(github_task) => {
+                    update_task(&mut txn, task, github_task)?;
+
+                    let task_id = task.get_id(&txn)?;
+                    add_referenced_task_links(&mut txn, doc, &task_id, github_task)?;
+                }
+                None => {
+                    // Note: we didn't fetch the closed PR so we can't call add_referenced_task_links
+                    // to add links. In most cases this won't matter because the webhook
+                    // will have done it already
+                    // TODO: If this is a problem, we could fetch the closed PR here and add reference links.
+                    resolve_task(&mut txn, task)?
+                }
             }
         }
 
@@ -162,9 +173,12 @@ impl Poller {
                 Some(_) => {}
                 None => {
                     let task = new_task(github_task, next_num, PR_KIND)?;
+
                     next_num += 1;
                     doc.set(&mut txn, &task);
-                    children.push(task.id);
+                    children.push(task.id.clone());
+
+                    add_referenced_task_links(&mut txn, doc, &task.id, github_task)?;
                 }
             }
         }

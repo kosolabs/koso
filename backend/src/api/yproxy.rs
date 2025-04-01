@@ -1,7 +1,7 @@
 use crate::api::model::{Graph, Task};
 use anyhow::{Context, Result, anyhow};
 use similar::{Algorithm, capture_diff_slices};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use yrs::{
     Any, Array, ArrayRef, DeepObservable, Doc, Map, MapRef, Observable, Origin, Out, ReadTxn,
     Subscription, Transact, TransactionAcqError, TransactionMut, UpdateEvent,
@@ -64,6 +64,25 @@ impl YDocProxy {
             _ => return Err(anyhow!("task {id} is not a map")),
         };
         Ok(YTaskProxy::new(y_task))
+    }
+
+    pub fn get_by_nums<T: ReadTxn>(
+        &self,
+        txn: &T,
+        nums: &HashSet<String>,
+    ) -> Result<Vec<YTaskProxy>> {
+        if nums.is_empty() {
+            return Ok(Vec::with_capacity(0));
+        }
+
+        let mut tasks = Vec::with_capacity(nums.len());
+        for id in self.graph.keys(txn) {
+            let task = self.get(txn, id)?;
+            if nums.contains(&task.get_num(txn)?) {
+                tasks.push(task);
+            }
+        }
+        Ok(tasks)
     }
 
     pub fn observe_update_v2<F>(&self, f: F) -> Result<Subscription, TransactionAcqError>
@@ -255,6 +274,22 @@ impl YTaskProxy {
                 }
             }
         }
+    }
+
+    /// Appends the given child.
+    ///
+    /// If the child already exists, this method returns false and leaves children unchanged.
+    pub fn push_child(&self, txn: &mut TransactionMut, child: &str) -> Result<bool> {
+        let y_children: ArrayRef = self.y_task.get_or_init(txn, "children");
+
+        if y_children.iter(txn).any(|item| match item {
+            Out::Any(Any::String(item)) => item.as_ref() == child,
+            _ => false,
+        }) {
+            return Ok(false);
+        }
+        y_children.push_back(txn, child);
+        Ok(true)
     }
 
     pub fn get_assignee<T: ReadTxn>(&self, txn: &T) -> Result<Option<String>> {

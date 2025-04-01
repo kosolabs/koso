@@ -13,11 +13,12 @@ use axum::{Router, middleware};
 use connect::ConnectHandler;
 use octocrab::models::pulls::PullRequest;
 use poller::Poller;
+use regex::Regex;
 use sqlx::PgPool;
-use std::{fmt::Debug, time::SystemTime};
+use std::{cell::LazyCell, collections::HashSet, time::SystemTime};
 use tokio::task::JoinHandle;
 use webhook::Webhook;
-use yrs::TransactionMut;
+use yrs::{ReadTxn, TransactionMut};
 
 mod app;
 mod auth;
@@ -147,6 +148,7 @@ fn create_container(
 struct ExternalTask {
     url: String,
     name: String,
+    description: String,
 }
 
 impl ExternalTask {
@@ -156,7 +158,12 @@ impl ExternalTask {
         if url.is_empty() {
             return Err(anyhow!("Found PR with empty html_url: {}", pr.url));
         }
-        Ok(ExternalTask { url, name })
+        let description = pr.body.unwrap_or_default();
+        Ok(ExternalTask {
+            url,
+            name,
+            description,
+        })
     }
 }
 
@@ -202,6 +209,47 @@ fn resolve_task(txn: &mut TransactionMut, task: &YTaskProxy) -> Result<()> {
         task.set_status_time(txn, Some(now()?));
     }
     Ok(())
+}
+
+/// Adds the given task ID as a child of any tasks referenced in the github task.
+fn add_referenced_task_links(
+    txn: &mut TransactionMut,
+    doc: &YDocProxy,
+    task_id: &str,
+    github_task: &ExternalTask,
+) -> Result<()> {
+    for link_task in doc.get_by_nums(txn, &find_referenced_task_nums(github_task))? {
+        // Disallow linking to managed links this, additionally, prevents circular links
+        // because the given task is itself always managed.
+        if is_managed_task(txn, &link_task)? {
+            continue;
+        }
+
+        link_task.push_child(txn, task_id)?;
+    }
+    Ok(())
+}
+
+thread_local! {
+    static RE: LazyCell<Regex> = LazyCell::new(|| Regex::new(r"(?i)(?-u:\b)koso[#_-](\d+)").unwrap());
+}
+
+/// Searches the external task's name and description for references to Koso Tasks
+/// of the form: koso#<num>, koso_<num> or koso-<num>
+fn find_referenced_task_nums(github_task: &ExternalTask) -> HashSet<String> {
+    RE.with(|re| {
+        re.captures_iter(&github_task.description)
+            .chain(re.captures_iter(&github_task.name))
+            .map(|g| g[1].to_owned())
+            .collect()
+    })
+}
+
+fn is_managed_task<T: ReadTxn>(txn: &T, link: &YTaskProxy) -> Result<bool> {
+    Ok(link
+        .get_kind(txn)?
+        .map(|kind| kind != "Task" || kind != "Rollup")
+        .unwrap_or(false))
 }
 
 fn now() -> Result<i64> {
@@ -281,5 +329,43 @@ mod tests {
     async fn validate_plugin_kind() {
         let res = PLUGIN_KIND.validate();
         assert!(res.is_ok(), "PLUGIN_KIND is invalid {res:?}");
+    }
+
+    #[test_log::test]
+    fn find_referenced_task_nums_matches_name() {
+        assert_eq!(
+            find_referenced_task_nums(&ExternalTask {
+                url: "https://github.com/kosolabs/koso/pull/121".into(),
+                name: "koso-15: Something else".into(),
+                description: "Something something".into(),
+            }),
+            HashSet::from_iter(vec!["15".to_string()].into_iter())
+        );
+    }
+
+    #[test_log::test]
+    fn find_referenced_task_nums_matches_description() {
+        assert_eq!(
+            find_referenced_task_nums(&ExternalTask {
+                url: "https://github.com/kosolabs/koso/pull/121".into(),
+                name: "Something else".into(),
+                description: "Something something koso#17, koso#19".into(),
+            }),
+            HashSet::from_iter(vec!["17".to_string(), "19".to_string()].into_iter())
+        );
+    }
+
+    #[test_log::test]
+    fn find_referenced_task_nums_matches_description_and_name() {
+        assert_eq!(
+            find_referenced_task_nums(&ExternalTask {
+                url: "https://github.com/kosolabs/koso/pull/121".into(),
+                name: "Something else KoSo_18".into(),
+                description: "Somethingkoso#14 something KOSO-17, koso#19".into(),
+            }),
+            HashSet::from_iter(
+                vec!["17".to_string(), "18".to_string(), "19".to_string()].into_iter()
+            )
+        );
     }
 }
