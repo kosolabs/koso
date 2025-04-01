@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Tokens } from "marked";
-  import type { MarkdownProps } from ".";
+  import type { MarkdownComponentProps } from ".";
 
-  let { token, children }: MarkdownProps<Tokens.Link> = $props();
+  let { token, children }: MarkdownComponentProps<Tokens.Link> = $props();
 </script>
 
 <a href={token.href} title={token.title}>

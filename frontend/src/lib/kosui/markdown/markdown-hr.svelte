@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Tokens } from "marked";
-  import type { MarkdownProps } from ".";
+  import type { MarkdownComponentProps } from ".";
 
-  let _: MarkdownProps<Tokens.Hr> = $props();
+  let _: MarkdownComponentProps<Tokens.Hr> = $props();
 </script>
 
 <hr />

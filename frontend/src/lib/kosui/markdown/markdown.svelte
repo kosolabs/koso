@@ -2,14 +2,14 @@
   import { Lexer, type MarkedOptions, type MarkedToken } from "marked";
   import { MarkdownTokens, newMarkdownContext } from ".";
 
-  export type MarkdownEditorProps = {
+  export type MarkdownProps = {
     value: string;
     options?: MarkedOptions;
   };
 </script>
 
 <script lang="ts">
-  let { value = $bindable(""), options = {} }: MarkdownEditorProps = $props();
+  let { value = $bindable(""), options = {} }: MarkdownProps = $props();
 
   newMarkdownContext();
 

@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { MarkedToken, Tokens } from "marked";
-  import type { MarkdownProps } from ".";
+  import type { MarkdownComponentProps } from ".";
   import { MarkdownTokens } from ".";
 
-  let { token }: MarkdownProps<Tokens.Table> = $props();
+  let { token }: MarkdownComponentProps<Tokens.Table> = $props();
 </script>
 
 <table>

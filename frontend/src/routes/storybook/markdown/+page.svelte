@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Markdown } from "$lib/kosui/markdown";
+  import { Markdown, MarkdownHeading } from "$lib/kosui/markdown";
 
   let value = `
 # Heading 1
@@ -48,4 +48,8 @@ with a break.
 EOF`;
 </script>
 
-<Markdown bind:value options={{ breaks: true, gfm: true }}></Markdown>
+<Markdown bind:value options={{ breaks: true, gfm: true }}>
+  {#snippet heading(token, children)}
+    <MarkdownHeading {token} {children} />
+  {/snippet}
+</Markdown>

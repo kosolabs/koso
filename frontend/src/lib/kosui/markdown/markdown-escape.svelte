@@ -1,8 +1,8 @@
 <script lang="ts">
   import { type Tokens } from "marked";
-  import type { MarkdownProps } from ".";
+  import type { MarkdownComponentProps } from ".";
 
-  let { token }: MarkdownProps<Tokens.Escape> = $props();
+  let { token }: MarkdownComponentProps<Tokens.Escape> = $props();
 </script>
 
 {token.text}

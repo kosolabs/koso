@@ -3,7 +3,7 @@ export {
   MarkdownContext,
   newMarkdownContext,
   setMarkdownContext,
-  type MarkdownProps,
+  type MarkdownComponentProps,
 } from "./context.svelte";
 export { default as MarkdownBlockquote } from "./markdown-blockquote.svelte";
 export { default as MarkdownBr } from "./markdown-br.svelte";

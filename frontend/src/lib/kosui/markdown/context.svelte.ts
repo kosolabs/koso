@@ -23,7 +23,7 @@ import {
   MarkdownText,
 } from ".";
 
-export type MarkdownProps<T> = {
+export type MarkdownComponentProps<T> = {
   token: T;
   children: Snippet;
 };

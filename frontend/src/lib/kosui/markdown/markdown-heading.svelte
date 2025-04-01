@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Tokens } from "marked";
-  import type { MarkdownProps } from ".";
+  import type { MarkdownComponentProps } from ".";
 
-  let { token, children }: MarkdownProps<Tokens.Heading> = $props();
+  let { token, children }: MarkdownComponentProps<Tokens.Heading> = $props();
 </script>
 
 <svelte:element this={`h${token.depth}`}>
