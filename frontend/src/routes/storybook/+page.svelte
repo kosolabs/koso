@@ -12,6 +12,7 @@
     "/storybook/dialogs",
     "/storybook/inputs",
     "/storybook/links",
+    "/storybook/markdown",
     "/storybook/menus",
     "/storybook/progress-indicators",
     "/storybook/shortcuts",
