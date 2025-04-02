@@ -318,7 +318,7 @@ impl headers::Header for XForwardedFor {
     ) -> Result<Self, headers::Error> {
         let val = values.next().ok_or_else(headers::Error::invalid)?;
         let val = val.to_str().map_err(|_| headers::Error::invalid())?;
-        let (first, _) = val.split_once(',').ok_or_else(headers::Error::invalid)?;
+        let first = val.split(',').next().ok_or_else(headers::Error::invalid)?;
         let client_ip = first.trim().to_string();
         Ok(XForwardedFor { client_ip })
     }
