@@ -1,10 +1,16 @@
 <script lang="ts">
   import type { Tokens } from "marked";
-  import type { MarkdownProps } from ".";
+  import type { HTMLAttributes } from "svelte/elements";
+  import type { MarkdownComponentProps } from ".";
 
-  let { token, children }: MarkdownProps<Tokens.Heading> = $props();
+  let {
+    token,
+    children,
+    ...restProps
+  }: MarkdownComponentProps<Tokens.Heading> &
+    HTMLAttributes<HTMLHeadingElement> = $props();
 </script>
 
-<svelte:element this={`h${token.depth}`}>
+<svelte:element this={`h${token.depth}`} {...restProps}>
   {@render children()}
 </svelte:element>

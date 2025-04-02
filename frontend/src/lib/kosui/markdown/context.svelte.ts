@@ -1,71 +1,31 @@
 import type { MarkedToken } from "marked";
-import { getContext, setContext, type Component, type Snippet } from "svelte";
-import {
-  MarkdownBlockquote,
-  MarkdownBr,
-  MarkdownCode,
-  MarkdownCodespan,
-  MarkdownDef,
-  MarkdownDel,
-  MarkdownEm,
-  MarkdownEscape,
-  MarkdownHeading,
-  MarkdownHr,
-  MarkdownHtml,
-  MarkdownImage,
-  MarkdownLink,
-  MarkdownList,
-  MarkdownListItem,
-  MarkdownParagraph,
-  MarkdownSpace,
-  MarkdownStrong,
-  MarkdownTable,
-  MarkdownText,
-} from ".";
+import { getContext, setContext, type Snippet } from "svelte";
 
-export type MarkdownProps<T> = {
+type Token = {
+  [T in TokenType]: Extract<MarkedToken, { type: T }>;
+};
+
+export type MarkdownComponentProps<T> = {
   token: T;
   children: Snippet;
 };
 
 export type TokenType = MarkedToken["type"];
 
-type Token = {
-  [T in TokenType]: Extract<MarkedToken, { type: T }>;
-};
-
-type TokenRenderer<T extends TokenType> = Component<{
-  token: Token[T];
-  children: Snippet;
-}>;
+export type TokenRenderer<T extends TokenType> = Snippet<
+  [MarkdownComponentProps<Token[T]>]
+>;
 
 type Renderers = {
-  [T in TokenType]: TokenRenderer<T>;
+  [T in TokenType]?: TokenRenderer<T>;
 };
 
 export class MarkdownContext {
-  #renderers: Renderers = {
-    blockquote: MarkdownBlockquote,
-    br: MarkdownBr,
-    code: MarkdownCode,
-    codespan: MarkdownCodespan,
-    def: MarkdownDef,
-    del: MarkdownDel,
-    em: MarkdownEm,
-    escape: MarkdownEscape,
-    heading: MarkdownHeading,
-    hr: MarkdownHr,
-    html: MarkdownHtml,
-    image: MarkdownImage,
-    link: MarkdownLink,
-    list_item: MarkdownListItem,
-    list: MarkdownList,
-    paragraph: MarkdownParagraph,
-    space: MarkdownSpace,
-    strong: MarkdownStrong,
-    table: MarkdownTable,
-    text: MarkdownText,
-  };
+  #renderers: Renderers;
+
+  constructor(renderers: Renderers) {
+    this.#renderers = renderers;
+  }
 
   get renderers() {
     return this.#renderers;
@@ -79,8 +39,8 @@ export class MarkdownContext {
   }
 }
 
-export function newMarkdownContext() {
-  return setMarkdownContext(new MarkdownContext());
+export function newMarkdownContext(renderers: Renderers) {
+  return setMarkdownContext(new MarkdownContext(renderers));
 }
 
 export function setMarkdownContext(state: MarkdownContext): MarkdownContext {

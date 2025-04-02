@@ -1,10 +1,14 @@
 <script lang="ts">
   import type { Tokens } from "marked";
-  import type { MarkdownProps } from ".";
+  import type { HTMLAttributes } from "svelte/elements";
+  import type { MarkdownComponentProps } from ".";
 
-  let { children }: MarkdownProps<Tokens.Em> = $props();
+  let {
+    children,
+    ...restProps
+  }: MarkdownComponentProps<Tokens.Em> & HTMLAttributes<HTMLElement> = $props();
 </script>
 
-<em>
+<em {...restProps}>
   {@render children()}
 </em>

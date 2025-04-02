@@ -1,8 +1,13 @@
 <script lang="ts">
   import type { Tokens } from "marked";
-  import type { MarkdownProps } from ".";
+  import type { HTMLAttributes } from "svelte/elements";
+  import type { MarkdownComponentProps } from ".";
 
-  let { token }: MarkdownProps<Tokens.Code> = $props();
+  let {
+    token,
+    ...restProps
+  }: MarkdownComponentProps<Tokens.Code> & HTMLAttributes<HTMLPreElement> =
+    $props();
 </script>
 
-<pre><code class={`lang-${token.lang}`}>{token.text}</code></pre>
+<pre {...restProps}><code class={`lang-${token.lang}`}>{token.text}</code></pre>

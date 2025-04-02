@@ -1,12 +1,16 @@
 <script lang="ts">
   import type { MarkedToken, Tokens } from "marked";
-  import type { MarkdownProps } from ".";
+  import type { HTMLTableAttributes } from "svelte/elements";
+  import type { MarkdownComponentProps } from ".";
   import { MarkdownTokens } from ".";
 
-  let { token }: MarkdownProps<Tokens.Table> = $props();
+  let {
+    token,
+    ...restProps
+  }: MarkdownComponentProps<Tokens.Table> & HTMLTableAttributes = $props();
 </script>
 
-<table>
+<table {...restProps}>
   <thead>
     <tr>
       {#each token.header as item}
