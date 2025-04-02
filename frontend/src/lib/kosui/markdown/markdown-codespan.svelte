@@ -1,8 +1,15 @@
 <script lang="ts">
   import type { Tokens } from "marked";
+  import type { HTMLAttributes } from "svelte/elements";
   import type { MarkdownComponentProps } from ".";
 
-  let { token }: MarkdownComponentProps<Tokens.Codespan> = $props();
+  let {
+    token,
+    ...restProps
+  }: MarkdownComponentProps<Tokens.Codespan> & HTMLAttributes<HTMLElement> =
+    $props();
 </script>
 
-<code>{token.raw.slice(1, token.raw.length - 1)}</code>
+<code {...restProps}>
+  {token.raw.slice(1, token.raw.length - 1)}
+</code>

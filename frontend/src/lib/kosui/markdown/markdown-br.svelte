@@ -1,8 +1,12 @@
 <script lang="ts">
   import type { Tokens } from "marked";
+  import type { HTMLAttributes } from "svelte/elements";
   import type { MarkdownComponentProps } from ".";
 
-  let _: MarkdownComponentProps<Tokens.Br> = $props();
+  let {
+    ...restProps
+  }: MarkdownComponentProps<Tokens.Br> & HTMLAttributes<HTMLBRElement> =
+    $props();
 </script>
 
-<br />
+<br {...restProps} />

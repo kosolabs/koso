@@ -9,15 +9,17 @@
 
   const ctx = getMarkdownContext();
 
-  let Renderer = ctx.getRenderer(token.type);
+  let renderer = ctx.getRenderer(token.type);
 </script>
 
-{#if Renderer}
-  <Renderer {token}>
-    {#if "tokens" in token && token["tokens"]}
-      <MarkdownTokens tokens={token["tokens"] as MarkedToken[]} />
-    {:else}
-      {token.raw}
-    {/if}
-  </Renderer>
+{#snippet children()}
+  {#if "tokens" in token && token["tokens"]}
+    <MarkdownTokens tokens={token["tokens"] as MarkedToken[]} />
+  {:else}
+    {token.raw}
+  {/if}
+{/snippet}
+
+{#if renderer}
+  {@render renderer({ token, children })}
 {/if}

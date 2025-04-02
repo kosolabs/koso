@@ -1,5 +1,9 @@
 <script lang="ts">
   import { Markdown, MarkdownHeading } from "$lib/kosui/markdown";
+  import MarkdownBlockquote from "$lib/kosui/markdown/markdown-blockquote.svelte";
+  import MarkdownCode from "$lib/kosui/markdown/markdown-code.svelte";
+  import MarkdownList from "$lib/kosui/markdown/markdown-list.svelte";
+  import { twMerge } from "tailwind-merge";
 
   let value = `
 # Heading 1
@@ -49,7 +53,29 @@ EOF`;
 </script>
 
 <Markdown bind:value options={{ breaks: true, gfm: true }}>
-  {#snippet heading(token, children)}
-    <MarkdownHeading {token} {children} />
+  {#snippet blockquote({ token, children })}
+    <MarkdownBlockquote class="border border-l-4 p-2" {token} {children} />
+  {/snippet}
+  {#snippet code({ token, children })}
+    <MarkdownCode class="rounded border p-2 text-sm" {token} {children} />
+  {/snippet}
+  {#snippet heading({ token, children })}
+    <MarkdownHeading
+      class={twMerge(
+        "text-lg",
+        token.depth === 1 && "text-3xl",
+        token.depth === 2 && "text-2xl",
+        token.depth === 3 && "text-xl",
+      )}
+      {token}
+      {children}
+    />
+  {/snippet}
+  {#snippet list({ token, children })}
+    <MarkdownList
+      class={twMerge("ml-4", token.ordered ? "list-decimal" : "list-disc")}
+      {token}
+      {children}
+    />
   {/snippet}
 </Markdown>

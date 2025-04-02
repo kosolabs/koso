@@ -1,10 +1,14 @@
 <script lang="ts">
   import type { Tokens } from "marked";
+  import type { HTMLDelAttributes } from "svelte/elements";
   import type { MarkdownComponentProps } from ".";
 
-  let { children }: MarkdownComponentProps<Tokens.Del> = $props();
+  let {
+    children,
+    ...restProps
+  }: MarkdownComponentProps<Tokens.Del> & HTMLDelAttributes = $props();
 </script>
 
-<del>
+<del {...restProps}>
   {@render children()}
 </del>
