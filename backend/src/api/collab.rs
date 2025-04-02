@@ -23,11 +23,10 @@ use axum::extract::ws::WebSocket;
 use notifications::{EventProcessor, KosoEvent};
 use projects_state::ProjectState;
 use sqlx::PgPool;
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
 use tokio_util::task::TaskTracker;
-use uuid::Uuid;
 
 pub(crate) mod awareness;
 pub(crate) mod client;
@@ -88,16 +87,14 @@ impl Collab {
         Ok(collab)
     }
 
-    #[tracing::instrument(skip(self, socket, address, user), fields(who))]
+    #[tracing::instrument(skip(self, socket, who, project_id, user))]
     pub(super) async fn register_client(
         self,
         socket: WebSocket,
-        address: SocketAddr,
+        who: String,
         project_id: ProjectId,
         user: User,
     ) -> Result<()> {
-        let who = address.to_string() + ":" + &Uuid::new_v4().to_string();
-        tracing::Span::current().record("who", &who);
         tracing::debug!("Registering client");
 
         let (mut sender, receiver) = from_socket(socket, &who, user.to_user(), &project_id);

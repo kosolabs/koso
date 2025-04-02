@@ -1,9 +1,10 @@
 use anyhow::{Context, Error, Result, anyhow};
 use axum::{
     Router,
-    http::StatusCode,
+    http::{HeaderName, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
+use axum_extra::headers;
 use google::User;
 use model::{ProjectId, ProjectPermission};
 use sqlx::postgres::PgPool;
@@ -299,5 +300,30 @@ where
 {
     fn from(err: E) -> Self {
         internal_error(err.into(), None)
+    }
+}
+
+pub struct XForwardedFor {
+    pub client_ip: String,
+}
+
+impl headers::Header for XForwardedFor {
+    fn name() -> &'static HeaderName {
+        static NAME: HeaderName = HeaderName::from_static("x-forwarded-for");
+        &NAME
+    }
+
+    fn decode<'i, I: Iterator<Item = &'i HeaderValue>>(
+        values: &mut I,
+    ) -> Result<Self, headers::Error> {
+        let val = values.next().ok_or_else(headers::Error::invalid)?;
+        let val = val.to_str().map_err(|_| headers::Error::invalid())?;
+        let (first, _) = val.split_once(',').ok_or_else(headers::Error::invalid)?;
+        let client_ip = first.trim().to_string();
+        Ok(XForwardedFor { client_ip })
+    }
+
+    fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
+        values.extend([self.client_ip.to_string().try_into().unwrap()])
     }
 }
