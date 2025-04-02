@@ -245,7 +245,6 @@ impl<B> MakeSpan<B> for KosoMakeSpan {
             method = %request.method(),
             uri = %request.uri(),
             request_id = request_id,
-            headers = ?request.headers(),
         )
     }
 }
