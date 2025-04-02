@@ -171,6 +171,12 @@ mod tests {
         let pool = Box::leak(Box::new(pool.clone()));
         let storage = ConfigStorage { pool };
 
+        sqlx::query("INSERT INTO projects (project_id, name, deleted_on) VALUES ($1, $2, CURRENT_TIMESTAMP)")
+            .bind("project_id_1")
+            .bind("config_test")
+            .execute(&*pool)
+            .await?;
+
         storage
             .insert_or_update(&Config {
                 project_id: "project_id_1".to_string(),
