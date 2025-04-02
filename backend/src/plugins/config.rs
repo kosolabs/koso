@@ -46,7 +46,8 @@ impl ConfigStorage {
                 external_id,
                 settings
             FROM plugin_configs
-            WHERE plugin_id=$1 and external_id=$2",
+            JOIN projects USING(project_id)
+            WHERE plugin_id=$1 and external_id=$2 AND deleted_on IS NULL",
         )
         .bind(plugin_id)
         .bind(external_id)
@@ -67,7 +68,8 @@ impl ConfigStorage {
                 external_id,
                 settings
             FROM plugin_configs
-            WHERE plugin_id=$1",
+            JOIN projects USING(project_id)
+            WHERE plugin_id=$1 AND deleted_on IS NULL",
         )
         .bind(plugin_id)
         .fetch_all(self.pool)
@@ -125,6 +127,11 @@ mod tests {
         let pool = Box::leak(Box::new(pool.clone()));
         let storage = ConfigStorage { pool };
 
+        sqlx::query("INSERT INTO projects (project_id, name) VALUES ($1, $2)")
+            .bind("project_id_1")
+            .bind("config_test")
+            .execute(&*pool)
+            .await?;
         storage
             .insert_or_update(&Config {
                 project_id: "project_id_1".to_string(),
@@ -152,6 +159,32 @@ mod tests {
 
         let actual: Vec<Config> = storage
             .list_for_plugin("plugin_id_not_found")
+            .await
+            .unwrap();
+        assert_eq!(actual, vec![]);
+
+        Ok(())
+    }
+
+    #[test_log::test(sqlx::test)]
+    async fn list_excludes_deleted_projects(pool: PgPool) -> Result<()> {
+        let pool = Box::leak(Box::new(pool.clone()));
+        let storage = ConfigStorage { pool };
+
+        storage
+            .insert_or_update(&Config {
+                project_id: "project_id_1".to_string(),
+                plugin_id: "plugin_id_1".to_string(),
+                external_id: "external_id_1".to_string(),
+                settings: Settings::Github(GithubSettings {}),
+            })
+            .await?;
+
+        let actual: Vec<Config> = storage.list_for_plugin("plugin_id_1").await.unwrap();
+        assert_eq!(actual, vec![]);
+
+        let actual: Vec<Config> = storage
+            .list_for_external_id("plugin_id_1", "external_id_1")
             .await
             .unwrap();
         assert_eq!(actual, vec![]);
