@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { Markdown, MarkdownHeading } from "$lib/kosui/markdown";
+  import {
+    Markdown,
+    MarkdownHeading,
+    MarkdownTable,
+    MarkdownTableCell,
+  } from "$lib/kosui/markdown";
   import MarkdownBlockquote from "$lib/kosui/markdown/markdown-blockquote.svelte";
   import MarkdownCode from "$lib/kosui/markdown/markdown-code.svelte";
   import MarkdownList from "$lib/kosui/markdown/markdown-list.svelte";
@@ -74,6 +79,16 @@ EOF`;
   {#snippet list({ token, children })}
     <MarkdownList
       class={twMerge("ml-4", token.ordered ? "list-decimal" : "list-disc")}
+      {token}
+      {children}
+    />
+  {/snippet}
+  {#snippet table({ token, children })}
+    <MarkdownTable class="w-min" {token} {children} />
+  {/snippet}
+  {#snippet tableCell({ token, children })}
+    <MarkdownTableCell
+      class="border p-1 whitespace-nowrap"
       {token}
       {children}
     />

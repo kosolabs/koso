@@ -26,6 +26,7 @@
     MarkdownSpace,
     MarkdownStrong,
     MarkdownTable,
+    MarkdownTableCell,
     MarkdownText,
     MarkdownTokens,
     newMarkdownContext,
@@ -48,11 +49,12 @@
     html?: Snippet<[MarkdownComponentProps<Tokens.HTML | Tokens.Tag>]>;
     image?: Snippet<[MarkdownComponentProps<Tokens.Image>]>;
     link?: Snippet<[MarkdownComponentProps<Tokens.Link>]>;
-    list_item?: Snippet<[MarkdownComponentProps<Tokens.ListItem>]>;
+    listItem?: Snippet<[MarkdownComponentProps<Tokens.ListItem>]>;
     list?: Snippet<[MarkdownComponentProps<Tokens.List>]>;
     paragraph?: Snippet<[MarkdownComponentProps<Tokens.Paragraph>]>;
     space?: Snippet<[MarkdownComponentProps<Tokens.Space>]>;
     strong?: Snippet<[MarkdownComponentProps<Tokens.Strong>]>;
+    tableCell?: Snippet<[MarkdownComponentProps<Tokens.TableCell>]>;
     table?: Snippet<[MarkdownComponentProps<Tokens.Table>]>;
     text?: Snippet<[MarkdownComponentProps<Tokens.Text>]>;
   };
@@ -75,37 +77,41 @@
     html = defaultHtml,
     image = defaultImage,
     link = defaultLink,
-    list_item = defaultList_item,
+    listItem = defaultListItem,
     list = defaultList,
     paragraph = defaultParagraph,
     space = defaultSpace,
     strong = defaultStrong,
+    tableCell = defaultTableCell,
     table = defaultTable,
     text = defaultText,
   }: MarkdownProps = $props();
 
-  newMarkdownContext({
-    blockquote,
-    br,
-    code,
-    codespan,
-    def,
-    del,
-    em,
-    escape,
-    heading,
-    hr,
-    html,
-    image,
-    link,
-    list_item,
-    list,
-    paragraph,
-    space,
-    strong,
-    table,
-    text,
-  });
+  newMarkdownContext(
+    {
+      blockquote,
+      br,
+      code,
+      codespan,
+      def,
+      del,
+      em,
+      escape,
+      heading,
+      hr,
+      html,
+      image,
+      link,
+      list_item: listItem,
+      list,
+      paragraph,
+      space,
+      strong,
+      table,
+      text,
+    },
+    tableCell,
+  );
 
   const lexer = new Lexer(options);
   let tokens = $derived(lexer.lex(value) as MarkedToken[]);
@@ -150,7 +156,7 @@
 {#snippet defaultLink(props: MarkdownComponentProps<Tokens.Link>)}
   <MarkdownLink {...props} />
 {/snippet}
-{#snippet defaultList_item(props: MarkdownComponentProps<Tokens.ListItem>)}
+{#snippet defaultListItem(props: MarkdownComponentProps<Tokens.ListItem>)}
   <MarkdownListItem {...props} />
 {/snippet}
 {#snippet defaultList(props: MarkdownComponentProps<Tokens.List>)}
@@ -167,6 +173,9 @@
 {/snippet}
 {#snippet defaultTable(props: MarkdownComponentProps<Tokens.Table>)}
   <MarkdownTable {...props} />
+{/snippet}
+{#snippet defaultTableCell(props: MarkdownComponentProps<Tokens.TableCell>)}
+  <MarkdownTableCell {...props} />
 {/snippet}
 {#snippet defaultText(props: MarkdownComponentProps<Tokens.Text>)}
   <MarkdownText {...props} />

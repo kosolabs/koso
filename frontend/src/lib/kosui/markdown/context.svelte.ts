@@ -1,4 +1,4 @@
-import type { MarkedToken } from "marked";
+import type { MarkedToken, Tokens } from "marked";
 import { getContext, setContext, type Snippet } from "svelte";
 
 type Token = {
@@ -12,26 +12,35 @@ export type MarkdownComponentProps<T> = {
 
 export type TokenType = MarkedToken["type"];
 
-export type TokenRenderer<T extends TokenType> = Snippet<
-  [MarkdownComponentProps<Token[T]>]
->;
+type TokenRenderer<T> = Snippet<[MarkdownComponentProps<T>]>;
 
 type Renderers = {
-  [T in TokenType]?: TokenRenderer<T>;
+  [T in TokenType]?: TokenRenderer<Token[T]>;
 };
 
 export class MarkdownContext {
   #renderers: Renderers;
+  #tableCellRenderer: TokenRenderer<Tokens.TableCell>;
 
-  constructor(renderers: Renderers) {
+  constructor(
+    renderers: Renderers,
+    tableCellRenderer: TokenRenderer<Tokens.TableCell>,
+  ) {
     this.#renderers = renderers;
+    this.#tableCellRenderer = tableCellRenderer;
   }
 
   get renderers() {
     return this.#renderers;
   }
 
-  getRenderer<T extends TokenType>(type: T): TokenRenderer<T> | undefined {
+  get tableCellRenderer() {
+    return this.#tableCellRenderer;
+  }
+
+  getRenderer<T extends TokenType>(
+    type: T,
+  ): TokenRenderer<Token[T]> | undefined {
     if (!this.#renderers[type]) {
       console.warn("No renderer registered for", type);
     }
@@ -39,8 +48,11 @@ export class MarkdownContext {
   }
 }
 
-export function newMarkdownContext(renderers: Renderers) {
-  return setMarkdownContext(new MarkdownContext(renderers));
+export function newMarkdownContext(
+  renderers: Renderers,
+  tableCellRenderer: TokenRenderer<Tokens.TableCell>,
+) {
+  return setMarkdownContext(new MarkdownContext(renderers, tableCellRenderer));
 }
 
 export function setMarkdownContext(state: MarkdownContext): MarkdownContext {

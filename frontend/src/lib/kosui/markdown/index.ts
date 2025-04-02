@@ -23,6 +23,7 @@ export { default as MarkdownList } from "./markdown-list.svelte";
 export { default as MarkdownParagraph } from "./markdown-paragraph.svelte";
 export { default as MarkdownSpace } from "./markdown-space.svelte";
 export { default as MarkdownStrong } from "./markdown-strong.svelte";
+export { default as MarkdownTableCell } from "./markdown-table-cell.svelte";
 export { default as MarkdownTable } from "./markdown-table.svelte";
 export { default as MarkdownText } from "./markdown-text.svelte";
 export { default as MarkdownToken } from "./markdown-token.svelte";
