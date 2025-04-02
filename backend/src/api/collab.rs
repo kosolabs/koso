@@ -88,15 +88,15 @@ impl Collab {
         Ok(collab)
     }
 
-    #[tracing::instrument(skip(self, socket, who, user), fields(who))]
+    #[tracing::instrument(skip(self, socket, address, user), fields(who))]
     pub(super) async fn register_client(
         self,
         socket: WebSocket,
-        who: SocketAddr,
+        address: SocketAddr,
         project_id: ProjectId,
         user: User,
     ) -> Result<()> {
-        let who = who.to_string() + ":" + &Uuid::new_v4().to_string();
+        let who = address.to_string() + ":" + &Uuid::new_v4().to_string();
         tracing::Span::current().record("who", &who);
         tracing::debug!("Registering client");
 
