@@ -1,6 +1,6 @@
 use crate::{
     api::{
-        self,
+        self, XForwardedFor,
         collab::Collab,
         google::{self, KeySet},
     },
@@ -13,11 +13,12 @@ use crate::{
 };
 use axum::{
     Extension, Router,
-    extract::{MatchedPath, Request},
+    extract::{ConnectInfo, MatchedPath, Request},
     http::{HeaderName, HeaderValue},
     middleware::{self, Next},
     response::{IntoResponse, Response},
 };
+use axum_extra::headers::HeaderMapExt;
 use listenfd::ListenFd;
 use sqlx::{
     ConnectOptions,
@@ -263,12 +264,14 @@ impl<B> OnRequest<B> for KosoOnRequest {
                 tracing::Level::DEBUG,
                 http_version = ?request.version(),
                 client_version = client_version,
+                client_ip = client_ip(request),
                 "started processing request",
             );
         } else {
             tracing::event!(
                 tracing::Level::DEBUG,
                 http_version = ?request.version(),
+                client_ip = client_ip(request),
                 "started processing request",
             );
         }
@@ -295,6 +298,16 @@ fn version_from_ws_header<B>(request: &Request<B>) -> Option<&str> {
                 continue;
             }
         }
+    }
+}
+
+fn client_ip<B>(request: &Request<B>) -> String {
+    match request.headers().typed_get::<XForwardedFor>() {
+        Some(forwarded_for) => forwarded_for.client_ip,
+        None => match request.extensions().get::<ConnectInfo<SocketAddr>>() {
+            Some(ConnectInfo(addr)) => addr.to_string(),
+            None => "UNKNOWN_IP".to_string(),
+        },
     }
 }
 
