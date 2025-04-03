@@ -59,28 +59,31 @@ impl ClientMessageReceiver {
             + Duration::from_millis((random::<f32>() * 20.0 * 60.0 * 1000.0) as u64);
         let closure = match timeout(timeout_duration, async {
             loop {
-                let msg = self.receiver.next().await?;
+                let Some(msg) = self.receiver.next().await else {
+                    return ClientClosure {
+                        code: CLOSE_NORMAL,
+                        reason: "Read None from client socket.",
+                        details: "Read None from client socket.".to_string(),
+                    };
+                };
                 if let ControlFlow::Break(closure) = self.receive_message_from_client(msg).await {
-                    return Some(closure);
+                    return closure;
                 }
             }
         })
         .await
         {
             Ok(closure) => closure,
-            Err(e) => Some(ClientClosure {
+            Err(e) => ClientClosure {
                 code: CLOSE_NORMAL,
                 reason: "Resetting old connection",
                 details: format!("Resetting old connection after {e}"),
-            }),
+            },
         };
 
-        tracing::debug!("Stopped receiving messages from client");
-        if let Some(closure) = closure {
-            self.project
-                .remove_and_close_client(&self.receiver.who, closure)
-                .await;
-        }
+        self.project
+            .remove_and_close_client(&self.receiver.who, closure)
+            .await;
     }
 
     async fn receive_message_from_client(

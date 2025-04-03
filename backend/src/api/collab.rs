@@ -129,7 +129,7 @@ impl Collab {
     #[tracing::instrument(skip(self))]
     pub(crate) async fn stop(self) {
         tracing::debug!("Closing all clients...");
-        self.inner.state.close_all_project_clients().await;
+        self.inner.state.stop().await;
 
         let tracker = self.inner.tracker.clone();
         // Drop the Collab instance to release inner.state which
