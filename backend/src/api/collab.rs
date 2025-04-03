@@ -146,7 +146,7 @@ impl Collab {
             tracker.len()
         );
 
-        if let Err(e) = tokio::time::timeout(Duration::from_secs(30), async {
+        if let Err(e) = tokio::time::timeout(Duration::from_secs(25), async {
             loop {
                 if tracker.is_empty() {
                     break;
