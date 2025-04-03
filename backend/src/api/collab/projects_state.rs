@@ -170,11 +170,11 @@ impl ProjectsState {
         })
     }
 
-    pub(super) async fn close_all_project_clients(&self) {
+    pub(super) async fn stop(&self) {
         let mut res = Vec::new();
         for project in self.projects.iter() {
             if let Some(project) = project.upgrade() {
-                res.push(ProjectState::close_all_clients(project));
+                res.push(ProjectState::stop(project));
             }
         }
         futures::future::join_all(res).await;
@@ -339,27 +339,25 @@ impl ProjectState {
         self.awarenesses.lock().await.remove(who);
         self.broadcast_awarenesses().await;
 
-        match client {
-            Some(mut client) => {
-                client.close(closure.code, closure.reason).await;
-            }
-            None => tracing::warn!(
-                "Tried to remove client ({who}) in project {}, but it was already gone.",
-                self.project_id
-            ),
+        if let Some(mut client) = client {
+            client.close(closure.code, closure.reason).await;
         }
     }
 
-    async fn close_all_clients(project: Arc<ProjectState>) {
+    #[tracing::instrument()]
+    async fn stop(project: Arc<ProjectState>) {
         let mut clients = project.clients.lock().await;
-        tracing::debug!(
-            "Closing {} clients in project {}",
-            clients.len(),
-            project.project_id
-        );
+        // Clear all clients from the map.
+        let clients = std::mem::take(&mut *clients);
+
+        tracing::debug!("Closing {} project clients", clients.len());
         let mut res = Vec::new();
-        for client in clients.values_mut() {
-            res.push(client.close(CLOSE_RESTART, "The server is shutting down."));
+        for (_, mut client) in clients.into_iter() {
+            res.push(async move {
+                client
+                    .close(CLOSE_RESTART, "The server is shutting down.")
+                    .await
+            });
         }
         futures::future::join_all(res).await;
     }
