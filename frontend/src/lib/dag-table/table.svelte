@@ -41,6 +41,7 @@
   import { onMount, setContext, tick } from "svelte";
   import { flip } from "svelte/animate";
   import { Node, type Koso } from ".";
+  import MarkdownEditor from "./markdown-editor.svelte";
   import Row from "./row.svelte";
   import SearchPanel from "./search-panel.svelte";
   import Toolbar from "./toolbar.svelte";
@@ -671,6 +672,10 @@
 >
   {#await koso.synced then}
     {#if koso.nodes.size > 1}
+      {#if koso.selected}
+        <MarkdownEditor {koso} task={koso.getTask(koso.selected.name)} />
+      {/if}
+
       <table class="w-full border-separate border-spacing-0 rounded-md border">
         <thead class="text-left text-xs font-bold uppercase">
           <tr>

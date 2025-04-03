@@ -18,6 +18,7 @@
     getAwarenessOutline,
     getUniqueUsers,
   } from "./awareness.svelte";
+  import DescAction from "./desc-action.svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel, { type Mode } from "./link-panel.svelte";
   import TaskAction from "./task-action.svelte";
@@ -462,7 +463,10 @@
     </div>
   </td>
   <td class={cn("border-t px-1")}>
-    <TaskAction />
+    <div class="flex items-center">
+      <DescAction {koso} {task} />
+      <TaskAction />
+    </div>
   </td>
   <td class={cn("border-t border-l p-2")}>
     <UserSelect

@@ -134,6 +134,18 @@ export class YTaskProxy {
     this.#yTask.set("name", value);
   }
 
+  get desc(): string {
+    return (this.#yTask.get("desc") || "") as string;
+  }
+
+  set desc(value: string) {
+    if (value === "") {
+      this.#yTask.delete("desc");
+    } else {
+      this.#yTask.set("desc", value);
+    }
+  }
+
   get children(): YChildrenProxy {
     const yChildren = this.#yTask.get("children") as YChildren;
     if (!yChildren) throw new Error("yChildren is undefined");

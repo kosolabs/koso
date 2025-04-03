@@ -179,6 +179,7 @@ export class Koso {
   #awareness: Awareness[] = $state([]);
 
   #debug: Storable<boolean>;
+  editor: boolean = $state(false);
   #events: YEvent[] = $state.raw([]);
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
