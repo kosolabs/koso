@@ -56,14 +56,19 @@ impl ClientSender {
     }
 
     pub(super) async fn close(&mut self, code: CloseCode, reason: &'static str) {
-        let _ = self
+        if let Err(err) = self
             .ws_sender
             .send(Message::Close(Some(CloseFrame {
                 code,
                 reason: reason.into(),
             })))
-            .await;
-        let _ = self.ws_sender.close().await;
+            .await
+        {
+            tracing::trace!("Send close failed: {err:#}");
+        }
+        if let Err(err) = self.ws_sender.close().await {
+            tracing::trace!("Close ws_sender failed: {err:#}");
+        }
     }
 }
 
