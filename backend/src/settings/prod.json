@@ -2,7 +2,7 @@
   "secrets_dir": "/.secrets",
   "database_url": "postgresql://koso:koso@localhost/koso",
   "env": "prod",
-  "log_format": "json",
+  "log_format": "full",
 
   "plugins": {
     "github": {
