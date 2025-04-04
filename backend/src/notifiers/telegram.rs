@@ -202,6 +202,8 @@ pub(crate) async fn start_telegram_server() -> Result<()> {
     // waiting for the shutdown future to complete times out.
     abort_token.abort();
 
+    tracing::info!("Telegram bot shutdown.");
+
     Ok(())
 }
 
