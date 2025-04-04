@@ -215,6 +215,7 @@ impl ProjectState {
         }
         match clients.entry(sender.who.clone()) {
             Entry::Occupied(entry) => {
+                tracing::error!("Unexpectedly, client already exists: {entry:?}");
                 return Err((
                     sender,
                     ClientInsertionError::DuplicateClient(format!(
