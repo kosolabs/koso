@@ -21,12 +21,12 @@ use crate::{
     },
     postgres::compact,
 };
-use anyhow::{Context as _, Error, Result, anyhow};
+use anyhow::{Context as _, Result, anyhow};
 use async_trait::async_trait;
 use dashmap::DashMap;
 use sqlx::PgPool;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, hash_map::Entry},
     fmt,
     sync::{
         Arc, Weak,
@@ -89,18 +89,17 @@ impl ProjectsState {
 
         // Store the sender side of the socket in the list of clients.
         match project.insert_client(sender).await {
-            Ok(None) => {}
-            Ok(Some(mut existing)) => {
-                existing
+            Err((mut sender, ClientInsertionError::TooManyClients(err))) => {
+                sender.close(OVERLOADED, "Too many active clients.").await;
+                return Err(anyhow!(err));
+            }
+            Err((mut sender, ClientInsertionError::DuplicateClient(err))) => {
+                sender
                     .close(CLOSE_ERROR, "Unexpected duplicate connection.")
                     .await;
-                tracing::error!("Unexpectedly, client already exists: {existing:?}");
-                // Intentionally fall through below and start listening for messages on the new sender.
+                return Err(anyhow!(err));
             }
-            Err((mut sender, e)) => {
-                sender.close(OVERLOADED, "Too many active clients.").await;
-                return Err(e);
-            }
+            Ok(_) => (),
         };
 
         // Send the entire state vector to the client.
@@ -193,20 +192,40 @@ pub(crate) struct ProjectState {
     tracker: tokio_util::task::TaskTracker,
 }
 
+enum ClientInsertionError {
+    TooManyClients(String),
+    DuplicateClient(String),
+}
+
 impl ProjectState {
     async fn insert_client(
         &self,
         sender: ClientSender,
-    ) -> Result<Option<ClientSender>, (ClientSender, Error)> {
+    ) -> Result<(), (ClientSender, ClientInsertionError)> {
         let mut clients = self.clients.lock().await;
         const MAX_PROJECT_CLIENTS: usize = 100;
         if clients.len() >= MAX_PROJECT_CLIENTS {
             return Err((
                 sender,
-                anyhow!("Too many ({}) active project clients.", clients.len()),
+                ClientInsertionError::TooManyClients(format!(
+                    "Too many ({}) active project clients.",
+                    clients.len(),
+                )),
             ));
         }
-        Ok(clients.insert(sender.who.clone(), sender))
+        match clients.entry(sender.who.clone()) {
+            Entry::Occupied(entry) => {
+                tracing::error!("Unexpectedly, client already exists: {entry:?}");
+                return Err((
+                    sender,
+                    ClientInsertionError::DuplicateClient(format!(
+                        "Unexpectedly, client already exists: {entry:?}",
+                    )),
+                ));
+            }
+            Entry::Vacant(entry) => entry.insert(sender),
+        };
+        Ok(())
     }
 
     async fn init_doc_box(project: &Arc<ProjectState>) -> Result<StateVector> {

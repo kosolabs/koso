@@ -56,6 +56,7 @@ impl ClientSender {
     }
 
     pub(super) async fn close(&mut self, code: CloseCode, reason: &'static str) {
+        // Ignore these errors since they happen often when clients disconnect uncleanly.
         let _ = self
             .ws_sender
             .send(Message::Close(Some(CloseFrame {
@@ -63,7 +64,9 @@ impl ClientSender {
                 reason: reason.into(),
             })))
             .await;
-        let _ = self.ws_sender.close().await;
+        if let Err(err) = self.ws_sender.close().await {
+            tracing::trace!("Close ws_sender failed: {err:#}");
+        }
     }
 }
 
