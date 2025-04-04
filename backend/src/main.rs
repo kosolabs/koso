@@ -16,11 +16,7 @@ mod tests;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                "koso=debug,tower_http=trace,sqlx=trace,axum=trace,info".into()
-            }),
-        )
+        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap())
         .with(tracing_subscriber::fmt::layer())
         .init();
     tracing::info!("Using koso settings: {:?}", settings::settings());

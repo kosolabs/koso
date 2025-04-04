@@ -52,5 +52,6 @@ COPY --from=frontend /app/build ./static
 
 ENV RUST_BACKTRACE=1
 ENV RUST_LIB_BACKTRACE=0
+ENV RUST_LOG=koso=debug,tower_http=trace,sqlx=trace,axum=trace,info
 
 CMD ["./koso"]
