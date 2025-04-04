@@ -64,6 +64,7 @@ impl ClientMessageReceiver {
                         code: CLOSE_NORMAL,
                         reason: "Read None from client socket.",
                         details: "Read None from client socket.".to_string(),
+                        client_initiated: true,
                     };
                 };
                 if let ControlFlow::Break(closure) = self.receive_message_from_client(msg).await {
@@ -78,6 +79,7 @@ impl ClientMessageReceiver {
                 code: CLOSE_NORMAL,
                 reason: "Resetting old connection",
                 details: format!("Resetting old connection after {e}"),
+                client_initiated: false,
             },
         };
 
@@ -120,6 +122,7 @@ impl ClientMessageReceiver {
                     code: CLOSE_NORMAL,
                     reason: "Client closed connection.",
                     details,
+                    client_initiated: true,
                 })
             }
             Err(e) => {
@@ -128,6 +131,7 @@ impl ClientMessageReceiver {
                     code: CLOSE_ERROR,
                     reason: "Failed to read from client socket.",
                     details: format!("Failed to read from client socket: {e:#}"),
+                    client_initiated: true,
                 })
             }
             // Our clients send heartbeat pings in the form of empty text messages
