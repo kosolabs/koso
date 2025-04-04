@@ -116,6 +116,7 @@ impl ProjectsState {
                         code: CLOSE_ERROR,
                         reason: "Failed to send sync request message.",
                         details: format!("Failed to send sync request message: {e:#}"),
+                        client_initiated: false,
                     },
                 )
                 .await;
@@ -359,7 +360,11 @@ impl ProjectState {
         self.broadcast_awarenesses().await;
 
         if let Some(mut client) = client {
-            client.close(closure.code, closure.reason).await;
+            if !closure.client_initiated {
+                client.close(closure.code, closure.reason).await;
+            } else {
+                client.close_sender().await;
+            }
         }
     }
 

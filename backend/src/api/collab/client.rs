@@ -42,6 +42,7 @@ pub(super) struct ClientClosure {
     pub(super) reason: &'static str,
     /// Additional details for internal logging.
     pub(super) details: String,
+    pub(super) client_initiated: bool,
 }
 
 pub(super) struct ClientSender {
@@ -55,17 +56,28 @@ impl ClientSender {
         self.ws_sender.send(Message::Binary(data.into())).await
     }
 
+    /// Send the close frame and close the socket.
+    /// This method should be used for server initiated closure as
+    /// Axum automatically replies with a close frame on client initiated closure.
     pub(super) async fn close(&mut self, code: CloseCode, reason: &'static str) {
-        // Ignore these errors since they happen often when clients disconnect uncleanly.
-        let _ = self
+        if let Err(err) = self
             .ws_sender
             .send(Message::Close(Some(CloseFrame {
                 code,
                 reason: reason.into(),
             })))
-            .await;
+            .await
+        {
+            tracing::debug!("Failed to send close to client: {err:#}");
+        }
+        self.close_sender().await;
+    }
+
+    /// Closes the send side of the websocket without sending a close frame.
+    /// Call this for client initated closure. See the `close` method above.
+    pub(super) async fn close_sender(&mut self) {
         if let Err(err) = self.ws_sender.close().await {
-            tracing::trace!("Close ws_sender failed: {err:#}");
+            tracing::debug!("Failed to close client ws_sender: {err:#}");
         }
     }
 }
