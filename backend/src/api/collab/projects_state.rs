@@ -23,7 +23,6 @@ use crate::{
 };
 use anyhow::{Context as _, Result, anyhow};
 use async_trait::async_trait;
-use dashmap::DashMap;
 use sqlx::PgPool;
 use std::{
     collections::{HashMap, hash_map::Entry},
@@ -37,8 +36,19 @@ use tokio::sync::{Mutex, MutexGuard, mpsc::Sender};
 use tracing::Instrument;
 use yrs::{ReadTxn as _, StateVector, Subscription, Update};
 
+#[derive(Debug)]
+enum ProjectInsertionError {
+    InitDocError(anyhow::Error),
+    Stopped(),
+}
+
+struct ProjectsMap {
+    map: HashMap<ProjectId, Weak<ProjectState>>,
+    stopped: bool,
+}
+
 pub(super) struct ProjectsState {
-    projects: DashMap<ProjectId, Weak<ProjectState>>,
+    projects: Mutex<ProjectsMap>,
     process_msg_tx: Sender<ClientMessage>,
     doc_update_tx: Sender<DocUpdate>,
     event_tx: Sender<KosoEvent>,
@@ -55,7 +65,10 @@ impl ProjectsState {
         tracker: tokio_util::task::TaskTracker,
     ) -> Self {
         ProjectsState {
-            projects: DashMap::new(),
+            projects: Mutex::new(ProjectsMap {
+                map: HashMap::new(),
+                stopped: false,
+            }),
             process_msg_tx,
             doc_update_tx,
             event_tx,
@@ -68,7 +81,10 @@ impl ProjectsState {
         &self,
         project_id: &ProjectId,
     ) -> Result<Arc<ProjectState>> {
-        let (project, _) = self.get_or_init(project_id).await?;
+        let project = match self.get_or_init(project_id).await {
+            Ok((project, _)) => project,
+            Err(err) => return Err(anyhow!("{err:?}")),
+        };
         Ok(project)
     }
 
@@ -81,9 +97,18 @@ impl ProjectsState {
         // Get of insert the project state.
         let (project, sv) = match self.get_or_init(project_id).await {
             Ok(r) => r,
-            Err(e) => {
+            Err(ProjectInsertionError::InitDocError(err)) => {
                 sender.close(CLOSE_ERROR, "Failed to init project.").await;
-                return Err(e);
+                return Err(err);
+            }
+            Err(ProjectInsertionError::Stopped()) => {
+                sender
+                    .close(
+                        CLOSE_RESTART,
+                        "Server is shutting down, cannot init project.",
+                    )
+                    .await;
+                return Err(anyhow!("Server is shutting down, cannot init project."));
             }
         };
 
@@ -98,6 +123,12 @@ impl ProjectsState {
                     .close(CLOSE_ERROR, "Unexpected duplicate connection.")
                     .await;
                 return Err(anyhow!(err));
+            }
+            Err((mut sender, ClientInsertionError::Stopped())) => {
+                sender
+                    .close(CLOSE_RESTART, "Server is shutting down, cannot add client.")
+                    .await;
+                return Err(anyhow!("Server is shutting down, cannot add client."));
             }
             Ok(_) => (),
         };
@@ -134,32 +165,44 @@ impl ProjectsState {
     async fn get_or_init(
         &self,
         project_id: &ProjectId,
-    ) -> Result<(Arc<ProjectState>, StateVector)> {
-        let project = match self.projects.entry(project_id.to_string()) {
-            dashmap::Entry::Occupied(mut o) => match o.get().upgrade() {
-                Some(p) => p,
-                None => {
+    ) -> Result<(Arc<ProjectState>, StateVector), ProjectInsertionError> {
+        let project = {
+            let mut projects = self.projects.lock().await;
+            if projects.stopped {
+                return Err(ProjectInsertionError::Stopped());
+            }
+            match projects.map.entry(project_id.to_string()) {
+                Entry::Occupied(mut o) => match o.get().upgrade() {
+                    Some(p) => p,
+                    None => {
+                        let project = self.new_project(project_id);
+                        o.insert(Arc::downgrade(&project));
+                        project
+                    }
+                },
+                Entry::Vacant(v) => {
                     let project = self.new_project(project_id);
-                    o.insert(Arc::downgrade(&project));
+                    v.insert(Arc::downgrade(&project));
                     project
                 }
-            },
-            dashmap::Entry::Vacant(v) => {
-                let project = self.new_project(project_id);
-                v.insert(Arc::downgrade(&project));
-                project
             }
         };
 
         // Init the doc_box, if necessary and grab the state vector.
-        let sv = ProjectState::init_doc_box(&project).await?;
+        let sv = match ProjectState::init_doc_box(&project).await {
+            Ok(sv) => sv,
+            Err(err) => return Err(ProjectInsertionError::InitDocError(err)),
+        };
         Ok((project, sv))
     }
 
     fn new_project(&self, project_id: &String) -> Arc<ProjectState> {
         Arc::new(ProjectState {
             project_id: project_id.to_string(),
-            clients: Mutex::new(HashMap::new()),
+            clients: Mutex::new(ClientsMap {
+                map: HashMap::new(),
+                stopped: false,
+            }),
             awarenesses: Mutex::new(HashMap::new()),
             doc_box: Mutex::new(None),
             doc_update_tx: self.doc_update_tx.clone(),
@@ -171,19 +214,36 @@ impl ProjectsState {
     }
 
     pub(super) async fn stop(&self) {
-        let mut res = Vec::new();
-        for project in self.projects.iter() {
-            if let Some(project) = project.upgrade() {
-                res.push(ProjectState::stop(project));
+        let res = {
+            let mut projects = self.projects.lock().await;
+            projects.stopped = true;
+
+            let mut res = Vec::new();
+            for project in projects.map.values() {
+                if let Some(project) = project.upgrade() {
+                    res.push(ProjectState::stop(project));
+                }
             }
-        }
+            res
+        };
         futures::future::join_all(res).await;
     }
 }
 
+enum ClientInsertionError {
+    TooManyClients(String),
+    DuplicateClient(String),
+    Stopped(),
+}
+
+pub(crate) struct ClientsMap {
+    map: HashMap<String, ClientSender>,
+    stopped: bool,
+}
+
 pub(crate) struct ProjectState {
     pub(crate) project_id: ProjectId,
-    clients: Mutex<HashMap<String, ClientSender>>,
+    clients: Mutex<ClientsMap>,
     awarenesses: Mutex<HashMap<String, AwarenessState>>,
     pub(crate) doc_box: Mutex<Option<DocBox>>,
     updates: atomic::AtomicUsize,
@@ -193,28 +253,27 @@ pub(crate) struct ProjectState {
     tracker: tokio_util::task::TaskTracker,
 }
 
-enum ClientInsertionError {
-    TooManyClients(String),
-    DuplicateClient(String),
-}
-
 impl ProjectState {
     async fn insert_client(
         &self,
         sender: ClientSender,
     ) -> Result<(), (ClientSender, ClientInsertionError)> {
         let mut clients = self.clients.lock().await;
+        if clients.stopped {
+            return Err((sender, ClientInsertionError::Stopped()));
+        }
+
         const MAX_PROJECT_CLIENTS: usize = 100;
-        if clients.len() >= MAX_PROJECT_CLIENTS {
+        if clients.map.len() >= MAX_PROJECT_CLIENTS {
             return Err((
                 sender,
                 ClientInsertionError::TooManyClients(format!(
                     "Too many ({}) active project clients.",
-                    clients.len(),
+                    clients.map.len(),
                 )),
             ));
         }
-        match clients.entry(sender.who.clone()) {
+        match clients.map.entry(sender.who.clone()) {
             Entry::Occupied(entry) => {
                 tracing::error!("Unexpectedly, client already exists: {entry:?}");
                 return Err((
@@ -324,10 +383,13 @@ impl ProjectState {
 
     pub(super) async fn broadcast_msg(&self, data: Vec<u8>, exclude_who: Option<&String>) {
         let mut clients = self.clients.lock().await;
+        if clients.stopped {
+            return;
+        }
 
-        tracing::debug!("Broadcasting to {} clients", clients.len());
+        tracing::debug!("Broadcasting to {} clients", clients.map.len());
         let mut results = Vec::new();
-        for client in clients.values_mut() {
+        for client in clients.map.values_mut() {
             match exclude_who {
                 Some(exclude_who) if client.who == *exclude_who => {}
                 _ => results.push(client.send(data.to_owned())),
@@ -339,7 +401,7 @@ impl ProjectState {
 
     pub(super) async fn send_msg(&self, to_who: &String, data: Vec<u8>) -> Result<()> {
         let mut clients = self.clients.lock().await;
-        let Some(client) = clients.get_mut(to_who) else {
+        let Some(client) = clients.map.get_mut(to_who) else {
             return Err(anyhow!("Unexpectedly found no client to send to"));
         };
         client.send(data).await.context("Failed to send to client")
@@ -348,7 +410,7 @@ impl ProjectState {
     pub(super) async fn remove_and_close_client(&self, who: &String, closure: ClientClosure) {
         let (client, remaining_clients) = {
             let clients = &mut self.clients.lock().await;
-            (clients.remove(who), clients.len())
+            (clients.map.remove(who), clients.map.len())
         };
         tracing::debug!(
             "Removed client. {} clients remain. Reason: {}",
@@ -359,29 +421,30 @@ impl ProjectState {
         self.awarenesses.lock().await.remove(who);
         self.broadcast_awarenesses().await;
 
-        if let Some(mut client) = client {
-            if !closure.client_initiated {
-                client.close(closure.code, closure.reason).await;
-            } else {
-                client.close_sender().await;
+        match client {
+            Some(mut client) => {
+                if !closure.client_initiated {
+                    client.close(closure.code, closure.reason).await;
+                } else {
+                    client.close_sender().await;
+                }
             }
+            None => tracing::warn!(
+                "Tried to remove client ({who}) in project {}, but it was already gone.",
+                self.project_id
+            ),
         }
     }
 
     #[tracing::instrument()]
     async fn stop(project: Arc<ProjectState>) {
         let mut clients = project.clients.lock().await;
-        // Clear all clients from the map.
-        let clients = std::mem::take(&mut *clients);
+        clients.stopped = true;
 
-        tracing::debug!("Closing {} project clients", clients.len());
+        tracing::debug!("Closing {} project clients", clients.map.len());
         let mut res = Vec::new();
-        for (_, mut client) in clients.into_iter() {
-            res.push(async move {
-                client
-                    .close(CLOSE_RESTART, "The server is shutting down.")
-                    .await
-            });
+        for client in clients.map.values_mut() {
+            res.push(client.close(CLOSE_RESTART, "The server is shutting down."));
         }
         futures::future::join_all(res).await;
     }

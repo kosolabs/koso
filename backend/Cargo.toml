@@ -37,7 +37,6 @@ tokio-util = { version = "0.7.14", features = ["rt"] }
 jsonwebtoken = "9.3.1"
 reqwest = { version = "0.12.15", features = ["json"] }
 base64 = "0.22.1"
-dashmap = "6.1.0"
 anyhow = "1.0.97"
 rand = "0.9.0"
 tower = "0.5.2"
