@@ -69,7 +69,7 @@
   }
 
   function insertAndEdit(parent: Node, offset: number, user: User) {
-    const taskId = koso.insertTask(parent, offset, user);
+    const taskId = koso.insertTask(parent.name, offset, user);
     const node = parent.child(taskId);
     koso.selected = node;
     // The newly inserted node's row won't yet have been inserted into
