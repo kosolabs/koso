@@ -1,9 +1,11 @@
 <script lang="ts">
+  import type { ClassName } from "$lib/kosui/utils";
   import { markdown } from "@codemirror/lang-markdown";
   import { EditorState } from "@codemirror/state";
   import { type DOMEventHandlers } from "@codemirror/view";
   import { EditorView, basicSetup } from "codemirror";
   import type { HTMLAttributes } from "svelte/elements";
+  import { twMerge } from "tailwind-merge";
   import { yCollab } from "y-codemirror.next";
   import { Awareness } from "y-protocols/awareness.js";
   import * as Y from "yjs";
@@ -11,8 +13,14 @@
   type Props = {
     yText: Y.Text;
     handlers?: DOMEventHandlers<unknown>;
-  } & HTMLAttributes<HTMLDivElement>;
-  let { yText, handlers = {}, ...restProps }: Props = $props();
+  } & ClassName &
+    HTMLAttributes<HTMLDivElement>;
+  let {
+    yText,
+    handlers = {},
+    class: className,
+    ...restProps
+  }: Props = $props();
 
   let el: HTMLDivElement | undefined = $state();
 
@@ -39,4 +47,8 @@
   });
 </script>
 
-<div class="overflow-clip rounded-md" bind:this={el} {...restProps}></div>
+<div
+  class={twMerge("h-full rounded-md", className)}
+  bind:this={el}
+  {...restProps}
+></div>

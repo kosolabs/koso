@@ -8,15 +8,16 @@
     MarkdownTable,
     MarkdownTableCell,
   } from "$lib/kosui/markdown";
+  import type { ClassName } from "$lib/kosui/utils";
   import { twMerge } from "tailwind-merge";
 
   type Props = {
     value: string;
-  };
-  let { value }: Props = $props();
+  } & ClassName;
+  let { value, class: className }: Props = $props();
 </script>
 
-<div class="flex flex-col gap-2">
+<div class={twMerge("flex flex-col gap-2", className)}>
   <Markdown bind:value options={{ breaks: true, gfm: true }}>
     {#snippet blockquote({ token, children })}
       <MarkdownBlockquote class="border border-l-4 p-2" {token} {children} />

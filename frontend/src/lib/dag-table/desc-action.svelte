@@ -16,6 +16,6 @@
   variant="plain"
   color="primary"
   shape="circle"
-  icon={task.desc && task.desc.length > 0 ? FileText : FilePlus2}
-  onclick={() => koso.showDetailViewer()}
+  icon={task.desc !== null ? FileText : FilePlus2}
+  onclick={() => (koso.detailPanel = "view")}
 />

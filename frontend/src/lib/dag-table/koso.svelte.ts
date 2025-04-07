@@ -161,6 +161,8 @@ export type FlattenFn = (
 ) => List<Node>;
 export type VisibilityFilterFn = (node: Node, showDone: boolean) => boolean;
 
+export type DetailPanelStates = "none" | "view" | "edit";
+
 export class Koso {
   #projectId: string;
   #yDoc: Y.Doc;
@@ -182,7 +184,7 @@ export class Koso {
   #awareness: Awareness[] = $state([]);
 
   #debug: Storable<boolean>;
-  #detailPanel: "none" | "view" | "edit" = $state("none");
+  #detailPanel: DetailPanelStates = $state("none");
   #events: YEvent[] = $state.raw([]);
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
@@ -307,24 +309,26 @@ export class Koso {
     const actions: Action<ActionID>[] = [
       new Action({
         id: "DetailPanelClose",
-        callback: () => this.hideDetailPanel(),
+        callback: () => (this.detailPanel = "none"),
         title: "Close task description",
         description: "Close / hide the task description markdown panel",
         icon: PanelTopClose,
       }),
       new Action({
         id: "DetailPanelViewer",
-        callback: () => this.showDetailViewer(),
+        callback: () => (this.detailPanel = "view"),
         title: "View task description",
         description: "Open / show the task description markdown viewer",
         icon: PanelTopOpen,
+        enabled: () => !!this.selected,
       }),
       new Action({
         id: "DetailPanelEditor",
-        callback: () => this.showDetailEditor(),
+        callback: () => (this.detailPanel = "edit"),
         title: "Edit task description",
         description: "Open / show the task description markdown editor",
         icon: SquarePen,
+        enabled: () => !!this.selected && this.isEditable(this.selected.name),
       }),
     ];
 
@@ -619,16 +623,8 @@ export class Koso {
     return this.#detailPanel;
   }
 
-  hideDetailPanel() {
-    this.#detailPanel = "none";
-  }
-
-  showDetailViewer() {
-    this.#detailPanel = "view";
-  }
-
-  showDetailEditor() {
-    this.#detailPanel = "edit";
+  set detailPanel(value: DetailPanelStates) {
+    this.#detailPanel = value;
   }
 
   // composable functions that primarily operate on Tasks

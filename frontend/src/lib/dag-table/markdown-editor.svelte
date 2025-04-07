@@ -5,6 +5,7 @@
   import { Shortcut } from "$lib/kosui/shortcut";
   import { YTaskProxy, type Task } from "$lib/yproxy";
   import { Pencil, Trash, X } from "lucide-svelte";
+  import { toast } from "svelte-sonner";
   import { slide } from "svelte/transition";
   import * as Y from "yjs";
   import type { Koso } from "./koso.svelte";
@@ -16,21 +17,26 @@
   };
   let { koso, task: yTask }: Props = $props();
 
-  let yDesc: Y.Text | null = $state(yTask.desc);
-  let task: Task = $state(yTask.toJSON());
-  let desc: string | null = $state(yTask.desc ? yTask.desc.toString() : null);
+  let task: Task = $state.raw(yTask.toJSON());
+  let yDesc: Y.Text | null = $state.raw(yTask.desc);
 
   function hideDetails() {
-    koso.hideDetailPanel();
+    koso.detailPanel = "none";
   }
 
   function viewDetails() {
-    koso.showDetailViewer();
+    koso.detailPanel = "view";
   }
 
   function editDetails() {
+    if (!koso.isEditable(task.id)) {
+      toast.warning(
+        "This is a managed task and cannot be edited in Koso directly.",
+      );
+      return;
+    }
     yDesc = yTask.getOrNewDesc();
-    koso.showDetailEditor();
+    koso.detailPanel = "edit";
   }
 
   function deleteDetails() {
@@ -57,23 +63,17 @@
   }
 
   $effect(() => {
-    const observer = () => {
+    task = yTask.toJSON();
+    yDesc = yTask.desc;
+    return yTask.observeDeep(() => {
       task = yTask.toJSON();
-      if (yDesc !== yTask.desc) {
-        yDesc = yTask.desc;
-      }
-    };
-    return yTask.observe(observer);
+      yDesc = yTask.desc;
+    });
   });
 
   $effect(() => {
-    const maybeYDesc = yDesc;
-    if (maybeYDesc) {
-      const observer = () => (desc = maybeYDesc.toString());
-      maybeYDesc.observe(observer);
-      return () => maybeYDesc.unobserve(observer);
-    } else {
-      desc = null;
+    if (!koso.isEditable(task.id) && koso.detailPanel === "edit") {
+      viewDetails();
     }
   });
 
@@ -94,21 +94,26 @@
     >
       {task.name}
       <div class="top-2 right-2 ml-auto flex gap-1">
-        <Button icon={Pencil} variant="plain" onclick={editDetails} />
-        {#if yDesc}
+        {#if koso.isEditable(task.id)}
+          <Button icon={Pencil} variant="plain" onclick={editDetails} />
+        {/if}
+        {#if yDesc !== null}
           <Button icon={Trash} variant="plain" onclick={deleteDetails} />
         {/if}
         <Button icon={X} variant="plain" onclick={close} />
       </div>
     </div>
-    {#if yDesc && koso.detailPanel === "edit"}
-      <hr />
-      <CodeMirror yText={yDesc} onkeydown={handleKeyDownEditing} />
-    {:else if desc !== null}
-      <hr />
-      <div class="p-2" role="document" ondblclick={editDetails}>
-        <MarkdownViewer value={desc} />
-      </div>
-    {/if}
+    <hr />
+    <div
+      class="h-96 max-h-96 overflow-scroll"
+      role="document"
+      ondblclick={editDetails}
+    >
+      {#if yDesc && koso.isEditable(task.id) && koso.detailPanel === "edit"}
+        <CodeMirror yText={yDesc} onkeydown={handleKeyDownEditing} />
+      {:else if task.desc}
+        <MarkdownViewer class="p-2" value={task.desc} />
+      {/if}
+    </div>
   </div>
 {/if}

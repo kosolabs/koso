@@ -136,7 +136,7 @@ export class YTaskProxy {
   }
 
   get desc(): Y.Text | null {
-    return this.#yTask.get("desc") as Y.Text;
+    return (this.#yTask.get("desc") as Y.Text) || null;
   }
 
   getOrNewDesc(): Y.Text {
@@ -209,6 +209,15 @@ export class YTaskProxy {
 
   unobserve(f: (arg0: Y.YMapEvent<YTaskProps>, arg1: Y.Transaction) => void) {
     this.#yTask.unobserve(f);
+  }
+
+  observeDeep(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
+    this.#yTask.observeDeep(f);
+    return () => this.unobserveDeep(f);
+  }
+
+  unobserveDeep(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
+    this.#yTask.unobserveDeep(f);
   }
 
   toJSON(): Task {
