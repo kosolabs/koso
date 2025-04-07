@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { CodeMirror } from "$lib/components/ui/code-mirror";
   import { events } from "$lib/kosui";
   import { Button } from "$lib/kosui/button";
   import { Shortcut } from "$lib/kosui/shortcut";
-  import type { YTaskProxy } from "$lib/yproxy";
-  import { Pencil, X } from "lucide-svelte";
-  import { onMount } from "svelte";
+  import { YTaskProxy, type Task } from "$lib/yproxy";
+  import { Pencil, Trash, X } from "lucide-svelte";
   import { slide } from "svelte/transition";
+  import * as Y from "yjs";
   import type { Koso } from "./koso.svelte";
   import MarkdownViewer from "./markdown-viewer.svelte";
 
@@ -13,74 +14,100 @@
     koso: Koso;
     task: YTaskProxy;
   };
-  let { koso, task }: Props = $props();
+  let { koso, task: yTask }: Props = $props();
 
-  let editing = $state(false);
+  let yDesc: Y.Text | null = $state(yTask.desc);
+  let task: Task = $state(yTask.toJSON());
+  let desc: string | null = $state(yTask.desc ? yTask.desc.toString() : null);
 
-  function stopEditing() {
-    editing = false;
+  function hideDetails() {
+    koso.hideDetailPanel();
   }
 
-  function toggleEditing() {
-    editing = !editing;
+  function viewDetails() {
+    koso.showDetailViewer();
   }
 
-  function close() {
-    stopEditing();
-    koso.editor = false;
+  function editDetails() {
+    yDesc = yTask.getOrNewDesc();
+    koso.showDetailEditor();
+  }
+
+  function deleteDetails() {
+    yDesc = null;
+    yTask.delDesc();
   }
 
   function handleKeyDownEditing(event: KeyboardEvent) {
     if (Shortcut.ESCAPE.matches(event)) {
-      stopEditing();
+      viewDetails();
     }
     event.stopImmediatePropagation();
   }
 
   function handleKeyDown(event: KeyboardEvent) {
     if (Shortcut.ESCAPE.matches(event)) {
-      close();
+      if (koso.detailPanel === "edit") {
+        viewDetails();
+      } else {
+        hideDetails();
+      }
       event.stopImmediatePropagation();
     }
   }
 
-  onMount(() => {
-    return events.on("keydown", handleKeyDown);
+  $effect(() => {
+    const observer = () => {
+      task = yTask.toJSON();
+      if (yDesc !== yTask.desc) {
+        yDesc = yTask.desc;
+      }
+    };
+    return yTask.observe(observer);
+  });
+
+  $effect(() => {
+    const maybeYDesc = yDesc;
+    if (maybeYDesc) {
+      const observer = () => (desc = maybeYDesc.toString());
+      maybeYDesc.observe(observer);
+      return () => maybeYDesc.unobserve(observer);
+    } else {
+      desc = null;
+    }
+  });
+
+  $effect(() => {
+    if (koso.selected && koso.detailPanel !== "none") {
+      return events.on("keydown", handleKeyDown);
+    }
   });
 </script>
 
-{#if koso.editor}
+{#if koso.detailPanel !== "none"}
   <div class="relative mb-2 rounded-md border" transition:slide>
     <div
       class="flex items-center p-2 text-lg font-extralight"
       role="heading"
       aria-level="1"
-      ondblclick={toggleEditing}
+      ondblclick={editDetails}
     >
       {task.name}
-      <div class="top-2 right-2 ml-auto flex gap-2">
-        <Button icon={Pencil} onclick={toggleEditing} />
-        <Button icon={X} onclick={close} />
+      <div class="top-2 right-2 ml-auto flex gap-1">
+        <Button icon={Pencil} variant="plain" onclick={editDetails} />
+        {#if yDesc}
+          <Button icon={Trash} variant="plain" onclick={deleteDetails} />
+        {/if}
+        <Button icon={X} variant="plain" onclick={close} />
       </div>
     </div>
-    {#if editing}
-      <!-- svelte-ignore a11y_autofocus -->
-      <textarea
-        bind:value={task.desc}
-        autofocus
-        class="h-[40vh] w-full p-2"
-        onblur={stopEditing}
-        onkeydown={handleKeyDownEditing}
-      ></textarea>
-    {:else if task.desc !== ""}
+    {#if yDesc && koso.detailPanel === "edit"}
       <hr />
-      <div
-        class="p-2"
-        role="document"
-        ondblclick={toggleEditing}
-        transition:slide
-      >
-        <MarkdownViewer value={task.desc} />
+      <CodeMirror yText={yDesc} onkeydown={handleKeyDownEditing} />
+    {:else if desc !== null}
+      <hr />
+      <div class="p-2" role="document" ondblclick={editDetails}>
+        <MarkdownViewer value={desc} />
       </div>
     {/if}
   </div>

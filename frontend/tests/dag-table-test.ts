@@ -2210,8 +2210,7 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
       await expect(statusButton).toHaveText("Not Started");
-      graph = await getKosoGraph(page);
-      expect(graph).toMatchObject({
+      await expectKosoGraph(page).toMatchObject({
         root: { children: ["1"] },
         ["1"]: { children: ["2", "3"], status: "Not Started" },
         ["2"]: { children: [], status: "Done" },

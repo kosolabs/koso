@@ -9,8 +9,6 @@
     task: YTaskProxy;
   };
   let { koso, task }: Props = $props();
-
-  let icon = $derived(task.desc ? FileText : FilePlus2);
 </script>
 
 <Button
@@ -18,6 +16,6 @@
   variant="plain"
   color="primary"
   shape="circle"
-  {icon}
-  onclick={() => (koso.editor = true)}
+  icon={task.desc && task.desc.length > 0 ? FileText : FilePlus2}
+  onclick={() => koso.showDetailViewer()}
 />

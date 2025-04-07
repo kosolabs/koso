@@ -5,7 +5,7 @@ import * as Y from "yjs";
 export type YEvent = Y.YEvent<any>;
 export type YGraph = Y.Map<YTask>;
 export type YTask = Y.Map<YTaskProps>;
-export type YTaskProps = YChildren | string | number | null;
+export type YTaskProps = YChildren | Y.Text | string | number | null;
 export type YChildren = Y.Array<string>;
 
 export type Graph = { [id: string]: Task };
@@ -13,6 +13,7 @@ export type Task = {
   id: string;
   num: string;
   name: string;
+  desc: string | null;
   children: string[];
   assignee: string | null;
   reporter: string | null;
@@ -134,16 +135,21 @@ export class YTaskProxy {
     this.#yTask.set("name", value);
   }
 
-  get desc(): string {
-    return (this.#yTask.get("desc") || "") as string;
+  get desc(): Y.Text | null {
+    return this.#yTask.get("desc") as Y.Text;
   }
 
-  set desc(value: string) {
-    if (value === "") {
-      this.#yTask.delete("desc");
-    } else {
-      this.#yTask.set("desc", value);
+  getOrNewDesc(): Y.Text {
+    if (this.desc) {
+      return this.desc;
     }
+    const desc = new Y.Text();
+    this.#yTask.set("desc", desc);
+    return desc;
+  }
+
+  delDesc() {
+    this.#yTask.delete("desc");
   }
 
   get children(): YChildrenProxy {
@@ -194,6 +200,15 @@ export class YTaskProxy {
 
   get url(): string | null {
     return (this.#yTask.get("url") as string) || null;
+  }
+
+  observe(f: (arg0: Y.YMapEvent<YTaskProps>, arg1: Y.Transaction) => void) {
+    this.#yTask.observe(f);
+    return () => this.unobserve(f);
+  }
+
+  unobserve(f: (arg0: Y.YMapEvent<YTaskProps>, arg1: Y.Transaction) => void) {
+    this.#yTask.unobserve(f);
   }
 
   toJSON(): Task {

@@ -8,6 +8,7 @@
     "/storybook/avatar",
     "/storybook/buttons",
     "/storybook/chips",
+    "/storybook/code-mirror",
     "/storybook/command",
     "/storybook/dialogs",
     "/storybook/inputs",
