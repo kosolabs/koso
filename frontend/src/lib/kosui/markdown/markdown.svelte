@@ -113,8 +113,7 @@
     tableCell,
   );
 
-  const lexer = new Lexer(options);
-  let tokens = $derived(lexer.lex(value) as MarkedToken[]);
+  let tokens = $derived(Lexer.lex(value, options) as MarkedToken[]);
 </script>
 
 {#snippet defaultBlockquote(props: MarkdownComponentProps<Tokens.Blockquote>)}

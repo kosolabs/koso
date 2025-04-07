@@ -1,14 +1,17 @@
 import type { User } from "$lib/auth.svelte";
+import { command, type ActionID } from "$lib/components/ui/command-palette";
 import { toast } from "$lib/components/ui/sonner";
 import {
   parseAwarenessStateResponse,
   type Awareness,
 } from "$lib/dag-table/awareness.svelte";
+import { Action } from "$lib/kosui/command";
 import { useLocalStorage, type Storable } from "$lib/stores.svelte";
 import { findEntryIndex } from "$lib/utils";
 import { List, Map, Record, Set } from "immutable";
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
+import { PanelTopClose, PanelTopOpen, SquarePen } from "lucide-svelte";
 import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
@@ -158,6 +161,8 @@ export type FlattenFn = (
 ) => List<Node>;
 export type VisibilityFilterFn = (node: Node, showDone: boolean) => boolean;
 
+export type DetailPanelStates = "none" | "view" | "edit";
+
 export class Koso {
   #projectId: string;
   #yDoc: Y.Doc;
@@ -179,6 +184,7 @@ export class Koso {
   #awareness: Awareness[] = $state([]);
 
   #debug: Storable<boolean>;
+  #detailPanel: DetailPanelStates = $state("none");
   #events: YEvent[] = $state.raw([]);
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
@@ -298,6 +304,36 @@ export class Koso {
       return () => {
         this.graph.unobserve(observer);
       };
+    });
+
+    const actions: Action<ActionID>[] = [
+      new Action({
+        id: "DetailPanelClose",
+        callback: () => (this.detailPanel = "none"),
+        title: "Close task description",
+        description: "Close / hide the task description markdown panel",
+        icon: PanelTopClose,
+      }),
+      new Action({
+        id: "DetailPanelViewer",
+        callback: () => (this.detailPanel = "view"),
+        title: "View task description",
+        description: "Open / show the task description markdown viewer",
+        icon: PanelTopOpen,
+        enabled: () => !!this.selected,
+      }),
+      new Action({
+        id: "DetailPanelEditor",
+        callback: () => (this.detailPanel = "edit"),
+        title: "Edit task description",
+        description: "Open / show the task description markdown editor",
+        icon: SquarePen,
+        enabled: () => !!this.selected && this.isEditable(this.selected.name),
+      }),
+    ];
+
+    $effect(() => {
+      return command.register(...actions);
     });
   }
 
@@ -581,6 +617,16 @@ export class Koso {
     return Promise.all([this.#indexedDbSynced, this.#serverSynced]);
   }
 
+  // actions that operate on the UI
+
+  get detailPanel() {
+    return this.#detailPanel;
+  }
+
+  set detailPanel(value: DetailPanelStates) {
+    this.#detailPanel = value;
+  }
+
   // composable functions that primarily operate on Tasks
 
   /** Converts the graph to JSON. */
@@ -744,6 +790,7 @@ export class Koso {
         id: "root",
         num: "0",
         name: "Root",
+        desc: null,
         children: [],
         reporter: null,
         assignee: null,
@@ -1486,6 +1533,7 @@ export class Koso {
         id: taskId,
         num: this.newNum(),
         name: name,
+        desc: null,
         children: [],
         reporter: user.email,
         assignee: null,
