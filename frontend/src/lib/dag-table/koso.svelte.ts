@@ -1193,8 +1193,8 @@ export class Koso {
     return false;
   }
 
-  linkNode(node: Node, parent: Node, offset: number) {
-    this.link(node.name, parent.name, offset);
+  linkTask(taskId: string, parentTaskId: string, offset: number) {
+    this.link(taskId, parentTaskId, offset);
   }
 
   canMoveNode(node: Node, parent: Node): boolean {

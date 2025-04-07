@@ -216,7 +216,7 @@
     const dragDestOffset = koso.getOffset(node) + 1;
 
     if (koso.dropEffect === "copy") {
-      koso.linkNode(koso.dragged, dragDestParent, dragDestOffset);
+      koso.linkTask(koso.dragged.name, dragDestParent.name, dragDestOffset);
     } else if (koso.dropEffect === "move") {
       koso.moveNode(koso.dragged, dragDestParent, dragDestOffset);
     } else {
@@ -237,7 +237,7 @@
     const dragDestOffset = 0;
 
     if (koso.dropEffect === "copy") {
-      koso.linkNode(koso.dragged, dragDestParent, dragDestOffset);
+      koso.linkTask(koso.dragged.name, dragDestParent.name, dragDestOffset);
     } else if (koso.dropEffect === "move") {
       koso.moveNode(koso.dragged, dragDestParent, dragDestOffset);
     } else {
