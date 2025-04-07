@@ -213,12 +213,13 @@
     }
 
     const dragDestParent = node.parent;
-    const dragDestOffset = koso.getOffset(node) + 1;
+    const dragDestOffset = koso.getOffset(node.link) + 1;
 
     if (koso.dropEffect === "copy") {
       koso.linkTask(koso.dragged.name, dragDestParent.name, dragDestOffset);
     } else if (koso.dropEffect === "move") {
-      koso.moveNode(koso.dragged, dragDestParent, dragDestOffset);
+      koso.moveTask(koso.dragged.link, dragDestParent.name, dragDestOffset);
+      koso.selected = dragDestParent.child(koso.dragged.name);
     } else {
       throw new Error(`Invalid dropEffect: ${koso.dropEffect}`);
     }
@@ -239,7 +240,8 @@
     if (koso.dropEffect === "copy") {
       koso.linkTask(koso.dragged.name, dragDestParent.name, dragDestOffset);
     } else if (koso.dropEffect === "move") {
-      koso.moveNode(koso.dragged, dragDestParent, dragDestOffset);
+      koso.moveTask(koso.dragged.link, dragDestParent.name, dragDestOffset);
+      koso.selected = dragDestParent.child(koso.dragged.name);
     } else {
       throw new Error(`Invalid dropEffect: ${koso.dropEffect}`);
     }
@@ -256,14 +258,14 @@
     }
 
     if (koso.canLink(koso.dragged.name, node.parent.name)) {
-      if (koso.canMoveNode(koso.dragged, node.parent)) {
+      if (koso.canMoveTask(koso.dragged.link, node.parent.name)) {
         koso.dropEffect = event.altKey ? "copy" : "move";
       } else {
         koso.dropEffect = "copy";
       }
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverPeer = true;
-    } else if (koso.canMoveNode(koso.dragged, node.parent)) {
+    } else if (koso.canMoveTask(koso.dragged.link, node.parent.name)) {
       dataTransfer.dropEffect = "move";
       koso.dropEffect = "move";
       dragOverPeer = true;
@@ -281,14 +283,14 @@
     }
 
     if (koso.canLink(koso.dragged.name, node.name)) {
-      if (koso.canMoveNode(koso.dragged, node)) {
+      if (koso.canMoveTask(koso.dragged.link, node.name)) {
         koso.dropEffect = event.altKey ? "copy" : "move";
       } else {
         koso.dropEffect = "copy";
       }
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverChild = true;
-    } else if (koso.canMoveNode(koso.dragged, node)) {
+    } else if (koso.canMoveTask(koso.dragged.link, node.name)) {
       dataTransfer.dropEffect = "move";
       koso.dropEffect = "move";
       dragOverChild = true;

@@ -83,7 +83,7 @@
     if (koso.selected) {
       insertAndEdit(
         koso.selected.parent,
-        koso.getOffset(koso.selected) + 1,
+        koso.getOffset(koso.selected.link) + 1,
         auth.user,
       );
     } else {
@@ -95,7 +95,7 @@
     if (!koso.selected) return;
     insertAndEdit(
       koso.selected.parent,
-      koso.getOffset(koso.selected),
+      koso.getOffset(koso.selected.link),
       auth.user,
     );
   }

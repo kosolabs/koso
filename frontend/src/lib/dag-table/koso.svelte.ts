@@ -85,9 +85,22 @@ export class Node extends NodeRecord {
   child(name: string): Node {
     return new Node({ path: this.path.push(name) });
   }
+
+  get link(): TaskLink {
+    return new TaskLink({ id: this.name, parentId: this.parent.name });
+  }
 }
 
 export type Nodes = Map<string, Node>;
+
+type TaskLinkProps = { id: string; parentId: string };
+const TaskLinkRecord = Record<TaskLinkProps>({ id: "", parentId: "" });
+
+export class TaskLink extends TaskLinkRecord {
+  static create(taskId: string, parentTaskId: string): TaskLink {
+    return new TaskLink({ id: taskId, parentId: parentTaskId });
+  }
+}
 
 type SelectedProps = { node: Node | null; index: number | null };
 const SelectedRecord = Record<SelectedProps>({ node: null, index: null });
@@ -965,9 +978,9 @@ export class Koso {
     this.selected = null;
   }
 
-  getOffset(node: Node): number {
-    const offset = this.getChildren(node.parent.name).indexOf(node.name);
-    if (offset < 0) throw new Error(`Node ${node.name} not found in parent`);
+  getOffset(link: TaskLink): number {
+    const offset = this.getChildren(link.parentId).indexOf(link.id);
+    if (offset < 0) throw new Error(`Node ${link.id} not found in parent`);
     return offset;
   }
 
@@ -1197,32 +1210,30 @@ export class Koso {
     this.link(taskId, parentTaskId, offset);
   }
 
-  canMoveNode(node: Node, parent: Node): boolean {
-    return this.canMove(node.name, node.parent.name, parent.name);
+  canMoveTask(link: TaskLink, newParentTaskId: string): boolean {
+    return this.canMove(link.id, link.parentId, newParentTaskId);
   }
 
-  moveNode(node: Node, parent: Node, offset: number) {
+  moveTask(link: TaskLink, newParentTaskId: string, offset: number) {
     if (offset < 0) {
-      throw new Error(`Cannot move  ${node.name} to negative offset ${offset}`);
+      throw new Error(`Cannot move  ${link.id} to negative offset ${offset}`);
     }
-    if (!this.canMoveNode(node, parent))
-      throw new Error(`Cannot move ${node.name} to ${parent}`);
-    const srcOffset = this.getOffset(node);
+    if (!this.canMoveTask(link, newParentTaskId))
+      throw new Error(`Cannot move ${link.id} to ${newParentTaskId}`);
+    const srcOffset = this.getOffset(link);
     this.doc.transact(() => {
-      const srcParentName = node.parent.name;
-      const ySrcChildren = this.getChildren(srcParentName);
+      const ySrcChildren = this.getChildren(link.parentId);
       ySrcChildren.delete(srcOffset);
 
-      if (srcParentName === parent.name && srcOffset < offset) {
+      if (link.parentId === newParentTaskId && srcOffset < offset) {
         offset -= 1;
       }
-      this.#linkUnchecked(node.name, parent.name, offset);
+      this.#linkUnchecked(link.id, newParentTaskId, offset);
     });
-    this.selected = parent.child(node.name);
   }
 
-  reorderNode(node: Node, offset: number) {
-    this.moveNode(node, node.parent, offset);
+  reorderTask(link: TaskLink, offset: number) {
+    this.moveTask(link, link.parentId, offset);
   }
 
   moveNodeUp(node: Node) {
@@ -1240,11 +1251,11 @@ export class Koso {
           `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
       }
-      if (!this.canMoveNode(node, newParent)) {
+      if (!this.canMoveTask(node.link, newParent.name)) {
         attempts++;
         return false;
       }
-      this.moveNode(node, newParent, newOffset);
+      this.moveTask(node.link, newParent.name, newOffset);
       this.selected = newParent.child(node.name);
       if (attempts > 0) {
         toast.info(
@@ -1285,7 +1296,7 @@ export class Koso {
       }
 
       if (!insertionTarget) {
-        if (maybeMove(adj.parent, this.getOffset(adj))) {
+        if (maybeMove(adj.parent, this.getOffset(adj.link))) {
           return;
         }
 
@@ -1300,7 +1311,10 @@ export class Koso {
         }
       } else {
         if (
-          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
+          maybeMove(
+            insertionTarget.parent,
+            this.getOffset(insertionTarget.link) + 1,
+          )
         ) {
           return;
         }
@@ -1332,11 +1346,11 @@ export class Koso {
           `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
       }
-      if (!this.canMoveNode(node, newParent)) {
+      if (!this.canMoveTask(node.link, newParent.name)) {
         attempts++;
         return false;
       }
-      this.moveNode(node, newParent, newOffset);
+      this.moveTask(node.link, newParent.name, newOffset);
       this.selected = newParent.child(node.name);
       if (attempts > 0) {
         toast.info(
@@ -1378,7 +1392,10 @@ export class Koso {
         }
 
         if (
-          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
+          maybeMove(
+            insertionTarget.parent,
+            this.getOffset(insertionTarget.link) + 1,
+          )
         ) {
           return;
         }
@@ -1392,7 +1409,7 @@ export class Koso {
           }
           adjIndex++;
         } else {
-          if (maybeMove(adj.parent, this.getOffset(adj) + 1)) {
+          if (maybeMove(adj.parent, this.getOffset(adj.link) + 1)) {
             return;
           }
 
@@ -1403,7 +1420,10 @@ export class Koso {
         }
       } else {
         if (
-          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
+          maybeMove(
+            insertionTarget.parent,
+            this.getOffset(insertionTarget.link) + 1,
+          )
         ) {
           return;
         }
@@ -1441,11 +1461,13 @@ export class Koso {
     })) {
       const curr = this.getStatus(taskId);
       if (curr !== prev) {
-        this.reorderNode(node, index + 1);
+        this.reorderTask(node.link, index + 1);
+        this.selected = node.parent.child(node.name);
         return;
       }
     }
-    this.reorderNode(node, 0);
+    this.reorderTask(node.link, 0);
+    this.selected = node.parent.child(node.name);
   }
 
   moveNodeDownBoundary(node: Node) {
@@ -1466,36 +1488,38 @@ export class Koso {
     for (const [index, taskId] of taskIds.entries({ start: offset + 1 })) {
       const curr = this.getStatus(taskId);
       if (curr !== prev) {
-        this.reorderNode(node, index);
+        this.reorderTask(node.link, index);
+        this.selected = node.parent.child(node.name);
         return;
       }
     }
-    this.reorderNode(node, taskIds.length);
+    this.reorderTask(node.link, taskIds.length);
+    this.selected = node.parent.child(node.name);
   }
 
   canIndentNode(node: Node): boolean {
     const peer = this.getPrevPeer(node);
-    return !!peer && this.canMoveNode(node, peer);
+    return !!peer && this.canMoveTask(node.link, peer.name);
   }
 
   indentNode(node: Node) {
     const peer = this.getPrevPeer(node);
     if (!peer || !this.canIndentNode(node)) return;
-    this.moveNode(node, peer, this.getChildCount(peer.name));
+    this.moveTask(node.link, peer.name, this.getChildCount(peer.name));
     this.expand(peer);
     this.selected = peer.child(node.name);
   }
 
   canUndentNode(node: Node): boolean {
     if (node.length < 2) return false;
-    return this.canMoveNode(node, node.parent.parent);
+    return this.canMoveTask(node.link, node.parent.parent.name);
   }
 
   undentNode(node: Node) {
     if (!this.canUndentNode(node)) return;
     const parent = node.parent;
-    const offset = this.getOffset(parent);
-    this.moveNode(node, parent.parent, offset + 1);
+    const offset = this.getOffset(parent.link);
+    this.moveTask(node.link, parent.parent.name, offset + 1);
     this.selected = parent.parent.child(node.name);
   }
 

@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { Koso, Node } from ".";
 import { type TaskBuilder } from "../../../tests/utils";
+import { TaskLink } from "./koso.svelte";
 
 const USER: User = {
   email: "t@koso.app",
@@ -542,7 +543,7 @@ describe("Koso tests", () => {
     });
   });
 
-  describe("moveNode", () => {
+  describe("moveTask", () => {
     it("move node 3 to child of node 1 as a peer of node 2 succeeds (reparent)", () => {
       init([
         { id: "root", name: "Root", children: ["1", "3"] },
@@ -551,7 +552,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      koso.moveNode(Node.parse("3"), Node.parse("1"), 1);
+      koso.moveTask(TaskLink.create("3", "root"), "1", 1);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -569,7 +570,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      koso.moveNode(Node.parse("3"), Node.parse("1"), 0);
+      koso.moveTask(TaskLink.create("3", "root"), "1", 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -588,7 +589,7 @@ describe("Koso tests", () => {
         { id: "4", name: "Task 4" },
       ]);
 
-      koso.moveNode(Node.parse("1/4"), Node.parse("1/3"), 0);
+      koso.moveTask(TaskLink.create("4", "1"), "3", 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -607,7 +608,7 @@ describe("Koso tests", () => {
       ]);
 
       expect(() =>
-        koso.moveNode(Node.parse("2"), Node.parse("1"), 1),
+        koso.moveTask(TaskLink.create("2", "root"), "1", 1),
       ).toThrow();
     });
 
@@ -620,7 +621,7 @@ describe("Koso tests", () => {
         { id: "4", name: "Task 4" },
       ]);
 
-      koso.moveNode(Node.parse("1/4"), Node.parse("1"), 1);
+      koso.moveTask(TaskLink.create("4", "1"), "1", 1);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -640,7 +641,7 @@ describe("Koso tests", () => {
         { id: "4", name: "Task 4" },
       ]);
 
-      koso.moveNode(Node.parse("1/3"), Node.parse("1"), 3);
+      koso.moveTask(TaskLink.create("3", "1"), "1", 3);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -670,13 +671,13 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
       expect(() =>
-        koso.moveNode(Node.parse("github"), Node.parse("1"), 0),
+        koso.moveTask(TaskLink.create("github", "root"), "1", 0),
       ).toThrow();
       expect(() =>
-        koso.moveNode(Node.parse("github/github_pr"), Node.parse("1"), 0),
+        koso.moveTask(TaskLink.create("github_pr", "github"), "1", 0),
       ).toThrow();
       expect(() =>
-        koso.moveNode(Node.parse("github/github_pr/2"), Node.parse("1"), 0),
+        koso.moveTask(TaskLink.create("2", "github_pr"), "1", 0),
       ).toThrow();
     });
 
@@ -703,9 +704,9 @@ describe("Koso tests", () => {
         },
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
-      koso.moveNode(Node.parse("2"), Node.parse("1"), 0);
-      koso.moveNode(Node.parse("github_pr"), Node.parse("1"), 0);
-      koso.moveNode(Node.parse("3/github"), Node.parse("1"), 0);
+      koso.moveTask(TaskLink.create("2", "root"), "1", 0);
+      koso.moveTask(TaskLink.create("github_pr", "root"), "1", 0);
+      koso.moveTask(TaskLink.create("github", "3"), "1", 0);
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "github"] },
         ["github"]: { children: ["github_pr"] },
@@ -725,7 +726,7 @@ describe("Koso tests", () => {
           kind: "github",
         },
       ]);
-      koso.moveNode(Node.parse("github"), Node.parse("root"), 0);
+      koso.moveTask(TaskLink.create("github", "root"), "root", 0);
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["github", "1"] },
       });
@@ -746,7 +747,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
         { id: "3", name: "Some PR", kind: "github_pr" },
       ]);
-      koso.moveNode(Node.parse("github/other_plugin"), Node.parse("github"), 0);
+      koso.moveTask(TaskLink.create("other_plugin", "github"), "github", 0);
       expect(koso.toJSON()).toMatchObject({
         ["github"]: { children: ["other_plugin", "github_pr"] },
       });
@@ -771,11 +772,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
         { id: "3", name: "Some PR", kind: "github_pr" },
       ]);
-      koso.moveNode(
-        Node.parse("github/github_pr/3"),
-        Node.parse("github/github_pr"),
-        0,
-      );
+      koso.moveTask(TaskLink.create("3", "github_pr"), "github_pr", 0);
       expect(koso.toJSON()).toMatchObject({
         ["github_pr"]: { children: ["3", "2"] },
       });
