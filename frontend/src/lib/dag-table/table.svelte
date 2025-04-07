@@ -296,7 +296,7 @@
 
   function organizeTasks() {
     if (!koso.selected) return;
-    koso.organizeTasks(koso.selected);
+    koso.organizeTasks(koso.selected.parent.name);
   }
 
   const insertAction: Action<ActionID> = {
