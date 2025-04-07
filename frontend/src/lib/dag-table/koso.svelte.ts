@@ -210,7 +210,7 @@ export class Koso {
     if (this.graph.size === 0) {
       return List();
     }
-    return this.#flattenFn(new Node(), this.expanded, this.showDone);
+    return this.#flattenFn(this.root, this.expanded, this.showDone);
   });
   #selected: Node | null = $derived.by(() => {
     const node = this.#selectedRaw.node;
@@ -940,7 +940,7 @@ export class Koso {
    * format that is suitable to be assigned to {@link expanded}.
    */
   #expandAll(
-    node: Node = new Node(),
+    node: Node = this.root,
     accumulator: Set<Node> = Set(),
   ): Set<Node> {
     const task = this.getTask(node.name);

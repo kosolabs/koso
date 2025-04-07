@@ -73,7 +73,7 @@
   function flatten(): List<Node> {
     const parents = koso.parents;
     let nodes: List<Node> = List();
-    nodes = nodes.push(new Node());
+    nodes = nodes.push(koso.root);
 
     for (const task of koso.tasks) {
       if (task.id !== "root" && isTaskVisible(task)) {
