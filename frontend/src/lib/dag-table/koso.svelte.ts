@@ -1604,8 +1604,7 @@ export class Koso {
     });
   }
 
-  setTaskStatus(node: Node, status: Status, user: User): boolean {
-    const taskId = node.name;
+  setTaskStatus(taskId: string, status: Status, user: User): boolean {
     return this.doc.transact(() => {
       const task = this.getTask(taskId);
       if (task.yStatus === status) return false;
