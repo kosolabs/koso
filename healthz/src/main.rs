@@ -8,7 +8,7 @@ use std::{
     env,
     time::{SystemTime, UNIX_EPOCH},
 };
-use teloxide::{prelude::*, types::Chat};
+use teloxide::{prelude::*, types::ChatFullInfo};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 struct Status {
@@ -23,7 +23,7 @@ fn client() -> ClientWithMiddleware {
         .build()
 }
 
-fn get_status(chat: &Chat) -> Status {
+fn get_status(chat: &ChatFullInfo) -> Status {
     let Some(description) = chat.description() else {
         tracing::info!("Failed to load chat description. Resetting.");
         return Status::default();
