@@ -158,7 +158,7 @@
     const toDelete = koso.selected;
     const toDeleteIndex = koso.nodes.indexOf(toDelete);
 
-    koso.deleteNode(toDelete);
+    koso.deleteLink(toDelete.name, toDelete.parent.name);
 
     if (!inboxView) {
       // Select the next (or previous) node following deletion.
@@ -450,7 +450,9 @@
       description: "Delete the current task",
       icon: Trash,
       enabled: () =>
-        !inboxView && !!koso.selected && koso.canDeleteNode(koso.selected),
+        !inboxView &&
+        !!koso.selected &&
+        koso.canDeleteLink(koso.selected.name, koso.selected.parent.name),
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({

@@ -792,7 +792,7 @@ describe("Koso tests", () => {
     });
   });
 
-  describe("deleteNode", () => {
+  describe("deleteLink", () => {
     it("delete node 2 from node 1 succeeds", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
@@ -800,7 +800,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      koso.deleteNode(Node.parse("1/2"));
+      koso.deleteLink("2", "1");
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "2"] },
@@ -821,7 +821,7 @@ describe("Koso tests", () => {
         { id: "7", name: "Task 7", children: ["3"] },
       ]);
 
-      koso.deleteNode(Node.parse("2"));
+      koso.deleteLink("2", "root");
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "7"] },
@@ -840,7 +840,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      koso.deleteNode(Node.parse("2"));
+      koso.deleteLink("2", "root");
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -857,7 +857,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      koso.deleteNode(Node.parse("1/2"));
+      koso.deleteLink("2", "1");
 
       expect(koso.toJSON()).toHaveProperty("root");
       expect(koso.toJSON()).toHaveProperty("1");
@@ -889,15 +889,11 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
         { id: "3", name: "Some Other PR", kind: "github_pr_other" },
       ]);
-      expect(() => koso.deleteNode(Node.parse("github"))).toThrow();
-      expect(() => koso.deleteNode(Node.parse("github/github_pr"))).toThrow();
-      expect(() => koso.deleteNode(Node.parse("github/github_pr/2"))).toThrow();
-      expect(() =>
-        koso.deleteNode(Node.parse("github/github_pr/github_pr_other")),
-      ).toThrow();
-      expect(() =>
-        koso.deleteNode(Node.parse("github/github_pr/github_pr_other/3")),
-      ).toThrow();
+      expect(() => koso.deleteLink("github", "root")).toThrow();
+      expect(() => koso.deleteLink("github_pr", "github")).toThrow();
+      expect(() => koso.deleteLink("2", "github_pr")).toThrow();
+      expect(() => koso.deleteLink("github_pr_other", "github_pr")).toThrow();
+      expect(() => koso.deleteLink("3", "github_pr_other")).toThrow();
     });
 
     it("delete non-canonical plugin task/container succeeds", () => {
@@ -945,18 +941,18 @@ describe("Koso tests", () => {
         { id: "4", name: "Some Rollup task", kind: "Rollup" },
         { id: "5", name: "Some task", kind: "Task" },
       ]);
-      koso.deleteNode(Node.parse("1/github"));
-      koso.deleteNode(Node.parse("1/github_pr"));
-      koso.deleteNode(Node.parse("1/github_pr_other"));
-      koso.deleteNode(Node.parse("1/2"));
-      koso.deleteNode(Node.parse("1/3"));
-      koso.deleteNode(Node.parse("github/github_pr_other"));
-      koso.deleteNode(Node.parse("github/github_pr/2/github_pr_other"));
-      koso.deleteNode(Node.parse("github/githubfoo"));
-      koso.deleteNode(Node.parse("github_pr/githubfoo"));
-      koso.deleteNode(Node.parse("github_pr_other"));
-      koso.deleteNode(Node.parse("4"));
-      koso.deleteNode(Node.parse("5"));
+      koso.deleteLink("github", "1");
+      koso.deleteLink("github_pr", "1");
+      koso.deleteLink("github_pr_other", "1");
+      koso.deleteLink("2", "1");
+      koso.deleteLink("3", "1");
+      koso.deleteLink("github_pr_other", "github");
+      koso.deleteLink("github_pr_other", "2");
+      koso.deleteLink("githubfoo", "github");
+      koso.deleteLink("githubfoo", "github_pr");
+      koso.deleteLink("github_pr_other", "root");
+      koso.deleteLink("4", "root");
+      koso.deleteLink("5", "root");
 
       expect(koso.toJSON()).toMatchObject({
         ["1"]: { id: "1", children: [] },

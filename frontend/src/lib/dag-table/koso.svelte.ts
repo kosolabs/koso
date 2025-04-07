@@ -884,7 +884,7 @@ export class Koso {
   /**
    * Unlinks a task from a parent task. Note that this method does not ensure
    * that the task is deleted from the graph and as a result may produce
-   * orphaned tasks. To safely unlink a task, use {@link deleteNode} instead.
+   * orphaned tasks. To safely unlink a task, use {@link deleteLink} instead.
    *
    * @param taskId - The ID of the task to be unlinked.
    * @param parentId - The ID of the parent task.
@@ -1067,21 +1067,22 @@ export class Koso {
     return null;
   }
 
-  canDeleteNode(node: Node): boolean {
-    return !this.#isCanonicalManagedLink(node.name, node.parent.name);
+  canDeleteLink(taskId: string, parentTaskId: string): boolean {
+    return !this.#isCanonicalManagedLink(taskId, parentTaskId);
   }
 
-  deleteNode(node: Node) {
-    if (!this.canDeleteNode(node)) {
-      throw new Error(`Cannot delete node ${node}`);
+  /** Unlinks the given task and deletes any resulting orphan tasks. */
+  deleteLink(linkTaskId: string, linkParentTaskId: string) {
+    if (!this.canDeleteLink(linkTaskId, linkParentTaskId)) {
+      throw new Error(`Cannot delete ${linkTaskId} from ${linkParentTaskId}`);
     }
 
-    const subtreeTaskIds = this.#collectSubtreeTaskIds(node.name);
+    const subtreeTaskIds = this.#collectSubtreeTaskIds(linkTaskId);
 
     // Find all of the tasks that will become orphans when `node`
     // is unlinked. In other words, tasks whose only parents are also in the sub-tree
     // being deleted.
-    const stack = [node.name];
+    const stack = [linkTaskId];
     let orphanTaskIds = Set<string>();
     let visited = Set<string>();
     while (stack.length > 0) {
@@ -1096,7 +1097,7 @@ export class Koso {
       if (!parents) throw new Error(`Parents missing ${taskId}`);
       const linkedElseWhere = parents.find((parentTaskId) => {
         const isTargetNode =
-          taskId === node.name && parentTaskId === node.parent.name;
+          taskId === linkTaskId && parentTaskId === linkParentTaskId;
         const parentInSubtree = subtreeTaskIds.has(parentTaskId);
         return !isTargetNode && !parentInSubtree;
       });
@@ -1111,7 +1112,7 @@ export class Koso {
     }
 
     this.doc.transact(() => {
-      this.unlink(node.name, node.parent.name);
+      this.unlink(linkTaskId, linkParentTaskId);
       for (const taskId of orphanTaskIds) {
         this.graph.delete(taskId);
       }
