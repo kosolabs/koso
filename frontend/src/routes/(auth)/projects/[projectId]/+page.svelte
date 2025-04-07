@@ -183,7 +183,7 @@
   {#snippet right()}
     <NavbarButton
       icon={UserPlus}
-      tooltip="Share project"
+      label="Share project"
       aria-label="Share project"
       onclick={() => {
         openShareModal = true;
@@ -191,7 +191,7 @@
     />
     <NavbarButton
       icon={Mail}
-      tooltip="Zero inbox view"
+      label="Zero inbox view"
       aria-label="Zero inbox view"
       onclick={() => goto(`/projects/${projectId}/inbox`)}
     />
