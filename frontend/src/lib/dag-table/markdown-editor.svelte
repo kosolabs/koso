@@ -100,7 +100,7 @@
         {#if yDesc !== null}
           <Button icon={Trash} variant="plain" onclick={deleteDetails} />
         {/if}
-        <Button icon={X} variant="plain" onclick={close} />
+        <Button icon={X} variant="plain" onclick={hideDetails} />
       </div>
     </div>
     <hr />
