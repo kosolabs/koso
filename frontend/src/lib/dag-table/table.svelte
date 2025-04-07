@@ -192,12 +192,16 @@
 
   function moveStart() {
     if (!koso.selected) return;
-    koso.moveNodeUpBoundary(koso.selected);
+    const selected = koso.selected;
+    koso.moveTaskUpBoundary(selected.link);
+    koso.selected = selected.parent.child(selected.name);
   }
 
   function moveEnd() {
     if (!koso.selected) return;
-    koso.moveNodeDownBoundary(koso.selected);
+    const selected = koso.selected;
+    koso.moveTaskDownBoundary(selected.link);
+    koso.selected = selected.parent.child(selected.name);
   }
 
   function indent() {

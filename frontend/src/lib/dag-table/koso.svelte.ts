@@ -1440,14 +1440,12 @@ export class Koso {
     }
   }
 
-  moveNodeUpBoundary(node: Node) {
-    const taskIds = this.getChildren(node.parent.name);
-    const offset = taskIds.indexOf(node.name);
+  moveTaskUpBoundary(link: TaskLink) {
+    const taskIds = this.getChildren(link.parentId);
+    const offset = taskIds.indexOf(link.id);
 
     if (offset === -1) {
-      throw new Error(
-        `Node ${node.name} not found in parent ${node.parent.id}`,
-      );
+      throw new Error(`Node ${link.id} not found in parent ${link.parentId}`);
     }
     if (offset === 0) {
       toast.warning(`This task is already at the top`);
@@ -1461,23 +1459,19 @@ export class Koso {
     })) {
       const curr = this.getStatus(taskId);
       if (curr !== prev) {
-        this.reorderTask(node.link, index + 1);
-        this.selected = node.parent.child(node.name);
+        this.reorderTask(link, index + 1);
         return;
       }
     }
-    this.reorderTask(node.link, 0);
-    this.selected = node.parent.child(node.name);
+    this.reorderTask(link, 0);
   }
 
-  moveNodeDownBoundary(node: Node) {
-    const taskIds = this.getChildren(node.parent.name);
-    const offset = taskIds.indexOf(node.name);
+  moveTaskDownBoundary(link: TaskLink) {
+    const taskIds = this.getChildren(link.parentId);
+    const offset = taskIds.indexOf(link.id);
 
     if (offset === -1) {
-      throw new Error(
-        `Node ${node.name} not found in parent ${node.parent.id}`,
-      );
+      throw new Error(`Node ${link.id} not found in parent ${link.parentId}`);
     }
     if (offset === taskIds.length - 1) {
       toast.warning(`This task is already at the bottom`);
@@ -1488,13 +1482,11 @@ export class Koso {
     for (const [index, taskId] of taskIds.entries({ start: offset + 1 })) {
       const curr = this.getStatus(taskId);
       if (curr !== prev) {
-        this.reorderTask(node.link, index);
-        this.selected = node.parent.child(node.name);
+        this.reorderTask(link, index);
         return;
       }
     }
-    this.reorderTask(node.link, taskIds.length);
-    this.selected = node.parent.child(node.name);
+    this.reorderTask(link, taskIds.length);
   }
 
   canIndentNode(node: Node): boolean {
