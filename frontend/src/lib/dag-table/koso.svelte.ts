@@ -159,7 +159,7 @@ export type FlattenFn = (
   expanded: Set<Node>,
   showDone: boolean,
 ) => List<Node>;
-export type VisibilityFilterFn = (node: Node, showDone: boolean) => boolean;
+export type VisibilityFilterFn = (taskId: string, showDone: boolean) => boolean;
 
 export type DetailPanelStates = "none" | "view" | "edit";
 
@@ -431,7 +431,7 @@ export class Koso {
         const childNode = node.child(name);
         // Apply visibility filtering here instead of at the start of #flatten
         // to ensure that the root node is always present.
-        if (this.isVisible(childNode, showDone)) {
+        if (this.isVisible(childNode.name, showDone)) {
           nodes = this.#defaultFlatten(childNode, expanded, showDone, nodes);
         }
       });
@@ -1659,14 +1659,14 @@ export class Koso {
     });
   }
 
-  isVisible(node: Node, showDone: boolean) {
-    return this.#visibilityFilterFn(node, showDone);
+  isVisible(taskId: string, showDone: boolean) {
+    return this.#visibilityFilterFn(taskId, showDone);
   }
 
   /** Do not call this directly. Use isVisible instead. */
-  #defaultIsVisible(node: Node) {
+  #defaultIsVisible(taskId: string) {
     if (!this.showDone) {
-      const progress = this.getProgress(node.name);
+      const progress = this.getProgress(taskId);
       if (progress.isComplete()) {
         const doneTime = progress.lastStatusTime;
         const threeDays = 3 * 24 * 60 * 60 * 1000;
