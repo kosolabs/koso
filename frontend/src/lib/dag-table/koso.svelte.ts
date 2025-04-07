@@ -1518,14 +1518,14 @@ export class Koso {
     return this.isEditable(parentTaskId);
   }
 
-  insertNode(
-    parent: Node,
+  insertTask(
+    parentTaskId: string,
     offset: number,
     user: User,
     name: string = "",
-  ): Node {
-    if (!this.canInsert(parent.name)) {
-      throw new Error(`Cannot insert node under parent ${parent}`);
+  ): string {
+    if (!this.canInsert(parentTaskId)) {
+      throw new Error(`Cannot insert node under parent ${parentTaskId}`);
     }
     const taskId = this.newId();
     this.doc.transact(() => {
@@ -1542,11 +1542,9 @@ export class Koso {
         kind: null,
         url: null,
       });
-      this.link(taskId, parent.name, offset);
+      this.link(taskId, parentTaskId, offset);
     });
-    const node = parent.child(taskId);
-    this.selected = node;
-    return node;
+    return taskId;
   }
 
   setTaskName(taskId: string, newName: string) {

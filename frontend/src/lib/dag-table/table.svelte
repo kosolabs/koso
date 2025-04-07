@@ -69,7 +69,9 @@
   }
 
   function insertAndEdit(parent: Node, offset: number, user: User) {
-    const node = koso.insertNode(parent, offset, user);
+    const taskId = koso.insertTask(parent, offset, user);
+    const node = parent.child(taskId);
+    koso.selected = node;
     // The newly inserted node's row won't yet have been inserted into
     // the dom and thus onMount will not have been called to register
     // row callbacks.
