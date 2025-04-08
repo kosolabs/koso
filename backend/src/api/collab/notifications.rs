@@ -12,7 +12,7 @@ use crate::{
 };
 use anyhow::{Context, Result, anyhow};
 use sqlx::PgPool;
-use std::{collections::HashMap, sync::Arc, time::SystemTime};
+use std::{collections::HashMap, fmt, sync::Arc, time::SystemTime};
 use tokio::sync::mpsc::Receiver;
 use yrs::{
     ReadTxn, TransactionMut,
@@ -29,8 +29,20 @@ pub(super) struct KosoEvent {
 
 #[derive(Debug)]
 pub(super) enum KosoEventChanges {
-    Task(HashMap<String, EntryChange>),
+    Task(HashMap<String, KosoEntryChange>),
     Children(),
+}
+
+pub(super) struct KosoEntryChange(EntryChange);
+
+impl fmt::Debug for KosoEntryChange {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.0 {
+            EntryChange::Inserted(out) => write!(f, "Inserted({})", out),
+            EntryChange::Updated(out1, out2) => write!(f, "Updated({}, {})", out1, out2),
+            EntryChange::Removed(out) => write!(f, "Removed({})", out),
+        }
+    }
 }
 
 #[tracing::instrument(skip(txn, events, project))]
@@ -68,10 +80,10 @@ fn handle_deep_graph_update_event_internal(
                 return Ok(());
             }
             let origin = from_origin(txn.origin())?;
-            let changes: HashMap<String, EntryChange> = map_event
+            let changes: HashMap<String, KosoEntryChange> = map_event
                 .keys(txn)
                 .iter()
-                .map(|(mod_id, change)| (mod_id.to_string(), (*change).clone()))
+                .map(|(mod_id, change)| (mod_id.to_string(), KosoEntryChange((*change).clone())))
                 .collect();
             let task = YTaskProxy::new(map_event.target().clone())
                 .to_task(txn)
@@ -169,17 +181,25 @@ impl EventProcessor {
                     match (field.as_str(), change) {
                         (
                             "assignee",
-                            EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(assignee))),
+                            KosoEntryChange(EntryChange::Updated(
+                                _,
+                                yrs::Out::Any(yrs::Any::String(assignee)),
+                            )),
                         )
                         | (
                             "assignee",
-                            EntryChange::Inserted(yrs::Out::Any(yrs::Any::String(assignee))),
+                            KosoEntryChange(EntryChange::Inserted(yrs::Out::Any(
+                                yrs::Any::String(assignee),
+                            ))),
                         ) => {
                             self.notify_assignee(&event, assignee).await?;
                         }
                         (
                             "status",
-                            EntryChange::Updated(_, yrs::Out::Any(yrs::Any::String(status))),
+                            KosoEntryChange(EntryChange::Updated(
+                                _,
+                                yrs::Out::Any(yrs::Any::String(status)),
+                            )),
                         ) => {
                             if status.as_ref() == "Done" {
                                 self.unblock_and_notify_actionable_tasks(&event).await?;
