@@ -128,7 +128,7 @@
             if (
               n.name === node.name &&
               n.parent.name === parent.id &&
-              koso.isVisible(n, koso.showDone)
+              koso.isVisible(n.name, koso.showDone)
             ) {
               koso.selected = n;
               // Expand all parents of the selected node to ensure it's visible.
