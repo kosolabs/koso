@@ -210,7 +210,7 @@ export class Koso {
     if (this.graph.size === 0) {
       return List();
     }
-    return this.#flattenFn(new Node(), this.expanded, this.showDone);
+    return this.#flattenFn(this.root, this.expanded, this.showDone);
   });
   #selected: Node | null = $derived.by(() => {
     const node = this.#selectedRaw.node;
@@ -939,10 +939,7 @@ export class Koso {
    * Recursively accumulates all nodes with children and returns them in a
    * format that is suitable to be assigned to {@link expanded}.
    */
-  #expandAll(
-    node: Node = new Node(),
-    accumulator: Set<Node> = Set(),
-  ): Set<Node> {
+  #expandAll(node: Node, accumulator: Set<Node> = Set()): Set<Node> {
     const task = this.getTask(node.name);
     if (task.children.length > 0) {
       accumulator = accumulator.add(node);
@@ -956,7 +953,7 @@ export class Koso {
 
   /** Expands all tasks. */
   expandAll() {
-    this.expanded = this.#expandAll();
+    this.expanded = this.#expandAll(this.root);
   }
 
   /** Collapses all tasks. */

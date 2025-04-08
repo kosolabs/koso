@@ -31,7 +31,7 @@ const EMPTY_SYNC_RESPONSE = (() => {
 })();
 
 describe("Koso tests", () => {
-  const root = new Node();
+  let root: Node;
   let koso: Koso;
 
   const init = (tasks: TaskBuilder[]) => {
@@ -75,6 +75,7 @@ describe("Koso tests", () => {
   beforeEach((context) => {
     const cleanup = $effect.root(() => {
       koso = new Koso("project-id-" + uuidv4(), new Y.Doc());
+      root = koso.root;
       koso.setSendAndSync(() => {});
       koso.receive(EMPTY_SYNC_RESPONSE);
     });
