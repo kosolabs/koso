@@ -48,14 +48,14 @@
   function handleOnSelectStatus(status: Status) {
     if (status === "Done") {
       showDoneConfetti();
-      koso.setTaskStatus(node, "Done", auth.user);
+      koso.setTaskStatus(node.name, "Done", auth.user);
       if (inboxView) {
         toast.success("🚀 Great work! Task complete!");
       }
     } else if (task.children.length === 0 && status === "Blocked") {
       command.call("Block");
     } else {
-      koso.setTaskStatus(node, status, auth.user);
+      koso.setTaskStatus(node.name, status, auth.user);
     }
   }
 

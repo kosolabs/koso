@@ -64,7 +64,7 @@
         koso.link(taskId, node.name);
         if (setStatusBlocked) {
           koso.setKind(node.name, "Task");
-          koso.setTaskStatus(node, "Blocked", auth.user);
+          koso.setTaskStatus(node.name, "Blocked", auth.user);
         }
       });
     } else {

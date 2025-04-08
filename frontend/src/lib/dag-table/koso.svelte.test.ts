@@ -1705,7 +1705,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      expect(koso.setTaskStatus(Node.parse("2"), "Done", USER)).toBe(true);
+      expect(koso.setTaskStatus("2", "Done", USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -1721,9 +1721,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      expect(koso.setTaskStatus(Node.parse("2"), "In Progress", USER)).toBe(
-        true,
-      );
+      expect(koso.setTaskStatus("2", "In Progress", USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: {
@@ -1747,9 +1745,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      expect(
-        koso.setTaskStatus(Node.parse("2"), "In Progress", OTHER_USER),
-      ).toBe(true);
+      expect(koso.setTaskStatus("2", "In Progress", OTHER_USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: {
@@ -1778,7 +1774,7 @@ describe("Koso tests", () => {
         { id: "t5", status: "In Progress" },
       ]);
 
-      expect(koso.setTaskStatus(Node.parse("t4"), "Done", USER)).toBe(false);
+      expect(koso.setTaskStatus("t4", "Done", USER)).toBe(false);
       expect(koso.toJSON()).toMatchObject({
         root: {
           children: ["t1", "t2", "t3", "t4", "t5"],
@@ -1804,7 +1800,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2", status: "Done" },
       ]);
 
-      expect(koso.setTaskStatus(Node.parse("1"), "Blocked", USER)).toBe(false);
+      expect(koso.setTaskStatus("1", "Blocked", USER)).toBe(false);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
@@ -1826,7 +1822,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2", status: "In Progress" },
       ]);
 
-      expect(koso.setTaskStatus(Node.parse("1"), "Blocked", USER)).toBe(true);
+      expect(koso.setTaskStatus("1", "Blocked", USER)).toBe(true);
 
       expect(koso.toJSON()).toMatchObject({
         root: { status: null, children: ["1", "2"], assignee: null },
