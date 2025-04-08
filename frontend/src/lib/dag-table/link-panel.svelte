@@ -14,16 +14,17 @@
   import { Shortcut } from "$lib/kosui/shortcut";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
   import { match } from "$lib/utils";
+  import type { YTaskProxy } from "$lib/yproxy";
   import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
-  import { compareTasks, type Koso, type Node } from ".";
+  import { compareTasks, type Koso } from ".";
 
   export type Mode = "link" | "block";
 
   export type LinkPanelProps = {
     open: boolean;
     mode?: Mode;
-    node: Node;
+    task: YTaskProxy;
   } & Omit<PopoverProps, "children">;
 </script>
 
@@ -31,7 +32,7 @@
   let {
     open = $bindable(false),
     mode = $bindable("link"),
-    node,
+    task,
     anchorEl,
     ...restProps
   }: LinkPanelProps = $props();
@@ -43,12 +44,12 @@
   let tasks = $derived(
     open
       ? koso.tasks
-          .filter((task) => match(task.num, query) || match(task.name, query))
-          .filter((task) => {
+          .filter((t) => match(t.num, query) || match(t.name, query))
+          .filter((t) => {
             if (mode === "link") {
-              return koso.canLink(node.name, task.id);
+              return koso.canLink(task.id, t.id);
             } else {
-              return koso.canLink(task.id, node.name);
+              return koso.canLink(t.id, task.id);
             }
           })
           .sort((t1, t2) => compareTasks(t1, t2, koso))
@@ -58,13 +59,13 @@
 
   function link(taskId: string) {
     if (mode === "link") {
-      koso.link(node.name, taskId);
+      koso.link(task.id, taskId);
     } else if (mode === "block") {
       koso.doc.transact(() => {
-        koso.link(taskId, node.name);
+        koso.link(taskId, task.id);
         if (setStatusBlocked) {
-          koso.setKind(node.name, "Task");
-          koso.setTaskStatus(node.name, "Blocked", auth.user);
+          koso.setKind(task.id, "Task");
+          koso.setTaskStatus(task.id, "Blocked", auth.user);
         }
       });
     } else {
