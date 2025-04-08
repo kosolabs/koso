@@ -2117,7 +2117,7 @@ describe("Koso tests", () => {
         { id: "t8", status: "In Progress" },
       ]);
 
-      koso.organizeTasks(Node.parse("t4"));
+      koso.organizeTasks("root");
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["t7", "t8", "t1", "t2", "t5", "t6", "t3", "t4"] },
@@ -2141,13 +2141,13 @@ describe("Koso tests", () => {
         { id: "t8", status: "In Progress" },
       ]);
 
-      koso.organizeTasks(Node.parse("t4"));
+      koso.organizeTasks("root");
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["t7", "t8", "t1", "t2", "t5", "t6", "t3", "t4"] },
       });
 
-      koso.organizeTasks(Node.parse("t3"));
+      koso.organizeTasks("root");
 
       expect(koso.toJSON()).toMatchObject({
         root: {
@@ -2175,7 +2175,7 @@ describe("Koso tests", () => {
         { id: "t10", status: "Done" },
       ]);
 
-      koso.organizeTasks(Node.parse("t1"));
+      koso.organizeTasks("root");
 
       expect(koso.toJSON()).toMatchObject({
         root: {
