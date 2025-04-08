@@ -845,7 +845,7 @@ export class Koso {
     return false;
   }
 
-  getBestLinkOffset(taskId: string, parent: string): number {
+  getBestLinkOffset({ id: taskId, parentId: parent }: TaskLinkage): number {
     if (this.getStatus(taskId) === "In Progress") {
       return findEntryIndex(
         this.getChildren(parent).entries(),
@@ -876,16 +876,17 @@ export class Koso {
    * a child of the parent, an error is thrown. If an offset is not provided,
    * the best offset is determined based on the task's status.
    */
-  link(task: string, parent: string, offset?: number) {
+  link(linkage: TaskLinkage, offset?: number) {
+    const { id: task, parentId: parent } = linkage;
     if (!this.canLink(task, parent)) {
       throw new Error(`Cannot insert ${task} under ${parent}`);
     }
 
-    offset = offset ?? this.getBestLinkOffset(task, parent);
-    this.#linkUnchecked(task, parent, offset);
+    offset = offset ?? this.getBestLinkOffset(linkage);
+    this.#linkUnchecked(linkage, offset);
   }
 
-  #linkUnchecked(task: string, parent: string, offset: number) {
+  #linkUnchecked({ id: task, parentId: parent }: TaskLinkage, offset: number) {
     this.getChildren(parent).insert(offset, [task]);
   }
 
@@ -1202,7 +1203,7 @@ export class Koso {
   }
 
   linkNode(node: Node, parent: Node, offset: number) {
-    this.link(node.name, parent.name, offset);
+    this.link(TaskLinkage.create(parent.name, node.name), offset);
   }
 
   canMoveNode(node: Node, parent: Node): boolean {
@@ -1224,7 +1225,7 @@ export class Koso {
       if (srcParentName === parent.name && srcOffset < offset) {
         offset -= 1;
       }
-      this.#linkUnchecked(node.name, parent.name, offset);
+      this.#linkUnchecked(TaskLinkage.create(parent.name, node.name), offset);
     });
     this.selected = parent.child(node.name);
   }
@@ -1551,7 +1552,7 @@ export class Koso {
         kind: null,
         url: null,
       });
-      this.link(taskId, parent.name, offset);
+      this.link(TaskLinkage.create(parent.name, taskId), offset);
     });
     const node = parent.child(taskId);
     this.selected = node;

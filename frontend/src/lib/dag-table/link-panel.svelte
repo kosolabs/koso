@@ -18,6 +18,7 @@
   import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
   import { compareTasks, type Koso } from ".";
+  import { TaskLinkage } from "./koso.svelte";
 
   export type Mode = "link" | "block";
 
@@ -59,10 +60,10 @@
 
   function link(taskId: string) {
     if (mode === "link") {
-      koso.link(task.id, taskId);
+      koso.link(TaskLinkage.create(taskId, task.id));
     } else if (mode === "block") {
       koso.doc.transact(() => {
-        koso.link(taskId, task.id);
+        koso.link(TaskLinkage.create(taskId, task.id));
         if (setStatusBlocked) {
           koso.setKind(task.id, "Task");
           koso.setTaskStatus(task.id, "Blocked", auth.user);
