@@ -2,7 +2,7 @@
   import { auth } from "$lib/auth.svelte";
   import { command } from "$lib/components/ui/command-palette";
   import { toast } from "$lib/components/ui/sonner";
-  import type { Koso, Node } from "$lib/dag-table";
+  import type { Koso } from "$lib/dag-table";
   import {
     Menu,
     MenuContent,
@@ -11,7 +11,12 @@
     MenuTrigger,
   } from "$lib/kosui/menu";
   import { Shortcut } from "$lib/kosui/shortcut";
-  import { unmanagedKinds, type Kind, type Status } from "$lib/yproxy";
+  import {
+    unmanagedKinds,
+    YTaskProxy,
+    type Kind,
+    type Status,
+  } from "$lib/yproxy";
   import { Bot, Check, CircleCheck, LoaderCircle } from "lucide-svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../../../kosui/progress";
@@ -19,16 +24,15 @@
   import { ResponsiveText } from "../responsive-text";
 
   type Props = {
-    node: Node;
     koso: Koso;
+    task: YTaskProxy;
     inboxView: boolean;
   };
-  let { node, koso, inboxView }: Props = $props();
+  let { koso, task, inboxView }: Props = $props();
 
   let open = $state(false);
   let statusElement: HTMLElement | undefined = $state();
 
-  let task = $derived(koso.getTask(node.name));
   let progress = $derived(koso.getProgress(task.id));
   let canSetStatus = $derived(
     koso.isEditable(task.id) && progress.kind !== "Rollup",
@@ -48,14 +52,14 @@
   function handleOnSelectStatus(status: Status) {
     if (status === "Done") {
       showDoneConfetti();
-      koso.setTaskStatus(node.name, "Done", auth.user);
+      koso.setTaskStatus(task.id, "Done", auth.user);
       if (inboxView) {
         toast.success("🚀 Great work! Task complete!");
       }
     } else if (task.children.length === 0 && status === "Blocked") {
       command.call("Block");
     } else {
-      koso.setTaskStatus(node.name, status, auth.user);
+      koso.setTaskStatus(task.id, status, auth.user);
     }
   }
 

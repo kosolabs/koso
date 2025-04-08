@@ -406,7 +406,7 @@
     </td>
   {/if}
   <td class={cn("border-t border-l p-2")}>
-    <TaskStatus {node} {koso} {inboxView} bind:this={taskStatus} />
+    <TaskStatus {koso} {task} {inboxView} bind:this={taskStatus} />
   </td>
   <td class={cn("w-full border-t border-l px-2 py-1")}>
     <div class={cn("flex items-center gap-x-1")}>
@@ -454,7 +454,7 @@
           </Link>
         {/if}
         <LinkPanel
-          {node}
+          {task}
           bind:open={linkOpen}
           bind:mode={linkMode}
           anchorEl={rowElement}
