@@ -1680,11 +1680,8 @@ export class Koso {
     this.undoManager.redo();
   }
 
-  /**
-   * Organizes the given node and its peers by status, etc. In other words, the
-   * given node's parent's children.
-   */
-  organizeTasks(node: Node) {
+  /** Organizes the given node's children by status, etc. */
+  organizeTasks(parentTaskId: string) {
     function mapStatus(status: Status) {
       switch (status) {
         case "In Progress":
@@ -1700,7 +1697,7 @@ export class Koso {
       }
     }
 
-    const parent = this.getTask(node.parent.name);
+    const parent = this.getTask(parentTaskId);
     // Sort tasks by status, otherwise
     // leaving the ordering unchanged thanks to sort() being stable.
     const children = parent.children
