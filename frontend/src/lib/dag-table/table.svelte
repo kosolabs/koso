@@ -131,20 +131,20 @@
       case "Done":
         return;
       case "Blocked":
-        koso.setTaskStatus(koso.selected, "Not Started", auth.user);
+        koso.setTaskStatus(koso.selected.name, "Not Started", auth.user);
         return;
       case "In Progress": {
         const node = koso.selected;
 
         getRow(node).showDoneConfetti();
-        koso.setTaskStatus(node, "Done", auth.user);
+        koso.setTaskStatus(node.name, "Done", auth.user);
         if (inboxView) {
           toast.success("🚀 Great work! Task complete!");
         }
         break;
       }
       case "Not Started":
-        koso.setTaskStatus(koso.selected, "In Progress", auth.user);
+        koso.setTaskStatus(koso.selected.name, "In Progress", auth.user);
         break;
       default:
         throw new Error(`Unhandled status ${task.yStatus}`);
