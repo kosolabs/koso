@@ -33,8 +33,8 @@
     return projectUsers;
   }
 
-  function isVisible(node: Node): boolean {
-    return isTaskVisible(koso.getTask(node.name));
+  function isVisible(taskId: string): boolean {
+    return isTaskVisible(koso.getTask(taskId));
   }
 
   function isTaskVisible(task: YTaskProxy): boolean {
