@@ -85,9 +85,21 @@ export class Node extends NodeRecord {
   child(name: string): Node {
     return new Node({ path: this.path.push(name) });
   }
+  get linkage(): TaskLinkage {
+    return new TaskLinkage({ parentId: this.parent.name, id: this.name });
+  }
 }
 
 export type Nodes = Map<string, Node>;
+
+type TaskLinkageProps = { id: string; parentId: string };
+const TaskLinkageRecord = Record<TaskLinkageProps>({ parentId: "", id: "" });
+
+export class TaskLinkage extends TaskLinkageRecord {
+  static create(parentTaskId: string, taskId: string): TaskLinkage {
+    return new TaskLinkage({ parentId: parentTaskId, id: taskId });
+  }
+}
 
 type SelectedProps = { node: Node | null; index: number | null };
 const SelectedRecord = Record<SelectedProps>({ node: null, index: null });
