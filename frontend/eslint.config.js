@@ -5,6 +5,8 @@ import globals from "globals";
 import ts from "typescript-eslint";
 import svelteConfig from "./svelte.config.js";
 
+const restrictedGlobals = ["parent"];
+
 export default ts.config(
   js.configs.recommended,
   ...ts.configs.recommended,
@@ -15,7 +17,6 @@ export default ts.config(
     languageOptions: {
       globals: {
         ...globals.browser,
-        ...globals.node,
       },
     },
   },
@@ -47,6 +48,7 @@ export default ts.config(
           caughtErrorsIgnorePattern: "^_",
         },
       ],
+      "no-restricted-globals": ["error", ...restrictedGlobals],
     },
   },
 );
