@@ -63,7 +63,7 @@
       koso.link(TaskLinkage.create(taskId, task.id));
     } else if (mode === "block") {
       koso.doc.transact(() => {
-        koso.link(TaskLinkage.create(taskId, task.id));
+        koso.link(TaskLinkage.create(task.id, taskId));
         if (setStatusBlocked) {
           koso.setKind(task.id, "Task");
           koso.setTaskStatus(task.id, "Blocked", auth.user);
