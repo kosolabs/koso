@@ -96,10 +96,6 @@ type TaskLinkageProps = { id: string; parentId: string };
 const TaskLinkageRecord = Record<TaskLinkageProps>({ parentId: "", id: "" });
 
 export class TaskLinkage extends TaskLinkageRecord {
-  static create(parentTaskId: string, taskId: string): TaskLinkage {
-    return new TaskLinkage({ parentId: parentTaskId, id: taskId });
-  }
-
   toString(): string {
     return `${this.parentId}->${this.id}`;
   }
@@ -923,7 +919,7 @@ export class Koso {
     return (
       src === dest ||
       (!this.#isCanonicalManagedLink(task, src) &&
-        this.canLink(TaskLinkage.create(dest, task)))
+        this.canLink(new TaskLinkage({ parentId: dest, id: task })))
     );
   }
 
@@ -1207,7 +1203,10 @@ export class Koso {
   }
 
   linkNode(node: Node, parent: Node, offset: number) {
-    this.link(TaskLinkage.create(parent.name, node.name), offset);
+    this.link(
+      new TaskLinkage({ parentId: parent.name, id: node.name }),
+      offset,
+    );
   }
 
   canMoveNode(node: Node, parent: Node): boolean {
@@ -1229,7 +1228,10 @@ export class Koso {
       if (srcParentName === parent.name && srcOffset < offset) {
         offset -= 1;
       }
-      this.#linkUnchecked(TaskLinkage.create(parent.name, node.name), offset);
+      this.#linkUnchecked(
+        new TaskLinkage({ parentId: parent.name, id: node.name }),
+        offset,
+      );
     });
     this.selected = parent.child(node.name);
   }
@@ -1556,7 +1558,7 @@ export class Koso {
         kind: null,
         url: null,
       });
-      this.link(TaskLinkage.create(parent.name, taskId), offset);
+      this.link(new TaskLinkage({ parentId: parent.name, id: taskId }), offset);
     });
     const node = parent.child(taskId);
     this.selected = node;

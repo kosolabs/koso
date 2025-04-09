@@ -91,7 +91,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      koso.link(TaskLinkage.create("1", "2"), 0);
+      koso.link(new TaskLinkage({ parentId: "1", id: "2" }), 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -106,7 +106,9 @@ describe("Koso tests", () => {
         { id: "1", name: "Task 1" },
       ]);
 
-      expect(() => koso.link(TaskLinkage.create("1", "1"), 0)).toThrow();
+      expect(() =>
+        koso.link(new TaskLinkage({ parentId: "1", id: "1" }), 0),
+      ).toThrow();
     });
 
     it("linking a node to its parent throws an error", () => {
@@ -116,7 +118,9 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      expect(() => koso.link(TaskLinkage.create("1", "2"), 0)).toThrow();
+      expect(() =>
+        koso.link(new TaskLinkage({ parentId: "1", id: "2" }), 0),
+      ).toThrow();
     });
 
     it("linking a node to its child throws an error", () => {
@@ -126,7 +130,9 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      expect(() => koso.link(TaskLinkage.create("2", "1"), 0)).toThrow();
+      expect(() =>
+        koso.link(new TaskLinkage({ parentId: "2", id: "1" }), 0),
+      ).toThrow();
     });
 
     it("linking a node to a non-existent node throws an error", () => {
@@ -136,7 +142,7 @@ describe("Koso tests", () => {
       ]);
 
       expect(() =>
-        koso.link(TaskLinkage.create("non-existent", "1"), 0),
+        koso.link(new TaskLinkage({ parentId: "non-existent", id: "1" }), 0),
       ).toThrow();
     });
 
@@ -147,7 +153,7 @@ describe("Koso tests", () => {
       ]);
 
       expect(() =>
-        koso.link(TaskLinkage.create("1", "non-existent"), 0),
+        koso.link(new TaskLinkage({ parentId: "1", id: "non-existent" }), 0),
       ).toThrow();
     });
 
@@ -159,7 +165,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      koso.link(TaskLinkage.create("root", "2"), 1);
+      koso.link(new TaskLinkage({ parentId: "root", id: "2" }), 1);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "2", "3"] },
@@ -177,7 +183,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      koso.link(TaskLinkage.create("root", "3"), 2);
+      koso.link(new TaskLinkage({ parentId: "root", id: "3" }), 2);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "2", "3"] },
@@ -194,7 +200,7 @@ describe("Koso tests", () => {
         { id: "l", name: "Link Task" },
       ]);
 
-      koso.link(TaskLinkage.create("root", "l"));
+      koso.link(new TaskLinkage({ parentId: "root", id: "l" }));
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "2", "3", "l", "4"] },
@@ -211,7 +217,7 @@ describe("Koso tests", () => {
         { id: "l", name: "Link Task", status: "In Progress" },
       ]);
 
-      koso.link(TaskLinkage.create("root", "l"));
+      koso.link(new TaskLinkage({ parentId: "root", id: "l" }));
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "2", "l", "3", "4"] },
@@ -228,7 +234,7 @@ describe("Koso tests", () => {
         { id: "l", name: "Link Task", status: "Done" },
       ]);
 
-      koso.link(TaskLinkage.create("root", "l"));
+      koso.link(new TaskLinkage({ parentId: "root", id: "l" }));
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "2", "l", "3", "4"] },

@@ -256,7 +256,11 @@
       return;
     }
 
-    if (koso.canLink(TaskLinkage.create(node.parent.name, koso.dragged.name))) {
+    if (
+      koso.canLink(
+        new TaskLinkage({ parentId: node.parent.name, id: koso.dragged.name }),
+      )
+    ) {
       if (koso.canMoveNode(koso.dragged, node.parent)) {
         koso.dropEffect = event.altKey ? "copy" : "move";
       } else {
@@ -281,7 +285,11 @@
       return;
     }
 
-    if (koso.canLink(TaskLinkage.create(node.name, koso.dragged.name))) {
+    if (
+      koso.canLink(
+        new TaskLinkage({ parentId: node.name, id: koso.dragged.name }),
+      )
+    ) {
       if (koso.canMoveNode(koso.dragged, node)) {
         koso.dropEffect = event.altKey ? "copy" : "move";
       } else {
