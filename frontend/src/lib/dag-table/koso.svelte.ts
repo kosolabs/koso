@@ -1534,13 +1534,13 @@ export class Koso {
     return this.isEditable(parentTaskId);
   }
 
-  insertNode(
-    parent: Node,
+  insertTask(
+    parent: string,
     offset: number,
     user: User,
     name: string = "",
-  ): Node {
-    if (!this.canInsert(parent.name)) {
+  ): string {
+    if (!this.canInsert(parent)) {
       throw new Error(`Cannot insert node under parent ${parent}`);
     }
     const taskId = this.newId();
@@ -1558,11 +1558,9 @@ export class Koso {
         kind: null,
         url: null,
       });
-      this.link(new TaskLinkage({ parentId: parent.name, id: taskId }), offset);
+      this.link(new TaskLinkage({ parentId: parent, id: taskId }), offset);
     });
-    const node = parent.child(taskId);
-    this.selected = node;
-    return node;
+    return taskId;
   }
 
   setTaskName(taskId: string, newName: string) {
