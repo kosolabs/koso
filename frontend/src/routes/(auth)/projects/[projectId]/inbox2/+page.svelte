@@ -3,7 +3,7 @@
   import { page } from "$app/state";
   import { showUnauthorizedDialog, type User } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
-  import { Koso, KosoSocket, TaskTable } from "$lib/dag-table";
+  import { Koso, KosoSocket, newInboxContext, TaskTable } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import { Button } from "$lib/kosui/button";
   import { nav } from "$lib/nav.svelte";
@@ -18,6 +18,8 @@
   const kosoSocket = new KosoSocket(koso, projectId);
   window.koso = koso;
   window.Y = Y;
+
+  newInboxContext();
 
   let deflicker: Promise<void> = new Promise((r) => window.setTimeout(r, 50));
   let project: Promise<Project> = fetchProject(projectId);

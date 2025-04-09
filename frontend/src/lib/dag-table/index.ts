@@ -1,6 +1,11 @@
 import type { Status, YTaskProxy } from "$lib/yproxy";
 import type { Koso } from "./koso.svelte";
 
+export {
+  getInboxContext,
+  InboxContext,
+  newInboxContext,
+} from "./inbox-context.svelte";
 export { Koso, Node } from "./koso.svelte";
 export { KosoSocket } from "./socket.svelte";
 export { default as DagTable } from "./table.svelte";
