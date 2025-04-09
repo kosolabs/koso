@@ -48,9 +48,9 @@
           .filter((t) => match(t.num, query) || match(t.name, query))
           .filter((t) => {
             if (mode === "link") {
-              return koso.canLink(task.id, t.id);
+              return koso.canLink(TaskLinkage.create(t.id, task.id));
             } else {
-              return koso.canLink(t.id, task.id);
+              return koso.canLink(TaskLinkage.create(task.id, t.id));
             }
           })
           .sort((t1, t2) => compareTasks(t1, t2, koso))

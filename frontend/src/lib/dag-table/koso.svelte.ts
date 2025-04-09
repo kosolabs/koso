@@ -99,6 +99,10 @@ export class TaskLinkage extends TaskLinkageRecord {
   static create(parentTaskId: string, taskId: string): TaskLinkage {
     return new TaskLinkage({ parentId: parentTaskId, id: taskId });
   }
+
+  toString(): string {
+    return `${this.parentId}->${this.id}`;
+  }
 }
 
 type SelectedProps = { node: Node | null; index: number | null };
@@ -863,7 +867,7 @@ export class Koso {
   }
 
   /** Determines if a task can be linked to a parent task. */
-  canLink(task: string, parent: string): boolean {
+  canLink({ id: task, parentId: parent }: TaskLinkage): boolean {
     return (
       !this.#hasCycle(parent, task) &&
       !this.hasChild(parent, task) &&
@@ -877,9 +881,8 @@ export class Koso {
    * the best offset is determined based on the task's status.
    */
   link(linkage: TaskLinkage, offset?: number) {
-    const { id: task, parentId: parent } = linkage;
-    if (!this.canLink(task, parent)) {
-      throw new Error(`Cannot insert ${task} under ${parent}`);
+    if (!this.canLink(linkage)) {
+      throw new Error(`Cannot insert link ${linkage}`);
     }
 
     offset = offset ?? this.getBestLinkOffset(linkage);
@@ -919,7 +922,8 @@ export class Koso {
   canMove(task: string, src: string, dest: string): boolean {
     return (
       src === dest ||
-      (!this.#isCanonicalManagedLink(task, src) && this.canLink(task, dest))
+      (!this.#isCanonicalManagedLink(task, src) &&
+        this.canLink(TaskLinkage.create(dest, task)))
     );
   }
 
