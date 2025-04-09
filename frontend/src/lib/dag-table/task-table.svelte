@@ -22,7 +22,7 @@
   } from "lucide-svelte";
   import { onMount, setContext } from "svelte";
   import { flip } from "svelte/animate";
-  import { Node, type Koso } from ".";
+  import { getInboxContext, Node, type Koso } from ".";
   import MarkdownEditor from "./markdown-editor.svelte";
   import TaskRow from "./task-row.svelte";
   import Toolbar from "./toolbar.svelte";
@@ -32,6 +32,8 @@
     users: User[];
   };
   const { koso, users }: Props = $props();
+
+  const inbox = getInboxContext();
 
   const rows: { [key: string]: TaskRow } = {};
 
@@ -80,37 +82,37 @@
   }
 
   function unselect() {
-    koso.selected = null;
+    inbox.selected = undefined;
   }
 
   function selectNext() {
-    if (koso.nodes.size > 1) {
-      if (koso.selected) {
-        const selectedIndex = koso.nodes.indexOf(koso.selected);
-        if (selectedIndex <= 0) {
-          koso.selected = null;
+    if (koso.tasks.length > 0) {
+      if (inbox.selected) {
+        const selectedIndex = koso.tasks.indexOf(inbox.selected);
+        if (selectedIndex < 0) {
+          inbox.selected = undefined;
         } else {
-          const index = Math.min(selectedIndex + 1, koso.nodes.size - 1);
-          koso.selected = koso.nodes.get(index, null);
+          const index = Math.min(selectedIndex + 1, koso.tasks.length - 1);
+          inbox.selected = koso.tasks[index];
         }
       } else {
-        koso.selected = koso.nodes.get(1, null);
+        inbox.selected = koso.tasks[0];
       }
     }
   }
 
   function selectPrev() {
-    if (koso.nodes.size > 1) {
-      if (koso.selected) {
-        const selectedIndex = koso.nodes.indexOf(koso.selected);
-        if (selectedIndex <= 0) {
-          koso.selected = null;
+    if (koso.tasks.length > 0) {
+      if (inbox.selected) {
+        const selectedIndex = koso.tasks.indexOf(inbox.selected);
+        if (selectedIndex < 0) {
+          inbox.selected = undefined;
         } else {
-          const index = Math.max(selectedIndex - 1, 1);
-          koso.selected = koso.nodes.get(index, null);
+          const index = Math.max(selectedIndex - 1, 0);
+          inbox.selected = koso.tasks[index];
         }
       } else {
-        koso.selected = koso.nodes.get(koso.nodes.size - 1, null);
+        inbox.selected = koso.tasks[koso.tasks.length - 1];
       }
     }
   }

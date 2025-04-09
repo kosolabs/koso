@@ -8,7 +8,7 @@
   import { cn } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
   import { getContext } from "svelte";
-  import { type Koso } from ".";
+  import { getInboxContext, type Koso } from ".";
   import DescAction from "./desc-action.svelte";
   import LinkPanel, { type Mode } from "./link-panel.svelte";
   import TaskAction from "./task-action.svelte";
@@ -21,6 +21,7 @@
   const { index, task, users }: Props = $props();
 
   const koso = getContext<Koso>("koso");
+  const inbox = getInboxContext();
 
   let rowElement: HTMLTableRowElement | undefined = $state();
   let taskStatus = $state<TaskStatus | undefined>();
@@ -53,6 +54,11 @@
     }
     return null;
   }
+
+  function handleRowClick(event: MouseEvent) {
+    event.preventDefault();
+    inbox.selected = task;
+  }
 </script>
 
 <tr
@@ -60,8 +66,10 @@
   class={cn(
     "rounded outline-2 outline-transparent",
     index % 2 === 0 && "bg-m3-surface-container/30",
+    inbox.selected === task && "outline-m3-primary",
   )}
   aria-label={`Task ${task.num}`}
+  onclick={handleRowClick}
   bind:this={rowElement}
 >
   <td class={cn("border-t px-2")}>
