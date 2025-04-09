@@ -18,6 +18,7 @@
   import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
   import { compareTasks, type Koso } from ".";
+  import { TaskLinkage } from "./koso.svelte";
 
   export type Mode = "link" | "block";
 
@@ -47,9 +48,13 @@
           .filter((t) => match(t.num, query) || match(t.name, query))
           .filter((t) => {
             if (mode === "link") {
-              return koso.canLink(task.id, t.id);
+              return koso.canLink(
+                new TaskLinkage({ parentId: t.id, id: task.id }),
+              );
             } else {
-              return koso.canLink(t.id, task.id);
+              return koso.canLink(
+                new TaskLinkage({ parentId: task.id, id: t.id }),
+              );
             }
           })
           .sort((t1, t2) => compareTasks(t1, t2, koso))
@@ -59,10 +64,10 @@
 
   function link(taskId: string) {
     if (mode === "link") {
-      koso.link(task.id, taskId);
+      koso.link(new TaskLinkage({ parentId: taskId, id: task.id }));
     } else if (mode === "block") {
       koso.doc.transact(() => {
-        koso.link(taskId, task.id);
+        koso.link(new TaskLinkage({ parentId: task.id, id: taskId }));
         if (setStatusBlocked) {
           koso.setKind(task.id, "Task");
           koso.setTaskStatus(task.id, "Blocked", auth.user);

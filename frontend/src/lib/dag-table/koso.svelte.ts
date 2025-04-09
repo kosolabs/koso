@@ -85,9 +85,21 @@ export class Node extends NodeRecord {
   child(name: string): Node {
     return new Node({ path: this.path.push(name) });
   }
+  get linkage(): TaskLinkage {
+    return new TaskLinkage({ parentId: this.parent.name, id: this.name });
+  }
 }
 
 export type Nodes = Map<string, Node>;
+
+type TaskLinkageProps = { id: string; parentId: string };
+const TaskLinkageRecord = Record<TaskLinkageProps>({ parentId: "", id: "" });
+
+export class TaskLinkage extends TaskLinkageRecord {
+  toString(): string {
+    return `${this.parentId}->${this.id}`;
+  }
+}
 
 type SelectedProps = { node: Node | null; index: number | null };
 const SelectedRecord = Record<SelectedProps>({ node: null, index: null });
@@ -833,7 +845,7 @@ export class Koso {
     return false;
   }
 
-  getBestLinkOffset(taskId: string, parent: string): number {
+  getBestLinkOffset({ id: taskId, parentId: parent }: TaskLinkage): number {
     if (this.getStatus(taskId) === "In Progress") {
       return findEntryIndex(
         this.getChildren(parent).entries(),
@@ -851,7 +863,7 @@ export class Koso {
   }
 
   /** Determines if a task can be linked to a parent task. */
-  canLink(task: string, parent: string): boolean {
+  canLink({ id: task, parentId: parent }: TaskLinkage): boolean {
     return (
       !this.#hasCycle(parent, task) &&
       !this.hasChild(parent, task) &&
@@ -864,16 +876,16 @@ export class Koso {
    * a child of the parent, an error is thrown. If an offset is not provided,
    * the best offset is determined based on the task's status.
    */
-  link(task: string, parent: string, offset?: number) {
-    if (!this.canLink(task, parent)) {
-      throw new Error(`Cannot insert ${task} under ${parent}`);
+  link(linkage: TaskLinkage, offset?: number) {
+    if (!this.canLink(linkage)) {
+      throw new Error(`Cannot insert link ${linkage}`);
     }
 
-    offset = offset ?? this.getBestLinkOffset(task, parent);
-    this.#linkUnchecked(task, parent, offset);
+    offset = offset ?? this.getBestLinkOffset(linkage);
+    this.#linkUnchecked(linkage, offset);
   }
 
-  #linkUnchecked(task: string, parent: string, offset: number) {
+  #linkUnchecked({ id: task, parentId: parent }: TaskLinkage, offset: number) {
     this.getChildren(parent).insert(offset, [task]);
   }
 
@@ -906,7 +918,8 @@ export class Koso {
   canMove(task: string, src: string, dest: string): boolean {
     return (
       src === dest ||
-      (!this.#isCanonicalManagedLink(task, src) && this.canLink(task, dest))
+      (!this.#isCanonicalManagedLink(task, src) &&
+        this.canLink(new TaskLinkage({ parentId: dest, id: task })))
     );
   }
 
@@ -1190,7 +1203,10 @@ export class Koso {
   }
 
   linkNode(node: Node, parent: Node, offset: number) {
-    this.link(node.name, parent.name, offset);
+    this.link(
+      new TaskLinkage({ parentId: parent.name, id: node.name }),
+      offset,
+    );
   }
 
   canMoveNode(node: Node, parent: Node): boolean {
@@ -1212,7 +1228,10 @@ export class Koso {
       if (srcParentName === parent.name && srcOffset < offset) {
         offset -= 1;
       }
-      this.#linkUnchecked(node.name, parent.name, offset);
+      this.#linkUnchecked(
+        new TaskLinkage({ parentId: parent.name, id: node.name }),
+        offset,
+      );
     });
     this.selected = parent.child(node.name);
   }
@@ -1539,7 +1558,7 @@ export class Koso {
         kind: null,
         url: null,
       });
-      this.link(taskId, parent.name, offset);
+      this.link(new TaskLinkage({ parentId: parent.name, id: taskId }), offset);
     });
     const node = parent.child(taskId);
     this.selected = node;

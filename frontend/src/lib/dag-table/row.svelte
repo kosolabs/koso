@@ -22,6 +22,7 @@
   import DropIndicator from "./drop-indicator.svelte";
   import LinkPanel, { type Mode } from "./link-panel.svelte";
   import TaskAction from "./task-action.svelte";
+  import { TaskLinkage } from "./koso.svelte";
 
   type Props = {
     index: number;
@@ -255,7 +256,11 @@
       return;
     }
 
-    if (koso.canLink(koso.dragged.name, node.parent.name)) {
+    if (
+      koso.canLink(
+        new TaskLinkage({ parentId: node.parent.name, id: koso.dragged.name }),
+      )
+    ) {
       if (koso.canMoveNode(koso.dragged, node.parent)) {
         koso.dropEffect = event.altKey ? "copy" : "move";
       } else {
@@ -280,7 +285,11 @@
       return;
     }
 
-    if (koso.canLink(koso.dragged.name, node.name)) {
+    if (
+      koso.canLink(
+        new TaskLinkage({ parentId: node.name, id: koso.dragged.name }),
+      )
+    ) {
       if (koso.canMoveNode(koso.dragged, node)) {
         koso.dropEffect = event.altKey ? "copy" : "move";
       } else {
