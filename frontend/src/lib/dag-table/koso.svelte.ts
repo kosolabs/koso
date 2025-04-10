@@ -12,6 +12,7 @@ import { List, Map, Record, Set } from "immutable";
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import { PanelTopClose, PanelTopOpen, SquarePen } from "lucide-svelte";
+import { getContext, setContext } from "svelte";
 import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
@@ -1734,4 +1735,12 @@ export class Koso {
       parent.children.replace(children);
     });
   }
+}
+
+export function setKosoContext(ctx: Koso): Koso {
+  return setContext<Koso>(Koso, ctx);
+}
+
+export function getKosoContext(): Koso {
+  return getContext<Koso>(Koso);
 }

@@ -6,7 +6,7 @@ export {
   InboxContext,
   newInboxContext,
 } from "./inbox-context.svelte";
-export { Koso, Node } from "./koso.svelte";
+export { getKosoContext, Koso, Node, setKosoContext } from "./koso.svelte";
 export { KosoSocket } from "./socket.svelte";
 export { default as DagTable } from "./table.svelte";
 export { default as TaskTable } from "./task-table.svelte";
