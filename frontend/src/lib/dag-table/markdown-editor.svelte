@@ -1,47 +1,47 @@
 <script lang="ts">
   import { CodeMirror } from "$lib/components/ui/code-mirror";
-  import { events } from "$lib/kosui";
   import { Button } from "$lib/kosui/button";
   import { Shortcut } from "$lib/kosui/shortcut";
-  import { YTaskProxy, type Task } from "$lib/yproxy";
   import { Pencil, Trash, X } from "lucide-svelte";
   import { toast } from "svelte-sonner";
   import { slide } from "svelte/transition";
   import * as Y from "yjs";
-  import type { Koso } from "./koso.svelte";
   import MarkdownViewer from "./markdown-viewer.svelte";
+  import { getProjectContext } from "./project-context.svelte";
 
   type Props = {
-    koso: Koso;
-    task: YTaskProxy;
+    taskId: string | undefined;
   };
-  let { koso, task: yTask }: Props = $props();
+  let { taskId }: Props = $props();
 
-  let task: Task = $state.raw(yTask.toJSON());
-  let yDesc: Y.Text | null = $state.raw(yTask.desc);
+  const project = getProjectContext();
+
+  let task = $derived(taskId ? project.koso.getTask(taskId) : undefined);
+  let yDesc: Y.Text | undefined = $state.raw();
+  let desc: string | undefined = $state.raw();
 
   function hideDetails() {
-    koso.detailPanel = "none";
+    project.koso.detailPanel = "none";
   }
 
   function viewDetails() {
-    koso.detailPanel = "view";
+    project.koso.detailPanel = "view";
   }
 
   function editDetails() {
-    if (!koso.isEditable(task.id)) {
+    if (taskId && !project.koso.isEditable(taskId)) {
       toast.warning(
         "This is a managed task and cannot be edited in Koso directly.",
       );
       return;
     }
-    yDesc = yTask.getOrNewDesc();
-    koso.detailPanel = "edit";
+    yDesc = task?.getOrNewDesc();
+    project.koso.detailPanel = "edit";
   }
 
   function deleteDetails() {
-    yDesc = null;
-    yTask.delDesc();
+    yDesc = undefined;
+    task?.delDesc();
   }
 
   function handleKeyDownEditing(event: KeyboardEvent) {
@@ -51,40 +51,27 @@
     event.stopImmediatePropagation();
   }
 
-  function handleKeyDown(event: KeyboardEvent) {
-    if (Shortcut.ESCAPE.matches(event)) {
-      if (koso.detailPanel === "edit") {
-        viewDetails();
-      } else {
-        hideDetails();
-      }
-      event.stopImmediatePropagation();
-    }
-  }
-
   $effect(() => {
-    task = yTask.toJSON();
-    yDesc = yTask.desc;
-    return yTask.observeDeep(() => {
-      task = yTask.toJSON();
-      yDesc = yTask.desc;
+    yDesc = task?.desc || undefined;
+    desc = yDesc?.toString();
+    return task?.observeDeep(() => {
+      yDesc = task.desc || undefined;
+      desc = yDesc?.toString();
     });
   });
 
   $effect(() => {
-    if (!koso.isEditable(task.id) && koso.detailPanel === "edit") {
+    if (
+      taskId &&
+      !project.koso.isEditable(taskId) &&
+      project.koso.detailPanel === "edit"
+    ) {
       viewDetails();
-    }
-  });
-
-  $effect(() => {
-    if (koso.selected && koso.detailPanel !== "none") {
-      return events.on("keydown", handleKeyDown);
     }
   });
 </script>
 
-{#if koso.detailPanel !== "none"}
+{#if project.koso.detailPanel !== "none"}
   <div class="relative mb-2 rounded-md border" transition:slide>
     <div
       class="flex items-center p-2 text-lg font-extralight"
@@ -92,12 +79,12 @@
       aria-level="1"
       ondblclick={editDetails}
     >
-      {task.name}
+      {task?.name || "No task selected"}
       <div class="top-2 right-2 ml-auto flex gap-1">
-        {#if koso.isEditable(task.id)}
+        {#if task && project.koso.isEditable(task.id)}
           <Button icon={Pencil} variant="plain" onclick={editDetails} />
         {/if}
-        {#if yDesc !== null}
+        {#if yDesc !== undefined}
           <Button icon={Trash} variant="plain" onclick={deleteDetails} />
         {/if}
         <Button icon={X} variant="plain" onclick={hideDetails} />
@@ -109,10 +96,10 @@
       role="document"
       ondblclick={editDetails}
     >
-      {#if yDesc && koso.isEditable(task.id) && koso.detailPanel === "edit"}
+      {#if yDesc && task && project.koso.isEditable(task.id) && project.koso.detailPanel === "edit"}
         <CodeMirror yText={yDesc} onkeydown={handleKeyDownEditing} />
-      {:else if task.desc}
-        <MarkdownViewer class="p-2" value={task.desc} />
+      {:else if desc}
+        <MarkdownViewer class="p-2" value={desc} />
       {/if}
     </div>
   </div>
