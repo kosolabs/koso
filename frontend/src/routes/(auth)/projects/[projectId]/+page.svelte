@@ -16,13 +16,22 @@
   import MenuItem from "$lib/kosui/menu/menu-item.svelte";
   import { exportProject, updateProject } from "$lib/projects";
   import { cn } from "$lib/utils";
-  import { FileDown, Mail, MenuIcon, PlugZap, UserPlus } from "lucide-svelte";
+  import {
+    FileDown,
+    Mail,
+    MenuIcon,
+    PanelTopClose,
+    PanelTopOpen,
+    PlugZap,
+    SquarePen,
+    UserPlus,
+  } from "lucide-svelte";
   import { onMount } from "svelte";
   import { getProjectContext } from "../../../../lib/dag-table/project-context.svelte";
   import ProjectShareModal from "./project-share-modal.svelte";
 
   const project = getProjectContext();
-  newPlanningContext(project.koso);
+  const planningCtx = newPlanningContext(project.koso);
   let openShareModal: boolean = $state(false);
 
   async function saveEditedProjectName(name: string) {
@@ -65,16 +74,6 @@
     a.click();
   }
 
-  const actions: Action<ActionID>[] = [
-    new Action({
-      id: "ExportProject",
-      callback: exportProjectToFile,
-      title: "Export Project",
-      description: "Export project to JSON",
-      icon: FileDown,
-    }),
-  ];
-
   $effect(() => {
     if (project.socket.unauthorized) {
       showUnauthorizedDialog();
@@ -82,6 +81,41 @@
   });
 
   onMount(() => {
+    const actions: Action<ActionID>[] = [
+      new Action({
+        id: "ExportProject",
+        callback: exportProjectToFile,
+        title: "Export Project",
+        description: "Export project to JSON",
+        icon: FileDown,
+      }),
+      new Action({
+        id: "DetailPanelClose",
+        callback: () => (planningCtx.detailPanel = "none"),
+        title: "Close task description",
+        description: "Close / hide the task description markdown panel",
+        icon: PanelTopClose,
+      }),
+      new Action({
+        id: "DetailPanelViewer",
+        callback: () => (planningCtx.detailPanel = "view"),
+        title: "View task description",
+        description: "Open / show the task description markdown viewer",
+        icon: PanelTopOpen,
+        enabled: () => !!planningCtx.selected,
+      }),
+      new Action({
+        id: "DetailPanelEditor",
+        callback: () => (planningCtx.detailPanel = "edit"),
+        title: "Edit task description",
+        description: "Open / show the task description markdown editor",
+        icon: SquarePen,
+        enabled: () =>
+          !!planningCtx.selected &&
+          planningCtx.koso.isEditable(planningCtx.selected.name),
+      }),
+    ];
+
     return command.register(...actions);
   });
 </script>

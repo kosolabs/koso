@@ -1,15 +1,23 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { auth, showUnauthorizedDialog } from "$lib/auth.svelte";
+  import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { Navbar } from "$lib/components/ui/navbar";
   import { DagTable, Node } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import { newPlanningContext } from "$lib/dag-table/planning-context.svelte";
   import { getProjectContext } from "$lib/dag-table/project-context.svelte";
   import { Button } from "$lib/kosui/button";
+  import { Action } from "$lib/kosui/command";
   import type { YTaskProxy } from "$lib/yproxy";
   import { List } from "immutable";
-  import { Notebook } from "lucide-svelte";
+  import {
+    Notebook,
+    PanelTopClose,
+    PanelTopOpen,
+    SquarePen,
+  } from "lucide-svelte";
+  import { onMount } from "svelte";
 
   const project = getProjectContext();
   const inbox = newPlanningContext(project.koso, isVisible, flatten);
@@ -82,6 +90,37 @@
     if (project.socket.unauthorized) {
       showUnauthorizedDialog();
     }
+  });
+
+  onMount(() => {
+    const actions: Action<ActionID>[] = [
+      new Action({
+        id: "DetailPanelClose",
+        callback: () => (inbox.detailPanel = "none"),
+        title: "Close task description",
+        description: "Close / hide the task description markdown panel",
+        icon: PanelTopClose,
+      }),
+      new Action({
+        id: "DetailPanelViewer",
+        callback: () => (inbox.detailPanel = "view"),
+        title: "View task description",
+        description: "Open / show the task description markdown viewer",
+        icon: PanelTopOpen,
+        enabled: () => !!inbox.selected,
+      }),
+      new Action({
+        id: "DetailPanelEditor",
+        callback: () => (inbox.detailPanel = "edit"),
+        title: "Edit task description",
+        description: "Open / show the task description markdown editor",
+        icon: SquarePen,
+        enabled: () =>
+          !!inbox.selected && inbox.koso.isEditable(inbox.selected.name),
+      }),
+    ];
+
+    return command.register(...actions);
   });
 </script>
 

@@ -642,6 +642,13 @@
     }
   });
 
+  onMount(() => {
+    // Clear selection on destroy to avoid persisting awareness on navigation.
+    return () => {
+      planningCtx.selected = null;
+    };
+  });
+
   setContext<Koso>("koso", koso);
 
   onMount(() => {

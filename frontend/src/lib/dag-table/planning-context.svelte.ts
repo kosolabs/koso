@@ -1,4 +1,3 @@
-import { command, type ActionID } from "$lib/components/ui/command-palette";
 import { toast } from "$lib/components/ui/sonner";
 import { Node } from "$lib/dag-table";
 import {
@@ -8,11 +7,9 @@ import {
   TaskLinkage,
   type DetailPanelStates,
 } from "$lib/dag-table/koso.svelte";
-import { Action } from "$lib/kosui/command";
 import { useLocalStorage, type Storable } from "$lib/stores.svelte";
 import { List, Record, Set } from "immutable";
 import * as encoding from "lib0/encoding";
-import { PanelTopClose, PanelTopOpen, SquarePen } from "lucide-svelte";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 
@@ -97,37 +94,6 @@ export class PlanningContext {
         encode: (nodes) => JSON.stringify(nodes.map((node) => node.id)),
       },
     );
-
-    const actions: Action<ActionID>[] = [
-      new Action({
-        id: "DetailPanelClose",
-        callback: () => (this.detailPanel = "none"),
-        title: "Close task description",
-        description: "Close / hide the task description markdown panel",
-        icon: PanelTopClose,
-      }),
-      new Action({
-        id: "DetailPanelViewer",
-        callback: () => (this.detailPanel = "view"),
-        title: "View task description",
-        description: "Open / show the task description markdown viewer",
-        icon: PanelTopOpen,
-        enabled: () => !!this.selected,
-      }),
-      new Action({
-        id: "DetailPanelEditor",
-        callback: () => (this.detailPanel = "edit"),
-        title: "Edit task description",
-        description: "Open / show the task description markdown editor",
-        icon: SquarePen,
-        enabled: () =>
-          !!this.selected && this.koso.isEditable(this.selected.name),
-      }),
-    ];
-
-    $effect(() => {
-      return command.register(...actions);
-    });
   }
 
   get koso(): Koso {
@@ -136,6 +102,10 @@ export class PlanningContext {
 
   get undoManager(): Y.UndoManager {
     return this.#yUndoManager;
+  }
+
+  get nodes(): List<Node> {
+    return this.#nodes;
   }
 
   get expanded(): Set<Node> {
@@ -154,8 +124,36 @@ export class PlanningContext {
     this.#showDone.value = value;
   }
 
-  get nodes(): List<Node> {
-    return this.#nodes;
+  get focus(): boolean {
+    return this.#focus;
+  }
+
+  set focus(value: boolean) {
+    this.#focus = value;
+  }
+
+  get highlighted(): string | null {
+    return this.#highlighted;
+  }
+
+  set highlighted(value: string | null) {
+    this.#highlighted = value;
+  }
+
+  get dragged(): Node | null {
+    return this.#dragged;
+  }
+
+  set dragged(value: Node | null) {
+    this.#dragged = value;
+  }
+
+  get dropEffect(): "copy" | "move" | "none" {
+    return this.#dropEffect;
+  }
+
+  set dropEffect(value: "copy" | "move" | "none") {
+    this.#dropEffect = value;
   }
 
   /**
@@ -214,38 +212,6 @@ export class PlanningContext {
     if (shouldUpdateAwareness) {
       this.koso.send(this.#encodeAwareness());
     }
-  }
-
-  get focus(): boolean {
-    return this.#focus;
-  }
-
-  set focus(value: boolean) {
-    this.#focus = value;
-  }
-
-  get highlighted(): string | null {
-    return this.#highlighted;
-  }
-
-  set highlighted(value: string | null) {
-    this.#highlighted = value;
-  }
-
-  get dragged(): Node | null {
-    return this.#dragged;
-  }
-
-  set dragged(value: Node | null) {
-    this.#dragged = value;
-  }
-
-  get dropEffect(): "copy" | "move" | "none" {
-    return this.#dropEffect;
-  }
-
-  set dropEffect(value: "copy" | "move" | "none") {
-    this.#dropEffect = value;
   }
 
   #encodeAwareness(): Uint8Array {
