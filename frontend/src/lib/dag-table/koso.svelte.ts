@@ -158,6 +158,7 @@ export class Koso {
   };
 
   #awareness: Awareness[] = $state([]);
+  #awarenessSequence: number = 0;
 
   #debug: Storable<boolean>;
   events: YEvent[] = $state.raw([]);
@@ -328,6 +329,10 @@ export class Koso {
 
   get awareness(): Awareness[] {
     return this.#awareness;
+  }
+
+  nextAwarenessSequence(): number {
+    return this.#awarenessSequence++;
   }
 
   get root(): Node {

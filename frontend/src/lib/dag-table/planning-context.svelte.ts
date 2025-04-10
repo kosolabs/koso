@@ -50,7 +50,6 @@ export class PlanningContext {
   #flattenFn: FlattenFn;
   #visibilityFilterFn: VisibilityFilterFn;
 
-  #sequence: number = 0;
   #detailPanel: DetailPanelStates = $state("none");
 
   constructor(
@@ -222,8 +221,7 @@ export class PlanningContext {
       encoder,
       JSON.stringify({
         clientId: this.koso.clientId,
-        // TODO: Sequence will get reset between page navigations.
-        sequence: this.#sequence++,
+        sequence: this.#koso.nextAwarenessSequence(),
         selected: this.selected ? [this.selected.id] : [],
       }),
     );
