@@ -3,6 +3,7 @@
   import { auth, type User } from "$lib/auth.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
+  import { getProjectContext } from "$lib/dag-table/project-context.svelte";
   import {
     AutocompleteContent,
     AutocompleteInput,
@@ -15,7 +16,6 @@
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectUsers,
-    type Project,
   } from "$lib/projects";
   import { cn, match } from "$lib/utils";
   import { CircleMinus, TriangleAlert, X } from "lucide-svelte";
@@ -23,14 +23,9 @@
 
   type Props = {
     open: boolean;
-    project: Project;
-    projectUsers: User[];
   };
-  let {
-    open = $bindable(),
-    project,
-    projectUsers = $bindable(),
-  }: Props = $props();
+  let { open = $bindable() }: Props = $props();
+  const project = getProjectContext();
 
   let filter: string = $state("");
   let users: User[] = $state([]);
@@ -39,13 +34,13 @@
 
   async function addUser(add: User) {
     await updateProjectUsers({
-      projectId: project.projectId,
+      projectId: project.id,
       addEmails: [add.email],
       removeEmails: [],
     });
 
-    projectUsers.push(add);
-    projectUsers.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
+    project.users.push(add);
+    project.users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
     filter = "";
 
     toast.success(`Added ${add.email}`);
@@ -63,17 +58,17 @@
       if (!confirmed) return;
     }
 
-    let i = projectUsers.findIndex((u) => u.email === remove.email);
+    let i = project.users.findIndex((u) => u.email === remove.email);
     if (i == -1) throw new Error("Could not find user");
 
     await updateProjectUsers({
-      projectId: project.projectId,
+      projectId: project.id,
       addEmails: [],
       removeEmails: [remove.email],
     });
 
-    projectUsers.splice(i, 1);
-    projectUsers.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
+    project.users.splice(i, 1);
+    project.users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
 
     toast.success(`Removed ${remove.email}`);
   }
@@ -82,7 +77,7 @@
   let req = 0;
   $effect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    projectUsers;
+    project.users;
     // reference project users so svelte treats it as a dependency.
     if (filter.trim().length < MIN_FILTER_LEN) {
       users = [];
@@ -104,7 +99,7 @@
       }
       users = respUsers
         .sort(COMPARE_USERS_BY_NAME_AND_EMAIL)
-        .filter((u) => !projectUsers.some((pu) => pu.email === u.email))
+        .filter((u) => !project.users.some((pu) => pu.email === u.email))
         .filter((u) => match(u.name, filter) || match(u.email, filter));
     })();
   });
@@ -166,7 +161,7 @@
 
     <div class="h3">People with access</div>
     <div class="flex h-64 w-full flex-col items-stretch overflow-y-auto">
-      {#each projectUsers as projectUser (projectUser.email)}
+      {#each project.users as projectUser (projectUser.email)}
         <div
           class="flex items-center rounded p-2"
           animate:flip={{ duration: 250 }}

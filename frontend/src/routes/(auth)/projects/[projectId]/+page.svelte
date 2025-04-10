@@ -1,61 +1,32 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { page } from "$app/state";
   import { KosoError } from "$lib/api";
-  import { showUnauthorizedDialog, type User } from "$lib/auth.svelte";
+  import { showUnauthorizedDialog } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { Editable } from "$lib/components/ui/editable";
   import { Navbar, NavbarButton } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
-  import { DagTable, Koso, KosoSocket } from "$lib/dag-table";
+  import { DagTable } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import { githubInstallUrl } from "$lib/github";
   import { baseClasses } from "$lib/kosui/base";
   import { Action } from "$lib/kosui/command";
   import { Menu, MenuContent, MenuTrigger } from "$lib/kosui/menu";
   import MenuItem from "$lib/kosui/menu/menu-item.svelte";
-  import { nav } from "$lib/nav.svelte";
-  import {
-    exportProject,
-    fetchProject,
-    fetchProjectUsers,
-    updateProject,
-    type Project,
-  } from "$lib/projects";
+  import { exportProject, updateProject } from "$lib/projects";
   import { cn } from "$lib/utils";
   import { FileDown, Mail, MenuIcon, PlugZap, UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
-  import * as Y from "yjs";
+  import { getProjectContext } from "../../../../lib/dag-table/project-context.svelte";
   import ProjectShareModal from "./project-share-modal.svelte";
 
-  const projectId = page.params.projectId;
-  nav.lastVisitedProjectId = projectId;
-  const koso = new Koso(projectId, new Y.Doc());
-  const kosoSocket = new KosoSocket(koso, projectId);
-  window.koso = koso;
-  window.Y = Y;
-
-  let deflicker: Promise<void> = new Promise((r) => window.setTimeout(r, 50));
-  let project: Promise<Project> = loadProject();
-  let projectUsersPromise: Promise<User[]> = loadProjectUsers();
-  let projectUsers: User[] = $state([]);
+  const project = getProjectContext();
   let openShareModal: boolean = $state(false);
-
-  async function loadProjectUsers() {
-    const users = await fetchProjectUsers(projectId);
-
-    projectUsers = users;
-    return projectUsers;
-  }
-
-  async function loadProject() {
-    return await fetchProject(projectId);
-  }
 
   async function saveEditedProjectName(name: string) {
     let updatedProject;
     try {
-      updatedProject = await updateProject({ projectId, name });
+      updatedProject = await updateProject({ projectId: project.id, name });
     } catch (err) {
       if (err instanceof KosoError && err.hasReason("EMPTY_NAME")) {
         toast.warning("Project name may not be blank.");
@@ -66,16 +37,14 @@
       }
       throw err;
     }
-    let p = await project;
-    p.name = updatedProject.name;
+    project.name = updatedProject.name;
   }
 
   async function exportProjectToFile() {
     toast.info("Exporting project...");
-    const projectExport = await exportProject(projectId);
+    const projectExport = await exportProject(project.id);
 
-    let p = await project;
-    let projectName = (p.name || "project")
+    let projectName = (project.name || "project")
       .toLowerCase()
       .trim()
       .replaceAll(/[\s+]/g, "-")
@@ -105,7 +74,7 @@
   ];
 
   $effect(() => {
-    if (kosoSocket.unauthorized) {
+    if (project.socket.unauthorized) {
       showUnauthorizedDialog();
     }
   });
@@ -137,7 +106,7 @@
         <MenuItem
           class="gap-2"
           onSelect={async () =>
-            window.location.assign(await githubInstallUrl(projectId))}
+            window.location.assign(await githubInstallUrl(project.id))}
         >
           <PlugZap size={16} />
           Connect to GitHub
@@ -148,7 +117,7 @@
         </MenuItem>
         <MenuItem
           class="gap-2"
-          onSelect={() => goto(`/projects/${projectId}/inbox`)}
+          onSelect={() => goto(`/projects/${project.id}/inbox`)}
         >
           <Mail size={16} />
           Navigate to Zero Inbox
@@ -167,17 +136,15 @@
   {/snippet}
   {#snippet left()}
     <div>
-      {#await project then project}
-        <Editable
-          class="ml-2 text-lg"
-          value={project.name}
-          aria-label="Set project name"
-          onsave={async (name) => {
-            await saveEditedProjectName(name);
-          }}
-          onkeydown={(e) => e.stopPropagation()}
-        />
-      {/await}
+      <Editable
+        class="ml-2 text-lg"
+        value={project.name}
+        aria-label="Set project name"
+        onsave={async (name) => {
+          await saveEditedProjectName(name);
+        }}
+        onkeydown={(e) => e.stopPropagation()}
+      />
     </div>
   {/snippet}
   {#snippet right()}
@@ -193,26 +160,13 @@
       icon={Mail}
       label="Zero inbox view"
       aria-label="Zero inbox view"
-      onclick={() => goto(`/projects/${projectId}/inbox`)}
+      onclick={() => goto(`/projects/${project.id}/inbox`)}
     />
   {/snippet}
 </Navbar>
 
-<OfflineAlert offline={kosoSocket.offline} />
+<OfflineAlert offline={project.socket.offline} />
 
-{#await projectUsersPromise}
-  {#await deflicker}
-    <!-- Deflicker load. -->
-  {:then}
-    <!-- TODO: Make this a Skeleton -->
-    <div class="flex flex-col items-center justify-center rounded border p-4">
-      <div class="text-l">Loading...</div>
-    </div>
-  {/await}
-{:then}
-  {#await project then project}
-    <ProjectShareModal bind:open={openShareModal} bind:projectUsers {project} />
-  {/await}
+<ProjectShareModal bind:open={openShareModal} />
 
-  <DagTable {koso} users={projectUsers} inboxView={false} />
-{/await}
+<DagTable koso={project.koso} users={project.users} inboxView={false} />
