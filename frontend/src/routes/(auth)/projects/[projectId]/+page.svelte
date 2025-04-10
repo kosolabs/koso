@@ -19,8 +19,10 @@
   import { onMount } from "svelte";
   import { getProjectContext } from "../../../../lib/dag-table/project-context.svelte";
   import ProjectShareModal from "./project-share-modal.svelte";
+  import { newPlanningContext } from "$lib/dag-table/planning-context.svelte";
 
   const project = getProjectContext();
+  const planningCtx = newPlanningContext(project);
   let openShareModal: boolean = $state(false);
 
   async function saveEditedProjectName(name: string) {
@@ -169,4 +171,4 @@
 
 <ProjectShareModal bind:open={openShareModal} />
 
-<DagTable projectCtx={project} users={project.users} inboxView={false} />
+<DagTable {planningCtx} users={project.users} inboxView={false} />

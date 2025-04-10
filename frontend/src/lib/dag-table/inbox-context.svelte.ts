@@ -1,15 +1,17 @@
 import { YTaskProxy } from "$lib/yproxy";
 import { Record } from "immutable";
 import { getContext, setContext } from "svelte";
-import type { Koso } from "./koso.svelte";
+import type { DetailPanelStates, Koso } from "./koso.svelte";
 import * as Y from "yjs";
+import { PanelTopClose, PanelTopOpen, SquarePen } from "lucide-svelte";
+import { Action } from "$lib/kosui/command";
+import { command, type ActionID } from "$lib/components/ui/command-palette";
 
 export class InboxContext {
   #koso: Koso;
   #yUndoManager: Y.UndoManager;
 
   #selectedRaw: Selected = $state(Selected.default());
-
   #selected: YTaskProxy | undefined = $derived.by(() => {
     const task = this.#selectedRaw.task;
     if (!task || this.#koso.tasks.indexOf(task) < 0) {
@@ -17,6 +19,8 @@ export class InboxContext {
     }
     return task;
   });
+
+  #detailPanel: DetailPanelStates = $state("none");
 
   constructor(koso: Koso) {
     this.#koso = koso;
@@ -38,6 +42,37 @@ export class InboxContext {
         );
         this.selected = undefined;
       }
+    });
+
+    const actions: Action<ActionID>[] = [
+      new Action({
+        id: "DetailPanelClose",
+        callback: () => (this.detailPanel = "none"),
+        title: "Close task description",
+        description: "Close / hide the task description markdown panel",
+        icon: PanelTopClose,
+      }),
+      new Action({
+        id: "DetailPanelViewer",
+        callback: () => (this.detailPanel = "view"),
+        title: "View task description",
+        description: "Open / show the task description markdown viewer",
+        icon: PanelTopOpen,
+        enabled: () => !!this.selected,
+      }),
+      new Action({
+        id: "DetailPanelEditor",
+        callback: () => (this.detailPanel = "edit"),
+        title: "Edit task description",
+        description: "Open / show the task description markdown editor",
+        icon: SquarePen,
+        enabled: () =>
+          !!this.selected && this.#koso.isEditable(this.selected.name),
+      }),
+    ];
+
+    $effect(() => {
+      return command.register(...actions);
     });
   }
 
@@ -82,6 +117,16 @@ export class InboxContext {
     const task = this.#koso.tasks.find((t) => t.id == taskId);
     if (!task) throw new Error("Expected at least one Node");
     this.selected = task;
+  }
+
+  // actions that operate on the UI
+
+  get detailPanel() {
+    return this.#detailPanel;
+  }
+
+  set detailPanel(value: DetailPanelStates) {
+    this.#detailPanel = value;
   }
 
   undo() {

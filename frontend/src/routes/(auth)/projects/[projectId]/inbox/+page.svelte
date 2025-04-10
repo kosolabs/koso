@@ -4,17 +4,15 @@
   import { Navbar } from "$lib/components/ui/navbar";
   import { DagTable, Node } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
-  import {
-    getProjectContext,
-    newProjectContextNoStore,
-  } from "$lib/dag-table/project-context.svelte";
+  import { newPlanningContext } from "$lib/dag-table/planning-context.svelte";
+  import { getProjectContext } from "$lib/dag-table/project-context.svelte";
   import { Button } from "$lib/kosui/button";
   import type { YTaskProxy } from "$lib/yproxy";
   import { List } from "immutable";
   import { Notebook } from "lucide-svelte";
 
   const project = getProjectContext();
-  const inbox = newProjectContextNoStore(isVisible, flatten);
+  const inbox = newPlanningContext(project, isVisible, flatten);
 
   function isVisible(taskId: string): boolean {
     return isTaskVisible(inbox.koso.getTask(taskId));
@@ -81,7 +79,7 @@
   }
 
   $effect(() => {
-    if (inbox.socket.unauthorized) {
+    if (inbox.projectCtx.socket.unauthorized) {
       showUnauthorizedDialog();
     }
   });
@@ -109,6 +107,6 @@
   {/snippet}
 </Navbar>
 
-<OfflineAlert offline={inbox.socket.offline} />
+<OfflineAlert offline={inbox.projectCtx.socket.offline} />
 
-<DagTable projectCtx={inbox} users={project.users} inboxView={true} />
+<DagTable planningCtx={inbox} users={project.users} inboxView={true} />

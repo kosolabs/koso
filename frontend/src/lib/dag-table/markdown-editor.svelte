@@ -8,11 +8,17 @@
   import * as Y from "yjs";
   import MarkdownViewer from "./markdown-viewer.svelte";
   import { getProjectContext } from "./project-context.svelte";
+  import type { DetailPanelStates } from "./koso.svelte";
+
+  interface DetailPanelRenderer {
+    detailPanel: DetailPanelStates;
+  }
 
   type Props = {
     taskId: string | undefined;
+    detailPanelRenderer: DetailPanelRenderer;
   };
-  let { taskId }: Props = $props();
+  let { taskId, detailPanelRenderer }: Props = $props();
 
   const project = getProjectContext();
 
@@ -21,11 +27,11 @@
   let desc: string | undefined = $state.raw();
 
   function hideDetails() {
-    project.koso.detailPanel = "none";
+    detailPanelRenderer.detailPanel = "none";
   }
 
   function viewDetails() {
-    project.koso.detailPanel = "view";
+    detailPanelRenderer.detailPanel = "view";
   }
 
   function editDetails() {
@@ -36,7 +42,7 @@
       return;
     }
     yDesc = task?.getOrNewDesc();
-    project.koso.detailPanel = "edit";
+    detailPanelRenderer.detailPanel = "edit";
   }
 
   function deleteDetails() {
@@ -64,14 +70,14 @@
     if (
       taskId &&
       !project.koso.isEditable(taskId) &&
-      project.koso.detailPanel === "edit"
+      detailPanelRenderer.detailPanel === "edit"
     ) {
       viewDetails();
     }
   });
 </script>
 
-{#if project.koso.detailPanel !== "none"}
+{#if detailPanelRenderer.detailPanel !== "none"}
   <div class="relative mb-2 rounded-md border" transition:slide>
     <div
       class="flex items-center p-2 text-lg font-extralight"
@@ -96,7 +102,7 @@
       role="document"
       ondblclick={editDetails}
     >
-      {#if yDesc && task && project.koso.isEditable(task.id) && project.koso.detailPanel === "edit"}
+      {#if yDesc && task && project.koso.isEditable(task.id) && detailPanelRenderer.detailPanel === "edit"}
         <CodeMirror yText={yDesc} onkeydown={handleKeyDownEditing} />
       {:else if desc}
         <MarkdownViewer class="p-2" value={desc} />

@@ -271,7 +271,10 @@
 <Toolbar actions={[undoAction, redoAction]}>
   {#await koso.synced then}
     {#if koso.tasks.length > 1}
-      <MarkdownEditor taskId={inbox.selected?.name} />
+      <MarkdownEditor
+        taskId={inbox.selected?.name}
+        detailPanelRenderer={inbox}
+      />
 
       <table class="w-full border-separate border-spacing-0 rounded-md border">
         <thead class="text-left text-xs font-bold uppercase">
