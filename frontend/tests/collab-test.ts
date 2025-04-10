@@ -177,10 +177,10 @@ test.describe("Collaboration tests", () => {
     page2,
   }) => {
     page1.evaluate(() => {
-      window.koso.undoManager.captureTimeout = 0;
+      window.planningCtx.undoManager.captureTimeout = 0;
     });
     page2.evaluate(() => {
-      window.koso.undoManager.captureTimeout = 0;
+      window.planningCtx.undoManager.captureTimeout = 0;
     });
 
     await page1
@@ -204,10 +204,10 @@ test.describe("Collaboration tests", () => {
 
   test("Undo ignores task edits by other user", async ({ page1, page2 }) => {
     page1.evaluate(() => {
-      window.koso.undoManager.captureTimeout = 0;
+      window.planningCtx.undoManager.captureTimeout = 0;
     });
     page2.evaluate(() => {
-      window.koso.undoManager.captureTimeout = 0;
+      window.planningCtx.undoManager.captureTimeout = 0;
     });
 
     await page1

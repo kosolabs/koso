@@ -27,15 +27,6 @@ export function newProjectContext(): ProjectContext {
   return setProjectContext(new ProjectContext(id, koso, socket));
 }
 
-export function newProjectContextNoStore(): ProjectContext {
-  const id = page.params.projectId;
-  const koso = new Koso(id, new Y.Doc());
-  const socket = new KosoSocket(koso, id);
-  window.koso = koso;
-  window.Y = Y;
-  return new ProjectContext(id, koso, socket);
-}
-
 export function setProjectContext(ctx: ProjectContext): ProjectContext {
   return setContext<ProjectContext>(ProjectContext, ctx);
 }

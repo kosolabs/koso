@@ -1,10 +1,12 @@
-import type { Graph, Status } from "$lib/yproxy";
+import type { Koso } from "$lib/dag-table";
+import type { Graph, Kind, Status } from "$lib/yproxy";
 import { expect, request, type Page } from "@playwright/test";
 
 export type TaskBuilder = {
   id: string;
   num?: string;
   name?: string;
+  desc?: string;
   children?: string[];
   assignee?: string | null;
   reporter?: string | null;
@@ -139,7 +141,7 @@ export async function init(
 ) {
   await page.evaluate(
     ({ tasks, expandAll }) => {
-      const koso = window.koso;
+      const koso: Koso = window.koso;
 
       const upsertedTaskIds = new Set<string>(tasks.map((task) => task.id));
       const childTaskIds = new Set<string>(
@@ -153,12 +155,13 @@ export async function init(
             id: task.id,
             num: task.num ?? task.id,
             name: task.name ?? "",
+            desc: task.desc ?? "",
             children: task.children ?? [],
             assignee: task.assignee ?? null,
             reporter: task.reporter ?? null,
             status: task.status ?? null,
             statusTime: task.statusTime ?? null,
-            kind: task.kind ?? null,
+            kind: task.kind ? (task.kind as Kind) : null,
             url: task.url ?? null,
           });
         }
@@ -167,6 +170,7 @@ export async function init(
             id: taskId,
             num: taskId,
             name: "",
+            desc: "",
             children: [],
             assignee: null,
             reporter: null,
@@ -177,10 +181,12 @@ export async function init(
           });
         }
       });
+      const planningCtx = window.planningCtx;
+      if (!planningCtx) throw new Error("planningCtx not set");
       if (expandAll) {
-        koso.expandAll();
+        planningCtx.expandAll();
       } else {
-        koso.collapseAll();
+        planningCtx.collapseAll();
       }
     },
     { tasks, expandAll },
