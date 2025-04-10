@@ -12,10 +12,11 @@
   import { Notebook } from "lucide-svelte";
 
   const project = getProjectContext();
-  const inbox = newPlanningContext(project, isVisible, flatten);
+  const inbox = newPlanningContext(project.koso, isVisible, flatten);
+  const { koso } = inbox;
 
   function isVisible(taskId: string): boolean {
-    return isTaskVisible(inbox.koso.getTask(taskId));
+    return isTaskVisible(koso.getTask(taskId));
   }
 
   function isTaskVisible(task: YTaskProxy): boolean {
@@ -28,11 +29,10 @@
       task.yKind === null &&
       task.children.length > 0 &&
       Array.from(task.children.slice())
-        .map((childId) => inbox.koso.getTask(childId))
+        .map((childId) => koso.getTask(childId))
         .every(
           (child) =>
-            child.assignee !== null ||
-            inbox.koso.getProgress(child.id).isComplete(),
+            child.assignee !== null || koso.getProgress(child.id).isComplete(),
         )
     ) {
       return false;
@@ -41,23 +41,23 @@
     // Don't show unassigned task where none of the parents are assigned to the user
     if (
       task.assignee === null &&
-      inbox.koso
+      koso
         .getParents(task.id)
         .filter((parent) => parent.yKind === null)
         .every((parent) => parent.assignee !== auth.user.email)
     ) {
       return false;
     }
-    const progress = inbox.koso.getProgress(task.id);
+    const progress = koso.getProgress(task.id);
     return !progress.isComplete() && !progress.isBlocked();
   }
 
   function flatten(): List<Node> {
-    const parents = inbox.koso.parents;
+    const parents = koso.parents;
     let nodes: List<Node> = List();
-    nodes = nodes.push(inbox.koso.root);
+    nodes = nodes.push(koso.root);
 
-    for (const task of inbox.koso.tasks) {
+    for (const task of koso.tasks) {
       if (task.id !== "root" && isTaskVisible(task)) {
         // Walk up the tree to craft the full path.
         let parent = parents.get(task.id);
@@ -79,7 +79,7 @@
   }
 
   $effect(() => {
-    if (inbox.projectCtx.socket.unauthorized) {
+    if (project.socket.unauthorized) {
       showUnauthorizedDialog();
     }
   });
@@ -107,6 +107,6 @@
   {/snippet}
 </Navbar>
 
-<OfflineAlert offline={inbox.projectCtx.socket.offline} />
+<OfflineAlert offline={project.socket.offline} />
 
-<DagTable planningCtx={inbox} users={project.users} inboxView={true} />
+<DagTable users={project.users} inboxView={true} />

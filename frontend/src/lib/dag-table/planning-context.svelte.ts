@@ -1,32 +1,25 @@
-import type { User } from "$lib/auth.svelte";
-import * as Y from "yjs";
-import { useLocalStorage, type Storable } from "$lib/stores.svelte";
-import { List, Record, Set } from "immutable";
-import { getContext, setContext } from "svelte";
+import { command, type ActionID } from "$lib/components/ui/command-palette";
+import { toast } from "$lib/components/ui/sonner";
+import { Node } from "$lib/dag-table";
 import {
+  Koso,
   MSG_KOSO_AWARENESS,
   MSG_KOSO_AWARENESS_UPDATE,
-  type DetailPanelStates,
   TaskLinkage,
-  Koso,
+  type DetailPanelStates,
 } from "$lib/dag-table/koso.svelte";
-import { Node } from "$lib/dag-table";
-import { command, type ActionID } from "$lib/components/ui/command-palette";
 import { Action } from "$lib/kosui/command";
-import { PanelTopClose, PanelTopOpen, SquarePen } from "lucide-svelte";
-import { toast } from "$lib/components/ui/sonner";
+import { useLocalStorage, type Storable } from "$lib/stores.svelte";
+import { List, Record, Set } from "immutable";
 import * as encoding from "lib0/encoding";
-import type { ProjectContext } from "./project-context.svelte";
+import { PanelTopClose, PanelTopOpen, SquarePen } from "lucide-svelte";
+import { getContext, setContext } from "svelte";
+import * as Y from "yjs";
 
 export class PlanningContext {
-  projectCtx: ProjectContext;
-
-  name: string = "";
-  users: User[] = $state([]);
+  #koso: Koso;
 
   #yUndoManager: Y.UndoManager;
-
-  #selectedRaw: Selected = $state(Selected.default());
 
   #nodes: List<Node> = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -41,6 +34,7 @@ export class PlanningContext {
     return this.#flattenFn(this.koso.root, this.expanded, this.showDone);
   });
 
+  #selectedRaw: Selected = $state(Selected.default());
   #selected: Node | null = $derived.by(() => {
     const node = this.#selectedRaw.node;
     if (!node || this.nodes.indexOf(node) < 0) {
@@ -51,6 +45,10 @@ export class PlanningContext {
 
   #expanded: Storable<Set<Node>>;
   #showDone: Storable<boolean>;
+  #highlighted: string | null = $state(null);
+  #dragged: Node | null = $state(null);
+  #dropEffect: "copy" | "move" | "none" = $state("none");
+  #focus: boolean = $state(false);
 
   #flattenFn: FlattenFn;
   #visibilityFilterFn: VisibilityFilterFn;
@@ -59,11 +57,11 @@ export class PlanningContext {
   #detailPanel: DetailPanelStates = $state("none");
 
   constructor(
-    projectCtx: ProjectContext,
+    koso: Koso,
     visibilityFilterFn?: VisibilityFilterFn,
     flattenFn?: FlattenFn,
   ) {
-    this.projectCtx = projectCtx;
+    this.#koso = koso;
 
     this.#yUndoManager = new Y.UndoManager(this.koso.graph.yGraph, {
       captureTransaction: (txn) => txn.local,
@@ -133,7 +131,7 @@ export class PlanningContext {
   }
 
   get koso(): Koso {
-    return this.projectCtx.koso;
+    return this.#koso;
   }
 
   get undoManager(): Y.UndoManager {
@@ -208,8 +206,7 @@ export class PlanningContext {
         );
       }
       this.#selectedRaw = Selected.create(node, index);
-      // TODO
-      this.koso.focus = true;
+      this.focus = true;
     } else {
       this.#selectedRaw = Selected.default();
     }
@@ -217,6 +214,38 @@ export class PlanningContext {
     if (shouldUpdateAwareness) {
       this.koso.send(this.#encodeAwareness());
     }
+  }
+
+  get focus(): boolean {
+    return this.#focus;
+  }
+
+  set focus(value: boolean) {
+    this.#focus = value;
+  }
+
+  get highlighted(): string | null {
+    return this.#highlighted;
+  }
+
+  set highlighted(value: string | null) {
+    this.#highlighted = value;
+  }
+
+  get dragged(): Node | null {
+    return this.#dragged;
+  }
+
+  set dragged(value: Node | null) {
+    this.#dragged = value;
+  }
+
+  get dropEffect(): "copy" | "move" | "none" {
+    return this.#dropEffect;
+  }
+
+  set dropEffect(value: "copy" | "move" | "none") {
+    this.#dropEffect = value;
   }
 
   #encodeAwareness(): Uint8Array {
@@ -227,6 +256,7 @@ export class PlanningContext {
       encoder,
       JSON.stringify({
         clientId: this.koso.clientId,
+        // TODO: Sequence will get reset between page navigations.
         sequence: this.#sequence++,
         selected: this.selected ? [this.selected.id] : [],
       }),
@@ -765,11 +795,11 @@ export class PlanningContext {
 }
 
 export function newPlanningContext(
-  projectCtx: ProjectContext,
+  koso: Koso,
   visibilityFilterFn?: VisibilityFilterFn,
   flattenFn?: FlattenFn,
 ): PlanningContext {
-  const ctx = new PlanningContext(projectCtx, visibilityFilterFn, flattenFn);
+  const ctx = new PlanningContext(koso, visibilityFilterFn, flattenFn);
   window.planningCtx = ctx;
   return setPlanningContext(ctx);
 }

@@ -42,21 +42,21 @@
   import { flip } from "svelte/animate";
   import { Node, type Koso } from ".";
   import MarkdownEditor from "./markdown-editor.svelte";
+  import { getPlanningContext } from "./planning-context.svelte";
   import Row from "./row.svelte";
   import SearchPanel from "./search-panel.svelte";
   import Toolbar from "./toolbar.svelte";
-  import { PlanningContext } from "./planning-context.svelte";
 
   type Props = {
     users: User[];
     inboxView: boolean;
-    planningCtx: PlanningContext;
   };
-  const { users, inboxView, planningCtx }: Props = $props();
+  const { users, inboxView }: Props = $props();
 
   const rows: { [key: string]: Row } = {};
 
-  const koso = planningCtx.koso;
+  const planningCtx = getPlanningContext();
+  const { koso } = planningCtx;
 
   function getRow(node: Node) {
     const maybeRow = rows[node.id];
@@ -639,8 +639,6 @@
       url.searchParams.delete("taskId");
       replaceState(url, {});
       planningCtx.select(taskId);
-    } else {
-      planningCtx.selected = null;
     }
   });
 
@@ -733,14 +731,7 @@
           <tbody animate:flip={{ duration: 250 }}>
             <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
             <!-- svelte-ignore binding_property_non_reactive -->
-            <Row
-              bind:this={rows[node.id]}
-              {index}
-              {node}
-              {users}
-              {inboxView}
-              {planningCtx}
-            />
+            <Row bind:this={rows[node.id]} {index} {node} {users} {inboxView} />
           </tbody>
         {/each}
       </table>

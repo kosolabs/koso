@@ -5,11 +5,10 @@ import * as encoding from "lib0/encoding";
 import { uuidv4 } from "lib0/random.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { Koso, KosoSocket, Node } from ".";
+import { Koso, Node } from ".";
 import { type TaskBuilder } from "../../../tests/utils";
 import { TaskLinkage } from "./koso.svelte";
 import { PlanningContext } from "./planning-context.svelte";
-import { ProjectContext } from "./project-context.svelte";
 
 const USER: User = {
   email: "t@koso.app",
@@ -83,13 +82,7 @@ describe("Koso tests", () => {
       koso.setSendAndSync(() => {});
       koso.receive(EMPTY_SYNC_RESPONSE);
 
-      planningCtx = new PlanningContext(
-        new ProjectContext(
-          koso.projectId,
-          koso,
-          new KosoSocket(koso, koso.projectId, true),
-        ),
-      );
+      planningCtx = new PlanningContext(koso);
     });
     context.onTestFinished(() => cleanup());
   });

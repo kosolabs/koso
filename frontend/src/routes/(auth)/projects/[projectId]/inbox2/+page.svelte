@@ -8,7 +8,8 @@
   import { Notebook } from "lucide-svelte";
 
   const project = getProjectContext();
-  newInboxContext(project.koso);
+  const { koso } = project;
+  newInboxContext(koso);
 </script>
 
 <Navbar>
@@ -35,4 +36,4 @@
 
 <OfflineAlert offline={project.socket.offline} />
 
-<TaskTable koso={project.koso} users={project.users} />
+<TaskTable {koso} users={project.users} />

@@ -8,6 +8,7 @@
   import { toast } from "$lib/components/ui/sonner";
   import { DagTable } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
+  import { newPlanningContext } from "$lib/dag-table/planning-context.svelte";
   import { githubInstallUrl } from "$lib/github";
   import { baseClasses } from "$lib/kosui/base";
   import { Action } from "$lib/kosui/command";
@@ -19,10 +20,9 @@
   import { onMount } from "svelte";
   import { getProjectContext } from "../../../../lib/dag-table/project-context.svelte";
   import ProjectShareModal from "./project-share-modal.svelte";
-  import { newPlanningContext } from "$lib/dag-table/planning-context.svelte";
 
   const project = getProjectContext();
-  const planningCtx = newPlanningContext(project);
+  newPlanningContext(project.koso);
   let openShareModal: boolean = $state(false);
 
   async function saveEditedProjectName(name: string) {
@@ -171,4 +171,4 @@
 
 <ProjectShareModal bind:open={openShareModal} />
 
-<DagTable {planningCtx} users={project.users} inboxView={false} />
+<DagTable users={project.users} inboxView={false} />

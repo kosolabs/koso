@@ -157,10 +157,6 @@ export class Koso {
     console.debug("Client message handler was invoked but was not set");
   };
 
-  #focus: boolean = $state(false);
-  #highlighted: string | null = $state(null);
-  #dragged: Node | null = $state(null);
-  #dropEffect: "copy" | "move" | "none" = $state("none");
   #awareness: Awareness[] = $state([]);
 
   #debug: Storable<boolean>;
@@ -332,38 +328,6 @@ export class Koso {
 
   get awareness(): Awareness[] {
     return this.#awareness;
-  }
-
-  get focus(): boolean {
-    return this.#focus;
-  }
-
-  set focus(value: boolean) {
-    this.#focus = value;
-  }
-
-  get highlighted(): string | null {
-    return this.#highlighted;
-  }
-
-  set highlighted(value: string | null) {
-    this.#highlighted = value;
-  }
-
-  get dragged(): Node | null {
-    return this.#dragged;
-  }
-
-  set dragged(value: Node | null) {
-    this.#dragged = value;
-  }
-
-  get dropEffect(): "copy" | "move" | "none" {
-    return this.#dropEffect;
-  }
-
-  set dropEffect(value: "copy" | "move" | "none") {
-    this.#dropEffect = value;
   }
 
   get root(): Node {

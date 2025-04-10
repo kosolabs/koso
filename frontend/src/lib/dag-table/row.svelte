@@ -19,21 +19,21 @@
   } from "./awareness.svelte";
   import DescAction from "./desc-action.svelte";
   import DropIndicator from "./drop-indicator.svelte";
-  import LinkPanel, { type Mode } from "./link-panel.svelte";
-  import TaskAction from "./task-action.svelte";
   import { TaskLinkage } from "./koso.svelte";
-  import type { PlanningContext } from "./planning-context.svelte";
+  import LinkPanel, { type Mode } from "./link-panel.svelte";
+  import { getPlanningContext } from "./planning-context.svelte";
+  import TaskAction from "./task-action.svelte";
 
   type Props = {
     index: number;
     node: Node;
     users: User[];
     inboxView: boolean;
-    planningCtx: PlanningContext;
   };
-  const { index, node, users, inboxView, planningCtx }: Props = $props();
+  const { index, node, users, inboxView }: Props = $props();
 
-  const koso = planningCtx.koso;
+  const planningCtx = getPlanningContext();
+  const { koso } = planningCtx;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
@@ -50,9 +50,9 @@
   let reporter = $derived(getUser(users, task.reporter));
   let assignee = $derived(getUser(users, task.assignee));
   let open = $derived(planningCtx.expanded.has(node));
-  let isDragging = $derived(node.equals(koso.dragged));
-  let isMoving = $derived(isDragging && koso.dropEffect === "move");
-  let isHovered = $derived(koso.highlighted === node.name);
+  let isDragging = $derived(node.equals(planningCtx.dragged));
+  let isMoving = $derived(isDragging && planningCtx.dropEffect === "move");
+  let isHovered = $derived(planningCtx.highlighted === node.name);
   let isSelected = $derived(node.equals(planningCtx.selected));
   let awareUsers = $derived(
     getUniqueUsers(koso.awareness.filter((a) => node.equals(a.selected[0]))),
@@ -61,9 +61,9 @@
   let editable = $derived(koso.isEditable(task.id));
 
   $effect(() => {
-    if (rowElement && isSelected && koso.focus) {
+    if (rowElement && isSelected && planningCtx.focus) {
       rowElement.focus();
-      koso.focus = false;
+      planningCtx.focus = false;
     }
   });
 
@@ -182,9 +182,9 @@
     if (!dataTransfer || !rowElement || !handleElement || !idCellElement) {
       return;
     }
-    koso.highlighted = null;
+    planningCtx.highlighted = null;
     planningCtx.selected = null;
-    koso.dragged = node;
+    planningCtx.dragged = node;
 
     dataTransfer.setData("text/plain", node.id);
     dataTransfer.effectAllowed = "copyMove";
@@ -205,47 +205,47 @@
 
   function handleDragEnd(event: DragEvent) {
     event.preventDefault();
-    koso.dragged = null;
+    planningCtx.dragged = null;
   }
 
   function handleDropNodePeer(event: DragEvent) {
     event.preventDefault();
-    if (koso.dragged === null || koso.dropEffect === "none") {
+    if (planningCtx.dragged === null || planningCtx.dropEffect === "none") {
       return;
     }
 
     const dragDestParent = node.parent;
     const dragDestOffset = koso.getOffset(node) + 1;
 
-    if (koso.dropEffect === "copy") {
-      koso.linkNode(koso.dragged, dragDestParent, dragDestOffset);
-    } else if (koso.dropEffect === "move") {
-      planningCtx.moveNode(koso.dragged, dragDestParent, dragDestOffset);
+    if (planningCtx.dropEffect === "copy") {
+      koso.linkNode(planningCtx.dragged, dragDestParent, dragDestOffset);
+    } else if (planningCtx.dropEffect === "move") {
+      planningCtx.moveNode(planningCtx.dragged, dragDestParent, dragDestOffset);
     } else {
-      throw new Error(`Invalid dropEffect: ${koso.dropEffect}`);
+      throw new Error(`Invalid dropEffect: ${planningCtx.dropEffect}`);
     }
-    koso.dragged = null;
+    planningCtx.dragged = null;
     dragOverPeer = false;
     dragOverChild = false;
   }
 
   function handleDropNodeChild(event: DragEvent) {
     event.preventDefault();
-    if (koso.dragged === null || koso.dropEffect === "none") {
+    if (planningCtx.dragged === null || planningCtx.dropEffect === "none") {
       return;
     }
 
     const dragDestParent = node;
     const dragDestOffset = 0;
 
-    if (koso.dropEffect === "copy") {
-      koso.linkNode(koso.dragged, dragDestParent, dragDestOffset);
-    } else if (koso.dropEffect === "move") {
-      planningCtx.moveNode(koso.dragged, dragDestParent, dragDestOffset);
+    if (planningCtx.dropEffect === "copy") {
+      koso.linkNode(planningCtx.dragged, dragDestParent, dragDestOffset);
+    } else if (planningCtx.dropEffect === "move") {
+      planningCtx.moveNode(planningCtx.dragged, dragDestParent, dragDestOffset);
     } else {
-      throw new Error(`Invalid dropEffect: ${koso.dropEffect}`);
+      throw new Error(`Invalid dropEffect: ${planningCtx.dropEffect}`);
     }
-    koso.dragged = null;
+    planningCtx.dragged = null;
     dragOverPeer = false;
     dragOverChild = false;
   }
@@ -253,58 +253,61 @@
   function handleDragOverPeer(event: DragEvent) {
     event.preventDefault();
     const dataTransfer = event.dataTransfer;
-    if (koso.dragged === null || dataTransfer === null) {
+    if (planningCtx.dragged === null || dataTransfer === null) {
       return;
     }
 
     if (
       koso.canLink(
-        new TaskLinkage({ parentId: node.parent.name, id: koso.dragged.name }),
+        new TaskLinkage({
+          parentId: node.parent.name,
+          id: planningCtx.dragged.name,
+        }),
       )
     ) {
-      if (planningCtx.canMoveNode(koso.dragged, node.parent)) {
-        koso.dropEffect = event.altKey ? "copy" : "move";
+      if (planningCtx.canMoveNode(planningCtx.dragged, node.parent)) {
+        planningCtx.dropEffect = event.altKey ? "copy" : "move";
       } else {
-        koso.dropEffect = "copy";
+        planningCtx.dropEffect = "copy";
       }
-      dataTransfer.dropEffect = koso.dropEffect;
+      dataTransfer.dropEffect = planningCtx.dropEffect;
       dragOverPeer = true;
-    } else if (planningCtx.canMoveNode(koso.dragged, node.parent)) {
+    } else if (planningCtx.canMoveNode(planningCtx.dragged, node.parent)) {
       dataTransfer.dropEffect = "move";
-      koso.dropEffect = "move";
+      planningCtx.dropEffect = "move";
       dragOverPeer = true;
     } else {
       dataTransfer.dropEffect = "none";
-      koso.dropEffect = "none";
+      planningCtx.dropEffect = "none";
     }
   }
 
   function handleDragOverChild(event: DragEvent) {
     event.preventDefault();
     const dataTransfer = event.dataTransfer;
-    if (koso.dragged === null || dataTransfer === null) {
+    if (planningCtx.dragged === null || dataTransfer === null) {
       return;
     }
 
     if (
       koso.canLink(
-        new TaskLinkage({ parentId: node.name, id: koso.dragged.name }),
+        new TaskLinkage({ parentId: node.name, id: planningCtx.dragged.name }),
       )
     ) {
-      if (planningCtx.canMoveNode(koso.dragged, node)) {
-        koso.dropEffect = event.altKey ? "copy" : "move";
+      if (planningCtx.canMoveNode(planningCtx.dragged, node)) {
+        planningCtx.dropEffect = event.altKey ? "copy" : "move";
       } else {
-        koso.dropEffect = "copy";
+        planningCtx.dropEffect = "copy";
       }
-      dataTransfer.dropEffect = koso.dropEffect;
+      dataTransfer.dropEffect = planningCtx.dropEffect;
       dragOverChild = true;
-    } else if (planningCtx.canMoveNode(koso.dragged, node)) {
+    } else if (planningCtx.canMoveNode(planningCtx.dragged, node)) {
       dataTransfer.dropEffect = "move";
-      koso.dropEffect = "move";
+      planningCtx.dropEffect = "move";
       dragOverChild = true;
     } else {
       dataTransfer.dropEffect = "none";
-      koso.dropEffect = "none";
+      planningCtx.dropEffect = "none";
     }
   }
 
@@ -335,13 +338,13 @@
   }
 
   function handleHighlight() {
-    if (koso.dragged) return;
-    koso.highlighted = node.name;
+    if (planningCtx.dragged) return;
+    planningCtx.highlighted = node.name;
   }
 
   function handleUnhighlight() {
-    if (koso.dragged) return;
-    koso.highlighted = null;
+    if (planningCtx.dragged) return;
+    planningCtx.highlighted = null;
   }
 
   function handleRowClick(event: MouseEvent) {
@@ -517,8 +520,8 @@
       koso.debug && "bg-m3-primary/20",
     )}
     style:width={`${rowWidth}px`}
-    style:height={koso.dragged ? `${rowHeight / 2}px` : "1px"}
-    style:margin-top={koso.dragged ? `-${rowHeight / 4}px` : "0"}
+    style:height={planningCtx.dragged ? `${rowHeight / 2}px` : "1px"}
+    style:margin-top={planningCtx.dragged ? `-${rowHeight / 4}px` : "0"}
     aria-label={`Task ${task.num} Peer Dropzone`}
     ondragover={handleDragOverPeer}
     ondragenter={handleDragEnterPeer}
@@ -531,8 +534,10 @@
       koso.debug && "bg-m3-tertiary/20",
     )}
     style:width={`${rowWidth}px`}
-    style:height={koso.dragged ? `${rowHeight / 2}px` : "1px"}
-    style:margin-top={koso.dragged ? `-${(rowHeight * 3) / 4}px` : "-1px"}
+    style:height={planningCtx.dragged ? `${rowHeight / 2}px` : "1px"}
+    style:margin-top={planningCtx.dragged
+      ? `-${(rowHeight * 3) / 4}px`
+      : "-1px"}
     aria-label={`Task ${task.num} Child Dropzone`}
     ondragover={handleDragOverChild}
     ondragenter={handleDragEnterChild}
@@ -540,8 +545,8 @@
     ondrop={handleDropNodeChild}
   ></button>
 
-  {#if koso.dragged}
-    {@const source = koso.getTask(koso.dragged.name)}
+  {#if planningCtx.dragged}
+    {@const source = koso.getTask(planningCtx.dragged.name)}
     {#if dragOverPeer}
       <DropIndicator
         src={source}

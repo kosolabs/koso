@@ -13,12 +13,9 @@ export class KosoSocket {
   #koso: Koso;
   #projectId: string;
 
-  constructor(koso: Koso, projectId: string, notStarted?: boolean) {
+  constructor(koso: Koso, projectId: string) {
     this.#koso = koso;
     this.#projectId = projectId;
-    if (notStarted) {
-      return;
-    }
 
     this.#setOffline();
 
