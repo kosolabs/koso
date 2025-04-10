@@ -270,9 +270,7 @@
 <Toolbar actions={[undoAction, redoAction]}>
   {#await koso.synced then}
     {#if koso.nodes.size > 1}
-      {#if koso.selected}
-        <MarkdownEditor {koso} task={koso.getTask(koso.selected.name)} />
-      {/if}
+      <MarkdownEditor taskId={koso.selected?.name} />
 
       <table class="w-full border-separate border-spacing-0 rounded-md border">
         <thead class="text-left text-xs font-bold uppercase">
