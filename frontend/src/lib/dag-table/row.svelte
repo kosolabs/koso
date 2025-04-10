@@ -474,7 +474,7 @@
   </td>
   <td class={cn("border-t px-1")}>
     <div class="flex items-center">
-      <DescAction {koso} {task} />
+      <DescAction detailPanelRenderer={planningCtx} {task} />
       <TaskAction />
     </div>
   </td>

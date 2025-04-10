@@ -3,14 +3,18 @@
   import { Tooltip, type TooltipTriggerProps } from "$lib/kosui/tooltip";
   import type { YTaskProxy } from "$lib/yproxy";
   import { FilePlus2, FileText } from "lucide-svelte";
-  import type { Koso } from "./koso.svelte";
+  import type { DetailPanelStates } from "./koso.svelte";
   import MarkdownViewer from "./markdown-viewer.svelte";
 
+  interface DetailPanelRenderer {
+    detailPanel: DetailPanelStates;
+  }
+
   type Props = {
-    koso: Koso;
+    detailPanelRenderer: DetailPanelRenderer;
     task: YTaskProxy;
   };
-  let { koso, task }: Props = $props();
+  let { detailPanelRenderer, task }: Props = $props();
 </script>
 
 {#snippet button(props: TooltipTriggerProps)}
@@ -20,7 +24,7 @@
     color="primary"
     shape="circle"
     icon={task.desc !== null ? FileText : FilePlus2}
-    onclick={() => (koso.detailPanel = "view")}
+    onclick={() => (detailPanelRenderer.detailPanel = "view")}
     {...props}
   />
 {/snippet}

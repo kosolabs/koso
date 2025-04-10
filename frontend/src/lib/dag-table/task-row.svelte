@@ -137,7 +137,7 @@
   </td>
   <td class={cn("border-t px-1")}>
     <div class="flex items-center">
-      <DescAction {koso} {task} />
+      <DescAction detailPanelRenderer={inbox} {task} />
       <TaskAction />
     </div>
   </td>

@@ -76,6 +76,10 @@ export class InboxContext {
     });
   }
 
+  get koso(): Koso {
+    return this.#koso;
+  }
+
   /**
    * Returns the currently selected task, even if it no longer exists in the
    * tasks list.
