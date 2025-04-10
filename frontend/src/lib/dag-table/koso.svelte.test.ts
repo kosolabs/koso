@@ -8,6 +8,7 @@ import * as Y from "yjs";
 import { Koso, KosoSocket, Node } from ".";
 import { type TaskBuilder } from "../../../tests/utils";
 import { TaskLinkage } from "./koso.svelte";
+import { PlanningContext } from "./planning-context.svelte";
 import { ProjectContext } from "./project-context.svelte";
 
 const USER: User = {
@@ -35,7 +36,7 @@ const EMPTY_SYNC_RESPONSE = (() => {
 describe("Koso tests", () => {
   let root: Node;
   let koso: Koso;
-  let projectCtx: ProjectContext;
+  let planningCtx: PlanningContext;
 
   const init = (tasks: TaskBuilder[]) => {
     const upsertedTaskIds = Set<string>(tasks.map((t) => t.id));
@@ -82,10 +83,12 @@ describe("Koso tests", () => {
       koso.setSendAndSync(() => {});
       koso.receive(EMPTY_SYNC_RESPONSE);
 
-      projectCtx = new ProjectContext(
-        koso.projectId,
-        koso,
-        new KosoSocket(koso, koso.projectId, true),
+      planningCtx = new PlanningContext(
+        new ProjectContext(
+          koso.projectId,
+          koso,
+          new KosoSocket(koso, koso.projectId, true),
+        ),
       );
     });
     context.onTestFinished(() => cleanup());
@@ -581,7 +584,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      projectCtx.moveNode(Node.parse("3"), Node.parse("1"), 1);
+      planningCtx.moveNode(Node.parse("3"), Node.parse("1"), 1);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -599,7 +602,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      projectCtx.moveNode(Node.parse("3"), Node.parse("1"), 0);
+      planningCtx.moveNode(Node.parse("3"), Node.parse("1"), 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -618,7 +621,7 @@ describe("Koso tests", () => {
         { id: "4", name: "Task 4" },
       ]);
 
-      projectCtx.moveNode(Node.parse("1/4"), Node.parse("1/3"), 0);
+      planningCtx.moveNode(Node.parse("1/4"), Node.parse("1/3"), 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -637,7 +640,7 @@ describe("Koso tests", () => {
       ]);
 
       expect(() =>
-        projectCtx.moveNode(Node.parse("2"), Node.parse("1"), 1),
+        planningCtx.moveNode(Node.parse("2"), Node.parse("1"), 1),
       ).toThrow();
     });
 
@@ -650,7 +653,7 @@ describe("Koso tests", () => {
         { id: "4", name: "Task 4" },
       ]);
 
-      projectCtx.moveNode(Node.parse("1/4"), Node.parse("1"), 1);
+      planningCtx.moveNode(Node.parse("1/4"), Node.parse("1"), 1);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -670,7 +673,7 @@ describe("Koso tests", () => {
         { id: "4", name: "Task 4" },
       ]);
 
-      projectCtx.moveNode(Node.parse("1/3"), Node.parse("1"), 3);
+      planningCtx.moveNode(Node.parse("1/3"), Node.parse("1"), 3);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -700,13 +703,17 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
       expect(() =>
-        projectCtx.moveNode(Node.parse("github"), Node.parse("1"), 0),
+        planningCtx.moveNode(Node.parse("github"), Node.parse("1"), 0),
       ).toThrow();
       expect(() =>
-        projectCtx.moveNode(Node.parse("github/github_pr"), Node.parse("1"), 0),
+        planningCtx.moveNode(
+          Node.parse("github/github_pr"),
+          Node.parse("1"),
+          0,
+        ),
       ).toThrow();
       expect(() =>
-        projectCtx.moveNode(
+        planningCtx.moveNode(
           Node.parse("github/github_pr/2"),
           Node.parse("1"),
           0,
@@ -737,9 +744,9 @@ describe("Koso tests", () => {
         },
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
-      projectCtx.moveNode(Node.parse("2"), Node.parse("1"), 0);
-      projectCtx.moveNode(Node.parse("github_pr"), Node.parse("1"), 0);
-      projectCtx.moveNode(Node.parse("3/github"), Node.parse("1"), 0);
+      planningCtx.moveNode(Node.parse("2"), Node.parse("1"), 0);
+      planningCtx.moveNode(Node.parse("github_pr"), Node.parse("1"), 0);
+      planningCtx.moveNode(Node.parse("3/github"), Node.parse("1"), 0);
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "github"] },
         ["github"]: { children: ["github_pr"] },
@@ -759,7 +766,7 @@ describe("Koso tests", () => {
           kind: "github",
         },
       ]);
-      projectCtx.moveNode(Node.parse("github"), Node.parse("root"), 0);
+      planningCtx.moveNode(Node.parse("github"), Node.parse("root"), 0);
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["github", "1"] },
       });
@@ -780,7 +787,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
         { id: "3", name: "Some PR", kind: "github_pr" },
       ]);
-      projectCtx.moveNode(
+      planningCtx.moveNode(
         Node.parse("github/other_plugin"),
         Node.parse("github"),
         0,
@@ -809,7 +816,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
         { id: "3", name: "Some PR", kind: "github_pr" },
       ]);
-      projectCtx.moveNode(
+      planningCtx.moveNode(
         Node.parse("github/github_pr/3"),
         Node.parse("github/github_pr"),
         0,
@@ -1541,16 +1548,16 @@ describe("Koso tests", () => {
 
   describe("toNodes", () => {
     beforeEach(() => {
-      projectCtx.expanded = Set([]);
+      planningCtx.expanded = Set([]);
     });
 
     it("empty doc has no nodes", () => {
-      expect(projectCtx.nodes).toStrictEqual(List([root]));
+      expect(planningCtx.nodes).toStrictEqual(List([root]));
     });
 
     it("doc with one task has one node", () => {
       init([{ id: "root", name: "Root", children: ["1"] }]);
-      expect(projectCtx.nodes).toStrictEqual(List([root, Node.parse("1")]));
+      expect(planningCtx.nodes).toStrictEqual(List([root, Node.parse("1")]));
     });
 
     it("doc with non-visible tasks returns root", () => {
@@ -1558,7 +1565,7 @@ describe("Koso tests", () => {
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", name: "Task 1", status: "Done" },
       ]);
-      expect(projectCtx.nodes).toStrictEqual(List([root]));
+      expect(planningCtx.nodes).toStrictEqual(List([root]));
     });
 
     it("doc with two tasks has two nodes", () => {
@@ -1567,7 +1574,7 @@ describe("Koso tests", () => {
         { id: "1", name: "Task 1" },
         { id: "2", name: "Task 2" },
       ]);
-      expect(projectCtx.nodes).toStrictEqual(
+      expect(planningCtx.nodes).toStrictEqual(
         List([root, Node.parse("1"), Node.parse("2")]),
       );
     });
@@ -1579,7 +1586,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
         { id: "3", name: "Task 3" },
       ]);
-      expect(projectCtx.nodes).toStrictEqual(
+      expect(planningCtx.nodes).toStrictEqual(
         List([root, Node.parse("1"), Node.parse("2")]),
       );
     });
@@ -1591,8 +1598,8 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
         { id: "3", name: "Task 3" },
       ]);
-      projectCtx.expanded = Set([Node.parse("1")]);
-      expect(projectCtx.nodes).toStrictEqual(
+      planningCtx.expanded = Set([Node.parse("1")]);
+      expect(planningCtx.nodes).toStrictEqual(
         List([root, Node.parse("1"), Node.parse("1/3"), Node.parse("2")]),
       );
     });
@@ -1603,8 +1610,8 @@ describe("Koso tests", () => {
         { id: "1", name: "Task 1", children: ["2"] },
         { id: "2", name: "Task 2" },
       ]);
-      projectCtx.expanded = Set([Node.parse("1")]);
-      expect(projectCtx.nodes).toStrictEqual(
+      planningCtx.expanded = Set([Node.parse("1")]);
+      expect(planningCtx.nodes).toStrictEqual(
         List([root, Node.parse("1"), Node.parse("1/2"), Node.parse("2")]),
       );
     });
@@ -1991,18 +1998,18 @@ describe("Koso tests", () => {
         { id: "t4", children: ["t2"] },
         { id: "t6", children: ["t2"] },
       ]);
-      projectCtx.expanded = Set([Node.parse("t4"), Node.parse("t6")]);
+      planningCtx.expanded = Set([Node.parse("t4"), Node.parse("t6")]);
 
       let node: Node | null = Node.parse("t2");
-      node = projectCtx.getPrevLink(node);
+      node = planningCtx.getPrevLink(node);
       expect(node).toEqual(Node.parse("t6/t2"));
       if (!node) throw new Error();
 
-      node = projectCtx.getPrevLink(node);
+      node = planningCtx.getPrevLink(node);
       expect(node).toEqual(Node.parse("t4/t2"));
       if (!node) throw new Error();
 
-      node = projectCtx.getPrevLink(node);
+      node = planningCtx.getPrevLink(node);
       expect(node).toEqual(Node.parse("t2"));
     });
 
@@ -2017,14 +2024,14 @@ describe("Koso tests", () => {
         { id: "t4", children: ["t2"] },
         { id: "t6", children: ["t2"] },
       ]);
-      projectCtx.expanded = Set([Node.parse("t4")]);
+      planningCtx.expanded = Set([Node.parse("t4")]);
 
       let node: Node | null = Node.parse("t2");
-      node = projectCtx.getPrevLink(node);
+      node = planningCtx.getPrevLink(node);
       expect(node).toEqual(Node.parse("t4/t2"));
       if (!node) throw new Error();
 
-      node = projectCtx.getPrevLink(node);
+      node = planningCtx.getPrevLink(node);
       expect(node).toEqual(Node.parse("t2"));
     });
 
@@ -2038,7 +2045,7 @@ describe("Koso tests", () => {
         { id: "t2" },
       ]);
 
-      expect(projectCtx.getPrevLink(Node.parse("t2"))).toBeNull();
+      expect(planningCtx.getPrevLink(Node.parse("t2"))).toBeNull();
     });
   });
 
@@ -2054,18 +2061,18 @@ describe("Koso tests", () => {
         { id: "t4", children: ["t2"] },
         { id: "t6", children: ["t2"] },
       ]);
-      projectCtx.expanded = Set([Node.parse("t4"), Node.parse("t6")]);
+      planningCtx.expanded = Set([Node.parse("t4"), Node.parse("t6")]);
 
       let node: Node | null = Node.parse("t2");
-      node = projectCtx.getNextLink(node);
+      node = planningCtx.getNextLink(node);
       expect(node).toEqual(Node.parse("t4/t2"));
       if (!node) throw new Error();
 
-      node = projectCtx.getNextLink(node);
+      node = planningCtx.getNextLink(node);
       expect(node).toEqual(Node.parse("t6/t2"));
       if (!node) throw new Error();
 
-      node = projectCtx.getNextLink(node);
+      node = planningCtx.getNextLink(node);
       expect(node).toEqual(Node.parse("t2"));
     });
 
@@ -2080,14 +2087,14 @@ describe("Koso tests", () => {
         { id: "t4", children: ["t2"] },
         { id: "t6", children: ["t2"] },
       ]);
-      projectCtx.expanded = Set([Node.parse("t4")]);
+      planningCtx.expanded = Set([Node.parse("t4")]);
 
       let node: Node | null = Node.parse("t2");
-      node = projectCtx.getNextLink(node);
+      node = planningCtx.getNextLink(node);
       expect(node).toEqual(Node.parse("t4/t2"));
       if (!node) throw new Error();
 
-      node = projectCtx.getNextLink(node);
+      node = planningCtx.getNextLink(node);
       expect(node).toEqual(Node.parse("t2"));
     });
 
@@ -2101,7 +2108,7 @@ describe("Koso tests", () => {
         { id: "t2" },
       ]);
 
-      expect(projectCtx.getNextLink(Node.parse("t2"))).toBeNull();
+      expect(planningCtx.getNextLink(Node.parse("t2"))).toBeNull();
     });
   });
 
@@ -2116,7 +2123,7 @@ describe("Koso tests", () => {
         { id: "t2" },
       ]);
 
-      expect(projectCtx.getNextLink(Node.parse("t2"))).toBeNull();
+      expect(planningCtx.getNextLink(Node.parse("t2"))).toBeNull();
     });
   });
 
