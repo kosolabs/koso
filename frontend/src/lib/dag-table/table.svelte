@@ -45,15 +45,18 @@
   import Row from "./row.svelte";
   import SearchPanel from "./search-panel.svelte";
   import Toolbar from "./toolbar.svelte";
+  import { ProjectContext } from "./project-context.svelte";
 
   type Props = {
-    koso: Koso;
     users: User[];
     inboxView: boolean;
+    projectCtx: ProjectContext;
   };
-  const { koso, users, inboxView }: Props = $props();
+  const { users, inboxView, projectCtx }: Props = $props();
 
   const rows: { [key: string]: Row } = {};
+
+  const koso = projectCtx.koso;
 
   function getRow(node: Node) {
     const maybeRow = rows[node.id];
@@ -71,7 +74,7 @@
   function insertAndEdit(parent: Node, offset: number, user: User) {
     const taskId = koso.insertTask(parent.name, offset, user);
     const node = parent.child(taskId);
-    koso.selected = node;
+    projectCtx.selected = node;
 
     // The newly inserted node's row won't yet have been inserted into
     // the dom and thus onMount will not have been called to register
@@ -81,10 +84,10 @@
   }
 
   function insert() {
-    if (koso.selected) {
+    if (projectCtx.selected) {
       insertAndEdit(
-        koso.selected.parent,
-        koso.getOffset(koso.selected) + 1,
+        projectCtx.selected.parent,
+        koso.getOffset(projectCtx.selected) + 1,
         auth.user,
       );
     } else {
@@ -93,35 +96,35 @@
   }
 
   function insertAbove() {
-    if (!koso.selected) return;
+    if (!projectCtx.selected) return;
     insertAndEdit(
-      koso.selected.parent,
-      koso.getOffset(koso.selected),
+      projectCtx.selected.parent,
+      koso.getOffset(projectCtx.selected),
       auth.user,
     );
   }
 
   function insertChild() {
-    if (!koso.selected) return;
-    koso.expand(koso.selected);
-    insertAndEdit(koso.selected, 0, auth.user);
+    if (!projectCtx.selected) return;
+    projectCtx.expand(projectCtx.selected);
+    insertAndEdit(projectCtx.selected, 0, auth.user);
   }
 
   function insertChildAbove() {
-    if (!koso.selected) return;
+    if (!projectCtx.selected) return;
 
-    const previousPeer = koso.getPrevPeer(koso.selected);
+    const previousPeer = projectCtx.getPrevPeer(projectCtx.selected);
     if (!previousPeer) return;
 
-    koso.expand(previousPeer);
+    projectCtx.expand(previousPeer);
     const lastIndex = koso.getChildCount(previousPeer.name);
     insertAndEdit(previousPeer, lastIndex, auth.user);
   }
 
   function toggleStatus() {
-    if (!koso.selected) return;
+    if (!projectCtx.selected) return;
 
-    const task = koso.getTask(koso.selected.name);
+    const task = koso.getTask(projectCtx.selected.name);
     let progress = koso.getProgress(task.id);
     if (progress.kind === "Rollup") {
       toast.warning(
@@ -134,10 +137,10 @@
       case "Done":
         return;
       case "Blocked":
-        koso.setTaskStatus(koso.selected.name, "Not Started", auth.user);
+        koso.setTaskStatus(projectCtx.selected.name, "Not Started", auth.user);
         return;
       case "In Progress": {
-        const node = koso.selected;
+        const node = projectCtx.selected;
 
         getRow(node).showDoneConfetti();
         koso.setTaskStatus(node.name, "Done", auth.user);
@@ -147,7 +150,7 @@
         break;
       }
       case "Not Started":
-        koso.setTaskStatus(koso.selected.name, "In Progress", auth.user);
+        koso.setTaskStatus(projectCtx.selected.name, "In Progress", auth.user);
         break;
       default:
         throw new Error(`Unhandled status ${task.yStatus}`);
@@ -155,151 +158,156 @@
   }
 
   function remove() {
-    if (!koso.selected) return;
-    const toDelete = koso.selected;
-    const toDeleteIndex = koso.nodes.indexOf(toDelete);
+    if (!projectCtx.selected) return;
+    const toDelete = projectCtx.selected;
+    const toDeleteIndex = projectCtx.nodes.indexOf(toDelete);
 
     koso.deleteNode(toDelete);
 
     if (!inboxView) {
       // Select the next (or previous) node following deletion.
-      if (koso.nodes.size < 2 || toDeleteIndex <= 0) {
-        koso.selected = null;
+      if (projectCtx.nodes.size < 2 || toDeleteIndex <= 0) {
+        projectCtx.selected = null;
       } else {
-        koso.selected =
-          koso.nodes.get(Math.min(toDeleteIndex, koso.nodes.size - 1)) || null;
+        projectCtx.selected =
+          projectCtx.nodes.get(
+            Math.min(toDeleteIndex, projectCtx.nodes.size - 1),
+          ) || null;
       }
     }
   }
 
   function edit() {
-    if (!koso.selected) return;
-    getRow(koso.selected).edit(true);
+    if (!projectCtx.selected) return;
+    getRow(projectCtx.selected).edit(true);
   }
 
   function unselect() {
-    koso.selected = null;
+    projectCtx.selected = null;
   }
 
   function moveUp() {
-    if (!koso.selected) return;
-    koso.moveNodeUp(koso.selected);
+    if (!projectCtx.selected) return;
+    projectCtx.moveNodeUp(projectCtx.selected);
   }
 
   function moveDown() {
-    if (!koso.selected) return;
-    koso.moveNodeDown(koso.selected);
+    if (!projectCtx.selected) return;
+    projectCtx.moveNodeDown(projectCtx.selected);
   }
 
   function moveStart() {
-    if (!koso.selected) return;
-    koso.moveNodeUpBoundary(koso.selected);
+    if (!projectCtx.selected) return;
+    projectCtx.moveNodeUpBoundary(projectCtx.selected);
   }
 
   function moveEnd() {
-    if (!koso.selected) return;
-    koso.moveNodeDownBoundary(koso.selected);
+    if (!projectCtx.selected) return;
+    projectCtx.moveNodeDownBoundary(projectCtx.selected);
   }
 
   function indent() {
-    if (!koso.selected) return;
-    koso.indentNode(koso.selected);
+    if (!projectCtx.selected) return;
+    projectCtx.indentNode(projectCtx.selected);
   }
 
   function undent() {
-    if (!koso.selected) return;
-    koso.undentNode(koso.selected);
+    if (!projectCtx.selected) return;
+    projectCtx.undentNode(projectCtx.selected);
   }
 
   function expand() {
-    if (!koso.selected) return;
-    koso.expand(koso.selected);
+    if (!projectCtx.selected) return;
+    projectCtx.expand(projectCtx.selected);
   }
 
   function collapse() {
-    if (!koso.selected) return;
-    koso.collapse(koso.selected);
+    if (!projectCtx.selected) return;
+    projectCtx.collapse(projectCtx.selected);
   }
 
   function showDoneTasks() {
-    koso.showDone = true;
+    projectCtx.showDone = true;
   }
 
   function hideDoneTasks() {
-    koso.showDone = false;
+    projectCtx.showDone = false;
   }
 
   function selectNext() {
-    if (koso.nodes.size > 1) {
-      if (koso.selected) {
-        const selectedIndex = koso.nodes.indexOf(koso.selected);
+    if (projectCtx.nodes.size > 1) {
+      if (projectCtx.selected) {
+        const selectedIndex = projectCtx.nodes.indexOf(projectCtx.selected);
         if (selectedIndex <= 0) {
-          koso.selected = null;
+          projectCtx.selected = null;
         } else {
-          const index = Math.min(selectedIndex + 1, koso.nodes.size - 1);
-          koso.selected = koso.nodes.get(index, null);
+          const index = Math.min(selectedIndex + 1, projectCtx.nodes.size - 1);
+          projectCtx.selected = projectCtx.nodes.get(index, null);
         }
       } else {
-        koso.selected = koso.nodes.get(1, null);
+        projectCtx.selected = projectCtx.nodes.get(1, null);
       }
     }
   }
 
   function selectPrev() {
-    if (koso.nodes.size > 1) {
-      if (koso.selected) {
-        const selectedIndex = koso.nodes.indexOf(koso.selected);
+    if (projectCtx.nodes.size > 1) {
+      if (projectCtx.selected) {
+        const selectedIndex = projectCtx.nodes.indexOf(projectCtx.selected);
         if (selectedIndex <= 0) {
-          koso.selected = null;
+          projectCtx.selected = null;
         } else {
           const index = Math.max(selectedIndex - 1, 1);
-          koso.selected = koso.nodes.get(index, null);
+          projectCtx.selected = projectCtx.nodes.get(index, null);
         }
       } else {
-        koso.selected = koso.nodes.get(koso.nodes.size - 1, null);
+        projectCtx.selected = projectCtx.nodes.get(
+          projectCtx.nodes.size - 1,
+          null,
+        );
       }
     }
   }
 
   function selectNextLink() {
-    if (koso.selected) {
-      const next = koso.getNextLink(koso.selected);
+    if (projectCtx.selected) {
+      const next = projectCtx.getNextLink(projectCtx.selected);
       if (next) {
-        koso.selected = next;
+        projectCtx.selected = next;
       }
     }
   }
 
   function selectPrevLink() {
-    if (koso.selected) {
-      const prev = koso.getPrevLink(koso.selected);
+    if (projectCtx.selected) {
+      const prev = projectCtx.getPrevLink(projectCtx.selected);
       if (prev) {
-        koso.selected = prev;
+        projectCtx.selected = prev;
       }
     }
   }
 
   function undo() {
-    koso.undo();
+    projectCtx.undo();
   }
 
   function redo() {
-    koso.redo();
+    projectCtx.redo();
   }
 
   function linkTask() {
-    if (!koso.selected) return;
-    getRow(koso.selected).linkPanel(true, "link");
+    if (!projectCtx.selected) return;
+    getRow(projectCtx.selected).linkPanel(true, "link");
   }
 
   function blockTask() {
-    if (!koso.selected) return;
-    getRow(koso.selected).linkPanel(true, "block");
+    if (!projectCtx.selected) return;
+    getRow(projectCtx.selected).linkPanel(true, "block");
   }
 
   function organizeTasks() {
-    if (!koso.selected) return;
-    koso.organizeTasks(koso.selected.parent.name);
+    if (!projectCtx.selected) return;
+    koso.organizeTasks(projectCtx.selected.parent.name);
   }
 
   const insertAction: Action<ActionID> = {
@@ -311,7 +319,7 @@
     shortcut: INSERT_NODE,
     enabled: () =>
       !inboxView &&
-      (!koso.selected || koso.canInsert(koso.selected.parent.name)),
+      (!projectCtx.selected || koso.canInsert(projectCtx.selected.parent.name)),
   };
 
   const undoAction = new Action({
@@ -358,7 +366,9 @@
       description: "Expand the current task",
       icon: ChevronsUpDown,
       enabled: () =>
-        !inboxView && !!koso.selected && koso.canExpand(koso.selected),
+        !inboxView &&
+        !!projectCtx.selected &&
+        projectCtx.canExpand(projectCtx.selected),
       shortcut: new Shortcut({ key: "ArrowRight" }),
     }),
     new Action({
@@ -367,12 +377,14 @@
       description: "Collapse the current task",
       icon: ChevronsDownUp,
       enabled: () =>
-        !inboxView && !!koso.selected && koso.canCollapse(koso.selected),
+        !inboxView &&
+        !!projectCtx.selected &&
+        projectCtx.canCollapse(projectCtx.selected),
       shortcut: new Shortcut({ key: "ArrowLeft" }),
     }),
     new Action({
       id: "ExpandAll",
-      callback: () => koso.expandAll(),
+      callback: () => projectCtx.expandAll(),
       title: "Expand All",
       description: "Expand all tasks",
       icon: ChevronsUpDown,
@@ -380,7 +392,7 @@
     }),
     new Action({
       id: "CollapseAll",
-      callback: () => koso.collapseAll(),
+      callback: () => projectCtx.collapseAll(),
       title: "Collapse All",
       description: "Collapse all tasks",
       icon: ChevronsDownUp,
@@ -396,8 +408,8 @@
       shortcut: new Shortcut({ key: "Enter", meta: true, shift: true }),
       enabled: () =>
         !inboxView &&
-        !!koso.selected &&
-        koso.canInsert(koso.selected.parent.name),
+        !!projectCtx.selected &&
+        koso.canInsert(projectCtx.selected.parent.name),
     }),
     new Action({
       id: "InsertSubtask",
@@ -406,7 +418,9 @@
       description: "Insert a new task as a child",
       icon: ListTree,
       enabled: () =>
-        !inboxView && !!koso.selected && koso.canInsert(koso.selected.name),
+        !inboxView &&
+        !!projectCtx.selected &&
+        koso.canInsert(projectCtx.selected.name),
       shortcut: INSERT_CHILD_NODE,
     }),
     new Action({
@@ -416,10 +430,10 @@
       description: "Insert a new task as a child of the previous task",
       icon: ListTree,
       enabled: () => {
-        if (inboxView || !koso.selected) {
+        if (inboxView || !projectCtx.selected) {
           return false;
         }
-        const prevPeer = koso.getPrevPeer(koso.selected);
+        const prevPeer = projectCtx.getPrevPeer(projectCtx.selected);
         return !!prevPeer && koso.canInsert(prevPeer.name);
       },
       shortcut: new Shortcut({
@@ -435,7 +449,8 @@
       description: "Edit the current task",
       icon: Pencil,
       shortcut: new Shortcut({ key: "Enter" }),
-      enabled: () => !!koso.selected && koso.isEditable(koso.selected.name),
+      enabled: () =>
+        !!projectCtx.selected && koso.isEditable(projectCtx.selected.name),
     }),
     new Action({
       id: "Clear",
@@ -451,7 +466,9 @@
       description: "Delete the current task",
       icon: Trash,
       enabled: () =>
-        !inboxView && !!koso.selected && koso.canDeleteNode(koso.selected),
+        !inboxView &&
+        !!projectCtx.selected &&
+        koso.canDeleteNode(projectCtx.selected),
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
@@ -460,7 +477,7 @@
       title: "Move up",
       description: "Move the current task up",
       icon: MoveUp,
-      enabled: () => !inboxView && !!koso.selected,
+      enabled: () => !inboxView && !!projectCtx.selected,
       shortcut: new Shortcut({ key: "ArrowUp", alt: true }),
     }),
     new Action({
@@ -469,7 +486,7 @@
       title: "Move down",
       description: "Move the current task down",
       icon: MoveDown,
-      enabled: () => !inboxView && !!koso.selected,
+      enabled: () => !inboxView && !!projectCtx.selected,
       shortcut: new Shortcut({ key: "ArrowDown", alt: true }),
     }),
     new Action({
@@ -478,7 +495,7 @@
       title: "Move to start",
       description: "Move the current task to the top of its group",
       icon: ListStart,
-      enabled: () => !inboxView && !!koso.selected,
+      enabled: () => !inboxView && !!projectCtx.selected,
       shortcut: new Shortcut({ key: "ArrowUp", alt: true, shift: true }),
     }),
     new Action({
@@ -487,7 +504,7 @@
       title: "Move to end",
       description: "Move the current task to the bottom of its group",
       icon: ListEnd,
-      enabled: () => !inboxView && !!koso.selected,
+      enabled: () => !inboxView && !!projectCtx.selected,
       shortcut: new Shortcut({ key: "ArrowDown", alt: true, shift: true }),
     }),
     new Action({
@@ -497,7 +514,9 @@
       description: "Make the current task a peer of its parent",
       icon: IndentDecrease,
       enabled: () =>
-        !inboxView && !!koso.selected && koso.canUndentNode(koso.selected),
+        !inboxView &&
+        !!projectCtx.selected &&
+        projectCtx.canUndentNode(projectCtx.selected),
       shortcut: new Shortcut({ key: "ArrowLeft", alt: true }),
     }),
     new Action({
@@ -507,7 +526,9 @@
       description: "Make the current task a child of its peer",
       icon: IndentIncrease,
       enabled: () =>
-        !inboxView && !!koso.selected && koso.canIndentNode(koso.selected),
+        !inboxView &&
+        !!projectCtx.selected &&
+        projectCtx.canIndentNode(projectCtx.selected),
       shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
     }),
     undoAction,
@@ -519,7 +540,8 @@
       description: "Toggle the task status to In Progress or Done",
       icon: Check,
       shortcut: new Shortcut({ key: " " }),
-      enabled: () => !!koso.selected && koso.isEditable(koso.selected.name),
+      enabled: () =>
+        !!projectCtx.selected && koso.isEditable(projectCtx.selected.name),
     }),
     new Action({
       id: "HideDoneTasks",
@@ -527,7 +549,7 @@
       title: "Hide Done Tasks",
       description: "Hide tasks that have been marked done",
       icon: EyeOff,
-      enabled: () => !inboxView && koso.showDone,
+      enabled: () => !inboxView && projectCtx.showDone,
     }),
     new Action({
       id: "ShowDoneTasks",
@@ -535,7 +557,7 @@
       title: "Show Done Tasks",
       description: "Show tasks that have been marked done",
       icon: Eye,
-      enabled: () => !inboxView && !koso.showDone,
+      enabled: () => !inboxView && !projectCtx.showDone,
     }),
     searchAction,
     new Action({
@@ -544,7 +566,7 @@
       title: "Next Link",
       description: "Select next link to current task",
       icon: SkipForward,
-      enabled: () => !inboxView && !!koso.selected,
+      enabled: () => !inboxView && !!projectCtx.selected,
       shortcut: new Shortcut({ key: "ArrowDown", meta: true }),
     }),
     new Action({
@@ -553,7 +575,7 @@
       title: "Previous Link",
       description: "Select previous link to current task",
       icon: SkipBack,
-      enabled: () => !inboxView && !!koso.selected,
+      enabled: () => !inboxView && !!projectCtx.selected,
       shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
     }),
   ];
@@ -566,7 +588,7 @@
         title: "Link task to...",
         description: "Link current task to another task",
         icon: Cable,
-        enabled: () => !!koso.selected,
+        enabled: () => !!projectCtx.selected,
       }),
       new Action({
         id: "Block",
@@ -574,7 +596,7 @@
         title: "Block task on...",
         description: "Block current task to another task",
         icon: OctagonX,
-        enabled: () => !!koso.selected,
+        enabled: () => !!projectCtx.selected,
         shortcut: new Shortcut({ key: "/", meta: true }),
       }),
     );
@@ -586,7 +608,7 @@
         title: "Link task to...",
         description: "Link current task to another task",
         icon: Cable,
-        enabled: () => !!koso.selected,
+        enabled: () => !!projectCtx.selected,
         shortcut: new Shortcut({ key: "/", meta: true }),
       }),
       new Action({
@@ -595,7 +617,7 @@
         title: "Block task on...",
         description: "Block current task to another task",
         icon: OctagonX,
-        enabled: () => !!koso.selected,
+        enabled: () => !!projectCtx.selected,
       }),
       new Action({
         id: "Organize",
@@ -603,7 +625,7 @@
         title: "Organize Tasks",
         description: "Organize the current task and its peers",
         icon: Wrench,
-        enabled: () => !!koso.selected,
+        enabled: () => !!projectCtx.selected,
       }),
     );
   }
@@ -615,7 +637,9 @@
       await koso.synced;
       url.searchParams.delete("taskId");
       replaceState(url, {});
-      koso.select(taskId);
+      projectCtx.select(taskId);
+    } else {
+      projectCtx.selected = null;
     }
   });
 
@@ -630,7 +654,7 @@
   // the user marks a task as done or blocked in the inbox
   // or a different user deletes the user's currently selected node.
   $effect(() => {
-    const selected = koso.selectedRaw;
+    const selected = projectCtx.selectedRaw;
     const node = selected.node;
     const index = selected.index;
 
@@ -638,14 +662,14 @@
       return;
     }
 
-    const currentIndex = koso.nodes.indexOf(node);
+    const currentIndex = projectCtx.nodes.indexOf(node);
     if (currentIndex !== -1) {
       // The node still exists. Make sure the stashed index still matches.
       if (!index || index !== currentIndex) {
         console.debug(
           `Refreshing selected index for node ${node.id} at prior index ${index}`,
         );
-        koso.selected = node;
+        projectCtx.selected = node;
       }
       return;
     }
@@ -653,15 +677,15 @@
     // The selected node no longer exists. Select the
     // node at the same index or the one at the end of the list.
     // The first node is not selectable.
-    if (koso.nodes.size > 1) {
+    if (projectCtx.nodes.size > 1) {
       console.debug(`Node ${node.id} no longer exists. Selecting new node.`);
-      koso.selected = koso.nodes.get(
-        Math.min(index || -1, koso.nodes.size - 1),
+      projectCtx.selected = projectCtx.nodes.get(
+        Math.min(index || -1, projectCtx.nodes.size - 1),
         null,
       );
     } else {
       console.debug(`Node ${node.id} no longer exists. Clearing selection.`);
-      koso.selected = null;
+      projectCtx.selected = null;
     }
   });
 </script>
@@ -674,8 +698,8 @@
     : [insertAction, undoAction, redoAction, searchAction]}
 >
   {#await koso.synced then}
-    {#if koso.nodes.size > 1}
-      <MarkdownEditor taskId={koso.selected?.name} />
+    {#if projectCtx.nodes.size > 1}
+      <MarkdownEditor taskId={projectCtx.selected?.name} />
 
       <table class="w-full border-separate border-spacing-0 rounded-md border">
         <thead class="text-left text-xs font-bold uppercase">
@@ -701,11 +725,18 @@
           </tr>
         </thead>
 
-        {#each [...koso.nodes].slice(1) as node, index (node.id)}
+        {#each [...projectCtx.nodes].slice(1) as node, index (node.id)}
           <tbody animate:flip={{ duration: 250 }}>
             <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
             <!-- svelte-ignore binding_property_non_reactive -->
-            <Row bind:this={rows[node.id]} {index} {node} {users} {inboxView} />
+            <Row
+              bind:this={rows[node.id]}
+              {index}
+              {node}
+              {users}
+              {inboxView}
+              {projectCtx}
+            />
           </tbody>
         {/each}
       </table>

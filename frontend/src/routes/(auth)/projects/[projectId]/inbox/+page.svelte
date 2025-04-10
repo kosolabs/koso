@@ -1,40 +1,23 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { page } from "$app/state";
-  import { auth, showUnauthorizedDialog, type User } from "$lib/auth.svelte";
+  import { auth, showUnauthorizedDialog } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
-  import { DagTable, Koso, KosoSocket, Node } from "$lib/dag-table";
+  import { DagTable, Node } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
+  import {
+    getProjectContext,
+    newProjectContextNoStore,
+  } from "$lib/dag-table/project-context.svelte";
   import { Button } from "$lib/kosui/button";
-  import { nav } from "$lib/nav.svelte";
-  import { fetchProject, fetchProjectUsers, type Project } from "$lib/projects";
   import type { YTaskProxy } from "$lib/yproxy";
   import { List } from "immutable";
   import { Notebook } from "lucide-svelte";
-  import * as Y from "yjs";
 
-  const projectId = page.params.projectId;
-  nav.lastVisitedProjectId = projectId;
-
-  const koso = new Koso(projectId, new Y.Doc(), isVisible, flatten);
-  const kosoSocket = new KosoSocket(koso, projectId);
-  window.koso = koso;
-  window.Y = Y;
-
-  let deflicker: Promise<void> = new Promise((r) => window.setTimeout(r, 50));
-  let project: Promise<Project> = fetchProject(projectId);
-  let projectUsersPromise: Promise<User[]> = loadProjectUsers();
-  let projectUsers: User[] = $state([]);
-
-  async function loadProjectUsers() {
-    const users = await fetchProjectUsers(projectId);
-
-    projectUsers = users;
-    return projectUsers;
-  }
+  const project = getProjectContext();
+  const inbox = newProjectContextNoStore(isVisible, flatten);
 
   function isVisible(taskId: string): boolean {
-    return isTaskVisible(koso.getTask(taskId));
+    return isTaskVisible(inbox.koso.getTask(taskId));
   }
 
   function isTaskVisible(task: YTaskProxy): boolean {
@@ -47,10 +30,11 @@
       task.yKind === null &&
       task.children.length > 0 &&
       Array.from(task.children.slice())
-        .map((childId) => koso.getTask(childId))
+        .map((childId) => inbox.koso.getTask(childId))
         .every(
           (child) =>
-            child.assignee !== null || koso.getProgress(child.id).isComplete(),
+            child.assignee !== null ||
+            inbox.koso.getProgress(child.id).isComplete(),
         )
     ) {
       return false;
@@ -59,23 +43,23 @@
     // Don't show unassigned task where none of the parents are assigned to the user
     if (
       task.assignee === null &&
-      koso
+      inbox.koso
         .getParents(task.id)
         .filter((parent) => parent.yKind === null)
         .every((parent) => parent.assignee !== auth.user.email)
     ) {
       return false;
     }
-    const progress = koso.getProgress(task.id);
+    const progress = inbox.koso.getProgress(task.id);
     return !progress.isComplete() && !progress.isBlocked();
   }
 
   function flatten(): List<Node> {
-    const parents = koso.parents;
+    const parents = inbox.koso.parents;
     let nodes: List<Node> = List();
-    nodes = nodes.push(koso.root);
+    nodes = nodes.push(inbox.koso.root);
 
-    for (const task of koso.tasks) {
+    for (const task of inbox.koso.tasks) {
       if (task.id !== "root" && isTaskVisible(task)) {
         // Walk up the tree to craft the full path.
         let parent = parents.get(task.id);
@@ -97,7 +81,7 @@
   }
 
   $effect(() => {
-    if (kosoSocket.unauthorized) {
+    if (inbox.socket.unauthorized) {
       showUnauthorizedDialog();
     }
   });
@@ -107,11 +91,7 @@
   {#snippet left()}
     <div>
       <h1 class="ml-2 text-lg">
-        {#await project}
-          Inbox
-        {:then project}
-          Inbox - {project.name}
-        {/await}
+        Inbox - {project.name}
       </h1>
     </div>
   {/snippet}
@@ -121,7 +101,7 @@
       shape="circle"
       tooltip="Project planning view"
       aria-label="Project planning view"
-      onclick={() => goto(`/projects/${projectId}`)}
+      onclick={() => goto(`/projects/${project.id}`)}
       class="p-2"
     >
       <Notebook size={20} />
@@ -129,17 +109,6 @@
   {/snippet}
 </Navbar>
 
-<OfflineAlert offline={kosoSocket.offline} />
+<OfflineAlert offline={inbox.socket.offline} />
 
-{#await projectUsersPromise}
-  {#await deflicker}
-    <!-- Deflicker load. -->
-  {:then}
-    <!-- TODO: Make this a Skeleton -->
-    <div class="flex flex-col items-center justify-center rounded border p-4">
-      <div class="text-l">Loading...</div>
-    </div>
-  {/await}
-{:then}
-  <DagTable {koso} users={projectUsers} inboxView={true} />
-{/await}
+<DagTable projectCtx={inbox} users={project.users} inboxView={true} />

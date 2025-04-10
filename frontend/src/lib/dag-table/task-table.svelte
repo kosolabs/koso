@@ -22,7 +22,7 @@
   } from "lucide-svelte";
   import { onMount, setContext } from "svelte";
   import { flip } from "svelte/animate";
-  import { getInboxContext, Node, type Koso } from ".";
+  import { getInboxContext, type Koso } from ".";
   import MarkdownEditor from "./markdown-editor.svelte";
   import TaskRow from "./task-row.svelte";
   import Toolbar from "./toolbar.svelte";
@@ -37,18 +37,18 @@
 
   const rows: { [key: string]: TaskRow } = {};
 
-  function getRow(node: Node) {
-    const maybeRow = rows[node.id];
+  function getRow(id: string) {
+    const maybeRow = rows[id];
     if (!maybeRow) {
-      throw new Error(`Row doesn't exist for ${node}`);
+      throw new Error(`Row doesn't exist for task ${id}`);
     }
     return maybeRow;
   }
 
   function toggleStatus() {
-    if (!koso.selected) return;
+    if (!inbox.selected) return;
 
-    const task = koso.getTask(koso.selected.name);
+    const task = koso.getTask(inbox.selected.id);
     let progress = koso.getProgress(task.id);
     if (progress.kind === "Rollup") {
       toast.warning(
@@ -77,8 +77,8 @@
   }
 
   function edit() {
-    if (!koso.selected) return;
-    getRow(koso.selected).edit(true);
+    if (!inbox.selected) return;
+    getRow(inbox.selected.id).edit(true);
   }
 
   function unselect() {
@@ -118,21 +118,21 @@
   }
 
   function undo() {
-    koso.undo();
+    inbox.undo();
   }
 
   function redo() {
-    koso.redo();
+    inbox.redo();
   }
 
   function linkTask() {
-    if (!koso.selected) return;
-    getRow(koso.selected).linkPanel(true, "link");
+    if (!inbox.selected) return;
+    getRow(inbox.selected.id).linkPanel(true, "link");
   }
 
   function blockTask() {
-    if (!koso.selected) return;
-    getRow(koso.selected).linkPanel(true, "block");
+    if (!inbox.selected) return;
+    getRow(inbox.selected.id).linkPanel(true, "block");
   }
 
   const undoAction = new Action({
@@ -170,7 +170,7 @@
       description: "Edit the current task",
       icon: Pencil,
       shortcut: new Shortcut({ key: "Enter" }),
-      enabled: () => !!koso.selected && koso.isEditable(koso.selected.name),
+      enabled: () => !!inbox.selected && koso.isEditable(inbox.selected.id),
     }),
     new Action({
       id: "Clear",
@@ -188,7 +188,7 @@
       description: "Toggle the task status to In Progress or Done",
       icon: Check,
       shortcut: new Shortcut({ key: " " }),
-      enabled: () => !!koso.selected && koso.isEditable(koso.selected.name),
+      enabled: () => !!inbox.selected && koso.isEditable(inbox.selected.id),
     }),
     new Action({
       id: "Link",
@@ -196,7 +196,7 @@
       title: "Link task to...",
       description: "Link current task to another task",
       icon: Cable,
-      enabled: () => !!koso.selected,
+      enabled: () => !!inbox.selected,
     }),
     new Action({
       id: "Block",
@@ -204,7 +204,7 @@
       title: "Block task on...",
       description: "Block current task to another task",
       icon: OctagonX,
-      enabled: () => !!koso.selected,
+      enabled: () => !!inbox.selected,
       shortcut: new Shortcut({ key: "/", meta: true }),
     }),
   ];
@@ -216,7 +216,7 @@
       await koso.synced;
       url.searchParams.delete("taskId");
       replaceState(url, {});
-      koso.select(taskId);
+      inbox.select(taskId);
     }
   });
 
@@ -226,51 +226,52 @@
     return command.register(...actions);
   });
 
-  // This effect selects a new node when the
-  // selected node no longer exists. For example, when
+  // This effect selects a new task when the
+  // selected task no longer exists. For example, when
   // the user marks a task as done or blocked in the inbox
-  // or a different user deletes the user's currently selected node.
+  // or a different user deletes the user's currently selected task.
   $effect(() => {
-    const selected = koso.selectedRaw;
-    const node = selected.node;
+    const selected = inbox.selectedRaw;
+    const task = selected.task;
     const index = selected.index;
 
-    if (!node) {
+    if (!task) {
       return;
     }
 
-    const currentIndex = koso.nodes.indexOf(node);
+    const currentIndex = koso.tasks.indexOf(task);
     if (currentIndex !== -1) {
-      // The node still exists. Make sure the stashed index still matches.
+      // The task still exists. Make sure the stashed index still matches.
       if (!index || index !== currentIndex) {
         console.debug(
-          `Refreshing selected index for node ${node.id} at prior index ${index}`,
+          `Refreshing selected index for task ${task.id} at prior index ${index}`,
         );
-        koso.selected = node;
+        inbox.selected = task;
       }
       return;
     }
 
-    // The selected node no longer exists. Select the
-    // node at the same index or the one at the end of the list.
-    // The first node is not selectable.
-    if (koso.nodes.size > 1) {
-      console.debug(`Node ${node.id} no longer exists. Selecting new node.`);
-      koso.selected = koso.nodes.get(
-        Math.min(index || -1, koso.nodes.size - 1),
-        null,
-      );
+    // The selected task no longer exists. Select the
+    // task at the same index or the one at the end of the list.
+    // The first task is not selectable.
+    if (koso.tasks.length > 1) {
+      console.debug(`Task ${task.id} no longer exists. Selecting new task.`);
+      if (!index || index >= koso.tasks.length) {
+        inbox.selected = koso.tasks[koso.tasks.length - 1];
+      } else {
+        inbox.selected = koso.tasks[index];
+      }
     } else {
-      console.debug(`Node ${node.id} no longer exists. Clearing selection.`);
-      koso.selected = null;
+      console.debug(`Task ${task.id} no longer exists. Clearing selection.`);
+      inbox.selected = undefined;
     }
   });
 </script>
 
 <Toolbar actions={[undoAction, redoAction]}>
   {#await koso.synced then}
-    {#if koso.nodes.size > 1}
-      <MarkdownEditor taskId={koso.selected?.name} />
+    {#if koso.tasks.length > 1}
+      <MarkdownEditor taskId={inbox.selected?.name} />
 
       <table class="w-full border-separate border-spacing-0 rounded-md border">
         <thead class="text-left text-xs font-bold uppercase">
@@ -293,7 +294,7 @@
           </tr>
         </thead>
 
-        {#each [...koso.tasks] as task, index (task.id)}
+        {#each [...koso.tasks].slice(1) as task, index (task.id)}
           <tbody animate:flip={{ duration: 250 }}>
             <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
             <!-- svelte-ignore binding_property_non_reactive -->

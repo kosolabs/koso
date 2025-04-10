@@ -8,7 +8,7 @@
   import { Notebook } from "lucide-svelte";
 
   const project = getProjectContext();
-  newInboxContext();
+  newInboxContext(project.koso);
 </script>
 
 <Navbar>

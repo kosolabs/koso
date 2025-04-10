@@ -12,8 +12,7 @@
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
-  import { getContext } from "svelte";
-  import { Node, type Koso } from ".";
+  import { Node } from ".";
   import Awareness, {
     getAwarenessOutline,
     getUniqueUsers,
@@ -23,16 +22,18 @@
   import LinkPanel, { type Mode } from "./link-panel.svelte";
   import TaskAction from "./task-action.svelte";
   import { TaskLinkage } from "./koso.svelte";
+  import { ProjectContext } from "./project-context.svelte";
 
   type Props = {
     index: number;
     node: Node;
     users: User[];
     inboxView: boolean;
+    projectCtx: ProjectContext;
   };
-  const { index, node, users, inboxView }: Props = $props();
+  const { index, node, users, inboxView, projectCtx }: Props = $props();
 
-  const koso = getContext<Koso>("koso");
+  const koso = projectCtx.koso;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
   let idCellElement: HTMLTableCellElement | undefined = $state();
@@ -48,11 +49,11 @@
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
   let assignee = $derived(getUser(users, task.assignee));
-  let open = $derived(koso.expanded.has(node));
+  let open = $derived(projectCtx.expanded.has(node));
   let isDragging = $derived(node.equals(koso.dragged));
   let isMoving = $derived(isDragging && koso.dropEffect === "move");
   let isHovered = $derived(koso.highlighted === node.name);
-  let isSelected = $derived(node.equals(koso.selected));
+  let isSelected = $derived(node.equals(projectCtx.selected));
   let awareUsers = $derived(
     getUniqueUsers(koso.awareness.filter((a) => node.equals(a.selected[0]))),
   );
@@ -108,16 +109,16 @@
             return;
           }
 
-          let targetNode = koso.nodes
+          let targetNode = projectCtx.nodes
             .filter((n) => n.name == node.name && n.parent.name === parent.id)
             // Prefer the least nested linkage of this node under the given parent.
             // i.e. the one closed to the root.
             .minBy((n) => n.path.size);
           if (targetNode) {
-            koso.selected = targetNode;
+            projectCtx.selected = targetNode;
             return;
           }
-          const root = koso.nodes.get(0);
+          const root = projectCtx.nodes.get(0);
           if (!root) throw new Error("Missing root");
 
           // All instances of parent are under collapsed nodes or aren't visible.
@@ -129,13 +130,13 @@
             if (
               n.name === node.name &&
               n.parent.name === parent.id &&
-              koso.isVisible(n.name, koso.showDone)
+              projectCtx.isVisible(n.name, projectCtx.showDone)
             ) {
-              koso.selected = n;
+              projectCtx.selected = n;
               // Expand all parents of the selected node to ensure it's visible.
               let t = n.parent;
               while (t.length) {
-                koso.expand(t);
+                projectCtx.expand(t);
                 t = t.parent;
               }
               return;
@@ -165,9 +166,9 @@
 
   function setOpen(open: boolean) {
     if (open) {
-      koso.expand(node);
+      projectCtx.expand(node);
     } else {
-      koso.collapse(node);
+      projectCtx.collapse(node);
     }
   }
 
@@ -182,7 +183,7 @@
       return;
     }
     koso.highlighted = null;
-    koso.selected = null;
+    projectCtx.selected = null;
     koso.dragged = node;
 
     dataTransfer.setData("text/plain", node.id);
@@ -219,7 +220,7 @@
     if (koso.dropEffect === "copy") {
       koso.linkNode(koso.dragged, dragDestParent, dragDestOffset);
     } else if (koso.dropEffect === "move") {
-      koso.moveNode(koso.dragged, dragDestParent, dragDestOffset);
+      projectCtx.moveNode(koso.dragged, dragDestParent, dragDestOffset);
     } else {
       throw new Error(`Invalid dropEffect: ${koso.dropEffect}`);
     }
@@ -240,7 +241,7 @@
     if (koso.dropEffect === "copy") {
       koso.linkNode(koso.dragged, dragDestParent, dragDestOffset);
     } else if (koso.dropEffect === "move") {
-      koso.moveNode(koso.dragged, dragDestParent, dragDestOffset);
+      projectCtx.moveNode(koso.dragged, dragDestParent, dragDestOffset);
     } else {
       throw new Error(`Invalid dropEffect: ${koso.dropEffect}`);
     }
@@ -261,14 +262,14 @@
         new TaskLinkage({ parentId: node.parent.name, id: koso.dragged.name }),
       )
     ) {
-      if (koso.canMoveNode(koso.dragged, node.parent)) {
+      if (projectCtx.canMoveNode(koso.dragged, node.parent)) {
         koso.dropEffect = event.altKey ? "copy" : "move";
       } else {
         koso.dropEffect = "copy";
       }
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverPeer = true;
-    } else if (koso.canMoveNode(koso.dragged, node.parent)) {
+    } else if (projectCtx.canMoveNode(koso.dragged, node.parent)) {
       dataTransfer.dropEffect = "move";
       koso.dropEffect = "move";
       dragOverPeer = true;
@@ -290,14 +291,14 @@
         new TaskLinkage({ parentId: node.name, id: koso.dragged.name }),
       )
     ) {
-      if (koso.canMoveNode(koso.dragged, node)) {
+      if (projectCtx.canMoveNode(koso.dragged, node)) {
         koso.dropEffect = event.altKey ? "copy" : "move";
       } else {
         koso.dropEffect = "copy";
       }
       dataTransfer.dropEffect = koso.dropEffect;
       dragOverChild = true;
-    } else if (koso.canMoveNode(koso.dragged, node)) {
+    } else if (projectCtx.canMoveNode(koso.dragged, node)) {
       dataTransfer.dropEffect = "move";
       koso.dropEffect = "move";
       dragOverChild = true;
@@ -345,7 +346,7 @@
 
   function handleRowClick(event: MouseEvent) {
     event.preventDefault();
-    koso.selected = node;
+    projectCtx.selected = node;
   }
 </script>
 
@@ -439,7 +440,7 @@
             aria-label={`Task ${task.num} Edit Name`}
             editing={isEditing}
             closeFocus={rowElement}
-            onclick={() => (koso.selected = node)}
+            onclick={() => (projectCtx.selected = node)}
             onsave={async (name) => {
               koso.setTaskName(task.id, name);
             }}
