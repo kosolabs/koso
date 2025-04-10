@@ -765,31 +765,6 @@ describe("Koso tests", () => {
       });
     });
 
-    it("reorder canonical plugin sub-container succeeds", () => {
-      init([
-        { id: "root", name: "Root", children: ["1", "github"] },
-        { id: "1", name: "Task 1", children: [] },
-        {
-          id: "github",
-          name: "Github",
-          kind: "github",
-          children: ["github_pr", "other_plugin"],
-        },
-        { id: "github_pr", name: "Github PR", kind: "github_pr" },
-        { id: "other_plugin", name: "Other", kind: "other_plugin" },
-        { id: "2", name: "Some PR", kind: "github_pr" },
-        { id: "3", name: "Some PR", kind: "github_pr" },
-      ]);
-      planningCtx.moveNode(
-        Node.parse("github/other_plugin"),
-        Node.parse("github"),
-        0,
-      );
-      expect(koso.toJSON()).toMatchObject({
-        ["github"]: { children: ["other_plugin", "github_pr"] },
-      });
-    });
-
     it("reorder canonical plugin task succeeds", () => {
       init([
         { id: "root", name: "Root", children: ["1", "github"] },
@@ -906,26 +881,13 @@ describe("Koso tests", () => {
           id: "github_pr",
           name: "Github PR",
           kind: "github_pr",
-          children: ["2", "3", "github_pr_other"],
-        },
-        {
-          id: "github_pr_other",
-          name: "Github PR Other",
-          kind: "github_pr_other",
-          children: ["3"],
+          children: ["2"],
         },
         { id: "2", name: "Some PR", kind: "github_pr" },
-        { id: "3", name: "Some Other PR", kind: "github_pr_other" },
       ]);
       expect(() => koso.deleteNode(Node.parse("github"))).toThrow();
       expect(() => koso.deleteNode(Node.parse("github/github_pr"))).toThrow();
       expect(() => koso.deleteNode(Node.parse("github/github_pr/2"))).toThrow();
-      expect(() =>
-        koso.deleteNode(Node.parse("github/github_pr/github_pr_other")),
-      ).toThrow();
-      expect(() =>
-        koso.deleteNode(Node.parse("github/github_pr/github_pr_other/3")),
-      ).toThrow();
     });
 
     it("delete non-canonical plugin task/container succeeds", () => {
@@ -933,56 +895,38 @@ describe("Koso tests", () => {
         {
           id: "root",
           name: "Root",
-          children: ["1", "github", "githubfoo", "github_pr_other", "4", "5"],
+          children: ["1", "github", "githubfoo", "4", "5"],
         },
         {
           id: "1",
           name: "Task 1",
-          children: ["github", "github_pr", "github_pr_other", "2", "3"],
+          children: ["github", "github_pr", "2"],
         },
         {
           id: "github",
           name: "Github",
           kind: "github",
-          children: ["github_pr", "github_pr_other", "githubfoo"],
+          children: ["github_pr", "githubfoo"],
         },
         {
           id: "github_pr",
           name: "Github PR",
           kind: "github_pr",
-          children: ["2", "3", "github_pr_other", "githubfoo"],
-        },
-        {
-          id: "github_pr_other",
-          name: "Github PR Other",
-          kind: "github_pr_other",
-          children: ["3"],
-        },
-        {
-          id: "githubfoo",
-          name: "Github Foo",
-          kind: "githubfoo",
+          children: ["2", "githubfoo"],
         },
         {
           id: "2",
           name: "Some PR",
           kind: "github_pr",
-          children: ["github_pr_other"],
         },
-        { id: "3", name: "Some Other PR", kind: "github_pr_other" },
         { id: "4", name: "Some Rollup task", kind: "Rollup" },
         { id: "5", name: "Some task", kind: "Task" },
       ]);
       koso.deleteNode(Node.parse("1/github"));
       koso.deleteNode(Node.parse("1/github_pr"));
-      koso.deleteNode(Node.parse("1/github_pr_other"));
       koso.deleteNode(Node.parse("1/2"));
-      koso.deleteNode(Node.parse("1/3"));
-      koso.deleteNode(Node.parse("github/github_pr_other"));
-      koso.deleteNode(Node.parse("github/github_pr/2/github_pr_other"));
       koso.deleteNode(Node.parse("github/githubfoo"));
       koso.deleteNode(Node.parse("github_pr/githubfoo"));
-      koso.deleteNode(Node.parse("github_pr_other"));
       koso.deleteNode(Node.parse("4"));
       koso.deleteNode(Node.parse("5"));
 

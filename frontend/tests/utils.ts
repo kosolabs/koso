@@ -13,7 +13,7 @@ export type TaskBuilder = {
   status?: Status | null;
   statusTime?: number | null;
   url?: string | null;
-  kind?: string | null;
+  kind?: Kind | null;
 };
 
 export async function getKosoGraph(page: Page): Promise<Graph> {
@@ -161,7 +161,7 @@ export async function init(
             reporter: task.reporter ?? null,
             status: task.status ?? null,
             statusTime: task.statusTime ?? null,
-            kind: task.kind ? (task.kind as Kind) : null,
+            kind: task.kind ?? null,
             url: task.url ?? null,
           });
         }
