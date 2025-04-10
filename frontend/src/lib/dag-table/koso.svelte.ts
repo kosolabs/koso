@@ -327,6 +327,10 @@ export class Koso {
     return this.#tasks;
   }
 
+  taskIndex(id: string): number {
+    return this.#tasks.findIndex((t) => t.id === id);
+  }
+
   get awareness(): Awareness[] {
     return this.#awareness;
   }

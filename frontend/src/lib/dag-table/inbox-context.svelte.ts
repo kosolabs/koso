@@ -1,11 +1,11 @@
+import { command, type ActionID } from "$lib/components/ui/command-palette";
+import { Action } from "$lib/kosui/command";
 import { YTaskProxy } from "$lib/yproxy";
 import { Record } from "immutable";
-import { getContext, setContext } from "svelte";
-import type { DetailPanelStates, Koso } from "./koso.svelte";
-import * as Y from "yjs";
 import { PanelTopClose, PanelTopOpen, SquarePen } from "lucide-svelte";
-import { Action } from "$lib/kosui/command";
-import { command, type ActionID } from "$lib/components/ui/command-palette";
+import { getContext, setContext } from "svelte";
+import * as Y from "yjs";
+import type { DetailPanelStates, Koso } from "./koso.svelte";
 
 export class InboxContext {
   #koso: Koso;
@@ -14,7 +14,7 @@ export class InboxContext {
   #selectedRaw: Selected = $state(Selected.default());
   #selected: YTaskProxy | undefined = $derived.by(() => {
     const task = this.#selectedRaw.task;
-    if (!task || this.#koso.tasks.indexOf(task) < 0) {
+    if (!task || this.#koso.taskIndex(task.id) < 0) {
       return undefined;
     }
     return task;
@@ -101,7 +101,7 @@ export class InboxContext {
     }
 
     if (task) {
-      const index = this.#koso.tasks.indexOf(task);
+      const index = this.#koso.taskIndex(task.id);
       if (index === -1) {
         // TODO: This happens when handleRow click is triggered when setting status to done in the inbox.
         // It'd be better if this threw.
@@ -118,7 +118,7 @@ export class InboxContext {
   }
 
   select(taskId: string) {
-    const task = this.#koso.tasks.find((t) => t.id == taskId);
+    const task = this.#koso.tasks.find((t) => t.id === taskId);
     if (!task) throw new Error("Expected at least one Node");
     this.selected = task;
   }
