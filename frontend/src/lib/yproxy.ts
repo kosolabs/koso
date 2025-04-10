@@ -51,6 +51,10 @@ export class YGraphProxy {
     return this.#yGraph.size;
   }
 
+  get yGraph() {
+    return this.#yGraph;
+  }
+
   keys(): IterableIterator<string> {
     return this.#yGraph.keys();
   }

@@ -1,8 +1,8 @@
 import { page } from "$app/state";
 import type { User } from "$lib/auth.svelte";
-import { Koso, KosoSocket } from "$lib/dag-table";
-import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
+import { getContext, setContext } from "svelte";
+import { Koso, KosoSocket } from "$lib/dag-table";
 
 export class ProjectContext {
   id: string;

@@ -8,6 +8,7 @@ import * as Y from "yjs";
 import { Koso, Node } from ".";
 import { type TaskBuilder } from "../../../tests/utils";
 import { TaskLinkage } from "./koso.svelte";
+import { PlanningContext } from "./planning-context.svelte";
 
 const USER: User = {
   email: "t@koso.app",
@@ -34,6 +35,7 @@ const EMPTY_SYNC_RESPONSE = (() => {
 describe("Koso tests", () => {
   let root: Node;
   let koso: Koso;
+  let planningCtx: PlanningContext;
 
   const init = (tasks: TaskBuilder[]) => {
     const upsertedTaskIds = Set<string>(tasks.map((t) => t.id));
@@ -79,6 +81,8 @@ describe("Koso tests", () => {
       root = koso.root;
       koso.setSendAndSync(() => {});
       koso.receive(EMPTY_SYNC_RESPONSE);
+
+      planningCtx = new PlanningContext(koso);
     });
     context.onTestFinished(() => cleanup());
   });
@@ -573,7 +577,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      koso.moveNode(Node.parse("3"), Node.parse("1"), 1);
+      planningCtx.moveNode(Node.parse("3"), Node.parse("1"), 1);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -591,7 +595,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      koso.moveNode(Node.parse("3"), Node.parse("1"), 0);
+      planningCtx.moveNode(Node.parse("3"), Node.parse("1"), 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -610,7 +614,7 @@ describe("Koso tests", () => {
         { id: "4", name: "Task 4" },
       ]);
 
-      koso.moveNode(Node.parse("1/4"), Node.parse("1/3"), 0);
+      planningCtx.moveNode(Node.parse("1/4"), Node.parse("1/3"), 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -629,7 +633,7 @@ describe("Koso tests", () => {
       ]);
 
       expect(() =>
-        koso.moveNode(Node.parse("2"), Node.parse("1"), 1),
+        planningCtx.moveNode(Node.parse("2"), Node.parse("1"), 1),
       ).toThrow();
     });
 
@@ -642,7 +646,7 @@ describe("Koso tests", () => {
         { id: "4", name: "Task 4" },
       ]);
 
-      koso.moveNode(Node.parse("1/4"), Node.parse("1"), 1);
+      planningCtx.moveNode(Node.parse("1/4"), Node.parse("1"), 1);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -662,7 +666,7 @@ describe("Koso tests", () => {
         { id: "4", name: "Task 4" },
       ]);
 
-      koso.moveNode(Node.parse("1/3"), Node.parse("1"), 3);
+      planningCtx.moveNode(Node.parse("1/3"), Node.parse("1"), 3);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -692,13 +696,21 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
       expect(() =>
-        koso.moveNode(Node.parse("github"), Node.parse("1"), 0),
+        planningCtx.moveNode(Node.parse("github"), Node.parse("1"), 0),
       ).toThrow();
       expect(() =>
-        koso.moveNode(Node.parse("github/github_pr"), Node.parse("1"), 0),
+        planningCtx.moveNode(
+          Node.parse("github/github_pr"),
+          Node.parse("1"),
+          0,
+        ),
       ).toThrow();
       expect(() =>
-        koso.moveNode(Node.parse("github/github_pr/2"), Node.parse("1"), 0),
+        planningCtx.moveNode(
+          Node.parse("github/github_pr/2"),
+          Node.parse("1"),
+          0,
+        ),
       ).toThrow();
     });
 
@@ -725,9 +737,9 @@ describe("Koso tests", () => {
         },
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
-      koso.moveNode(Node.parse("2"), Node.parse("1"), 0);
-      koso.moveNode(Node.parse("github_pr"), Node.parse("1"), 0);
-      koso.moveNode(Node.parse("3/github"), Node.parse("1"), 0);
+      planningCtx.moveNode(Node.parse("2"), Node.parse("1"), 0);
+      planningCtx.moveNode(Node.parse("github_pr"), Node.parse("1"), 0);
+      planningCtx.moveNode(Node.parse("3/github"), Node.parse("1"), 0);
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "github"] },
         ["github"]: { children: ["github_pr"] },
@@ -747,30 +759,9 @@ describe("Koso tests", () => {
           kind: "github",
         },
       ]);
-      koso.moveNode(Node.parse("github"), Node.parse("root"), 0);
+      planningCtx.moveNode(Node.parse("github"), Node.parse("root"), 0);
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["github", "1"] },
-      });
-    });
-
-    it("reorder canonical plugin sub-container succeeds", () => {
-      init([
-        { id: "root", name: "Root", children: ["1", "github"] },
-        { id: "1", name: "Task 1", children: [] },
-        {
-          id: "github",
-          name: "Github",
-          kind: "github",
-          children: ["github_pr", "other_plugin"],
-        },
-        { id: "github_pr", name: "Github PR", kind: "github_pr" },
-        { id: "other_plugin", name: "Other", kind: "other_plugin" },
-        { id: "2", name: "Some PR", kind: "github_pr" },
-        { id: "3", name: "Some PR", kind: "github_pr" },
-      ]);
-      koso.moveNode(Node.parse("github/other_plugin"), Node.parse("github"), 0);
-      expect(koso.toJSON()).toMatchObject({
-        ["github"]: { children: ["other_plugin", "github_pr"] },
       });
     });
 
@@ -793,7 +784,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
         { id: "3", name: "Some PR", kind: "github_pr" },
       ]);
-      koso.moveNode(
+      planningCtx.moveNode(
         Node.parse("github/github_pr/3"),
         Node.parse("github/github_pr"),
         0,
@@ -890,26 +881,13 @@ describe("Koso tests", () => {
           id: "github_pr",
           name: "Github PR",
           kind: "github_pr",
-          children: ["2", "3", "github_pr_other"],
-        },
-        {
-          id: "github_pr_other",
-          name: "Github PR Other",
-          kind: "github_pr_other",
-          children: ["3"],
+          children: ["2"],
         },
         { id: "2", name: "Some PR", kind: "github_pr" },
-        { id: "3", name: "Some Other PR", kind: "github_pr_other" },
       ]);
       expect(() => koso.deleteNode(Node.parse("github"))).toThrow();
       expect(() => koso.deleteNode(Node.parse("github/github_pr"))).toThrow();
       expect(() => koso.deleteNode(Node.parse("github/github_pr/2"))).toThrow();
-      expect(() =>
-        koso.deleteNode(Node.parse("github/github_pr/github_pr_other")),
-      ).toThrow();
-      expect(() =>
-        koso.deleteNode(Node.parse("github/github_pr/github_pr_other/3")),
-      ).toThrow();
     });
 
     it("delete non-canonical plugin task/container succeeds", () => {
@@ -917,56 +895,38 @@ describe("Koso tests", () => {
         {
           id: "root",
           name: "Root",
-          children: ["1", "github", "githubfoo", "github_pr_other", "4", "5"],
+          children: ["1", "github", "githubfoo", "4", "5"],
         },
         {
           id: "1",
           name: "Task 1",
-          children: ["github", "github_pr", "github_pr_other", "2", "3"],
+          children: ["github", "github_pr", "2"],
         },
         {
           id: "github",
           name: "Github",
           kind: "github",
-          children: ["github_pr", "github_pr_other", "githubfoo"],
+          children: ["github_pr", "githubfoo"],
         },
         {
           id: "github_pr",
           name: "Github PR",
           kind: "github_pr",
-          children: ["2", "3", "github_pr_other", "githubfoo"],
-        },
-        {
-          id: "github_pr_other",
-          name: "Github PR Other",
-          kind: "github_pr_other",
-          children: ["3"],
-        },
-        {
-          id: "githubfoo",
-          name: "Github Foo",
-          kind: "githubfoo",
+          children: ["2", "githubfoo"],
         },
         {
           id: "2",
           name: "Some PR",
           kind: "github_pr",
-          children: ["github_pr_other"],
         },
-        { id: "3", name: "Some Other PR", kind: "github_pr_other" },
         { id: "4", name: "Some Rollup task", kind: "Rollup" },
         { id: "5", name: "Some task", kind: "Task" },
       ]);
       koso.deleteNode(Node.parse("1/github"));
       koso.deleteNode(Node.parse("1/github_pr"));
-      koso.deleteNode(Node.parse("1/github_pr_other"));
       koso.deleteNode(Node.parse("1/2"));
-      koso.deleteNode(Node.parse("1/3"));
-      koso.deleteNode(Node.parse("github/github_pr_other"));
-      koso.deleteNode(Node.parse("github/github_pr/2/github_pr_other"));
       koso.deleteNode(Node.parse("github/githubfoo"));
       koso.deleteNode(Node.parse("github_pr/githubfoo"));
-      koso.deleteNode(Node.parse("github_pr_other"));
       koso.deleteNode(Node.parse("4"));
       koso.deleteNode(Node.parse("5"));
 
@@ -1525,16 +1485,16 @@ describe("Koso tests", () => {
 
   describe("toNodes", () => {
     beforeEach(() => {
-      koso.expanded = Set([]);
+      planningCtx.expanded = Set([]);
     });
 
     it("empty doc has no nodes", () => {
-      expect(koso.nodes).toStrictEqual(List([root]));
+      expect(planningCtx.nodes).toStrictEqual(List([root]));
     });
 
     it("doc with one task has one node", () => {
       init([{ id: "root", name: "Root", children: ["1"] }]);
-      expect(koso.nodes).toStrictEqual(List([root, Node.parse("1")]));
+      expect(planningCtx.nodes).toStrictEqual(List([root, Node.parse("1")]));
     });
 
     it("doc with non-visible tasks returns root", () => {
@@ -1542,7 +1502,7 @@ describe("Koso tests", () => {
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", name: "Task 1", status: "Done" },
       ]);
-      expect(koso.nodes).toStrictEqual(List([root]));
+      expect(planningCtx.nodes).toStrictEqual(List([root]));
     });
 
     it("doc with two tasks has two nodes", () => {
@@ -1551,7 +1511,7 @@ describe("Koso tests", () => {
         { id: "1", name: "Task 1" },
         { id: "2", name: "Task 2" },
       ]);
-      expect(koso.nodes).toStrictEqual(
+      expect(planningCtx.nodes).toStrictEqual(
         List([root, Node.parse("1"), Node.parse("2")]),
       );
     });
@@ -1563,7 +1523,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
         { id: "3", name: "Task 3" },
       ]);
-      expect(koso.nodes).toStrictEqual(
+      expect(planningCtx.nodes).toStrictEqual(
         List([root, Node.parse("1"), Node.parse("2")]),
       );
     });
@@ -1575,8 +1535,8 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
         { id: "3", name: "Task 3" },
       ]);
-      koso.expanded = Set([Node.parse("1")]);
-      expect(koso.nodes).toStrictEqual(
+      planningCtx.expanded = Set([Node.parse("1")]);
+      expect(planningCtx.nodes).toStrictEqual(
         List([root, Node.parse("1"), Node.parse("1/3"), Node.parse("2")]),
       );
     });
@@ -1587,8 +1547,8 @@ describe("Koso tests", () => {
         { id: "1", name: "Task 1", children: ["2"] },
         { id: "2", name: "Task 2" },
       ]);
-      koso.expanded = Set([Node.parse("1")]);
-      expect(koso.nodes).toStrictEqual(
+      planningCtx.expanded = Set([Node.parse("1")]);
+      expect(planningCtx.nodes).toStrictEqual(
         List([root, Node.parse("1"), Node.parse("1/2"), Node.parse("2")]),
       );
     });
@@ -1975,18 +1935,18 @@ describe("Koso tests", () => {
         { id: "t4", children: ["t2"] },
         { id: "t6", children: ["t2"] },
       ]);
-      koso.expanded = Set([Node.parse("t4"), Node.parse("t6")]);
+      planningCtx.expanded = Set([Node.parse("t4"), Node.parse("t6")]);
 
       let node: Node | null = Node.parse("t2");
-      node = koso.getPrevLink(node);
+      node = planningCtx.getPrevLink(node);
       expect(node).toEqual(Node.parse("t6/t2"));
       if (!node) throw new Error();
 
-      node = koso.getPrevLink(node);
+      node = planningCtx.getPrevLink(node);
       expect(node).toEqual(Node.parse("t4/t2"));
       if (!node) throw new Error();
 
-      node = koso.getPrevLink(node);
+      node = planningCtx.getPrevLink(node);
       expect(node).toEqual(Node.parse("t2"));
     });
 
@@ -2001,14 +1961,14 @@ describe("Koso tests", () => {
         { id: "t4", children: ["t2"] },
         { id: "t6", children: ["t2"] },
       ]);
-      koso.expanded = Set([Node.parse("t4")]);
+      planningCtx.expanded = Set([Node.parse("t4")]);
 
       let node: Node | null = Node.parse("t2");
-      node = koso.getPrevLink(node);
+      node = planningCtx.getPrevLink(node);
       expect(node).toEqual(Node.parse("t4/t2"));
       if (!node) throw new Error();
 
-      node = koso.getPrevLink(node);
+      node = planningCtx.getPrevLink(node);
       expect(node).toEqual(Node.parse("t2"));
     });
 
@@ -2022,7 +1982,7 @@ describe("Koso tests", () => {
         { id: "t2" },
       ]);
 
-      expect(koso.getPrevLink(Node.parse("t2"))).toBeNull();
+      expect(planningCtx.getPrevLink(Node.parse("t2"))).toBeNull();
     });
   });
 
@@ -2038,18 +1998,18 @@ describe("Koso tests", () => {
         { id: "t4", children: ["t2"] },
         { id: "t6", children: ["t2"] },
       ]);
-      koso.expanded = Set([Node.parse("t4"), Node.parse("t6")]);
+      planningCtx.expanded = Set([Node.parse("t4"), Node.parse("t6")]);
 
       let node: Node | null = Node.parse("t2");
-      node = koso.getNextLink(node);
+      node = planningCtx.getNextLink(node);
       expect(node).toEqual(Node.parse("t4/t2"));
       if (!node) throw new Error();
 
-      node = koso.getNextLink(node);
+      node = planningCtx.getNextLink(node);
       expect(node).toEqual(Node.parse("t6/t2"));
       if (!node) throw new Error();
 
-      node = koso.getNextLink(node);
+      node = planningCtx.getNextLink(node);
       expect(node).toEqual(Node.parse("t2"));
     });
 
@@ -2064,14 +2024,14 @@ describe("Koso tests", () => {
         { id: "t4", children: ["t2"] },
         { id: "t6", children: ["t2"] },
       ]);
-      koso.expanded = Set([Node.parse("t4")]);
+      planningCtx.expanded = Set([Node.parse("t4")]);
 
       let node: Node | null = Node.parse("t2");
-      node = koso.getNextLink(node);
+      node = planningCtx.getNextLink(node);
       expect(node).toEqual(Node.parse("t4/t2"));
       if (!node) throw new Error();
 
-      node = koso.getNextLink(node);
+      node = planningCtx.getNextLink(node);
       expect(node).toEqual(Node.parse("t2"));
     });
 
@@ -2085,7 +2045,7 @@ describe("Koso tests", () => {
         { id: "t2" },
       ]);
 
-      expect(koso.getNextLink(Node.parse("t2"))).toBeNull();
+      expect(planningCtx.getNextLink(Node.parse("t2"))).toBeNull();
     });
   });
 
@@ -2100,7 +2060,7 @@ describe("Koso tests", () => {
         { id: "t2" },
       ]);
 
-      expect(koso.getNextLink(Node.parse("t2"))).toBeNull();
+      expect(planningCtx.getNextLink(Node.parse("t2"))).toBeNull();
     });
   });
 

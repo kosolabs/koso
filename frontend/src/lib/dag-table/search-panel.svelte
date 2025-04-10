@@ -13,6 +13,7 @@
   import { Clipboard, Network } from "lucide-svelte";
   import { getContext } from "svelte";
   import { compareTasks, type Koso } from ".";
+  import { getPlanningContext } from "./planning-context.svelte";
 
   type Props = {
     open: boolean;
@@ -21,6 +22,7 @@
   let { open = $bindable(false), selected = $bindable() }: Props = $props();
 
   const koso = getContext<Koso>("koso");
+  const planningCtx = getPlanningContext();
 
   let query = $state("");
   let tasks = $derived(
@@ -41,7 +43,7 @@
 
   function finalize() {
     if (selected) {
-      koso.select(selected);
+      planningCtx.select(selected);
     }
   }
 

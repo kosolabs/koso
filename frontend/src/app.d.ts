@@ -1,4 +1,5 @@
 // See https://kit.svelte.dev/docs/types#app
+import type { PlanningContext } from "$lib/dag-table/planning-context.svelte";
 import type { Koso } from "$lib/koso.svelte";
 
 // for information about these interfaces
@@ -13,6 +14,7 @@ declare global {
 
   interface Window {
     koso: Koso;
+    planningCtx: PlanningContext;
     Y: Y;
   }
 }
