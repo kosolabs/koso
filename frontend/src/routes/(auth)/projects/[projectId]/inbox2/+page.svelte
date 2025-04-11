@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { showUnauthorizedDialog } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { newInboxContext, TaskTable } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
@@ -10,6 +11,12 @@
   const project = getProjectContext();
   const { koso } = project;
   newInboxContext(koso);
+
+  $effect(() => {
+    if (project.socket.unauthorized) {
+      showUnauthorizedDialog();
+    }
+  });
 </script>
 
 <Navbar>
