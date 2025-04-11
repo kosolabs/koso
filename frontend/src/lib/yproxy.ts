@@ -148,13 +148,10 @@ export class YTaskProxy {
     return (this.#yTask.get("desc") as Y.Text) || null;
   }
 
-  getOrNewDesc(): Y.Text {
-    if (this.desc) {
-      return this.desc;
-    }
+  newDesc() {
+    if (this.desc) return;
     const desc = new Y.Text();
     this.#yTask.set("desc", desc);
-    return desc;
   }
 
   delDesc() {
@@ -237,7 +234,7 @@ export class YTaskProxy {
 
   subscribe(subscriber: (value: YTaskProxy) => void): () => void {
     if (this.#subscribers.size === 0) {
-      this.observe(this.#broadcast);
+      this.observeDeep(this.#broadcast);
     }
 
     this.#subscribers.add(subscriber);
@@ -246,7 +243,7 @@ export class YTaskProxy {
     return () => {
       this.#subscribers.delete(subscriber);
       if (this.#subscribers.size === 0) {
-        this.unobserve(this.#broadcast);
+        this.unobserveDeep(this.#broadcast);
       }
     };
   }
