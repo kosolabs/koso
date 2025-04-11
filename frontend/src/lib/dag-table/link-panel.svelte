@@ -16,8 +16,7 @@
   import { match } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
   import { Clipboard, Network } from "lucide-svelte";
-  import { getContext } from "svelte";
-  import { compareTasks, type Koso } from ".";
+  import { compareTasks, getKosoContext } from ".";
   import { TaskLinkage } from "./koso.svelte";
 
   export type Mode = "link" | "block";
@@ -38,7 +37,7 @@
     ...restProps
   }: LinkPanelProps = $props();
 
-  const koso = getContext<Koso>("koso");
+  const koso = getKosoContext();
 
   let query = $state("");
   let setStatusBlocked: boolean = $state(true);
