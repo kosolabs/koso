@@ -23,11 +23,16 @@
   }: Props = $props();
 
   let el: HTMLDivElement | undefined = $state();
+  let editor: EditorView | undefined;
+
+  export function focus() {
+    editor?.focus();
+  }
 
   $effect(() => {
     if (el && yText.doc) {
       const dummyAwareness = new Awareness(yText.doc);
-      const editor = new EditorView({
+      editor = new EditorView({
         state: EditorState.create({
           doc: yText.toString(),
           extensions: [
@@ -41,7 +46,7 @@
       });
 
       return () => {
-        editor.destroy();
+        editor?.destroy();
       };
     }
   });

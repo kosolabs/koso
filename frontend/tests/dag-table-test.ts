@@ -2321,4 +2321,112 @@ test.describe("dag table tests", () => {
       });
     });
   });
+
+  test.describe("task description", () => {
+    test("show and hide the task description panel", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      await page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "Show task description panel" })
+        .click();
+
+      await expect(page.getByRole("heading", { name: "Task 1" })).toBeVisible();
+
+      await expect(
+        page.getByRole("button", { name: "Delete task description" }),
+      ).not.toBeVisible();
+
+      await page
+        .getByRole("button", { name: "Hide task description panel" })
+        .click();
+      await expect(
+        page.getByRole("heading", { name: "Task 1" }),
+      ).not.toBeVisible();
+    });
+
+    test("switch to a different task", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
+        { id: "1", name: "Task 1", desc: "Task 1 description" },
+        { id: "2", name: "Task 2", desc: "Task 2 description" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      await page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "Show task description panel" })
+        .click();
+      await expect(page.getByText("Task 1 description")).toBeVisible();
+
+      await page.getByRole("row", { name: "Task 2" }).click();
+
+      await expect(page.getByRole("heading", { name: "Task 2" })).toBeVisible();
+      await expect(page.getByText("Task 2 description")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Delete task description" }),
+      ).toBeVisible();
+    });
+
+    test("create, edit, and delete task description", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      await page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "Show task description panel" })
+        .click();
+
+      await expect(
+        page.getByRole("button", { name: "Delete task description" }),
+      ).not.toBeVisible();
+      await page.getByRole("button", { name: "Edit task description" }).click();
+      await expect(
+        page.getByRole("button", { name: "Delete task description" }),
+      ).toBeVisible();
+
+      await page.keyboard.type("A description for Task 1");
+      await page.keyboard.press("Escape");
+
+      await expect(page.getByText("A description for Task 1")).toBeVisible();
+
+      await page
+        .getByRole("button", { name: "Delete task description" })
+        .click();
+      await expect(
+        page.getByText("A description for Task 1"),
+      ).not.toBeVisible();
+    });
+
+    test("edit task name updates header", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1", "2", "3"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      await page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "Show task description panel" })
+        .click();
+      await expect(page.getByRole("heading", { name: "Task 1" })).toBeVisible();
+
+      await page.keyboard.press("Enter");
+      await page.keyboard.type(" Edited");
+      await page.keyboard.press("Enter");
+      await expect(
+        page.getByRole("heading", { name: "Task 1 Edited" }),
+      ).toBeVisible();
+    });
+  });
 });

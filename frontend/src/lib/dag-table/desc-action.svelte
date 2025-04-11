@@ -23,6 +23,7 @@
     variant="plain"
     color="primary"
     shape="circle"
+    aria-label="Show task description panel"
     icon={task.desc !== null ? FileText : FilePlus2}
     onclick={() => (detailPanelRenderer.detailPanel = "view")}
     {...props}
