@@ -262,4 +262,58 @@ test.describe("Collaboration tests", () => {
       }),
     ).toBeVisible();
   });
+
+  test("Editing task description", async ({ page1, page2 }) => {
+    await init(page1, [
+      { id: "root", name: "Root", children: ["1", "2", "3"] },
+      { id: "1", name: "Task 1" },
+      { id: "2", name: "Task 2" },
+      { id: "3", name: "Task 3" },
+    ]);
+
+    await page1
+      .getByRole("row", { name: "Task 1" })
+      .getByRole("button", { name: "Show task description panel" })
+      .click();
+
+    await page2
+      .getByRole("row", { name: "Task 1" })
+      .getByRole("button", { name: "Show task description panel" })
+      .click();
+
+    // Change task name
+    await page1
+      .getByRole("row", { name: "Task 1" })
+      .getByRole("button", { name: "Task 1 Edit Name" })
+      .click();
+    await page1.keyboard.type(" Edited");
+    await page1.keyboard.press("Enter");
+    await expect(
+      page2.getByRole("heading", { name: "Task 1 Edited" }),
+    ).toBeVisible();
+
+    // Add a task description
+    await page1.getByRole("button", { name: "Edit task description" }).click();
+    await page1.keyboard.type("Task 1 description");
+    await expect(page2.getByText("Task 1 description")).toBeVisible();
+    await page1.keyboard.type(" with more edits");
+    await expect(
+      page2.getByText("Task 1 description with more edits"),
+    ).toBeVisible();
+
+    // Both editing
+    await page2.getByRole("button", { name: "Edit task description" }).click();
+    await page1.keyboard.type(" and more!");
+    await expect(
+      page2.getByText("Task 1 description with more edits and more!"),
+    ).toBeVisible();
+
+    // Delete task description
+    await page1
+      .getByRole("button", { name: "Delete task description" })
+      .click();
+    await expect(
+      page2.getByRole("button", { name: "Delete task description" }),
+    ).not.toBeVisible();
+  });
 });
