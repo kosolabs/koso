@@ -1,14 +1,11 @@
 import { toast } from "$lib/components/ui/sonner";
 import {
   Koso,
-  MSG_KOSO_AWARENESS,
-  MSG_KOSO_AWARENESS_UPDATE,
   TaskLinkage,
   type DetailPanelStates,
 } from "$lib/dag-table/koso.svelte";
 import { useLocalStorage, type Storable } from "$lib/stores.svelte";
 import { List, Record, Set } from "immutable";
-import * as encoding from "lib0/encoding";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 
@@ -212,23 +209,8 @@ export class PlanningContext {
     }
 
     if (shouldUpdateAwareness) {
-      this.koso.send(this.#encodeAwareness());
+      this.koso.sendAwareness(this.selected ? this.selected.id : null);
     }
-  }
-
-  #encodeAwareness(): Uint8Array {
-    const encoder = encoding.createEncoder();
-    encoding.writeVarUint(encoder, MSG_KOSO_AWARENESS);
-    encoding.writeVarUint(encoder, MSG_KOSO_AWARENESS_UPDATE);
-    encoding.writeVarString(
-      encoder,
-      JSON.stringify({
-        clientId: this.koso.clientId,
-        sequence: this.#koso.nextAwarenessSequence(),
-        selected: this.selected ? [this.selected.id] : [],
-      }),
-    );
-    return encoding.toUint8Array(encoder);
   }
 
   // actions that operate on the UI
