@@ -6,7 +6,7 @@ import {
 } from "$lib/dag-table/awareness.svelte";
 import { useLocalStorage, type Storable } from "$lib/stores.svelte";
 import { findEntryIndex } from "$lib/utils";
-import { List, Map, Record, Set } from "immutable";
+import { Map, Record, Set } from "immutable";
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import { getContext, setContext } from "svelte";
@@ -43,52 +43,6 @@ type YMessageKosoAwareness =
   | typeof MSG_KOSO_AWARENESS_STATE;
 
 type YMessage = typeof MSG_SYNC | typeof MSG_KOSO_AWARENESS;
-
-type NodeProps = { path: List<string> };
-const NodeRecord = Record<NodeProps>({ path: List() });
-
-export class Node extends NodeRecord {
-  static get separator() {
-    return "/";
-  }
-
-  static parse(id: string): Node {
-    return new Node({ path: List(id.split(Node.separator)) });
-  }
-
-  get id(): string {
-    return this.path.size !== 0 ? this.path.join(Node.separator) : "root";
-  }
-
-  get name(): string {
-    return this.path.last("root");
-  }
-
-  get length(): number {
-    return this.path.size;
-  }
-
-  ancestor(generation: number): Node {
-    return new Node({ path: this.path.slice(0, -generation) });
-  }
-
-  isDescendantOf(ancestor: Node): boolean {
-    return this.id.startsWith(ancestor.id);
-  }
-
-  get parent(): Node {
-    return this.ancestor(1);
-  }
-
-  child(name: string): Node {
-    return new Node({ path: this.path.push(name) });
-  }
-  get linkage(): TaskLinkage {
-    return new TaskLinkage({ parentId: this.parent.name, id: this.name });
-  }
-}
-
-export type Nodes = Map<string, Node>;
 
 type TaskLinkageProps = { id: string; parentId: string };
 const TaskLinkageRecord = Record<TaskLinkageProps>({ parentId: "", id: "" });
@@ -339,10 +293,6 @@ export class Koso {
     return this.#awarenessSequence++;
   }
 
-  get root(): Node {
-    return new Node();
-  }
-
   get debug(): boolean {
     return this.#debug.value;
   }
@@ -532,18 +482,6 @@ export class Koso {
     }, "koso.upsertRoot");
   }
 
-  getNodes(taskId: string, slugs: List<string> = List()): Node[] {
-    if (taskId === "root") {
-      return [new Node({ path: slugs })];
-    }
-    slugs = slugs.insert(0, taskId);
-    const nodes: Node[] = [];
-    for (const parent of this.getParentIds(taskId)) {
-      nodes.push(...this.getNodes(parent, slugs));
-    }
-    return nodes;
-  }
-
   #hasCycle(parent: string, child: string): boolean {
     if (child === parent) {
       return true;
@@ -601,7 +539,7 @@ export class Koso {
   }
 
   canUnlink(task: string, parent: string): boolean {
-    return !this.#isCanonicalManagedLink(task, parent);
+    return !this.isCanonicalManagedLink(task, parent);
   }
 
   /**
@@ -629,34 +567,26 @@ export class Koso {
   canMove(task: string, src: string, dest: string): boolean {
     return (
       src === dest ||
-      (!this.#isCanonicalManagedLink(task, src) &&
+      (!this.isCanonicalManagedLink(task, src) &&
         this.canLink(new TaskLinkage({ parentId: dest, id: task })))
     );
   }
 
-  // business logic that operate on Nodes
-
-  getOffset(node: Node): number {
-    const offset = this.getChildren(node.parent.name).indexOf(node.name);
-    if (offset < 0) throw new Error(`Node ${node.name} not found in parent`);
-    return offset;
+  canDelete(link: TaskLinkage): boolean {
+    return !this.isCanonicalManagedLink(link.id, link.parentId);
   }
 
-  canDeleteNode(node: Node): boolean {
-    return !this.#isCanonicalManagedLink(node.name, node.parent.name);
-  }
-
-  deleteNode(node: Node) {
-    if (!this.canDeleteNode(node)) {
-      throw new Error(`Cannot delete node ${node}`);
+  delete(link: TaskLinkage) {
+    if (!this.canDelete(link)) {
+      throw new Error(`Cannot delete task ${link}`);
     }
 
-    const subtreeTaskIds = this.#collectSubtreeTaskIds(node.name);
+    const subtreeTaskIds = this.#collectSubtreeTaskIds(link.id);
 
-    // Find all of the tasks that will become orphans when `node`
+    // Find all of the tasks that will become orphans when the task
     // is unlinked. In other words, tasks whose only parents are also in the sub-tree
     // being deleted.
-    const stack = [node.name];
+    const stack = [link.id];
     let orphanTaskIds = Set<string>();
     let visited = Set<string>();
     while (stack.length > 0) {
@@ -670,10 +600,10 @@ export class Koso {
       const parents = this.parents.get(taskId);
       if (!parents) throw new Error(`Parents missing ${taskId}`);
       const linkedElseWhere = parents.find((parentTaskId) => {
-        const isTargetNode =
-          taskId === node.name && parentTaskId === node.parent.name;
+        const isTargetTaskLink =
+          taskId === link.id && parentTaskId === link.parentId;
         const parentInSubtree = subtreeTaskIds.has(parentTaskId);
-        return !isTargetNode && !parentInSubtree;
+        return !isTargetTaskLink && !parentInSubtree;
       });
       if (linkedElseWhere) {
         continue;
@@ -686,7 +616,7 @@ export class Koso {
     }
 
     this.doc.transact(() => {
-      this.unlink(node.name, node.parent.name);
+      this.unlink(link.id, link.parentId);
       for (const taskId of orphanTaskIds) {
         this.graph.delete(taskId);
       }
@@ -741,7 +671,7 @@ export class Koso {
    * would return false. `root -> github_pr` or `root -> [some pr task]`, for
    * example.
    */
-  #isCanonicalManagedLink(task: string, parent: string): boolean {
+  isCanonicalManagedLink(task: string, parent: string): boolean {
     if (task === "root") {
       return true;
     }
@@ -765,13 +695,6 @@ export class Koso {
       return true;
     }
     return false;
-  }
-
-  linkNode(node: Node, parent: Node, offset: number) {
-    this.link(
-      new TaskLinkage({ parentId: parent.name, id: node.name }),
-      offset,
-    );
   }
 
   newId(): string {
@@ -801,7 +724,7 @@ export class Koso {
     name: string = "",
   ): string {
     if (!this.canInsert(parent)) {
-      throw new Error(`Cannot insert node under parent ${parent}`);
+      throw new Error(`Cannot insert task under parent ${parent}`);
     }
     const taskId = this.newId();
     this.doc.transact(() => {
@@ -932,7 +855,7 @@ export class Koso {
     });
   }
 
-  /** Organizes the given node's children by status, etc. */
+  /** Organizes the given task's children by status, etc. */
   organizeTasks(parentTaskId: string) {
     function mapStatus(status: Status) {
       switch (status) {

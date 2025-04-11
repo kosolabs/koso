@@ -78,11 +78,10 @@ describe("Koso tests", () => {
   beforeEach((context) => {
     const cleanup = $effect.root(() => {
       koso = new Koso("project-id-" + uuidv4(), new Y.Doc());
-      root = koso.root;
+      planningCtx = new PlanningContext(koso);
+      root = planningCtx.root;
       koso.setSendAndSync(() => {});
       koso.receive(EMPTY_SYNC_RESPONSE);
-
-      planningCtx = new PlanningContext(koso);
     });
     context.onTestFinished(() => cleanup());
   });
@@ -459,7 +458,7 @@ describe("Koso tests", () => {
         { id: "1", name: "Task 1" },
         { id: "2", name: "Task 2" },
       ]);
-      koso.linkNode(Node.parse("2"), Node.parse("1"), 0);
+      planningCtx.linkNode(Node.parse("2"), Node.parse("1"), 0);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "2"] },
@@ -474,7 +473,7 @@ describe("Koso tests", () => {
         { id: "1", name: "Task 1" },
       ]);
       expect(() =>
-        koso.linkNode(Node.parse("1"), Node.parse("1"), 0),
+        planningCtx.linkNode(Node.parse("1"), Node.parse("1"), 0),
       ).toThrow();
     });
 
@@ -485,7 +484,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
       expect(() =>
-        koso.linkNode(Node.parse("1"), Node.parse("2"), 0),
+        planningCtx.linkNode(Node.parse("1"), Node.parse("2"), 0),
       ).toThrow();
     });
 
@@ -508,10 +507,14 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
       expect(() =>
-        koso.linkNode(Node.parse("1"), Node.parse("github"), 0),
+        planningCtx.linkNode(Node.parse("1"), Node.parse("github"), 0),
       ).toThrow();
       expect(() =>
-        koso.linkNode(Node.parse("1"), Node.parse("github/github_pr"), 0),
+        planningCtx.linkNode(
+          Node.parse("1"),
+          Node.parse("github/github_pr"),
+          0,
+        ),
       ).toThrow();
     });
 
@@ -534,7 +537,11 @@ describe("Koso tests", () => {
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
       expect(() =>
-        koso.linkNode(Node.parse("1"), Node.parse("github/github_pr/2"), 0),
+        planningCtx.linkNode(
+          Node.parse("1"),
+          Node.parse("github/github_pr/2"),
+          0,
+        ),
       ).toThrow();
     });
 
@@ -556,9 +563,13 @@ describe("Koso tests", () => {
         },
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
-      koso.linkNode(Node.parse("github/github_pr/2"), Node.parse("1"), 0);
-      koso.linkNode(Node.parse("github/github_pr"), Node.parse("1"), 0);
-      koso.linkNode(Node.parse("github"), Node.parse("1"), 0);
+      planningCtx.linkNode(
+        Node.parse("github/github_pr/2"),
+        Node.parse("1"),
+        0,
+      );
+      planningCtx.linkNode(Node.parse("github/github_pr"), Node.parse("1"), 0);
+      planningCtx.linkNode(Node.parse("github"), Node.parse("1"), 0);
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "github"] },
         ["github"]: { children: ["github_pr"] },
@@ -795,7 +806,7 @@ describe("Koso tests", () => {
     });
   });
 
-  describe("deleteNode", () => {
+  describe("delete", () => {
     it("delete node 2 from node 1 succeeds", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
@@ -803,7 +814,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      koso.deleteNode(Node.parse("1/2"));
+      koso.delete(Node.parse("1/2").linkage);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "2"] },
@@ -824,7 +835,7 @@ describe("Koso tests", () => {
         { id: "7", name: "Task 7", children: ["3"] },
       ]);
 
-      koso.deleteNode(Node.parse("2"));
+      koso.delete(Node.parse("2").linkage);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1", "7"] },
@@ -843,7 +854,7 @@ describe("Koso tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      koso.deleteNode(Node.parse("2"));
+      koso.delete(Node.parse("2").linkage);
 
       expect(koso.toJSON()).toMatchObject({
         root: { children: ["1"] },
@@ -860,7 +871,7 @@ describe("Koso tests", () => {
         { id: "2", name: "Task 2" },
       ]);
 
-      koso.deleteNode(Node.parse("1/2"));
+      koso.delete(Node.parse("1/2").linkage);
 
       expect(koso.toJSON()).toHaveProperty("root");
       expect(koso.toJSON()).toHaveProperty("1");
@@ -885,9 +896,13 @@ describe("Koso tests", () => {
         },
         { id: "2", name: "Some PR", kind: "github_pr" },
       ]);
-      expect(() => koso.deleteNode(Node.parse("github"))).toThrow();
-      expect(() => koso.deleteNode(Node.parse("github/github_pr"))).toThrow();
-      expect(() => koso.deleteNode(Node.parse("github/github_pr/2"))).toThrow();
+      expect(() => koso.delete(Node.parse("github").linkage)).toThrow();
+      expect(() =>
+        koso.delete(Node.parse("github/github_pr").linkage),
+      ).toThrow();
+      expect(() =>
+        koso.delete(Node.parse("github/github_pr/2").linkage),
+      ).toThrow();
     });
 
     it("delete non-canonical plugin task/container succeeds", () => {
@@ -922,13 +937,13 @@ describe("Koso tests", () => {
         { id: "4", name: "Some Rollup task", kind: "Rollup" },
         { id: "5", name: "Some task", kind: "Task" },
       ]);
-      koso.deleteNode(Node.parse("1/github"));
-      koso.deleteNode(Node.parse("1/github_pr"));
-      koso.deleteNode(Node.parse("1/2"));
-      koso.deleteNode(Node.parse("github/githubfoo"));
-      koso.deleteNode(Node.parse("github_pr/githubfoo"));
-      koso.deleteNode(Node.parse("4"));
-      koso.deleteNode(Node.parse("5"));
+      koso.delete(Node.parse("1/github").linkage);
+      koso.delete(Node.parse("1/github_pr").linkage);
+      koso.delete(Node.parse("1/2").linkage);
+      koso.delete(Node.parse("github/githubfoo").linkage);
+      koso.delete(Node.parse("github_pr/githubfoo").linkage);
+      koso.delete(Node.parse("4").linkage);
+      koso.delete(Node.parse("5").linkage);
 
       expect(koso.toJSON()).toMatchObject({
         ["1"]: { id: "1", children: [] },
