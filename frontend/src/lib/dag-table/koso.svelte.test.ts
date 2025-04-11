@@ -928,6 +928,213 @@ describe("Koso tests", () => {
     });
   });
 
+  describe("move", () => {
+    it("move node 3 to child of node 1 as a peer of node 2 succeeds (reparent)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "3"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      koso.move("3", "root", "1", 1);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "3"] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+      });
+    });
+
+    it("move node 3 to immediate child of node 1 succeeds (reparent)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "3"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      koso.move("3", "root", "1", 0);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["3", "2"] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+      });
+    });
+
+    it("move node 4 to be a child of node 3 succeeds (reparent)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2", "3", "4"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+        { id: "4", name: "Task 4" },
+      ]);
+
+      koso.move("4", "1", "3", 0);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "3"] },
+        ["2"]: { children: [] },
+        ["3"]: { children: ["4"] },
+        ["4"]: { children: [] },
+      });
+    });
+
+    it("move node 2 to peer of itself throws (prevent duplicate)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+
+      expect(() => koso.move("2", "root", "1", 1)).toThrow();
+    });
+
+    it("move node 4 to be the peer of node 2 succeeds (reorder)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2", "3", "4"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+        { id: "4", name: "Task 4" },
+      ]);
+
+      koso.move("4", "1", "1", 1);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "4", "3"] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+    });
+
+    it("move node 3 to be the peer of node 4 succeeds (reorder)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2", "3", "4"] },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
+        { id: "4", name: "Task 4" },
+      ]);
+
+      koso.move("3", "1", "1", 3);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
+        ["1"]: { children: ["2", "4", "3"] },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+    });
+
+    it("move canonical plugin task/container elsewhere throws", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      expect(() => koso.move("github", "root", "1", 0)).toThrow();
+      expect(() => koso.move("github_pr", "github", "1", 0)).toThrow();
+      expect(() => koso.move("2", "github_pr", "1", 0)).toThrow();
+    });
+
+    it("move non-canonical plugin task/container succeeds", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["1", "github", "github_pr", "2"],
+        },
+        { id: "1", name: "Task 1" },
+        { id: "3", name: "Task 3", children: ["github"] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      koso.move("2", "root", "1", 0);
+      koso.move("github_pr", "root", "1", 0);
+      koso.move("github", "3", "1", 0);
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "github"] },
+        ["github"]: { children: ["github_pr"] },
+        ["github_pr"]: { children: ["2"] },
+        ["1"]: { children: ["github", "github_pr", "2"] },
+        ["3"]: { children: [] },
+      });
+    });
+
+    it("reorder canonical plugin container succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+        },
+      ]);
+      koso.move("github", "root", "root", 0);
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["github", "1"] },
+      });
+    });
+
+    it("reorder canonical plugin task succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr", "other_plugin"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2", "3"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+        { id: "3", name: "Some PR", kind: "github_pr" },
+      ]);
+      koso.move("3", "github_pr", "github_pr", 0);
+      expect(koso.toJSON()).toMatchObject({
+        ["github_pr"]: { children: ["3", "2"] },
+      });
+    });
+  });
+
   describe("delete", () => {
     it("delete node 2 from node 1 succeeds", () => {
       init([
