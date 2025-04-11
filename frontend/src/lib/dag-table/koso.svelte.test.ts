@@ -7,7 +7,6 @@ import * as Y from "yjs";
 import { Koso, Node } from ".";
 import { EMPTY_SYNC_RESPONSE, type TaskBuilder } from "../../../tests/utils";
 import { TaskLinkage } from "./koso.svelte";
-import { PlanningContext } from "./planning-context.svelte";
 
 const USER: User = {
   email: "t@koso.app",
@@ -24,9 +23,7 @@ const OTHER_USER: User = {
 };
 
 describe("Koso tests", () => {
-  let root: Node;
   let koso: Koso;
-  let planningCtx: PlanningContext;
 
   const init = (tasks: TaskBuilder[]) => {
     const upsertedTaskIds = Set<string>(tasks.map((t) => t.id));
@@ -69,8 +66,6 @@ describe("Koso tests", () => {
   beforeEach((context) => {
     const cleanup = $effect.root(() => {
       koso = new Koso("project-id-" + uuidv4(), new Y.Doc());
-      planningCtx = new PlanningContext(koso);
-      root = planningCtx.root;
       koso.setSendAndSync(() => {});
       koso.receive(EMPTY_SYNC_RESPONSE);
     });
@@ -365,7 +360,7 @@ describe("Koso tests", () => {
 
   describe("insertTask", () => {
     it("creates a child of root", () => {
-      const id1 = koso.insertTask(root.name, 0, USER, "Task 1");
+      const id1 = koso.insertTask("root", 0, USER, "Task 1");
       expect(koso.toJSON()).toEqual({
         root: {
           id: "root",
