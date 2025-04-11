@@ -14,7 +14,7 @@ export class InboxContext {
   #selectedRaw: Selected = $state(Selected.default());
   #selected: YTaskProxy | undefined = $derived.by(() => {
     const task = this.#selectedRaw.task;
-    if (!task || this.#koso.taskIndex(task.id) < 0) {
+    if (!task || this.#koso.getTaskIndex(task.id) < 0) {
       return undefined;
     }
     return task;
@@ -101,7 +101,7 @@ export class InboxContext {
     }
 
     if (task) {
-      const index = this.#koso.taskIndex(task.id);
+      const index = this.#koso.getTaskIndex(task.id);
       if (index === -1) {
         // TODO: This happens when handleRow click is triggered when setting status to done in the inbox.
         // It'd be better if this threw.
