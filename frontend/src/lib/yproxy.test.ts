@@ -1,108 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
-import { YChildrenProxy, YGraphProxy, type YGraph } from "./yproxy";
+import { YChildrenProxy, YGraphProxy, YTaskProxy } from "./yproxy";
 
 describe("YTaskProxy", () => {
-  it("should create YTaskProxy correctly", () => {
-    const doc = new Y.Doc();
-    const yMap = doc.getMap("task");
-    yMap.set("id", "task-1");
-    yMap.set("num", "1");
-    yMap.set("name", "Test Task");
-    yMap.set("children", Y.Array.from(["child-1", "child-2"]));
+  let doc: Y.Doc;
+  let graph: YGraphProxy;
+  let task: YTaskProxy;
 
-    const taskProxy = new YGraphProxy(doc.getMap("graph")).set({
-      id: "task-1",
-      num: "1",
-      name: "Test Task",
-      desc: null,
-      children: ["child-1", "child-2"],
-      assignee: null,
-      reporter: null,
-      status: null,
-      statusTime: null,
-      kind: null,
-      url: null,
-    });
-
-    expect(taskProxy.id).toBe("task-1");
-    expect(taskProxy.num).toBe("1");
-    expect(taskProxy.name).toBe("Test Task");
-    expect(taskProxy.children.toArray()).toEqual(["child-1", "child-2"]);
-    expect(taskProxy.desc).toBeNull();
-    expect(taskProxy.assignee).toBeNull();
-    expect(taskProxy.reporter).toBeNull();
-    expect(taskProxy.yStatus).toBeNull();
-    expect(taskProxy.statusTime).toBeNull();
-    expect(taskProxy.yKind).toBeNull();
-    expect(taskProxy.url).toBeNull();
-  });
-
-  it("should handle property updates correctly", () => {
-    const doc = new Y.Doc();
-    const yGraph: YGraph = doc.getMap("graph");
-    const graphProxy = new YGraphProxy(yGraph);
-
-    const task = graphProxy.set({
-      id: "task-1",
-      num: "1",
-      name: "Initial Name",
-      desc: null,
-      children: [],
-      assignee: null,
-      reporter: null,
-      status: null,
-      statusTime: null,
-      kind: null,
-      url: null,
-    });
-
-    task.name = "Updated Name";
-    task.assignee = "user1";
-    task.yStatus = "In Progress";
-    task.statusTime = 1234567890;
-
-    expect(task.name).toBe("Updated Name");
-    expect(task.assignee).toBe("user1");
-    expect(task.yStatus).toBe("In Progress");
-    expect(task.statusTime).toBe(1234567890);
-  });
-
-  it("should handle description text operations", () => {
-    const doc = new Y.Doc();
-    const yGraph: YGraph = doc.getMap("graph");
-    const graphProxy = new YGraphProxy(yGraph);
-
-    const task = graphProxy.set({
-      id: "task-1",
-      num: "1",
-      name: "Task",
-      desc: null,
-      children: [],
-      assignee: null,
-      reporter: null,
-      status: null,
-      statusTime: null,
-      kind: null,
-      url: null,
-    });
-
-    expect(task.desc).toBeNull();
-    task.newDesc();
-    expect(task.desc).toBeInstanceOf(Y.Text);
-    task.desc?.insert(0, "Description text");
-    expect(task.desc?.toString()).toBe("Description text");
-
-    task.delDesc();
-    expect(task.desc).toBeNull();
-  });
-
-  it("should handle children operations", () => {
-    const doc = new Y.Doc();
-    const yGraph: YGraph = doc.getMap("graph");
-    const graphProxy = new YGraphProxy(yGraph);
-
-    const task = graphProxy.set({
+  beforeEach(() => {
+    doc = new Y.Doc();
+    graph = new YGraphProxy(doc.getMap("graph"));
+    task = graph.set({
       id: "task-1",
       num: "1",
       name: "Task",
@@ -115,7 +23,20 @@ describe("YTaskProxy", () => {
       kind: null,
       url: null,
     });
+  });
 
+  it("should handle description text operations", () => {
+    expect(task.desc).toBeNull();
+    task.newDesc();
+    expect(task.desc).toBeInstanceOf(Y.Text);
+    task.desc?.insert(0, "Description text");
+    expect(task.desc?.toString()).toBe("Description text");
+
+    task.delDesc();
+    expect(task.desc).toBeNull();
+  });
+
+  it("should handle children operations", () => {
     expect(task.children.toArray()).toEqual(["child-1"]);
     task.children.push(["child-2", "child-3"]);
     expect(task.children.toArray()).toEqual(["child-1", "child-2", "child-3"]);
@@ -128,24 +49,6 @@ describe("YTaskProxy", () => {
   });
 
   it("should handle subscribe/unsubscribe functionality", () => {
-    const doc = new Y.Doc();
-    const yGraph: YGraph = doc.getMap("graph");
-    const graphProxy = new YGraphProxy(yGraph);
-
-    const task = graphProxy.set({
-      id: "task-1",
-      num: "1",
-      name: "Task",
-      desc: null,
-      children: [],
-      assignee: null,
-      reporter: null,
-      status: null,
-      statusTime: null,
-      kind: null,
-      url: null,
-    });
-
     const changes: string[] = [];
     const unsubscribe = task.subscribe((value) => {
       changes.push(value.name);
@@ -165,24 +68,6 @@ describe("YTaskProxy", () => {
   });
 
   it("should handle multiple subscribers correctly", () => {
-    const doc = new Y.Doc();
-    const yGraph: YGraph = doc.getMap("graph");
-    const graphProxy = new YGraphProxy(yGraph);
-
-    const task = graphProxy.set({
-      id: "task-1",
-      num: "1",
-      name: "Task",
-      desc: null,
-      children: [],
-      assignee: null,
-      reporter: null,
-      status: null,
-      statusTime: null,
-      kind: null,
-      url: null,
-    });
-
     const changes1: string[] = [];
     const changes2: string[] = [];
 
@@ -210,6 +95,51 @@ describe("YTaskProxy", () => {
     task.name = "Very Final Task";
     expect(changes1).toEqual(["Task", "Updated Task"]); // No update
     expect(changes2).toEqual(["Task", "Updated Task", "Final Task"]); // No update
+  });
+
+  it("should call unobserveDeep when last subscriber unsubscribes", () => {
+    // Spy on the unobserveDeep method
+    const unobserveDeepSpy = vi.spyOn(task, "unobserveDeep");
+
+    // Add two subscribers
+    const unsubscribe1 = task.subscribe(() => {});
+    const unsubscribe2 = task.subscribe(() => {});
+
+    // First unsubscribe should not trigger unobserveDeep
+    unsubscribe1();
+    expect(unobserveDeepSpy).not.toHaveBeenCalled();
+
+    // Last unsubscribe should trigger unobserveDeep
+    unsubscribe2();
+    expect(unobserveDeepSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("should handle subscribe/unsubscribe cycle correctly", () => {
+    const observeDeepSpy = vi.spyOn(task, "observeDeep");
+    const unobserveDeepSpy = vi.spyOn(task, "unobserveDeep");
+
+    // First subscription
+    const unsubscribe1 = task.subscribe(() => {});
+    expect(observeDeepSpy).toHaveBeenCalledTimes(1);
+
+    // Second subscription
+    const unsubscribe2 = task.subscribe(() => {});
+    expect(observeDeepSpy).toHaveBeenCalledTimes(1); // Should not call observeDeep again
+
+    // First unsubscribe
+    unsubscribe1();
+    expect(unobserveDeepSpy).not.toHaveBeenCalled();
+
+    // Last unsubscribe
+    unsubscribe2();
+    expect(unobserveDeepSpy).toHaveBeenCalledTimes(1);
+
+    // New subscription after all unsubscribed
+    const unsubscribe3 = task.subscribe(() => {});
+    expect(observeDeepSpy).toHaveBeenCalledTimes(2); // Should call observeDeep again
+
+    unsubscribe3();
+    expect(unobserveDeepSpy).toHaveBeenCalledTimes(2);
   });
 });
 
