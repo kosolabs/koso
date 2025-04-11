@@ -1,20 +1,13 @@
 <script lang="ts">
-  import { page } from "$app/state";
   import { showUnauthorizedDialog } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
-  import { Koso, KosoSocket } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
-  import * as Y from "yjs";
+  import { getProjectContext } from "$lib/dag-table/project-context.svelte";
 
-  const projectId = page.params.projectId;
-
-  const koso = new Koso(projectId, new Y.Doc());
-  const kosoSocket = new KosoSocket(koso, projectId);
-  window.koso = koso;
-  window.Y = Y;
+  const project = getProjectContext();
 
   $effect(() => {
-    if (kosoSocket.unauthorized) {
+    if (project.socket.unauthorized) {
       showUnauthorizedDialog();
     }
   });
@@ -22,4 +15,4 @@
 
 <Navbar />
 
-<OfflineAlert offline={kosoSocket.offline} />
+<OfflineAlert offline={project.socket.offline} />
