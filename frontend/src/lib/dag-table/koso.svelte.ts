@@ -35,9 +35,9 @@ type YMessageSync =
   | typeof MSG_SYNC_RESPONSE
   | typeof MSG_SYNC_UPDATE;
 
-export const MSG_KOSO_AWARENESS = 8;
-export const MSG_KOSO_AWARENESS_UPDATE = 0;
-export const MSG_KOSO_AWARENESS_STATE = 1;
+const MSG_KOSO_AWARENESS = 8;
+const MSG_KOSO_AWARENESS_UPDATE = 0;
+const MSG_KOSO_AWARENESS_STATE = 1;
 type YMessageKosoAwareness =
   | typeof MSG_KOSO_AWARENESS_UPDATE
   | typeof MSG_KOSO_AWARENESS_STATE;
@@ -104,7 +104,7 @@ export class Koso {
   #yDoc: Y.Doc;
   #yGraph: YGraphProxy;
   #yIndexedDb: IndexeddbPersistence;
-  send: (message: Uint8Array) => void = () => {
+  #send: (message: Uint8Array) => void = () => {
     // Until we connect to the server and invoke handleClientMessage,
     // there's nothing else to do with client messages, so we simply discard them.
     // Any dropped changes will be sync'd to the server later.
@@ -155,7 +155,7 @@ export class Koso {
           encoding.writeVarUint(encoder, MSG_SYNC);
           encoding.writeVarUint(encoder, MSG_SYNC_UPDATE);
           encoding.writeVarUint8Array(encoder, message);
-          this.send(encoding.toUint8Array(encoder));
+          this.#send(encoding.toUint8Array(encoder));
         }
       },
     );
@@ -192,7 +192,7 @@ export class Koso {
           encoder,
           Y.encodeStateAsUpdateV2(this.doc, encodedStateVector),
         );
-        this.send(encoding.toUint8Array(encoder));
+        this.#send(encoding.toUint8Array(encoder));
       } else if (syncType === MSG_SYNC_RESPONSE) {
         const message = decoding.readVarUint8Array(decoder);
         Y.applyUpdateV2(this.doc, message, "koso.SYNC_RESPONSE");
@@ -228,8 +228,8 @@ export class Koso {
   }
 
   setSendAndSync(f: (message: Uint8Array) => void) {
-    this.send = f;
-    this.send(this.#encodeSyncRequest());
+    this.#send = f;
+    this.#send(this.#encodeSyncRequest());
   }
 
   #encodeSyncRequest(): Uint8Array {
@@ -238,6 +238,25 @@ export class Koso {
     encoding.writeVarUint(encoder, MSG_SYNC_REQUEST);
     const sv = Y.encodeStateVector(this.doc);
     encoding.writeVarUint8Array(encoder, sv);
+    return encoding.toUint8Array(encoder);
+  }
+
+  sendAwareness(selectedNodeId: string | null) {
+    this.#send(this.#encodeAwareness(selectedNodeId));
+  }
+
+  #encodeAwareness(selectedNodeId: string | null): Uint8Array {
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, MSG_KOSO_AWARENESS);
+    encoding.writeVarUint(encoder, MSG_KOSO_AWARENESS_UPDATE);
+    encoding.writeVarString(
+      encoder,
+      JSON.stringify({
+        clientId: this.clientId,
+        sequence: this.#awarenessSequence++,
+        selected: selectedNodeId ? [selectedNodeId] : [],
+      }),
+    );
     return encoding.toUint8Array(encoder);
   }
 
@@ -283,10 +302,6 @@ export class Koso {
 
   get awareness(): Awareness[] {
     return this.#awareness;
-  }
-
-  nextAwarenessSequence(): number {
-    return this.#awarenessSequence++;
   }
 
   get debug(): boolean {
