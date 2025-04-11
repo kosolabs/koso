@@ -316,9 +316,7 @@ export class PlanningContext {
   }
 
   getOffset(node: Node): number {
-    const offset = this.#koso.getChildren(node.parent.name).indexOf(node.name);
-    if (offset < 0) throw new Error(`Node ${node.name} not found in parent`);
-    return offset;
+    return this.koso.getChildTaskOffset(node.name, node.parent.name);
   }
 
   getPrevPeer(node: Node): Node | null {
@@ -426,25 +424,7 @@ export class PlanningContext {
   }
 
   moveNode(node: Node, parent: Node, offset: number) {
-    if (offset < 0) {
-      throw new Error(`Cannot move  ${node.name} to negative offset ${offset}`);
-    }
-    if (!this.canMoveNode(node, parent))
-      throw new Error(`Cannot move ${node.name} to ${parent}`);
-    const srcOffset = this.getOffset(node);
-    this.koso.doc.transact(() => {
-      const srcParentName = node.parent.name;
-      const ySrcChildren = this.koso.getChildren(srcParentName);
-      ySrcChildren.delete(srcOffset);
-
-      if (srcParentName === parent.name && srcOffset < offset) {
-        offset -= 1;
-      }
-      this.koso.linkUnchecked(
-        new TaskLinkage({ parentId: parent.name, id: node.name }),
-        offset,
-      );
-    });
+    this.koso.move(node.name, node.parent.name, parent.name, offset);
     this.selected = parent.child(node.name);
   }
 

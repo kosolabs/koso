@@ -281,10 +281,6 @@ export class Koso {
     return this.#tasks;
   }
 
-  taskIndex(id: string): number {
-    return this.#tasks.findIndex((t) => t.id === id);
-  }
-
   get awareness(): Awareness[] {
     return this.#awareness;
   }
@@ -321,6 +317,14 @@ export class Koso {
     return this.graph.get(taskId);
   }
 
+  /**
+   * Retrieves the index of the task in tasks {@link tasks}, if found, and -1
+   * otherwise.
+   */
+  getTaskIndex(taskId: string): number {
+    return this.#tasks.findIndex((t) => t.id === taskId);
+  }
+
   /** Retrieves the parent tasks of the given task ID. */
   getParents(taskId: string): YTaskProxy[] {
     return this.getParentIds(taskId).map((parentId) => this.getTask(parentId));
@@ -346,6 +350,13 @@ export class Koso {
   /** Checks if a given task is the parent of the given child. */
   hasChild(parent: string, child: string): boolean {
     return this.getChildren(parent).includes(child);
+  }
+
+  /** Retrieves the offset, index, of the child in the given parent. */
+  getChildTaskOffset(child: string, parent: string): number {
+    const offset = this.getChildren(parent).indexOf(child);
+    if (offset < 0) throw new Error(`Node ${child} not found in parent`);
+    return offset;
   }
 
   /**
@@ -531,13 +542,15 @@ export class Koso {
     }
 
     offset = offset ?? this.getBestLinkOffset(linkage);
-    this.linkUnchecked(linkage, offset);
+    this.#linkUnchecked(linkage, offset);
   }
 
-  linkUnchecked({ id: task, parentId: parent }: TaskLinkage, offset: number) {
+  /** Like {@link link} but with out the safety checks. Use cautiously. */
+  #linkUnchecked({ id: task, parentId: parent }: TaskLinkage, offset: number) {
     this.getChildren(parent).insert(offset, [task]);
   }
 
+  /** Determines if a task can be unlinked from a parent task. */
   canUnlink(task: string, parent: string): boolean {
     return !this.isCanonicalManagedLink(task, parent);
   }
@@ -570,6 +583,33 @@ export class Koso {
       (!this.isCanonicalManagedLink(task, src) &&
         this.canLink(new TaskLinkage({ parentId: dest, id: task })))
     );
+  }
+
+  /** Moves the given task from one parent to another. */
+  move(
+    srcId: string,
+    srcParentId: string,
+    destParentId: string,
+    offset: number,
+  ) {
+    if (offset < 0) {
+      throw new Error(`Cannot move  ${srcId} to negative offset ${offset}`);
+    }
+    if (!this.canMove(srcId, srcParentId, destParentId))
+      throw new Error(`Cannot move ${srcId} to ${destParentId}`);
+    const srcOffset = this.getChildTaskOffset(srcId, srcParentId);
+    this.doc.transact(() => {
+      const ySrcChildren = this.getChildren(srcParentId);
+      ySrcChildren.delete(srcOffset);
+
+      if (srcParentId === destParentId && srcOffset < offset) {
+        offset -= 1;
+      }
+      this.#linkUnchecked(
+        new TaskLinkage({ parentId: destParentId, id: srcId }),
+        offset,
+      );
+    });
   }
 
   canDelete(link: TaskLinkage): boolean {

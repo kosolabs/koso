@@ -88,7 +88,7 @@
   function selectNext() {
     if (koso.tasks.length > 0) {
       if (inbox.selected) {
-        const selectedIndex = koso.taskIndex(inbox.selected.id);
+        const selectedIndex = koso.getTaskIndex(inbox.selected.id);
         if (selectedIndex < 0) {
           inbox.selected = undefined;
         } else {
@@ -104,7 +104,7 @@
   function selectPrev() {
     if (koso.tasks.length > 0) {
       if (inbox.selected) {
-        const selectedIndex = koso.taskIndex(inbox.selected.id);
+        const selectedIndex = koso.getTaskIndex(inbox.selected.id);
         if (selectedIndex < 0) {
           inbox.selected = undefined;
         } else {
@@ -239,7 +239,7 @@
       return;
     }
 
-    const currentIndex = koso.taskIndex(task.id);
+    const currentIndex = koso.getTaskIndex(task.id);
     if (currentIndex !== -1) {
       // The task still exists. Make sure the stashed index still matches.
       if (!index || index !== currentIndex) {
