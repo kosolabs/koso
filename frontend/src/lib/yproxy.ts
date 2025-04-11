@@ -1,4 +1,4 @@
-import { Set } from "immutable";
+import { Set as ImmutableSet } from "immutable";
 import * as Y from "yjs";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,7 +32,10 @@ export type Task = {
 export type Status = "Not Started" | "In Progress" | "Done" | "Blocked";
 export type Kind = YKind | "Rollup";
 export type YKind = "Task" | "github" | "github_pr";
-export const unmanagedKinds: Set<Kind> = Set.of("Rollup", "Task");
+export const unmanagedKinds: ImmutableSet<Kind> = ImmutableSet.of(
+  "Rollup",
+  "Task",
+);
 
 export type Slice = {
   start?: number;
@@ -77,6 +80,7 @@ export class YGraphProxy {
       ["id", task.id],
       ["num", task.num],
       ["name", task.name],
+      ["desc", task.desc !== null ? new Y.Text(task.desc) : null],
       ["children", Y.Array.from(task.children)],
       ["reporter", task.reporter],
       ["assignee", task.assignee],
@@ -114,6 +118,7 @@ export class YGraphProxy {
 
 export class YTaskProxy {
   #yTask: YTask;
+  #subscribers = new Set<(value: YTaskProxy) => void>();
 
   constructor(yTask: YTask) {
     this.#yTask = yTask;
@@ -153,7 +158,7 @@ export class YTaskProxy {
   }
 
   delDesc() {
-    this.#yTask.delete("desc");
+    this.#yTask.set("desc", null);
   }
 
   get children(): YChildrenProxy {
@@ -222,6 +227,28 @@ export class YTaskProxy {
 
   unobserveDeep(f: (arg0: YEvent[], arg1: Y.Transaction) => void) {
     this.#yTask.unobserveDeep(f);
+  }
+
+  #broadcast = () => {
+    for (const subscriber of this.#subscribers) {
+      subscriber(this);
+    }
+  };
+
+  subscribe(subscriber: (value: YTaskProxy) => void): () => void {
+    if (this.#subscribers.size === 0) {
+      this.observe(this.#broadcast);
+    }
+
+    this.#subscribers.add(subscriber);
+    subscriber(this);
+
+    return () => {
+      this.#subscribers.delete(subscriber);
+      if (this.#subscribers.size === 0) {
+        this.unobserve(this.#broadcast);
+      }
+    };
   }
 
   toJSON(): Task {
