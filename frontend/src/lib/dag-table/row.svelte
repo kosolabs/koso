@@ -215,10 +215,10 @@
     }
 
     const dragDestParent = node.parent;
-    const dragDestOffset = koso.getOffset(node) + 1;
+    const dragDestOffset = planningCtx.getOffset(node) + 1;
 
     if (planningCtx.dropEffect === "copy") {
-      koso.linkNode(planningCtx.dragged, dragDestParent, dragDestOffset);
+      planningCtx.linkNode(planningCtx.dragged, dragDestParent, dragDestOffset);
     } else if (planningCtx.dropEffect === "move") {
       planningCtx.moveNode(planningCtx.dragged, dragDestParent, dragDestOffset);
     } else {
@@ -239,7 +239,7 @@
     const dragDestOffset = 0;
 
     if (planningCtx.dropEffect === "copy") {
-      koso.linkNode(planningCtx.dragged, dragDestParent, dragDestOffset);
+      planningCtx.linkNode(planningCtx.dragged, dragDestParent, dragDestOffset);
     } else if (planningCtx.dropEffect === "move") {
       planningCtx.moveNode(planningCtx.dragged, dragDestParent, dragDestOffset);
     } else {

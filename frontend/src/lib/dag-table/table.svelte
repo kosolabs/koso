@@ -87,11 +87,11 @@
     if (planningCtx.selected) {
       insertAndEdit(
         planningCtx.selected.parent,
-        koso.getOffset(planningCtx.selected) + 1,
+        planningCtx.getOffset(planningCtx.selected) + 1,
         auth.user,
       );
     } else {
-      insertAndEdit(koso.root, 0, auth.user);
+      insertAndEdit(planningCtx.root, 0, auth.user);
     }
   }
 
@@ -99,7 +99,7 @@
     if (!planningCtx.selected) return;
     insertAndEdit(
       planningCtx.selected.parent,
-      koso.getOffset(planningCtx.selected),
+      planningCtx.getOffset(planningCtx.selected),
       auth.user,
     );
   }
@@ -162,7 +162,7 @@
     const toDelete = planningCtx.selected;
     const toDeleteIndex = planningCtx.nodes.indexOf(toDelete);
 
-    koso.deleteNode(toDelete);
+    koso.delete(toDelete.linkage);
 
     if (!inboxView) {
       // Select the next (or previous) node following deletion.
@@ -469,7 +469,7 @@
       enabled: () =>
         !inboxView &&
         !!planningCtx.selected &&
-        koso.canDeleteNode(planningCtx.selected),
+        koso.canDelete(planningCtx.selected.linkage),
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({

@@ -1,5 +1,4 @@
 import { toast } from "$lib/components/ui/sonner";
-import { Node } from "$lib/dag-table";
 import {
   Koso,
   MSG_KOSO_AWARENESS,
@@ -28,7 +27,7 @@ export class PlanningContext {
     if (this.koso.graph.size === 0) {
       return List();
     }
-    return this.#flattenFn(this.koso.root, this.expanded, this.showDone);
+    return this.#flattenFn(this.root, this.expanded, this.showDone);
   });
 
   #selectedRaw: Selected = $state(Selected.default());
@@ -101,6 +100,10 @@ export class PlanningContext {
 
   get undoManager(): Y.UndoManager {
     return this.#yUndoManager;
+  }
+
+  get root(): Node {
+    return new Node();
   }
 
   get nodes(): List<Node> {
@@ -241,7 +244,7 @@ export class PlanningContext {
   // business logic that operate on Nodes
 
   select(taskId: string) {
-    const nodes = this.koso.getNodes(taskId);
+    const nodes = this.getNodes(taskId);
     if (!nodes.length) throw new Error("Expected at least one Node");
     this.selected = nodes[0];
   }
@@ -291,13 +294,31 @@ export class PlanningContext {
 
   /** Expands all tasks. */
   expandAll() {
-    this.expanded = this.#expandAll(this.koso.root);
+    this.expanded = this.#expandAll(this.root);
   }
 
   /** Collapses all tasks. */
   collapseAll() {
     this.expanded = this.expanded.clear();
     this.selected = null;
+  }
+
+  getNodes(taskId: string, slugs: List<string> = List()): Node[] {
+    if (taskId === "root") {
+      return [new Node({ path: slugs })];
+    }
+    slugs = slugs.insert(0, taskId);
+    const nodes: Node[] = [];
+    for (const parent of this.#koso.getParentIds(taskId)) {
+      nodes.push(...this.getNodes(parent, slugs));
+    }
+    return nodes;
+  }
+
+  getOffset(node: Node): number {
+    const offset = this.#koso.getChildren(node.parent.name).indexOf(node.name);
+    if (offset < 0) throw new Error(`Node ${node.name} not found in parent`);
+    return offset;
   }
 
   getPrevPeer(node: Node): Node | null {
@@ -410,7 +431,7 @@ export class PlanningContext {
     }
     if (!this.canMoveNode(node, parent))
       throw new Error(`Cannot move ${node.name} to ${parent}`);
-    const srcOffset = this.koso.getOffset(node);
+    const srcOffset = this.getOffset(node);
     this.koso.doc.transact(() => {
       const srcParentName = node.parent.name;
       const ySrcChildren = this.koso.getChildren(srcParentName);
@@ -487,7 +508,7 @@ export class PlanningContext {
       }
 
       if (!insertionTarget) {
-        if (maybeMove(adj.parent, this.koso.getOffset(adj))) {
+        if (maybeMove(adj.parent, this.getOffset(adj))) {
           return;
         }
 
@@ -502,10 +523,7 @@ export class PlanningContext {
         }
       } else {
         if (
-          maybeMove(
-            insertionTarget.parent,
-            this.koso.getOffset(insertionTarget) + 1,
-          )
+          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
         ) {
           return;
         }
@@ -583,10 +601,7 @@ export class PlanningContext {
         }
 
         if (
-          maybeMove(
-            insertionTarget.parent,
-            this.koso.getOffset(insertionTarget) + 1,
-          )
+          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
         ) {
           return;
         }
@@ -600,7 +615,7 @@ export class PlanningContext {
           }
           adjIndex++;
         } else {
-          if (maybeMove(adj.parent, this.koso.getOffset(adj) + 1)) {
+          if (maybeMove(adj.parent, this.getOffset(adj) + 1)) {
             return;
           }
 
@@ -611,10 +626,7 @@ export class PlanningContext {
         }
       } else {
         if (
-          maybeMove(
-            insertionTarget.parent,
-            this.koso.getOffset(insertionTarget) + 1,
-          )
+          maybeMove(insertionTarget.parent, this.getOffset(insertionTarget) + 1)
         ) {
           return;
         }
@@ -705,9 +717,16 @@ export class PlanningContext {
   undentNode(node: Node) {
     if (!this.canUndentNode(node)) return;
     const parent = node.parent;
-    const offset = this.koso.getOffset(parent);
+    const offset = this.getOffset(parent);
     this.moveNode(node, parent.parent, offset + 1);
     this.selected = parent.parent.child(node.name);
+  }
+
+  linkNode(node: Node, parent: Node, offset: number) {
+    this.koso.link(
+      new TaskLinkage({ parentId: parent.name, id: node.name }),
+      offset,
+    );
   }
 
   /** Do not call this directly. Use #flattenFn instead. */
@@ -803,3 +822,49 @@ export class Selected extends SelectedRecord {
   }
 }
 const DEFAULT_SELECTED = new Selected({ node: null, index: null });
+
+type NodeProps = { path: List<string> };
+const NodeRecord = Record<NodeProps>({ path: List() });
+
+export class Node extends NodeRecord {
+  static get separator() {
+    return "/";
+  }
+
+  static parse(id: string): Node {
+    return new Node({ path: List(id.split(Node.separator)) });
+  }
+
+  get id(): string {
+    return this.path.size !== 0 ? this.path.join(Node.separator) : "root";
+  }
+
+  get name(): string {
+    return this.path.last("root");
+  }
+
+  get length(): number {
+    return this.path.size;
+  }
+
+  ancestor(generation: number): Node {
+    return new Node({ path: this.path.slice(0, -generation) });
+  }
+
+  isDescendantOf(ancestor: Node): boolean {
+    return this.id.startsWith(ancestor.id);
+  }
+
+  get parent(): Node {
+    return this.ancestor(1);
+  }
+
+  child(name: string): Node {
+    return new Node({ path: this.path.push(name) });
+  }
+  get linkage(): TaskLinkage {
+    return new TaskLinkage({ parentId: this.parent.name, id: this.name });
+  }
+}
+
+export type Nodes = Map<string, Node>;
