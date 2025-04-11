@@ -2,18 +2,17 @@
   import { CodeMirror } from "$lib/components/ui/code-mirror";
   import { Button } from "$lib/kosui/button";
   import { Shortcut } from "$lib/kosui/shortcut";
-  import { Pencil, Trash, X } from "lucide-svelte";
+  import { Eye, Pencil, Trash, X } from "lucide-svelte";
   import { tick } from "svelte";
   import { toast } from "svelte-sonner";
   import { slide } from "svelte/transition";
-  import * as Y from "yjs";
   import type { DetailPanelStates } from "./koso.svelte";
   import MarkdownViewer from "./markdown-viewer.svelte";
   import { getProjectContext } from "./project-context.svelte";
 
-  interface DetailPanelRenderer {
+  type DetailPanelRenderer = {
     detailPanel: DetailPanelStates;
-  }
+  };
 
   type Props = {
     taskId: string | undefined;
@@ -25,8 +24,6 @@
   const { koso } = getProjectContext();
 
   let task = $derived(taskId ? koso.getTask(taskId) : undefined);
-  let yDesc: Y.Text | undefined = $state.raw();
-  let desc: string | undefined = $state.raw();
 
   function hideDetails() {
     detailPanelRenderer.detailPanel = "none";
@@ -37,21 +34,28 @@
   }
 
   function editDetails() {
-    if (taskId && !koso.isEditable(taskId)) {
+    if (!task) {
+      throw new Error("Failed to edit task details because task was null");
+    }
+    if (!koso.isEditable(task.id)) {
       toast.warning(
         "This is a managed task and cannot be edited in Koso directly.",
       );
       return;
     }
-    yDesc = task?.getOrNewDesc();
+    task.newDesc();
     detailPanelRenderer.detailPanel = "edit";
     // Focus the editor after it gets rendered (after a tick)
     tick().then(() => editor?.focus());
   }
 
   function deleteDetails() {
-    yDesc = undefined;
-    task?.delDesc();
+    if (!task) {
+      throw new Error(
+        "Failed to delete task description because task was null",
+      );
+    }
+    task.delDesc();
   }
 
   function handleKeyDownEditing(event: KeyboardEvent) {
@@ -60,25 +64,6 @@
     }
     event.stopImmediatePropagation();
   }
-
-  $effect(() => {
-    yDesc = task?.desc || undefined;
-    desc = yDesc?.toString();
-    return task?.observeDeep(() => {
-      yDesc = task.desc || undefined;
-      desc = yDesc?.toString();
-    });
-  });
-
-  $effect(() => {
-    if (
-      taskId &&
-      !koso.isEditable(taskId) &&
-      detailPanelRenderer.detailPanel === "edit"
-    ) {
-      viewDetails();
-    }
-  });
 </script>
 
 {#if detailPanelRenderer.detailPanel !== "none"}
@@ -91,7 +76,7 @@
     >
       {$task?.name || "No task selected"}
       <div class="top-2 right-2 ml-auto flex gap-1">
-        {#if taskId && koso.isEditable(taskId)}
+        {#if taskId && koso.isEditable(taskId) && detailPanelRenderer.detailPanel === "view"}
           <Button
             aria-label="Edit task description"
             icon={Pencil}
@@ -99,7 +84,15 @@
             onclick={editDetails}
           />
         {/if}
-        {#if yDesc !== undefined}
+        {#if detailPanelRenderer.detailPanel === "edit"}
+          <Button
+            aria-label="View task description"
+            icon={Eye}
+            variant="plain"
+            onclick={viewDetails}
+          />
+        {/if}
+        {#if $task && $task.desc !== null}
           <Button
             aria-label="Delete task description"
             icon={Trash}
@@ -121,14 +114,16 @@
       role="document"
       ondblclick={editDetails}
     >
-      {#if yDesc && taskId && koso.isEditable(taskId) && detailPanelRenderer.detailPanel === "edit"}
-        <CodeMirror
-          bind:this={editor}
-          yText={yDesc}
-          onkeydown={handleKeyDownEditing}
-        />
-      {:else if desc}
-        <MarkdownViewer class="p-2" value={desc} />
+      {#if $task && $task.desc && task && task.desc}
+        {#if koso.isEditable($task.id) && detailPanelRenderer.detailPanel === "edit"}
+          <CodeMirror
+            bind:this={editor}
+            yText={task.desc}
+            onkeydown={handleKeyDownEditing}
+          />
+        {:else}
+          <MarkdownViewer class="p-2" value={$task.desc.toString()} />
+        {/if}
       {/if}
     </div>
   </div>
