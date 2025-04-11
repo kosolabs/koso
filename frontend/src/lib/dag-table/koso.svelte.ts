@@ -3,6 +3,7 @@ import { toast } from "$lib/components/ui/sonner";
 import {
   parseAwarenessStateResponse,
   type Awareness,
+  type AwarenessUpdate,
 } from "$lib/dag-table/awareness.svelte";
 import { useLocalStorage, type Storable } from "$lib/stores.svelte";
 import { findEntryIndex } from "$lib/utils";
@@ -249,14 +250,12 @@ export class Koso {
     const encoder = encoding.createEncoder();
     encoding.writeVarUint(encoder, MSG_KOSO_AWARENESS);
     encoding.writeVarUint(encoder, MSG_KOSO_AWARENESS_UPDATE);
-    encoding.writeVarString(
-      encoder,
-      JSON.stringify({
-        clientId: this.clientId,
-        sequence: this.#awarenessSequence++,
-        selected: selectedNodeId ? [selectedNodeId] : [],
-      }),
-    );
+    const update: AwarenessUpdate = {
+      clientId: this.clientId,
+      sequence: this.#awarenessSequence++,
+      selected: selectedNodeId ? [selectedNodeId] : [],
+    };
+    encoding.writeVarString(encoder, JSON.stringify(update));
     return encoding.toUint8Array(encoder);
   }
 
