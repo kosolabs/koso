@@ -39,6 +39,12 @@
     { bg: "bg-amber-600", outline: "outline-amber-600" },
   ];
 
+  export type AwarenessUpdate = {
+    clientId: number;
+    sequence: number;
+    selected: string[];
+  };
+
   type AwarenessState = {
     clientId: number;
     sequence: number;
