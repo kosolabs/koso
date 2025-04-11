@@ -66,8 +66,10 @@ test.describe("import export tests", () => {
 
     // Validate that a new task can be created
     await page.getByRole("button", { name: "Add", exact: true }).last().click();
+    await page.keyboard.type("Task 4");
+    await page.keyboard.press("Enter");
     await expect(page.getByRole("row", { name: "Task 4" })).toBeVisible();
-    await expect(page.getByRole("row", { name: "Task 4" })).toBeFocused;
+    await expect(page.getByRole("row", { name: "Task 4" })).toBeFocused();
   });
 });
 

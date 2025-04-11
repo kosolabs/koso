@@ -3,8 +3,9 @@ use anyhow::{Context, Result, anyhow};
 use similar::{Algorithm, capture_diff_slices};
 use std::collections::{HashMap, HashSet};
 use yrs::{
-    Any, Array, ArrayRef, DeepObservable, Doc, Map, MapRef, Observable, Origin, Out, ReadTxn,
-    Subscription, Transact, TransactionAcqError, TransactionMut, UpdateEvent,
+    Any, Array, ArrayRef, DeepObservable, Doc, GetString, Map, MapRef, Observable, Origin, Out,
+    ReadTxn, Subscription, Text, TextRef, Transact, TransactionAcqError, TransactionMut,
+    UpdateEvent,
     types::{Events, map::MapEvent},
 };
 
@@ -45,6 +46,7 @@ impl YDocProxy {
         y_task.set_id(txn, &task.id);
         y_task.set_num(txn, &task.num);
         y_task.set_name(txn, &task.name);
+        y_task.set_desc(txn, task.desc.as_deref());
         y_task.set_children(txn, &task.children);
         y_task.set_assignee(txn, task.assignee.as_deref());
         y_task.set_reporter(txn, task.reporter.as_deref());
@@ -144,6 +146,7 @@ impl YTaskProxy {
             id: self.get_id(txn)?,
             num: self.get_num(txn)?,
             name: self.get_name(txn)?,
+            desc: self.get_desc(txn)?,
             children: self.get_children(txn)?,
             assignee: self.get_assignee(txn)?,
             reporter: self.get_reporter(txn)?,
@@ -205,6 +208,32 @@ impl YTaskProxy {
 
     pub fn set_name(&self, txn: &mut TransactionMut, name: &str) {
         self.y_task.try_update(txn, "name", name);
+    }
+
+    pub fn get_desc<T: ReadTxn>(&self, txn: &T) -> Result<Option<String>> {
+        let Some(result) = self.y_task.get(txn, "desc") else {
+            return Ok(None);
+        };
+
+        match result {
+            Out::YText(text_ref) => Ok(Some(text_ref.get_string(txn))),
+            Out::Any(Any::Null) => Ok(None),
+            _ => Err(anyhow!("invalid type for desc field: {result:?}")),
+        }
+    }
+
+    /// If this is ever actually used, implement diff ops.
+    pub fn set_desc(&self, txn: &mut TransactionMut, desc: Option<&str>) {
+        match desc {
+            Some(desc) => {
+                let y_desc: TextRef = self.y_task.get_or_init(txn, "desc");
+                y_desc.remove_range(txn, 0, y_desc.len(txn));
+                y_desc.insert(txn, 0, desc);
+            }
+            None => {
+                self.y_task.try_update(txn, "desc", Any::Null);
+            }
+        };
     }
 
     pub fn get_children<T: ReadTxn>(&self, txn: &T) -> Result<Vec<String>> {
@@ -369,6 +398,7 @@ mod tests {
                     id: "id1".to_string(),
                     num: "1".to_string(),
                     name: "Task 1".to_string(),
+                    desc: Some("Task 1 description".to_string()),
                     children: vec!["2".to_string()],
                     assignee: Some("a@gmail.com".to_string()),
                     reporter: Some("r@gmail.com".to_string()),
@@ -388,6 +418,7 @@ mod tests {
                     id: "id1".to_string(),
                     num: "1".to_string(),
                     name: "Task 1-edited".to_string(),
+                    desc: Some("Task 1 description".to_string()),
                     children: vec!["2".to_string(), "3".to_string()],
                     assignee: Some("a@gmail.com".to_string()),
                     reporter: Some("r@gmail.com".to_string()),
@@ -407,6 +438,7 @@ mod tests {
                 id: "id1".to_string(),
                 num: "1".to_string(),
                 name: "Task 1-edited".to_string(),
+                desc: Some("Task 1 description".to_string()),
                 children: vec!["2".to_string(), "3".to_string()],
                 assignee: Some("a@gmail.com".to_string()),
                 reporter: Some("r@gmail.com".to_string()),

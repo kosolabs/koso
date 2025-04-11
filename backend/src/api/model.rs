@@ -76,6 +76,7 @@ pub(crate) struct Task {
     pub(crate) id: String,
     pub(crate) num: String,
     pub(crate) name: String,
+    pub(crate) desc: Option<String>,
     pub(crate) children: Vec<String>,
     pub(crate) assignee: Option<String>,
     pub(crate) reporter: Option<String>,

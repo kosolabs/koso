@@ -3,12 +3,13 @@
   import { Button } from "$lib/kosui/button";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { Pencil, Trash, X } from "lucide-svelte";
+  import { tick } from "svelte";
   import { toast } from "svelte-sonner";
   import { slide } from "svelte/transition";
   import * as Y from "yjs";
+  import type { DetailPanelStates } from "./koso.svelte";
   import MarkdownViewer from "./markdown-viewer.svelte";
   import { getProjectContext } from "./project-context.svelte";
-  import type { DetailPanelStates } from "./koso.svelte";
 
   interface DetailPanelRenderer {
     detailPanel: DetailPanelStates;
@@ -19,10 +20,11 @@
     detailPanelRenderer: DetailPanelRenderer;
   };
   let { taskId, detailPanelRenderer }: Props = $props();
+  let editor: CodeMirror | undefined = $state();
 
-  const project = getProjectContext();
+  const { koso } = getProjectContext();
 
-  let task = $derived(taskId ? project.koso.getTask(taskId) : undefined);
+  let task = $derived(taskId ? koso.getTask(taskId) : undefined);
   let yDesc: Y.Text | undefined = $state.raw();
   let desc: string | undefined = $state.raw();
 
@@ -35,7 +37,7 @@
   }
 
   function editDetails() {
-    if (taskId && !project.koso.isEditable(taskId)) {
+    if (taskId && !koso.isEditable(taskId)) {
       toast.warning(
         "This is a managed task and cannot be edited in Koso directly.",
       );
@@ -43,6 +45,8 @@
     }
     yDesc = task?.getOrNewDesc();
     detailPanelRenderer.detailPanel = "edit";
+    // Focus the editor after it gets rendered (after a tick)
+    tick().then(() => editor?.focus());
   }
 
   function deleteDetails() {
@@ -69,7 +73,7 @@
   $effect(() => {
     if (
       taskId &&
-      !project.koso.isEditable(taskId) &&
+      !koso.isEditable(taskId) &&
       detailPanelRenderer.detailPanel === "edit"
     ) {
       viewDetails();
@@ -85,15 +89,30 @@
       aria-level="1"
       ondblclick={editDetails}
     >
-      {task?.name || "No task selected"}
+      {$task?.name || "No task selected"}
       <div class="top-2 right-2 ml-auto flex gap-1">
-        {#if task && project.koso.isEditable(task.id)}
-          <Button icon={Pencil} variant="plain" onclick={editDetails} />
+        {#if taskId && koso.isEditable(taskId)}
+          <Button
+            aria-label="Edit task description"
+            icon={Pencil}
+            variant="plain"
+            onclick={editDetails}
+          />
         {/if}
         {#if yDesc !== undefined}
-          <Button icon={Trash} variant="plain" onclick={deleteDetails} />
+          <Button
+            aria-label="Delete task description"
+            icon={Trash}
+            variant="plain"
+            onclick={deleteDetails}
+          />
         {/if}
-        <Button icon={X} variant="plain" onclick={hideDetails} />
+        <Button
+          aria-label="Hide task description panel"
+          icon={X}
+          variant="plain"
+          onclick={hideDetails}
+        />
       </div>
     </div>
     <hr />
@@ -102,8 +121,12 @@
       role="document"
       ondblclick={editDetails}
     >
-      {#if yDesc && task && project.koso.isEditable(task.id) && detailPanelRenderer.detailPanel === "edit"}
-        <CodeMirror yText={yDesc} onkeydown={handleKeyDownEditing} />
+      {#if yDesc && taskId && koso.isEditable(taskId) && detailPanelRenderer.detailPanel === "edit"}
+        <CodeMirror
+          bind:this={editor}
+          yText={yDesc}
+          onkeydown={handleKeyDownEditing}
+        />
       {:else if desc}
         <MarkdownViewer class="p-2" value={desc} />
       {/if}
