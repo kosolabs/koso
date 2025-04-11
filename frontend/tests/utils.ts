@@ -1,6 +1,8 @@
 import type { Koso } from "$lib/dag-table";
 import type { Graph, Kind, Status } from "$lib/yproxy";
 import { expect, request, type Page } from "@playwright/test";
+import * as encoding from "lib0/encoding";
+import * as Y from "yjs";
 
 export type TaskBuilder = {
   id: string;
@@ -194,3 +196,11 @@ export async function init(
   await page.reload();
   await page.getByLabel("Home").focus();
 }
+
+export const EMPTY_SYNC_RESPONSE = (() => {
+  const encoder = encoding.createEncoder();
+  encoding.writeVarUint(encoder, 0);
+  encoding.writeVarUint(encoder, 1);
+  encoding.writeVarUint8Array(encoder, Y.encodeStateAsUpdateV2(new Y.Doc()));
+  return encoding.toUint8Array(encoder);
+})();
