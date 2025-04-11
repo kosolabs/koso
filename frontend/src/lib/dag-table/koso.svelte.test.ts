@@ -579,6 +579,128 @@ describe("Koso tests", () => {
     });
   });
 
+  describe("link", () => {
+    it("link node 2 to node 1 succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        { id: "2", name: "Task 2" },
+      ]);
+      koso.link(new TaskLinkage({ parentId: "1", id: "2" }), 0);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "2"] },
+        ["1"]: { id: "1", children: ["2"] },
+        ["2"]: { id: "2", children: [] },
+      });
+    });
+
+    it("link node 1 to child of node 1 throws (prevent cycle)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+      expect(() =>
+        koso.link(new TaskLinkage({ parentId: "1", id: "1" }), 0),
+      ).toThrow();
+    });
+
+    it("link node 1 to grandchild of node 1 throws (prevent cycle)", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+      expect(() =>
+        koso.link(new TaskLinkage({ parentId: "2", id: "1" }), 0),
+      ).toThrow();
+    });
+
+    it("link node 1 to plugin container throws", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      expect(() =>
+        koso.link(new TaskLinkage({ parentId: "github", id: "1" }), 0),
+      ).toThrow();
+      expect(() =>
+        koso.link(
+          new TaskLinkage({ parentId: "github/github_pr", id: "1" }),
+          0,
+        ),
+      ).toThrow();
+    });
+
+    it("link node 1 to plugin task throws", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      expect(() =>
+        koso.link(
+          new TaskLinkage({ parentId: "github/github_pr/2", id: "1" }),
+          0,
+        ),
+      ).toThrow();
+    });
+
+    it("link plugin task/container elsewhere succeeds", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      koso.link(new TaskLinkage({ parentId: "1", id: "2" }), 0);
+      koso.link(new TaskLinkage({ parentId: "1", id: "github_pr" }), 0);
+      koso.link(new TaskLinkage({ parentId: "1", id: "github" }), 0);
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "github"] },
+        ["github"]: { children: ["github_pr"] },
+        ["github_pr"]: { children: ["2"] },
+        ["1"]: { id: "1", children: ["github", "github_pr", "2"] },
+      });
+    });
+  });
+
   describe("moveNode", () => {
     it("move node 3 to child of node 1 as a peer of node 2 succeeds (reparent)", () => {
       init([
