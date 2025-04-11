@@ -7,8 +7,7 @@
   import { Link } from "$lib/kosui/link";
   import { cn } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
-  import { getContext } from "svelte";
-  import { getInboxContext, type Koso } from ".";
+  import { getInboxContext, getKosoContext } from ".";
   import DescAction from "./desc-action.svelte";
   import LinkPanel, { type Mode } from "./link-panel.svelte";
   import TaskAction from "./task-action.svelte";
@@ -20,7 +19,7 @@
   };
   const { index, task, users }: Props = $props();
 
-  const koso = getContext<Koso>("koso");
+  const koso = getKosoContext();
   const inbox = getInboxContext();
 
   let rowElement: HTMLTableRowElement | undefined = $state();

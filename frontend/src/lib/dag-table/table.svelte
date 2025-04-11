@@ -38,9 +38,9 @@
     UserRoundPlus,
     Wrench,
   } from "lucide-svelte";
-  import { onMount, setContext, tick } from "svelte";
+  import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
-  import { Node, type Koso } from ".";
+  import { Node, setKosoContext } from ".";
   import MarkdownEditor from "./markdown-editor.svelte";
   import { getPlanningContext } from "./planning-context.svelte";
   import Row from "./row.svelte";
@@ -649,7 +649,7 @@
     };
   });
 
-  setContext<Koso>("koso", koso);
+  setKosoContext(koso);
 
   onMount(() => {
     return command.register(...actions);

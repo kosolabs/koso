@@ -11,8 +11,7 @@
   import { Modal } from "$lib/kosui/modal";
   import { match } from "$lib/utils";
   import { Clipboard, Network } from "lucide-svelte";
-  import { getContext } from "svelte";
-  import { compareTasks, type Koso } from ".";
+  import { compareTasks, getKosoContext } from ".";
   import { getPlanningContext } from "./planning-context.svelte";
 
   type Props = {
@@ -21,7 +20,7 @@
   };
   let { open = $bindable(false), selected = $bindable() }: Props = $props();
 
-  const koso = getContext<Koso>("koso");
+  const koso = getKosoContext();
   const planningCtx = getPlanningContext();
 
   let query = $state("");

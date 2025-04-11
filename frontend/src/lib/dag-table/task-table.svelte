@@ -20,9 +20,9 @@
     Undo,
     UserRoundPlus,
   } from "lucide-svelte";
-  import { onMount, setContext } from "svelte";
+  import { onMount } from "svelte";
   import { flip } from "svelte/animate";
-  import { getInboxContext, type Koso } from ".";
+  import { getInboxContext, setKosoContext, type Koso } from ".";
   import MarkdownEditor from "./markdown-editor.svelte";
   import TaskRow from "./task-row.svelte";
   import Toolbar from "./toolbar.svelte";
@@ -220,7 +220,7 @@
     }
   });
 
-  setContext<Koso>("koso", koso);
+  setKosoContext(koso);
 
   onMount(() => {
     return command.register(...actions);
