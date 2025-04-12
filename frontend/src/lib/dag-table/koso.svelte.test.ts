@@ -4,9 +4,9 @@ import { Set } from "immutable";
 import { uuidv4 } from "lib0/random.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { Koso, Node } from ".";
 import { EMPTY_SYNC_RESPONSE, type TaskBuilder } from "../../../tests/utils";
-import { TaskLinkage } from "./koso.svelte";
+import { Koso, TaskLinkage } from "./koso.svelte";
+import { Node } from "./planning-context.svelte";
 
 const USER: User = {
   email: "t@koso.app",

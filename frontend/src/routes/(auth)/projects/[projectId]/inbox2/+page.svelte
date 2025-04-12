@@ -2,7 +2,8 @@
   import { goto } from "$app/navigation";
   import { showUnauthorizedDialog } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
-  import { newInboxContext, TaskTable } from "$lib/dag-table";
+  import { TaskTable } from "$lib/dag-table";
+  import { newInboxContext } from "$lib/dag-table/inbox-context.svelte";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import { getProjectContext } from "$lib/dag-table/project-context.svelte";
   import { Button } from "$lib/kosui/button";
@@ -43,4 +44,4 @@
 
 <OfflineAlert offline={project.socket.offline} />
 
-<TaskTable {koso} users={project.users} />
+<TaskTable users={project.users} />

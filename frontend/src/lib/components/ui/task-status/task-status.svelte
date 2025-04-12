@@ -2,7 +2,7 @@
   import { auth } from "$lib/auth.svelte";
   import { command } from "$lib/components/ui/command-palette";
   import { toast } from "$lib/components/ui/sonner";
-  import type { Koso } from "$lib/dag-table";
+  import type { Koso } from "$lib/dag-table/koso.svelte";
   import {
     Menu,
     MenuContent,

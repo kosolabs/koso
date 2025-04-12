@@ -31,7 +31,8 @@
   import ProjectShareModal from "./project-share-modal.svelte";
 
   const project = getProjectContext();
-  const planningCtx = newPlanningContext(project.koso);
+  const { koso } = project;
+  const planningCtx = newPlanningContext(koso);
   let openShareModal: boolean = $state(false);
 
   async function saveEditedProjectName(name: string) {
@@ -111,8 +112,7 @@
         description: "Open / show the task description markdown editor",
         icon: SquarePen,
         enabled: () =>
-          !!planningCtx.selected &&
-          planningCtx.koso.isEditable(planningCtx.selected.name),
+          !!planningCtx.selected && koso.isEditable(planningCtx.selected.name),
       }),
     ];
 

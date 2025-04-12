@@ -1,5 +1,5 @@
 <script module lang="ts">
-  import { Node } from ".";
+  import { Node } from "$lib/dag-table/planning-context.svelte";
 
   export type User = {
     email: string;

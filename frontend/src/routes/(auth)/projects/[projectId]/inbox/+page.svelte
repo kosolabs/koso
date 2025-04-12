@@ -3,9 +3,12 @@
   import { auth, showUnauthorizedDialog } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { Navbar } from "$lib/components/ui/navbar";
-  import { DagTable, Node } from "$lib/dag-table";
+  import { DagTable } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
-  import { newPlanningContext } from "$lib/dag-table/planning-context.svelte";
+  import {
+    newPlanningContext,
+    Node,
+  } from "$lib/dag-table/planning-context.svelte";
   import { getProjectContext } from "$lib/dag-table/project-context.svelte";
   import { Button } from "$lib/kosui/button";
   import { Action } from "$lib/kosui/command";
@@ -20,8 +23,8 @@
   import { onMount } from "svelte";
 
   const project = getProjectContext();
-  const inbox = newPlanningContext(project.koso, isVisible, flatten);
-  const { koso } = inbox;
+  const { koso } = project;
+  const inbox = newPlanningContext(koso, isVisible, flatten);
 
   function isVisible(taskId: string): boolean {
     return isTaskVisible(koso.getTask(taskId));
@@ -115,8 +118,7 @@
         title: "Edit task description",
         description: "Open / show the task description markdown editor",
         icon: SquarePen,
-        enabled: () =>
-          !!inbox.selected && inbox.koso.isEditable(inbox.selected.name),
+        enabled: () => !!inbox.selected && koso.isEditable(inbox.selected.name),
       }),
     ];
 

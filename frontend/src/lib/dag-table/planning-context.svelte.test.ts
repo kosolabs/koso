@@ -3,9 +3,9 @@ import { List, Set } from "immutable";
 import { uuidv4 } from "lib0/random.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { Koso, Node } from ".";
 import { EMPTY_SYNC_RESPONSE, type TaskBuilder } from "../../../tests/utils";
-import { PlanningContext } from "./planning-context.svelte";
+import { Koso } from "./koso.svelte";
+import { Node, PlanningContext } from "./planning-context.svelte";
 
 describe("PlanningContext tests", () => {
   let root: Node;

@@ -16,7 +16,8 @@
   import { match } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
   import { Clipboard, Network } from "lucide-svelte";
-  import { compareTasks, getKosoContext } from ".";
+  import { compareTasks } from ".";
+  import type { Koso } from "./koso.svelte";
   import { TaskLinkage } from "./koso.svelte";
 
   export type Mode = "link" | "block";
@@ -25,6 +26,7 @@
     open: boolean;
     mode?: Mode;
     task: YTaskProxy;
+    koso: Koso;
   } & Omit<PopoverProps, "children">;
 </script>
 
@@ -33,11 +35,10 @@
     open = $bindable(false),
     mode = $bindable("link"),
     task,
+    koso,
     anchorEl,
     ...restProps
   }: LinkPanelProps = $props();
-
-  const koso = getKosoContext();
 
   let query = $state("");
   let setStatusBlocked: boolean = $state(true);

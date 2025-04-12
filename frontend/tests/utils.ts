@@ -1,4 +1,4 @@
-import type { Koso } from "$lib/dag-table";
+import type { Koso } from "$lib/dag-table/koso.svelte";
 import type { Graph, Kind, Status } from "$lib/yproxy";
 import { expect, request, type Page } from "@playwright/test";
 import * as encoding from "lib0/encoding";
