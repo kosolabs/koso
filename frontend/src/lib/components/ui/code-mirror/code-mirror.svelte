@@ -2,8 +2,10 @@
   import type { ClassName } from "$lib/kosui/utils";
   import { markdown } from "@codemirror/lang-markdown";
   import { EditorState } from "@codemirror/state";
+  import { oneDarkTheme } from "@codemirror/theme-one-dark";
   import { type DOMEventHandlers } from "@codemirror/view";
   import { EditorView, basicSetup } from "codemirror";
+  import { mode } from "mode-watcher";
   import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { yCollab } from "y-codemirror.next";
@@ -40,6 +42,7 @@
             markdown(),
             yCollab(yText, dummyAwareness),
             EditorView.domEventHandlers(handlers),
+            $mode === "dark" ? oneDarkTheme : [],
           ],
         }),
         parent: el,
