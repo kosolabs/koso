@@ -12,7 +12,6 @@
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
   import { ChevronRight, Grip } from "lucide-svelte";
-  import { Node } from ".";
   import Awareness, {
     getAwarenessOutline,
     getUniqueUsers,
@@ -21,7 +20,7 @@
   import DropIndicator from "./drop-indicator.svelte";
   import { TaskLinkage } from "./koso.svelte";
   import LinkPanel, { type Mode } from "./link-panel.svelte";
-  import { getPlanningContext } from "./planning-context.svelte";
+  import { getPlanningContext, Node } from "./planning-context.svelte";
   import TaskAction from "./task-action.svelte";
 
   type Props = {
@@ -468,6 +467,7 @@
         {/if}
         <LinkPanel
           {task}
+          {koso}
           bind:open={linkOpen}
           bind:mode={linkMode}
           anchorEl={rowElement}

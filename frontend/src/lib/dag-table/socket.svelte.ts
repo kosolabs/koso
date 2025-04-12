@@ -1,6 +1,6 @@
 import { version } from "$app/environment";
 import { auth } from "$lib/auth.svelte";
-import { Koso } from ".";
+import type { Koso } from "./koso.svelte";
 
 export class KosoSocket {
   #unauthorized: boolean = $state(false);

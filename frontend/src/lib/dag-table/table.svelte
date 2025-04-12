@@ -40,9 +40,8 @@
   } from "lucide-svelte";
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
-  import { Node, setKosoContext } from ".";
   import MarkdownEditor from "./markdown-editor.svelte";
-  import { getPlanningContext } from "./planning-context.svelte";
+  import { getPlanningContext, Node } from "./planning-context.svelte";
   import Row from "./row.svelte";
   import SearchPanel from "./search-panel.svelte";
   import Toolbar from "./toolbar.svelte";
@@ -648,8 +647,6 @@
       planningCtx.selected = null;
     };
   });
-
-  setKosoContext(koso);
 
   onMount(() => {
     return command.register(...actions);

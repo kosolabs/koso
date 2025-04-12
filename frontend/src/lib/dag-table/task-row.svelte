@@ -7,8 +7,8 @@
   import { Link } from "$lib/kosui/link";
   import { cn } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
-  import { getInboxContext, getKosoContext } from ".";
   import DescAction from "./desc-action.svelte";
+  import { getInboxContext } from "./inbox-context.svelte";
   import LinkPanel, { type Mode } from "./link-panel.svelte";
   import TaskAction from "./task-action.svelte";
 
@@ -19,8 +19,8 @@
   };
   const { index, task, users }: Props = $props();
 
-  const koso = getKosoContext();
   const inbox = getInboxContext();
+  const { koso } = inbox;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
   let taskStatus = $state<TaskStatus | undefined>();
@@ -127,6 +127,7 @@
         {/if}
         <LinkPanel
           {task}
+          {koso}
           bind:open={linkOpen}
           bind:mode={linkMode}
           anchorEl={rowElement}

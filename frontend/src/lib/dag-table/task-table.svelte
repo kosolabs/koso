@@ -22,18 +22,18 @@
   } from "lucide-svelte";
   import { onMount } from "svelte";
   import { flip } from "svelte/animate";
-  import { getInboxContext, setKosoContext, type Koso } from ".";
+  import { getInboxContext } from "./inbox-context.svelte";
   import MarkdownEditor from "./markdown-editor.svelte";
   import TaskRow from "./task-row.svelte";
   import Toolbar from "./toolbar.svelte";
 
   type Props = {
-    koso: Koso;
     users: User[];
   };
-  const { koso, users }: Props = $props();
+  const { users }: Props = $props();
 
   const inbox = getInboxContext();
+  const { koso } = inbox;
 
   const rows: { [key: string]: TaskRow } = {};
 
@@ -219,8 +219,6 @@
       inbox.select(taskId);
     }
   });
-
-  setKosoContext(koso);
 
   onMount(() => {
     return command.register(...actions);
