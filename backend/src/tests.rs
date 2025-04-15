@@ -1190,7 +1190,8 @@ async fn start_server(pool: &PgPool) -> (ServerHandle, SocketAddr) {
             disable_polling: true,
         }),
     })
-    .await;
+    .await
+    .unwrap();
 
     (
         ServerHandle {

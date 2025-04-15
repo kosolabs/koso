@@ -11,6 +11,7 @@ use crate::{
     },
     settings::settings,
 };
+use anyhow::{Context, Result};
 use axum::{
     Extension, Router,
     extract::{ConnectInfo, MatchedPath, Request},
@@ -51,7 +52,7 @@ pub struct Config {
 }
 
 #[tracing::instrument(skip(config))]
-pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
+pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle<()>)> {
     let pool = match config.pool {
         Some(pool) => pool,
         None => {
@@ -65,21 +66,20 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
                     .acquire_timeout(Duration::from_secs(3))
                     .connect_with(
                         db_connection_str
-                            .parse::<PgConnectOptions>()
-                            .unwrap()
+                            .parse::<PgConnectOptions>()?
                             // Enable query trace logging. Must enable `sqlx=trace`
                             .log_statements(tracing::log::LevelFilter::Trace),
                     )
                     .await
-                    .expect("Can't connect to database"),
+                    .context("Can't connect to database")?,
             ))
         }
     };
 
-    let collab = Collab::new(pool).expect("Failed to init collab");
+    let collab = Collab::new(pool).context("Failed to init collab")?;
     let key_set = match config.key_set {
         Some(key_set) => key_set,
-        None => google::KeySet::new().await.unwrap(),
+        None => google::KeySet::new().await?,
     };
 
     let github_plugin = github::Plugin::new(
@@ -87,8 +87,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         collab.clone(),
         pool,
     )
-    .await
-    .unwrap();
+    .await?;
     let github_poll_handle = github_plugin.start_polling();
 
     let app = Router::new()
@@ -98,7 +97,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         // NOTE: the following routes are not subject to the
         // google authentication middleware above.
         .nest("/healthz", healthz::router())
-        .nest("/plugins/github", github_plugin.router().unwrap())
+        .nest("/plugins/github", github_plugin.router()?)
         // Apply these layers to all non-static routes.
         .layer((
             Extension(pool),
@@ -131,22 +130,22 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
     // with systemd.
     // For example: `systemfd --no-pid -s http::3000 -- cargo watch -x run``
     let mut listenfd = ListenFd::from_env();
-    let listener = match listenfd.take_tcp_listener(0).unwrap() {
+    let listener = match listenfd.take_tcp_listener(0)? {
         // if we are given a tcp listener on listen fd 0, we use that one
         Some(listener) => {
-            listener.set_nonblocking(true).unwrap();
-            TcpListener::from_std(listener).unwrap()
+            listener.set_nonblocking(true)?;
+            TcpListener::from_std(listener)?
         }
         // otherwise fall back to local listening
         None => {
             let port = config.port.unwrap_or(3000);
-            TcpListener::bind(format!("0.0.0.0:{port}")).await.unwrap()
+            TcpListener::bind(format!("0.0.0.0:{port}")).await?
         }
     };
 
-    let addr = listener.local_addr().unwrap();
+    let addr = listener.local_addr()?;
     let serve = tokio::spawn(async move {
-        tracing::info!("server listening on {}", listener.local_addr().unwrap());
+        tracing::info!("server listening on {}", addr);
         axum::serve(
             listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -163,7 +162,7 @@ pub async fn start_main_server(config: Config) -> (SocketAddr, JoinHandle<()>) {
         tracing::info!("Database pool closed.");
     });
 
-    return (addr, serve);
+    Ok((addr, serve))
 }
 
 // Completion of this function signals to a server,
