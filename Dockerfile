@@ -5,7 +5,9 @@ FROM rust:1.86.0@sha256:7b65306dd21304f48c22be08d6a3e41001eef738b3bd3a5da51119c8
 # triggered by changes to src/ by keeping dependencies
 # in a separate layer.
 WORKDIR /app
-COPY backend/Cargo.toml Cargo.lock rust-toolchain.toml ./backend/
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY backend/Cargo.toml ./backend/
+COPY ./healthz/Cargo.toml ./healthz/
 COPY backend/build/dummy.rs backend/build/dummy.rs
 WORKDIR /app/backend
 RUN cargo build --release --lib
@@ -47,7 +49,7 @@ WORKDIR /app
 
 COPY --from=sqlx /app/bin/sqlx ./
 COPY backend/migrations ./migrations
-COPY --from=backend /app/backend/target/release/koso ./
+COPY --from=backend /app/target/release/koso ./
 COPY --from=frontend /app/build ./static
 
 ENV RUST_BACKTRACE=1
