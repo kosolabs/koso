@@ -24,6 +24,8 @@ use std::{
     collections::HashMap,
     time::{Duration, Instant},
 };
+use tokio::select;
+use tokio_util::sync::CancellationToken;
 use yrs::{Origin, ReadTxn};
 
 const INIT_POLL_DELAY: Duration = Duration::from_secs(2 * 60);
@@ -61,16 +63,24 @@ impl Poller {
         Ok("OK".to_string())
     }
 
-    #[tracing::instrument(skip(self))]
-    pub(super) async fn poll(self) {
+    #[tracing::instrument(skip(self, cancel))]
+    pub(super) async fn poll(self, cancel: CancellationToken) {
         // Wait awhile before starting polling to avoid
         // competing with client reconnections after a server restart.
-        tokio::time::sleep(INIT_POLL_DELAY).await;
+        let mut delay = INIT_POLL_DELAY;
         loop {
+            select! {
+                _ = tokio::time::sleep(delay) => {},
+                _ = cancel.cancelled() => {
+                tracing::info!("Stopped Github poller.");
+                    return;
+                }
+            }
+            delay = POLL_DELAY;
+
             if let Err(e) = self.poll_all_installations().await {
                 tracing::warn!("Failed poll: {e:?}");
             }
-            tokio::time::sleep(POLL_DELAY).await;
         }
     }
 

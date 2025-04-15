@@ -11,7 +11,7 @@ use crate::{
     },
     settings::settings,
 };
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use axum::{
     Extension, Router,
     extract::{ConnectInfo, MatchedPath, Request},
@@ -29,7 +29,8 @@ use std::{
     net::SocketAddr,
     time::{Duration, Instant},
 };
-use tokio::{net::TcpListener, signal, sync::oneshot::Receiver, task::JoinHandle};
+use tokio::{join, net::TcpListener, signal, sync::oneshot::Receiver, task::JoinHandle};
+use tokio_util::sync::CancellationToken;
 use tower::builder::ServiceBuilder;
 use tower_http::{
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
@@ -76,6 +77,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         }
     };
 
+    let cancel = CancellationToken::new();
     let collab = Collab::new(pool).context("Failed to init collab")?;
     let key_set = match config.key_set {
         Some(key_set) => key_set,
@@ -86,6 +88,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         config.plugin_settings.unwrap_or_default(),
         collab.clone(),
         pool,
+        cancel.clone(),
     )
     .await?;
     let github_poll_handle = github_plugin.start_polling();
@@ -155,8 +158,20 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         .unwrap();
 
         // Now that the server is shutdown, it's safe to clean things up.
-        github_poll_handle.abort();
-        collab.stop().await;
+        // First, collaboratively cancel background tasks, giving them
+        // a chance to finish remaining work and stop gracefully.
+        cancel.cancel();
+
+        // Next, stop the collab and wait for background tasks to finish.
+        join!(collab.stop(), async move {
+            if let Err(e) =
+                wait_for_completion_or_abort(github_poll_handle, Duration::from_secs(10)).await
+            {
+                tracing::warn!("Github poller did not stop gracefully: {e}");
+            }
+        });
+
+        // Finally, close our database pool.
         tracing::info!("Closing database pool...");
         pool.close().await;
         tracing::info!("Database pool closed.");
@@ -224,6 +239,18 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
         .record(start.elapsed().as_secs_f64());
 
     response
+}
+
+async fn wait_for_completion_or_abort<T>(handle: JoinHandle<T>, timeout: Duration) -> Result<T> {
+    let abort_handle: tokio::task::AbortHandle = handle.abort_handle();
+    match tokio::time::timeout(timeout, handle).await {
+        Err(e) => {
+            abort_handle.abort();
+            Err(anyhow!("Timed out: {e}"))
+        }
+        Ok(Ok(v)) => Ok(v),
+        Ok(Err(e)) => Err(anyhow!("Task join error: {e}")),
+    }
 }
 
 #[derive(Clone)]
