@@ -151,10 +151,9 @@ fn decoding_key_from_secrets() -> Result<DecodingKey> {
     Ok(DecodingKey::from_base64_secret(&secret.data)?)
 }
 
-fn encoding_key_from_secrets() -> EncodingKey {
-    // Failing to init the encoding key will panic to prevent the server from starting
-    let secret: Secret<String> = read_secret("koso/hmac").unwrap();
-    EncodingKey::from_base64_secret(&secret.data).unwrap()
+fn encoding_key_from_secrets() -> Result<EncodingKey> {
+    let secret: Secret<String> = read_secret("koso/hmac")?;
+    Ok(EncodingKey::from_base64_secret(&secret.data)?)
 }
 
 pub(crate) async fn start_telegram_server() -> Result<()> {
@@ -169,7 +168,7 @@ pub(crate) async fn start_telegram_server() -> Result<()> {
             }
         }
     };
-    let key = encoding_key_from_secrets();
+    let key = encoding_key_from_secrets()?;
     let schema = Update::filter_message()
         .filter_map(|update: Update| update.from().cloned())
         .branch(

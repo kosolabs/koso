@@ -1,3 +1,4 @@
+use anyhow::{Context, Result, anyhow};
 use config::{Environment, File, FileFormat};
 use serde::Deserialize;
 use std::sync::OnceLock;
@@ -27,26 +28,34 @@ pub(crate) struct Github {
 
 pub fn settings() -> &'static Settings {
     static SETTINGS: OnceLock<Settings> = OnceLock::new();
-    SETTINGS.get_or_init(load_settings_from_env)
+    SETTINGS.get_or_init(|| {
+        load_settings_from_env()
+            .context("load_settings_from_env failed")
+            .unwrap()
+    })
 }
 
-fn load_settings_from_env() -> Settings {
-    load_settings(&std::env::var("KOSO_ENV").expect("KOSO_ENV is unset"))
+fn load_settings_from_env() -> Result<Settings> {
+    load_settings(&std::env::var("KOSO_ENV").context("KOSO_ENV is unset")?)
 }
 
-fn load_settings(env: &str) -> Settings {
+fn load_settings(env: &str) -> Result<Settings> {
     config::Config::builder()
         .add_source(match env {
             "dev" => File::from_str(include_str!("settings/dev.json"), FileFormat::Json),
             "prod" => File::from_str(include_str!("settings/prod.json"), FileFormat::Json),
-            env => panic!("No settings file for '{env}' found. Expected 'dev' or 'prod'."),
+            env => {
+                return Err(anyhow!(
+                    "No settings file for '{env}' found. Expected 'dev' or 'prod'."
+                ));
+            }
         })
         .add_source(File::new(".local_settings", FileFormat::Json).required(false))
         .add_source(Environment::with_prefix("KOSO_SETTING"))
         .build()
-        .expect("Failed to load settings")
+        .context("Failed to load settings")?
         .try_deserialize()
-        .expect("Failed to deserialize settings")
+        .context("Failed to deserialize settings")
 }
 
 impl Settings {
@@ -61,19 +70,19 @@ mod tests {
 
     #[test_log::test]
     fn dev_settings_test() {
-        let s = load_settings("dev");
+        let s = load_settings("dev").unwrap();
         assert_eq!(s.env, "dev");
     }
 
     #[test_log::test]
     fn prod_settings_test() {
-        let s = load_settings("prod");
+        let s = load_settings("prod").unwrap();
         assert_eq!(s.env, "prod", "Got {}", s.env);
     }
 
     #[test_log::test]
     fn load_env_settings_test() {
-        let s = load_settings_from_env();
+        let s = load_settings_from_env().unwrap();
         assert_eq!(s.env, "dev");
     }
 }

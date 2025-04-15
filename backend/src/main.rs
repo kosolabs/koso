@@ -19,16 +19,21 @@ async fn main() {
         .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap())
         .with(tracing_subscriber::fmt::layer())
         .init();
-    tracing::info!("Using koso settings: {:?}", settings::settings());
+    let settings = settings::settings();
+    tracing::info!("Using koso settings: {settings:?}");
 
     let (_main_server, _metrics_server, _telegram_server) = tokio::join!(
         async {
-            let (_port, serve) = server::start_main_server(server::Config::default()).await;
+            let (_port, serve) = server::start_main_server(server::Config::default())
+                .await
+                .unwrap();
             serve.await.unwrap();
         },
         async {
             let (_port, serve) =
-                metrics_server::start_metrics_server(metrics_server::Config::default()).await;
+                metrics_server::start_metrics_server(metrics_server::Config::default())
+                    .await
+                    .unwrap();
             serve.await.unwrap();
         },
         async {
