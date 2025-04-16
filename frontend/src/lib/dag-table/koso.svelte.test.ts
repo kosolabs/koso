@@ -806,6 +806,9 @@ describe("Koso tests", () => {
         ["5"]: { id: "5", children: [] },
         ["7"]: { id: "7", children: ["3"] },
       });
+      expect(koso.toJSON()).not.toHaveProperty("2");
+      expect(koso.toJSON()).not.toHaveProperty("4");
+      expect(koso.toJSON()).not.toHaveProperty("6");
     });
 
     it("delete node 2 from root succeeds and unlinks node 2", () => {
@@ -908,8 +911,84 @@ describe("Koso tests", () => {
       koso.delete(Node.parse("5").linkage);
 
       expect(koso.toJSON()).toMatchObject({
+        ["root"]: { children: ["1", "github", "githubfoo"] },
+        ["1"]: { id: "1", children: [] },
+        ["github"]: { id: "github", children: ["github_pr"] },
+        ["github_pr"]: { id: "github_pr", children: ["2"] },
+        ["githubfoo"]: { id: "githubfoo", children: [] },
+      });
+      expect(koso.toJSON()).not.toHaveProperty("4");
+      expect(koso.toJSON()).not.toHaveProperty("5");
+    });
+  });
+
+  describe("deleteTask", () => {
+    it("delete task 2 succeeds and removes task and links", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2" },
+      ]);
+
+      koso.deleteTask("2");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1"] },
         ["1"]: { id: "1", children: [] },
       });
+      expect(koso.toJSON()).not.toHaveProperty("2");
+    });
+
+    it("delete task 2 succeeds and deletes all orphans", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2", "5"] },
+        { id: "1", name: "Task 1", children: ["2", "8"] },
+        { id: "2", name: "Task 2", children: ["3", "6", "8"] },
+        { id: "3", name: "Task 3", children: ["4", "5"] },
+        { id: "4", name: "Task 4" },
+        { id: "5", name: "Task 5" },
+        { id: "6", name: "Task 6", children: ["7", "4"] },
+        { id: "7", name: "Task 7" },
+        { id: "8", name: "Task 8", children: ["9"] },
+        { id: "9", name: "Task 9" },
+      ]);
+
+      koso.deleteTask("2");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["1", "5"] },
+        ["1"]: { id: "1", children: ["8"] },
+        ["5"]: { id: "5", children: [] },
+        ["8"]: { id: "8", children: ["9"] },
+        ["9"]: { id: "9", children: [] },
+      });
+      expect(koso.toJSON()).not.toHaveProperty("2");
+      expect(koso.toJSON()).not.toHaveProperty("4");
+      expect(koso.toJSON()).not.toHaveProperty("6");
+      expect(koso.toJSON()).not.toHaveProperty("7");
+    });
+
+    it("delete canonical plugin task/container throws", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "github"] },
+        { id: "1", name: "Task 1", children: [] },
+        {
+          id: "github",
+          name: "Github",
+          kind: "github",
+          children: ["github_pr"],
+        },
+        {
+          id: "github_pr",
+          name: "Github PR",
+          kind: "github_pr",
+          children: ["2"],
+        },
+        { id: "2", name: "Some PR", kind: "github_pr" },
+      ]);
+      expect(() => koso.deleteTask("github")).toThrow();
+      expect(() => koso.deleteTask("github_pr")).toThrow();
+      expect(() => koso.deleteTask("2")).toThrow();
     });
   });
 
