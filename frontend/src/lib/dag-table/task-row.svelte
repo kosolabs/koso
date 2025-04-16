@@ -56,7 +56,7 @@
 
   function handleRowClick(event: MouseEvent) {
     event.preventDefault();
-    inbox.selected = task;
+    inbox.selected = task.id;
   }
 </script>
 
@@ -65,7 +65,7 @@
   class={cn(
     "rounded outline-2 outline-transparent",
     index % 2 === 0 && "bg-m3-surface-container/30",
-    inbox.selected === task && "outline-m3-primary",
+    inbox.selected?.id === task.id && "outline-m3-primary",
   )}
   aria-label={`Task ${task.num}`}
   onclick={handleRowClick}
