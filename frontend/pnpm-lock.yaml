@@ -112,8 +112,8 @@ importers:
         specifier: 3.0.5
         version: 3.0.5
       mode-watcher:
-        specifier: 1.0.0
-        version: 1.0.0(svelte@5.27.0)
+        specifier: 0.5.1
+        version: 0.5.1(svelte@5.27.0)
       postcss:
         specifier: 8.5.3
         version: 8.5.3
@@ -1274,9 +1274,6 @@ packages:
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
 
-  inline-style-parser@0.2.4:
-    resolution: {integrity: sha512-0aO8FkhNZlj/ZIbNi7Lxxr12obT7cL1moPfE4tg1LkX7LlLfC6DeX4l2ZEud1ukP9jNQyNnfzQVqwbwmAATY4Q==}
-
   is-extglob@2.1.1:
     resolution: {integrity: sha512-SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ==}
     engines: {node: '>=0.10.0'}
@@ -1534,10 +1531,10 @@ packages:
   mockdate@3.0.5:
     resolution: {integrity: sha512-iniQP4rj1FhBdBYS/+eQv7j1tadJ9lJtdzgOpvsOHng/GbcDh2Fhdeq+ZRldrPYdXvCyfFUmFeEwEGXZB5I/AQ==}
 
-  mode-watcher@1.0.0:
-    resolution: {integrity: sha512-pR7f1uVe6WAds4WAM8DxGk+w4fN94AgpYQp29IQRZqlWpYS1NwtVaLIil1OrYISuJaotfyLAviRKrc+yCwBw2g==}
+  mode-watcher@0.5.1:
+    resolution: {integrity: sha512-adEC6T7TMX/kzQlaO/MtiQOSFekZfQu4MC+lXyoceQG+U5sKpJWZ4yKXqw846ExIuWJgedkOIPqAYYRk/xHm+w==}
     peerDependencies:
-      svelte: ^5.27.0
+      svelte: ^4.0.0 || ^5.0.0-next.1
 
   mri@1.2.0:
     resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
@@ -1761,16 +1758,6 @@ packages:
   run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
 
-  runed@0.23.4:
-    resolution: {integrity: sha512-9q8oUiBYeXIDLWNK5DfCWlkL0EW3oGbk845VdKlPeia28l751VpfesaB/+7pI6rnbx1I6rqoZ2fZxptOJLxILA==}
-    peerDependencies:
-      svelte: ^5.7.0
-
-  runed@0.25.0:
-    resolution: {integrity: sha512-7+ma4AG9FT2sWQEA0Egf6mb7PBT2vHyuHail1ie8ropfSjvZGtEAx8YTmUjv/APCsdRRxEVvArNjALk9zFSOrg==}
-    peerDependencies:
-      svelte: ^5.7.0
-
   sade@1.8.1:
     resolution: {integrity: sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==}
     engines: {node: '>=6'}
@@ -1831,9 +1818,6 @@ packages:
   style-mod@4.1.2:
     resolution: {integrity: sha512-wnD1HyVqpJUI2+eKZ+eo1UwghftP6yuFheBqqe+bWCotBjC2K1YnteJILRMs3SM4V/0dLEW1SC27MWP5y+mwmw==}
 
-  style-to-object@1.0.8:
-    resolution: {integrity: sha512-xT47I/Eo0rwJmaXC4oilDGDWLohVhR6o/xAQcPQN8q6QBuZVL8qMYL85kLmST5cPjAorwvqIA4qXTRQoYHaL6g==}
-
   supports-color@7.2.0:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
@@ -1864,12 +1848,6 @@ packages:
     resolution: {integrity: sha512-K3AmlySeFifF/cKgsYNv5uXqMVNln0NBAacOYgmkQStLa/UoU0LhfAACU6Gr+YYC8bOCHdVmFNoKuDbMEsppJg==}
     peerDependencies:
       svelte: ^3.0.0 || ^4.0.0 || ^5.0.0-next.1
-
-  svelte-toolbelt@0.7.1:
-    resolution: {integrity: sha512-HcBOcR17Vx9bjaOceUvxkY3nGmbBmCBBbuWLLEWO6jtmWH8f/QoWmbyUfQZrpDINH39en1b8mptfPQT9VKQ1xQ==}
-    engines: {node: '>=18', pnpm: '>=8.7.0'}
-    peerDependencies:
-      svelte: ^5.0.0
 
   svelte@5.27.0:
     resolution: {integrity: sha512-Uai13Ydt1ZE+bUHme6b9U38PCYVNCqBRoBMkUKbFbKiD7kHWjdUUrklYAQZJxyKK81qII4mrBwe/YmvEMSlC9w==}
@@ -3241,8 +3219,6 @@ snapshots:
 
   inherits@2.0.4: {}
 
-  inline-style-parser@0.2.4: {}
-
   is-extglob@2.1.1: {}
 
   is-glob@4.0.3:
@@ -3559,11 +3535,9 @@ snapshots:
 
   mockdate@3.0.5: {}
 
-  mode-watcher@1.0.0(svelte@5.27.0):
+  mode-watcher@0.5.1(svelte@5.27.0):
     dependencies:
-      runed: 0.25.0(svelte@5.27.0)
       svelte: 5.27.0
-      svelte-toolbelt: 0.7.1(svelte@5.27.0)
 
   mri@1.2.0: {}
 
@@ -3727,16 +3701,6 @@ snapshots:
     dependencies:
       queue-microtask: 1.2.3
 
-  runed@0.23.4(svelte@5.27.0):
-    dependencies:
-      esm-env: 1.2.2
-      svelte: 5.27.0
-
-  runed@0.25.0(svelte@5.27.0):
-    dependencies:
-      esm-env: 1.2.2
-      svelte: 5.27.0
-
   sade@1.8.1:
     dependencies:
       mri: 1.2.0
@@ -3793,10 +3757,6 @@ snapshots:
 
   style-mod@4.1.2: {}
 
-  style-to-object@1.0.8:
-    dependencies:
-      inline-style-parser: 0.2.4
-
   supports-color@7.2.0:
     dependencies:
       has-flag: 4.0.0
@@ -3830,13 +3790,6 @@ snapshots:
 
   svelte-sonner@0.3.28(svelte@5.27.0):
     dependencies:
-      svelte: 5.27.0
-
-  svelte-toolbelt@0.7.1(svelte@5.27.0):
-    dependencies:
-      clsx: 2.1.1
-      runed: 0.23.4(svelte@5.27.0)
-      style-to-object: 1.0.8
       svelte: 5.27.0
 
   svelte@5.27.0:
