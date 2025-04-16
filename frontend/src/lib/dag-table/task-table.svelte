@@ -7,7 +7,6 @@
   import { Action } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL } from "$lib/shortcuts";
-  import type { YTaskProxy } from "$lib/yproxy";
   import {
     Cable,
     Check,
@@ -37,8 +36,6 @@
   const { koso } = inbox;
 
   const rows: { [key: string]: TaskRow } = {};
-
-  let tasks = $derived(visibleTasks());
 
   function getRow(id: string) {
     const maybeRow = rows[id];
@@ -89,33 +86,33 @@
   }
 
   function selectNext() {
-    if (koso.tasks.length > 0) {
+    if (inbox.tasks.length > 0) {
       if (inbox.selected) {
-        const selectedIndex = koso.getTaskIndex(inbox.selected.id);
+        const selectedIndex = inbox.getTaskIndex(inbox.selected.id);
         if (selectedIndex < 0) {
           inbox.selected = undefined;
         } else {
-          const index = Math.min(selectedIndex + 1, koso.tasks.length - 1);
-          inbox.selected = koso.tasks[index];
+          const index = Math.min(selectedIndex + 1, inbox.tasks.length - 1);
+          inbox.selected = inbox.tasks[index].id;
         }
       } else {
-        inbox.selected = koso.tasks[0];
+        inbox.selected = inbox.tasks[0].id;
       }
     }
   }
 
   function selectPrev() {
-    if (koso.tasks.length > 0) {
+    if (inbox.tasks.length > 0) {
       if (inbox.selected) {
-        const selectedIndex = koso.getTaskIndex(inbox.selected.id);
+        const selectedIndex = inbox.getTaskIndex(inbox.selected.id);
         if (selectedIndex < 0) {
           inbox.selected = undefined;
         } else {
           const index = Math.max(selectedIndex - 1, 0);
-          inbox.selected = koso.tasks[index];
+          inbox.selected = inbox.tasks[index].id;
         }
       } else {
-        inbox.selected = koso.tasks[koso.tasks.length - 1];
+        inbox.selected = inbox.tasks[inbox.tasks.length - 1].id;
       }
     }
   }
@@ -219,7 +216,7 @@
       await koso.synced;
       url.searchParams.delete("taskId");
       replaceState(url, {});
-      inbox.select(taskId);
+      inbox.selected = taskId;
     }
   });
 
@@ -233,92 +230,44 @@
   // or a different user deletes the user's currently selected task.
   $effect(() => {
     const selected = inbox.selectedRaw;
-    const task = selected.task;
+    const taskId = selected.taskId;
     const index = selected.index;
 
-    if (!task) {
+    if (!taskId) {
       return;
     }
 
-    const currentIndex = koso.getTaskIndex(task.id);
+    const currentIndex = inbox.getTaskIndex(taskId);
     if (currentIndex !== -1) {
       // The task still exists. Make sure the stashed index still matches.
-      if (!index || index !== currentIndex) {
+      if (index === null || index !== currentIndex) {
         console.debug(
-          `Refreshing selected index for task ${task.id} at prior index ${index}`,
+          `Refreshing selected index for task ${taskId} at prior index ${index}, currentIndex ${currentIndex}`,
         );
-        inbox.selected = task;
+        inbox.selected = taskId;
       }
       return;
     }
 
     // The selected task no longer exists. Select the
     // task at the same index or the one at the end of the list.
-    // The first task is not selectable.
-    if (koso.tasks.length > 1) {
-      console.debug(`Task ${task.id} no longer exists. Selecting new task.`);
-      if (!index || index >= koso.tasks.length) {
-        inbox.selected = koso.tasks[koso.tasks.length - 1];
+    if (inbox.tasks.length > 0) {
+      console.debug(`Task ${taskId} no longer exists. Selecting new task.`);
+      if (index === null || index >= inbox.tasks.length) {
+        inbox.selected = inbox.tasks[inbox.tasks.length - 1].id;
       } else {
-        inbox.selected = koso.tasks[index];
+        inbox.selected = inbox.tasks[index].id;
       }
     } else {
-      console.debug(`Task ${task.id} no longer exists. Clearing selection.`);
+      console.debug(`Task ${taskId} no longer exists. Clearing selection.`);
       inbox.selected = undefined;
     }
   });
-
-  function visibleTasks(): YTaskProxy[] {
-    let tasks: YTaskProxy[] = [];
-    for (const task of koso.tasks) {
-      if (isTaskVisible(task)) {
-        tasks.push(task);
-      }
-    }
-    return tasks;
-  }
-
-  function isTaskVisible(task: YTaskProxy): boolean {
-    if (task.id === "root") {
-      return false;
-    }
-
-    // Don't show tasks not assigned to the user
-    if (task.assignee !== null && task.assignee !== auth.user.email) {
-      return false;
-    }
-    // Don't show rollup tasks where every child is assigned.
-    if (
-      task.yKind === null &&
-      task.children.length > 0 &&
-      Array.from(task.children.slice())
-        .map((childId) => koso.getTask(childId))
-        .every(
-          (child) =>
-            child.assignee !== null || koso.getProgress(child.id).isComplete(),
-        )
-    ) {
-      return false;
-    }
-
-    // Don't show unassigned task where none of the parents are assigned to the user
-    if (
-      task.assignee === null &&
-      koso
-        .getParents(task.id)
-        .filter((parent) => parent.yKind === null)
-        .every((parent) => parent.assignee !== auth.user.email)
-    ) {
-      return false;
-    }
-    const progress = koso.getProgress(task.id);
-    return !progress.isComplete() && !progress.isBlocked();
-  }
 </script>
 
 <Toolbar actions={[undoAction, redoAction]}>
   {#await koso.synced then}
-    {#if tasks.length > 0}
+    {#if inbox.tasks.length > 0}
       <MarkdownEditor taskId={inbox.selected?.id} detailPanelRenderer={inbox} />
 
       <table class="w-full border-separate border-spacing-0 rounded-md border">
@@ -342,7 +291,7 @@
           </tr>
         </thead>
 
-        {#each tasks as task, index (task.id)}
+        {#each inbox.tasks as task, index (task.id)}
           <tbody animate:flip={{ duration: 250 }}>
             <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
             <!-- svelte-ignore binding_property_non_reactive -->

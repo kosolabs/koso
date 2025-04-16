@@ -1,3 +1,4 @@
+import { auth } from "$lib/auth.svelte";
 import { command, type ActionID } from "$lib/components/ui/command-palette";
 import { Action } from "$lib/kosui/command";
 import { YTaskProxy } from "$lib/yproxy";
@@ -11,13 +12,12 @@ export class InboxContext {
   #koso: Koso;
   #yUndoManager: Y.UndoManager;
 
+  #tasks: YTaskProxy[] = $derived(this.#visibleTasks());
+
   #selectedRaw: Selected = $state(Selected.default());
   #selected: YTaskProxy | undefined = $derived.by(() => {
-    const task = this.#selectedRaw.task;
-    if (!task || this.#koso.getTaskIndex(task.id) < 0) {
-      return undefined;
-    }
-    return task;
+    const taskId = this.#selectedRaw.taskId;
+    return taskId ? this.#koso.getTask(taskId) : undefined;
   });
 
   #detailPanel: DetailPanelStates = $state("none");
@@ -30,15 +30,15 @@ export class InboxContext {
     });
     // Save and restore node selection on undo/redo.
     this.#yUndoManager.on("stack-item-added", (event) => {
-      event.stackItem.meta.set("selected-task", this.selectedRaw.task);
+      event.stackItem.meta.set("selected-task", this.selectedRaw.taskId);
     });
     this.#yUndoManager.on("stack-item-popped", (event) => {
-      const selected = event.stackItem.meta.get("selected-task");
-      if (selected === null || selected.constructor === YTaskProxy) {
-        this.selected = selected;
+      const selectedTaskId = event.stackItem.meta.get("selected-task");
+      if (selectedTaskId === null || typeof selectedTaskId === "string") {
+        this.selected = selectedTaskId;
       } else {
         console.warn(
-          `Unexpectedly found non-task "selected-task" stack item: ${selected}`,
+          `Unexpectedly found non-task "selected-task" stack item: ${selectedTaskId}`,
         );
         this.selected = undefined;
       }
@@ -80,6 +80,10 @@ export class InboxContext {
     return this.#koso;
   }
 
+  get tasks(): YTaskProxy[] {
+    return this.#tasks;
+  }
+
   /**
    * Returns the currently selected task, even if it no longer exists in the
    * tasks list.
@@ -95,32 +99,79 @@ export class InboxContext {
     return this.#selected;
   }
 
-  set selected(task: YTaskProxy | undefined) {
-    if (task && task.id === "root") {
+  set selected(taskId: string | undefined) {
+    if (taskId && taskId === "root") {
       throw new Error("Cannot select root");
     }
 
-    if (task) {
-      const index = this.#koso.getTaskIndex(task.id);
+    if (taskId) {
+      const index = this.getTaskIndex(taskId);
       if (index === -1) {
         // TODO: This happens when handleRow click is triggered when setting status to done in the inbox.
         // It'd be better if this threw.
-        console.warn(`Selected task ${task.id} not found in tasks.`);
+        console.warn(`Selected task ${taskId} not found in tasks.`);
         return;
       }
-      if (index === 0) {
-        throw new Error(`Cannot selected root task ${task.id} at task index 0`);
-      }
-      this.#selectedRaw = Selected.create(task, index);
+      this.#selectedRaw = Selected.create(taskId, index);
     } else {
       this.#selectedRaw = Selected.default();
     }
   }
 
-  select(taskId: string) {
-    const task = this.#koso.tasks.find((t) => t.id === taskId);
-    if (!task) throw new Error("Expected at least one Node");
-    this.selected = task;
+  #visibleTasks(): YTaskProxy[] {
+    const tasks: YTaskProxy[] = [];
+    for (const task of this.#koso.tasks) {
+      if (this.#isTaskVisible(task)) {
+        tasks.push(task);
+      }
+    }
+    return tasks;
+  }
+
+  #isTaskVisible(task: YTaskProxy): boolean {
+    if (task.id === "root") {
+      return false;
+    }
+
+    // Don't show tasks not assigned to the user
+    if (task.assignee !== null && task.assignee !== auth.user.email) {
+      return false;
+    }
+    // Don't show rollup tasks where every child is assigned.
+    if (
+      task.yKind === null &&
+      task.children.length > 0 &&
+      Array.from(task.children.slice())
+        .map((childId) => this.#koso.getTask(childId))
+        .every(
+          (child) =>
+            child.assignee !== null ||
+            this.#koso.getProgress(child.id).isComplete(),
+        )
+    ) {
+      return false;
+    }
+
+    // Don't show unassigned task where none of the parents are assigned to the user
+    if (
+      task.assignee === null &&
+      this.#koso
+        .getParents(task.id)
+        .filter((parent) => parent.yKind === null)
+        .every((parent) => parent.assignee !== auth.user.email)
+    ) {
+      return false;
+    }
+    const progress = this.#koso.getProgress(task.id);
+    return !progress.isComplete() && !progress.isBlocked();
+  }
+
+  /**
+   * Retrieves the index of the task in tasks {@link tasks}, if found, and -1
+   * otherwise.
+   */
+  getTaskIndex(taskId: string): number {
+    return this.tasks.findIndex((t) => t.id === taskId);
   }
 
   // actions that operate on the UI
@@ -154,12 +205,12 @@ export function getInboxContext(): InboxContext {
   return getContext<InboxContext>(InboxContext);
 }
 
-type SelectedProps = { task: YTaskProxy | null; index: number | null };
-const SelectedRecord = Record<SelectedProps>({ task: null, index: null });
+type SelectedProps = { taskId: string | null; index: number | null };
+const SelectedRecord = Record<SelectedProps>({ taskId: null, index: null });
 
 export class Selected extends SelectedRecord {
   constructor(props: Partial<SelectedProps>) {
-    if (props.index && props.index < 0) {
+    if (!!props.index && props.index < 0) {
       props.index = null;
     }
     super(props);
@@ -169,8 +220,8 @@ export class Selected extends SelectedRecord {
     return DEFAULT_SELECTED;
   }
 
-  static create(task: YTaskProxy, index: number) {
-    return new Selected({ task, index });
+  static create(taskId: string, index: number) {
+    return new Selected({ taskId, index });
   }
 }
-const DEFAULT_SELECTED = new Selected({ task: undefined, index: null });
+const DEFAULT_SELECTED = new Selected({ taskId: undefined, index: null });
