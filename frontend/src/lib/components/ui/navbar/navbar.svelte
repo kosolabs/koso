@@ -64,19 +64,19 @@
           <MenuHeader>Theme</MenuHeader>
           <MenuItem onSelect={() => setMode("light")}>
             Light
-            {#if $mode === "light"}
+            {#if mode.current === "light"}
               <Check class="text-m3-primary ml-auto" size={16} />
             {/if}
           </MenuItem>
           <MenuItem onSelect={() => setMode("dark")}>
             Dark
-            {#if $mode === "dark"}
+            {#if mode.current === "dark"}
               <Check class="text-m3-primary ml-auto" size={16} />
             {/if}
           </MenuItem>
           <MenuItem onSelect={() => resetMode()}>
             System
-            {#if $mode === "system"}
+            {#if mode.current === "system"}
               <Check class="text-m3-primary ml-auto" size={16} />
             {/if}
           </MenuItem>

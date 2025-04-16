@@ -112,7 +112,7 @@
 
 <div class="flex flex-col gap-4 p-2">
   <Section title="Theme">
-    <ToggleGroup bind:value={$mode}>
+    <ToggleGroup bind:value={mode.current}>
       <ToggleButton value="light">
         <Sun size={16} />
         Light
