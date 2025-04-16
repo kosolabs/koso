@@ -29,7 +29,7 @@ use std::{
     net::SocketAddr,
     time::{Duration, Instant},
 };
-use tokio::{join, net::TcpListener, signal, sync::oneshot::Receiver, task::JoinHandle};
+use tokio::{join, net::TcpListener, signal, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 use tower::builder::ServiceBuilder;
 use tower_http::{
@@ -47,7 +47,7 @@ use tracing::{Level, Span};
 pub struct Config {
     pub pool: Option<&'static PgPool>,
     pub port: Option<u16>,
-    pub shutdown_signal: Option<Receiver<()>>,
+    pub shutdown_signal: CancellationToken,
     pub key_set: Option<KeySet>,
     pub plugin_settings: Option<PluginSettings>,
 }
@@ -77,8 +77,8 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         }
     };
 
-    let cancel = CancellationToken::new();
-    let collab = Collab::new(pool).context("Failed to init collab")?;
+    let cancel = config.shutdown_signal.clone();
+    let collab = Collab::new(pool, cancel.clone()).context("Failed to init collab")?;
     let key_set = match config.key_set {
         Some(key_set) => key_set,
         None => google::KeySet::new().await?,
@@ -92,6 +92,19 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
     )
     .await?;
     let github_poll_handle = github_plugin.start_polling();
+    let github_poll_handle = {
+        let cancel = cancel.clone();
+        tokio::spawn(async move {
+            if let Err(e) = github_poll_handle.await {
+                if e.is_cancelled() {
+                    tracing::debug!("Github poller task was cancelled: {e:?}");
+                } else {
+                    tracing::error!("Github poller task panick'd: {e:?}");
+                }
+            }
+            cancel.cancel();
+        })
+    };
 
     let app = Router::new()
         .nest("/api", api::router().fallback(api::handler_404))
@@ -153,7 +166,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
             listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
         )
-        .with_graceful_shutdown(shutdown_signal("koso server", config.shutdown_signal))
+        .with_graceful_shutdown(shutdown_signal("koso server", cancel.clone()))
         .await
         .unwrap();
 
@@ -183,13 +196,11 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
 // Completion of this function signals to a server,
 // via graceful_shutdown, to begin shutdown.
 // As such, avoid doing cleanup work here.
-pub(super) async fn shutdown_signal(name: &str, signal: Option<Receiver<()>>) {
-    if let Some(signal) = signal {
-        if let Err(e) = signal.await {
-            tracing::error!("Reading shutdown signal failed: {e:?}");
-        }
-        return;
-    }
+pub(super) async fn shutdown_signal(name: &str, cancel: CancellationToken) {
+    let cancelled = async {
+        cancel.cancelled().await;
+        tracing::info!("Terminating {name} with signal...");
+    };
 
     let ctrl_c = async {
         signal::ctrl_c()
@@ -213,6 +224,7 @@ pub(super) async fn shutdown_signal(name: &str, signal: Option<Receiver<()>>) {
     tokio::select! {
         _ = ctrl_c => {},
         _ = terminate => {},
+        _ = cancelled => {},
     }
 }
 

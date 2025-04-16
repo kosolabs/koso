@@ -209,6 +209,9 @@ impl ClientMessageProcessor {
             },
             MSG_KOSO_AWARENESS => match decoder.read_var()? {
                 MSG_KOSO_AWARENESS_UPDATE => {
+                    if msg.user.email == "leonhard.kyle@gmail.com" {
+                        panic!("Panickking now!");
+                    }
                     let update: AwarenessUpdate = serde_json::from_str(decoder.read_string()?)?;
                     tracing::debug!("{update:?}");
                     msg.project

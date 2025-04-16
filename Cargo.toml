@@ -3,8 +3,4 @@
 members = ["backend", "healthz"]
 resolver = "2"
 
-[profile.dev]
-panic = "abort"
 
-[profile.release]
-panic = "abort"
