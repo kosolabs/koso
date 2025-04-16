@@ -7,6 +7,7 @@
   import { Action } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL } from "$lib/shortcuts";
+  import type { YTaskProxy } from "$lib/yproxy";
   import {
     Cable,
     Check,
@@ -36,6 +37,8 @@
   const { koso } = inbox;
 
   const rows: { [key: string]: TaskRow } = {};
+
+  let tasks = $derived(visibleTasks());
 
   function getRow(id: string) {
     const maybeRow = rows[id];
@@ -264,11 +267,58 @@
       inbox.selected = undefined;
     }
   });
+
+  function visibleTasks(): YTaskProxy[] {
+    let tasks: YTaskProxy[] = [];
+    for (const task of koso.tasks) {
+      if (isTaskVisible(task)) {
+        tasks.push(task);
+      }
+    }
+    return tasks;
+  }
+
+  function isTaskVisible(task: YTaskProxy): boolean {
+    if (task.id === "root") {
+      return false;
+    }
+
+    // Don't show tasks not assigned to the user
+    if (task.assignee !== null && task.assignee !== auth.user.email) {
+      return false;
+    }
+    // Don't show rollup tasks where every child is assigned.
+    if (
+      task.yKind === null &&
+      task.children.length > 0 &&
+      Array.from(task.children.slice())
+        .map((childId) => koso.getTask(childId))
+        .every(
+          (child) =>
+            child.assignee !== null || koso.getProgress(child.id).isComplete(),
+        )
+    ) {
+      return false;
+    }
+
+    // Don't show unassigned task where none of the parents are assigned to the user
+    if (
+      task.assignee === null &&
+      koso
+        .getParents(task.id)
+        .filter((parent) => parent.yKind === null)
+        .every((parent) => parent.assignee !== auth.user.email)
+    ) {
+      return false;
+    }
+    const progress = koso.getProgress(task.id);
+    return !progress.isComplete() && !progress.isBlocked();
+  }
 </script>
 
 <Toolbar actions={[undoAction, redoAction]}>
   {#await koso.synced then}
-    {#if koso.tasks.length > 1}
+    {#if tasks.length > 0}
       <MarkdownEditor taskId={inbox.selected?.id} detailPanelRenderer={inbox} />
 
       <table class="w-full border-separate border-spacing-0 rounded-md border">
@@ -292,7 +342,7 @@
           </tr>
         </thead>
 
-        {#each [...koso.tasks].slice(1) as task, index (task.id)}
+        {#each tasks as task, index (task.id)}
           <tbody animate:flip={{ duration: 250 }}>
             <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
             <!-- svelte-ignore binding_property_non_reactive -->
