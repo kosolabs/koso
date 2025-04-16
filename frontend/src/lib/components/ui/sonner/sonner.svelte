@@ -43,7 +43,7 @@
 
 <div bind:this={ref} popover="manual" class="transform-style-preserve-3d">
   <Sonner
-    theme={$mode}
+    theme={mode.current}
     class="toaster group"
     toastOptions={{
       classes: {

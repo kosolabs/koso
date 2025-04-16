@@ -42,7 +42,7 @@
             markdown(),
             yCollab(yText, dummyAwareness),
             EditorView.domEventHandlers(handlers),
-            $mode === "dark" ? oneDarkTheme : [],
+            mode.current === "dark" ? oneDarkTheme : [],
           ],
         }),
         parent: el,
