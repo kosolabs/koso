@@ -587,6 +587,7 @@ export class Koso {
     const index = parent.children.indexOf(taskId);
     if (index < 0)
       throw new Error(`Task ${taskId} is not in the children of ${parentId}`);
+    console.debug(`Unlinking task ${taskId} from parent ${parentId}`);
     parent.children.delete(index);
   }
 
@@ -627,6 +628,16 @@ export class Koso {
 
   canDelete(link: TaskLinkage): boolean {
     return !this.isCanonicalManagedLink(link.id, link.parentId);
+  }
+
+  canDeleteTask(id: string): boolean {
+    const parentIds = this.parents.get(id);
+    if (!parentIds) {
+      return true;
+    }
+    return parentIds.every((parentId) =>
+      this.canDelete(new TaskLinkage({ id, parentId })),
+    );
   }
 
   delete(link: TaskLinkage) {
@@ -671,6 +682,7 @@ export class Koso {
     this.doc.transact(() => {
       this.unlink(link.id, link.parentId);
       for (const taskId of orphanTaskIds) {
+        console.debug(`Deleting task: ${taskId}`);
         this.graph.delete(taskId);
       }
     });
@@ -691,6 +703,56 @@ export class Koso {
             stack.push(childTaskId);
           }
         }
+      }
+    });
+  }
+
+  /** Deletes the given task and any orphaned descendants that result. */
+  deleteTask(id: string) {
+    if (!this.canDeleteTask(id)) {
+      throw new Error(`Cannot delete task ${id}`);
+    }
+
+    const subtreeTaskIds = this.#collectSubtreeTaskIds(id);
+
+    // Find all of the tasks that will become orphans when the task
+    // is deleted. In other words, tasks whose only parents are also in the sub-tree
+    // being deleted.
+    const stack = [id];
+    let orphanTaskIds = Set<string>();
+    let visited = Set<string>();
+    while (stack.length > 0) {
+      const taskId = stack.pop();
+      if (!taskId || visited.has(taskId)) {
+        continue;
+      }
+      visited = visited.add(taskId);
+
+      // Don't delete tasks that are linked to outside of the target sub-tree.
+      const parents = this.parents.get(taskId) || [];
+      const linkedElseWhere = parents.some((parentTaskId) => {
+        const isTargetTaskLink = taskId === id;
+        const parentInSubtree = subtreeTaskIds.has(parentTaskId);
+        return !isTargetTaskLink && !parentInSubtree;
+      });
+      if (linkedElseWhere) {
+        continue;
+      }
+
+      orphanTaskIds = orphanTaskIds.add(taskId);
+      for (const childTaskId of this.getChildren(taskId)) {
+        stack.push(childTaskId);
+      }
+    }
+
+    const parentIds = this.parents.get(id) || [];
+    this.doc.transact(() => {
+      for (const parentId of parentIds) {
+        this.unlink(id, parentId);
+      }
+      for (const taskId of orphanTaskIds) {
+        console.debug(`Deleting task: ${taskId}`);
+        this.graph.delete(taskId);
       }
     });
   }

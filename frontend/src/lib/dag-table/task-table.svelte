@@ -17,6 +17,7 @@
     SquarePen,
     StepBack,
     StepForward,
+    Trash,
     Undo,
     UserRoundPlus,
   } from "lucide-svelte";
@@ -79,6 +80,11 @@
   function edit() {
     if (!inbox.selected) return;
     getRow(inbox.selected.id).edit(true);
+  }
+
+  function remove() {
+    if (!inbox.selected) return;
+    koso.deleteTask(inbox.selected.id);
   }
 
   function unselect() {
@@ -189,6 +195,18 @@
       icon: Check,
       shortcut: new Shortcut({ key: " " }),
       enabled: () => !!inbox.selected && koso.isEditable(inbox.selected.id),
+    }),
+    new Action({
+      id: "Delete",
+      callback: remove,
+      title: "Delete task",
+      description: "Delete the current task",
+      icon: Trash,
+      enabled: () =>
+        !!inbox.selected &&
+        koso.isEditable(inbox.selected.id) &&
+        koso.canDeleteTask(inbox.selected.id),
+      shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
       id: "Link",
