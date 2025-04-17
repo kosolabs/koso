@@ -97,7 +97,11 @@
       <div class="overflow-x-hidden whitespace-nowrap">
         <Link
           href={`/projects/${koso.projectId}?taskId=${task.id}`}
-          onclick={(event) => event.stopPropagation()}
+          onclick={(event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            goto(`/projects/${koso.projectId}?taskId=${task.id}`);
+          }}
         >
           {task.num}
         </Link>
