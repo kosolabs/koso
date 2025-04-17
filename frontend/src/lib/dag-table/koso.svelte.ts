@@ -90,13 +90,6 @@ export class Progress {
   }
 }
 
-export type SyncState = {
-  // True when the indexed DB is sync'd with the Koso doc.
-  indexedDbSync: boolean;
-  // True when state from the server is sync'd with the Koso doc.
-  serverSync: boolean;
-};
-
 export type DetailPanelStates = "none" | "view" | "edit";
 
 export class Koso {
@@ -314,8 +307,20 @@ export class Koso {
     return this.#parents;
   }
 
-  get synced(): Promise<[void, void]> {
-    return Promise.all([this.#indexedDbSynced, this.#serverSynced]);
+  get synced(): Promise<void> {
+    return Promise.any([this.#indexedDbSynced, this.#serverSynced]).then(() => {
+      if (this.#yGraph.size > 0) {
+        return;
+      }
+      // If the root node doesn't exist yet, wait for the server to sync before proceeding.
+      // This avoids treating a project as sync'd on the first visit when indexedDB
+      // hasn't yet cached the data.
+      return Promise.all([this.#indexedDbSynced, this.#serverSynced]).then();
+    });
+  }
+
+  get serverSynced(): Promise<void> {
+    return this.#serverSynced;
   }
 
   // composable functions that primarily operate on Tasks

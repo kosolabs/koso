@@ -234,6 +234,15 @@
       await koso.synced;
       url.searchParams.delete("taskId");
       replaceState(url, {});
+
+      // The task may not exist locally, yet. It
+      // might come from the server, so wait for that.
+      if (!inbox.koso.getTask(taskId)) {
+        console.debug(
+          `Waiting for server sync before selecting task ${taskId}`,
+        );
+        await koso.serverSynced;
+      }
       inbox.selected = taskId;
     }
   });
