@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { type User } from "$lib/auth.svelte";
+  import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
   import { TaskStatus } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
+  import { Chip } from "$lib/kosui/chip";
   import { Link } from "$lib/kosui/link";
   import { cn } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
@@ -31,6 +34,7 @@
 
   let assignee = $derived(getUser(users, task.assignee));
   let editable = $derived(koso.isEditable(task.id));
+  let tags = $derived(getTags());
 
   export function edit(editing: boolean) {
     isEditing = editing;
@@ -43,6 +47,23 @@
   export function linkPanel(visible: boolean, mode: Mode) {
     linkOpen = visible;
     linkMode = mode;
+  }
+
+  function getTags(): ChipProps[] {
+    const parents = inbox.koso.parents.get(task.id);
+    if (!parents) return [];
+    return parents
+      .filter((parent) => parent !== "root")
+      .map((parent) => koso.getTask(parent))
+      .filter((parent) => parent.name.length > 0)
+      .map((parent) => {
+        const props: ChipProps = parseChipProps(parent.name);
+        props.onClick = (event) => {
+          event.stopPropagation();
+          goto(`/projects/${koso.projectId}?taskId=${parent.id}`);
+        };
+        return props;
+      });
   }
 
   function getUser(users: User[], email: string | null): User | null {
@@ -97,6 +118,16 @@
         <ManagedTaskIcon kind={task.yKind ?? ""} />
       {/if}
       <div class="flex w-full flex-wrap-reverse gap-x-1">
+        {#if tags.length > 0}
+          <div class="flex flex-wrap items-center gap-x-1">
+            {#each tags as { title, description, onClick, onDelete }}
+              <Chip color="tertiary" title={description} {onClick} {onDelete}>
+                {title}
+              </Chip>
+            {/each}
+          </div>
+        {/if}
+
         {#if editable}
           <Editable
             value={task.name}
