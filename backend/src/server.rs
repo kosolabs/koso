@@ -47,7 +47,7 @@ use tracing::{Level, Span};
 pub struct Config {
     pub pool: Option<&'static PgPool>,
     pub port: Option<u16>,
-    pub shutdown_signal: Option<CancellationToken>,
+    pub shutdown_signal: CancellationToken,
     pub key_set: Option<KeySet>,
     pub plugin_settings: Option<PluginSettings>,
 }
@@ -170,14 +170,10 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
 // Completion of this function signals to a server,
 // via graceful_shutdown, to begin shutdown.
 // As such, avoid doing cleanup work here.
-pub(super) async fn shutdown_signal(name: &str, signal: Option<CancellationToken>) {
-    let signal = async {
-        if let Some(signal) = signal {
-            signal.cancelled().await;
-            tracing::info!("Terminating {name} with cancellation...");
-            return Some(());
-        }
-        None
+pub(super) async fn shutdown_signal(name: &str, cancel_token: CancellationToken) {
+    let cancelled = async {
+        cancel_token.cancelled().await;
+        tracing::info!("Terminating {name} with cancellation...");
     };
 
     let ctrl_c = async {
@@ -202,7 +198,7 @@ pub(super) async fn shutdown_signal(name: &str, signal: Option<CancellationToken
     tokio::select! {
         _ = ctrl_c => {},
         _ = terminate => {},
-        Some(_) = signal => {}
+        _ = cancelled => {}
     }
 }
 

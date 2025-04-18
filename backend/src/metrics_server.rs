@@ -9,7 +9,7 @@ use tokio_util::sync::CancellationToken;
 #[derive(Default)]
 pub struct Config {
     pub port: Option<u16>,
-    pub shutdown_signal: Option<CancellationToken>,
+    pub shutdown_signal: CancellationToken,
 }
 
 /// Starts a prometheus metrics server and returns a future that completes on termination.
@@ -53,7 +53,7 @@ mod tests {
         let cancel = CancellationToken::new();
         let (addr, serve) = metrics_server::start_metrics_server(metrics_server::Config {
             port: Some(0),
-            shutdown_signal: Some(cancel.clone()),
+            shutdown_signal: cancel.clone(),
         })
         .await
         .unwrap();

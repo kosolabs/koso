@@ -1177,7 +1177,7 @@ async fn start_server(pool: &PgPool) -> (ServerHandle, SocketAddr) {
     let (addr, serve) = server::start_main_server(Config {
         pool: Some(Box::leak(Box::new(pool.clone()))),
         port: Some(0),
-        shutdown_signal: Some(cancel.clone()),
+        shutdown_signal: cancel.clone(),
         key_set: Some(testonly_key_set().await.unwrap()),
         plugin_settings: Some(PluginSettings {
             disable_polling: true,
