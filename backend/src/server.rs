@@ -29,7 +29,8 @@ use std::{
     net::SocketAddr,
     time::{Duration, Instant},
 };
-use tokio::{net::TcpListener, signal, sync::oneshot::Receiver, task::JoinHandle};
+use tokio::{net::TcpListener, signal, task::JoinHandle};
+use tokio_util::sync::CancellationToken;
 use tower::builder::ServiceBuilder;
 use tower_http::{
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
@@ -46,13 +47,13 @@ use tracing::{Level, Span};
 pub struct Config {
     pub pool: Option<&'static PgPool>,
     pub port: Option<u16>,
-    pub shutdown_signal: Option<Receiver<()>>,
+    pub shutdown_signal: CancellationToken,
     pub key_set: Option<KeySet>,
     pub plugin_settings: Option<PluginSettings>,
 }
 
 #[tracing::instrument(skip(config))]
-pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle<()>)> {
+pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle<Result<()>>)> {
     let pool = match config.pool {
         Some(pool) => pool,
         None => {
@@ -152,7 +153,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         )
         .with_graceful_shutdown(shutdown_signal("koso server", config.shutdown_signal))
         .await
-        .unwrap();
+        .context("serve failed")?;
 
         // Now that the server is shutdown, it's safe to clean things up.
         github_poll_handle.abort();
@@ -160,6 +161,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         tracing::info!("Closing database pool...");
         pool.close().await;
         tracing::info!("Database pool closed.");
+        Ok(())
     });
 
     Ok((addr, serve))
@@ -168,13 +170,11 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
 // Completion of this function signals to a server,
 // via graceful_shutdown, to begin shutdown.
 // As such, avoid doing cleanup work here.
-pub(super) async fn shutdown_signal(name: &str, signal: Option<Receiver<()>>) {
-    if let Some(signal) = signal {
-        if let Err(e) = signal.await {
-            tracing::error!("Reading shutdown signal failed: {e:?}");
-        }
-        return;
-    }
+pub(super) async fn shutdown_signal(name: &str, cancel_token: CancellationToken) {
+    let cancelled = async {
+        cancel_token.cancelled().await;
+        tracing::info!("Terminating {name} with cancellation...");
+    };
 
     let ctrl_c = async {
         signal::ctrl_c()
@@ -198,6 +198,7 @@ pub(super) async fn shutdown_signal(name: &str, signal: Option<Receiver<()>>) {
     tokio::select! {
         _ = ctrl_c => {},
         _ = terminate => {},
+        _ = cancelled => {}
     }
 }
 

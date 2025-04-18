@@ -1,19 +1,20 @@
 use crate::server::shutdown_signal;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{Router, routing::get};
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use std::{future::ready, net::SocketAddr};
-use tokio::{sync::oneshot::Receiver, task::JoinHandle};
+use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 
 #[derive(Default)]
 pub struct Config {
     pub port: Option<u16>,
-    pub shutdown_signal: Option<Receiver<()>>,
+    pub shutdown_signal: CancellationToken,
 }
 
 /// Starts a prometheus metrics server and returns a future that completes on termination.
 #[tracing::instrument(skip(config))]
-pub async fn start_metrics_server(config: Config) -> Result<(SocketAddr, JoinHandle<()>)> {
+pub async fn start_metrics_server(config: Config) -> Result<(SocketAddr, JoinHandle<Result<()>>)> {
     const EXPONENTIAL_SECONDS: &[f64] = &[
         0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0,
     ];
@@ -35,7 +36,7 @@ pub async fn start_metrics_server(config: Config) -> Result<(SocketAddr, JoinHan
         axum::serve(listener, app)
             .with_graceful_shutdown(shutdown_signal("metrics server", config.shutdown_signal))
             .await
-            .unwrap();
+            .context("serve failed")
     });
 
     Ok((addr, serve))
@@ -45,14 +46,14 @@ pub async fn start_metrics_server(config: Config) -> Result<(SocketAddr, JoinHan
 mod tests {
     use crate::metrics_server;
     use reqwest::{Client, StatusCode};
-    use tokio::sync::oneshot::channel;
+    use tokio_util::sync::CancellationToken;
 
     #[test_log::test(tokio::test)]
     async fn metrics_server_test() -> anyhow::Result<()> {
-        let (closer, close_signal) = channel::<()>();
+        let cancel = CancellationToken::new();
         let (addr, serve) = metrics_server::start_metrics_server(metrics_server::Config {
             port: Some(0),
-            shutdown_signal: Some(close_signal),
+            shutdown_signal: cancel.clone(),
         })
         .await
         .unwrap();
@@ -65,8 +66,8 @@ mod tests {
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
 
-        closer.send(()).unwrap();
-        serve.await.unwrap();
+        cancel.cancel();
+        serve.await.unwrap().unwrap();
         Ok(())
     }
 }
