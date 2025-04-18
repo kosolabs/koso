@@ -171,10 +171,14 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
 // via graceful_shutdown, to begin shutdown.
 // As such, avoid doing cleanup work here.
 pub(super) async fn shutdown_signal(name: &str, signal: Option<CancellationToken>) {
-    if let Some(signal) = signal {
-        signal.cancelled().await;
-        return;
-    }
+    let signal = async {
+        if let Some(signal) = signal {
+            signal.cancelled().await;
+            tracing::info!("Terminating {name} with cancellation...");
+            return Some(());
+        }
+        None
+    };
 
     let ctrl_c = async {
         signal::ctrl_c()
@@ -198,6 +202,7 @@ pub(super) async fn shutdown_signal(name: &str, signal: Option<CancellationToken
     tokio::select! {
         _ = ctrl_c => {},
         _ = terminate => {},
+        Some(_) = signal => {}
     }
 }
 
