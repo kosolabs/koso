@@ -29,7 +29,7 @@ use std::{
     net::SocketAddr,
     time::{Duration, Instant},
 };
-use tokio::{net::TcpListener, signal, task::JoinHandle};
+use tokio::{net::TcpListener, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 use tower::builder::ServiceBuilder;
 use tower_http::{
@@ -144,6 +144,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         }
     };
 
+    let shutdown_signal = config.shutdown_signal;
     let addr = listener.local_addr()?;
     let serve = tokio::spawn(async move {
         tracing::info!("server listening on {}", addr);
@@ -151,7 +152,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
             listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
         )
-        .with_graceful_shutdown(shutdown_signal("koso server", config.shutdown_signal))
+        .with_graceful_shutdown(async move { shutdown_signal.cancelled().await })
         .await
         .context("serve failed")?;
 
@@ -165,41 +166,6 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
     });
 
     Ok((addr, serve))
-}
-
-// Completion of this function signals to a server,
-// via graceful_shutdown, to begin shutdown.
-// As such, avoid doing cleanup work here.
-pub(super) async fn shutdown_signal(name: &str, cancel_token: CancellationToken) {
-    let cancelled = async {
-        cancel_token.cancelled().await;
-        tracing::info!("Terminating {name} with cancellation...");
-    };
-
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-        tracing::info!("Terminating {name} with ctrl-c...");
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
-            .recv()
-            .await;
-        tracing::info!("Terminating {name}...");
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
-        _ = cancelled => {}
-    }
 }
 
 async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {

@@ -1,10 +1,7 @@
 use crate::api::{ApiResult, error_response, google::User};
 use crate::notifiers::{NotifierSettings, TelegramSettings, UserNotificationConfig};
+use crate::secrets::{Secret, read_secret};
 use crate::settings::settings;
-use crate::{
-    secrets::{Secret, read_secret},
-    server::shutdown_signal,
-};
 use anyhow::Result;
 use axum::{
     Extension, Json, Router,
@@ -157,7 +154,7 @@ fn encoding_key_from_secrets() -> Result<EncodingKey> {
     Ok(EncodingKey::from_base64_secret(&secret.data)?)
 }
 
-pub(crate) async fn start_telegram_server() -> Result<()> {
+pub(crate) async fn start_telegram_server(cancel_token: CancellationToken) -> Result<()> {
     let bot = match bot_from_secrets() {
         Ok(bot) => bot,
         Err(error) => {
@@ -184,7 +181,7 @@ pub(crate) async fn start_telegram_server() -> Result<()> {
     let token = dis.shutdown_token();
     let abort_token = tokio::spawn(async move { dis.dispatch().await });
 
-    shutdown_signal("telegram bot", CancellationToken::new()).await;
+    cancel_token.cancelled().await;
     match token.shutdown() {
         Err(error) => {
             tracing::warn!("Error while shutting down Teloxide: {error}");
