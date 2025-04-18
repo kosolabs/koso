@@ -11,7 +11,7 @@ use crate::{
     },
     settings::settings,
 };
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use axum::{
     Extension, Router,
     extract::{ConnectInfo, MatchedPath, Request},
@@ -29,7 +29,8 @@ use std::{
     net::SocketAddr,
     time::{Duration, Instant},
 };
-use tokio::{net::TcpListener, signal, sync::oneshot::Receiver, task::JoinHandle};
+use tokio::{join, net::TcpListener, signal, task::JoinHandle};
+use tokio_util::sync::CancellationToken;
 use tower::builder::ServiceBuilder;
 use tower_http::{
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
@@ -46,7 +47,7 @@ use tracing::{Level, Span};
 pub struct Config {
     pub pool: Option<&'static PgPool>,
     pub port: Option<u16>,
-    pub shutdown_signal: Option<Receiver<()>>,
+    pub shutdown_signal: CancellationToken,
     pub key_set: Option<KeySet>,
     pub plugin_settings: Option<PluginSettings>,
 }
@@ -76,7 +77,8 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         }
     };
 
-    let collab = Collab::new(pool).context("Failed to init collab")?;
+    let cancel = config.shutdown_signal.clone();
+    let collab = Collab::new(pool, cancel.clone()).context("Failed to init collab")?;
     let key_set = match config.key_set {
         Some(key_set) => key_set,
         None => google::KeySet::new().await?,
@@ -86,9 +88,23 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         config.plugin_settings.unwrap_or_default(),
         collab.clone(),
         pool,
+        cancel.clone(),
     )
     .await?;
     let github_poll_handle = github_plugin.start_polling();
+    let github_poll_handle = {
+        let cancel = cancel.clone();
+        tokio::spawn(async move {
+            if let Err(e) = github_poll_handle.await {
+                if e.is_cancelled() {
+                    tracing::debug!("Github poller task was cancelled: {e:?}");
+                } else {
+                    tracing::error!("Github poller task panick'd: {e:?}");
+                }
+            }
+            cancel.cancel();
+        })
+    };
 
     let app = Router::new()
         .nest("/api", api::router().fallback(api::handler_404))
@@ -150,13 +166,25 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
             listener,
             app.into_make_service_with_connect_info::<SocketAddr>(),
         )
-        .with_graceful_shutdown(shutdown_signal("koso server", config.shutdown_signal))
+        .with_graceful_shutdown(shutdown_signal("koso server", cancel.clone()))
         .await
         .unwrap();
 
         // Now that the server is shutdown, it's safe to clean things up.
-        github_poll_handle.abort();
-        collab.stop().await;
+        // First, collaboratively cancel background tasks, giving them
+        // a chance to finish remaining work and stop gracefully.
+        cancel.cancel();
+
+        // Next, stop the collab and wait for background tasks to finish.
+        join!(collab.stop(), async move {
+            if let Err(e) =
+                wait_for_completion_or_abort(github_poll_handle, Duration::from_secs(10)).await
+            {
+                tracing::warn!("Github poller did not stop gracefully: {e}");
+            }
+        });
+
+        // Finally, close our database pool.
         tracing::info!("Closing database pool...");
         pool.close().await;
         tracing::info!("Database pool closed.");
@@ -168,13 +196,11 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
 // Completion of this function signals to a server,
 // via graceful_shutdown, to begin shutdown.
 // As such, avoid doing cleanup work here.
-pub(super) async fn shutdown_signal(name: &str, signal: Option<Receiver<()>>) {
-    if let Some(signal) = signal {
-        if let Err(e) = signal.await {
-            tracing::error!("Reading shutdown signal failed: {e:?}");
-        }
-        return;
-    }
+pub(super) async fn shutdown_signal(name: &str, cancel: CancellationToken) {
+    let cancelled = async {
+        cancel.cancelled().await;
+        tracing::info!("Terminating {name} with signal...");
+    };
 
     let ctrl_c = async {
         signal::ctrl_c()
@@ -198,6 +224,7 @@ pub(super) async fn shutdown_signal(name: &str, signal: Option<Receiver<()>>) {
     tokio::select! {
         _ = ctrl_c => {},
         _ = terminate => {},
+        _ = cancelled => {},
     }
 }
 
@@ -224,6 +251,18 @@ async fn emit_request_metrics(req: Request, next: Next) -> impl IntoResponse {
         .record(start.elapsed().as_secs_f64());
 
     response
+}
+
+async fn wait_for_completion_or_abort<T>(handle: JoinHandle<T>, timeout: Duration) -> Result<T> {
+    let abort_handle: tokio::task::AbortHandle = handle.abort_handle();
+    match tokio::time::timeout(timeout, handle).await {
+        Err(e) => {
+            abort_handle.abort();
+            Err(anyhow!("Timed out: {e}"))
+        }
+        Ok(Ok(v)) => Ok(v),
+        Ok(Err(e)) => Err(anyhow!("Task join error: {e}")),
+    }
 }
 
 #[derive(Clone)]

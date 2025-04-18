@@ -24,9 +24,12 @@ use notifications::{EventProcessor, KosoEvent};
 use projects_state::ProjectState;
 use sqlx::PgPool;
 use std::{sync::Arc, time::Duration};
-use tokio::sync::mpsc::{self};
 use tokio::time::sleep;
-use tokio_util::task::TaskTracker;
+use tokio::{
+    sync::mpsc::{self},
+    try_join,
+};
+use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 pub(crate) mod awareness;
 pub(crate) mod client;
@@ -50,7 +53,7 @@ struct Inner {
 }
 
 impl Collab {
-    pub(crate) fn new(pool: &'static PgPool) -> Result<Collab> {
+    pub(crate) fn new(pool: &'static PgPool, cancel: CancellationToken) -> Result<Collab> {
         let (process_msg_tx, process_msg_rx) = mpsc::channel::<ClientMessage>(1);
         let (doc_update_tx, doc_update_rx) = mpsc::channel::<DocUpdate>(50);
         let (event_tx, event_rx) = mpsc::channel::<KosoEvent>(50);
@@ -69,20 +72,30 @@ impl Collab {
             }),
         };
 
-        collab
+        let t1 = collab
             .inner
             .tracker
             .spawn(DocUpdateProcessor::new(pool, doc_update_rx).process_doc_updates());
 
-        collab
+        let t2 = collab
             .inner
             .tracker
             .spawn(ClientMessageProcessor::new(process_msg_rx).process_messages());
 
-        collab
+        let t3 = collab
             .inner
             .tracker
             .spawn(EventProcessor::new(pool, event_rx)?.process_events());
+        collab.inner.tracker.spawn(async move {
+            if let Err(e) = try_join!(t1, t2, t3) {
+                if e.is_cancelled() {
+                    tracing::debug!("A collab background task was cancelled: {e:?}");
+                } else {
+                    tracing::error!("A collab background task panick'd: {e:?}");
+                }
+            }
+            cancel.cancel();
+        });
 
         Ok(collab)
     }

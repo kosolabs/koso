@@ -25,6 +25,7 @@ use teloxide::{
     prelude::{Dispatcher, Requester},
     types::{ParseMode, Update, UserId},
 };
+use tokio_util::sync::CancellationToken;
 
 pub(super) fn router() -> Router {
     Router::new()
@@ -156,7 +157,7 @@ fn encoding_key_from_secrets() -> Result<EncodingKey> {
     Ok(EncodingKey::from_base64_secret(&secret.data)?)
 }
 
-pub(crate) async fn start_telegram_server() -> Result<()> {
+pub(crate) async fn start_telegram_server(cancel: CancellationToken) -> Result<()> {
     let bot = match bot_from_secrets() {
         Ok(bot) => bot,
         Err(error) => {
@@ -183,7 +184,7 @@ pub(crate) async fn start_telegram_server() -> Result<()> {
     let token = dis.shutdown_token();
     let abort_token = tokio::spawn(async move { dis.dispatch().await });
 
-    shutdown_signal("telegram bot", None).await;
+    shutdown_signal("telegram bot", cancel).await;
     match token.shutdown() {
         Err(error) => {
             tracing::warn!("Error while shutting down Teloxide: {error}");

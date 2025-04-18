@@ -1,3 +1,4 @@
+use tokio_util::sync::CancellationToken;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
@@ -22,22 +23,37 @@ async fn main() {
     let settings = settings::settings();
     tracing::info!("Using koso settings: {settings:?}");
 
-    let (_main_server, _metrics_server, _telegram_server) = tokio::join!(
+    let shutdown_signal = CancellationToken::new();
+
+    let main_server = {
+        let config = server::Config {
+            shutdown_signal: shutdown_signal.clone(),
+            ..Default::default()
+        };
         async {
-            let (_port, serve) = server::start_main_server(server::Config::default())
+            let (_port, serve) = server::start_main_server(config).await.unwrap();
+            serve.await.unwrap();
+        }
+    };
+    let metrics_server = {
+        let config = metrics_server::Config {
+            shutdown_signal: shutdown_signal.clone(),
+            ..Default::default()
+        };
+        async {
+            let (_port, serve) = metrics_server::start_metrics_server(config).await.unwrap();
+            serve.await.unwrap();
+        }
+    };
+    let telegram_server = {
+        let shutdown_signal: CancellationToken = shutdown_signal.clone();
+        async {
+            notifiers::telegram::start_telegram_server(shutdown_signal)
                 .await
                 .unwrap();
-            serve.await.unwrap();
-        },
-        async {
-            let (_port, serve) =
-                metrics_server::start_metrics_server(metrics_server::Config::default())
-                    .await
-                    .unwrap();
-            serve.await.unwrap();
-        },
-        async {
-            notifiers::telegram::start_telegram_server().await.unwrap();
-        },
-    );
+        }
+    };
+
+    let (_main_server, _metrics_server, _telegram_server) =
+        tokio::join!(main_server, metrics_server, telegram_server,);
 }

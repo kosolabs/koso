@@ -17,6 +17,7 @@ use regex::Regex;
 use sqlx::PgPool;
 use std::{cell::LazyCell, collections::HashSet, time::SystemTime};
 use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 use webhook::Webhook;
 use yrs::{ReadTxn, TransactionMut};
 
@@ -36,6 +37,7 @@ pub(crate) struct Plugin {
     client: AppGithub,
     pool: &'static PgPool,
     settings: PluginSettings,
+    cancel: CancellationToken,
 }
 
 impl Plugin {
@@ -43,6 +45,7 @@ impl Plugin {
         settings: PluginSettings,
         collab: Collab,
         pool: &'static PgPool,
+        cancel: CancellationToken,
     ) -> Result<Plugin> {
         PLUGIN_KIND.validate()?;
         PR_KIND.validate()?;
@@ -54,6 +57,7 @@ impl Plugin {
             config_storage,
             pool,
             settings,
+            cancel,
         })
     }
 
@@ -61,7 +65,7 @@ impl Plugin {
     /// Return a handle to the task, useful for aborting the task on shutdown.
     pub(crate) fn start_polling(&self) -> JoinHandle<()> {
         if !self.settings.disable_polling {
-            tokio::spawn(self.poller().poll())
+            tokio::spawn(self.poller().poll(self.cancel.clone()))
         } else {
             tokio::spawn(async { tracing::debug!("Plugin polling disabled") })
         }

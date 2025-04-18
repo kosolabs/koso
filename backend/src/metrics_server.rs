@@ -3,12 +3,13 @@ use anyhow::Result;
 use axum::{Router, routing::get};
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
 use std::{future::ready, net::SocketAddr};
-use tokio::{sync::oneshot::Receiver, task::JoinHandle};
+use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 
 #[derive(Default)]
 pub struct Config {
     pub port: Option<u16>,
-    pub shutdown_signal: Option<Receiver<()>>,
+    pub shutdown_signal: CancellationToken,
 }
 
 /// Starts a prometheus metrics server and returns a future that completes on termination.
@@ -45,14 +46,14 @@ pub async fn start_metrics_server(config: Config) -> Result<(SocketAddr, JoinHan
 mod tests {
     use crate::metrics_server;
     use reqwest::{Client, StatusCode};
-    use tokio::sync::oneshot::channel;
+    use tokio_util::sync::CancellationToken;
 
     #[test_log::test(tokio::test)]
     async fn metrics_server_test() -> anyhow::Result<()> {
-        let (closer, close_signal) = channel::<()>();
+        let cancel = CancellationToken::new();
         let (addr, serve) = metrics_server::start_metrics_server(metrics_server::Config {
             port: Some(0),
-            shutdown_signal: Some(close_signal),
+            shutdown_signal: cancel.clone(),
         })
         .await
         .unwrap();
@@ -65,7 +66,7 @@ mod tests {
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
 
-        closer.send(()).unwrap();
+        cancel.cancel();
         serve.await.unwrap();
         Ok(())
     }

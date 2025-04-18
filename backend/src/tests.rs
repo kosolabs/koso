@@ -1,5 +1,3 @@
-use std::{mem, net::SocketAddr, time::Duration};
-
 use crate::{
     api::{
         collab::{
@@ -21,14 +19,8 @@ use futures::{SinkExt, StreamExt, stream::FusedStream};
 use reqwest::{Client, Response, StatusCode};
 use serde_json::Value;
 use sqlx::PgPool;
-use tokio::{
-    net::TcpStream,
-    sync::{
-        Mutex,
-        oneshot::{self, channel},
-    },
-    task::JoinHandle,
-};
+use std::{net::SocketAddr, time::Duration};
+use tokio::{net::TcpStream, task::JoinHandle};
 use tokio_tungstenite::{
     MaybeTlsStream, WebSocketStream,
     tungstenite::{
@@ -36,6 +28,7 @@ use tokio_tungstenite::{
         protocol::{CloseFrame, frame::coding::CloseCode},
     },
 };
+use tokio_util::sync::CancellationToken;
 use tungstenite::client::IntoClientRequest;
 use yrs::{
     Origin, ReadTxn, StateVector, Update,
@@ -1153,7 +1146,7 @@ fn origin() -> Origin {
 }
 
 struct ServerHandle {
-    closer: Mutex<oneshot::Sender<()>>,
+    cancel: CancellationToken,
     serve: JoinHandle<()>,
 }
 
@@ -1165,8 +1158,7 @@ impl ServerHandle {
 
     async fn start_shutdown(&mut self) {
         tracing::info!("Sending server shutdown signal...");
-        let closer = mem::replace(&mut *self.closer.lock().await, channel::<()>().0);
-        closer.send(()).unwrap();
+        self.cancel.cancel();
     }
 
     async fn wait_for_shutdown(self) -> Result<()> {
@@ -1180,11 +1172,11 @@ impl ServerHandle {
 }
 
 async fn start_server(pool: &PgPool) -> (ServerHandle, SocketAddr) {
-    let (closer, close_signal) = channel::<()>();
+    let cancel = CancellationToken::new();
     let (addr, serve) = server::start_main_server(Config {
         pool: Some(Box::leak(Box::new(pool.clone()))),
         port: Some(0),
-        shutdown_signal: Some(close_signal),
+        shutdown_signal: cancel.clone(),
         key_set: Some(testonly_key_set().await.unwrap()),
         plugin_settings: Some(PluginSettings {
             disable_polling: true,
@@ -1193,11 +1185,5 @@ async fn start_server(pool: &PgPool) -> (ServerHandle, SocketAddr) {
     .await
     .unwrap();
 
-    (
-        ServerHandle {
-            closer: Mutex::new(closer),
-            serve,
-        },
-        addr,
-    )
+    (ServerHandle { cancel, serve }, addr)
 }
