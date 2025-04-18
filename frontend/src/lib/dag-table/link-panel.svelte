@@ -16,7 +16,7 @@
   import { match } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
   import { Clipboard, Network } from "lucide-svelte";
-  import { compareTasks } from ".";
+  import { compareTasks } from "./compare-tasks.svelte";
   import type { Koso } from "./koso.svelte";
   import { TaskLinkage } from "./koso.svelte";
 

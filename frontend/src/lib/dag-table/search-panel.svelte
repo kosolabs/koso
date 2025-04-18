@@ -11,7 +11,7 @@
   import { Modal } from "$lib/kosui/modal";
   import { match } from "$lib/utils";
   import { Clipboard, Network } from "lucide-svelte";
-  import { compareTasks } from ".";
+  import { compareTasks } from "./compare-tasks.svelte";
   import { getPlanningContext } from "./planning-context.svelte";
 
   type Props = {
