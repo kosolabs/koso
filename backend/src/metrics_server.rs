@@ -1,4 +1,3 @@
-use crate::server::shutdown_signal;
 use anyhow::{Context, Result};
 use axum::{Router, routing::get};
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder};
@@ -30,11 +29,12 @@ pub async fn start_metrics_server(config: Config) -> Result<(SocketAddr, JoinHan
     let port = config.port.unwrap_or(3001);
     let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{port}")).await?;
 
+    let shutdown_signal = config.shutdown_signal;
     let addr = listener.local_addr()?;
     let serve = tokio::spawn(async move {
         tracing::info!("metrics server listening on {}", addr);
         axum::serve(listener, app)
-            .with_graceful_shutdown(shutdown_signal("metrics server", config.shutdown_signal))
+            .with_graceful_shutdown(async move { shutdown_signal.cancelled().await })
             .await
             .context("serve failed")
     });
