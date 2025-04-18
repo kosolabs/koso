@@ -27,14 +27,14 @@ async fn main() {
             let (_port, serve) = server::start_main_server(server::Config::default())
                 .await
                 .unwrap();
-            serve.await.unwrap();
+            serve.await.unwrap().unwrap();
         },
         async {
             let (_port, serve) =
                 metrics_server::start_metrics_server(metrics_server::Config::default())
                     .await
                     .unwrap();
-            serve.await.unwrap();
+            serve.await.unwrap().unwrap();
         },
         async {
             notifiers::telegram::start_telegram_server().await.unwrap();
