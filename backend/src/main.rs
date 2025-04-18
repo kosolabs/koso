@@ -1,3 +1,4 @@
+use anyhow::{Context as _, Result};
 use tokio::signal;
 use tokio_util::sync::CancellationToken;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -26,80 +27,80 @@ async fn main() {
 
     let shutdown_signal = CancellationToken::new();
     tokio::join!(
-        run_server(shutdown_signal.clone()),
-        run_metrics_server(shutdown_signal.clone()),
-        run_telegram_server(shutdown_signal.clone()),
-        signal_shutdown(shutdown_signal.clone()),
+        async { run_server(shutdown_signal.clone()).await.unwrap() },
+        async { run_metrics_server(shutdown_signal.clone()).await.unwrap() },
+        async { run_telegram_server(shutdown_signal.clone()).await.unwrap() },
+        async { signal_shutdown(shutdown_signal.clone()).await.unwrap() },
     );
 }
 
-async fn run_server(shutdown_signal: CancellationToken) {
+async fn run_server(shutdown_signal: CancellationToken) -> Result<()> {
     tokio::spawn(async move {
         let (_port, serve) = server::start_main_server(server::Config {
             shutdown_signal: shutdown_signal.clone(),
             ..Default::default()
         })
-        .await
-        .unwrap();
-        serve.await.unwrap().unwrap();
+        .await?;
+        serve.await??;
+        Ok::<(), anyhow::Error>(())
     })
-    .await
-    .unwrap();
+    .await?
 }
 
-async fn run_metrics_server(shutdown_signal: CancellationToken) {
+async fn run_metrics_server(shutdown_signal: CancellationToken) -> Result<()> {
     tokio::spawn(async move {
         let (_port, serve) = metrics_server::start_metrics_server(metrics_server::Config {
             shutdown_signal: shutdown_signal.clone(),
             ..Default::default()
         })
-        .await
-        .unwrap();
-        serve.await.unwrap().unwrap();
+        .await?;
+        serve.await??;
+        Ok::<(), anyhow::Error>(())
     })
-    .await
-    .unwrap()
+    .await?
 }
 
-async fn run_telegram_server(shutdown_signal: CancellationToken) {
+async fn run_telegram_server(shutdown_signal: CancellationToken) -> Result<()> {
     tokio::spawn(async move {
-        notifiers::telegram::start_telegram_server(shutdown_signal.clone())
-            .await
-            .unwrap();
+        notifiers::telegram::start_telegram_server(shutdown_signal.clone()).await?;
+        Ok::<(), anyhow::Error>(())
     })
-    .await
-    .unwrap()
+    .await?
 }
 
 // This function waits for a shutdown signal (e.g. ctrl-c, SIGTERM)
 // and then cancels the provided CancellationToken in order
 // to enable graceful shutdown.
-async fn signal_shutdown(shutdown_signal: CancellationToken) {
+async fn signal_shutdown(shutdown_signal: CancellationToken) -> Result<()> {
     let ctrl_c = async {
         signal::ctrl_c()
             .await
-            .expect("failed to install Ctrl+C handler");
+            .context("failed to install Ctrl+C handler")?;
         tracing::info!("Terminating with ctrl-c...");
+        Ok::<(), anyhow::Error>(())
     };
 
     #[cfg(unix)]
     let terminate = async {
         signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install signal handler")
+            .context("failed to install signal handler")?
             .recv()
             .await;
         tracing::info!("Terminating...");
+        Ok(())
     };
 
     #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
+    let terminate = std::future::pending::<Result<()>>();
 
     // Wait for one of the signals to fire.
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
-    }
+        res = ctrl_c => {res},
+        res = terminate => {res},
+    }?;
 
     // Initiate shutdown.
     shutdown_signal.cancel();
+
+    Ok(())
 }
