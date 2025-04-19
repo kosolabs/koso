@@ -33,6 +33,7 @@ use std::{
     },
 };
 use tokio::sync::{Mutex, MutexGuard, mpsc::Sender};
+use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
 use yrs::{ReadTxn as _, StateVector, Subscription, Update};
 
@@ -210,6 +211,7 @@ impl ProjectsState {
             updates: atomic::AtomicUsize::new(0),
             pool: self.pool,
             tracker: self.tracker.clone(),
+            stopped_token: CancellationToken::new(),
         })
     }
 
@@ -251,6 +253,7 @@ pub(crate) struct ProjectState {
     pub(super) event_tx: Sender<KosoEvent>,
     pool: &'static PgPool,
     tracker: tokio_util::task::TaskTracker,
+    pub(super) stopped_token: CancellationToken,
 }
 
 impl ProjectState {
@@ -410,6 +413,10 @@ impl ProjectState {
     pub(super) async fn remove_and_close_client(&self, who: &String, closure: ClientClosure) {
         let (client, remaining_clients) = {
             let clients = &mut self.clients.lock().await;
+            if clients.stopped {
+                tracing::debug!("Tryed to remove client during shutdown");
+                return;
+            }
             (clients.map.remove(who), clients.map.len())
         };
         tracing::debug!(
@@ -440,11 +447,16 @@ impl ProjectState {
     async fn stop(project: Arc<ProjectState>) {
         let mut clients = project.clients.lock().await;
         clients.stopped = true;
+        project.stopped_token.cancel();
 
         tracing::debug!("Closing {} project clients", clients.map.len());
         let mut res = Vec::new();
-        for client in clients.map.values_mut() {
-            res.push(client.close(CLOSE_RESTART, "The server is shutting down."));
+        for (_, mut client) in clients.map.drain() {
+            res.push(async move {
+                client
+                    .close(CLOSE_RESTART, "The server is shutting down.")
+                    .await;
+            });
         }
         futures::future::join_all(res).await;
     }
@@ -493,7 +505,16 @@ impl Drop for ProjectState {
             self.project_id
         );
 
-        let updates = self.updates.load(Relaxed);
+        // Avoid compaction on shutdown to speed shutdown along
+        // and avoid the burst of compacting many projects at once.
+        if let Ok(clients) = self.clients.try_lock() {
+            if clients.stopped {
+                tracing::trace!("Skipping compacting, shutting down");
+                return;
+            }
+        }
+
+        let updates: usize = self.updates.load(Relaxed);
         if updates > 10 {
             self.tracker
                 .spawn(compact(self.pool, self.project_id.clone()).in_current_span());
