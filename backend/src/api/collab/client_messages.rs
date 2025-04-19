@@ -162,15 +162,19 @@ impl ClientMessageProcessor {
             let Some(msg) = self.process_msg_rx.recv().await else {
                 break;
             };
-            if let Err(e) = self.process_message(msg).await {
-                tracing::warn!("Failed to process message: {e:?}");
-            }
+            self.process_message(msg).await;
         }
         tracing::info!("Stopped processing messages");
     }
 
     #[tracing::instrument(skip(self))]
-    async fn process_message(&self, msg: ClientMessage) -> Result<()> {
+    async fn process_message(&self, msg: ClientMessage) {
+        if let Err(e) = self.process_message_internal(msg).await {
+            tracing::warn!("Failed to process message: {e:?}");
+        }
+    }
+
+    async fn process_message_internal(&self, msg: ClientMessage) -> Result<()> {
         let mut decoder = DecoderV1::from(msg.data.as_slice());
         match decoder.read_var()? {
             MSG_SYNC => match decoder.read_var()? {
