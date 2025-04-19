@@ -1,12 +1,13 @@
-use crate::api::collab::{
-    msg_sync::{MSG_SYNC, MSG_SYNC_REQUEST, MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE, sync_response},
-    txn_origin::{Actor, YOrigin},
-};
 use crate::api::{
     collab::{
         awareness::AwarenessUpdate,
         client::{CLOSE_ERROR, CLOSE_NORMAL, ClientClosure, ClientReceiver},
+        msg_sync::{
+            MSG_KOSO_AWARENESS, MSG_KOSO_AWARENESS_UPDATE, MSG_SYNC, MSG_SYNC_REQUEST,
+            MSG_SYNC_RESPONSE, MSG_SYNC_UPDATE, sync_response,
+        },
         projects_state::ProjectState,
+        txn_origin::{Actor, YOrigin},
     },
     model::User,
 };
@@ -22,8 +23,6 @@ use yrs::{
     encoding::read::Read as _,
     updates::decoder::{Decode as _, DecoderV1},
 };
-
-use super::msg_sync::{MSG_KOSO_AWARENESS, MSG_KOSO_AWARENESS_UPDATE};
 
 /// ClientMessageReceiver receives messages from clients
 /// about a particular project and forwards the binary ones to
@@ -59,33 +58,45 @@ impl ClientMessageReceiver {
             + Duration::from_millis((random::<f32>() * 20.0 * 60.0 * 1000.0) as u64);
         let closure = match timeout(timeout_duration, async {
             loop {
-                let Some(msg) = self.receiver.next().await else {
-                    return ClientClosure {
+                let msg = tokio::select! {
+                    msg = self.receiver.next() => { msg }
+                    _ = self.project.stopped_token.cancelled() => {
+                        // On shutdown we don't sit around and wait for clients
+                        // to respond with a closed frame.
+                        tracing::trace!("Client receiver cancelled");
+                        return None;
+                    }
+                };
+
+                let Some(msg) = msg else {
+                    return Some(ClientClosure {
                         code: CLOSE_NORMAL,
                         reason: "Read None from client socket.",
                         details: "Read None from client socket.".to_string(),
                         client_initiated: true,
-                    };
+                    });
                 };
                 if let ControlFlow::Break(closure) = self.receive_message_from_client(msg).await {
-                    return closure;
+                    return Some(closure);
                 }
             }
         })
         .await
         {
             Ok(closure) => closure,
-            Err(e) => ClientClosure {
+            Err(e) => Some(ClientClosure {
                 code: CLOSE_NORMAL,
                 reason: "Resetting old connection",
                 details: format!("Resetting old connection after {e}"),
                 client_initiated: false,
-            },
+            }),
         };
 
-        self.project
-            .remove_and_close_client(&self.receiver.who, closure)
-            .await;
+        if let Some(closure) = closure {
+            self.project
+                .remove_and_close_client(&self.receiver.who, closure)
+                .await;
+        }
     }
 
     async fn receive_message_from_client(
