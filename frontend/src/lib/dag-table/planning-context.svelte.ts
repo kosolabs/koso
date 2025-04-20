@@ -24,7 +24,7 @@ export class PlanningContext {
     if (this.koso.graph.size === 0) {
       return List();
     }
-    return this.#flattenFn(this.root, this.expanded, this.showDone);
+    return this.#defaultFlatten(this.root, this.expanded, this.showDone);
   });
 
   #selectedRaw: Selected = $state(Selected.default());
@@ -43,16 +43,9 @@ export class PlanningContext {
   #dropEffect: "copy" | "move" | "none" = $state("none");
   #focus: boolean = $state(false);
 
-  #flattenFn: FlattenFn;
-  #visibilityFilterFn: VisibilityFilterFn;
-
   #detailPanel: DetailPanelStates = $state("none");
 
-  constructor(
-    koso: Koso,
-    visibilityFilterFn?: VisibilityFilterFn,
-    flattenFn?: FlattenFn,
-  ) {
+  constructor(koso: Koso) {
     this.#koso = koso;
 
     this.#yUndoManager = new Y.UndoManager(this.koso.graph.yGraph, {
@@ -74,12 +67,10 @@ export class PlanningContext {
       }
     });
 
-    this.#flattenFn = flattenFn ?? this.#defaultFlatten;
     this.#showDone = useLocalStorage<boolean>(
       `show-done-${this.koso.projectId}`,
       false,
     );
-    this.#visibilityFilterFn = visibilityFilterFn ?? this.#defaultIsVisible;
 
     this.#expanded = useLocalStorage<Set<Node>>(
       `expanded-nodes-${this.koso.projectId}`,
@@ -714,12 +705,7 @@ export class PlanningContext {
   }
 
   isVisible(taskId: string, showDone: boolean) {
-    return this.#visibilityFilterFn(taskId, showDone);
-  }
-
-  /** Do not call this directly. Use isVisible instead. */
-  #defaultIsVisible(taskId: string) {
-    if (!this.showDone) {
+    if (!showDone) {
       const progress = this.koso.getProgress(taskId);
       if (progress.isComplete()) {
         const doneTime = progress.lastStatusTime;
@@ -739,12 +725,8 @@ export class PlanningContext {
   }
 }
 
-export function newPlanningContext(
-  koso: Koso,
-  visibilityFilterFn?: VisibilityFilterFn,
-  flattenFn?: FlattenFn,
-): PlanningContext {
-  const ctx = new PlanningContext(koso, visibilityFilterFn, flattenFn);
+export function newPlanningContext(koso: Koso): PlanningContext {
+  const ctx = new PlanningContext(koso);
   window.planningCtx = ctx;
   return setPlanningContext(ctx);
 }
@@ -756,13 +738,6 @@ export function setPlanningContext(ctx: PlanningContext): PlanningContext {
 export function getPlanningContext(): PlanningContext {
   return getContext<PlanningContext>(PlanningContext);
 }
-
-export type FlattenFn = (
-  node: Node,
-  expanded: Set<Node>,
-  showDone: boolean,
-) => List<Node>;
-export type VisibilityFilterFn = (taskId: string, showDone: boolean) => boolean;
 
 type SelectedProps = { node: Node | null; index: number | null };
 const SelectedRecord = Record<SelectedProps>({ node: null, index: null });

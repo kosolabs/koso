@@ -48,9 +48,8 @@
 
   type Props = {
     users: User[];
-    inboxView: boolean;
   };
-  const { users, inboxView }: Props = $props();
+  const { users }: Props = $props();
 
   const rows: { [key: string]: Row } = {};
 
@@ -143,9 +142,6 @@
 
         getRow(node).showDoneConfetti();
         koso.setTaskStatus(node.name, "Done", auth.user);
-        if (inboxView) {
-          toast.success("🚀 Great work! Task complete!");
-        }
         break;
       }
       case "Not Started":
@@ -163,16 +159,14 @@
 
     koso.delete(toDelete.linkage);
 
-    if (!inboxView) {
-      // Select the next (or previous) node following deletion.
-      if (planningCtx.nodes.size < 2 || toDeleteIndex <= 0) {
-        planningCtx.selected = null;
-      } else {
-        planningCtx.selected =
-          planningCtx.nodes.get(
-            Math.min(toDeleteIndex, planningCtx.nodes.size - 1),
-          ) || null;
-      }
+    // Select the next (or previous) node following deletion.
+    if (planningCtx.nodes.size < 2 || toDeleteIndex <= 0) {
+      planningCtx.selected = null;
+    } else {
+      planningCtx.selected =
+        planningCtx.nodes.get(
+          Math.min(toDeleteIndex, planningCtx.nodes.size - 1),
+        ) || null;
     }
   }
 
@@ -317,9 +311,7 @@
     icon: ListPlus,
     shortcut: INSERT_NODE,
     enabled: () =>
-      !inboxView &&
-      (!planningCtx.selected ||
-        koso.canInsert(planningCtx.selected.parent.name)),
+      !planningCtx.selected || koso.canInsert(planningCtx.selected.parent.name),
   };
 
   const undoAction = new Action({
@@ -341,7 +333,6 @@
     callback: showSearchPalette,
     description: "Show the search palette",
     icon: Search,
-    enabled: () => !inboxView,
     shortcut: new Shortcut({ key: "p", meta: true }),
   });
 
@@ -366,9 +357,7 @@
       description: "Expand the current task",
       icon: ChevronsUpDown,
       enabled: () =>
-        !inboxView &&
-        !!planningCtx.selected &&
-        planningCtx.canExpand(planningCtx.selected),
+        !!planningCtx.selected && planningCtx.canExpand(planningCtx.selected),
       shortcut: new Shortcut({ key: "ArrowRight" }),
     }),
     new Action({
@@ -377,9 +366,7 @@
       description: "Collapse the current task",
       icon: ChevronsDownUp,
       enabled: () =>
-        !inboxView &&
-        !!planningCtx.selected &&
-        planningCtx.canCollapse(planningCtx.selected),
+        !!planningCtx.selected && planningCtx.canCollapse(planningCtx.selected),
       shortcut: new Shortcut({ key: "ArrowLeft" }),
     }),
     new Action({
@@ -388,7 +375,6 @@
       title: "Expand All",
       description: "Expand all tasks",
       icon: ChevronsUpDown,
-      enabled: () => !inboxView,
     }),
     new Action({
       id: "CollapseAll",
@@ -396,7 +382,6 @@
       title: "Collapse All",
       description: "Collapse all tasks",
       icon: ChevronsDownUp,
-      enabled: () => !inboxView,
     }),
     insertAction,
     new Action({
@@ -407,7 +392,6 @@
       icon: ListPlus,
       shortcut: new Shortcut({ key: "Enter", meta: true, shift: true }),
       enabled: () =>
-        !inboxView &&
         !!planningCtx.selected &&
         koso.canInsert(planningCtx.selected.parent.name),
     }),
@@ -418,9 +402,7 @@
       description: "Insert a new task as a child",
       icon: ListTree,
       enabled: () =>
-        !inboxView &&
-        !!planningCtx.selected &&
-        koso.canInsert(planningCtx.selected.name),
+        !!planningCtx.selected && koso.canInsert(planningCtx.selected.name),
       shortcut: INSERT_CHILD_NODE,
     }),
     new Action({
@@ -430,7 +412,7 @@
       description: "Insert a new task as a child of the previous task",
       icon: ListTree,
       enabled: () => {
-        if (inboxView || !planningCtx.selected) {
+        if (!planningCtx.selected) {
           return false;
         }
         const prevPeer = planningCtx.getPrevPeer(planningCtx.selected);
@@ -466,9 +448,7 @@
       description: "Delete the current task",
       icon: Trash,
       enabled: () =>
-        !inboxView &&
-        !!planningCtx.selected &&
-        koso.canDelete(planningCtx.selected.linkage),
+        !!planningCtx.selected && koso.canDelete(planningCtx.selected.linkage),
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
@@ -477,7 +457,7 @@
       title: "Move up",
       description: "Move the current task up",
       icon: MoveUp,
-      enabled: () => !inboxView && !!planningCtx.selected,
+      enabled: () => !!planningCtx.selected,
       shortcut: new Shortcut({ key: "ArrowUp", alt: true }),
     }),
     new Action({
@@ -486,7 +466,7 @@
       title: "Move down",
       description: "Move the current task down",
       icon: MoveDown,
-      enabled: () => !inboxView && !!planningCtx.selected,
+      enabled: () => !!planningCtx.selected,
       shortcut: new Shortcut({ key: "ArrowDown", alt: true }),
     }),
     new Action({
@@ -495,7 +475,7 @@
       title: "Move to start",
       description: "Move the current task to the top of its group",
       icon: ListStart,
-      enabled: () => !inboxView && !!planningCtx.selected,
+      enabled: () => !!planningCtx.selected,
       shortcut: new Shortcut({ key: "ArrowUp", alt: true, shift: true }),
     }),
     new Action({
@@ -504,7 +484,7 @@
       title: "Move to end",
       description: "Move the current task to the bottom of its group",
       icon: ListEnd,
-      enabled: () => !inboxView && !!planningCtx.selected,
+      enabled: () => !!planningCtx.selected,
       shortcut: new Shortcut({ key: "ArrowDown", alt: true, shift: true }),
     }),
     new Action({
@@ -514,7 +494,6 @@
       description: "Make the current task a peer of its parent",
       icon: IndentDecrease,
       enabled: () =>
-        !inboxView &&
         !!planningCtx.selected &&
         planningCtx.canUndentNode(planningCtx.selected),
       shortcut: new Shortcut({ key: "ArrowLeft", alt: true }),
@@ -526,7 +505,6 @@
       description: "Make the current task a child of its peer",
       icon: IndentIncrease,
       enabled: () =>
-        !inboxView &&
         !!planningCtx.selected &&
         planningCtx.canIndentNode(planningCtx.selected),
       shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
@@ -549,7 +527,7 @@
       title: "Hide Done Tasks",
       description: "Hide tasks that have been marked done",
       icon: EyeOff,
-      enabled: () => !inboxView && planningCtx.showDone,
+      enabled: () => planningCtx.showDone,
     }),
     new Action({
       id: "ShowDoneTasks",
@@ -557,7 +535,7 @@
       title: "Show Done Tasks",
       description: "Show tasks that have been marked done",
       icon: Eye,
-      enabled: () => !inboxView && !planningCtx.showDone,
+      enabled: () => !planningCtx.showDone,
     }),
     searchAction,
     new Action({
@@ -566,7 +544,7 @@
       title: "Next Link",
       description: "Select next link to current task",
       icon: SkipForward,
-      enabled: () => !inboxView && !!planningCtx.selected,
+      enabled: () => !!planningCtx.selected,
       shortcut: new Shortcut({ key: "ArrowDown", meta: true }),
     }),
     new Action({
@@ -575,60 +553,38 @@
       title: "Previous Link",
       description: "Select previous link to current task",
       icon: SkipBack,
-      enabled: () => !inboxView && !!planningCtx.selected,
+      enabled: () => !!planningCtx.selected,
       shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
     }),
   ];
 
-  if (inboxView) {
-    actions.push(
-      new Action({
-        id: "Link",
-        callback: linkTask,
-        title: "Link task to...",
-        description: "Link current task to another task",
-        icon: Cable,
-        enabled: () => !!planningCtx.selected,
-      }),
-      new Action({
-        id: "Block",
-        callback: blockTask,
-        title: "Block task on...",
-        description: "Block current task to another task",
-        icon: OctagonX,
-        enabled: () => !!planningCtx.selected,
-        shortcut: new Shortcut({ key: "/", meta: true }),
-      }),
-    );
-  } else {
-    actions.push(
-      new Action({
-        id: "Link",
-        callback: linkTask,
-        title: "Link task to...",
-        description: "Link current task to another task",
-        icon: Cable,
-        enabled: () => !!planningCtx.selected,
-        shortcut: new Shortcut({ key: "/", meta: true }),
-      }),
-      new Action({
-        id: "Block",
-        callback: blockTask,
-        title: "Block task on...",
-        description: "Block current task to another task",
-        icon: OctagonX,
-        enabled: () => !!planningCtx.selected,
-      }),
-      new Action({
-        id: "Organize",
-        callback: organizeTasks,
-        title: "Organize Tasks",
-        description: "Organize the current task and its peers",
-        icon: Wrench,
-        enabled: () => !!planningCtx.selected,
-      }),
-    );
-  }
+  actions.push(
+    new Action({
+      id: "Link",
+      callback: linkTask,
+      title: "Link task to...",
+      description: "Link current task to another task",
+      icon: Cable,
+      enabled: () => !!planningCtx.selected,
+      shortcut: new Shortcut({ key: "/", meta: true }),
+    }),
+    new Action({
+      id: "Block",
+      callback: blockTask,
+      title: "Block task on...",
+      description: "Block current task to another task",
+      icon: OctagonX,
+      enabled: () => !!planningCtx.selected,
+    }),
+    new Action({
+      id: "Organize",
+      callback: organizeTasks,
+      title: "Organize Tasks",
+      description: "Organize the current task and its peers",
+      icon: Wrench,
+      enabled: () => !!planningCtx.selected,
+    }),
+  );
 
   onMount(async () => {
     const url = new URL(window.location.href);
@@ -703,11 +659,7 @@
 
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<Toolbar
-  actions={inboxView
-    ? [undoAction, redoAction]
-    : [insertAction, undoAction, redoAction, searchAction]}
->
+<Toolbar actions={[insertAction, undoAction, redoAction, searchAction]}>
   {#await koso.synced then}
     {#if planningCtx.nodes.size > 1}
       <MarkdownEditor
@@ -732,9 +684,7 @@
               <UserRoundPlus class="h-4 md:hidden" />
               <div class="max-md:hidden">Assignee</div>
             </th>
-            {#if !inboxView}
-              <th class="border-l p-2 max-md:hidden">Reporter</th>
-            {/if}
+            <th class="border-l p-2 max-md:hidden">Reporter</th>
             <th class="relative m-0 w-0 p-0"></th>
           </tr>
         </thead>
@@ -743,11 +693,11 @@
           <tbody animate:flip={{ duration: 250 }}>
             <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
             <!-- svelte-ignore binding_property_non_reactive -->
-            <Row bind:this={rows[node.id]} {index} {node} {users} {inboxView} />
+            <Row bind:this={rows[node.id]} {index} {node} {users} />
           </tbody>
         {/each}
       </table>
-    {:else if !inboxView}
+    {:else}
       <div class="flex items-center justify-center pt-8">
         <div
           class="bg-m3-surface-container flex w-9/12 max-w-[425px] rounded-md border p-4"
@@ -764,22 +714,6 @@
               <Button variant="filled" icon={ListPlus} onclick={insert}>
                 Add task
               </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    {:else}
-      <div class="flex items-center justify-center pt-8">
-        <div
-          class="bg-m3-surface-container flex w-9/12 max-w-[425px] rounded-md border p-4"
-        >
-          <div class="min-w-16">
-            <KosoLogo class="size-16" />
-          </div>
-          <div class="ml-4">
-            <div class="text-md">Inbox zero!</div>
-            <div class="mt-2 text-sm">
-              You've achieved inbox zero. Great job!
             </div>
           </div>
         </div>

@@ -205,4 +205,4 @@
 
 <ProjectShareModal bind:open={openShareModal} />
 
-<DagTable users={project.users} inboxView={false} />
+<DagTable users={project.users} />
