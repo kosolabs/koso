@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { type User } from "$lib/auth.svelte";
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
@@ -27,9 +26,8 @@
     index: number;
     node: Node;
     users: User[];
-    inboxView: boolean;
   };
-  const { index, node, users, inboxView }: Props = $props();
+  const { index, node, users }: Props = $props();
 
   const planningCtx = getPlanningContext();
   const { koso } = planningCtx;
@@ -43,7 +41,7 @@
   let dragOverChild = $state(false);
   let isEditing = $state(false);
   let linkOpen = $state(false);
-  let linkMode: Mode = $state(inboxView ? "block" : "link");
+  let linkMode: Mode = $state("link");
 
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
@@ -85,14 +83,13 @@
     return parents
       .filter((parent) => {
         // Don't output a tag for this node's parent, it's duplicative.
-        // Except in the inbox view where nodes are a flat list.
-        return parent !== node.parent.name || inboxView;
+        return parent !== node.parent.name;
       })
       .map((parent) => koso.getTask(parent))
       .filter((parent) => parent.name.length > 0)
       .map((parent) => {
         const props: ChipProps = parseChipProps(parent.name);
-        if (!inboxView && koso.canUnlink(node.name, parent.id)) {
+        if (koso.canUnlink(node.name, parent.id)) {
           props.onDelete = (event) => {
             console.log(event);
             event.stopPropagation();
@@ -102,11 +99,6 @@
 
         props.onClick = (event) => {
           event.stopPropagation();
-
-          if (inboxView) {
-            goto(`/projects/${koso.projectId}?taskId=${parent.id}`);
-            return;
-          }
 
           let targetNode = planningCtx.nodes
             .filter((n) => n.name == node.name && n.parent.name === parent.id)
@@ -374,46 +366,31 @@
 >
   <td class={cn("border-t px-2")} bind:this={idCellElement}>
     <div class="flex items-center">
-      {#if !inboxView}
-        <div style="width: {(node.length - 1) * 20}px"></div>
-        {#if task.children.length > 0}
-          <button
-            class={cn("w-4 transition-transform", open ? "rotate-90" : "")}
-            title={open ? "Collapse" : "Expand"}
-            aria-label={`Task ${task.num} Toggle Expand`}
-            onclick={handleToggleOpen}
-          >
-            <ChevronRight class="w-4" />
-          </button>
-        {:else}
-          <div class="w-4"></div>
-        {/if}
+      <div style="width: {(node.length - 1) * 20}px"></div>
+      {#if task.children.length > 0}
         <button
-          class="flex items-center gap-1 py-1"
-          draggable={true}
-          aria-label={`Task ${task.num} Drag Handle`}
-          ondragstart={handleDragStart}
-          ondragend={handleDragEnd}
-          ondrag={handleDrag}
-          bind:this={handleElement}
+          class={cn("w-4 transition-transform", open ? "rotate-90" : "")}
+          title={open ? "Collapse" : "Expand"}
+          aria-label={`Task ${task.num} Toggle Expand`}
+          onclick={handleToggleOpen}
         >
-          <Grip class="w-4" />
-          <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
+          <ChevronRight class="w-4" />
         </button>
       {:else}
-        <div class="overflow-x-hidden whitespace-nowrap">
-          <Link
-            href={`/projects/${koso.projectId}?taskId=${task.id}`}
-            onclick={(event) => {
-              event.stopPropagation();
-              event.preventDefault();
-              goto(`/projects/${koso.projectId}?taskId=${task.id}`);
-            }}
-          >
-            {task.num}
-          </Link>
-        </div>
+        <div class="w-4"></div>
       {/if}
+      <button
+        class="flex items-center gap-1 py-1"
+        draggable={true}
+        aria-label={`Task ${task.num} Drag Handle`}
+        ondragstart={handleDragStart}
+        ondragend={handleDragEnd}
+        ondrag={handleDrag}
+        bind:this={handleElement}
+      >
+        <Grip class="w-4" />
+        <div class="overflow-x-hidden whitespace-nowrap">{task.num}</div>
+      </button>
     </div>
   </td>
   {#if koso.debug}
@@ -422,7 +399,7 @@
     </td>
   {/if}
   <td class={cn("border-t border-l p-2")}>
-    <TaskStatus {koso} {task} {inboxView} bind:this={taskStatus} />
+    <TaskStatus {koso} {task} inboxView={false} bind:this={taskStatus} />
   </td>
   <td class={cn("w-full border-t border-l px-2 py-1")}>
     <div class={cn("flex items-center gap-x-1")}>
@@ -495,18 +472,16 @@
       }}
     />
   </td>
-  {#if !inboxView}
-    <td class={cn("border-t border-l p-2 max-md:hidden")}>
-      <UserSelect
-        {users}
-        value={reporter}
-        {editable}
-        onSelect={(user) => {
-          koso.setReporter(task.id, user);
-        }}
-      />
-    </td>
-  {/if}
+  <td class={cn("border-t border-l p-2 max-md:hidden")}>
+    <UserSelect
+      {users}
+      value={reporter}
+      {editable}
+      onSelect={(user) => {
+        koso.setReporter(task.id, user);
+      }}
+    />
+  </td>
   <td class={cn("relative m-0 w-0 p-0")}>
     <Awareness users={awareUsers} />
   </td>
