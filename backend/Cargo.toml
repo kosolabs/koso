@@ -30,7 +30,7 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 listenfd = "1.0.2"
 metrics = { version = "0.24.1", default-features = false }
-metrics-exporter-prometheus = { version = "0.16.2", default-features = false }
+metrics-exporter-prometheus = { version = "0.17.0", default-features = false }
 futures = "0.3.31"
 yrs = { version = "0.23.0", features = ["sync"] }
 tokio-util = { version = "0.7.14", features = ["rt"] }
