@@ -670,6 +670,7 @@
       <table class="w-full border-separate border-spacing-0 rounded-md border">
         <thead class="text-left text-xs font-bold uppercase">
           <tr>
+            <th class="relative m-0 w-0 p-0"></th>
             <th class="w-32 p-2">ID</th>
             {#if koso.debug}
               <th class="border-l p-2">UUID</th>

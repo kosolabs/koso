@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Tooltip } from "$lib/kosui/tooltip";
-  import { cn } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
   import { ArrowBigRight } from "lucide-svelte";
 
@@ -26,11 +25,11 @@
   {#snippet trigger({ ref })}
     <div
       use:ref
-      class={cn("bg-m3-primary absolute rounded")}
-      style:height={type === "Peer" ? "4px" : "0"}
-      style:margin-top={type === "Peer" ? "-2px" : `-${height / 2}px`}
+      class="bg-m3-primary absolute h-0 -translate-y-1/2 rounded"
       style:width={`${width}px`}
-      style:margin-left={`${offset}px`}
+      style:height={type === "Peer" ? "4px" : "0"}
+      style:top={type === "Peer" ? `${height}px` : `${height / 2}px`}
+      style:left={`${offset}px`}
     ></div>
   {/snippet}
   <div class="flex items-center gap-1">
