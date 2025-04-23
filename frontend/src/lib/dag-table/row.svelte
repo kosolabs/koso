@@ -364,6 +364,68 @@
   onclick={handleRowClick}
   bind:this={rowElement}
 >
+  <td class={cn("relative m-0 w-0 p-0")}>
+    {#if rowElement}
+      {@const rowWidth = rowElement.clientWidth}
+      {@const rowHeight = rowElement.clientHeight}
+      {@const peerOffset = node.length * 20}
+      {@const childOffset = (node.length + 1) * 20}
+
+      <button
+        class={cn(
+          "absolute z-50 -translate-y-1/2 cursor-default transition-all",
+          koso.debug && planningCtx.dragged && "bg-m3-primary/20",
+        )}
+        style:width={`${rowWidth}px`}
+        style:height={planningCtx.dragged ? `${rowHeight / 2}px` : "1px"}
+        style:top={`${rowHeight}px`}
+        aria-label={`Task ${task.num} Peer Dropzone`}
+        ondragover={handleDragOverPeer}
+        ondragenter={handleDragEnterPeer}
+        ondragleave={handleDragLeavePeer}
+        ondrop={handleDropNodePeer}
+      ></button>
+
+      {#if planningCtx.dragged && dragOverPeer}
+        {@const source = koso.getTask(planningCtx.dragged.name)}
+        <DropIndicator
+          src={source}
+          dest={task}
+          height={rowHeight}
+          width={rowWidth - peerOffset}
+          offset={peerOffset}
+          type="Peer"
+        />
+      {/if}
+
+      <button
+        class={cn(
+          "absolute z-50 -translate-y-1/2 cursor-default transition-all",
+          koso.debug && planningCtx.dragged && "bg-m3-tertiary/20",
+        )}
+        style:width={`${rowWidth}px`}
+        style:height={planningCtx.dragged ? `${rowHeight / 2}px` : "1px"}
+        style:top={`${rowHeight / 2}px`}
+        aria-label={`Task ${task.num} Child Dropzone`}
+        ondragover={handleDragOverChild}
+        ondragenter={handleDragEnterChild}
+        ondragleave={handleDragLeaveChild}
+        ondrop={handleDropNodeChild}
+      ></button>
+
+      {#if planningCtx.dragged && dragOverChild}
+        {@const source = koso.getTask(planningCtx.dragged.name)}
+        <DropIndicator
+          src={source}
+          dest={task}
+          height={rowHeight}
+          width={rowWidth - childOffset}
+          offset={childOffset}
+          type="Child"
+        />
+      {/if}
+    {/if}
+  </td>
   <td class={cn("border-t px-2")} bind:this={idCellElement}>
     <div class="flex items-center">
       <div style="width: {(node.length - 1) * 20}px"></div>
@@ -486,65 +548,3 @@
     <Awareness users={awareUsers} />
   </td>
 </tr>
-
-{#if rowElement && idCellElement}
-  {@const rowWidth = rowElement.clientWidth}
-  {@const rowHeight = rowElement.clientHeight}
-  {@const peerOffset = node.length * 20}
-  {@const childOffset = (node.length + 1) * 20}
-
-  <button
-    class={cn(
-      "absolute z-50 cursor-default transition-all",
-      koso.debug && "bg-m3-primary/20",
-    )}
-    style:width={`${rowWidth}px`}
-    style:height={planningCtx.dragged ? `${rowHeight / 2}px` : "1px"}
-    style:margin-top={planningCtx.dragged ? `-${rowHeight / 4}px` : "0"}
-    aria-label={`Task ${task.num} Peer Dropzone`}
-    ondragover={handleDragOverPeer}
-    ondragenter={handleDragEnterPeer}
-    ondragleave={handleDragLeavePeer}
-    ondrop={handleDropNodePeer}
-  ></button>
-  <button
-    class={cn(
-      "absolute z-50 cursor-default transition-all",
-      koso.debug && "bg-m3-tertiary/20",
-    )}
-    style:width={`${rowWidth}px`}
-    style:height={planningCtx.dragged ? `${rowHeight / 2}px` : "1px"}
-    style:margin-top={planningCtx.dragged
-      ? `-${(rowHeight * 3) / 4}px`
-      : "-1px"}
-    aria-label={`Task ${task.num} Child Dropzone`}
-    ondragover={handleDragOverChild}
-    ondragenter={handleDragEnterChild}
-    ondragleave={handleDragLeaveChild}
-    ondrop={handleDropNodeChild}
-  ></button>
-
-  {#if planningCtx.dragged}
-    {@const source = koso.getTask(planningCtx.dragged.name)}
-    {#if dragOverPeer}
-      <DropIndicator
-        src={source}
-        dest={task}
-        height={rowHeight}
-        width={rowWidth - peerOffset}
-        offset={peerOffset}
-        type="Peer"
-      />
-    {/if}
-    {#if dragOverChild}
-      <DropIndicator
-        src={source}
-        dest={task}
-        height={rowHeight}
-        width={rowWidth - childOffset}
-        offset={childOffset}
-        type="Child"
-      />
-    {/if}
-  {/if}
-{/if}
