@@ -31,26 +31,28 @@
     editor?.focus();
   }
 
-  $effect(() => {
-    if (el && yText.doc) {
-      const dummyAwareness = new Awareness(yText.doc);
-      editor = new EditorView({
-        state: EditorState.create({
-          doc: yText.toString(),
-          extensions: [
-            basicSetup,
-            markdown(),
-            yCollab(yText, dummyAwareness),
-            EditorView.domEventHandlers(handlers),
-            mode.current === "dark" ? oneDarkTheme : [],
-          ],
-        }),
-        parent: el,
-      });
+  function createEditor() {
+    if (!yText.doc) throw new Error("Y.Text's doc was not initialized.");
+    const dummyAwareness = new Awareness(yText.doc);
+    return new EditorView({
+      state: EditorState.create({
+        doc: yText.toString(),
+        extensions: [
+          basicSetup,
+          markdown(),
+          yCollab(yText, dummyAwareness),
+          EditorView.domEventHandlers(handlers),
+          mode.current === "dark" ? oneDarkTheme : [],
+        ],
+      }),
+      parent: el,
+    });
+  }
 
-      return () => {
-        editor?.destroy();
-      };
+  $effect(() => {
+    if (el) {
+      editor = createEditor();
+      return () => editor?.destroy();
     }
   });
 </script>
