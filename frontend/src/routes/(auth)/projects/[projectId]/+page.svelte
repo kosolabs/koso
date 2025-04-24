@@ -1,7 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
-  import { showUnauthorizedDialog } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { Editable } from "$lib/components/ui/editable";
   import { Navbar, NavbarButton } from "$lib/components/ui/navbar";
@@ -74,12 +73,6 @@
     a.download = name;
     a.click();
   }
-
-  $effect(() => {
-    if (project.socket.unauthorized) {
-      showUnauthorizedDialog();
-    }
-  });
 
   onMount(() => {
     const actions: Action<ActionID>[] = [
