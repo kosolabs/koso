@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { showUnauthorizedDialog } from "$lib/auth.svelte";
   import { nav } from "$lib/nav.svelte";
   import { fetchProject, fetchProjectUsers } from "$lib/projects";
   import { type Snippet } from "svelte";
@@ -22,6 +23,12 @@
     ctx.name = project.name;
     ctx.users = users;
   }
+
+  $effect(() => {
+    if (ctx.socket.unauthorized) {
+      showUnauthorizedDialog();
+    }
+  });
 </script>
 
 {#await loading}
