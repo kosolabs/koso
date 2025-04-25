@@ -35,7 +35,7 @@ export const baseClasses = ({
     "shadow-m3-shadow/20",
 
     // Interactive base
-    "disabled:text-m3-on-surface/38 disabled:bg-m3-on-surface/12 disabled:cursor-not-allowed",
+    "disabled:text-m3-on-surface/38 disabled:bg-m3-on-surface/12 disabled:cursor-not-allowed backdrop-blur-sm",
 
     shape === "square" && "",
     shape === "rounded" && "rounded-md",

@@ -21,10 +21,7 @@ test.describe("dag table tests", () => {
 
   test.describe("creating tasks", () => {
     test("create a task by clicking the Add button", async ({ page }) => {
-      await page
-        .getByRole("button", { name: "Add", exact: true })
-        .last()
-        .click();
+      await page.getByRole("button", { name: "Add task", exact: true }).click();
       await page.keyboard.press("Escape");
 
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
@@ -38,10 +35,7 @@ test.describe("dag table tests", () => {
     test("create a task by clicking the Add button and then edit", async ({
       page,
     }) => {
-      await page
-        .getByRole("button", { name: "Add", exact: true })
-        .last()
-        .click();
+      await page.getByRole("button", { name: "Add task", exact: true }).click();
 
       await expect(
         page.getByRole("textbox", { name: "Task 1 Edit Name" }),

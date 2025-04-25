@@ -292,7 +292,7 @@
   });
 </script>
 
-<Toolbar actions={[undoAction, redoAction]}>
+<div class="relative grow overflow-scroll p-2">
   {#await koso.synced then}
     {#if inbox.tasks.length > 0}
       <MarkdownEditor taskId={inbox.selected?.id} detailPanelRenderer={inbox} />
@@ -344,4 +344,8 @@
       </div>
     {/if}
   {/await}
-</Toolbar>
+</div>
+
+<div class="sm:hidden">
+  <Toolbar actions={["Undo", "Redo"]} />
+</div>

@@ -8,10 +8,10 @@
 </script>
 
 <Button
+  class="flex flex-1 justify-center p-2"
   variant="plain"
   {icon}
   onclick={callback}
-  class="max-sm:flex max-sm:flex-1 max-sm:justify-center max-sm:p-4"
 >
   <div class="max-sm:hidden">{title}</div>
   {#snippet tooltip()}

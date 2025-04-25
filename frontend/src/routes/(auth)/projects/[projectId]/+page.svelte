@@ -3,7 +3,7 @@
   import { KosoError } from "$lib/api";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { Editable } from "$lib/components/ui/editable";
-  import { Navbar, NavbarButton } from "$lib/components/ui/navbar";
+  import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
   import { DagTable } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
@@ -107,95 +107,90 @@
         enabled: () =>
           !!planningCtx.selected && koso.isEditable(planningCtx.selected.name),
       }),
+      new Action({
+        id: "ShareProject",
+        callback: () => (openShareModal = true),
+        title: "Share project",
+        description: "Open / show the project share dialog",
+        icon: UserPlus,
+      }),
     ];
 
     return command.register(...actions);
   });
 </script>
 
-<Navbar>
-  {#snippet context()}
-    <Menu>
-      <MenuTrigger
-        title="Project menu"
-        class={cn(
-          baseClasses({
-            variant: "plain",
-            color: "primary",
-            shape: "circle",
-            focus: true,
-            hover: true,
-          }),
-          "mr-1 p-2 transition-all active:scale-95",
-        )}
-      >
-        <MenuIcon size={20} />
-      </MenuTrigger>
-      <MenuContent>
-        <MenuItem
-          class="gap-2"
-          onSelect={async () =>
-            window.location.assign(await githubInstallUrl(project.id))}
-        >
-          <PlugZap size={16} />
-          Connect to GitHub
-        </MenuItem>
-        <MenuItem class="gap-2" onSelect={exportProjectToFile}>
-          <FileDown size={16} />
-          Export project
-        </MenuItem>
-        <MenuItem
-          class="gap-2"
-          onSelect={() => goto(`/projects/${project.id}/inbox`)}
-        >
-          <Mail size={16} />
-          Navigate to Zero Inbox
-        </MenuItem>
-        <MenuItem
-          class="gap-2"
-          onSelect={() => {
-            openShareModal = true;
-          }}
-        >
-          <UserPlus size={16} />
-          Share project
-        </MenuItem>
-      </MenuContent>
-    </Menu>
-  {/snippet}
-  {#snippet left()}
-    <div>
-      <Editable
-        class="ml-2 text-lg"
-        value={project.name}
-        aria-label="Set project name"
-        onsave={async (name) => {
-          await saveEditedProjectName(name);
-        }}
-        onkeydown={(e) => e.stopPropagation()}
-      />
-    </div>
-  {/snippet}
-  {#snippet right()}
-    <NavbarButton
-      icon={UserPlus}
-      label="Share project"
-      aria-label="Share project"
-      onclick={() => {
-        openShareModal = true;
-      }}
-    />
-    <NavbarButton
-      icon={Mail}
-      label="Zero inbox view"
-      aria-label="Zero inbox view"
-      onclick={() => goto(`/projects/${project.id}/inbox`)}
-    />
-  {/snippet}
-</Navbar>
-
-<OfflineAlert offline={project.socket.offline} />
-
 <ProjectShareModal bind:open={openShareModal} />
 
-<DagTable users={project.users} />
+<div class="flex h-dvh flex-col">
+  <div style="flex: 0 1 auto">
+    <Navbar>
+      {#snippet context()}
+        <Menu>
+          <MenuTrigger
+            title="Project menu"
+            class={cn(
+              baseClasses({
+                variant: "plain",
+                color: "primary",
+                shape: "circle",
+                focus: true,
+                hover: true,
+              }),
+              "mr-1 p-2 transition-all active:scale-95",
+            )}
+          >
+            <MenuIcon size={20} />
+          </MenuTrigger>
+          <MenuContent>
+            <MenuItem
+              class="gap-2"
+              onSelect={async () =>
+                window.location.assign(await githubInstallUrl(project.id))}
+            >
+              <PlugZap size={16} />
+              Connect to GitHub
+            </MenuItem>
+            <MenuItem class="gap-2" onSelect={exportProjectToFile}>
+              <FileDown size={16} />
+              Export project
+            </MenuItem>
+            <MenuItem
+              class="gap-2"
+              onSelect={() => goto(`/projects/${project.id}/inbox`)}
+            >
+              <Mail size={16} />
+              Navigate to Zero Inbox
+            </MenuItem>
+            <MenuItem
+              class="gap-2"
+              onSelect={() => {
+                openShareModal = true;
+              }}
+            >
+              <UserPlus size={16} />
+              Share project
+            </MenuItem>
+          </MenuContent>
+        </Menu>
+      {/snippet}
+      {#snippet left()}
+        <div>
+          <Editable
+            class="ml-2 text-lg"
+            value={project.name}
+            aria-label="Set project name"
+            onsave={async (name) => {
+              await saveEditedProjectName(name);
+            }}
+            onkeydown={(e) => e.stopPropagation()}
+          />
+        </div>
+      {/snippet}
+    </Navbar>
+
+    <OfflineAlert offline={project.socket.offline} />
+  </div>
+
+  <DagTable users={project.users} />
+</div>

@@ -1,8 +1,13 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import { showUnauthorizedDialog } from "$lib/auth.svelte";
+  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
   import { fetchProject, fetchProjectUsers } from "$lib/projects";
-  import { type Snippet } from "svelte";
+  import { Mail, Notebook } from "lucide-svelte";
+  import { onMount, type Snippet } from "svelte";
   import { newProjectContext } from "../../../../lib/dag-table/project-context.svelte";
 
   type Props = {
@@ -28,6 +33,29 @@
     if (ctx.socket.unauthorized) {
       showUnauthorizedDialog();
     }
+  });
+
+  const actions: Action<ActionID>[] = [
+    new Action({
+      id: "InboxView",
+      callback: () => goto(`/projects/${ctx.id}/inbox`),
+      title: "Zero Inbox",
+      description: "Navigate to Zero Inbox view",
+      icon: Mail,
+      enabled: () => page.url.pathname !== `/projects/${ctx.id}/inbox`,
+    }),
+    new Action({
+      id: "PlanView",
+      callback: () => goto(`/projects/${ctx.id}`),
+      title: "Project Planning",
+      description: "Navigate to Project Planning view",
+      icon: Notebook,
+      enabled: () => page.url.pathname !== `/projects/${ctx.id}`,
+    }),
+  ];
+
+  onMount(() => {
+    return command.register(...actions);
   });
 </script>
 

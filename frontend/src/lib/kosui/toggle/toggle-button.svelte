@@ -37,7 +37,7 @@
   role="option"
   aria-selected={ctx.value === value}
   class={twMerge(
-    "bg-md-background text-md-on-surface flex items-center gap-1 border-y border-l px-4 py-1.5 text-sm last:border-r",
+    "bg-md-background text-md-on-surface flex items-center gap-1 border-y border-l px-4 py-2 text-sm last:border-r",
 
     shape === "square" && "",
     shape === "rounded" && "first:rounded-l-md last:rounded-r-md",
