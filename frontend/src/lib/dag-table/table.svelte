@@ -6,6 +6,7 @@
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
   import { Action } from "$lib/kosui/command";
+  import Fab from "$lib/kosui/fab/fab.svelte";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
   import {
@@ -26,6 +27,7 @@
     MoveUp,
     OctagonX,
     Pencil,
+    Plus,
     Redo,
     Search,
     SkipBack,
@@ -306,7 +308,7 @@
   const insertAction: Action<ActionID> = {
     id: "Insert",
     callback: insert,
-    title: "Add",
+    title: "Add Task",
     description: "Add or insert a new task",
     icon: ListPlus,
     shortcut: INSERT_NODE,
@@ -659,7 +661,7 @@
 
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<Toolbar actions={[insertAction, undoAction, redoAction, searchAction]}>
+<div class="relative grow overflow-scroll p-2">
   {#await koso.synced then}
     {#if planningCtx.nodes.size > 1}
       <MarkdownEditor
@@ -698,6 +700,20 @@
           </tbody>
         {/each}
       </table>
+
+      <Fab icon={Plus} onclick={insertAction.callback}>
+        {insertAction.title}
+        {#snippet tooltip()}
+          <div class="flex items-center gap-2">
+            {insertAction.description}
+            {#if insertAction.shortcut}
+              <div class="font-bold">
+                {insertAction.shortcut.toString()}
+              </div>
+            {/if}
+          </div>
+        {/snippet}
+      </Fab>
     {:else}
       <div class="flex items-center justify-center pt-8">
         <div
@@ -721,4 +737,8 @@
       </div>
     {/if}
   {/await}
-</Toolbar>
+</div>
+
+<div class="sm:hidden">
+  <Toolbar actions={["Undo", "Redo", "Search"]} />
+</div>

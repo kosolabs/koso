@@ -11,6 +11,7 @@
     "/storybook/code-mirror",
     "/storybook/command",
     "/storybook/dialogs",
+    "/storybook/fab",
     "/storybook/inputs",
     "/storybook/links",
     "/storybook/markdown",

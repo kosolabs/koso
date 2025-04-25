@@ -1,46 +1,33 @@
 <script lang="ts">
-  import type { ActionID } from "$lib/components/ui/command-palette";
+  import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { ToolbarButton } from "$lib/components/ui/toolbar-button";
-  import type { Action } from "$lib/kosui/command";
-  import { cn } from "$lib/utils";
-  import type { Snippet } from "svelte";
+  import { twMerge } from "tailwind-merge";
 
   type Props = {
-    children: Snippet;
-    actions: Action<ActionID>[];
+    actions: ActionID[];
   };
-  let { children, actions }: Props = $props();
-
-  let toolbarHeight: number = $state(0);
-  function height(el: HTMLDivElement) {
-    toolbarHeight = el.offsetHeight;
-  }
+  let props: Props = $props();
+  let actions = $derived(
+    props.actions
+      .map((id) => command.get(id))
+      .filter((action) => action !== undefined),
+  );
 </script>
 
 <div
-  use:height
-  class={cn(
-    "max-sm-standalone-margin fixed bottom-0 left-0 z-10 flex w-full items-center overflow-x-scroll px-2 py-1 backdrop-blur-xs max-sm:border-t sm:sticky sm:top-0 sm:gap-2 sm:border-b",
+  class={twMerge(
+    "standalone-margin flex w-full flex-1 items-center overflow-x-scroll border-t p-2",
   )}
 >
   {#each actions as action (action.title)}
     <ToolbarButton {...action} />
   {/each}
 </div>
-<div class="toolbar-margin p-2" style="--toolbar-height: {toolbarHeight}px">
-  {@render children()}
-</div>
 
 <style>
   @media not all and (min-width: 640px) {
-    .toolbar-margin {
-      margin-bottom: var(--toolbar-height);
-    }
-  }
-
-  @media not all and (min-width: 640px) {
     @media all and (display-mode: standalone) {
-      .max-sm-standalone-margin {
+      .standalone-margin {
         padding-bottom: 1.5rem;
       }
     }

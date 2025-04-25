@@ -20,9 +20,8 @@
   type Props = {
     context?: Snippet;
     left?: Snippet;
-    right?: Snippet;
   };
-  const { context, left, right }: Props = $props();
+  const { context, left }: Props = $props();
 </script>
 
 <nav
@@ -37,9 +36,13 @@
   </div>
 
   <div class="ml-auto flex items-center gap-2">
-    {@render right?.()}
-
+    <NavbarCommandButton name="Undo" desktop />
+    <NavbarCommandButton name="Redo" desktop />
+    <NavbarCommandButton name="ShareProject" desktop />
+    <NavbarCommandButton name="Search" desktop />
     <NavbarCommandButton name="CommandPalette" />
+    <NavbarCommandButton name="InboxView" />
+    <NavbarCommandButton name="PlanView" />
 
     {#if auth.ok()}
       <Menu>
