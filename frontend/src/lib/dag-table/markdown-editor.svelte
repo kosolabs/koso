@@ -5,7 +5,6 @@
   import { Eye, Pencil, Trash, X } from "lucide-svelte";
   import { tick } from "svelte";
   import { toast } from "svelte-sonner";
-  import { slide } from "svelte/transition";
   import type { DetailPanelStates } from "./koso.svelte";
   import MarkdownViewer from "./markdown-viewer.svelte";
   import { getProjectContext } from "./project-context.svelte";
@@ -66,65 +65,59 @@
   }
 </script>
 
-{#if detailPanelRenderer.detailPanel !== "none"}
-  <div class="relative mb-2 rounded-md border" transition:slide>
-    <div
-      class="flex items-center p-2 text-lg font-extralight"
-      role="heading"
-      aria-level="1"
-      ondblclick={editDetails}
-    >
-      {$task?.name || "No task selected"}
-      <div class="top-2 right-2 ml-auto flex gap-1">
-        {#if taskId && koso.isEditable(taskId) && detailPanelRenderer.detailPanel === "view"}
-          <Button
-            aria-label="Edit task description"
-            icon={Pencil}
-            variant="plain"
-            onclick={editDetails}
-          />
-        {/if}
-        {#if detailPanelRenderer.detailPanel === "edit"}
-          <Button
-            aria-label="View task description"
-            icon={Eye}
-            variant="plain"
-            onclick={viewDetails}
-          />
-        {/if}
-        {#if $task && $task.desc !== null}
-          <Button
-            aria-label="Delete task description"
-            icon={Trash}
-            variant="plain"
-            onclick={deleteDetails}
-          />
-        {/if}
+<div class="relative flex h-full flex-col rounded-md border">
+  <div
+    class="flex items-center p-2 text-lg font-extralight"
+    role="heading"
+    aria-level="1"
+    ondblclick={editDetails}
+  >
+    {$task?.name || "No task selected"}
+    <div class="top-2 right-2 ml-auto flex gap-1">
+      {#if taskId && koso.isEditable(taskId) && detailPanelRenderer.detailPanel === "view"}
         <Button
-          aria-label="Hide task description panel"
-          icon={X}
+          aria-label="Edit task description"
+          icon={Pencil}
           variant="plain"
-          onclick={hideDetails}
+          onclick={editDetails}
         />
-      </div>
-    </div>
-    <hr />
-    <div
-      class="h-96 max-h-96 overflow-scroll"
-      role="document"
-      ondblclick={editDetails}
-    >
-      {#if $task && $task.desc && task && task.desc}
-        {#if koso.isEditable($task.id) && detailPanelRenderer.detailPanel === "edit"}
-          <CodeMirror
-            bind:this={editor}
-            yText={task.desc}
-            onkeydown={handleKeyDownEditing}
-          />
-        {:else}
-          <MarkdownViewer class="p-2" value={$task.desc.toString()} />
-        {/if}
       {/if}
+      {#if detailPanelRenderer.detailPanel === "edit"}
+        <Button
+          aria-label="View task description"
+          icon={Eye}
+          variant="plain"
+          onclick={viewDetails}
+        />
+      {/if}
+      {#if $task && $task.desc !== null}
+        <Button
+          aria-label="Delete task description"
+          icon={Trash}
+          variant="plain"
+          onclick={deleteDetails}
+        />
+      {/if}
+      <Button
+        aria-label="Hide task description panel"
+        icon={X}
+        variant="plain"
+        onclick={hideDetails}
+      />
     </div>
   </div>
-{/if}
+  <hr />
+  <div class="overflow-y-scroll" role="document" ondblclick={editDetails}>
+    {#if $task && $task.desc && task && task.desc}
+      {#if koso.isEditable($task.id) && detailPanelRenderer.detailPanel === "edit"}
+        <CodeMirror
+          bind:this={editor}
+          yText={task.desc}
+          onkeydown={handleKeyDownEditing}
+        />
+      {:else}
+        <MarkdownViewer class="p-2" value={$task.desc.toString()} />
+      {/if}
+    {/if}
+  </div>
+</div>

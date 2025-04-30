@@ -10,16 +10,20 @@
   newInboxContext(koso);
 </script>
 
-<Navbar>
-  {#snippet left()}
-    <div>
-      <h1 class="ml-2 text-lg">
-        Inbox - {project.name}
-      </h1>
-    </div>
-  {/snippet}
-</Navbar>
+<div class="flex h-dvh flex-col">
+  <div class="grow-0">
+    <Navbar>
+      {#snippet left()}
+        <div>
+          <h1 class="ml-2 text-lg">
+            Inbox - {project.name}
+          </h1>
+        </div>
+      {/snippet}
+    </Navbar>
 
-<OfflineAlert offline={project.socket.offline} />
+    <OfflineAlert offline={project.socket.offline} />
+  </div>
 
-<TaskTable users={project.users} />
+  <TaskTable users={project.users} />
+</div>
