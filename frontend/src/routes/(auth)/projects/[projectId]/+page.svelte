@@ -123,7 +123,7 @@
 <ProjectShareModal bind:open={openShareModal} />
 
 <div class="flex h-dvh flex-col">
-  <div style="flex: 0 1 auto">
+  <div class="grow-0">
     <Navbar>
       {#snippet context()}
         <Menu>

@@ -10,7 +10,8 @@
   let actions = $derived(
     props.actions
       .map((id) => command.get(id))
-      .filter((action) => action !== undefined),
+      .filter((action) => action !== undefined)
+      .filter((action) => action.enabled()),
   );
 </script>
 
