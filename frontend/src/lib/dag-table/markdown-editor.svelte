@@ -2,10 +2,11 @@
   import { CodeMirror } from "$lib/components/ui/code-mirror";
   import { Button } from "$lib/kosui/button";
   import { Shortcut } from "$lib/kosui/shortcut";
+  import type { ClassName } from "$lib/kosui/utils";
   import { Eye, Pencil, Trash, X } from "lucide-svelte";
   import { tick } from "svelte";
   import { toast } from "svelte-sonner";
-  import { slide } from "svelte/transition";
+  import { twMerge } from "tailwind-merge";
   import type { DetailPanelStates } from "./koso.svelte";
   import MarkdownViewer from "./markdown-viewer.svelte";
   import { getProjectContext } from "./project-context.svelte";
@@ -17,8 +18,8 @@
   type Props = {
     taskId: string | undefined;
     detailPanelRenderer: DetailPanelRenderer;
-  };
-  let { taskId, detailPanelRenderer }: Props = $props();
+  } & ClassName;
+  let { class: className, taskId, detailPanelRenderer }: Props = $props();
   let editor: CodeMirror | undefined = $state();
 
   const { koso } = getProjectContext();
@@ -67,7 +68,7 @@
 </script>
 
 {#if detailPanelRenderer.detailPanel !== "none"}
-  <div class="relative mb-2 rounded-md border" transition:slide>
+  <div class={twMerge("relative mb-2 rounded-md border", className)}>
     <div
       class="flex items-center p-2 text-lg font-extralight"
       role="heading"
@@ -109,11 +110,7 @@
       </div>
     </div>
     <hr />
-    <div
-      class="h-96 max-h-96 overflow-scroll"
-      role="document"
-      ondblclick={editDetails}
-    >
+    <div class="overflow-scroll" role="document" ondblclick={editDetails}>
       {#if $task && $task.desc && task && task.desc}
         {#if koso.isEditable($task.id) && detailPanelRenderer.detailPanel === "edit"}
           <CodeMirror

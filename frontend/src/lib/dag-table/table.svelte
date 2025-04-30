@@ -661,59 +661,63 @@
 
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<div class="relative grow overflow-scroll p-2">
+<div class="relative grow overflow-y-hidden p-1">
   {#await koso.synced then}
     {#if planningCtx.nodes.size > 1}
-      <MarkdownEditor
-        taskId={planningCtx.selected?.name}
-        detailPanelRenderer={planningCtx}
-      />
+      <div class="flex h-full gap-1 overflow-y-hidden">
+        <div class="relative h-full flex-1 overflow-y-scroll p-1">
+          <table class="border-separate border-spacing-0 rounded-md border">
+            <thead class="text-left text-xs font-bold uppercase">
+              <tr>
+                <th class="relative m-0 w-0 p-0"></th>
+                <th class="w-32 p-2">ID</th>
+                {#if koso.debug}
+                  <th class="border-l p-2">UUID</th>
+                {/if}
+                <th class="border-l p-2">
+                  <SquarePen class="h-4 md:hidden" />
+                  <div class="max-md:hidden">Status</div></th
+                >
+                <th class="border-l p-2">Name</th>
+                <th class="p-2"></th>
+                <th class="border-l p-2">
+                  <UserRoundPlus class="h-4 md:hidden" />
+                  <div class="max-md:hidden">Assignee</div>
+                </th>
+                <th class="border-l p-2 max-md:hidden">Reporter</th>
+                <th class="relative m-0 w-0 p-0"></th>
+              </tr>
+            </thead>
 
-      <table class="w-full border-separate border-spacing-0 rounded-md border">
-        <thead class="text-left text-xs font-bold uppercase">
-          <tr>
-            <th class="relative m-0 w-0 p-0"></th>
-            <th class="w-32 p-2">ID</th>
-            {#if koso.debug}
-              <th class="border-l p-2">UUID</th>
-            {/if}
-            <th class="border-l p-2">
-              <SquarePen class="h-4 md:hidden" />
-              <div class="max-md:hidden">Status</div></th
-            >
-            <th class="border-l p-2">Name</th>
-            <th class="p-2"></th>
-            <th class="border-l p-2">
-              <UserRoundPlus class="h-4 md:hidden" />
-              <div class="max-md:hidden">Assignee</div>
-            </th>
-            <th class="border-l p-2 max-md:hidden">Reporter</th>
-            <th class="relative m-0 w-0 p-0"></th>
-          </tr>
-        </thead>
+            {#each [...planningCtx.nodes].slice(1) as node, index (node.id)}
+              <tbody animate:flip={{ duration: 250 }}>
+                <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
+                <!-- svelte-ignore binding_property_non_reactive -->
+                <Row bind:this={rows[node.id]} {index} {node} {users} />
+              </tbody>
+            {/each}
+          </table>
 
-        {#each [...planningCtx.nodes].slice(1) as node, index (node.id)}
-          <tbody animate:flip={{ duration: 250 }}>
-            <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
-            <!-- svelte-ignore binding_property_non_reactive -->
-            <Row bind:this={rows[node.id]} {index} {node} {users} />
-          </tbody>
-        {/each}
-      </table>
-
-      <Fab icon={Plus} onclick={insertAction.callback}>
-        {insertAction.title}
-        {#snippet tooltip()}
-          <div class="flex items-center gap-2">
-            {insertAction.description}
-            {#if insertAction.shortcut}
-              <div class="font-bold">
-                {insertAction.shortcut.toString()}
+          <Fab icon={Plus} onclick={insertAction.callback}>
+            {insertAction.title}
+            {#snippet tooltip()}
+              <div class="flex items-center gap-2">
+                {insertAction.description}
+                {#if insertAction.shortcut}
+                  <div class="font-bold">
+                    {insertAction.shortcut.toString()}
+                  </div>
+                {/if}
               </div>
-            {/if}
-          </div>
-        {/snippet}
-      </Fab>
+            {/snippet}
+          </Fab>
+        </div>
+        <MarkdownEditor
+          class="h-full flex-1 overflow-y-scroll p-1"
+          taskId={planningCtx.selected?.name}
+          detailPanelRenderer={planningCtx}
+        />
+      </div>
     {:else}
       <div class="flex items-center justify-center pt-8">
         <div
