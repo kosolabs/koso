@@ -24,10 +24,10 @@
   import { onMount } from "svelte";
   import { flip } from "svelte/animate";
   import { slide } from "svelte/transition";
+  import Toolbar from "../components/ui/toolbar/toolbar.svelte";
   import { getInboxContext } from "./inbox-context.svelte";
   import MarkdownEditor from "./markdown-editor.svelte";
   import TaskRow from "./task-row.svelte";
-  import Toolbar from "./toolbar.svelte";
 
   type Props = {
     users: User[];

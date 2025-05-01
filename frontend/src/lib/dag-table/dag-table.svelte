@@ -42,11 +42,11 @@
   } from "lucide-svelte";
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
+  import { Toolbar } from "../components/ui/toolbar";
   import MarkdownEditor from "./markdown-editor.svelte";
   import { getPlanningContext, Node } from "./planning-context.svelte";
   import Row from "./row.svelte";
   import SearchPanel from "./search-panel.svelte";
-  import Toolbar from "./toolbar.svelte";
 
   type Props = {
     users: User[];
