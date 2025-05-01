@@ -675,53 +675,55 @@
         {/if}
 
         <div class="flex-1 overflow-y-scroll">
-          <table
-            class="w-full border-separate border-spacing-0 rounded-md border"
-          >
-            <thead class="text-left text-xs font-bold uppercase">
-              <tr>
-                <th class="relative m-0 w-0 p-0"></th>
-                <th class="w-32 p-2">ID</th>
-                {#if koso.debug}
-                  <th class="border-l p-2">UUID</th>
-                {/if}
-                <th class="border-l p-2">
-                  <SquarePen class="h-4 md:hidden" />
-                  <div class="max-md:hidden">Status</div></th
-                >
-                <th class="border-l p-2">Name</th>
-                <th class="p-2"></th>
-                <th class="border-l p-2">
-                  <UserRoundPlus class="h-4 md:hidden" />
-                  <div class="max-md:hidden">Assignee</div>
-                </th>
-                <th class="border-l p-2 max-md:hidden">Reporter</th>
-                <th class="relative m-0 w-0 p-0"></th>
-              </tr>
-            </thead>
+          <div class="flex flex-col gap-2">
+            <table
+              class="w-full border-separate border-spacing-0 rounded-md border"
+            >
+              <thead class="text-left text-xs font-bold uppercase">
+                <tr>
+                  <th class="relative m-0 w-0 p-0"></th>
+                  <th class="w-32 p-2">ID</th>
+                  {#if koso.debug}
+                    <th class="border-l p-2">UUID</th>
+                  {/if}
+                  <th class="border-l p-2">
+                    <SquarePen class="h-4 md:hidden" />
+                    <div class="max-md:hidden">Status</div></th
+                  >
+                  <th class="border-l p-2">Name</th>
+                  <th class="p-2"></th>
+                  <th class="border-l p-2">
+                    <UserRoundPlus class="h-4 md:hidden" />
+                    <div class="max-md:hidden">Assignee</div>
+                  </th>
+                  <th class="border-l p-2 max-md:hidden">Reporter</th>
+                  <th class="relative m-0 w-0 p-0"></th>
+                </tr>
+              </thead>
 
-            {#each [...planningCtx.nodes].slice(1) as node, index (node.id)}
-              <tbody animate:flip={{ duration: 250 }}>
-                <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
-                <!-- svelte-ignore binding_property_non_reactive -->
-                <Row bind:this={rows[node.id]} {index} {node} {users} />
-              </tbody>
-            {/each}
-          </table>
+              {#each [...planningCtx.nodes].slice(1) as node, index (node.id)}
+                <tbody animate:flip={{ duration: 250 }}>
+                  <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
+                  <!-- svelte-ignore binding_property_non_reactive -->
+                  <Row bind:this={rows[node.id]} {index} {node} {users} />
+                </tbody>
+              {/each}
+            </table>
 
-          <Fab icon={Plus} onclick={insertAction.callback}>
-            {insertAction.title}
-            {#snippet tooltip()}
-              <div class="flex items-center gap-2">
-                {insertAction.description}
-                {#if insertAction.shortcut}
-                  <div class="font-bold">
-                    {insertAction.shortcut.toString()}
-                  </div>
-                {/if}
-              </div>
-            {/snippet}
-          </Fab>
+            <Fab icon={Plus} onclick={insertAction.callback} reserve>
+              {insertAction.title}
+              {#snippet tooltip()}
+                <div class="flex items-center gap-2">
+                  {insertAction.description}
+                  {#if insertAction.shortcut}
+                    <div class="font-bold">
+                      {insertAction.shortcut.toString()}
+                    </div>
+                  {/if}
+                </div>
+              {/snippet}
+            </Fab>
+          </div>
         </div>
       </div>
     {:else}
