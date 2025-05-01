@@ -1,10 +1,10 @@
 <script lang="ts">
+  import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";
   import { Button } from "$lib/kosui/button";
   import { Tooltip, type TooltipTriggerProps } from "$lib/kosui/tooltip";
   import type { YTaskProxy } from "$lib/yproxy";
   import { FilePlus2, FileText } from "lucide-svelte";
   import type { DetailPanelStates } from "./koso.svelte";
-  import MarkdownViewer from "./markdown-viewer.svelte";
 
   interface DetailPanelRenderer {
     detailPanel: DetailPanelStates;

@@ -2,11 +2,13 @@
   import { replaceState } from "$app/navigation";
   import { auth, type User } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
-  import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
+  import { DetailPanel } from "$lib/components/ui/detail-panel";
+  import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { toast } from "$lib/components/ui/sonner";
+  import { Toolbar } from "$lib/components/ui/toolbar";
   import { Button } from "$lib/kosui/button";
   import { Action } from "$lib/kosui/command";
-  import Fab from "$lib/kosui/fab/fab.svelte";
+  import { Fab } from "$lib/kosui/fab";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
   import {
@@ -42,8 +44,6 @@
   } from "lucide-svelte";
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
-  import { Toolbar } from "../components/ui/toolbar";
-  import MarkdownEditor from "./markdown-editor.svelte";
   import { getPlanningContext, Node } from "./planning-context.svelte";
   import Row from "./row.svelte";
   import SearchPanel from "./search-panel.svelte";
@@ -667,7 +667,7 @@
       <div class="flex h-full flex-col gap-2">
         {#if planningCtx.detailPanel !== "none"}
           <div class="flex-1 overflow-y-scroll">
-            <MarkdownEditor
+            <DetailPanel
               taskId={planningCtx.selected?.name}
               detailPanelRenderer={planningCtx}
             />
