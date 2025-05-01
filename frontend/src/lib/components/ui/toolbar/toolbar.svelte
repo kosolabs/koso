@@ -1,6 +1,6 @@
 <script lang="ts">
   import { command, type ActionID } from "$lib/components/ui/command-palette";
-  import { ToolbarButton } from "$lib/components/ui/toolbar-button";
+  import { ToolbarButton } from "$lib/components/ui/toolbar";
   import { twMerge } from "tailwind-merge";
 
   type Props = {
