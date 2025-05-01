@@ -1,13 +1,13 @@
 <script lang="ts">
   import { CodeMirror } from "$lib/components/ui/code-mirror";
+  import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";
+  import type { DetailPanelStates } from "$lib/dag-table/koso.svelte";
+  import { getProjectContext } from "$lib/dag-table/project-context.svelte";
   import { Button } from "$lib/kosui/button";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { Eye, Pencil, Trash, X } from "lucide-svelte";
   import { tick } from "svelte";
   import { toast } from "svelte-sonner";
-  import type { DetailPanelStates } from "./koso.svelte";
-  import MarkdownViewer from "./markdown-viewer.svelte";
-  import { getProjectContext } from "./project-context.svelte";
 
   type DetailPanelRenderer = {
     detailPanel: DetailPanelStates;
