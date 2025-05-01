@@ -17,7 +17,7 @@
 
 <div
   class={twMerge(
-    "standalone-margin flex w-full flex-1 items-center overflow-x-scroll border-t p-2",
+    "standalone-margin flex w-full flex-1 items-center gap-1 overflow-x-scroll border-t p-2",
   )}
 >
   {#each actions as action (action.title)}

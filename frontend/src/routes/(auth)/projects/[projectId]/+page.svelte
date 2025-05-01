@@ -89,6 +89,15 @@
         title: "Close task description",
         description: "Close / hide the task description markdown panel",
         icon: PanelTopClose,
+        enabled: () => planningCtx.detailPanel !== "none",
+      }),
+      new Action({
+        id: "DetailPanelOpen",
+        callback: () => (planningCtx.detailPanel = "view"),
+        title: "Open task description",
+        description: "Open / show the task description markdown panel",
+        icon: PanelTopOpen,
+        enabled: () => planningCtx.detailPanel === "none",
       }),
       new Action({
         id: "DetailPanelViewer",

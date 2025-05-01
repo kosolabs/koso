@@ -42,7 +42,6 @@
   } from "lucide-svelte";
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
-  import { slide } from "svelte/transition";
   import MarkdownEditor from "./markdown-editor.svelte";
   import { getPlanningContext, Node } from "./planning-context.svelte";
   import Row from "./row.svelte";
@@ -662,12 +661,12 @@
 
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<div class="relative grow overflow-y-hidden p-2">
+<div class="relative grow overflow-hidden p-2">
   {#await koso.synced then}
     {#if planningCtx.nodes.size > 1}
       <div class="flex h-full flex-col gap-2">
         {#if planningCtx.detailPanel !== "none"}
-          <div class="flex-1 overflow-y-scroll" transition:slide>
+          <div class="flex-1 overflow-y-scroll">
             <MarkdownEditor
               taskId={planningCtx.selected?.name}
               detailPanelRenderer={planningCtx}
@@ -751,5 +750,7 @@
 </div>
 
 <div class="sm:hidden">
-  <Toolbar actions={["Undo", "Redo", "Search"]} />
+  <Toolbar
+    actions={["Undo", "Redo", "DetailPanelClose", "DetailPanelOpen", "Search"]}
+  />
 </div>
