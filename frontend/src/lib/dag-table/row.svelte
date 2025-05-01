@@ -520,7 +520,9 @@
   </td>
   <td class={cn("border-t px-1")}>
     <div class="flex items-center">
-      <DescAction detailPanelRenderer={planningCtx} {task} />
+      <div class="max-sm:hidden">
+        <DescAction detailPanelRenderer={planningCtx} {task} />
+      </div>
       <TaskAction />
     </div>
   </td>

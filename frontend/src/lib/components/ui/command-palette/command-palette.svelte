@@ -13,6 +13,7 @@
     | "DarkTheme"
     | "Delete"
     | "DetailPanelClose"
+    | "DetailPanelOpen"
     | "DetailPanelViewer"
     | "DetailPanelEditor"
     | "Edit"
