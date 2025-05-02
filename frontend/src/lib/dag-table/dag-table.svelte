@@ -676,8 +676,10 @@
 
         <div class="flex-1 overflow-y-scroll">
           <div class="flex flex-col gap-2">
+            <!-- Add a z-0 to fix a bug in Safari where rows disappear when collapsing
+                 and expanding tasks -->
             <table
-              class="w-full border-separate border-spacing-0 rounded-md border"
+              class="z-0 w-full border-separate border-spacing-0 rounded-md border"
             >
               <thead class="text-left text-xs font-bold uppercase">
                 <tr>
