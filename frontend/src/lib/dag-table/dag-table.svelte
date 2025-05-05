@@ -2,10 +2,8 @@
   import { replaceState } from "$app/navigation";
   import { auth, type User } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
-  import { DetailPanel } from "$lib/components/ui/detail-panel";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { toast } from "$lib/components/ui/sonner";
-  import { Toolbar } from "$lib/components/ui/toolbar";
   import { Button } from "$lib/kosui/button";
   import { Action } from "$lib/kosui/command";
   import { Fab } from "$lib/kosui/fab";
@@ -661,100 +659,79 @@
 
 <SearchPanel bind:open={searchPaletteOpen} />
 
-<div class="relative grow overflow-hidden p-2">
-  {#await koso.synced then}
-    {#if planningCtx.nodes.size > 1}
-      <div class="flex h-full flex-col gap-2">
-        {#if planningCtx.detailPanel !== "none"}
-          <div class="flex-1 overflow-y-scroll">
-            <DetailPanel
-              taskId={planningCtx.selected?.name}
-              detailPanelRenderer={planningCtx}
-            />
-          </div>
-        {/if}
-
-        <div class="flex-1 overflow-y-scroll">
-          <div class="flex flex-col gap-2">
-            <!-- Add a z-0 to fix a bug in Safari where rows disappear when collapsing
+{#await koso.synced then}
+  {#if planningCtx.nodes.size > 1}
+    <div class="flex flex-col gap-2">
+      <!-- Add a z-0 to fix a bug in Safari where rows disappear when collapsing
                  and expanding tasks -->
-            <table
-              class="z-0 w-full border-separate border-spacing-0 rounded-md border"
+      <table
+        class="z-0 w-full border-separate border-spacing-0 rounded-md border"
+      >
+        <thead class="text-left text-xs font-bold uppercase">
+          <tr>
+            <th class="relative m-0 w-0 p-0"></th>
+            <th class="w-32 p-2">ID</th>
+            {#if koso.debug}
+              <th class="border-l p-2">UUID</th>
+            {/if}
+            <th class="border-l p-2">
+              <SquarePen class="h-4 md:hidden" />
+              <div class="max-md:hidden">Status</div></th
             >
-              <thead class="text-left text-xs font-bold uppercase">
-                <tr>
-                  <th class="relative m-0 w-0 p-0"></th>
-                  <th class="w-32 p-2">ID</th>
-                  {#if koso.debug}
-                    <th class="border-l p-2">UUID</th>
-                  {/if}
-                  <th class="border-l p-2">
-                    <SquarePen class="h-4 md:hidden" />
-                    <div class="max-md:hidden">Status</div></th
-                  >
-                  <th class="border-l p-2">Name</th>
-                  <th class="p-2"></th>
-                  <th class="border-l p-2">
-                    <UserRoundPlus class="h-4 md:hidden" />
-                    <div class="max-md:hidden">Assignee</div>
-                  </th>
-                  <th class="border-l p-2 max-md:hidden">Reporter</th>
-                  <th class="relative m-0 w-0 p-0"></th>
-                </tr>
-              </thead>
+            <th class="border-l p-2">Name</th>
+            <th class="p-2"></th>
+            <th class="border-l p-2">
+              <UserRoundPlus class="h-4 md:hidden" />
+              <div class="max-md:hidden">Assignee</div>
+            </th>
+            <th class="border-l p-2 max-md:hidden">Reporter</th>
+            <th class="relative m-0 w-0 p-0"></th>
+          </tr>
+        </thead>
 
-              {#each [...planningCtx.nodes].slice(1) as node, index (node.id)}
-                <tbody animate:flip={{ duration: 250 }}>
-                  <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
-                  <!-- svelte-ignore binding_property_non_reactive -->
-                  <Row bind:this={rows[node.id]} {index} {node} {users} />
-                </tbody>
-              {/each}
-            </table>
+        {#each [...planningCtx.nodes].slice(1) as node, index (node.id)}
+          <tbody animate:flip={{ duration: 250 }}>
+            <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
+            <!-- svelte-ignore binding_property_non_reactive -->
+            <Row bind:this={rows[node.id]} {index} {node} {users} />
+          </tbody>
+        {/each}
+      </table>
 
-            <Fab icon={Plus} onclick={insertAction.callback} reserve>
-              {insertAction.title}
-              {#snippet tooltip()}
-                <div class="flex items-center gap-2">
-                  {insertAction.description}
-                  {#if insertAction.shortcut}
-                    <div class="font-bold">
-                      {insertAction.shortcut.toString()}
-                    </div>
-                  {/if}
-                </div>
-              {/snippet}
-            </Fab>
+      <Fab icon={Plus} onclick={insertAction.callback} reserve>
+        {insertAction.title}
+        {#snippet tooltip()}
+          <div class="flex items-center gap-2">
+            {insertAction.description}
+            {#if insertAction.shortcut}
+              <div class="font-bold">
+                {insertAction.shortcut.toString()}
+              </div>
+            {/if}
+          </div>
+        {/snippet}
+      </Fab>
+    </div>
+  {:else}
+    <div class="flex items-center justify-center pt-8">
+      <div
+        class="bg-m3-surface-container flex w-9/12 max-w-[425px] rounded-md border p-4"
+      >
+        <div class="min-w-16">
+          <KosoLogo class="size-16" />
+        </div>
+        <div class="ml-4">
+          <div class="text-md">Welcome to Koso!</div>
+          <div class="mt-2 text-sm">
+            Koso helps you to organize your work and be productive.
+          </div>
+          <div class="mt-4">
+            <Button variant="filled" icon={ListPlus} onclick={insert}>
+              Add task
+            </Button>
           </div>
         </div>
       </div>
-    {:else}
-      <div class="flex items-center justify-center pt-8">
-        <div
-          class="bg-m3-surface-container flex w-9/12 max-w-[425px] rounded-md border p-4"
-        >
-          <div class="min-w-16">
-            <KosoLogo class="size-16" />
-          </div>
-          <div class="ml-4">
-            <div class="text-md">Welcome to Koso!</div>
-            <div class="mt-2 text-sm">
-              Koso helps you to organize your work and be productive.
-            </div>
-            <div class="mt-4">
-              <Button variant="filled" icon={ListPlus} onclick={insert}>
-                Add task
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    {/if}
-  {/await}
-</div>
-
-<div class="sm:hidden">
-  <Toolbar
-    actions={["Undo", "Redo", "DetailPanelClose", "DetailPanelOpen", "Search"]}
-  />
-</div>
+    </div>
+  {/if}
+{/await}

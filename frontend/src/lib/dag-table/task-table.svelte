@@ -2,10 +2,8 @@
   import { replaceState } from "$app/navigation";
   import { auth, type User } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
-  import { DetailPanel } from "$lib/components/ui/detail-panel";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { toast } from "$lib/components/ui/sonner";
-  import { Toolbar } from "$lib/components/ui/toolbar";
   import { Action } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL } from "$lib/shortcuts";
@@ -25,7 +23,6 @@
   } from "lucide-svelte";
   import { onMount } from "svelte";
   import { flip } from "svelte/animate";
-  import { slide } from "svelte/transition";
   import { getInboxContext } from "./inbox-context.svelte";
   import TaskRow from "./task-row.svelte";
 
@@ -293,73 +290,52 @@
   });
 </script>
 
-<div class="relative grow overflow-y-hidden p-2">
-  {#await koso.synced then}
-    {#if inbox.tasks.length > 0}
-      <div class="flex h-full flex-col gap-2">
-        {#if inbox.detailPanel !== "none"}
-          <div class="flex-1 overflow-y-scroll" transition:slide>
-            <DetailPanel
-              taskId={inbox.selected?.id}
-              detailPanelRenderer={inbox}
-            />
-          </div>
-        {/if}
+{#await koso.synced then}
+  {#if inbox.tasks.length > 0}
+    <div class="flex flex-col gap-2">
+      <table class="w-full border-separate border-spacing-0 rounded-md border">
+        <thead class="text-left text-xs font-bold uppercase">
+          <tr>
+            <th class="w-32 p-2">ID</th>
+            {#if koso.debug}
+              <th class="border-l p-2">UUID</th>
+            {/if}
+            <th class="border-l p-2">
+              <SquarePen class="h-4 md:hidden" />
+              <div class="max-md:hidden">Status</div></th
+            >
+            <th class="border-l p-2">Name</th>
+            <th class="p-2"></th>
+            <th class="border-l p-2">
+              <UserRoundPlus class="h-4 md:hidden" />
+              <div class="max-md:hidden">Assignee</div>
+            </th>
+            <th class="relative m-0 w-0 p-0"></th>
+          </tr>
+        </thead>
 
-        <div class="flex-1 overflow-y-scroll">
-          <table
-            class="w-full border-separate border-spacing-0 rounded-md border"
-          >
-            <thead class="text-left text-xs font-bold uppercase">
-              <tr>
-                <th class="w-32 p-2">ID</th>
-                {#if koso.debug}
-                  <th class="border-l p-2">UUID</th>
-                {/if}
-                <th class="border-l p-2">
-                  <SquarePen class="h-4 md:hidden" />
-                  <div class="max-md:hidden">Status</div></th
-                >
-                <th class="border-l p-2">Name</th>
-                <th class="p-2"></th>
-                <th class="border-l p-2">
-                  <UserRoundPlus class="h-4 md:hidden" />
-                  <div class="max-md:hidden">Assignee</div>
-                </th>
-                <th class="relative m-0 w-0 p-0"></th>
-              </tr>
-            </thead>
-
-            {#each inbox.tasks as task, index (task.id)}
-              <tbody animate:flip={{ duration: 250 }}>
-                <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
-                <!-- svelte-ignore binding_property_non_reactive -->
-                <TaskRow bind:this={rows[task.id]} {index} {task} {users} />
-              </tbody>
-            {/each}
-          </table>
+        {#each inbox.tasks as task, index (task.id)}
+          <tbody animate:flip={{ duration: 250 }}>
+            <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
+            <!-- svelte-ignore binding_property_non_reactive -->
+            <TaskRow bind:this={rows[task.id]} {index} {task} {users} />
+          </tbody>
+        {/each}
+      </table>
+    </div>
+  {:else}
+    <div class="flex items-center justify-center pt-8">
+      <div
+        class="bg-m3-surface-container flex w-9/12 max-w-[425px] rounded-md border p-4"
+      >
+        <div class="min-w-16">
+          <KosoLogo class="size-16" />
+        </div>
+        <div class="ml-4">
+          <div class="text-md">Inbox zero!</div>
+          <div class="mt-2 text-sm">You've achieved inbox zero. Great job!</div>
         </div>
       </div>
-    {:else}
-      <div class="flex items-center justify-center pt-8">
-        <div
-          class="bg-m3-surface-container flex w-9/12 max-w-[425px] rounded-md border p-4"
-        >
-          <div class="min-w-16">
-            <KosoLogo class="size-16" />
-          </div>
-          <div class="ml-4">
-            <div class="text-md">Inbox zero!</div>
-            <div class="mt-2 text-sm">
-              You've achieved inbox zero. Great job!
-            </div>
-          </div>
-        </div>
-      </div>
-    {/if}
-  {/await}
-</div>
-
-<div class="sm:hidden">
-  <Toolbar actions={["Undo", "Redo"]} />
-</div>
+    </div>
+  {/if}
+{/await}

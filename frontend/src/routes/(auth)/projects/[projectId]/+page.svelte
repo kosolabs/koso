@@ -2,9 +2,11 @@
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import { DetailPanel } from "$lib/components/ui/detail-panel";
   import { Editable } from "$lib/components/ui/editable";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
+  import { Toolbar } from "$lib/components/ui/toolbar";
   import { DagTable } from "$lib/dag-table";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import { newPlanningContext } from "$lib/dag-table/planning-context.svelte";
@@ -74,57 +76,57 @@
     a.click();
   }
 
-  onMount(() => {
-    const actions: Action<ActionID>[] = [
-      new Action({
-        id: "ExportProject",
-        callback: exportProjectToFile,
-        title: "Export Project",
-        description: "Export project to JSON",
-        icon: FileDown,
-      }),
-      new Action({
-        id: "DetailPanelClose",
-        callback: () => (planningCtx.detailPanel = "none"),
-        title: "Close task description",
-        description: "Close / hide the task description markdown panel",
-        icon: PanelTopClose,
-        enabled: () => planningCtx.detailPanel !== "none",
-      }),
-      new Action({
-        id: "DetailPanelOpen",
-        callback: () => (planningCtx.detailPanel = "view"),
-        title: "Open task description",
-        description: "Open / show the task description markdown panel",
-        icon: PanelTopOpen,
-        enabled: () => planningCtx.detailPanel === "none",
-      }),
-      new Action({
-        id: "DetailPanelViewer",
-        callback: () => (planningCtx.detailPanel = "view"),
-        title: "View task description",
-        description: "Open / show the task description markdown viewer",
-        icon: PanelTopOpen,
-        enabled: () => !!planningCtx.selected,
-      }),
-      new Action({
-        id: "DetailPanelEditor",
-        callback: () => (planningCtx.detailPanel = "edit"),
-        title: "Edit task description",
-        description: "Open / show the task description markdown editor",
-        icon: SquarePen,
-        enabled: () =>
-          !!planningCtx.selected && koso.isEditable(planningCtx.selected.name),
-      }),
-      new Action({
-        id: "ShareProject",
-        callback: () => (openShareModal = true),
-        title: "Share project",
-        description: "Open / show the project share dialog",
-        icon: UserPlus,
-      }),
-    ];
+  const actions: Action<ActionID>[] = [
+    new Action({
+      id: "ExportProject",
+      callback: exportProjectToFile,
+      title: "Export Project",
+      description: "Export project to JSON",
+      icon: FileDown,
+    }),
+    new Action({
+      id: "DetailPanelClose",
+      callback: () => (planningCtx.detailPanel = "none"),
+      title: "Close task description",
+      description: "Close / hide the task description markdown panel",
+      icon: PanelTopClose,
+      enabled: () => planningCtx.detailPanel !== "none",
+    }),
+    new Action({
+      id: "DetailPanelOpen",
+      callback: () => (planningCtx.detailPanel = "view"),
+      title: "Open task description",
+      description: "Open / show the task description markdown panel",
+      icon: PanelTopOpen,
+      enabled: () => planningCtx.detailPanel === "none",
+    }),
+    new Action({
+      id: "DetailPanelViewer",
+      callback: () => (planningCtx.detailPanel = "view"),
+      title: "View task description",
+      description: "Open / show the task description markdown viewer",
+      icon: PanelTopOpen,
+      enabled: () => !!planningCtx.selected,
+    }),
+    new Action({
+      id: "DetailPanelEditor",
+      callback: () => (planningCtx.detailPanel = "edit"),
+      title: "Edit task description",
+      description: "Open / show the task description markdown editor",
+      icon: SquarePen,
+      enabled: () =>
+        !!planningCtx.selected && koso.isEditable(planningCtx.selected.name),
+    }),
+    new Action({
+      id: "ShareProject",
+      callback: () => (openShareModal = true),
+      title: "Share project",
+      description: "Open / show the project share dialog",
+      icon: UserPlus,
+    }),
+  ];
 
+  onMount(() => {
     return command.register(...actions);
   });
 </script>
@@ -201,5 +203,31 @@
     <OfflineAlert offline={project.socket.offline} />
   </div>
 
-  <DagTable users={project.users} />
+  <div class="relative grow overflow-hidden p-1">
+    <div class="flex h-full flex-col">
+      {#if planningCtx.detailPanel !== "none"}
+        <div class="flex-1 overflow-y-scroll p-1">
+          <DetailPanel
+            taskId={planningCtx.selected?.name}
+            detailPanelRenderer={planningCtx}
+          />
+        </div>
+      {/if}
+      <div class="flex-1 overflow-y-scroll p-1">
+        <DagTable users={project.users} />
+      </div>
+    </div>
+  </div>
+
+  <div class="sm:hidden">
+    <Toolbar
+      actions={[
+        "Undo",
+        "Redo",
+        "DetailPanelClose",
+        "DetailPanelOpen",
+        "Search",
+      ]}
+    />
+  </div>
 </div>

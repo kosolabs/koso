@@ -1,9 +1,6 @@
 import { auth } from "$lib/auth.svelte";
-import { command, type ActionID } from "$lib/components/ui/command-palette";
-import { Action } from "$lib/kosui/command";
 import { YTaskProxy } from "$lib/yproxy";
 import { Record } from "immutable";
-import { PanelTopClose, PanelTopOpen, SquarePen } from "lucide-svelte";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import type { DetailPanelStates, Koso } from "./koso.svelte";
@@ -42,37 +39,6 @@ export class InboxContext {
         );
         this.selected = undefined;
       }
-    });
-
-    const actions: Action<ActionID>[] = [
-      new Action({
-        id: "DetailPanelClose",
-        callback: () => (this.detailPanel = "none"),
-        title: "Close task description",
-        description: "Close / hide the task description markdown panel",
-        icon: PanelTopClose,
-      }),
-      new Action({
-        id: "DetailPanelViewer",
-        callback: () => (this.detailPanel = "view"),
-        title: "View task description",
-        description: "Open / show the task description markdown viewer",
-        icon: PanelTopOpen,
-        enabled: () => !!this.selected,
-      }),
-      new Action({
-        id: "DetailPanelEditor",
-        callback: () => (this.detailPanel = "edit"),
-        title: "Edit task description",
-        description: "Open / show the task description markdown editor",
-        icon: SquarePen,
-        enabled: () =>
-          !!this.selected && this.#koso.isEditable(this.selected.name),
-      }),
-    ];
-
-    $effect(() => {
-      return command.register(...actions);
     });
   }
 
