@@ -204,7 +204,7 @@
   </div>
 
   <div class="relative grow overflow-hidden p-1">
-    <div class="flex h-full flex-col">
+    <div class="flex h-full flex-row-reverse max-2xl:flex-col">
       {#if planningCtx.detailPanel !== "none"}
         <div class="flex-1 overflow-y-scroll p-1">
           <DetailPanel
