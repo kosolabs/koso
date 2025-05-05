@@ -70,17 +70,17 @@
     <OfflineAlert offline={project.socket.offline} />
   </div>
 
-  <div class="relative grow overflow-y-hidden p-2">
-    <div class="flex h-full flex-col gap-2">
+  <div class="relative grow overflow-y-hidden p-1">
+    <div class="flex h-full flex-col">
       {#if inbox.detailPanel !== "none"}
-        <div class="flex-1 overflow-y-scroll">
+        <div class="flex-1 overflow-y-scroll p-1">
           <DetailPanel
             taskId={inbox.selected?.id}
             detailPanelRenderer={inbox}
           />
         </div>
       {/if}
-      <div class="flex-1 overflow-y-scroll">
+      <div class="flex-1 overflow-y-scroll p-1">
         <TaskTable users={project.users} />
       </div>
     </div>
