@@ -2,7 +2,6 @@
   import {
     Markdown,
     MarkdownBlockquote,
-    MarkdownCode,
     MarkdownHeading,
     MarkdownList,
     MarkdownTable,
@@ -10,6 +9,7 @@
   } from "$lib/kosui/markdown";
   import type { ClassName } from "$lib/kosui/utils";
   import { twMerge } from "tailwind-merge";
+  import MarkdownCode from "./markdown-code.svelte";
 
   type Props = {
     value: string;
