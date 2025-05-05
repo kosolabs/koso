@@ -203,7 +203,7 @@
     <OfflineAlert offline={project.socket.offline} />
   </div>
 
-  <div class="relative grow overflow-hidden p-1">
+  <div class="grow overflow-hidden p-1">
     <div class="flex h-full flex-row-reverse max-2xl:flex-col">
       {#if planningCtx.detailPanel !== "none"}
         <div class="flex-1 overflow-y-scroll p-1">
@@ -213,7 +213,7 @@
           />
         </div>
       {/if}
-      <div class="flex-1 overflow-y-scroll p-1">
+      <div class="relative flex-2 overflow-y-scroll p-1">
         <DagTable users={project.users} />
       </div>
     </div>
