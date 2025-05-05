@@ -24,6 +24,6 @@
         Very wide content {i} that overflows the div by being very long
       </div>
     {/each}
-    <Fab icon={Plus} />
+    <Fab icon={Plus} reserve />
   </div>
 </div>
