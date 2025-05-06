@@ -1,1 +1,4 @@
-export { default as DetailPanel } from "./detail-panel.svelte";
+export {
+  default as DetailPanel,
+  type DetailPanelState,
+} from "./detail-panel.svelte";

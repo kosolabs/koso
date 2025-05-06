@@ -1,7 +1,7 @@
-<script lang="ts">
+<script module lang="ts">
   import { CodeMirror } from "$lib/components/ui/code-mirror";
   import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";
-  import type { DetailPanelStates } from "$lib/dag-table/koso.svelte";
+  import { getPrefsContext } from "$lib/components/ui/prefs";
   import { getProjectContext } from "$lib/dag-table/project-context.svelte";
   import { Button } from "$lib/kosui/button";
   import { Shortcut } from "$lib/kosui/shortcut";
@@ -9,27 +9,28 @@
   import { tick } from "svelte";
   import { toast } from "svelte-sonner";
 
-  type DetailPanelRenderer = {
-    detailPanel: DetailPanelStates;
-  };
+  export type DetailPanelState = "none" | "view" | "edit";
 
-  type Props = {
+  export type DetailPanelProps = {
     taskId: string | undefined;
-    detailPanelRenderer: DetailPanelRenderer;
   };
-  let { taskId, detailPanelRenderer }: Props = $props();
+</script>
+
+<script lang="ts">
+  let { taskId }: DetailPanelProps = $props();
   let editor: CodeMirror | undefined = $state();
 
   const { koso } = getProjectContext();
+  const prefs = getPrefsContext();
 
   let task = $derived(taskId ? koso.getTask(taskId) : undefined);
 
   function hideDetails() {
-    detailPanelRenderer.detailPanel = "none";
+    prefs.detailPanel = "none";
   }
 
   function viewDetails() {
-    detailPanelRenderer.detailPanel = "view";
+    prefs.detailPanel = "view";
   }
 
   function editDetails() {
@@ -43,7 +44,7 @@
       return;
     }
     task.newDesc();
-    detailPanelRenderer.detailPanel = "edit";
+    prefs.detailPanel = "edit";
     // Focus the editor after it gets rendered (after a tick)
     tick().then(() => editor?.focus());
   }
@@ -74,7 +75,7 @@
   >
     {$task?.name || "No task selected"}
     <div class="top-2 right-2 ml-auto flex gap-1">
-      {#if taskId && koso.isEditable(taskId) && detailPanelRenderer.detailPanel === "view"}
+      {#if taskId && koso.isEditable(taskId) && prefs.detailPanel === "view"}
         <Button
           aria-label="Edit task description"
           icon={Pencil}
@@ -82,7 +83,7 @@
           onclick={editDetails}
         />
       {/if}
-      {#if detailPanelRenderer.detailPanel === "edit"}
+      {#if prefs.detailPanel === "edit"}
         <Button
           aria-label="View task description"
           icon={Eye}
@@ -109,7 +110,7 @@
   <hr />
   <div class="overflow-y-scroll" role="document" ondblclick={editDetails}>
     {#if $task && $task.desc && task && task.desc}
-      {#if koso.isEditable($task.id) && detailPanelRenderer.detailPanel === "edit"}
+      {#if koso.isEditable($task.id) && prefs.detailPanel === "edit"}
         <CodeMirror
           bind:this={editor}
           yText={task.desc}

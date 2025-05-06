@@ -90,8 +90,6 @@ export class Progress {
   }
 }
 
-export type DetailPanelStates = "none" | "view" | "edit";
-
 export class Koso {
   #projectId: string;
   #yDoc: Y.Doc;

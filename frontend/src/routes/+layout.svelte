@@ -7,6 +7,7 @@
     type ActionID,
   } from "$lib/components/ui/command-palette";
   import { Confetti } from "$lib/components/ui/confetti";
+  import { Prefs } from "$lib/components/ui/prefs";
   import { toast, Toaster } from "$lib/components/ui/sonner";
   import { Action } from "$lib/kosui/command";
   import { Dialoguer } from "$lib/kosui/dialog";
@@ -74,4 +75,6 @@
 <Dialoguer />
 <CommandPalette />
 <Confetti />
-{@render children()}
+<Prefs>
+  {@render children()}
+</Prefs>

@@ -1,20 +1,17 @@
 <script lang="ts">
   import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";
+  import { getPrefsContext } from "$lib/components/ui/prefs";
   import { Button } from "$lib/kosui/button";
   import { Tooltip, type TooltipTriggerProps } from "$lib/kosui/tooltip";
   import type { YTaskProxy } from "$lib/yproxy";
   import { FilePlus2, FileText } from "lucide-svelte";
-  import type { DetailPanelStates } from "./koso.svelte";
-
-  interface DetailPanelRenderer {
-    detailPanel: DetailPanelStates;
-  }
 
   type Props = {
-    detailPanelRenderer: DetailPanelRenderer;
     task: YTaskProxy;
   };
-  let { detailPanelRenderer, task }: Props = $props();
+  let { task }: Props = $props();
+
+  const prefs = getPrefsContext();
 </script>
 
 {#snippet button(props: TooltipTriggerProps)}
@@ -25,7 +22,7 @@
     shape="circle"
     aria-label="Show task description panel"
     icon={task.desc !== null ? FileText : FilePlus2}
-    onclick={() => (detailPanelRenderer.detailPanel = "view")}
+    onclick={() => (prefs.detailPanel = "view")}
     {...props}
   />
 {/snippet}

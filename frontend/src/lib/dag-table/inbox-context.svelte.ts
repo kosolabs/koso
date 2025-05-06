@@ -3,7 +3,7 @@ import { YTaskProxy } from "$lib/yproxy";
 import { Record } from "immutable";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
-import type { DetailPanelStates, Koso } from "./koso.svelte";
+import type { Koso } from "./koso.svelte";
 
 export class InboxContext {
   #koso: Koso;
@@ -16,8 +16,6 @@ export class InboxContext {
     const taskId = this.#selectedRaw.taskId;
     return taskId ? this.#koso.getTask(taskId) : undefined;
   });
-
-  #detailPanel: DetailPanelStates = $state("none");
 
   constructor(koso: Koso) {
     this.#koso = koso;
@@ -138,16 +136,6 @@ export class InboxContext {
    */
   getTaskIndex(taskId: string): number {
     return this.tasks.findIndex((t) => t.id === taskId);
-  }
-
-  // actions that operate on the UI
-
-  get detailPanel() {
-    return this.#detailPanel;
-  }
-
-  set detailPanel(value: DetailPanelStates) {
-    this.#detailPanel = value;
   }
 
   undo() {

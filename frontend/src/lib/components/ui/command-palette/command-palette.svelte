@@ -14,7 +14,6 @@
     | "Delete"
     | "DetailPanelClose"
     | "DetailPanelOpen"
-    | "DetailPanelViewer"
     | "DetailPanelEditor"
     | "Edit"
     | "Expand"
