@@ -521,7 +521,7 @@
   <td class={cn("border-t px-1")}>
     <div class="flex items-center">
       <div class="max-sm:hidden">
-        <DescAction detailPanelRenderer={planningCtx} {task} />
+        <DescAction {task} />
       </div>
       <TaskAction />
     </div>

@@ -172,7 +172,7 @@
   </td>
   <td class={cn("border-t px-1")}>
     <div class="flex items-center">
-      <DescAction detailPanelRenderer={inbox} {task} />
+      <DescAction {task} />
       <TaskAction />
     </div>
   </td>

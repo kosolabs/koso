@@ -5,6 +5,7 @@
   import { DetailPanel } from "$lib/components/ui/detail-panel";
   import { Editable } from "$lib/components/ui/editable";
   import { Navbar } from "$lib/components/ui/navbar";
+  import { getPrefsContext } from "$lib/components/ui/prefs";
   import { toast } from "$lib/components/ui/sonner";
   import { Toolbar } from "$lib/components/ui/toolbar";
   import { DagTable } from "$lib/dag-table";
@@ -17,16 +18,7 @@
   import MenuItem from "$lib/kosui/menu/menu-item.svelte";
   import { exportProject, updateProject } from "$lib/projects";
   import { cn } from "$lib/utils";
-  import {
-    FileDown,
-    Mail,
-    MenuIcon,
-    PanelTopClose,
-    PanelTopOpen,
-    PlugZap,
-    SquarePen,
-    UserPlus,
-  } from "lucide-svelte";
+  import { FileDown, Mail, MenuIcon, PlugZap, UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
   import { getProjectContext } from "../../../../lib/dag-table/project-context.svelte";
   import ProjectShareModal from "./project-share-modal.svelte";
@@ -34,6 +26,7 @@
   const project = getProjectContext();
   const { koso } = project;
   const planningCtx = newPlanningContext(koso);
+  const prefs = getPrefsContext();
   let openShareModal: boolean = $state(false);
 
   async function saveEditedProjectName(name: string) {
@@ -83,39 +76,6 @@
       title: "Export Project",
       description: "Export project to JSON",
       icon: FileDown,
-    }),
-    new Action({
-      id: "DetailPanelClose",
-      callback: () => (planningCtx.detailPanel = "none"),
-      title: "Close task description",
-      description: "Close / hide the task description markdown panel",
-      icon: PanelTopClose,
-      enabled: () => planningCtx.detailPanel !== "none",
-    }),
-    new Action({
-      id: "DetailPanelOpen",
-      callback: () => (planningCtx.detailPanel = "view"),
-      title: "Open task description",
-      description: "Open / show the task description markdown panel",
-      icon: PanelTopOpen,
-      enabled: () => planningCtx.detailPanel === "none",
-    }),
-    new Action({
-      id: "DetailPanelViewer",
-      callback: () => (planningCtx.detailPanel = "view"),
-      title: "View task description",
-      description: "Open / show the task description markdown viewer",
-      icon: PanelTopOpen,
-      enabled: () => !!planningCtx.selected,
-    }),
-    new Action({
-      id: "DetailPanelEditor",
-      callback: () => (planningCtx.detailPanel = "edit"),
-      title: "Edit task description",
-      description: "Open / show the task description markdown editor",
-      icon: SquarePen,
-      enabled: () =>
-        !!planningCtx.selected && koso.isEditable(planningCtx.selected.name),
     }),
     new Action({
       id: "ShareProject",
@@ -205,12 +165,9 @@
 
   <div class="grow overflow-hidden p-1">
     <div class="flex h-full flex-row-reverse max-2xl:flex-col">
-      {#if planningCtx.detailPanel !== "none"}
+      {#if prefs.detailPanel !== "none"}
         <div class="flex-1 overflow-y-scroll p-1">
-          <DetailPanel
-            taskId={planningCtx.selected?.name}
-            detailPanelRenderer={planningCtx}
-          />
+          <DetailPanel taskId={planningCtx.selected?.name} />
         </div>
       {/if}
       <div class="relative flex-2 overflow-y-scroll p-1">

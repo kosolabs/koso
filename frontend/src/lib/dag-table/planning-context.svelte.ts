@@ -1,9 +1,5 @@
 import { toast } from "$lib/components/ui/sonner";
-import {
-  Koso,
-  TaskLinkage,
-  type DetailPanelStates,
-} from "$lib/dag-table/koso.svelte";
+import { Koso, TaskLinkage } from "$lib/dag-table/koso.svelte";
 import { useLocalStorage, type Storable } from "$lib/stores.svelte";
 import { List, Record, Set } from "immutable";
 import { getContext, setContext } from "svelte";
@@ -42,8 +38,6 @@ export class PlanningContext {
   #dragged: Node | null = $state(null);
   #dropEffect: "copy" | "move" | "none" = $state("none");
   #focus: boolean = $state(false);
-
-  #detailPanel: DetailPanelStates = $state("none");
 
   constructor(koso: Koso) {
     this.#koso = koso;
@@ -202,16 +196,6 @@ export class PlanningContext {
     if (shouldUpdateAwareness) {
       this.koso.sendAwareness(this.selected ? this.selected.id : null);
     }
-  }
-
-  // actions that operate on the UI
-
-  get detailPanel() {
-    return this.#detailPanel;
-  }
-
-  set detailPanel(value: DetailPanelStates) {
-    this.#detailPanel = value;
   }
 
   // business logic that operate on Nodes

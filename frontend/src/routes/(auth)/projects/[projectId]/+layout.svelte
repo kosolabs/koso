@@ -3,10 +3,17 @@
   import { page } from "$app/state";
   import { showUnauthorizedDialog } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import { getPrefsContext } from "$lib/components/ui/prefs";
   import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
   import { fetchProject, fetchProjectUsers } from "$lib/projects";
-  import { Mail, Notebook } from "lucide-svelte";
+  import {
+    Mail,
+    Notebook,
+    PanelTopClose,
+    PanelTopOpen,
+    SquarePen,
+  } from "lucide-svelte";
   import { onMount, type Snippet } from "svelte";
   import { newProjectContext } from "../../../../lib/dag-table/project-context.svelte";
 
@@ -16,6 +23,7 @@
   let { children }: Props = $props();
 
   const ctx = newProjectContext();
+  const prefs = getPrefsContext();
   nav.lastVisitedProjectId = ctx.id;
   const deflicker: Promise<void> = new Promise((r) => window.setTimeout(r, 50));
   const loading = load();
@@ -51,6 +59,30 @@
       description: "Navigate to Project Planning view",
       icon: Notebook,
       enabled: () => page.url.pathname !== `/projects/${ctx.id}`,
+    }),
+    new Action({
+      id: "DetailPanelClose",
+      callback: () => (prefs.detailPanel = "none"),
+      title: "Close task description",
+      description: "Close / hide the task description markdown panel",
+      icon: PanelTopClose,
+      enabled: () => prefs.detailPanel !== "none",
+    }),
+    new Action({
+      id: "DetailPanelOpen",
+      callback: () => (prefs.detailPanel = "view"),
+      title: "View task description",
+      description: "Open / show the task description markdown viewer",
+      icon: PanelTopOpen,
+      enabled: () => prefs.detailPanel !== "view",
+    }),
+    new Action({
+      id: "DetailPanelEditor",
+      callback: () => (prefs.detailPanel = "edit"),
+      title: "Edit task description",
+      description: "Open / show the task description markdown editor",
+      icon: SquarePen,
+      enabled: () => prefs.detailPanel !== "edit",
     }),
   ];
 
