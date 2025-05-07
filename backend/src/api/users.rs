@@ -1,4 +1,4 @@
-use crate::api::{ApiResult, google, model::User, verify_invited};
+use crate::api::{ApiResult, google, model::User};
 use axum::{Extension, Json, Router, routing::get};
 use sqlx::postgres::PgPool;
 
@@ -11,8 +11,6 @@ async fn list_users_handler(
     Extension(pool): Extension<&'static PgPool>,
     Extension(user): Extension<google::User>,
 ) -> ApiResult<Json<Vec<User>>> {
-    verify_invited(pool, &user).await?;
-
     let mut users: Vec<User> = sqlx::query_as("SELECT email, name, picture FROM users;")
         .fetch_all(pool)
         .await?;

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { KosoLogo } from "$lib/components/ui/koso-logo";
-  import editDemo from "$lib/components/ui/landing/edit-demo.png";
   import collabDemo from "$lib/components/ui/landing/collab-demo.png";
-  import linkDemo from "$lib/components/ui/landing/link-demo.png";
+  import editDemo from "$lib/components/ui/landing/edit-demo.png";
   import githubDemo from "$lib/components/ui/landing/github-demo.png";
+  import linkDemo from "$lib/components/ui/landing/link-demo.png";
   import Google from "./google.svelte";
 
   type Props = {
@@ -47,10 +47,6 @@
   >
     <KosoLogo class="m-auto w-20" />
     <h1 class="text-4xl">Koso</h1>
-    <p>
-      We're not quite ready for prime time just yet, but if you have a
-      pre-launch invite, login with Google.
-    </p>
     <Google {onsuccess} />
   </div>
 </div>

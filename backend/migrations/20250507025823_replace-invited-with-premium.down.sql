@@ -1,0 +1,8 @@
+ALTER TABLE users
+ADD COLUMN invited BOOLEAN NOT NULL DEFAULT FALSE;
+
+UPDATE users
+SET invited=premium;
+
+ALTER TABLE users
+DROP COLUMN premium;
