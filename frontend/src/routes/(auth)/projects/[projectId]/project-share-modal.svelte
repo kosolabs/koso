@@ -3,13 +3,13 @@
   import { auth, type User } from "$lib/auth.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
-  import { getProjectContext } from "$lib/dag-table/project-context.svelte";
+  import { getProjectContext } from "$lib/dag-table";
   import {
+    Autocomplete,
     AutocompleteContent,
     AutocompleteInput,
     AutocompleteItem,
   } from "$lib/kosui/autocomplete";
-  import Autocomplete from "$lib/kosui/autocomplete/autocomplete.svelte";
   import { Button } from "$lib/kosui/button";
   import { dialog } from "$lib/kosui/dialog";
   import { Modal } from "$lib/kosui/modal";
