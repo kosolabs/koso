@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { DetailPanel } from "$lib/components/ui/detail-panel";
@@ -14,21 +13,15 @@
     newPlanningContext,
     OfflineAlert,
   } from "$lib/dag-table";
-  import { githubInstallUrl } from "$lib/github";
-  import { baseClasses } from "$lib/kosui/base";
   import { Action } from "$lib/kosui/command";
-  import { Menu, MenuContent, MenuItem, MenuTrigger } from "$lib/kosui/menu";
   import { exportProject, updateProject } from "$lib/projects";
-  import { cn } from "$lib/utils";
-  import { FileDown, Mail, MenuIcon, PlugZap, UserPlus } from "lucide-svelte";
+  import { FileDown } from "lucide-svelte";
   import { onMount } from "svelte";
-  import ProjectShareModal from "./project-share-modal.svelte";
 
   const project = getProjectContext();
   const { koso } = project;
   const planningCtx = newPlanningContext(koso);
   const prefs = getPrefsContext();
-  let openShareModal: boolean = $state(false);
 
   async function saveEditedProjectName(name: string) {
     let updatedProject;
@@ -74,16 +67,9 @@
     new Action({
       id: "ExportProject",
       callback: exportProjectToFile,
-      title: "Export Project",
+      title: "Export project",
       description: "Export project to JSON",
       icon: FileDown,
-    }),
-    new Action({
-      id: "ShareProject",
-      callback: () => (openShareModal = true),
-      title: "Share project",
-      description: "Open / show the project share dialog",
-      icon: UserPlus,
     }),
   ];
 
@@ -92,60 +78,9 @@
   });
 </script>
 
-<ProjectShareModal bind:open={openShareModal} />
-
 <div class="flex h-dvh flex-col">
   <div class="grow-0">
     <Navbar>
-      {#snippet context()}
-        <Menu>
-          <MenuTrigger
-            title="Project menu"
-            class={cn(
-              baseClasses({
-                variant: "plain",
-                color: "primary",
-                shape: "circle",
-                focus: true,
-                hover: true,
-              }),
-              "mr-1 p-2 transition-all active:scale-95",
-            )}
-          >
-            <MenuIcon size={20} />
-          </MenuTrigger>
-          <MenuContent>
-            <MenuItem
-              class="gap-2"
-              onSelect={async () =>
-                window.location.assign(await githubInstallUrl(project.id))}
-            >
-              <PlugZap size={16} />
-              Connect to GitHub
-            </MenuItem>
-            <MenuItem class="gap-2" onSelect={exportProjectToFile}>
-              <FileDown size={16} />
-              Export project
-            </MenuItem>
-            <MenuItem
-              class="gap-2"
-              onSelect={() => goto(`/projects/${project.id}/inbox`)}
-            >
-              <Mail size={16} />
-              Navigate to Zero Inbox
-            </MenuItem>
-            <MenuItem
-              class="gap-2"
-              onSelect={() => {
-                openShareModal = true;
-              }}
-            >
-              <UserPlus size={16} />
-              Share project
-            </MenuItem>
-          </MenuContent>
-        </Menu>
-      {/snippet}
       {#snippet left()}
         <div>
           <Editable

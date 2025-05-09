@@ -1,9 +1,11 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
+  import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { Avatar } from "$lib/kosui/avatar";
+  import { baseClasses } from "$lib/kosui/base";
   import {
     Menu,
     MenuContent,
@@ -12,23 +14,83 @@
     MenuItem,
     MenuTrigger,
   } from "$lib/kosui/menu";
-  import { Check, UserRound } from "lucide-svelte";
+  import { Check, MenuIcon, UserRound } from "lucide-svelte";
   import { userPrefersMode as mode, resetMode, setMode } from "mode-watcher";
   import type { Snippet } from "svelte";
-  import NavbarCommandButton from "./navbar-command-button.svelte";
+  import { twMerge } from "tailwind-merge";
+  import CommandButton from "./command-button.svelte";
+  import CommandMenuItem from "./command-menu-item.svelte";
 
   type Props = {
-    context?: Snippet;
     left?: Snippet;
   };
-  const { context, left }: Props = $props();
+  const { left }: Props = $props();
+
+  type Section = {
+    heading: string;
+    actions: ActionID[];
+  }[];
+
+  const menu: Section = [
+    {
+      heading: "Project",
+      actions: ["ConnectToGitHub", "ExportProject", "ShareProject"],
+    },
+    {
+      heading: "Navigation",
+      actions: ["ProjectsView", "PlanView", "InboxView"],
+    },
+  ];
+
+  let sections = $derived(
+    menu.map((section) => {
+      return {
+        heading: section.heading,
+        actions: section.actions
+          .map((id) => command.get(id))
+          .filter((action) => action !== undefined)
+          .filter((action) => action.enabled()),
+      };
+    }),
+  );
+
+  let menuHasActions = $derived(
+    sections.flatMap((section) => section.actions).length > 0,
+  );
 </script>
 
 <nav
   class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center border-b p-2 shadow"
 >
   <div class="flex items-center">
-    {@render context?.()}
+    <Menu>
+      <MenuTrigger
+        title="Project menu"
+        class={twMerge(
+          baseClasses({
+            variant: "plain",
+            color: "primary",
+            shape: "circle",
+            focus: true,
+            hover: true,
+          }),
+          "mr-1 p-2 transition-all active:scale-95",
+        )}
+      >
+        <MenuIcon size={20} />
+      </MenuTrigger>
+      {#if menuHasActions}
+        <MenuContent>
+          {#each sections as section}
+            {#if section.actions.length > 0}
+              {#each section.actions as action}
+                <CommandMenuItem {action} />
+              {/each}
+            {/if}
+          {/each}
+        </MenuContent>
+      {/if}
+    </Menu>
     <a href="/projects" aria-label="Home">
       <KosoLogo class="size-10" />
     </a>
@@ -36,13 +98,13 @@
   </div>
 
   <div class="ml-auto flex items-center gap-2">
-    <NavbarCommandButton name="Undo" desktop />
-    <NavbarCommandButton name="Redo" desktop />
-    <NavbarCommandButton name="ShareProject" desktop />
-    <NavbarCommandButton name="Search" desktop />
-    <NavbarCommandButton name="CommandPalette" />
-    <NavbarCommandButton name="InboxView" />
-    <NavbarCommandButton name="PlanView" />
+    <CommandButton name="Undo" desktop />
+    <CommandButton name="Redo" desktop />
+    <CommandButton name="ShareProject" desktop />
+    <CommandButton name="Search" desktop />
+    <CommandButton name="CommandPalette" />
+    <CommandButton name="InboxView" />
+    <CommandButton name="PlanView" />
 
     {#if auth.ok()}
       <Menu>
