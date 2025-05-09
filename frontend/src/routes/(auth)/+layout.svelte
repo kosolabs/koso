@@ -1,8 +1,12 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import { auth } from "$lib/auth.svelte";
+  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
-  import type { Snippet } from "svelte";
+  import { House } from "lucide-svelte";
+  import { onMount, type Snippet } from "svelte";
 
   type Props = {
     children: Snippet;
@@ -14,6 +18,21 @@
       nav.pushRedirectOnUserNotAuthenticated();
       goto("/");
     }
+  });
+
+  const actions: Action<ActionID>[] = [
+    new Action({
+      id: "ProjectsView",
+      callback: () => goto(`/projects`),
+      title: "All projects",
+      description: "Navigate to all projects view",
+      icon: House,
+      enabled: () => page.url.pathname !== `/projects`,
+    }),
+  ];
+
+  onMount(() => {
+    return command.register(...actions);
   });
 </script>
 

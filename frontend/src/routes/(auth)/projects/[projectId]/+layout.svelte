@@ -4,6 +4,8 @@
   import { showUnauthorizedDialog } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { getPrefsContext } from "$lib/components/ui/prefs";
+  import { ProjectShareModal } from "$lib/components/ui/project-share-modal";
+  import { githubInstallUrl } from "$lib/github";
   import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
   import { fetchProject, fetchProjectUsers } from "$lib/projects";
@@ -13,6 +15,7 @@
     PanelTopClose,
     PanelTopOpen,
     SquarePen,
+    UserPlus,
   } from "lucide-svelte";
   import { onMount, type Snippet } from "svelte";
   import { newProjectContext } from "../../../../lib/dag-table/project-context.svelte";
@@ -21,6 +24,8 @@
     children: Snippet;
   };
   let { children }: Props = $props();
+
+  let openShareModal: boolean = $state(false);
 
   const ctx = newProjectContext();
   const prefs = getPrefsContext();
@@ -47,7 +52,7 @@
     new Action({
       id: "InboxView",
       callback: () => goto(`/projects/${ctx.id}/inbox`),
-      title: "Zero Inbox",
+      title: "Zero inbox",
       description: "Navigate to Zero Inbox view",
       icon: Mail,
       enabled: () => page.url.pathname !== `/projects/${ctx.id}/inbox`,
@@ -55,7 +60,7 @@
     new Action({
       id: "PlanView",
       callback: () => goto(`/projects/${ctx.id}`),
-      title: "Project Planning",
+      title: "Project planning",
       description: "Navigate to Project Planning view",
       icon: Notebook,
       enabled: () => page.url.pathname !== `/projects/${ctx.id}`,
@@ -84,12 +89,29 @@
       icon: SquarePen,
       enabled: () => prefs.detailPanel !== "edit",
     }),
+    new Action({
+      id: "ConnectToGitHub",
+      callback: async () =>
+        window.location.assign(await githubInstallUrl(ctx.id)),
+      title: "Connect to GitHub",
+      description: "Connect the project to GitHub",
+      icon: UserPlus,
+    }),
+    new Action({
+      id: "ShareProject",
+      callback: () => (openShareModal = true),
+      title: "Share project",
+      description: "Open / show the project share dialog",
+      icon: UserPlus,
+    }),
   ];
 
   onMount(() => {
     return command.register(...actions);
   });
 </script>
+
+<ProjectShareModal bind:open={openShareModal} />
 
 {#await loading}
   {#await deflicker}
