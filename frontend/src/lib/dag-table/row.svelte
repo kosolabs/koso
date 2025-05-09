@@ -348,9 +348,10 @@
   tabindex="0"
   class={cn(
     "rounded outline-2 outline-transparent",
-    index % 2 === 0 && "bg-m3-surface-container/30",
+    index % 2 === 0 ? "bg-m3-surface-container" : "bg-m3-surface-container-low",
+    isHovered && "bg-m3-surface-container-high",
+    isDragging && "bg-m3-surface-container-highest",
     isMoving && "opacity-50",
-    isHovered && "bg-m3-surface-container",
     getAwarenessOutline(awareUsers),
     dragOverChild && "outline-m3-primary",
     isSelected && "outline-m3-primary",

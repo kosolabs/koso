@@ -2,12 +2,9 @@
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
-  import { DetailPanel } from "$lib/components/ui/detail-panel";
   import { Editable } from "$lib/components/ui/editable";
   import { Navbar } from "$lib/components/ui/navbar";
-  import { getPrefsContext } from "$lib/components/ui/prefs";
   import { toast } from "$lib/components/ui/sonner";
-  import { Toolbar } from "$lib/components/ui/toolbar";
   import {
     DagTable,
     getProjectContext,
@@ -22,12 +19,11 @@
   import { cn } from "$lib/utils";
   import { FileDown, Mail, MenuIcon, PlugZap, UserPlus } from "lucide-svelte";
   import { onMount } from "svelte";
-  import ProjectShareModal from "./project-share-modal.svelte";
+  import ProjectShareModal from "../project-share-modal.svelte";
 
   const project = getProjectContext();
   const { koso } = project;
-  const planningCtx = newPlanningContext(koso);
-  const prefs = getPrefsContext();
+  newPlanningContext(koso);
   let openShareModal: boolean = $state(false);
 
   async function saveEditedProjectName(name: string) {
@@ -164,28 +160,7 @@
     <OfflineAlert offline={project.socket.offline} />
   </div>
 
-  <div class="grow overflow-hidden p-1">
-    <div class="flex h-full flex-row-reverse max-2xl:flex-col">
-      {#if prefs.detailPanel !== "none"}
-        <div class="flex-1 overflow-y-scroll p-1">
-          <DetailPanel taskId={planningCtx.selected?.name} />
-        </div>
-      {/if}
-      <div class="flex-2 overflow-y-scroll p-1">
-        <DagTable users={project.users} />
-      </div>
-    </div>
-  </div>
-
-  <div class="sm:hidden">
-    <Toolbar
-      actions={[
-        "Undo",
-        "Redo",
-        "DetailPanelClose",
-        "DetailPanelOpen",
-        "Search",
-      ]}
-    />
+  <div class="p-2">
+    <DagTable users={project.users} />
   </div>
 </div>
