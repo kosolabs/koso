@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   expectKosoGraph,
   getKosoGraph,
@@ -1641,6 +1641,7 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).hover();
       await page.mouse.down();
+      await page.mouse.move(5, 0);
       await page.getByRole("button", { name: "Task 2 Peer Dropzone" }).hover();
       await page.getByRole("button", { name: "Task 2 Peer Dropzone" }).hover();
       await expect(
@@ -1666,6 +1667,7 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).hover();
       await page.mouse.down();
+      await page.mouse.move(5, 0);
       await page.getByRole("button", { name: "Task 2 Child Dropzone" }).hover();
       await page.getByRole("button", { name: "Task 2 Child Dropzone" }).hover();
       await expect(
@@ -1683,6 +1685,14 @@ test.describe("dag table tests", () => {
       });
     });
 
+    async function dragTask(page: Page, source: string, target: string) {
+      await page.getByRole("button", { name: source }).hover();
+      await page.mouse.down();
+      await page.mouse.move(5, 0);
+      await page.getByRole("button", { name: target }).hover();
+      await page.mouse.up();
+    }
+
     test("move task 1 to child of task 2 and link as child of task 3", async ({
       page,
     }) => {
@@ -1690,9 +1700,7 @@ test.describe("dag table tests", () => {
         { id: "root", name: "Root", children: ["1", "2", "3"] },
       ]);
 
-      await page
-        .getByRole("button", { name: "Task 1 Drag Handle" })
-        .dragTo(page.getByRole("button", { name: "Task 2 Child Dropzone" }));
+      await dragTask(page, "Task 1 Drag Handle", "Task 2 Child Dropzone");
       await expect(page.getByTestId("Row 2/1")).toBeVisible();
       await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
 
@@ -1704,9 +1712,7 @@ test.describe("dag table tests", () => {
       });
 
       await page.keyboard.down("Alt");
-      await page
-        .getByRole("button", { name: "Task 1 Drag Handle" })
-        .dragTo(page.getByRole("button", { name: "Task 3 Child Dropzone" }));
+      await dragTask(page, "Task 1 Drag Handle", "Task 3 Child Dropzone");
       await page.keyboard.up("Alt");
       await expect(page.getByTestId("Row 3/1")).toBeVisible();
       await expect(page.getByRole("row", { name: "Task 1" })).toHaveCount(2);
@@ -1725,9 +1731,7 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.keyboard.down("Alt");
-      await page
-        .getByRole("button", { name: "Task 1 Drag Handle" })
-        .dragTo(page.getByRole("button", { name: "Task 1 Child Dropzone" }));
+      await dragTask(page, "Task 1 Drag Handle", "Task 1 Child Dropzone");
       await page.keyboard.up("Alt");
 
       expect(await getKosoGraph(page)).toMatchObject({
@@ -1744,9 +1748,7 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.keyboard.down("Alt");
-      await page
-        .getByRole("button", { name: "Task 1 Drag Handle" })
-        .dragTo(page.getByRole("button", { name: "Task 2 Child Dropzone" }));
+      await dragTask(page, "Task 1 Drag Handle", "Task 2 Child Dropzone");
       await page.keyboard.up("Alt");
       await expect(page.getByTestId("Row 2/1")).toBeVisible();
       await expect(page.getByRole("row", { name: "Task 1" })).toHaveCount(2);
@@ -1760,7 +1762,11 @@ test.describe("dag table tests", () => {
       await page
         .getByRole("button", { name: "Task 1 Drag Handle" })
         .first()
-        .dragTo(page.getByRole("button", { name: "Task 2 Child Dropzone" }));
+        .hover();
+      await page.mouse.down();
+      await page.mouse.move(5, 0);
+      await page.getByRole("button", { name: "Task 2 Child Dropzone" }).hover();
+      await page.mouse.up();
 
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2", "3"] },

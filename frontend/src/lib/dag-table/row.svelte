@@ -374,10 +374,10 @@
       <button
         class={cn(
           "absolute z-50 -translate-y-1/2 cursor-default transition-all",
-          koso.debug && planningCtx.dragged && "bg-m3-primary/20",
+          koso.debug && "bg-m3-primary/20",
         )}
         style:width={`${rowWidth}px`}
-        style:height={planningCtx.dragged ? `${rowHeight / 2}px` : "1px"}
+        style:height={planningCtx.dragged ? `${rowHeight / 2}px` : 0}
         style:top={`${rowHeight}px`}
         aria-label={`Task ${task.num} Peer Dropzone`}
         ondragover={handleDragOverPeer}
@@ -401,10 +401,10 @@
       <button
         class={cn(
           "absolute z-50 -translate-y-1/2 cursor-default transition-all",
-          koso.debug && planningCtx.dragged && "bg-m3-tertiary/20",
+          koso.debug && "bg-m3-tertiary/20",
         )}
         style:width={`${rowWidth}px`}
-        style:height={planningCtx.dragged ? `${rowHeight / 2}px` : "1px"}
+        style:height={planningCtx.dragged ? `${rowHeight / 2}px` : 0}
         style:top={`${rowHeight / 2}px`}
         aria-label={`Task ${task.num} Child Dropzone`}
         ondragover={handleDragOverChild}
