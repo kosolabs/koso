@@ -42,8 +42,8 @@
   } from "lucide-svelte";
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
+  import DagRow from "./dag-row.svelte";
   import { getPlanningContext, Node } from "./planning-context.svelte";
-  import Row from "./row.svelte";
   import SearchPanel from "./search-panel.svelte";
 
   type Props = {
@@ -51,7 +51,7 @@
   };
   const { users }: Props = $props();
 
-  const rows: { [key: string]: Row } = {};
+  const rows: { [key: string]: DagRow } = {};
 
   const planningCtx = getPlanningContext();
   const { koso } = planningCtx;
@@ -693,7 +693,7 @@
           <tbody animate:flip={{ duration: 250 }}>
             <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
             <!-- svelte-ignore binding_property_non_reactive -->
-            <Row bind:this={rows[node.id]} {index} {node} {users} />
+            <DagRow bind:this={rows[node.id]} {index} {node} {users} />
           </tbody>
         {/each}
       </table>
