@@ -78,7 +78,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
-        set_user_invited(&claims.email, &pool).await.unwrap();
+        set_user_premium(&claims.email, &pool).await.unwrap();
     }
 
     // Log in a second user
@@ -97,7 +97,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
-        set_user_invited(&claims.email, &pool).await.unwrap();
+        set_user_premium(&claims.email, &pool).await.unwrap();
     }
 
     // Try a request without any credentials attached.
@@ -263,36 +263,23 @@ async fn not_invite_user(pool: PgPool) -> sqlx::Result<()> {
         assert_eq!(res.status(), StatusCode::OK);
     };
 
-    // Check that create projects rejects the not invited user.
+    // Check that list users rejects the non-premium user.
     {
         let res = client
-            .post(format!("http://{addr}/api/projects"))
-            .bearer_auth(&token)
-            .header("Content-Type", "application/json")
-            .body("{\"name\":\"Test Project\"}")
-            .send()
-            .await
-            .expect("Failed to send request.");
-        assert_not_invited(res).await;
-    }
-
-    // Check that list projects rejects the not invited user.
-    {
-        let res = client
-            .get(format!("http://{addr}/api/projects"))
+            .get(format!("http://{addr}/api/users"))
             .bearer_auth(&token)
             .header("Content-Type", "application/json")
             .send()
             .await
             .expect("Failed to send request.");
-        assert_not_invited(res).await;
+        assert_not_premium(res).await;
     }
 
     server.shutdown_and_wait().await.unwrap();
     Ok(())
 }
 
-async fn assert_not_invited(res: Response) {
+async fn assert_not_premium(res: Response) {
     assert_eq!(res.status(), StatusCode::FORBIDDEN);
     let error: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
     let error = error.as_object().unwrap();
@@ -302,7 +289,7 @@ async fn assert_not_invited(res: Response) {
     let detail = details.first().unwrap().as_object().unwrap();
     assert_eq!(
         detail.get("reason").unwrap().as_str().unwrap(),
-        "NOT_INVITED"
+        "NOT_PREMIUM"
     );
     assert!(!detail.get("msg").unwrap().as_str().unwrap().is_empty());
 }
@@ -348,7 +335,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
-        set_user_invited(&claims.email, &pool).await.unwrap();
+        set_user_premium(&claims.email, &pool).await.unwrap();
 
         let project_id = {
             let res = client
@@ -1124,12 +1111,12 @@ async fn login(client: &Client, addr: &SocketAddr, pool: &PgPool) -> Result<Stri
         .await
         .expect("Failed to send request.");
     assert_eq!(res.status(), StatusCode::OK);
-    set_user_invited(&claims.email, pool).await.unwrap();
+    set_user_premium(&claims.email, pool).await.unwrap();
     Ok(token)
 }
 
-async fn set_user_invited(email: &str, pool: &PgPool) -> Result<()> {
-    sqlx::query("UPDATE users SET invited=TRUE WHERE email=$1")
+async fn set_user_premium(email: &str, pool: &PgPool) -> Result<()> {
+    sqlx::query("UPDATE users SET premium=TRUE WHERE email=$1")
         .bind(email)
         .execute(pool)
         .await?;

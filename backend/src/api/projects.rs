@@ -10,7 +10,7 @@ use crate::{
             CreateProject, Project, ProjectExport, ProjectUser, UpdateProjectUsers,
             UpdateProjectUsersResponse,
         },
-        verify_invited, verify_project_access,
+        verify_premium, verify_project_access,
         yproxy::YDocProxy,
     },
     postgres::list_project_users,
@@ -47,8 +47,6 @@ async fn list_projects_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Vec<Project>>> {
-    verify_invited(pool, &user).await?;
-
     let mut projects = list_projects(&user.email, pool).await?;
     projects.sort_by(|a, b| a.name.cmp(&b.name).then(a.project_id.cmp(&b.project_id)));
     Ok(Json(projects))
@@ -78,8 +76,6 @@ async fn create_project_handler(
     Extension(pool): Extension<&'static PgPool>,
     Json(project): Json<CreateProject>,
 ) -> ApiResult<Json<Project>> {
-    verify_invited(pool, &user).await?;
-
     let projects = list_projects(&user.email, pool).await?;
     const MAX_PROJECTS: usize = 20;
     if projects.len() >= MAX_PROJECTS {
@@ -149,7 +145,7 @@ async fn list_project_users_handler(
     Extension(pool): Extension<&'static PgPool>,
     Path(project_id): Path<String>,
 ) -> ApiResult<Json<Vec<ProjectUser>>> {
-    verify_project_access(pool, user, &project_id).await?;
+    verify_project_access(pool, &user, &project_id).await?;
     let mut users = list_project_users(pool, &project_id).await?;
     users.sort_by(|a, b| a.name.cmp(&b.name).then(a.email.cmp(&b.email)));
 
@@ -162,7 +158,7 @@ async fn get_project_handler(
     Extension(pool): Extension<&'static PgPool>,
     Path(project_id): Path<String>,
 ) -> ApiResult<Json<Project>> {
-    verify_project_access(pool, user, &project_id).await?;
+    verify_project_access(pool, &user, &project_id).await?;
 
     Ok(Json(fetch_project(pool, &project_id).await?))
 }
@@ -174,7 +170,7 @@ async fn update_project_handler(
     Path(project_id): Path<String>,
     Json(project): Json<Project>,
 ) -> ApiResult<Json<Project>> {
-    verify_project_access(pool, user, &project_id).await?;
+    verify_project_access(pool, &user, &project_id).await?;
 
     if project_id != project.project_id {
         return Err(bad_request_error(
@@ -202,7 +198,7 @@ async fn delete_project_handler(
     Extension(pool): Extension<&'static PgPool>,
     Path(project_id): Path<String>,
 ) -> ApiResult<Json<Project>> {
-    verify_project_access(pool, user, &project_id).await?;
+    verify_project_access(pool, &user, &project_id).await?;
 
     sqlx::query(
         "
@@ -224,7 +220,8 @@ async fn update_project_users_handler(
     Path(project_id): Path<String>,
     Json(update): Json<UpdateProjectUsers>,
 ) -> ApiResult<Json<UpdateProjectUsersResponse>> {
-    verify_project_access(pool, user, &project_id).await?;
+    verify_project_access(pool, &user, &project_id).await?;
+    verify_premium(pool, &user).await?;
 
     if project_id != update.project_id {
         return Err(bad_request_error(
@@ -275,16 +272,6 @@ async fn update_project_users_handler(
         .bind(&add_emails)
         .execute(&mut *txn)
         .await?;
-
-        sqlx::query(
-            "
-            UPDATE users
-            SET invited=TRUE
-            WHERE email in (SELECT * FROM unnest($1)) and NOT invited",
-        )
-        .bind(add_emails)
-        .execute(&mut *txn)
-        .await?;
     }
 
     txn.commit().await?;
@@ -298,7 +285,7 @@ async fn get_project_doc_updates_handler(
     Extension(pool): Extension<&'static PgPool>,
     Path(project_id): Path<String>,
 ) -> ApiResult<Json<Vec<String>>> {
-    verify_project_access(pool, user, &project_id).await?;
+    verify_project_access(pool, &user, &project_id).await?;
 
     let updates = storage::load_updates(&project_id, pool)
         .await?
@@ -330,7 +317,7 @@ async fn export_project(
     Extension(collab): Extension<Collab>,
     Path(project_id): Path<String>,
 ) -> ApiResult<Json<ProjectExport>> {
-    verify_project_access(pool, user, &project_id).await?;
+    verify_project_access(pool, &user, &project_id).await?;
 
     let graph = collab.get_graph(&project_id).await?;
     Ok(Json(ProjectExport { project_id, graph }))

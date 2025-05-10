@@ -1,4 +1,3 @@
-import type { User } from "$lib/auth.svelte";
 import { toast } from "$lib/components/ui/sonner";
 import {
   parseAwarenessStateResponse,
@@ -6,6 +5,7 @@ import {
   type AwarenessUpdate,
 } from "$lib/dag-table/awareness.svelte";
 import { useLocalStorage, type Storable } from "$lib/stores.svelte";
+import type { User } from "$lib/users";
 import { findEntryIndex } from "$lib/utils";
 import { Map, Record, Set } from "immutable";
 import * as decoding from "lib0/decoding";

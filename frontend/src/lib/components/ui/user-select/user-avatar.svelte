@@ -1,12 +1,11 @@
 <script lang="ts">
-  import type { User } from "$lib/auth.svelte";
   import { Avatar } from "$lib/kosui/avatar";
   import type { ClassName } from "$lib/kosui/utils";
   import { UserRound } from "lucide-svelte";
   import { twMerge } from "tailwind-merge";
 
   type Props = {
-    user: User;
+    user: { email: string; name: string; picture: string };
   } & ClassName;
   const { user, class: className }: Props = $props();
 </script>

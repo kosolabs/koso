@@ -36,13 +36,11 @@ pub(crate) fn router() -> Router {
         .nest("/dev", dev::router())
 }
 
-/// Verify that the user is invited and allowed to access Koso.
-/// Typically this permission is granted via another invited user sharing
-/// one of their projects with another user that has already logged in.
-pub(crate) async fn verify_invited(pool: &PgPool, user: &User) -> Result<(), ErrorResponse> {
+/// Verify that the user is premium.
+pub(crate) async fn verify_premium(pool: &PgPool, user: &User) -> Result<(), ErrorResponse> {
     match sqlx::query_as(
         "
-        SELECT invited
+        SELECT premium
         FROM users
         WHERE email = $1;
         ",
@@ -50,11 +48,11 @@ pub(crate) async fn verify_invited(pool: &PgPool, user: &User) -> Result<(), Err
     .bind(&user.email)
     .fetch_optional(pool)
     .await
-    .context("Failed to check user permission")?
+    .context("Failed to check user premium status")?
     {
         Some((true,)) => Ok(()),
-        None | Some((false,)) => Err(not_invited_error(&format!(
-            "User {} is not invited",
+        None | Some((false,)) => Err(not_premium_error(&format!(
+            "User {} is not premium",
             user.email
         ))),
     }
@@ -63,7 +61,7 @@ pub(crate) async fn verify_invited(pool: &PgPool, user: &User) -> Result<(), Err
 /// Verify that the user has access to the given project.
 pub(crate) async fn verify_project_access(
     pool: &PgPool,
-    user: User,
+    user: &User,
     project_id: &ProjectId,
 ) -> Result<(), ErrorResponse> {
     if project_id.is_empty() {
@@ -122,8 +120,8 @@ pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
     error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", Some(msg), None)
 }
 
-pub(crate) fn not_invited_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::FORBIDDEN, "NOT_INVITED", Some(msg), None)
+pub(crate) fn not_premium_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::FORBIDDEN, "NOT_PREMIUM", Some(msg), None)
 }
 
 pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorResponse {

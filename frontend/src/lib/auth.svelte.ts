@@ -7,7 +7,7 @@ import { loads, saves } from "./stores.svelte";
 
 export const CREDENTIAL_KEY = "credential";
 
-export type User = {
+type User = {
   email: string;
   name: string;
   picture: string;

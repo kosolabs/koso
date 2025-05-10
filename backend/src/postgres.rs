@@ -93,7 +93,7 @@ pub(crate) async fn list_project_users(
 
     let users: Vec<ProjectUser> = sqlx::query_as(
         "
-        SELECT project_id, email, name, picture
+        SELECT project_id, email, name, picture, premium
         FROM project_permissions
         JOIN users USING (email)
         WHERE project_id = $1;

@@ -1,5 +1,5 @@
 import { page } from "$app/state";
-import type { User } from "$lib/auth.svelte";
+import type { User } from "$lib/users";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import { Koso } from "./koso.svelte";
@@ -11,6 +11,7 @@ export class ProjectContext {
   socket: KosoSocket;
   name: string = "";
   users: User[] = $state([]);
+  premium: boolean = false;
 
   constructor(id: string, koso: Koso, socket: KosoSocket) {
     this.id = id;

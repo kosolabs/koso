@@ -41,8 +41,8 @@ async fn invite_test_user_handler(
     sqlx::query(
         "
         UPDATE users
-        SET invited=TRUE
-        WHERE email = $1 and NOT invited",
+        SET premium=TRUE
+        WHERE email = $1 and NOT premium",
     )
     .bind(user.email)
     .execute(pool)

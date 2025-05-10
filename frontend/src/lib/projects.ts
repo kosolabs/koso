@@ -1,5 +1,5 @@
 import { headers, parse_response as parseResponse } from "$lib/api";
-import { type User } from "$lib/auth.svelte";
+import type { FullUser, User } from "$lib/users";
 import type { Graph } from "$lib/yproxy";
 
 export type Project = {
@@ -78,11 +78,13 @@ export async function deleteProject(project: Project): Promise<Project> {
   return parseResponse(response);
 }
 
-export async function fetchProjectUsers(projectId: string): Promise<User[]> {
+export async function fetchProjectUsers(
+  projectId: string,
+): Promise<FullUser[]> {
   const response = await fetch(`/api/projects/${projectId}/users`, {
     headers: headers(),
   });
-  const users: User[] = await parseResponse(response);
+  const users: FullUser[] = await parseResponse(response);
   users.sort(COMPARE_USERS_BY_NAME_AND_EMAIL);
   return users;
 }

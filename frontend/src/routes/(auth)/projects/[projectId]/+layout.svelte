@@ -40,6 +40,7 @@
     ]);
     ctx.name = project.name;
     ctx.users = users;
+    ctx.premium = users.some((u) => u.premium);
   }
 
   $effect(() => {
@@ -103,6 +104,7 @@
       title: "Share project",
       description: "Open / show the project share dialog",
       icon: UserPlus,
+      enabled: () => ctx.premium,
     }),
   ];
 
@@ -110,8 +112,6 @@
     return command.register(...actions);
   });
 </script>
-
-<ProjectShareModal bind:open={openShareModal} />
 
 {#await loading}
   {#await deflicker}
@@ -123,5 +123,9 @@
     </div>
   {/await}
 {:then}
+  {#if ctx.premium}
+    <ProjectShareModal bind:open={openShareModal} />
+  {/if}
+
   {@render children()}
 {/await}

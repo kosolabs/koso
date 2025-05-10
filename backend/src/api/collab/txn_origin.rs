@@ -1,7 +1,8 @@
-use crate::api::model::User;
 use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 use yrs::Origin;
+
+use crate::api::google::User;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

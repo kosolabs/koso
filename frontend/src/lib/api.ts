@@ -1,5 +1,4 @@
 import { version } from "$app/environment";
-import { toast } from "$lib/components/ui/sonner";
 import { auth } from "./auth.svelte";
 
 export type ErrorResponseBody = {
@@ -87,14 +86,6 @@ function handle_auth_errors(err: KosoError, response: Response) {
       response,
       err,
     );
-    auth.logout();
-  } else if (err.hasReason("NOT_INVITED")) {
-    console.debug(
-      "Response failed, user is not invited. Logging user out.",
-      response,
-      err,
-    );
-    toast.warning("You don't have access to Koso.");
     auth.logout();
   }
 }

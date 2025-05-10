@@ -15,8 +15,8 @@ async fn login_handler(
 ) -> ApiResult<()> {
     sqlx::query(
         "
-        INSERT INTO users (email, name, picture, invited)
-        VALUES ($1, $2, $3, false)
+        INSERT INTO users (email, name, picture)
+        VALUES ($1, $2, $3)
         ON CONFLICT (email)
         DO UPDATE SET name = EXCLUDED.name, picture = EXCLUDED.picture, login_time = NOW();",
     )

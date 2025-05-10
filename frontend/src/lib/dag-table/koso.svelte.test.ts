@@ -1,4 +1,4 @@
-import type { User } from "$lib/auth.svelte";
+import type { User } from "$lib/users";
 import type { Kind } from "$lib/yproxy";
 import { Set } from "immutable";
 import { uuidv4 } from "lib0/random.js";
@@ -12,14 +12,12 @@ const USER: User = {
   email: "t@koso.app",
   name: "Test User",
   picture: "",
-  exp: 0,
 };
 
 const OTHER_USER: User = {
   email: "t2@koso.app",
   name: "Test2 User",
   picture: "",
-  exp: 0,
 };
 
 describe("Koso tests", () => {
@@ -1638,7 +1636,6 @@ describe("Koso tests", () => {
         email: "new@koso.app",
         name: "New Test User",
         picture: "",
-        exp: 0,
       });
 
       expect(koso.toJSON()).toMatchObject({
