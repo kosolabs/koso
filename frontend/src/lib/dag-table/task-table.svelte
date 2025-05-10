@@ -293,7 +293,9 @@
 {#await koso.synced then}
   {#if inbox.tasks.length > 0}
     <div class="flex flex-col gap-2">
-      <table class="w-full border-separate border-spacing-0 rounded-md border">
+      <table
+        class="task-table w-full border-separate border-spacing-0 rounded-md border"
+      >
         <thead class="text-left text-xs font-bold uppercase">
           <tr>
             <th class="w-32 p-2">ID</th>
@@ -339,3 +341,14 @@
     </div>
   {/if}
 {/await}
+
+<!-- Round the bottom left and right of the table -->
+<style>
+  :global(.task-table > tbody:last-child > tr > td:first-child) {
+    border-bottom-left-radius: 0.25rem;
+  }
+
+  :global(.task-table > tbody:last-child > tr > td:last-child) {
+    border-bottom-right-radius: 0.25rem;
+  }
+</style>
