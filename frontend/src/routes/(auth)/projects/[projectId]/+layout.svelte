@@ -113,10 +113,6 @@
   });
 </script>
 
-{#if ctx.premium}
-  <ProjectShareModal bind:open={openShareModal} />
-{/if}
-
 {#await loading}
   {#await deflicker}
     <!-- Deflicker load. -->
@@ -127,5 +123,9 @@
     </div>
   {/await}
 {:then}
+  {#if ctx.premium}
+    <ProjectShareModal bind:open={openShareModal} />
+  {/if}
+
   {@render children()}
 {/await}
