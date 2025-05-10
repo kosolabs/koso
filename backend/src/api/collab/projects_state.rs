@@ -17,7 +17,8 @@ use crate::{
             storage,
             txn_origin::YOrigin,
         },
-        model::{ProjectId, User},
+        google::User,
+        model::ProjectId,
     },
     postgres::compact,
 };
@@ -462,7 +463,7 @@ impl ProjectState {
     }
 
     pub(super) async fn update_awareness(&self, who: &str, user: &User, update: AwarenessUpdate) {
-        let state = update.into_state(user.clone());
+        let state = update.into_state(user);
         self.awarenesses.lock().await.insert(who.into(), state);
         self.broadcast_awarenesses().await;
     }

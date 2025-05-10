@@ -1,6 +1,6 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
-  import { auth, type User } from "$lib/auth.svelte";
+  import { auth } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { toast } from "$lib/components/ui/sonner";
@@ -9,6 +9,7 @@
   import { Fab } from "$lib/kosui/fab";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
+  import type { User } from "$lib/users";
   import {
     Cable,
     Check,

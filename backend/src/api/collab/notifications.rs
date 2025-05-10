@@ -5,7 +5,8 @@ use super::{
 use crate::{
     api::{
         collab::txn_origin::Actor,
-        model::{Task, User},
+        google::User,
+        model::Task,
         yproxy::{YDocProxy, YTaskProxy},
     },
     notifiers::Notifier,

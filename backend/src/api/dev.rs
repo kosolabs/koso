@@ -23,8 +23,11 @@ pub(super) fn router() -> Router {
 
 /// Endpoint used by playwright tests to invite test users.
 /// This avoids the need to bootstrap some intial user with invite permission.
-#[tracing::instrument()]
-async fn invite_test_user_handler(Extension(user): Extension<User>) -> ApiResult<()> {
+#[tracing::instrument(skip(pool))]
+async fn invite_test_user_handler(
+    Extension(pool): Extension<&'static PgPool>,
+    Extension(user): Extension<User>,
+) -> ApiResult<()> {
     if !user.email.ends_with(google::TEST_USER_SUFFIX) {
         return Err(bad_request_error(
             "NON_TEST_USER",
@@ -35,6 +38,15 @@ async fn invite_test_user_handler(Extension(user): Extension<User>) -> ApiResult
             ),
         ));
     }
+    sqlx::query(
+        "
+        UPDATE users
+        SET premium=TRUE
+        WHERE email = $1 and NOT premium",
+    )
+    .bind(user.email)
+    .execute(pool)
+    .await?;
     Ok(())
 }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { headers, parse_response } from "$lib/api";
-  import { auth, type User } from "$lib/auth.svelte";
+  import { auth } from "$lib/auth.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { getProjectContext } from "$lib/dag-table";
@@ -17,6 +17,7 @@
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectUsers,
   } from "$lib/projects";
+  import type { User } from "$lib/users";
   import { cn, match } from "$lib/utils";
   import { CircleMinus, TriangleAlert, X } from "lucide-svelte";
   import { flip } from "svelte/animate";

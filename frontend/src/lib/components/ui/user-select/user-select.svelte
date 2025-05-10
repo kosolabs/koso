@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { User } from "$lib/auth.svelte";
   import { Avatar } from "$lib/kosui/avatar";
   import { Menu, MenuContent, MenuItem, MenuTrigger } from "$lib/kosui/menu";
+  import type { User } from "$lib/users";
   import { UserRound } from "lucide-svelte";
   import { UserAvatar } from ".";
   import ResponsiveText from "../responsive-text/responsive-text.svelte";
@@ -42,9 +42,7 @@
     </MenuTrigger>
     <MenuContent>
       <MenuItem onSelect={() => select(null)}>
-        <UserAvatar
-          user={{ name: "Unassigned", email: "", picture: "", exp: 0 }}
-        />
+        <UserAvatar user={{ name: "Unassigned", email: "", picture: "" }} />
       </MenuItem>
       {#each users as user (user.email)}
         <MenuItem onSelect={() => select(user)}>

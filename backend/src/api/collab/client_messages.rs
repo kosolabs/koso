@@ -9,7 +9,7 @@ use crate::api::{
         projects_state::ProjectState,
         txn_origin::{Actor, YOrigin},
     },
-    model::User,
+    google::User,
 };
 use anyhow::{Result, anyhow};
 use axum::extract::ws::Message;

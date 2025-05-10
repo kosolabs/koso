@@ -18,7 +18,7 @@ use crate::{
 use anyhow::{Result, anyhow};
 use axum::http::HeaderValue;
 use futures::{SinkExt, StreamExt, stream::FusedStream};
-use reqwest::{Client, StatusCode};
+use reqwest::{Client, Response, StatusCode};
 use serde_json::Value;
 use sqlx::PgPool;
 use tokio::{net::TcpStream, task::JoinHandle};
@@ -78,6 +78,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
+        set_user_premium(&claims.email, &pool).await.unwrap();
     }
 
     // Log in a second user
@@ -96,6 +97,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
+        set_user_premium(&claims.email, &pool).await.unwrap();
     }
 
     // Try a request without any credentials attached.
@@ -261,8 +263,35 @@ async fn not_invite_user(pool: PgPool) -> sqlx::Result<()> {
         assert_eq!(res.status(), StatusCode::OK);
     };
 
+    // Check that list users rejects the non-premium user.
+    {
+        let res = client
+            .get(format!("http://{addr}/api/users"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_not_premium(res).await;
+    }
+
     server.shutdown_and_wait().await.unwrap();
     Ok(())
+}
+
+async fn assert_not_premium(res: Response) {
+    assert_eq!(res.status(), StatusCode::FORBIDDEN);
+    let error: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+    let error = error.as_object().unwrap();
+    assert_eq!(error.get("status").unwrap().as_i64().unwrap(), 403);
+    let details = error.get("details").unwrap().as_array().unwrap();
+    assert_eq!(details.len(), 1);
+    let detail = details.first().unwrap().as_object().unwrap();
+    assert_eq!(
+        detail.get("reason").unwrap().as_str().unwrap(),
+        "NOT_PREMIUM"
+    );
+    assert!(!detail.get("msg").unwrap().as_str().unwrap().is_empty());
 }
 
 #[test_log::test(sqlx::test)]
@@ -270,7 +299,7 @@ async fn create_and_delete_project(pool: PgPool) -> sqlx::Result<()> {
     let (mut server, addr) = start_server(&pool).await;
     let client = Client::default();
 
-    let token = login(&client, &addr).await.unwrap();
+    let token = login(&client, &addr, &pool).await.unwrap();
 
     let project = create_project(&client, &addr, &token, "A Project to Delete")
         .await
@@ -306,6 +335,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
+        set_user_premium(&claims.email, &pool).await.unwrap();
 
         let project_id = {
             let res = client
@@ -704,7 +734,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
     let client = Client::default();
 
     // Setup the project.
-    let token = login(&client, &addr).await.unwrap();
+    let token = login(&client, &addr, &pool).await.unwrap();
     let project = create_project(&client, &addr, &token, "plugin_test")
         .await
         .unwrap();
@@ -1069,7 +1099,7 @@ async fn create_project(
     Ok(serde_json::from_str(res.text().await.unwrap().as_str()).unwrap())
 }
 
-async fn login(client: &Client, addr: &SocketAddr) -> Result<String> {
+async fn login(client: &Client, addr: &SocketAddr, pool: &PgPool) -> Result<String> {
     let claims = Claims::default();
     let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
 
@@ -1081,7 +1111,16 @@ async fn login(client: &Client, addr: &SocketAddr) -> Result<String> {
         .await
         .expect("Failed to send request.");
     assert_eq!(res.status(), StatusCode::OK);
+    set_user_premium(&claims.email, pool).await.unwrap();
     Ok(token)
+}
+
+async fn set_user_premium(email: &str, pool: &PgPool) -> Result<()> {
+    sqlx::query("UPDATE users SET premium=TRUE WHERE email=$1")
+        .bind(email)
+        .execute(pool)
+        .await?;
+    Ok(())
 }
 
 fn origin() -> Origin {

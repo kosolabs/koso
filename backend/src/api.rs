@@ -36,10 +36,32 @@ pub(crate) fn router() -> Router {
         .nest("/dev", dev::router())
 }
 
+/// Verify that the user is premium.
+pub(crate) async fn verify_premium(pool: &PgPool, user: &User) -> Result<(), ErrorResponse> {
+    match sqlx::query_as(
+        "
+        SELECT premium
+        FROM users
+        WHERE email = $1;
+        ",
+    )
+    .bind(&user.email)
+    .fetch_optional(pool)
+    .await
+    .context("Failed to check user premium status")?
+    {
+        Some((true,)) => Ok(()),
+        None | Some((false,)) => Err(not_premium_error(&format!(
+            "User {} is not premium",
+            user.email
+        ))),
+    }
+}
+
 /// Verify that the user has access to the given project.
 pub(crate) async fn verify_project_access(
     pool: &PgPool,
-    user: User,
+    user: &User,
     project_id: &ProjectId,
 ) -> Result<(), ErrorResponse> {
     if project_id.is_empty() {
@@ -96,6 +118,10 @@ pub(crate) fn unauthenticated_error(msg: &str) -> ErrorResponse {
 
 pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
     error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", Some(msg), None)
+}
+
+pub(crate) fn not_premium_error(msg: &str) -> ErrorResponse {
+    error_response(StatusCode::FORBIDDEN, "NOT_PREMIUM", Some(msg), None)
 }
 
 pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorResponse {

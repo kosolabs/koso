@@ -94,7 +94,7 @@ impl ConnectHandler {
         request: ConnectRequest,
         user: User,
     ) -> ApiResult<Json<ConnectResponse>> {
-        api::verify_project_access(self.pool, user.clone(), &request.project_id).await?;
+        api::verify_project_access(self.pool, &user, &request.project_id).await?;
         self.verify_installation_access(&user, &request.installation_id)
             .await?;
 

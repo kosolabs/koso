@@ -1,12 +1,13 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
-  import { auth, type User } from "$lib/auth.svelte";
+  import { auth } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { Action } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL } from "$lib/shortcuts";
+  import type { User } from "$lib/users";
   import {
     Cable,
     Check,
