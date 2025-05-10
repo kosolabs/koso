@@ -85,7 +85,7 @@
   tabindex="0"
   class={cn(
     "rounded outline-2 outline-transparent",
-    index % 2 === 0 && "bg-m3-surface-container/30",
+    index % 2 === 0 ? "bg-m3-surface-container" : "bg-m3-surface-container-low",
     inbox.selected?.id === task.id && "outline-m3-primary",
   )}
   aria-label={`Task ${task.num}`}

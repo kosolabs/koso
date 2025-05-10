@@ -665,7 +665,7 @@
       <!-- Add a z-0 to fix a bug in Safari where rows disappear when collapsing
                  and expanding tasks -->
       <table
-        class="z-0 w-full border-separate border-spacing-0 rounded-md border"
+        class="dag-table z-0 w-full border-separate border-spacing-0 rounded-md border"
       >
         <thead class="text-left text-xs font-bold uppercase">
           <tr>
@@ -735,3 +735,14 @@
     </div>
   {/if}
 {/await}
+
+<!-- Round the bottom left and right of the table -->
+<style>
+  :global(.dag-table > tbody:last-child > tr > td:nth-child(2)) {
+    border-bottom-left-radius: 0.25rem;
+  }
+
+  :global(.dag-table > tbody:last-child > tr > td:nth-last-child(2)) {
+    border-bottom-right-radius: 0.25rem;
+  }
+</style>
