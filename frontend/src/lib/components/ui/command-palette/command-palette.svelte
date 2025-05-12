@@ -44,6 +44,7 @@
     | "Search"
     | "ShareProject"
     | "ShowDoneTasks"
+    | "Storybook"
     | "SystemTheme"
     | "ToggleTaskStatus"
     | "Undent"

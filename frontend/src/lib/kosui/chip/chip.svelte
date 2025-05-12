@@ -2,27 +2,24 @@
   import { X } from "lucide-svelte";
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
-  import { baseClasses, type Variants } from "../base";
-  import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type ChipProps = {
-    children: Snippet;
     title?: string;
     onClick?: (event: MouseEvent | KeyboardEvent) => void;
     onDelete?: (event: MouseEvent | KeyboardEvent) => void;
-  } & ElementRef &
-    ClassName &
-    Variants;
+    children: Snippet;
+  } & BoxProps;
 </script>
 
 <script lang="ts">
+  import { Box, type BoxProps } from "../box";
+
   let {
-    children,
     title,
     onClick,
     onDelete,
+    children,
     el = $bindable(),
-    ref = noop,
     class: className,
     variant = "filled",
     color = "primary",
@@ -31,15 +28,13 @@
   }: ChipProps = $props();
 </script>
 
-<div
-  bind:this={el}
-  use:ref
+<Box
+  bind:el
   role="option"
-  class={twMerge(
-    baseClasses({ variant, color, shape }),
-    "inline-flex items-center gap-1 px-1 py-0 text-xs",
-    className,
-  )}
+  {variant}
+  {color}
+  {shape}
+  class={twMerge("inline-flex gap-1 px-1 py-0 text-xs", className)}
   {...restProps}
 >
   <button onclick={onClick} {title}>
@@ -59,4 +54,4 @@
       <X size={12} />
     </button>
   {/if}
-</div>
+</Box>

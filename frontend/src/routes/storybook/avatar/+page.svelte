@@ -11,7 +11,7 @@
         {variant}
         {color}
         src="https://static.wikia.nocookie.net/dilbert/images/6/60/Boss.PNG"
-      ></Avatar>
+      />
     {/each}
   {/each}
 </div>
