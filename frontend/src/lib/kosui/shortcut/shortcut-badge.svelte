@@ -1,7 +1,7 @@
 <script module lang="ts">
   import type { HTMLInputAttributes } from "svelte/elements";
   import { twMerge, type ClassNameValue } from "tailwind-merge";
-  import { baseClasses } from "../base";
+  import { Box } from "../box";
   import { noop, type ClassName, type ElementRef } from "../utils";
   import type { Shortcut } from "./shortcut";
 
@@ -29,14 +29,13 @@
   class={twMerge("text-m3-on-surface flex gap-1", className)}
 >
   {#each shortcut as symbol}
-    <div
-      class={twMerge(
-        baseClasses({ variant: "elevated", color: "secondary" }),
-        "flex h-5 min-w-5 items-center justify-center rounded border p-1 text-xs",
-        badgeClass,
-      )}
+    <Box
+      variant="elevated"
+      color="secondary"
+      centered
+      class={twMerge("h-5 min-w-5 rounded border p-1 text-xs", badgeClass)}
     >
       {symbol}
-    </div>
+    </Box>
   {/each}
 </div>

@@ -6,6 +6,7 @@
     "/storybook/alerts",
     "/storybook/autocomplete",
     "/storybook/avatar",
+    "/storybook/badge",
     "/storybook/buttons",
     "/storybook/chips",
     "/storybook/code-mirror",

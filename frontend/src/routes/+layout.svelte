@@ -1,5 +1,6 @@
 <script lang="ts">
   import { dev } from "$app/environment";
+  import { goto } from "$app/navigation";
   import { updated } from "$app/stores";
   import {
     command,
@@ -11,7 +12,7 @@
   import { toast, Toaster } from "$lib/components/ui/sonner";
   import { Action } from "$lib/kosui/command";
   import { Dialoguer } from "$lib/kosui/dialog";
-  import { Moon, Sun, SunMoon } from "lucide-svelte";
+  import { Book, Moon, Sun, SunMoon } from "lucide-svelte";
   import { ModeWatcher, resetMode, setMode } from "mode-watcher";
   import { onMount } from "svelte";
   import { Workbox } from "workbox-window";
@@ -55,6 +56,13 @@
       title: "System",
       description: "Set the theme to system",
       icon: SunMoon,
+    }),
+    new Action({
+      id: "Storybook",
+      callback: () => goto("/storybook"),
+      title: "Storybook",
+      description: "Navigate to Koso's component library storybook",
+      icon: Book,
     }),
   ];
 
