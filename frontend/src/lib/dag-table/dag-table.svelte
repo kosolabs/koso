@@ -662,56 +662,64 @@
 
 {#await koso.synced then}
   {#if planningCtx.nodes.size > 1}
-    <div class="flex flex-col gap-2">
-      <!-- Add a z-0 to fix a bug in Safari where rows disappear when collapsing
+    <div class="relative h-full">
+      <div class="flex flex-col gap-2">
+        <!-- Add a z-0 to fix a bug in Safari where rows disappear when collapsing
                  and expanding tasks -->
-      <table
-        class="dag-table z-0 w-full border-separate border-spacing-0 rounded-md border"
-      >
-        <thead class="text-left text-xs font-bold uppercase">
-          <tr>
-            <th class="relative m-0 w-0 p-0"></th>
-            <th class="w-32 p-2">ID</th>
-            {#if koso.debug}
-              <th class="border-l p-2">UUID</th>
-            {/if}
-            <th class="border-l p-2">
-              <SquarePen class="h-4 md:hidden" />
-              <div class="max-md:hidden">Status</div></th
-            >
-            <th class="border-l p-2">Name</th>
-            <th class="p-2"></th>
-            <th class="border-l p-2">
-              <UserRoundPlus class="h-4 md:hidden" />
-              <div class="max-md:hidden">Assignee</div>
-            </th>
-            <th class="border-l p-2 max-md:hidden">Reporter</th>
-            <th class="relative m-0 w-0 p-0"></th>
-          </tr>
-        </thead>
+        <table
+          class="dag-table z-0 w-full border-separate border-spacing-0 rounded-md border"
+        >
+          <thead class="text-left text-xs font-bold uppercase">
+            <tr>
+              <th class="relative m-0 w-0 p-0"></th>
+              <th class="w-32 p-2">ID</th>
+              {#if koso.debug}
+                <th class="border-l p-2">UUID</th>
+              {/if}
+              <th class="border-l p-2">
+                <SquarePen class="h-4 md:hidden" />
+                <div class="max-md:hidden">Status</div></th
+              >
+              <th class="border-l p-2">Name</th>
+              <th class="p-2"></th>
+              <th class="border-l p-2">
+                <UserRoundPlus class="h-4 md:hidden" />
+                <div class="max-md:hidden">Assignee</div>
+              </th>
+              <th class="border-l p-2 max-md:hidden">Reporter</th>
+              <th class="relative m-0 w-0 p-0"></th>
+            </tr>
+          </thead>
 
-        {#each [...planningCtx.nodes].slice(1) as node, index (node.id)}
-          <tbody animate:flip={{ duration: 250 }}>
-            <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
-            <!-- svelte-ignore binding_property_non_reactive -->
-            <DagRow bind:this={rows[node.id]} {index} {node} {users} />
-          </tbody>
-        {/each}
-      </table>
+          {#each [...planningCtx.nodes].slice(1) as node, index (node.id)}
+            <tbody animate:flip={{ duration: 250 }}>
+              <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
+              <!-- svelte-ignore binding_property_non_reactive -->
+              <DagRow bind:this={rows[node.id]} {index} {node} {users} />
+            </tbody>
+          {/each}
+        </table>
 
-      <Fab icon={Plus} onclick={insertAction.callback} reserve>
-        {insertAction.title}
-        {#snippet tooltip()}
-          <div class="flex items-center gap-2">
-            {insertAction.description}
-            {#if insertAction.shortcut}
-              <div class="font-bold">
-                {insertAction.shortcut.toString()}
-              </div>
-            {/if}
-          </div>
-        {/snippet}
-      </Fab>
+        <Fab
+          reserveClass="m-0.5"
+          positionClass="m-0"
+          icon={Plus}
+          onclick={insertAction.callback}
+          reserve
+        >
+          {insertAction.title}
+          {#snippet tooltip()}
+            <div class="flex items-center gap-2">
+              {insertAction.description}
+              {#if insertAction.shortcut}
+                <div class="font-bold">
+                  {insertAction.shortcut.toString()}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </Fab>
+      </div>
     </div>
   {:else}
     <div class="flex items-center justify-center pt-8">
