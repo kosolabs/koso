@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import { showUnauthorizedDialog } from "$lib/auth.svelte";
+  import { getAuthContext, showUnauthorizedDialog } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { ProjectShareModal } from "$lib/components/ui/project-share-modal";
@@ -28,6 +28,7 @@
   let openShareModal: boolean = $state(false);
 
   const ctx = newProjectContext();
+  const authCtx = getAuthContext();
   const prefs = getPrefsContext();
   nav.lastVisitedProjectId = ctx.id;
   const deflicker: Promise<void> = new Promise((r) => window.setTimeout(r, 50));
@@ -40,7 +41,6 @@
     ]);
     ctx.name = project.name;
     ctx.users = users;
-    ctx.premium = users.some((u) => u.premium);
   }
 
   $effect(() => {
@@ -104,7 +104,7 @@
       title: "Share project",
       description: "Open / show the project share dialog",
       icon: UserPlus,
-      enabled: () => ctx.premium,
+      enabled: () => !!authCtx.user?.premium,
     }),
   ];
 
@@ -123,7 +123,7 @@
     </div>
   {/await}
 {:then}
-  {#if ctx.premium}
+  {#if !!authCtx.user?.premium}
     <ProjectShareModal bind:open={openShareModal} />
   {/if}
 

@@ -128,6 +128,10 @@ pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorRespons
     error_response(StatusCode::BAD_REQUEST, reason, Some(msg), None)
 }
 
+pub(crate) fn not_found_error(reason: &'static str, msg: &str) -> ErrorResponse {
+    error_response(StatusCode::NOT_FOUND, reason, Some(msg), None)
+}
+
 pub(crate) fn error_response(
     status: StatusCode,
     reason: &'static str,

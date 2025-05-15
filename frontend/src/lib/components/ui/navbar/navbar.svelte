@@ -1,10 +1,11 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { auth } from "$lib/auth.svelte";
+  import { auth, getAuthContext } from "$lib/auth.svelte";
   import { command, type ActionID } from "$lib/components/ui/command-palette";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { Avatar } from "$lib/kosui/avatar";
+  import Badge from "$lib/kosui/badge/badge.svelte";
   import { baseClasses } from "$lib/kosui/base";
   import {
     Menu,
@@ -25,6 +26,8 @@
     left?: Snippet;
   };
   const { left }: Props = $props();
+
+  const ctx = getAuthContext();
 
   type Section = {
     heading: string;
@@ -112,14 +115,20 @@
           title={auth.user.email}
           class="focus-visible:outline-m3-primary focus-visible:outline-1"
         >
-          <Avatar
-            src={auth.user.picture}
-            alt={auth.user.email}
-            shape="circle"
-            class="transition-all active:scale-95 active:brightness-110"
+          <Badge
+            content={ctx.user?.premium ? "👑" : ""}
+            variant="plain"
+            class="m-[.23rem] rotate-45"
           >
-            <UserRound />
-          </Avatar>
+            <Avatar
+              src={auth.user.picture}
+              alt={auth.user.email}
+              shape="circle"
+              class="transition-all active:scale-95 active:brightness-110"
+            >
+              <UserRound />
+            </Avatar>
+          </Badge>
         </MenuTrigger>
         <MenuContent>
           <UserAvatar class="p-1" user={auth.user} />
