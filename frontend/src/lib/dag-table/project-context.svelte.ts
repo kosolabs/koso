@@ -11,7 +11,6 @@ export class ProjectContext {
   socket: KosoSocket;
   name: string = "";
   users: User[] = $state([]);
-  premium: boolean = false;
 
   constructor(id: string, koso: Koso, socket: KosoSocket) {
     this.id = id;

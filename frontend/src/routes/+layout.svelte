@@ -2,6 +2,7 @@
   import { dev } from "$app/environment";
   import { goto } from "$app/navigation";
   import { updated } from "$app/stores";
+  import { newAuthContext } from "$lib/auth.svelte";
   import {
     command,
     CommandPalette,
@@ -75,6 +76,12 @@
 
   onMount(() => {
     return command.register(...actions);
+  });
+
+  const ctx = newAuthContext();
+
+  $effect(() => {
+    ctx.load();
   });
 </script>
 
