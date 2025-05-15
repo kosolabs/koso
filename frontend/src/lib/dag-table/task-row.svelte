@@ -9,18 +9,19 @@
   import { Link } from "$lib/kosui/link";
   import type { User } from "$lib/users";
   import { cn } from "$lib/utils";
-  import type { YTaskProxy } from "$lib/yproxy";
+  import ActionItemTooltip from "./action-item-tooltip.svelte";
   import DescAction from "./desc-action.svelte";
-  import { getInboxContext } from "./inbox-context.svelte";
+  import { ActionItem, getInboxContext } from "./inbox-context.svelte";
   import LinkPanel, { type Mode } from "./link-panel.svelte";
   import TaskAction from "./task-action.svelte";
 
   type Props = {
     index: number;
-    task: YTaskProxy;
+    item: ActionItem;
     users: User[];
   };
-  const { index, task, users }: Props = $props();
+  const { index, item, users }: Props = $props();
+  const { task } = item;
 
   const inbox = getInboxContext();
   const { koso } = inbox;
@@ -116,6 +117,9 @@
   <td class={cn("border-t border-l p-2")}>
     <TaskStatus {koso} {task} inboxView={true} bind:this={taskStatus} />
   </td>
+  <td class="border-t border-l text-nowrap max-md:place-items-center">
+    <ActionItemTooltip {item} />
+  </td>
   <td class={cn("w-full border-t border-l px-2 py-1")}>
     <div class={cn("flex items-center gap-x-1")}>
       {#if koso.isManagedTask(task.id)}
@@ -172,11 +176,13 @@
   </td>
   <td class={cn("border-t px-1")}>
     <div class="flex items-center">
-      <DescAction {task} />
+      <div class="max-sm:hidden">
+        <DescAction {task} />
+      </div>
       <TaskAction />
     </div>
   </td>
-  <td class={cn("border-t border-l p-2")}>
+  <td class={cn("w-0 border-t border-l p-2")}>
     <UserSelect
       {users}
       value={assignee}
