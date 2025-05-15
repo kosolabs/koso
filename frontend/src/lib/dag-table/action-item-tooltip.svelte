@@ -28,7 +28,7 @@
   let { item }: ActionItemTooltipProps = $props();
 </script>
 
-<Tooltip arrow>
+<Tooltip class="w-[min(calc(100%-1em),32em)]" arrow>
   {#snippet trigger(props)}
     {@const reason = item.reasons[0]}
     <div class="flex items-center text-sm">
@@ -66,16 +66,14 @@
   <div class="flex flex-col gap-2">
     {#each item.reasons as reason}
       <div class="flex items-center gap-2">
-        <Lightbulb size={12} />
-        {#if reason.name === "Actionable"}
-          <div>
+        <Lightbulb class="w-9" />
+        <div>
+          {#if reason.name === "Actionable"}
             This task is in your inbox because it is <b>not blocked</b> and it
             is <b>assigned to you</b>. Complete it and <b>mark it done</b> to clear
             it from your inbox.
-          </div>
-        {:else if reason.name === "ParentOwner"}
-          {@const task = reason.parents[0]}
-          <div>
+          {:else if reason.name === "ParentOwner"}
+            {@const task = reason.parents[0]}
             This task is in your inbox because you are the
             <b>owner of it's parent</b>
             <Link
@@ -90,8 +88,8 @@
               Task {task.num} - {task.name}
             </Link>
             and it is not assigned. Assign the task to clear it from your inbox.
-          </div>
-        {/if}
+          {/if}
+        </div>
       </div>
     {/each}
   </div>
