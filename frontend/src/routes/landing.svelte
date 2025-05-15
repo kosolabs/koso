@@ -87,11 +87,18 @@
       Multiple people can organize tasks at the same time. Ask the gizmo expert
       to break down the tasks for gizmo's whatchamacallit feature.
     </p>
-    <img
+    <!-- <img
       src={collabDemo}
       alt="Multiple people collaborating on tasks"
       class="placeholder flex w-full items-center justify-center rounded-lg border"
-    />
+    /> -->
+    <video
+      autoplay
+      loop
+      muted
+      playsinline
+      src="https://storage.googleapis.com/koso-assets/drag-and-drop.mp4"
+    ></video>
   </div>
 </div>
 
