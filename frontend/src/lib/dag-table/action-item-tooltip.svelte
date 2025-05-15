@@ -15,7 +15,7 @@
   type IconMap = { [key in Reason["name"]]: typeof Icon };
   const icons: IconMap = {
     Actionable: CirclePlay,
-    ResponsibleForParent: Blocks,
+    ParentOwner: Blocks,
   };
 </script>
 
@@ -44,7 +44,7 @@
       <div class="pr-2 max-md:hidden">
         {#if reason.name === "Actionable"}
           <div>Assigned to you</div>
-        {:else if reason.name === "ResponsibleForParent"}
+        {:else if reason.name === "ParentOwner"}
           {@const task = reason.parents[0]}
           <div>
             Responsible for
@@ -63,7 +63,7 @@
       </div>
     </div>
   {/snippet}
-  <div class="flex flex-col gap-2 wrap-normal">
+  <div class="flex flex-col gap-2">
     {#each item.reasons as reason}
       <div class="flex items-center gap-2">
         <Lightbulb size={12} />
@@ -73,10 +73,11 @@
             is <b>assigned to you</b>. Complete it and <b>mark it done</b> to clear
             it from your inbox.
           </div>
-        {:else if reason.name === "ResponsibleForParent"}
+        {:else if reason.name === "ParentOwner"}
           {@const task = reason.parents[0]}
           <div>
-            It is not assigned and you are responsible for it's parent
+            This task is in your inbox because you are the
+            <b>owner of it's parent</b>
             <Link
               class="text-m3-inverse-primary"
               href={`/projects/${koso.projectId}?taskId=${task.id}`}
@@ -87,7 +88,8 @@
               }}
             >
               Task {task.num} - {task.name}
-            </Link>. Assign the task to clear it from your inbox.
+            </Link>
+            and it is not assigned. Assign the task to clear it from your inbox.
           </div>
         {/if}
       </div>

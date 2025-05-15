@@ -10,13 +10,12 @@ export type Reason =
       name: "Actionable";
     }
   | {
-      name: "ResponsibleForParent";
+      name: "ParentOwner";
       parents: YTaskProxy[];
     };
 
 export class ActionItem {
   task: YTaskProxy;
-  // TODO: Make reasons a one-of
   reasons: Reason[];
   // TODO: Add a priority
 
@@ -145,7 +144,7 @@ export class InboxContext {
         .filter((parent) => parent.yKind === null)
         .filter((parent) => parent.assignee === auth.user.email);
       if (parents.length) {
-        reasons.push({ name: "ResponsibleForParent", parents });
+        reasons.push({ name: "ParentOwner", parents });
       }
     }
 
