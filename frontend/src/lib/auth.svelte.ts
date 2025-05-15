@@ -95,7 +95,9 @@ export class AuthContext {
   }
 
   async load() {
-    this.#user = await this.#fetchUser(auth.user.email);
+    if (auth.ok()) {
+      this.#user = await this.#fetchUser(auth.user.email);
+    }
   }
 
   async #fetchUser(email: string): Promise<FullUser> {
