@@ -93,6 +93,7 @@
       class="placeholder flex w-full items-center justify-center rounded-lg border"
     /> -->
     <video
+      class="flat-gradient rounded-lg border"
       autoplay
       loop
       muted
