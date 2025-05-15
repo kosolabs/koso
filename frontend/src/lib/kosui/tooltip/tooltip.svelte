@@ -54,7 +54,7 @@
   role="tooltip"
   {anchorEl}
   class={twMerge(
-    "bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
+    "bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs text-wrap",
     className,
   )}
   {...restProps}
