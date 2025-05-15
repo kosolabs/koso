@@ -5,11 +5,32 @@ import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import type { Koso } from "./koso.svelte";
 
+export type Reason =
+  | {
+      name: "Actionable";
+    }
+  | {
+      name: "ResponsibleForParent";
+      parents: YTaskProxy[];
+    };
+
+export class ActionItem {
+  task: YTaskProxy;
+  // TODO: Make reasons a one-of
+  reasons: Reason[];
+  // TODO: Add a priority
+
+  constructor(task: YTaskProxy, reasons: Reason[]) {
+    this.task = task;
+    this.reasons = reasons;
+  }
+}
+
 export class InboxContext {
   #koso: Koso;
   #yUndoManager: Y.UndoManager;
 
-  #tasks: YTaskProxy[] = $derived(this.#visibleTasks());
+  #tasks: ActionItem[] = $derived(this.#getActionItems());
 
   #selectedRaw: Selected = $state(Selected.default());
   #selected: YTaskProxy | undefined = $derived.by(() => {
@@ -44,7 +65,7 @@ export class InboxContext {
     return this.#koso;
   }
 
-  get tasks(): YTaskProxy[] {
+  get actionItems(): ActionItem[] {
     return this.#tasks;
   }
 
@@ -82,60 +103,61 @@ export class InboxContext {
     }
   }
 
-  #visibleTasks(): YTaskProxy[] {
-    const tasks: YTaskProxy[] = [];
+  #getActionItems(): ActionItem[] {
+    const tasks: ActionItem[] = [];
     for (const task of this.#koso.tasks) {
-      if (this.#isTaskVisible(task)) {
-        tasks.push(task);
+      const reasons = this.#getActionableReasons(task);
+      if (reasons.length) {
+        tasks.push(new ActionItem(task, reasons));
       }
     }
     return tasks;
   }
 
-  #isTaskVisible(task: YTaskProxy): boolean {
+  #getActionableReasons(task: YTaskProxy): Reason[] {
+    const reasons: Reason[] = [];
+
     if (task.id === "root") {
-      return false;
+      return reasons;
     }
 
-    // Don't show tasks not assigned to the user
-    if (task.assignee !== null && task.assignee !== auth.user.email) {
-      return false;
-    }
-    // Don't show rollup tasks where every child is assigned.
+    const progress = this.#koso.getProgress(task.id);
+
+    // A leaf task is unblocked, incomplete and assigned to the user
     if (
-      task.yKind === null &&
-      task.children.length > 0 &&
-      Array.from(task.children.slice())
-        .map((childId) => this.#koso.getTask(childId))
-        .every(
-          (child) =>
-            child.assignee !== null ||
-            this.#koso.getProgress(child.id).isComplete(),
-        )
+      task.assignee === auth.user.email &&
+      progress.kind !== "Rollup" &&
+      !progress.isComplete() &&
+      !progress.isBlocked()
     ) {
-      return false;
+      reasons.push({ name: "Actionable" });
     }
 
-    // Don't show unassigned task where none of the parents are assigned to the user
+    // A task is unassigned and one of its rollup parents is assigned to the user
     if (
       task.assignee === null &&
-      this.#koso
-        .getParents(task.id)
-        .filter((parent) => parent.yKind === null)
-        .every((parent) => parent.assignee !== auth.user.email)
+      !progress.isComplete() &&
+      !progress.isBlocked()
     ) {
-      return false;
+      const parents = this.#koso
+        .getParents(task.id)
+        // TODO: Make isRollup() a readable version of the next line
+        .filter((parent) => parent.yKind === null)
+        .filter((parent) => parent.assignee === auth.user.email);
+      if (parents.length) {
+        reasons.push({ name: "ResponsibleForParent", parents });
+      }
     }
-    const progress = this.#koso.getProgress(task.id);
-    return !progress.isComplete() && !progress.isBlocked();
+
+    return reasons;
   }
 
   /**
-   * Retrieves the index of the task in tasks {@link tasks}, if found, and -1
-   * otherwise.
+   * Retrieves the index of the task in tasks {@link actionItems}, if found, and
+   * -1 otherwise.
    */
   getTaskIndex(taskId: string): number {
-    return this.tasks.findIndex((t) => t.id === taskId);
+    return this.actionItems.findIndex((t) => t.task.id === taskId);
   }
 
   undo() {

@@ -12,6 +12,7 @@
     Cable,
     Check,
     CircleX,
+    Lightbulb,
     OctagonX,
     Pencil,
     Redo,
@@ -91,33 +92,37 @@
   }
 
   function selectNext() {
-    if (inbox.tasks.length > 0) {
+    if (inbox.actionItems.length > 0) {
       if (inbox.selected) {
         const selectedIndex = inbox.getTaskIndex(inbox.selected.id);
         if (selectedIndex < 0) {
           inbox.selected = undefined;
         } else {
-          const index = Math.min(selectedIndex + 1, inbox.tasks.length - 1);
-          inbox.selected = inbox.tasks[index].id;
+          const index = Math.min(
+            selectedIndex + 1,
+            inbox.actionItems.length - 1,
+          );
+          inbox.selected = inbox.actionItems[index].task.id;
         }
       } else {
-        inbox.selected = inbox.tasks[0].id;
+        inbox.selected = inbox.actionItems[0].task.id;
       }
     }
   }
 
   function selectPrev() {
-    if (inbox.tasks.length > 0) {
+    if (inbox.actionItems.length > 0) {
       if (inbox.selected) {
         const selectedIndex = inbox.getTaskIndex(inbox.selected.id);
         if (selectedIndex < 0) {
           inbox.selected = undefined;
         } else {
           const index = Math.max(selectedIndex - 1, 0);
-          inbox.selected = inbox.tasks[index].id;
+          inbox.selected = inbox.actionItems[index].task.id;
         }
       } else {
-        inbox.selected = inbox.tasks[inbox.tasks.length - 1].id;
+        inbox.selected =
+          inbox.actionItems[inbox.actionItems.length - 1].task.id;
       }
     }
   }
@@ -277,12 +282,13 @@
 
     // The selected task no longer exists. Select the
     // task at the same index or the one at the end of the list.
-    if (inbox.tasks.length > 0) {
+    if (inbox.actionItems.length > 0) {
       console.debug(`Task ${taskId} no longer exists. Selecting new task.`);
-      if (index === null || index >= inbox.tasks.length) {
-        inbox.selected = inbox.tasks[inbox.tasks.length - 1].id;
+      if (index === null || index >= inbox.actionItems.length) {
+        inbox.selected =
+          inbox.actionItems[inbox.actionItems.length - 1].task.id;
       } else {
-        inbox.selected = inbox.tasks[index].id;
+        inbox.selected = inbox.actionItems[index].task.id;
       }
     } else {
       console.debug(`Task ${taskId} no longer exists. Clearing selection.`);
@@ -292,14 +298,14 @@
 </script>
 
 {#await koso.synced then}
-  {#if inbox.tasks.length > 0}
+  {#if inbox.actionItems.length > 0}
     <div class="flex flex-col gap-2">
       <table
         class="task-table w-full border-separate border-spacing-0 rounded-md border"
       >
         <thead class="text-left text-xs font-bold uppercase">
           <tr>
-            <th class="w-32 p-2">ID</th>
+            <th class="p-2">ID</th>
             {#if koso.debug}
               <th class="border-l p-2">UUID</th>
             {/if}
@@ -307,6 +313,10 @@
               <SquarePen class="h-4 md:hidden" />
               <div class="max-md:hidden">Status</div></th
             >
+            <th class="border-l p-2">
+              <Lightbulb class="h-4 md:hidden" />
+              <div class="max-md:hidden">Reason</div>
+            </th>
             <th class="border-l p-2">Name</th>
             <th class="p-2"></th>
             <th class="border-l p-2">
@@ -317,11 +327,16 @@
           </tr>
         </thead>
 
-        {#each inbox.tasks as task, index (task.id)}
+        {#each inbox.actionItems as actionItem, index (actionItem.task.id)}
           <tbody animate:flip={{ duration: 250 }}>
             <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
             <!-- svelte-ignore binding_property_non_reactive -->
-            <TaskRow bind:this={rows[task.id]} {index} {task} {users} />
+            <TaskRow
+              bind:this={rows[actionItem.task.id]}
+              {index}
+              item={actionItem}
+              {users}
+            />
           </tbody>
         {/each}
       </table>
