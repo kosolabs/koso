@@ -35,5 +35,7 @@ export function setToggleContext<T>(ctx: ToggleContext<T>): ToggleContext<T> {
 }
 
 export function getToggleContext<T>(): ToggleContext<T> {
-  return getContext<ToggleContext<T>>(ToggleContext);
+  const ctx = getContext<ToggleContext<T>>(ToggleContext);
+  if (!ctx) throw new Error("ToggleContext is undefined");
+  return ctx;
 }

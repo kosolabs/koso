@@ -85,11 +85,12 @@
   });
 </script>
 
-<ModeWatcher />
-<Toaster richColors />
-<Dialoguer />
-<CommandPalette />
-<Confetti />
-<Prefs>
-  {@render children()}
-</Prefs>
+<Dialoguer>
+  <ModeWatcher />
+  <Toaster richColors />
+  <CommandPalette />
+  <Confetti />
+  <Prefs>
+    {@render children()}
+  </Prefs>
+</Dialoguer>

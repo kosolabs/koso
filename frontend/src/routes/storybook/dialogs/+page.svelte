@@ -1,8 +1,10 @@
 <script lang="ts">
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
-  import { Dialog, dialog, DialogButton } from "$lib/kosui/dialog";
+  import { Dialog, DialogButton, getDialoguerContext } from "$lib/kosui/dialog";
   import { TriangleAlert } from "lucide-svelte";
+
+  const dialog = getDialoguerContext();
 
   let noticeResult: Promise<void> | undefined = $state();
   let confirmResult: Promise<boolean> | undefined = $state();

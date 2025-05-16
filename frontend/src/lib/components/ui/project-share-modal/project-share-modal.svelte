@@ -11,7 +11,7 @@
     AutocompleteItem,
   } from "$lib/kosui/autocomplete";
   import { Button } from "$lib/kosui/button";
-  import { dialog } from "$lib/kosui/dialog";
+  import { getDialoguerContext } from "$lib/kosui/dialog";
   import { Modal } from "$lib/kosui/modal";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
@@ -49,6 +49,7 @@
 
   async function removeUser(remove: User) {
     if (auth.user.email === remove.email) {
+      const dialog = getDialoguerContext();
       const confirmed = await dialog.confirm({
         icon: TriangleAlert,
         title: "Remove your own access?",

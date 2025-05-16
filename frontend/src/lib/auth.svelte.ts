@@ -1,10 +1,10 @@
 import { goto } from "$app/navigation";
-import { dialog } from "$lib/kosui/dialog";
 import { nav } from "$lib/nav.svelte";
 import { jwtDecode } from "jwt-decode";
 import { CircleX } from "lucide-svelte";
 import { getContext, setContext } from "svelte";
 import { headers, parse_response } from "./api";
+import { getDialoguerContext } from "./kosui/dialog";
 import { loads, saves } from "./stores.svelte";
 import type { FullUser } from "./users";
 
@@ -74,6 +74,7 @@ class Auth {
 export const auth = new Auth();
 
 export async function showUnauthorizedDialog() {
+  const dialog = getDialoguerContext();
   await dialog.notice({
     icon: CircleX,
     title: "Unauthorized",
@@ -114,5 +115,7 @@ export function setAuthContext(ctx: AuthContext): AuthContext {
 }
 
 export function getAuthContext(): AuthContext {
-  return getContext<AuthContext>(AuthContext);
+  const ctx = getContext<AuthContext>(AuthContext);
+  if (!ctx) throw new Error("AuthContext is undefined");
+  return ctx;
 }

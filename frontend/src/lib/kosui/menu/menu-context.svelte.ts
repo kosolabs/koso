@@ -130,5 +130,7 @@ export function setMenuContext(state: MenuContext): MenuContext {
 }
 
 export function getMenuContext(): MenuContext {
-  return getContext<MenuContext>(MenuContext);
+  const ctx = getContext<MenuContext>(MenuContext);
+  if (!ctx) throw new Error("MenuContext is undefined");
+  return ctx;
 }

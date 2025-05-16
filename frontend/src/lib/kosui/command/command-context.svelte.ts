@@ -8,5 +8,7 @@ export function setCommandContext(state: CommandContext): CommandContext {
 }
 
 export function getCommandContext(): CommandContext {
-  return getContext<CommandContext>(CommandContext);
+  const ctx = getContext<CommandContext>(CommandContext);
+  if (!ctx) throw new Error("CommandContext is undefined");
+  return ctx;
 }
