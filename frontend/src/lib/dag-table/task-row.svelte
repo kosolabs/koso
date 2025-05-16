@@ -21,7 +21,7 @@
     users: User[];
   };
   const { index, item, users }: Props = $props();
-  const { task } = item;
+  const task = $derived(item.task);
 
   const inbox = getInboxContext();
   const { koso } = inbox;
