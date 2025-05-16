@@ -720,7 +720,9 @@ export function setPlanningContext(ctx: PlanningContext): PlanningContext {
 }
 
 export function getPlanningContext(): PlanningContext {
-  return getContext<PlanningContext>(PlanningContext);
+  const ctx = getContext<PlanningContext>(PlanningContext);
+  if (!ctx) throw new Error("PlanningContext is undefined");
+  return ctx;
 }
 
 type SelectedProps = { node: Node | null; index: number | null };

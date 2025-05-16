@@ -33,5 +33,7 @@ export function setProjectContext(ctx: ProjectContext): ProjectContext {
 }
 
 export function getProjectContext(): ProjectContext {
-  return getContext<ProjectContext>(ProjectContext);
+  const ctx = getContext<ProjectContext>(ProjectContext);
+  if (!ctx) throw new Error("ProjectContext is undefined");
+  return ctx;
 }

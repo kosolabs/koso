@@ -53,5 +53,7 @@ export function setMarkdownContext(state: MarkdownContext): MarkdownContext {
 }
 
 export function getMarkdownContext(): MarkdownContext {
-  return getContext<MarkdownContext>(MarkdownContext);
+  const ctx = getContext<MarkdownContext>(MarkdownContext);
+  if (!ctx) throw new Error("MarkdownContext is undefined");
+  return ctx;
 }

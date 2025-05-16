@@ -41,5 +41,7 @@ export function setAutocompleteContext(
 }
 
 export function getAutocompleteContext(): AutocompleteContext {
-  return getContext<AutocompleteContext>(AutocompleteContext);
+  const ctx = getContext<AutocompleteContext>(AutocompleteContext);
+  if (!ctx) throw new Error("AutocompleteContext is undefined");
+  return ctx;
 }

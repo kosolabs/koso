@@ -27,7 +27,9 @@
   }
 
   export function getPrefsContext(): PrefsContext {
-    return getContext<PrefsContext>(PrefsContext);
+    const ctx = getContext<PrefsContext>(PrefsContext);
+    if (!ctx) throw new Error("PrefsContext is undefined");
+    return ctx;
   }
 </script>
 

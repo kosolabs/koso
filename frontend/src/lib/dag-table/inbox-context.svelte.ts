@@ -173,7 +173,9 @@ export function setInboxContext(ctx: InboxContext): InboxContext {
 }
 
 export function getInboxContext(): InboxContext {
-  return getContext<InboxContext>(InboxContext);
+  const ctx = getContext<InboxContext>(InboxContext);
+  if (!ctx) throw new Error("InboxContext is undefined");
+  return ctx;
 }
 
 type SelectedProps = { taskId: string | null; index: number | null };
