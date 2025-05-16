@@ -40,6 +40,18 @@
     </div>
   </Tooltip>
 
+  <Tooltip click arrow>
+    {#snippet trigger(props)}
+      <Button {...props}>Show on Click</Button>
+    {/snippet}
+    <div class="flex items-center gap-2">
+      I'm a render delegated tooltip
+      <div class="font-bold">
+        {shortcut.toString()}
+      </div>
+    </div>
+  </Tooltip>
+
   <Tooltip arrow>
     {#snippet trigger({ ref, ...props })}
       <div use:ref {...props} class="rounded border p-1">Just a Div</div>
@@ -60,4 +72,30 @@
       </div>
     {/snippet}
   </Button>
+</div>
+
+<div class="mt-20 flex flex-wrap gap-2">
+  <Tooltip open arrow>
+    {#snippet trigger(props)}
+      <Button {...props}>Tooltip Button Trigger</Button>
+    {/snippet}
+    Tooltip with arrow
+  </Tooltip>
+
+  <Tooltip open>
+    {#snippet trigger(props)}
+      <Button {...props}>Tooltip Button Trigger</Button>
+    {/snippet}
+    Tooltip without arrow
+  </Tooltip>
+
+  <Tooltip open>
+    {#snippet trigger(props)}
+      <Button {...props}>Tooltip Button Trigger</Button>
+    {/snippet}
+    <div class="w-40">
+      <div>Rich Title</div>
+      <div>I'm a plain tooltip with a longish body that should wrap.</div>
+    </div>
+  </Tooltip>
 </div>

@@ -42,7 +42,7 @@
   }: LinkProps = $props();
 
   const classes = twMerge(
-    "inline-flex cursor-pointer items-center justify-center gap-1 rounded-md underline-offset-4 hover:opacity-80 focus-visible:ring-1 focus-visible:outline-hidden",
+    "cursor-pointer items-center justify-center gap-1 rounded-md underline-offset-4 hover:opacity-80 focus-visible:ring-1 focus-visible:outline-hidden",
     underline === "always" && "underline",
     underline === "hover" && "hover:underline",
     underline === "none" && "",
