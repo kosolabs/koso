@@ -4,7 +4,9 @@
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import { baseClasses, type Variants } from "../base";
+  import { mergeProps } from "../merge-props";
   import { Tooltip } from "../tooltip";
+  import { type TooltipTriggerProps } from "../tooltip/tooltip.svelte";
   import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type ButtonProps = {
@@ -31,34 +33,39 @@
     shape = "rounded",
     ...restProps
   }: ButtonProps = $props();
-
-  let tooltipRef: Tooltip | undefined = $state();
 </script>
 
-<button
-  bind:this={el}
-  use:ref
-  class={twMerge(
-    baseClasses({ variant, color, shape, hover: true, focus: true }),
-    "flex h-9 items-center justify-center gap-2 text-sm text-nowrap transition-all enabled:active:scale-95",
-    children ? "px-4 py-2" : "aspect-square",
-    className,
-  )}
-  {...restProps}
-  {...tooltipRef?.triggerProps}
->
-  {#if IconComponent}
-    <IconComponent {size} />
-  {/if}
-  {@render children?.()}
-</button>
+{#snippet button({ ref: anchorRef, ...triggerProps }: TooltipTriggerProps)}
+  <button
+    bind:this={el}
+    use:ref
+    use:anchorRef
+    class={twMerge(
+      baseClasses({ variant, color, shape, hover: true, focus: true }),
+      "flex h-9 items-center justify-center gap-2 text-sm text-nowrap transition-all enabled:active:scale-95",
+      children ? "px-4 py-2" : "aspect-square",
+      className,
+    )}
+    {...mergeProps(restProps, triggerProps)}
+  >
+    {#if IconComponent}
+      <IconComponent {size} />
+    {/if}
+    {@render children?.()}
+  </button>
+{/snippet}
 
 {#if tooltip}
-  <Tooltip bind:this={tooltipRef} anchorEl={el} arrow>
+  <Tooltip arrow>
+    {#snippet trigger(props)}
+      {@render button(props)}
+    {/snippet}
     {#if typeof tooltip === "function"}
       {@render tooltip()}
     {:else}
       {tooltip}
     {/if}
   </Tooltip>
+{:else}
+  {@render button({ ref: noop })}
 {/if}

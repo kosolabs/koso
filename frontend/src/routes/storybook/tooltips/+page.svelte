@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/kosui/button";
   import { Shortcut } from "$lib/kosui/shortcut";
-  import { Tooltip, TooltipTrigger } from "$lib/kosui/tooltip";
+  import { Tooltip } from "$lib/kosui/tooltip";
 
   const shortcut = new Shortcut({ key: "Enter", shift: true });
 
@@ -38,15 +38,6 @@
         {shortcut.toString()}
       </div>
     </div>
-  </Tooltip>
-
-  <Tooltip arrow>
-    {#snippet trigger(props)}
-      <TooltipTrigger {...props} class="rounded border p-1">
-        Tooltip Trigger
-      </TooltipTrigger>
-    {/snippet}
-    Uses a TooltipTrigger component
   </Tooltip>
 
   <Tooltip arrow>

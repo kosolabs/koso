@@ -3,6 +3,7 @@
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { Button } from "$lib/kosui/button";
   import { Tooltip, type TooltipTriggerProps } from "$lib/kosui/tooltip";
+  import { noop } from "$lib/kosui/utils";
   import type { YTaskProxy } from "$lib/yproxy";
   import { FilePlus2, FileText } from "lucide-svelte";
 
@@ -35,5 +36,5 @@
     <MarkdownViewer class="p-2" value={task.desc.toString()} />
   </Tooltip>
 {:else}
-  {@render button({})}
+  {@render button({ ref: noop })}
 {/if}
