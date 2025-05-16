@@ -28,6 +28,7 @@
   const { left }: Props = $props();
 
   const ctx = getAuthContext();
+  $inspect(ctx);
 
   type Section = {
     heading: string;

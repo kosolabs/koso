@@ -26,6 +26,7 @@
   }: MenuProps = $props();
 
   const ctx = getMenuContext();
+  $inspect(ctx);
 </script>
 
 <Popover

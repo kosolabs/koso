@@ -1,8 +1,8 @@
 <script module lang="ts">
   import type { Icon } from "lucide-svelte";
   import type { Snippet } from "svelte";
-  import { DialogButton } from ".";
   import type { Variants } from "../base";
+  import DialogButton from "./dialog-button.svelte";
   import Dialog from "./dialog.svelte";
 
   type ButtonProps<T> = {
@@ -26,7 +26,7 @@
     buttons: ButtonProps<T>[];
   };
 
-  export function show<T>(dialog: ShowDialogProps<T>): Promise<T> {
+  function show<T>(dialog: ShowDialogProps<T>): Promise<T> {
     ({ icon, title, message, buttons } = dialog);
     open = true;
     return new Promise<unknown>(
@@ -41,7 +41,7 @@
     acceptText?: string;
   };
 
-  export async function notice(dialog: NoticeDialogProps): Promise<void> {
+  async function notice(dialog: NoticeDialogProps): Promise<void> {
     await show({
       icon: dialog.icon,
       title: dialog.title,
@@ -64,7 +64,7 @@
     acceptText?: string;
   };
 
-  export async function confirm(dialog: ConfirmDialogProps): Promise<boolean> {
+  async function confirm(dialog: ConfirmDialogProps): Promise<boolean> {
     return await show({
       icon: dialog.icon,
       title: dialog.title,
@@ -84,6 +84,12 @@
       ],
     });
   }
+
+  export const dialog = {
+    confirm,
+    notice,
+    show,
+  };
 </script>
 
 <Dialog bind:open {icon} {title} onSelect={resolve}>
