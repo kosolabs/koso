@@ -307,8 +307,8 @@ mod tests {
         let graph = {
             let db = doc_box_provider.db.lock().await;
             let doc = &db.as_ref().unwrap().ydoc;
-            let g = doc.to_graph(&doc.transact()).unwrap();
-            g
+
+            doc.to_graph(&doc.transact()).unwrap()
         };
         assert_eq!(*graph.get("id1").unwrap(), task1);
         task2.num = "2".into();
