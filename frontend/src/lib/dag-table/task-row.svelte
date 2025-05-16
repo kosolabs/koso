@@ -117,9 +117,6 @@
   <td class={cn("border-t border-l p-2")}>
     <TaskStatus {koso} {task} inboxView={true} bind:this={taskStatus} />
   </td>
-  <td class="border-t border-l text-nowrap max-md:place-items-center">
-    <ActionItemTooltip {item} />
-  </td>
   <td class={cn("w-full border-t border-l px-2 py-1")}>
     <div class={cn("flex items-center gap-x-1")}>
       {#if koso.isManagedTask(task.id)}
@@ -176,6 +173,7 @@
   </td>
   <td class={cn("border-t px-1")}>
     <div class="flex items-center">
+      <ActionItemTooltip {item} />
       <div class="max-sm:hidden">
         <DescAction {task} />
       </div>

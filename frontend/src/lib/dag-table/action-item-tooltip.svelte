@@ -30,7 +30,6 @@
 
 <Tooltip class="w-[min(calc(100%-1em),32em)]" arrow click>
   {#snippet trigger(props)}
-    {@const reason = item.reasons[0]}
     <div class="flex items-center text-sm">
       <Button
         class="h-auto p-2"
@@ -41,26 +40,6 @@
         icon={icons[item.reasons[0].name]}
         {...props}
       />
-      <div class="pr-2 max-md:hidden">
-        {#if reason.name === "Actionable"}
-          <div>Assigned to you</div>
-        {:else if reason.name === "ParentOwner"}
-          {@const task = reason.parents[0]}
-          <div>
-            Responsible for
-            <Link
-              href={`/projects/${koso.projectId}?taskId=${task.id}`}
-              onclick={(event) => {
-                event.stopPropagation();
-                event.preventDefault();
-                goto(`/projects/${koso.projectId}?taskId=${task.id}`);
-              }}
-            >
-              Task {task.num}
-            </Link>
-          </div>
-        {/if}
-      </div>
     </div>
   {/snippet}
   <div class="flex flex-col gap-2">
