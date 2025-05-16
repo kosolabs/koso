@@ -101,7 +101,7 @@
 </script>
 
 <script lang="ts">
-  import { Tooltip, TooltipTrigger } from "$lib/kosui/tooltip";
+  import { Tooltip } from "$lib/kosui/tooltip";
   import { cn } from "$lib/utils";
 
   type Props = {
@@ -123,8 +123,9 @@
 
 {#if users.length > 0}
   <Tooltip arrow>
-    {#snippet trigger(props)}
-      <TooltipTrigger
+    {#snippet trigger({ ref, ...props })}
+      <div
+        use:ref
         {...props}
         role="note"
         aria-label={`${label} selected`}
@@ -134,7 +135,7 @@
         )}
       >
         {label}
-      </TooltipTrigger>
+      </div>
     {/snippet}
     <div class={cn("flex flex-col gap-1")}>
       {#each users as user (user.email)}

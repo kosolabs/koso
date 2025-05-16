@@ -28,7 +28,7 @@
   let { item }: ActionItemTooltipProps = $props();
 </script>
 
-<Tooltip class="w-[min(calc(100%-1em),32em)]" arrow>
+<Tooltip class="w-[min(calc(100%-1em),32em)]" arrow click>
   {#snippet trigger(props)}
     {@const reason = item.reasons[0]}
     <div class="flex items-center text-sm">
