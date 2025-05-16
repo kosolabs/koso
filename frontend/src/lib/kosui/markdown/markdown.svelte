@@ -11,6 +11,7 @@
     MarkdownBr,
     MarkdownCode,
     MarkdownCodespan,
+    MarkdownContext,
     MarkdownDef,
     MarkdownDel,
     MarkdownEm,
@@ -29,7 +30,7 @@
     MarkdownTableCell,
     MarkdownText,
     MarkdownTokens,
-    newMarkdownContext,
+    setMarkdownContext,
     type MarkdownComponentProps,
   } from ".";
 
@@ -87,30 +88,32 @@
     text = defaultText,
   }: MarkdownProps = $props();
 
-  newMarkdownContext(
-    {
-      blockquote,
-      br,
-      code,
-      codespan,
-      def,
-      del,
-      em,
-      escape,
-      heading,
-      hr,
-      html,
-      image,
-      link,
-      list_item: listItem,
-      list,
-      paragraph,
-      space,
-      strong,
-      table,
-      text,
-    },
-    tableCell,
+  setMarkdownContext(
+    new MarkdownContext(
+      {
+        blockquote,
+        br,
+        code,
+        codespan,
+        def,
+        del,
+        em,
+        escape,
+        heading,
+        hr,
+        html,
+        image,
+        link,
+        list_item: listItem,
+        list,
+        paragraph,
+        space,
+        strong,
+        table,
+        text,
+      },
+      tableCell,
+    ),
   );
 
   let tokens = $derived(Lexer.lex(value, options) as MarkedToken[]);

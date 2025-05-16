@@ -4,14 +4,17 @@
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { Toolbar } from "$lib/components/ui/toolbar";
   import { TaskTable } from "$lib/dag-table";
-  import { newInboxContext } from "$lib/dag-table/inbox-context.svelte";
+  import {
+    InboxContext,
+    setInboxContext,
+  } from "$lib/dag-table/inbox-context.svelte";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import { getProjectContext } from "$lib/dag-table/project-context.svelte";
 
   const project = getProjectContext();
   const { koso } = project;
   const prefs = getPrefsContext();
-  const inbox = newInboxContext(koso);
+  const inbox = setInboxContext(new InboxContext(koso));
 </script>
 
 <div class="flex h-dvh flex-col">

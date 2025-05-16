@@ -168,10 +168,6 @@ export class InboxContext {
   }
 }
 
-export function newInboxContext(koso: Koso) {
-  return setInboxContext(new InboxContext(koso));
-}
-
 export function setInboxContext(ctx: InboxContext): InboxContext {
   return setContext<InboxContext>(InboxContext, ctx);
 }

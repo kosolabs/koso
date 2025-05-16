@@ -109,8 +109,8 @@ export class AuthContext {
   }
 }
 
-export function newAuthContext(): AuthContext {
-  return setContext<AuthContext>(AuthContext, new AuthContext());
+export function setAuthContext(ctx: AuthContext): AuthContext {
+  return setContext<AuthContext>(AuthContext, ctx);
 }
 
 export function getAuthContext(): AuthContext {
