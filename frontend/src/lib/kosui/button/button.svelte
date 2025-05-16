@@ -5,8 +5,7 @@
   import { twMerge } from "tailwind-merge";
   import { baseClasses, type Variants } from "../base";
   import { mergeProps } from "../merge-props";
-  import { Tooltip } from "../tooltip";
-  import { type TooltipTriggerProps } from "../tooltip/tooltip.svelte";
+  import { Tooltip, type TooltipTriggerProps } from "../tooltip";
   import { noop, type ClassName, type ElementRef } from "../utils";
 
   export type ButtonProps = {
