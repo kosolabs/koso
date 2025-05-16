@@ -5,7 +5,7 @@
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { Avatar } from "$lib/kosui/avatar";
-  import Badge from "$lib/kosui/badge/badge.svelte";
+  import { Badge } from "$lib/kosui/badge";
   import { baseClasses } from "$lib/kosui/base";
   import {
     Menu,
