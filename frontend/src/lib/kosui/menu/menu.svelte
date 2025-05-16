@@ -1,7 +1,7 @@
 <script module lang="ts">
   import type { Snippet } from "svelte";
   import type { ElementRef } from "../utils";
-  import { newMenuContext } from "./menu-context.svelte";
+  import { MenuContext, setMenuContext } from "./menu-context.svelte";
 
   export type MenuProps = {
     open?: boolean;
@@ -16,11 +16,13 @@
     el = $bindable(),
   }: MenuProps = $props();
 
-  newMenuContext(
-    () => open,
-    (value) => (open = value),
-    () => el,
-    (value) => (el = value),
+  setMenuContext(
+    new MenuContext(
+      () => open,
+      (value) => (open = value),
+      () => el,
+      (value) => (el = value),
+    ),
   );
 </script>
 

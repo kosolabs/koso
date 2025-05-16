@@ -48,13 +48,6 @@ export class MarkdownContext {
   }
 }
 
-export function newMarkdownContext(
-  renderers: Renderers,
-  tableCellRenderer: TokenRenderer<Tokens.TableCell>,
-) {
-  return setMarkdownContext(new MarkdownContext(renderers, tableCellRenderer));
-}
-
 export function setMarkdownContext(state: MarkdownContext): MarkdownContext {
   return setContext<MarkdownContext>(MarkdownContext, state);
 }
