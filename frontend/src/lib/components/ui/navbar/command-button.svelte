@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { Button } from "$lib/kosui/button";
   import { twMerge } from "tailwind-merge";
 
@@ -10,6 +13,7 @@
 
   const { name, desktop = false }: Props = $props();
 
+  const command = getRegistryContext();
   let action = $derived(command.get(name));
 </script>
 

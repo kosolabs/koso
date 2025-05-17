@@ -1,7 +1,10 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { Action } from "$lib/kosui/command";
@@ -32,6 +35,7 @@
   };
   const { users }: Props = $props();
 
+  const command = getRegistryContext();
   const inbox = getInboxContext();
   const { koso } = inbox;
 
