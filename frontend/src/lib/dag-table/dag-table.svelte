@@ -1,7 +1,10 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
@@ -54,6 +57,7 @@
 
   const rows: { [key: string]: DagRow } = {};
 
+  const command = getRegistryContext();
   const planningCtx = getPlanningContext();
   const { koso } = planningCtx;
 

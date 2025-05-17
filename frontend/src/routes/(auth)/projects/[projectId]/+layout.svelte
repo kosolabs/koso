@@ -2,7 +2,10 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { getAuthContext, showUnauthorizedDialog } from "$lib/auth.svelte";
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { ProjectShareModal } from "$lib/components/ui/project-share-modal";
   import { githubInstallUrl } from "$lib/github";
@@ -28,6 +31,7 @@
   let openShareModal: boolean = $state(false);
 
   const ctx = newProjectContext();
+  const command = getRegistryContext();
   const authCtx = getAuthContext();
   const prefs = getPrefsContext();
   nav.lastVisitedProjectId = ctx.id;

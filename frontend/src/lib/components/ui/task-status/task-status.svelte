@@ -1,6 +1,6 @@
 <script lang="ts">
   import { auth } from "$lib/auth.svelte";
-  import { command } from "$lib/components/ui/command-palette";
+  import { getRegistryContext } from "$lib/components/ui/command-palette";
   import { toast } from "$lib/components/ui/sonner";
   import type { Koso } from "$lib/dag-table/koso.svelte";
   import {
@@ -29,6 +29,8 @@
     inboxView: boolean;
   };
   let { koso, task, inboxView }: Props = $props();
+
+  const command = getRegistryContext();
 
   let open = $state(false);
   let statusElement: HTMLElement | undefined = $state();

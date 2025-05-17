@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { ToolbarButton } from "$lib/components/ui/toolbar";
   import { twMerge } from "tailwind-merge";
 
@@ -7,6 +10,9 @@
     actions: ActionID[];
   };
   let props: Props = $props();
+
+  const command = getRegistryContext();
+
   let actions = $derived(
     props.actions
       .map((id) => command.get(id))

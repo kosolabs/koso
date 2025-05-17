@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { baseClasses } from "$lib/kosui/base";
   import { Action } from "$lib/kosui/command";
   import {
@@ -12,6 +15,8 @@
   } from "$lib/kosui/menu";
   import { MoreVertical } from "lucide-svelte";
   import { twMerge } from "tailwind-merge";
+
+  const command = getRegistryContext();
 
   function getActions(ids: ActionID[]): Action<ActionID>[] {
     const actions = [];
