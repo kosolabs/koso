@@ -33,16 +33,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Setup Rust
-        uses: kyle-leonhard/rust-toolchain@170c024bc67fd44dd014ae2e31aa65cf9996be50
-        with:
-          toolchain: stable
-      - name: Echo env
-        run: env
-      - name: Print context
-        run: echo "$GITHUB_CONTEXT"
-      - name: Add Rust toolchain components
         run: |
-          rustup component add rustfmt clippy
+          echo CARGO_HOME=${CARGO_HOME:-"${{runner.os == 'Windows' && '$USERPROFILE\.cargo' || '$HOME/.cargo'}}"} >> $GITHUB_ENV
+          echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV
+          echo CARGO_TERM_COLOR=always >> $GITHUB_ENV
+          rustup show active-toolchain || rustup toolchain install --profile minimal --no-self-update
       - name: Rust build cache
         uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
