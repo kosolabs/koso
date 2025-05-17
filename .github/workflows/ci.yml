@@ -33,7 +33,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Setup Rust
-        uses: kyle-leonhard/rust-toolchain@84a4f955646fab23fb43216ade3e69399b70132a
+        uses: kyle-leonhard/rust-toolchain@408cd3273df9d8b6edf22129ee2eb0b949d2e6d3
         with:
           toolchain: stable
       - name: Echo env
