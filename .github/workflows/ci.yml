@@ -56,7 +56,7 @@ jobs:
           KOSO_SETTING_SECRETS_DIR=$(realpath ~/.secrets) \
             KOSO_SETTING_DATABASE_URL=${{ env.DATABASE_URL }} \
             cargo test --package koso
-      - run: cargo clippy -- -D warnings
+      - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo fmt --all -- --check
 
   npm:
