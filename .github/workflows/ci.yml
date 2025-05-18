@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
 jobs:
   cargo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./backend
@@ -45,6 +45,7 @@ jobs:
         uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # master
         with:
           toolchain: ${{ steps.rust-version.outputs.VERSION }}
+          components: rustfmt,clippy
       - name: Rust build cache
         uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
@@ -52,6 +53,7 @@ jobs:
           shared-key: "backend-build"
       - name: Run cargo test
         run: |
+          echo "::group::Add Secrets"
           mkdir -p ~/.secrets/github
           echo "::add-mask::${{ secrets.GH_APP_KEY }}"
           echo "${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
@@ -59,14 +61,18 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
+          echo "::endgroup::"
+
           KOSO_SETTING_SECRETS_DIR=$(realpath ~/.secrets) \
             KOSO_SETTING_DATABASE_URL=${{ env.DATABASE_URL }} \
             cargo test --package koso
-      - run: cargo clippy --all-targets --all-features -- -D warnings
-      - run: cargo fmt --all -- --check
+      - name: Run cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run cargo fmt check
+        run: cargo fmt --all -- --check
 
   npm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./frontend
@@ -87,7 +93,7 @@ jobs:
       - run: pnpm run "/^(build|check|lint|test:unit)$/"
 
   playwright:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./frontend
@@ -125,7 +131,8 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install
-      - run: pnpm exec playwright install --with-deps
+      - name: Setup playwright
+        run: pnpm exec playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       # Find PR number
@@ -182,6 +189,7 @@ jobs:
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
       - name: Run Playwright tests
         run: |
+          echo "::group::Add Secrets"
           mkdir -p ~/.secrets/github
           echo "::add-mask::${{ secrets.GH_APP_KEY }}"
           echo "${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
@@ -189,6 +197,8 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
+          echo "::endgroup::"
+
           CI=true \
             KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} \
             KOSO_SETTING_DATABASE_URL=${{ env.DATABASE_URL }} \
@@ -202,7 +212,7 @@ jobs:
       # name for the Docker image that this workflow builds
       # "kosolabs/koso" or, for PRs, "kosolabs/koso/dev"
       IMAGE_NAME: ${{ (github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'kosolabs/koso') || 'kosolabs/koso/dev'}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
       contents: read
