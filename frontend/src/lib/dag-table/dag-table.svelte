@@ -600,13 +600,25 @@
       replaceState(url, {});
       // The task may not exist locally, yet. It
       // might come from the server, so wait for that.
-      if (!planningCtx.koso.getTask(taskId)) {
+      let nodes = planningCtx.getNodes(taskId);
+      if (!nodes.length) {
         console.debug(
           `Waiting for server sync before selecting task ${taskId}`,
         );
         await koso.serverSynced;
+        await tick();
+
+        nodes = planningCtx.getNodes(taskId);
+        if (!nodes.length) {
+          console.warn(
+            `Cannot select ${taskId} after server sync. It doesn't exist`,
+          );
+          toast.warning(`Task not found. It may have been deleted.`);
+          return;
+        }
       }
-      planningCtx.select(taskId);
+
+      planningCtx.selected = nodes[0];
     }
   });
 
