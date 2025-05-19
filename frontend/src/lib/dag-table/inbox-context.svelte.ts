@@ -17,11 +17,12 @@ export type Reason =
 export class ActionItem {
   task: YTaskProxy;
   reasons: Reason[];
-  // TODO: Add a priority
+  priority: number;
 
-  constructor(task: YTaskProxy, reasons: Reason[]) {
+  constructor(task: YTaskProxy, reasons: Reason[], priority: number) {
     this.task = task;
     this.reasons = reasons;
+    this.priority = priority;
   }
 }
 
@@ -103,14 +104,25 @@ export class InboxContext {
   }
 
   #getActionItems(): ActionItem[] {
-    const tasks: ActionItem[] = [];
+    const items: ActionItem[] = [];
     for (const task of this.#koso.tasks) {
       const reasons = this.#getActionableReasons(task);
       if (reasons.length) {
-        tasks.push(new ActionItem(task, reasons));
+        items.push(
+          new ActionItem(task, reasons, this.#prioritize(task, reasons)),
+        );
       }
     }
-    return tasks;
+
+    return items.sort((a, b) => {
+      // Sort first by priority.
+      const cmp = b.priority - a.priority;
+      if (cmp !== 0) {
+        return cmp;
+      }
+      // If priorities were equal, sort by number to ensure a stable order.
+      return a.task.num.localeCompare(b.task.num);
+    });
   }
 
   #getActionableReasons(task: YTaskProxy): Reason[] {
@@ -149,6 +161,29 @@ export class InboxContext {
     }
 
     return reasons;
+  }
+
+  #prioritize(task: YTaskProxy, reasons: Reason[]): number {
+    if (reasons.some((r) => r.name === "ParentOwner")) {
+      return 1000;
+    }
+    if (reasons.some((r) => r.name === "Actionable")) {
+      let priority = 0;
+      // TODO: Recurse upwards and include all ancestors in prioritization.
+      for (const parentId of this.#koso.getParentIds(task.id)) {
+        if (parentId === "root") continue;
+
+        const progress = this.koso.getProgress(parentId);
+        // TODO: Increase priority when this is the last incomplete child task.
+        if (progress.status === "Blocked") {
+          priority += 10;
+        } else if (progress.status !== "Done") {
+          priority += 5;
+        }
+      }
+      return priority;
+    }
+    throw new Error(`Unhandled reasons (${reasons} for task ${task.id}`);
   }
 
   /**

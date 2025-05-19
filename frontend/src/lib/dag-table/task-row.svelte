@@ -113,6 +113,9 @@
     <td class={cn("border-t border-l p-2 text-xs lg:text-nowrap")}>
       {task.id}
     </td>
+    <td class={cn("border-t border-l p-2 text-xs lg:text-nowrap")}>
+      {item.priority}
+    </td>
   {/if}
   <td class={cn("border-t border-l p-2")}>
     <TaskStatus {koso} {task} inboxView={true} bind:this={taskStatus} />
