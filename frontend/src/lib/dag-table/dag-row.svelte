@@ -520,7 +520,7 @@
     </div>
   </td>
   <td class={cn("border-t px-1")}>
-    <div class="flex items-center">
+    <div class="flex place-content-end items-center">
       <div class="max-sm:hidden">
         <DescAction {task} />
       </div>
