@@ -29,11 +29,11 @@
 {/snippet}
 
 {#if task.desc}
-  <Tooltip class="bg-m3-surface text-m3-on-surface border shadow">
+  <Tooltip rich click class="max-h-2/5 overflow-y-scroll p-1">
     {#snippet trigger(props)}
       {@render button(props)}
     {/snippet}
-    <MarkdownViewer class="p-2" value={task.desc.toString()} />
+    <MarkdownViewer class="p-1" value={task.desc.toString()} />
   </Tooltip>
 {:else}
   {@render button({ ref: noop })}
