@@ -108,6 +108,8 @@
     <CommandButton name="Undo" desktop />
     <CommandButton name="Redo" desktop />
     <CommandButton name="ShareProject" desktop />
+    <CommandButton name="DetailPanelClose" desktop />
+    <CommandButton name="DetailPanelOpen" desktop />
     <CommandButton name="Search" desktop />
     <CommandButton name="CommandPalette" />
     <CommandButton name="InboxView" />

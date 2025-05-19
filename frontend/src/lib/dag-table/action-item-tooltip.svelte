@@ -28,7 +28,7 @@
   let { item }: ActionItemTooltipProps = $props();
 </script>
 
-<Tooltip class="w-[min(calc(80%),32em)]" arrow click>
+<Tooltip class="w-[min(calc(80%),32em)]" rich arrow click>
   {#snippet trigger(props)}
     <div class="flex items-center text-sm">
       <Button
@@ -45,7 +45,7 @@
   <div class="flex flex-col gap-2">
     {#each item.reasons as reason}
       <div class="flex items-center gap-2">
-        <Lightbulb class="w-9" />
+        <Lightbulb class="w-10" />
         <div>
           {#if reason.name === "Actionable"}
             This task is in your inbox because it is <b>not blocked</b> and it
@@ -56,7 +56,6 @@
             This task is in your inbox because you are the
             <b>owner of it's parent</b>
             <Link
-              class="text-m3-inverse-primary"
               href={`/projects/${koso.projectId}?taskId=${task.id}`}
               onclick={(event) => {
                 event.stopPropagation();

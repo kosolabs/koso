@@ -2331,10 +2331,8 @@ test.describe("dag table tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      await page
-        .getByRole("row", { name: "Task 1" })
-        .getByRole("button", { name: "Show task description panel" })
-        .click();
+      await page.getByRole("row", { name: "Task 1" }).click();
+      await page.getByRole("button", { name: "View task description" }).click();
 
       await expect(page.getByRole("heading", { name: "Task 1" })).toBeVisible();
 
@@ -2358,10 +2356,8 @@ test.describe("dag table tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      await page
-        .getByRole("row", { name: "Task 1" })
-        .getByRole("button", { name: "Show task description panel" })
-        .click();
+      await page.getByRole("row", { name: "Task 1" }).click();
+      await page.getByRole("button", { name: "View task description" }).click();
       await expect(page.getByText("Task 1 description")).toBeVisible();
 
       await page.getByRole("row", { name: "Task 2" }).click();
@@ -2381,10 +2377,8 @@ test.describe("dag table tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      await page
-        .getByRole("row", { name: "Task 1" })
-        .getByRole("button", { name: "Show task description panel" })
-        .click();
+      await page.getByRole("row", { name: "Task 1" }).click();
+      await page.getByRole("button", { name: "View task description" }).click();
 
       await expect(
         page.getByRole("button", { name: "Delete task description" }),
@@ -2415,10 +2409,8 @@ test.describe("dag table tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      await page
-        .getByRole("row", { name: "Task 1" })
-        .getByRole("button", { name: "Show task description panel" })
-        .click();
+      await page.getByRole("row", { name: "Task 1" }).click();
+      await page.getByRole("button", { name: "View task description" }).click();
       await expect(page.getByRole("heading", { name: "Task 1" })).toBeVisible();
 
       await page.keyboard.press("Enter");

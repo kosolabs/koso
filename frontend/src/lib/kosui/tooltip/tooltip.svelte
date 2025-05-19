@@ -15,6 +15,7 @@
     delay?: number;
     open?: boolean;
     click?: boolean;
+    rich?: boolean;
     trigger?: Snippet<[TooltipTriggerProps]>;
   } & ClassName &
     PopoverProps;
@@ -25,6 +26,8 @@
     delay = 1000,
     open = $bindable(false),
     click = false,
+    rich = false,
+    arrow,
     trigger,
     anchorEl,
     class: className,
@@ -61,9 +64,18 @@
   bind:open
   role="tooltip"
   {anchorEl}
+  {arrow}
   class={twMerge(
-    "bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs text-wrap",
+    arrow && "overflow-visible",
+    rich
+      ? "bg-m3-surface-container shadow-m3-shadow/20 rounded-md border p-2 text-sm shadow"
+      : "bg-m3-inverse-surface text-m3-inverse-on-surface rounded-sm px-2 py-1 text-xs",
     className,
+  )}
+  arrowClass={twMerge(
+    rich
+      ? "bg-m3-surface-container border-r border-b"
+      : "bg-m3-inverse-surface",
   )}
   {...restProps}
 />
