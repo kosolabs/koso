@@ -25,7 +25,7 @@
     Undo,
     UserRoundPlus,
   } from "lucide-svelte";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
   import { getInboxContext } from "./inbox-context.svelte";
   import TaskRow from "./task-row.svelte";
@@ -244,11 +244,22 @@
 
       // The task may not exist locally, yet. It
       // might come from the server, so wait for that.
-      if (!inbox.koso.getTask(taskId)) {
+      if (inbox.getTaskIndex(taskId) < 0) {
         console.debug(
           `Waiting for server sync before selecting task ${taskId}`,
         );
         await koso.serverSynced;
+        await tick();
+
+        if (inbox.getTaskIndex(taskId) < 0) {
+          console.warn(
+            `Cannot select ${taskId} after server sync. It doesn't exist`,
+          );
+          toast.warning(
+            `Task not found. It may have been removed from your inbox.`,
+          );
+          return;
+        }
       }
       inbox.selected = taskId;
     }
