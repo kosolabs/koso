@@ -310,8 +310,8 @@
           <tr>
             <th class="p-2">ID</th>
             {#if koso.debug}
-            <th class="border-l p-2">UUID</th>
-            <th class="border-l p-2">Priority</th>
+              <th class="border-l p-2">UUID</th>
+              <th class="border-l p-2">Priority</th>
             {/if}
             <th class="border-l p-2">
               <SquarePen class="h-4 md:hidden" />
