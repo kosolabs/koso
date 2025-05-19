@@ -32,7 +32,7 @@ listenfd = "1.0.2"
 metrics = { version = "0.24.1", default-features = false }
 metrics-exporter-prometheus = { version = "0.17.0", default-features = false }
 futures = "0.3.31"
-yrs = { version = "0.23.0", features = ["sync"] }
+yrs = { version = "0.23.2", features = ["sync"] }
 tokio-util = { version = "0.7.14", features = ["rt"] }
 jsonwebtoken = "9.3.1"
 reqwest = { version = "0.12.15", features = ["json"] }
