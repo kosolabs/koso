@@ -32,7 +32,6 @@
   {#snippet trigger(props)}
     <div class="flex items-center text-sm">
       <Button
-        class="h-auto p-2"
         variant="plain"
         color="primary"
         shape="circle"

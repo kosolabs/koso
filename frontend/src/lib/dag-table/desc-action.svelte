@@ -25,7 +25,6 @@
   >
     {#snippet trigger({ onclick, ...restProps })}
       <Button
-        class="m-0 p-2"
         variant="plain"
         color="primary"
         shape="circle"
