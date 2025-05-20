@@ -241,7 +241,7 @@
       title: "Copy task info",
       description: "Copy task git commit message to the clipboard",
       icon: Clipboard,
-      shortcut: new Shortcut({ key: "c", meta: true }),
+      shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
       enabled: () => !!inbox.selected,
     }),
   ];
