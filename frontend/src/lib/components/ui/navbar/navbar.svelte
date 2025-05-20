@@ -67,7 +67,7 @@
 </script>
 
 <nav
-  class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center border-b p-2 shadow"
+  class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center overflow-hidden border-b p-2 shadow"
 >
   <div class="flex items-center">
     <Menu>
