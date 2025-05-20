@@ -8,6 +8,7 @@
   import { Eye, Pencil, Trash, X } from "lucide-svelte";
   import { tick } from "svelte";
   import { toast } from "svelte-sonner";
+  import { Editable } from "../editable";
 
   export type DetailPanelState = "none" | "view" | "edit";
 
@@ -68,13 +69,29 @@
 
 <div class="relative flex h-full flex-col rounded-md border">
   <div
-    class="flex items-center p-2 text-lg font-extralight"
+    class="flex items-center gap-2 p-2"
     role="heading"
+    aria-label="Task details"
     aria-level="1"
-    ondblclick={editDetails}
   >
-    {$task?.name || "No task selected"}
-    <div class="top-2 right-2 ml-auto flex gap-1">
+    {#if $task}
+      {#if koso.isEditable($task.id)}
+        <Editable
+          class="text-lg font-extralight"
+          value={$task.name}
+          onsave={async (name) => {
+            koso.setTaskName($task.id, name);
+          }}
+        />
+      {:else}
+        <div class="text-lg font-extralight">
+          {$task.name || "Untitled"}
+        </div>
+      {/if}
+    {:else}
+      <div class="text-lg font-extralight">No task selected</div>
+    {/if}
+    <div class="ml-auto flex gap-1">
       {#if taskId && koso.isEditable(taskId) && prefs.detailPanel === "view"}
         <Button
           aria-label="Edit task description"
@@ -117,7 +134,11 @@
           onkeydown={handleKeyDownEditing}
         />
       {:else}
-        <MarkdownViewer class="p-2" value={$task.desc.toString()} />
+        <MarkdownViewer
+          class="p-2"
+          value={$task.desc.toString()}
+          ondblclick={editDetails}
+        />
       {/if}
     {/if}
   </div>
