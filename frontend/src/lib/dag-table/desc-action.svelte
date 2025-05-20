@@ -15,7 +15,7 @@
 </script>
 
 {#if task.desc}
-  <Tooltip rich click class="max-h-2/5 overflow-y-scroll p-1">
+  <Tooltip rich click class="max-h-2/5 max-w-3/5 overflow-y-scroll p-1">
     {#snippet trigger(props)}
       <Button
         class="m-0 p-2"
