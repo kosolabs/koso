@@ -3,7 +3,6 @@
     getRegistryContext,
     type ActionID,
   } from "$lib/components/ui/command-palette";
-  import { baseClasses } from "$lib/kosui/base";
   import { Action } from "$lib/kosui/command";
   import {
     Menu,
@@ -11,10 +10,9 @@
     MenuDivider,
     MenuHeader,
     MenuItem,
-    MenuTrigger,
   } from "$lib/kosui/menu";
+  import MenuTriggerButton from "$lib/kosui/menu/menu-trigger-button.svelte";
   import { MoreVertical } from "lucide-svelte";
-  import { twMerge } from "tailwind-merge";
 
   const command = getRegistryContext();
 
@@ -52,21 +50,12 @@
 {/snippet}
 
 <Menu>
-  <MenuTrigger
-    title="Task Actions"
-    class={twMerge(
-      baseClasses({
-        variant: "plain",
-        color: "primary",
-        shape: "circle",
-        focus: true,
-        hover: true,
-      }),
-      "m-0 p-2 transition-all active:scale-95",
-    )}
-  >
-    <MoreVertical size={16} />
-  </MenuTrigger>
+  <MenuTriggerButton
+    title="Task actions"
+    variant="plain"
+    shape="circle"
+    icon={MoreVertical}
+  />
   <MenuContent>
     {@const actions = getActions([
       "Indent",
