@@ -7,6 +7,7 @@
     MarkdownTable,
     MarkdownTableCell,
   } from "$lib/kosui/markdown";
+  import MarkdownLink from "$lib/kosui/markdown/markdown-link.svelte";
   import type { ClassName } from "$lib/kosui/utils";
   import { twMerge } from "tailwind-merge";
   import MarkdownCode from "./markdown-code.svelte";
@@ -19,11 +20,11 @@
 
 <div class={twMerge("flex flex-col gap-2", className)}>
   <Markdown bind:value options={{ breaks: true, gfm: true }}>
-    {#snippet blockquote({ token, children })}
-      <MarkdownBlockquote class="border border-l-4 p-2" {token} {children} />
+    {#snippet blockquote(props)}
+      <MarkdownBlockquote class="border border-l-4 p-2" {...props} />
     {/snippet}
-    {#snippet code({ token, children })}
-      <MarkdownCode class="rounded border p-2 text-sm" {token} {children} />
+    {#snippet code(props)}
+      <MarkdownCode class="rounded border p-2 text-sm" {...props} />
     {/snippet}
     {#snippet heading({ token, children })}
       <MarkdownHeading
@@ -44,14 +45,16 @@
         {children}
       />
     {/snippet}
-    {#snippet table({ token, children })}
-      <MarkdownTable class="w-min" {token} {children} />
+    {#snippet table(props)}
+      <MarkdownTable class="w-min" {...props} />
     {/snippet}
-    {#snippet tableCell({ token, children })}
-      <MarkdownTableCell
-        class="border p-1 whitespace-nowrap"
-        {token}
-        {children}
+    {#snippet tableCell(props)}
+      <MarkdownTableCell class="border p-1 whitespace-nowrap" {...props} />
+    {/snippet}
+    {#snippet link(props)}
+      <MarkdownLink
+        class="text-m3-primary underline hover:opacity-80"
+        {...props}
       />
     {/snippet}
   </Markdown>
