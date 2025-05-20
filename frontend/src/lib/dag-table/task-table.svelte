@@ -15,6 +15,7 @@
     Cable,
     Check,
     CircleX,
+    Clipboard,
     OctagonX,
     Pencil,
     Redo,
@@ -148,19 +149,11 @@
     getRow(inbox.selected.id).linkPanel(true, "block");
   }
 
-  const undoAction = new Action({
-    id: "Undo",
-    callback: undo,
-    icon: Undo,
-    shortcut: new Shortcut({ key: "z", meta: true }),
-  });
-
-  const redoAction = new Action({
-    id: "Redo",
-    callback: redo,
-    icon: Redo,
-    shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
-  });
+  function copyGitCommitMessage() {
+    if (!inbox.selected) return;
+    const taskId = inbox.selected.id;
+    navigator.clipboard.writeText(koso.getGitCommitMessage(taskId));
+  }
 
   const actions: Action<ActionID>[] = [
     new Action({
@@ -192,8 +185,18 @@
       icon: CircleX,
       shortcut: CANCEL,
     }),
-    undoAction,
-    redoAction,
+    new Action({
+      id: "Undo",
+      callback: undo,
+      icon: Undo,
+      shortcut: new Shortcut({ key: "z", meta: true }),
+    }),
+    new Action({
+      id: "Redo",
+      callback: redo,
+      icon: Redo,
+      shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
+    }),
     new Action({
       id: "ToggleTaskStatus",
       callback: toggleStatus,
@@ -231,6 +234,15 @@
       icon: OctagonX,
       enabled: () => !!inbox.selected,
       shortcut: new Shortcut({ key: "/", meta: true }),
+    }),
+    new Action({
+      id: "CopyTaskInfo",
+      callback: copyGitCommitMessage,
+      title: "Copy task info",
+      description: "Copy task git commit message to the clipboard",
+      icon: Clipboard,
+      shortcut: new Shortcut({ key: "c", meta: true }),
+      enabled: () => !!inbox.selected,
     }),
   ];
 

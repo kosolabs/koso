@@ -12,6 +12,7 @@
     | "Clear"
     | "Collapse"
     | "CollapseAll"
+    | "CopyTaskInfo"
     | "CommandPalette"
     | "ConnectToGitHub"
     | "DarkTheme"
