@@ -177,7 +177,7 @@
   <td class={cn("border-t px-1")}>
     <div class="flex place-content-end items-center gap-0.5">
       <div class="max-sm:hidden">
-        <DescAction {task} />
+        <DescAction {task} onSelect={() => (inbox.selected = task.id)} />
       </div>
       <ActionItemTooltip {item} />
       <TaskAction />
