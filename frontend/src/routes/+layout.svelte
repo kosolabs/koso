@@ -16,9 +16,31 @@
   function register(): Workbox | null {
     if (dev) return null;
     const wb = new Workbox("/service-worker.js");
-    wb.addEventListener("waiting", () => {
+    wb.addEventListener("waiting", (event) => {
+      console.debug("Got 'waiting' wb event", event);
       wb.messageSkipWaiting();
     });
+
+    // This block added to debug koso hanging on reload
+    wb.addEventListener("activated", (event) => {
+      console.debug("Got 'activated' wb event", event);
+    });
+    wb.addEventListener("activating", (event) => {
+      console.debug("Got 'activating' wb event", event);
+    });
+    wb.addEventListener("installed", (event) => {
+      console.debug("Got 'installed' wb event", event);
+    });
+    wb.addEventListener("installing", (event) => {
+      console.debug("Got 'installing' wb event", event);
+    });
+    wb.addEventListener("message", (event) => {
+      console.debug("Got 'message' wb event", event);
+    });
+    wb.addEventListener("redundant", (event) => {
+      console.debug("Got 'redundant' wb event", event);
+    });
+
     wb.addEventListener("controlling", (event) => {
       console.debug("Reloading to activate new updates.", event);
       window.location.reload();
@@ -30,6 +52,7 @@
 
   $effect(() => {
     if (wb && $updated) {
+      console.debug("Update effect triggered. Calling wb.update()");
       toast.info("New updates are available. Installing in the background...");
       wb.update();
     }
