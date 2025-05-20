@@ -73,6 +73,7 @@
       "Undent",
       "InsertSubtask",
       "Delete",
+      "CopyTaskInfo",
     ])}
 
     {#if actions.length > 0}

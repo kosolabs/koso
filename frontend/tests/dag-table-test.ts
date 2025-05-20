@@ -2421,4 +2421,26 @@ test.describe("dag table tests", () => {
       ).toBeVisible();
     });
   });
+
+  test.describe("task actions", () => {
+    test("copy git commit message", async ({ context, page }) => {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "A task description" },
+      ]);
+
+      await page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "Task actions" })
+        .click();
+
+      await page.getByRole("menuitem", { name: "Copy task info" }).click();
+
+      expect(await page.evaluate(() => navigator.clipboard.readText())).toEqual(
+        "koso-1: A task description",
+      );
+    });
+  });
 });

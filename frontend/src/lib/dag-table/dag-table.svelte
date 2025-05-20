@@ -19,6 +19,7 @@
     ChevronsDownUp,
     ChevronsUpDown,
     CircleX,
+    Clipboard,
     Eye,
     EyeOff,
     IndentDecrease,
@@ -308,6 +309,12 @@
     koso.organizeTasks(planningCtx.selected.parent.name);
   }
 
+  function copyGitCommitMessage() {
+    if (!planningCtx.selected) return;
+    const taskId = planningCtx.selected.name;
+    navigator.clipboard.writeText(koso.getGitCommitMessage(taskId));
+  }
+
   const insertAction: Action<ActionID> = {
     id: "Insert",
     callback: insert,
@@ -318,28 +325,6 @@
     enabled: () =>
       !planningCtx.selected || koso.canInsert(planningCtx.selected.parent.name),
   };
-
-  const undoAction = new Action({
-    id: "Undo",
-    callback: undo,
-    icon: Undo,
-    shortcut: new Shortcut({ key: "z", meta: true }),
-  });
-
-  const redoAction = new Action({
-    id: "Redo",
-    callback: redo,
-    icon: Redo,
-    shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
-  });
-
-  const searchAction = new Action({
-    id: "Search",
-    callback: showSearchPalette,
-    description: "Show the search palette",
-    icon: Search,
-    shortcut: new Shortcut({ key: "p", meta: true }),
-  });
 
   const actions: Action<ActionID>[] = [
     new Action({
@@ -514,8 +499,18 @@
         planningCtx.canIndentNode(planningCtx.selected),
       shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
     }),
-    undoAction,
-    redoAction,
+    new Action({
+      id: "Undo",
+      callback: undo,
+      icon: Undo,
+      shortcut: new Shortcut({ key: "z", meta: true }),
+    }),
+    new Action({
+      id: "Redo",
+      callback: redo,
+      icon: Redo,
+      shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
+    }),
     new Action({
       id: "ToggleTaskStatus",
       callback: toggleStatus,
@@ -542,7 +537,13 @@
       icon: Eye,
       enabled: () => !planningCtx.showDone,
     }),
-    searchAction,
+    new Action({
+      id: "Search",
+      callback: showSearchPalette,
+      description: "Show the search palette",
+      icon: Search,
+      shortcut: new Shortcut({ key: "p", meta: true }),
+    }),
     new Action({
       id: "NextLink",
       callback: selectNextLink,
@@ -561,9 +562,6 @@
       enabled: () => !!planningCtx.selected,
       shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
     }),
-  ];
-
-  actions.push(
     new Action({
       id: "Link",
       callback: linkTask,
@@ -589,7 +587,16 @@
       icon: Wrench,
       enabled: () => !!planningCtx.selected,
     }),
-  );
+    new Action({
+      id: "CopyTaskInfo",
+      callback: copyGitCommitMessage,
+      title: "Copy task info",
+      description: "Copy task git commit message to the clipboard",
+      icon: Clipboard,
+      shortcut: new Shortcut({ key: "c", meta: true }),
+      enabled: () => !!planningCtx.selected,
+    }),
+  ];
 
   onMount(async () => {
     const url = new URL(window.location.href);

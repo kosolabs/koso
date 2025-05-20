@@ -973,6 +973,11 @@ export class Koso {
     });
   }
 
+  getGitCommitMessage(taskId: string) {
+    const task = this.getTask(taskId);
+    return `koso-${task.num}: ${task.name}`;
+  }
+
   /** Organizes the given task's children by status, etc. */
   organizeTasks(parentTaskId: string) {
     function mapStatus(status: Status) {
