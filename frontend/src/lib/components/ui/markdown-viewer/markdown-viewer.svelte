@@ -9,16 +9,18 @@
   } from "$lib/kosui/markdown";
   import MarkdownLink from "$lib/kosui/markdown/markdown-link.svelte";
   import type { ClassName } from "$lib/kosui/utils";
+  import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import MarkdownCode from "./markdown-code.svelte";
 
   type Props = {
     value: string;
-  } & ClassName;
-  let { value, class: className }: Props = $props();
+  } & ClassName &
+    HTMLAttributes<HTMLDivElement>;
+  let { value, class: className, ...restProps }: Props = $props();
 </script>
 
-<div class={twMerge("flex flex-col gap-2", className)}>
+<div class={twMerge("flex flex-col gap-2", className)} {...restProps}>
   <Markdown bind:value options={{ breaks: true, gfm: true }}>
     {#snippet blockquote(props)}
       <MarkdownBlockquote class="border border-l-4 p-2" {...props} />

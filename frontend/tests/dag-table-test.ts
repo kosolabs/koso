@@ -2334,7 +2334,9 @@ test.describe("dag table tests", () => {
       await page.getByRole("row", { name: "Task 1" }).click();
       await page.getByRole("button", { name: "View task description" }).click();
 
-      await expect(page.getByRole("heading", { name: "Task 1" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Task details" }),
+      ).toBeVisible();
 
       await expect(
         page.getByRole("button", { name: "Delete task description" }),
@@ -2344,7 +2346,7 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "Hide task description panel" })
         .click();
       await expect(
-        page.getByRole("heading", { name: "Task 1" }),
+        page.getByRole("heading", { name: "Task details" }),
       ).not.toBeVisible();
     });
 
@@ -2362,7 +2364,9 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("row", { name: "Task 2" }).click();
 
-      await expect(page.getByRole("heading", { name: "Task 2" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Task details" }),
+      ).toBeVisible();
       await expect(page.getByText("Task 2 description")).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Delete task description" }),
@@ -2411,13 +2415,19 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("row", { name: "Task 1" }).click();
       await page.getByRole("button", { name: "View task description" }).click();
-      await expect(page.getByRole("heading", { name: "Task 1" })).toBeVisible();
+      await expect(
+        page
+          .getByRole("heading", { name: "Task details" })
+          .getByRole("button", { name: "Task 1" }),
+      ).toBeVisible();
 
       await page.keyboard.press("Enter");
       await page.keyboard.type(" Edited");
       await page.keyboard.press("Enter");
       await expect(
-        page.getByRole("heading", { name: "Task 1 Edited" }),
+        page
+          .getByRole("heading", { name: "Task details" })
+          .getByRole("button", { name: "Task 1 Edited" }),
       ).toBeVisible();
     });
   });

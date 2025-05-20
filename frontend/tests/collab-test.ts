@@ -267,7 +267,9 @@ test.describe("Collaboration tests", () => {
     await page1.keyboard.type(" Edited");
     await page1.keyboard.press("Enter");
     await expect(
-      page2.getByRole("heading", { name: "Task 1 Edited" }),
+      page2
+        .getByRole("heading", { name: "Task details" })
+        .getByRole("button", { name: "Task 1 Edited" }),
     ).toBeVisible();
 
     // Add a task description

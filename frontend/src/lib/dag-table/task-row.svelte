@@ -9,6 +9,7 @@
   import { Link } from "$lib/kosui/link";
   import type { User } from "$lib/users";
   import { cn } from "$lib/utils";
+  import { Grip } from "lucide-svelte";
   import ActionItemTooltip from "./action-item-tooltip.svelte";
   import DescAction from "./desc-action.svelte";
   import { ActionItem, getInboxContext } from "./inbox-context.svelte";
@@ -94,7 +95,8 @@
   bind:this={rowElement}
 >
   <td class={cn("border-t px-2")}>
-    <div class="flex items-center">
+    <div class="flex items-center gap-1">
+      <Grip class="w-4 cursor-pointer" />
       <div class="overflow-x-hidden whitespace-nowrap">
         <Link
           href={`/projects/${koso.projectId}?taskId=${task.id}`}
