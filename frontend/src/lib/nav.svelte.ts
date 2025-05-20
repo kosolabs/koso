@@ -1,5 +1,4 @@
-import { page } from "$app/stores";
-import { get } from "svelte/store";
+import { page } from "$app/state";
 import { loads, saves } from "./stores.svelte";
 
 const ON_LOGIN_REDIRECT_KEY = "login-redirect";
@@ -30,7 +29,7 @@ class Nav {
    * page without being logged in or their credentials expiring.
    */
   pushRedirectOnUserNotAuthenticated() {
-    const redirect = get(page).url.pathname;
+    const redirect = page.url.pathname;
     this.#onLoginRedirect = redirect;
     console.debug(
       `User isn't logged in. Going to / with redirect destination ${redirect}`,
