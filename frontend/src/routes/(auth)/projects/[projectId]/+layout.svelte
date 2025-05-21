@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { page } from "$app/state";
   import { getAuthContext, showUnauthorizedDialog } from "$lib/auth.svelte";
   import {
     getRegistryContext,
@@ -11,6 +9,7 @@
   import { githubInstallUrl } from "$lib/github";
   import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
+  import { NavigationAction } from "$lib/navigation-action";
   import { fetchProject, fetchProjectUsers } from "$lib/projects";
   import {
     Mail,
@@ -54,21 +53,19 @@
   });
 
   const actions: Action<ActionID>[] = [
-    new Action({
+    new NavigationAction({
       id: "InboxView",
-      callback: () => goto(`/projects/${ctx.id}/inbox`),
+      href: `/projects/${ctx.id}/inbox`,
       title: "Zero inbox",
       description: "Navigate to Zero Inbox view",
       icon: Mail,
-      enabled: () => page.url.pathname !== `/projects/${ctx.id}/inbox`,
     }),
-    new Action({
+    new NavigationAction({
       id: "PlanView",
-      callback: () => goto(`/projects/${ctx.id}`),
+      href: `/projects/${ctx.id}`,
       title: "Project planning",
       description: "Navigate to Project Planning view",
       icon: Notebook,
-      enabled: () => page.url.pathname !== `/projects/${ctx.id}`,
     }),
     new Action({
       id: "DetailPanelClose",

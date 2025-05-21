@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from "$lib/kosui/link";
+  import { Goto } from "$lib/kosui/goto";
   import { toTitleCase } from "$lib/kosui/utils";
 
   const paths: string[] = [
@@ -13,6 +13,7 @@
     "/storybook/command",
     "/storybook/dialogs",
     "/storybook/fab",
+    "/storybook/goto",
     "/storybook/inputs",
     "/storybook/links",
     "/storybook/markdown",
@@ -26,8 +27,8 @@
 
 <div class="flex flex-col items-start rounded-lg border p-4">
   {#each paths as path (path)}
-    <Link href={path}>
+    <Goto href={path}>
       {toTitleCase(path.split("/").slice(-1)[0])}
-    </Link>
+    </Goto>
   {/each}
 </div>

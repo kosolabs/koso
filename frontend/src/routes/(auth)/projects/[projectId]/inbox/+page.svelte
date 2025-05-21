@@ -47,7 +47,7 @@
   ];
 
   onMount(() => {
-    command.register(...actions);
+    return command.register(...actions);
   });
 </script>
 

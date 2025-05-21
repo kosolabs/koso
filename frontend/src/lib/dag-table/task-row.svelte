@@ -5,7 +5,7 @@
   import { TaskStatus } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { Chip } from "$lib/kosui/chip";
-  import { Link } from "$lib/kosui/link";
+  import { Goto } from "$lib/kosui/goto";
   import type { User } from "$lib/users";
   import { cn } from "$lib/utils";
   import { Grip } from "lucide-svelte";
@@ -121,17 +121,12 @@
           </div>
         {/if}
 
-        <Link
+        <Goto
           class="text-sm"
           href={`/projects/${koso.projectId}?taskId=${task.id}`}
-          onclick={(event) => {
-            event.stopPropagation();
-            event.preventDefault();
-            goto(`/projects/${koso.projectId}?taskId=${task.id}`);
-          }}
         >
           {task.name || "Untitled"}
-        </Link>
+        </Goto>
 
         <LinkPanel
           {task}
