@@ -182,7 +182,7 @@
         <DescAction {task} onSelect={() => (inbox.selected = task.id)} />
       </div>
       <ActionItemTooltip {item} />
-      <TaskAction />
+      <TaskAction class="max-sm:hidden" />
     </div>
   </td>
   <td class={cn("w-0 border-t border-l p-2")}>

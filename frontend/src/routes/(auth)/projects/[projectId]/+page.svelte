@@ -117,14 +117,6 @@
   </div>
 
   <div class="sm:hidden">
-    <Toolbar
-      actions={[
-        "Undo",
-        "Redo",
-        "DetailPanelClose",
-        "DetailPanelOpen",
-        "Search",
-      ]}
-    />
+    <Toolbar selected={!!planningCtx.selected} />
   </div>
 </div>

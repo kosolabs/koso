@@ -4,11 +4,11 @@
   import { Shortcut } from "../shortcut";
   import { getMenuContext } from "./menu-context.svelte";
 
-  export type MenuTriggerProps = {} & ButtonProps;
+  export type MenuTriggerButtonProps = {} & ButtonProps;
 </script>
 
 <script lang="ts">
-  let { ...restProps }: MenuTriggerProps = $props();
+  let { ...restProps }: MenuTriggerButtonProps = $props();
 
   const ctx = getMenuContext();
 </script>

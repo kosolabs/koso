@@ -7,7 +7,7 @@
   import { type ClassName } from "../utils";
   import { getMenuContext } from "./menu-context.svelte";
 
-  export type MenuProps = {
+  export type MenuContentProps = {
     children: Snippet;
   } & ClassName &
     Variants &
@@ -23,7 +23,7 @@
     shape = "rounded",
     placement = "bottom",
     ...restProps
-  }: MenuProps = $props();
+  }: MenuContentProps = $props();
 
   const ctx = getMenuContext();
 </script>

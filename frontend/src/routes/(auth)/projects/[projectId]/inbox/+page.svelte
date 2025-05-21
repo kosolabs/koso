@@ -46,8 +46,6 @@
   </div>
 
   <div class="sm:hidden">
-    <Toolbar
-      actions={["Undo", "Redo", "DetailPanelClose", "DetailPanelOpen"]}
-    />
+    <Toolbar selected={!!inbox.selected} />
   </div>
 </div>
