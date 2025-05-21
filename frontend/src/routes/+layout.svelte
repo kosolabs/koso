@@ -8,6 +8,7 @@
   import { toast, Toaster } from "$lib/components/ui/sonner";
   import { Dialoguer } from "$lib/kosui/dialog";
   import { ModeWatcher } from "mode-watcher";
+  import { untrack } from "svelte";
   import { Workbox } from "workbox-window";
   import "../app.css";
 
@@ -17,28 +18,8 @@
     if (dev) return null;
     const wb = new Workbox("/service-worker.js");
     wb.addEventListener("waiting", (event) => {
-      console.debug("Got 'waiting' wb event", event);
+      console.debug("Sending SKIP_WAITING message to service worker", event);
       wb.messageSkipWaiting();
-    });
-
-    // This block added to debug koso hanging on reload
-    wb.addEventListener("activated", (event) => {
-      console.debug("Got 'activated' wb event", event);
-    });
-    wb.addEventListener("activating", (event) => {
-      console.debug("Got 'activating' wb event", event);
-    });
-    wb.addEventListener("installed", (event) => {
-      console.debug("Got 'installed' wb event", event);
-    });
-    wb.addEventListener("installing", (event) => {
-      console.debug("Got 'installing' wb event", event);
-    });
-    wb.addEventListener("message", (event) => {
-      console.debug("Got 'message' wb event", event);
-    });
-    wb.addEventListener("redundant", (event) => {
-      console.debug("Got 'redundant' wb event", event);
     });
 
     wb.addEventListener("controlling", (event) => {
@@ -51,10 +32,20 @@
   const wb = register();
 
   $effect(() => {
-    if (wb && updated.current) {
-      console.debug("Update effect triggered. Calling wb.update()");
-      toast.info("New updates are available. Installing in the background...");
-      wb.update();
+    if (updated.current) {
+      // Untrack everything else. This effect should only run when
+      // updated.current changes.
+      untrack(() => {
+        if (wb) {
+          console.debug("New version available. Calling wb.update()");
+          untrack(() =>
+            toast.info(
+              "New updates are available. Installing in the background...",
+            ),
+          );
+          wb.update();
+        }
+      });
     }
   });
 
