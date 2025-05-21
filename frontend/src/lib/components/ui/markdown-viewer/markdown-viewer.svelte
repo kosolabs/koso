@@ -21,7 +21,7 @@
 </script>
 
 <div class={twMerge("flex flex-col gap-2", className)} {...restProps}>
-  <Markdown bind:value options={{ breaks: true, gfm: true }}>
+  <Markdown {value} options={{ breaks: true, gfm: true }}>
     {#snippet blockquote(props)}
       <MarkdownBlockquote class="border border-l-4 p-2" {...props} />
     {/snippet}

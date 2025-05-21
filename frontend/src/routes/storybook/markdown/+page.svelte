@@ -57,7 +57,7 @@ with a break.
 EOF`;
 </script>
 
-<Markdown bind:value options={{ breaks: true, gfm: true }}>
+<Markdown {value} options={{ breaks: true, gfm: true }}>
   {#snippet blockquote({ token, children })}
     <MarkdownBlockquote class="border border-l-4 p-2" {token} {children} />
   {/snippet}
