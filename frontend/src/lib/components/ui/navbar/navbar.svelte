@@ -24,6 +24,7 @@
   import { twMerge } from "tailwind-merge";
   import CommandButton from "./command-button.svelte";
   import CommandMenuItem from "./command-menu-item.svelte";
+  import NavigateButton from "./navigate-button.svelte";
 
   type Props = {
     left?: Snippet;
@@ -112,8 +113,8 @@
     <CommandButton name="DetailPanelOpen" desktop />
     <CommandButton name="Search" desktop />
     <CommandButton name="CommandPalette" />
-    <CommandButton name="InboxView" />
-    <CommandButton name="PlanView" />
+    <NavigateButton name="InboxView" />
+    <NavigateButton name="PlanView" />
 
     {#if auth.ok()}
       <Menu>

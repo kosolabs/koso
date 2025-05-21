@@ -32,7 +32,7 @@
     baseClasses({ variant, color, shape, hover: true, focus: true }),
 
     (variant === "outlined" || variant === "plain") &&
-      "enabled:hover:bg-m3-surface-container-low focus-visible:bg-m3-surface-container-low",
+      "hover:bg-m3-surface-container-low focus-visible:bg-m3-surface-container-low",
 
     "h-9 px-3",
     className,

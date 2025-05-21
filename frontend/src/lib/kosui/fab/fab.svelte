@@ -48,7 +48,7 @@
   <Button
     bind:el
     class={twMerge(
-      "fixed",
+      "fixed backdrop-blur-sm",
       verticalAlignment === "bottom" && "-translate-y-full",
       horizontalAlignment === "right" && "-translate-x-full",
       className,

@@ -20,8 +20,7 @@
 </script>
 
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import Link from "$lib/kosui/link/link.svelte";
+  import { Goto } from "$lib/kosui/goto";
 
   const { koso } = getInboxContext();
 
@@ -54,16 +53,9 @@
             {@const task = reason.parents[0]}
             This task is in your inbox because you are the
             <b>owner of it's parent</b>
-            <Link
-              href={`/projects/${koso.projectId}?taskId=${task.id}`}
-              onclick={(event) => {
-                event.stopPropagation();
-                event.preventDefault();
-                goto(`/projects/${koso.projectId}?taskId=${task.id}`);
-              }}
-            >
+            <Goto href={`/projects/${koso.projectId}?taskId=${task.id}`}>
               Task {task.num} - {task.name}
-            </Link>
+            </Goto>
             and it is not assigned. Assign the task to clear it from your inbox.
           {/if}
         </div>

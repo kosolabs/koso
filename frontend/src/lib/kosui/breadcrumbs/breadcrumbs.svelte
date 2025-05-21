@@ -2,7 +2,6 @@
   import { page } from "$app/state";
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
-  import { Link } from "../link";
   import { toTitleCase, type ClassName } from "../utils";
 
   type Crumb = {
@@ -16,6 +15,8 @@
 </script>
 
 <script lang="ts">
+  import { Goto } from "../goto";
+
   const { separator = "›", class: className }: BreadcrumbsProps = $props();
 
   let crumbs = $derived.by(() => {
@@ -42,6 +43,6 @@
         {/if}
       </div>
     {/if}
-    <Link href={path} underline="none" color="inherit">{title}</Link>
+    <Goto href={path} color="inherit">{title}</Goto>
   {/each}
 </div>

@@ -6,82 +6,83 @@ export const variants = [
   "tonal",
   "outlined",
   "plain",
+  "text",
 ] as const;
 
-export const colors = ["primary", "secondary", "tertiary", "error"] as const;
+export const colors = [
+  "primary",
+  "secondary",
+  "tertiary",
+  "error",
+  "inherit",
+] as const;
+
 export const shapes = ["square", "rounded", "circle"] as const;
 
-export type Variant = (typeof variants)[number];
-export type Color = (typeof colors)[number];
-export type Shape = (typeof shapes)[number];
+export const underlines = ["always", "hover", "none"] as const;
 
-export type Variants = {
-  variant?: Variant;
-  color?: Color;
-  shape?: Shape;
-  hover?: boolean;
-  focus?: boolean;
-};
+export type Variant = { variant?: (typeof variants)[number] };
+export type Color = { color?: (typeof colors)[number] };
+export type Shape = { shape?: (typeof shapes)[number] };
+export type Underline = { underline?: (typeof underlines)[number] };
 
-const hoverBaseClasses = ({
-  variant,
-  color,
-}: {
-  variant?: Variant;
-  color?: Color;
-}) =>
+export type Variants = Variant &
+  Color &
+  Shape &
+  Underline & {
+    hover?: boolean;
+    focus?: boolean;
+  };
+
+const hoverBaseClasses = ({ variant, color }: Variant & Color) =>
   twMerge(
-    "disabled:text-m3-on-surface/38 disabled:bg-m3-on-surface/12 disabled:cursor-not-allowed backdrop-blur-sm",
+    "disabled:text-m3-on-surface/38 disabled:bg-m3-on-surface/12 disabled:cursor-not-allowed",
 
-    variant === "filled" && "enabled:hover:opacity-90",
-    variant === "tonal" && "enabled:hover:opacity-80",
+    variant === "filled" && "hover:opacity-90",
+    variant === "tonal" && "hover:opacity-80",
+    variant === "text" && "hover:opacity-80",
 
     variant === "elevated" &&
       color === "primary" &&
-      "enabled:hover:bg-m3-primary-container/30",
+      "hover:bg-m3-primary-container/30",
 
     variant === "elevated" &&
       color === "secondary" &&
-      "enabled:hover:bg-m3-secondary-container/30",
+      "hover:bg-m3-secondary-container/30",
 
     variant === "elevated" &&
       color === "tertiary" &&
-      "enabled:hover:bg-m3-tertiary-container/30",
+      "hover:bg-m3-tertiary-container/30",
 
     variant === "elevated" &&
       color === "error" &&
-      "enabled:hover:bg-m3-error-container/30",
+      "hover:bg-m3-error-container/30",
 
     (variant === "outlined" || variant === "plain") &&
       color === "primary" &&
-      "enabled:hover:bg-m3-primary/15",
+      "hover:bg-m3-primary/15",
 
     (variant === "outlined" || variant === "plain") &&
       color === "secondary" &&
-      "enabled:hover:bg-m3-secondary/15",
+      "hover:bg-m3-secondary/15",
 
     (variant === "outlined" || variant === "plain") &&
       color === "tertiary" &&
-      "enabled:hover:bg-m3-tertiary/15",
+      "hover:bg-m3-tertiary/15",
 
     (variant === "outlined" || variant === "plain") &&
       color === "error" &&
-      "enabled:hover:bg-m3-error/15",
+      "hover:bg-m3-error/15",
   );
 
-const focusBaseClasses = ({
-  variant,
-  color,
-}: {
-  variant?: Variant;
-  color?: Color;
-}) =>
+const focusBaseClasses = ({ variant, color }: Variant & Color) =>
   twMerge(
-    "disabled:text-m3-on-surface/38 disabled:bg-m3-on-surface/12 disabled:cursor-not-allowed backdrop-blur-sm",
+    "disabled:text-m3-on-surface/38 disabled:bg-m3-on-surface/12 disabled:cursor-not-allowed",
 
     "focus:ring-1 focus-visible:outline-hidden",
     variant === "filled" && "focus:opacity-90",
     variant === "tonal" && "focus:opacity-80",
+    variant === "text" && "focus:opacity-80",
 
     color === "primary" && "focus:ring-m3-primary",
     color === "secondary" && "focus:ring-m3-secondary",
@@ -135,6 +136,7 @@ export const baseClasses = ({
   variant,
   color,
   shape,
+  underline,
   hover = false,
   focus = false,
 }: Variants) =>
@@ -143,6 +145,7 @@ export const baseClasses = ({
       "bg-m3-surface-container-low shadow shadow-m3-shadow/20",
     variant === "outlined" && "ring-1",
     variant === "plain" && "",
+    variant === "text" && "underline-offset-4",
 
     color === "primary" && "text-m3-primary",
     color === "secondary" && "text-m3-secondary",
@@ -152,6 +155,10 @@ export const baseClasses = ({
     shape === "square" && "",
     shape === "rounded" && "rounded-md",
     shape === "circle" && "rounded-full",
+
+    underline === "always" && "underline",
+    underline === "hover" && "hover:underline",
+    underline === "none" && "",
 
     variant === "filled" &&
       color === "primary" &&
