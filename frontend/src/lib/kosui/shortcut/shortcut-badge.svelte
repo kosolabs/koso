@@ -28,7 +28,7 @@
   use:ref
   class={twMerge("text-m3-on-surface flex gap-1", className)}
 >
-  {#each shortcut as symbol}
+  {#each shortcut as symbol, index (index)}
     <Box
       variant="elevated"
       color="secondary"

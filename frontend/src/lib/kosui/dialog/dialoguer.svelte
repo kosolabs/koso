@@ -27,7 +27,8 @@
     {dialog.message}
   {/if}
   {#snippet actions(props)}
-    {#each dialog.buttons as { text, value, default: autofocus }}
+    {#each dialog.buttons as button (button)}
+      {@const { text, value, default: autofocus } = button}
       <DialogButton {value} {autofocus} {...props}>
         {text}
       </DialogButton>

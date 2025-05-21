@@ -19,7 +19,7 @@
   <div
     class="bg-m3-surface-container-highest relative h-48 w-96 overflow-scroll rounded-lg p-2"
   >
-    {#each [...Array(20).keys()] as i}
+    {#each [...Array(20).keys()] as i (i)}
       <div class="text-nowrap">
         Very wide content {i} that overflows the div by being very long
       </div>
@@ -30,7 +30,7 @@
   <div
     class="bg-m3-surface-container-highest relative h-48 w-96 overflow-scroll rounded-lg p-2"
   >
-    {#each [...Array(20).keys()] as i}
+    {#each [...Array(20).keys()] as i (i)}
       <div class="text-nowrap">
         Very wide content {i} that overflows the div by being very long
       </div>
@@ -41,7 +41,7 @@
   <div
     class="bg-m3-surface-container-highest relative h-48 w-96 overflow-scroll rounded-lg p-2"
   >
-    {#each [...Array(20).keys()] as i}
+    {#each [...Array(20).keys()] as i (i)}
       <div class="text-nowrap">
         Very wide content {i} that overflows the div by being very long
       </div>

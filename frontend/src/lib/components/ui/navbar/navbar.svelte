@@ -89,9 +89,9 @@
       </MenuTrigger>
       {#if menuHasActions}
         <MenuContent>
-          {#each sections as section (section.heading)}
+          {#each sections as section (section)}
             {#if section.actions.length > 0}
-              {#each section.actions as action (action.id)}
+              {#each section.actions as action (action)}
                 <CommandMenuItem {action} />
               {/each}
             {/if}

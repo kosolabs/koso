@@ -472,7 +472,8 @@
       <div class="flex w-full flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}
           <div class="flex flex-wrap items-center gap-x-1">
-            {#each tags as { title, description, onClick, onDelete }}
+            {#each tags as tag (tag)}
+              {@const { title, description, onClick, onDelete } = tag}
               <Chip color="tertiary" title={description} {onClick} {onDelete}>
                 {title}
               </Chip>
