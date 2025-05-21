@@ -17,15 +17,15 @@
 <table {...restProps}>
   <thead>
     <tr>
-      {#each token.header as item}
+      {#each token.header as item (item)}
         {@render ctx.tableCellRenderer({ token: item, children })}
       {/each}
     </tr>
   </thead>
   <tbody>
-    {#each token.rows as row}
+    {#each token.rows as row (row)}
       <tr>
-        {#each row as cell}
+        {#each row as cell (cell)}
           {@render ctx.tableCellRenderer({ token: cell, children })}
         {/each}
       </tr>

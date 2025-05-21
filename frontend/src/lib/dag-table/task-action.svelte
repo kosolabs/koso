@@ -63,10 +63,10 @@
     {...restProps}
   />
   <MenuContent>
-    {#each sections as section, index}
+    {#each sections as section, index (section)}
       {#if section.actions.length > 0}
         <MenuHeader>{section.heading}</MenuHeader>
-        {#each section.actions as action}
+        {#each section.actions as action (action)}
           <MenuItem
             onSelect={action.callback}
             disabled={!action.enabled()}

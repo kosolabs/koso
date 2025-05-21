@@ -166,7 +166,8 @@
             <div class="table-cell rounded-r px-2 align-middle text-nowrap">
               <div class="flex items-center gap-1" title="Tags">
                 <div class="flex flex-wrap items-center gap-x-1">
-                  {#each getTags(task.id) as { title, description }}
+                  {#each getTags(task.id) as tag (tag)}
+                    {@const { title, description } = tag}
                     <Chip title={description}>{title}</Chip>
                   {/each}
                 </div>

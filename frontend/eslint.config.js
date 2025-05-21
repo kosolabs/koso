@@ -39,7 +39,6 @@ export default ts.config(
   },
   {
     rules: {
-      "svelte/require-each-key": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
