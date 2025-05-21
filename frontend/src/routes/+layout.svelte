@@ -1,6 +1,6 @@
 <script lang="ts">
   import { dev } from "$app/environment";
-  import { updated } from "$app/stores";
+  import { updated } from "$app/state";
   import { AuthContext, setAuthContext } from "$lib/auth.svelte";
   import { CommandPalette } from "$lib/components/ui/command-palette";
   import { Confetti } from "$lib/components/ui/confetti";
@@ -51,7 +51,7 @@
   const wb = register();
 
   $effect(() => {
-    if (wb && $updated) {
+    if (wb && updated.current) {
       console.debug("Update effect triggered. Calling wb.update()");
       toast.info("New updates are available. Installing in the background...");
       wb.update();
