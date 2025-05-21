@@ -1,7 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
-  import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
   import { TaskStatus } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
@@ -30,17 +29,12 @@
   let rowElement: HTMLTableRowElement | undefined = $state();
   let taskStatus = $state<TaskStatus | undefined>();
 
-  let isEditing = $state(false);
   let linkOpen = $state(false);
   let linkMode: Mode = $state("block");
 
   let assignee = $derived(getUser(users, task.assignee));
   let editable = $derived(koso.isEditable(task.id));
   let tags = $derived(getTags());
-
-  export function edit(editing: boolean) {
-    isEditing = editing;
-  }
 
   export function showDoneConfetti() {
     taskStatus?.showDoneConfetti();
@@ -95,20 +89,9 @@
   bind:this={rowElement}
 >
   <td class={cn("border-t px-2")}>
-    <div class="flex items-center gap-1">
-      <Grip class="w-4 cursor-pointer" />
-      <div class="overflow-x-hidden whitespace-nowrap">
-        <Link
-          href={`/projects/${koso.projectId}?taskId=${task.id}`}
-          onclick={(event) => {
-            event.stopPropagation();
-            event.preventDefault();
-            goto(`/projects/${koso.projectId}?taskId=${task.id}`);
-          }}
-        >
-          {task.num}
-        </Link>
-      </div>
+    <div class="flex cursor-pointer items-center gap-1">
+      <Grip class="w-4" />
+      {task.num}
     </div>
   </td>
   {#if koso.debug}
@@ -138,34 +121,18 @@
           </div>
         {/if}
 
-        {#if editable}
-          <Editable
-            value={task.name}
-            aria-label={`Task ${task.num} Edit Name`}
-            editing={isEditing}
-            closeFocus={rowElement}
-            onsave={async (name) => {
-              koso.setTaskName(task.id, name);
-            }}
-            ondone={() => edit(false)}
-          />
-        {:else}
-          <Link
-            class={cn(
-              "h-auto p-0 text-left text-sm text-wrap whitespace-normal",
-              task.url ? "text" : "",
-            )}
-            aria-label={`Task ${task.num} Name`}
-            onclick={() => {
-              if (!task.url) throw new Error(`No URL set on task ${task}`);
-              window.open(task.url, "_blank")!.focus();
-            }}
-            disabled={!task.url}
-            underline="none"
-          >
-            {task.name || "Untitled"}
-          </Link>
-        {/if}
+        <Link
+          class="text-sm"
+          href={`/projects/${koso.projectId}?taskId=${task.id}`}
+          onclick={(event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            goto(`/projects/${koso.projectId}?taskId=${task.id}`);
+          }}
+        >
+          {task.name || "Untitled"}
+        </Link>
+
         <LinkPanel
           {task}
           {koso}

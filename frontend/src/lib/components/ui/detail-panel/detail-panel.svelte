@@ -21,10 +21,16 @@
   let { taskId }: DetailPanelProps = $props();
   let editor: CodeMirror | undefined = $state();
 
+  let titleEditable: Editable | undefined = $state();
+
   const { koso } = getProjectContext();
   const prefs = getPrefsContext();
 
   let task = $derived(taskId ? koso.getTask(taskId) : undefined);
+
+  export function editTitle() {
+    titleEditable?.edit();
+  }
 
   function hideDetails() {
     prefs.detailPanel = "none";
@@ -77,6 +83,7 @@
     {#if $task}
       {#if koso.isEditable($task.id)}
         <Editable
+          bind:this={titleEditable}
           class="text-lg font-extralight"
           value={$task.name}
           onsave={async (name) => {
