@@ -50,9 +50,6 @@
   }
   const wb = register();
 
-  $inspect("updated", updated);
-  $inspect("wb", wb);
-
   $effect(() => {
     if (wb && updated.current) {
       console.debug("Update effect triggered. Calling wb.update()");
