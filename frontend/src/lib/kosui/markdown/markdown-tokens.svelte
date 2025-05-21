@@ -8,6 +8,6 @@
   let { tokens }: MarkdownTokensProps = $props();
 </script>
 
-{#each tokens as token}
+{#each tokens as token (token)}
   <MarkdownToken {token} />
 {/each}

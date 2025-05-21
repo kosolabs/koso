@@ -63,7 +63,7 @@
 
 <script lang="ts">
   let {
-    value = $bindable(""),
+    value,
     options = {},
     blockquote = defaultBlockquote,
     br = defaultBr,
