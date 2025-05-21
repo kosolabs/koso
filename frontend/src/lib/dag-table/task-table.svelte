@@ -17,7 +17,6 @@
     CircleX,
     Clipboard,
     OctagonX,
-    Pencil,
     Redo,
     SquarePen,
     StepBack,
@@ -79,11 +78,6 @@
       default:
         throw new Error(`Unhandled status ${task.yStatus}`);
     }
-  }
-
-  function edit() {
-    if (!inbox.selected) return;
-    getRow(inbox.selected.id).edit(true);
   }
 
   function remove() {
@@ -169,14 +163,6 @@
       description: "Select previous task",
       icon: StepBack,
       shortcut: new Shortcut({ key: "ArrowUp" }),
-    }),
-    new Action({
-      id: "Edit",
-      callback: edit,
-      description: "Edit the current task",
-      icon: Pencil,
-      shortcut: new Shortcut({ key: "Enter" }),
-      enabled: () => !!inbox.selected && koso.isEditable(inbox.selected.id),
     }),
     new Action({
       id: "Clear",
