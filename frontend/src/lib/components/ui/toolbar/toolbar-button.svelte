@@ -12,16 +12,7 @@
   variant="plain"
   {icon}
   onclick={callback}
+  title={`${description} ${shortcut?.toString()}`}
 >
   <div class="max-sm:hidden">{title}</div>
-  {#snippet tooltip()}
-    <div class="flex items-center gap-2">
-      {description}
-      {#if shortcut}
-        <div class="font-bold">
-          {shortcut.toString()}
-        </div>
-      {/if}
-    </div>
-  {/snippet}
 </Button>
