@@ -41,7 +41,7 @@
     </div>
   {/snippet}
   <div class="flex flex-col gap-2">
-    {#each item.reasons as reason}
+    {#each item.reasons as reason (reason)}
       <div class="flex items-center gap-2">
         <Lightbulb class="w-10" />
         <div>
