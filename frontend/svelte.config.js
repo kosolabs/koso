@@ -16,7 +16,7 @@ const config = {
     version: {
       // Configure how often in milliseconds version.json is polled to refresh the
       // $updated store used to reload pages following deployments.
-      pollInterval: 15 * 1000,
+      pollInterval: 60 * 1000,
     },
   },
 };
