@@ -12,11 +12,12 @@
   import { NavigationAction } from "$lib/navigation-action";
   import { fetchProject, fetchProjectUsers } from "$lib/projects";
   import {
+    Eye,
     Mail,
     Notebook,
     PanelTopClose,
     PanelTopOpen,
-    SquarePen,
+    Pencil,
     UserPlus,
   } from "lucide-svelte";
   import { onMount, type Snippet } from "svelte";
@@ -78,9 +79,17 @@
     new Action({
       id: "DetailPanelOpen",
       callback: () => (prefs.detailPanel = "view"),
+      title: "Open task description",
+      description: "Open / show the task description markdown panel",
+      icon: PanelTopOpen,
+      enabled: () => prefs.detailPanel === "none",
+    }),
+    new Action({
+      id: "DetailPanelViewer",
+      callback: () => (prefs.detailPanel = "view"),
       title: "View task description",
       description: "Open / show the task description markdown viewer",
-      icon: PanelTopOpen,
+      icon: Eye,
       enabled: () => prefs.detailPanel !== "view",
     }),
     new Action({
@@ -88,7 +97,7 @@
       callback: () => (prefs.detailPanel = "edit"),
       title: "Edit task description",
       description: "Open / show the task description markdown editor",
-      icon: SquarePen,
+      icon: Pencil,
       enabled: () => prefs.detailPanel !== "edit",
     }),
     new Action({

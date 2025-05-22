@@ -99,7 +99,7 @@
       <div class="text-lg font-extralight">No task selected</div>
     {/if}
     <div class="ml-auto flex gap-1">
-      {#if taskId && koso.isEditable(taskId) && prefs.detailPanel === "view"}
+      {#if taskId && koso.isEditable(taskId) && (prefs.detailPanel === "view" || !$task || !$task.desc)}
         <Button
           aria-label="Edit task description"
           icon={Pencil}
@@ -107,7 +107,7 @@
           onclick={editDetails}
         />
       {/if}
-      {#if prefs.detailPanel === "edit"}
+      {#if $task && $task.desc && prefs.detailPanel === "edit"}
         <Button
           aria-label="View task description"
           icon={Eye}
@@ -132,8 +132,8 @@
     </div>
   </div>
   <hr />
-  <div class="overflow-y-scroll" role="document" ondblclick={editDetails}>
-    {#if $task && $task.desc && task && task.desc}
+  <div class="grow overflow-y-scroll" role="document" ondblclick={editDetails}>
+    {#if $task && task && $task.desc && task.desc}
       {#if koso.isEditable($task.id) && prefs.detailPanel === "edit"}
         <CodeMirror
           bind:this={editor}

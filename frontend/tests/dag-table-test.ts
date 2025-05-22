@@ -2332,7 +2332,7 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("row", { name: "Task 1" }).click();
-      await page.getByRole("button", { name: "View task description" }).click();
+      await page.getByRole("button", { name: "Open task description" }).click();
 
       await expect(
         page.getByRole("heading", { name: "Task details" }),
@@ -2359,7 +2359,7 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("row", { name: "Task 1" }).click();
-      await page.getByRole("button", { name: "View task description" }).click();
+      await page.getByRole("button", { name: "Open task description" }).click();
       await expect(page.getByText("Task 1 description")).toBeVisible();
 
       await page.getByRole("row", { name: "Task 2" }).click();
@@ -2382,7 +2382,7 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("row", { name: "Task 1" }).click();
-      await page.getByRole("button", { name: "View task description" }).click();
+      await page.getByRole("button", { name: "Open task description" }).click();
 
       await expect(
         page.getByRole("button", { name: "Delete task description" }),
@@ -2414,7 +2414,7 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("row", { name: "Task 1" }).click();
-      await page.getByRole("button", { name: "View task description" }).click();
+      await page.getByRole("button", { name: "Open task description" }).click();
       await expect(
         page
           .getByRole("heading", { name: "Task details" })
