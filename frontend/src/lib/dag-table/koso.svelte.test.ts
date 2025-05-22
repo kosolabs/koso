@@ -358,7 +358,11 @@ describe("Koso tests", () => {
 
   describe("insertTask", () => {
     it("creates a child of root", () => {
-      const id1 = koso.insertTask("root", 0, USER, "Task 1");
+      const id1 = koso.insertTask({
+        name: "Task 1",
+        parent: "root",
+        reporter: USER.email,
+      });
       expect(koso.toJSON()).toEqual({
         root: {
           id: "root",
@@ -407,8 +411,20 @@ describe("Koso tests", () => {
         { id: "1", name: "Task 1", kind: "github_pr" },
       ]);
 
-      expect(() => koso.insertTask("github", 0, USER, "Task 2")).toThrow();
-      expect(() => koso.insertTask("github_pr", 0, USER, "Task 2")).toThrow();
+      expect(() =>
+        koso.insertTask({
+          name: "Task 2",
+          parent: "github",
+          reporter: USER.email,
+        }),
+      ).toThrow();
+      expect(() =>
+        koso.insertTask({
+          name: "Task 2",
+          parent: "github_pr",
+          reporter: USER.email,
+        }),
+      ).toThrow();
     });
 
     it("inserting a child of a plugin task throws", () => {
@@ -433,7 +449,13 @@ describe("Koso tests", () => {
         { id: "1", name: "Task 1", kind: "github_pr" },
       ]);
 
-      expect(() => koso.insertTask("1", 0, USER, "Task 2")).toThrow();
+      expect(() =>
+        koso.insertTask({
+          name: "Task 2",
+          parent: "1",
+          reporter: USER.email,
+        }),
+      ).toThrow();
     });
   });
 
