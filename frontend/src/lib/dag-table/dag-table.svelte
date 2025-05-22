@@ -35,6 +35,7 @@
     Plus,
     Redo,
     Search,
+    Share,
     SkipBack,
     SkipForward,
     SquarePen,
@@ -315,6 +316,13 @@
     navigator.clipboard.writeText(koso.getGitCommitMessage(taskId));
   }
 
+  function copyTaskLink() {
+    if (!planningCtx.selected) return;
+    navigator.clipboard.writeText(
+      koso.getTaskPermalink(planningCtx.selected.name).toString(),
+    );
+  }
+
   const insertAction: Action<ActionID> = {
     id: "Insert",
     callback: insert,
@@ -593,6 +601,14 @@
       title: "Copy task info",
       description: "Copy task git commit message to the clipboard",
       icon: Clipboard,
+      enabled: () => !!planningCtx.selected,
+    }),
+    new Action({
+      id: "CopyTaskLink",
+      callback: copyTaskLink,
+      title: "Copy task permalink",
+      description: "Share task by copying permalink to the clipboard",
+      icon: Share,
       shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
       enabled: () => !!planningCtx.selected,
     }),

@@ -13,6 +13,7 @@
     | "Collapse"
     | "CollapseAll"
     | "CopyTaskInfo"
+    | "CopyTaskLink"
     | "CommandPalette"
     | "ConnectToGitHub"
     | "DarkTheme"
