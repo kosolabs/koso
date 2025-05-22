@@ -15,8 +15,8 @@
   const command = getRegistryContext();
 
   const base: ActionID[] = [
-    "DetailPanelOpen",
-    "DetailPanelClose",
+    "DetailPanelViewer",
+    "DetailPanelEditor",
     "Undo",
     "Redo",
     "Search",

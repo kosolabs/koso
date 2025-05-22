@@ -254,10 +254,10 @@ test.describe("Collaboration tests", () => {
     ]);
 
     await page1.getByRole("row", { name: "Task 1" }).click();
-    await page1.getByRole("button", { name: "View task description" }).click();
+    await page1.getByRole("button", { name: "Open task description" }).click();
 
     await page2.getByRole("row", { name: "Task 1" }).click();
-    await page2.getByRole("button", { name: "View task description" }).click();
+    await page2.getByRole("button", { name: "Open task description" }).click();
 
     // Change task name
     await page1
