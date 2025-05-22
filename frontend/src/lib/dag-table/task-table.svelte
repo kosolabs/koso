@@ -18,6 +18,7 @@
     Clipboard,
     OctagonX,
     Redo,
+    Share,
     SquarePen,
     StepBack,
     StepForward,
@@ -149,6 +150,13 @@
     navigator.clipboard.writeText(koso.getGitCommitMessage(taskId));
   }
 
+  function copyTaskLink() {
+    if (!inbox.selected) return;
+    navigator.clipboard.writeText(
+      koso.getTaskPermalink(inbox.selected.id).toString(),
+    );
+  }
+
   const actions: Action<ActionID>[] = [
     new Action({
       id: "Next",
@@ -227,6 +235,14 @@
       title: "Copy task info",
       description: "Copy task git commit message to the clipboard",
       icon: Clipboard,
+      enabled: () => !!inbox.selected,
+    }),
+    new Action({
+      id: "CopyTaskLink",
+      callback: copyTaskLink,
+      title: "Copy task permalink",
+      description: "Share task by copying permalink to the clipboard",
+      icon: Share,
       shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
       enabled: () => !!inbox.selected,
     }),

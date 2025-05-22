@@ -1,3 +1,4 @@
+import { page } from "$app/state";
 import { toast } from "$lib/components/ui/sonner";
 import {
   parseAwarenessStateResponse,
@@ -971,6 +972,13 @@ export class Koso {
         return true;
       }
     });
+  }
+
+  getTaskPermalink(taskId: string) {
+    const curr = page.url;
+    curr.pathname = `/projects/${this.projectId}`;
+    curr.search = new URLSearchParams({ taskId }).toString();
+    return curr;
   }
 
   getGitCommitMessage(taskId: string) {

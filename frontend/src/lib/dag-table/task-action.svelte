@@ -27,7 +27,14 @@
   const menu: Section = [
     {
       heading: "Actions",
-      actions: ["Indent", "Undent", "InsertSubtask", "Delete", "CopyTaskInfo"],
+      actions: [
+        "Indent",
+        "Undent",
+        "InsertSubtask",
+        "Delete",
+        "CopyTaskInfo",
+        "CopyTaskLink",
+      ],
     },
     {
       heading: "Reorder",
