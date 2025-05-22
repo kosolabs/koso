@@ -77,7 +77,11 @@
   }
 
   function insertAndEdit(parent: Node, offset: number, user: User) {
-    const taskId = koso.insertTask(parent.name, offset, user);
+    const taskId = koso.insertTask({
+      parent: parent.name,
+      offset,
+      reporter: user.email,
+    });
     const node = parent.child(taskId);
     planningCtx.selected = node;
 

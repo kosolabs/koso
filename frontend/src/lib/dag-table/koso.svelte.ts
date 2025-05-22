@@ -836,12 +836,19 @@ export class Koso {
     return this.isEditable(parentTaskId);
   }
 
-  insertTask(
-    parent: string,
-    offset: number,
-    user: User,
-    name: string = "",
-  ): string {
+  insertTask({
+    name = "",
+    parent,
+    offset = 0,
+    reporter,
+    assignee = null,
+  }: {
+    name?: string;
+    parent: string;
+    offset?: number;
+    reporter: string;
+    assignee?: string | null;
+  }): string {
     if (!this.canInsert(parent)) {
       throw new Error(`Cannot insert task under parent ${parent}`);
     }
@@ -850,11 +857,11 @@ export class Koso {
       this.upsert({
         id: taskId,
         num: this.newNum(),
-        name: name,
+        name,
         desc: null,
         children: [],
-        reporter: user.email,
-        assignee: null,
+        reporter,
+        assignee,
         status: null,
         statusTime: null,
         kind: null,
