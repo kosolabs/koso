@@ -46,20 +46,45 @@
     },
     {
       heading: "Navigation",
-      actions: ["ProjectsView", "PlanView", "InboxView"],
+      actions: [
+        "ProjectsView",
+        "PlanView",
+        "InboxView",
+        "StorybookAlerts",
+        "StorybookAutocomplete",
+        "StorybookAvatar",
+        "StorybookBadge",
+        "StorybookButtons",
+        "StorybookChips",
+        "StorybookCodeMirror",
+        "StorybookCommand",
+        "StorybookDialogs",
+        "StorybookFab",
+        "StorybookGoto",
+        "StorybookInputs",
+        "StorybookLinks",
+        "StorybookMarkdown",
+        "StorybookMenus",
+        "StorybookProgressIndicators",
+        "StorybookShortcuts",
+        "StorybookToggles",
+        "StorybookTooltips",
+      ],
     },
   ];
 
   let sections = $derived(
-    menu.map((section) => {
-      return {
-        heading: section.heading,
-        actions: section.actions
-          .map((id) => command.get(id))
-          .filter((action) => action !== undefined)
-          .filter((action) => action.enabled()),
-      };
-    }),
+    menu
+      .map((section) => {
+        return {
+          heading: section.heading,
+          actions: section.actions
+            .map((id) => command.get(id))
+            .filter((action) => action !== undefined)
+            .filter((action) => action.enabled()),
+        };
+      })
+      .filter((section) => section.actions.length > 0),
   );
 
   let menuHasActions = $derived(
@@ -71,34 +96,38 @@
   class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center overflow-hidden border-b p-2 shadow"
 >
   <div class="flex items-center">
-    <Menu>
-      <MenuTrigger
-        title="Project menu"
-        class={twMerge(
-          baseClasses({
-            variant: "plain",
-            color: "primary",
-            shape: "circle",
-            focus: true,
-            hover: true,
-          }),
-          "mr-1 p-2 transition-all active:scale-95",
-        )}
-      >
-        <MenuIcon size={20} />
-      </MenuTrigger>
-      {#if menuHasActions}
+    {#if menuHasActions}
+      <Menu>
+        <MenuTrigger
+          title="Project menu"
+          class={twMerge(
+            baseClasses({
+              variant: "plain",
+              color: "primary",
+              shape: "circle",
+              focus: true,
+              hover: true,
+            }),
+            "mr-1 p-2 transition-all active:scale-95",
+          )}
+        >
+          <MenuIcon size={20} />
+        </MenuTrigger>
         <MenuContent>
-          {#each sections as section (section)}
+          {#each sections as section, index (section)}
             {#if section.actions.length > 0}
+              <MenuHeader>{section.heading}</MenuHeader>
               {#each section.actions as action (action)}
                 <CommandMenuItem {action} />
               {/each}
+              {#if index < sections.length - 1}
+                <MenuDivider />
+              {/if}
             {/if}
           {/each}
         </MenuContent>
-      {/if}
-    </Menu>
+      </Menu>
+    {/if}
     <a href="/projects" aria-label="Home">
       <KosoLogo class="size-10" />
     </a>
