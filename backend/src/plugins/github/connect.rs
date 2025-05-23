@@ -179,7 +179,8 @@ impl ConnectHandler {
         let octocrab::models::Author { url, id, .. } = self.fetch_user(&user).await?;
 
         tracing::info!("Connecting user {} to github user {id} ({url})", user.email);
-        self.update_user_connection(&user, &id.to_string()).await?;
+        self.update_user_connection(&user, Some(&id.to_string()))
+            .await?;
 
         Ok(Json(ConnectUserResponse {}))
     }
@@ -190,10 +191,19 @@ impl ConnectHandler {
         Ok(crab.current().user().await?)
     }
 
+    #[tracing::instrument(skip(user, handler))]
+    async fn delete_user_connection_handler(
+        Extension(user): Extension<User>,
+        Extension(handler): Extension<ConnectHandler>,
+    ) -> ApiResult<Json<()>> {
+        handler.update_user_connection(&user, None).await?;
+        Ok(Json(()))
+    }
+
     async fn update_user_connection(
         &self,
         user: &User,
-        github_user_id: &str,
+        github_user_id: Option<&str>,
     ) -> Result<(), api::ErrorResponse> {
         let res = sqlx::query(
             "
@@ -208,29 +218,6 @@ impl ConnectHandler {
         if res.rows_affected() == 0 {
             return Err(not_found_error("NOT_FOUND", "User does not exist."));
         }
-        Ok(())
-    }
-
-    #[tracing::instrument(skip(user, handler))]
-    async fn delete_user_connection_handler(
-        Extension(user): Extension<User>,
-        Extension(handler): Extension<ConnectHandler>,
-    ) -> ApiResult<Json<()>> {
-        handler.delete_user_connection(user).await?;
-        Ok(Json(()))
-    }
-
-    async fn delete_user_connection(&self, user: User) -> Result<()> {
-        sqlx::query(
-            "
-            UPDATE users
-            SET github_login = NULL
-            WHERE email = $1",
-        )
-        .bind(&user.email)
-        .execute(self.pool)
-        .await
-        .context("Failed to delete user github connection")?;
         Ok(())
     }
 }

@@ -204,8 +204,11 @@
         {#if profile.pluginMappings.githubLogin}
           <div class="flex flex-col gap-2">
             <div>
-              Your Koso profile is linked to Github user:
-              <i>{profile.pluginMappings.githubLogin}</i>
+              Your Koso profile is connected to Github user
+              <a
+                href="https://api.github.com/user/{profile.pluginMappings
+                  .githubLogin}">{profile.pluginMappings.githubLogin}</a
+              >
             </div>
             <div class="flex flex-wrap gap-2">
               <div class="ml-auto">
@@ -214,20 +217,21 @@
                   variant="filled"
                   onclick={async () => await deleteUserGithubConnection()}
                 >
-                  Delete connection
+                  Delete Connection
                 </Button>
               </div>
             </div>
             <div></div>
           </div>
         {:else}
-          Koso is not linked to Github. To link Koso, click here:
+          Your Koso profile is not connected to Github. Koso is not linked to
+          Github.
           <Button
             icon={CircleX}
             variant="filled"
             onclick={async () => await redirectToConnectUserFlow()}
           >
-            Link to Github
+            Connect to Github
           </Button>
         {/if}
       </SubSection>

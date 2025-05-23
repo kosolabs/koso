@@ -29,7 +29,7 @@
 
     console.log(`Connecting user`);
     await connectUser();
-    toast.info("User linked to Github!");
+    toast.info("User connected to Github!");
 
     await goto(`/profile`);
   });
