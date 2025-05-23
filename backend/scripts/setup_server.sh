@@ -65,7 +65,7 @@ sudo apt update
 sudo apt install -y postgresql-common
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 apt install postgresql-17
-cat >>/etc/postgresql/16/main/postgresql.conf <<EOL
+cat >>/etc/postgresql/17/main/postgresql.conf <<EOL
 
 # Commit asynchronously for better performance
 synchronous_commit = off
