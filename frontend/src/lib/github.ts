@@ -169,13 +169,24 @@ export async function connectProject(
 }
 
 export async function connectUser(): Promise<void> {
-  const response = await fetch(`/plugins/github/connectUser`, {
+  const response = await fetch(`/plugins/github/userConnections`, {
     method: "POST",
     headers: {
       ...headers(),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({}),
+  });
+  await parseResponse(response);
+  return;
+}
+
+export async function deleteUserConnection(): Promise<void> {
+  const response = await fetch(`/plugins/github/userConnections`, {
+    method: "DELETE",
+    headers: {
+      ...headers(),
+    },
   });
   await parseResponse(response);
   return;

@@ -63,16 +63,6 @@ pub(crate) struct User {
     pub(crate) premium: bool,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct UpdateUserRequest {
-    pub(crate) github_login: Option<String>,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct UpdateUserResponse {}
-
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ProjectExport {

@@ -3,13 +3,12 @@
   import { auth } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
-  import { redirectToConnectUserFlow } from "$lib/github";
+  import { deleteUserConnection, redirectToConnectUserFlow } from "$lib/github";
   import { Button } from "$lib/kosui/button";
   import { getDialoguerContext } from "$lib/kosui/dialog";
   import { Link } from "$lib/kosui/link";
   import { CircularProgress } from "$lib/kosui/progress";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
-  import { updateUser } from "$lib/users";
   import { CircleX, Moon, Send, Sun, SunMoon, Trash2 } from "lucide-svelte";
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
@@ -105,7 +104,7 @@
     return null;
   }
 
-  async function deleteGithubMapping() {
+  async function deleteUserGithubConnection() {
     if (
       !(await dialog.confirm({
         message,
@@ -119,7 +118,7 @@
     const toastId = toast.loading("Deleting Github link...");
 
     try {
-      updateUser(auth.user.email, {});
+      await deleteUserConnection();
       toast.success("Github link deleted.", { id: toastId });
       profile = load();
     } catch {
@@ -205,17 +204,17 @@
         {#if profile.pluginMappings.githubLogin}
           <div class="flex flex-col gap-2">
             <div>
-              Koso is linked to your github user:
-              {profile.pluginMappings.githubLogin}.
+              Your Koso profile is linked to Github user:
+              <i>{profile.pluginMappings.githubLogin}</i>
             </div>
             <div class="flex flex-wrap gap-2">
               <div class="ml-auto">
                 <Button
                   icon={CircleX}
                   variant="filled"
-                  onclick={async () => await deleteGithubMapping()}
+                  onclick={async () => await deleteUserGithubConnection()}
                 >
-                  Delete Mapping
+                  Delete connection
                 </Button>
               </div>
             </div>
