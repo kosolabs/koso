@@ -47,9 +47,7 @@ export async function redirectToConnectUserFlow() {
   });
   sessionStorage.setItem(stateSessionKey, state);
 
-  await goto(
-    `${location.origin}/connections/github/user?state=${encodeURIComponent(state)}`,
-  );
+  await goto(`/connections/github/user?state=${encodeURIComponent(state)}`);
 }
 
 async function initGithub(): Promise<InitResponse> {
