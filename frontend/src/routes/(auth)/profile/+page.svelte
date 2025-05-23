@@ -3,6 +3,7 @@
   import { auth } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
+  import { redirectToConnectUserFlow } from "$lib/github";
   import { Button } from "$lib/kosui/button";
   import { getDialoguerContext } from "$lib/kosui/dialog";
   import { Link } from "$lib/kosui/link";
@@ -104,9 +105,8 @@
     return null;
   }
 
-  async function updateGithubMapping(githubLogin?: string) {
+  async function deleteGithubMapping() {
     if (
-      !githubLogin &&
       !(await dialog.confirm({
         message,
         title: "Delete Github link?",
@@ -116,14 +116,14 @@
       return;
     }
 
-    const toastId = toast.loading("Updating Github link...");
+    const toastId = toast.loading("Deleting Github link...");
 
     try {
-      updateUser(auth.user.email, { githubLogin });
-      toast.success("Github link updated.", { id: toastId });
+      updateUser(auth.user.email, {});
+      toast.success("Github link deleted.", { id: toastId });
       profile = load();
     } catch {
-      toast.error("Failed to updated Github link.", { id: toastId });
+      toast.error("Failed to delete Github link.", { id: toastId });
     }
   }
 </script>
@@ -204,16 +204,16 @@
       <SubSection title="Github">
         {#if profile.pluginMappings.githubLogin}
           <div class="flex flex-col gap-2">
-            <div>Koso is authorized to send messages to Telegram.</div>
+            <div>
+              Koso is linked to your github user:
+              {profile.pluginMappings.githubLogin}.
+            </div>
             <div class="flex flex-wrap gap-2">
-              <Button icon={Send} onclick={sendTestTelegramNotification}>
-                Send Test Notification
-              </Button>
               <div class="ml-auto">
                 <Button
                   icon={CircleX}
                   variant="filled"
-                  onclick={async () => await updateGithubMapping()}
+                  onclick={async () => await deleteGithubMapping()}
                 >
                   Delete Mapping
                 </Button>
@@ -222,8 +222,14 @@
             <div></div>
           </div>
         {:else}
-          Koso is not linked to Github. To link Koso, enter your github login:
-          TODO
+          Koso is not linked to Github. To link Koso, click here:
+          <Button
+            icon={CircleX}
+            variant="filled"
+            onclick={async () => await redirectToConnectUserFlow()}
+          >
+            Link to Github
+          </Button>
         {/if}
       </SubSection>
     {/await}

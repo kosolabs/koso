@@ -31,5 +31,5 @@ export async function updateUser(email: string, updateUser: UpdateUser) {
     },
     body: JSON.stringify(updateUser),
   });
-  return parseResponse(response);
+  await parseResponse(response);
 }

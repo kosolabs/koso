@@ -1,5 +1,5 @@
 use crate::{
-    api::{self, ApiResult, google::User, unauthorized_error},
+    api::{self, ApiResult, google::User, not_found_error, unauthorized_error},
     plugins::{
         config::{Config, ConfigStorage, GithubSettings, Settings},
         github::{self, Poller, auth::Auth},
@@ -26,6 +26,14 @@ struct ConnectRequest {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ConnectResponse {}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct ConnectUserRequest {}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConnectUserResponse {}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -67,6 +75,7 @@ impl ConnectHandler {
         Router::new()
             .route("/connect", post(Self::connect_project_handler))
             .route("/init", get(Self::init_handler))
+            .route("/connectUser", post(Self::connect_user_handler))
             .layer((Extension(self),))
     }
 
@@ -151,5 +160,53 @@ impl ConnectHandler {
             tracing::warn!("Need to paginate installations");
         }
         Ok(installations.items)
+    }
+
+    #[tracing::instrument(skip(user, handler))]
+    async fn connect_user_handler(
+        Extension(user): Extension<User>,
+        Extension(handler): Extension<ConnectHandler>,
+        Json(_): Json<ConnectUserRequest>,
+    ) -> ApiResult<Json<ConnectUserResponse>> {
+        handler.connect_user(user).await
+    }
+
+    async fn connect_user(&self, user: User) -> ApiResult<Json<ConnectUserResponse>> {
+        let github_user = self.fetch_user(&user).await?;
+        tracing::info!(
+            "Connecting user {} to github user: {github_user:?}",
+            user.email
+        );
+
+        self.update_user_mapping(user, github_user).await?;
+
+        Ok(Json(ConnectUserResponse {}))
+    }
+
+    async fn fetch_user(&self, user: &User) -> ApiResult<octocrab::models::Author> {
+        let token = self.auth.user_access_token(user).await?;
+        let crab = self.crab.user_access_token(token.access_token.as_str())?;
+        Ok(crab.current().user().await?)
+    }
+
+    async fn update_user_mapping(
+        &self,
+        user: User,
+        github_user: octocrab::models::Author,
+    ) -> Result<(), api::ErrorResponse> {
+        let res = sqlx::query(
+            "
+            UPDATE users
+            SET github_login = $2
+            WHERE email = $1",
+        )
+        .bind(&user.email)
+        .bind(github_user.id.to_string())
+        .execute(self.pool)
+        .await?;
+        if res.rows_affected() == 0 {
+            return Err(not_found_error("NOT_FOUND", "User does not exist."));
+        }
+        Ok(())
     }
 }

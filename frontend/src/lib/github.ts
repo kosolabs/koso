@@ -1,3 +1,4 @@
+import { goto } from "$app/navigation";
 import { headers, parseResponse } from "./api";
 
 const stateSessionKey = "github_csrf_state";
@@ -18,16 +19,11 @@ export type AuthResult = {
  * https://docs.github.com/en/apps/sharing-github-apps/sharing-your-github-app
  */
 export async function githubInstallUrl(projectId: string) {
-  const response = await fetch(`/plugins/github/init`, {
-    method: "GET",
-    headers: {
-      ...headers(),
-      "Content-Type": "application/json",
-    },
-  });
-  const init: InitResponse = await parseResponse(response);
+  const init = await initGithub();
 
-  const state = encodeState({
+  const state = encodeState<
+    Omit<ConnectProjectState, "installationId"> & { installationId?: string }
+  >({
     csrf: generateCsrfValue(),
     projectId: projectId,
     clientId: init.clientId,
@@ -38,43 +34,78 @@ export async function githubInstallUrl(projectId: string) {
 }
 
 /**
+ * Craft a connect user link that will redirect back to the profile page on
+ * success. See
+ * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-web-application-flow-to-generate-a-user-access-token
+ */
+export async function redirectToConnectUserFlow() {
+  const init = await initGithub();
+
+  const state = encodeState<ConnectUserState>({
+    csrf: generateCsrfValue(),
+    clientId: init.clientId,
+  });
+  sessionStorage.setItem(stateSessionKey, state);
+
+  await goto(
+    `${location.origin}/connections/github/user?state=${encodeURIComponent(state)}`,
+  );
+}
+
+async function initGithub(): Promise<InitResponse> {
+  const response = await fetch(`/plugins/github/init`, {
+    method: "GET",
+    headers: {
+      ...headers(),
+      "Content-Type": "application/json",
+    },
+  });
+  return await parseResponse(response);
+}
+
+/**
  * Redirect to Github for OAuth autorization. After authorization, Github will
- * redirect back to us at our redirect URI: /connections/github with the given
- * state and a code parameter.
+ * redirect back to us at the given redirect URI with the given state and a code
+ * parameter.
  *
  * See
  * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#generating-a-user-access-token-when-a-user-installs-your-app
  */
-export function redirectToGitubOAuth(state: State) {
+export function redirectToGitubOAuth<T extends BaseState>(
+  state: T,
+  redirectUri: string,
+) {
   const url = new URL("https://github.com/login/oauth/authorize");
   url.searchParams.append("client_id", state.clientId);
-  const redirectUri = `${location.origin}/connections/github`;
   url.searchParams.append("redirect_uri", redirectUri);
-  const stateStr = encodeState(state);
+  const stateStr = encodeState<T>(state);
   url.searchParams.append("state", stateStr);
   sessionStorage.setItem(stateSessionKey, stateStr);
   console.log(`Redirecting to github oauth: ${url.toString()}`);
   window.location.replace(url);
 }
 
-export type State = {
+export type BaseState = {
   csrf: string;
-  projectId: string;
-  installationId: string;
   clientId: string;
 };
+
+export type ConnectProjectState = BaseState & {
+  projectId: string;
+  installationId: string;
+};
+
+export type ConnectUserState = BaseState & {};
 
 function generateCsrfValue(): string {
   return `csrf_${Math.random().toString(36).substring(2)}`;
 }
 
-export function encodeState(
-  state: Omit<State, "installationId"> & { installationId?: string },
-): string {
+export function encodeState<T extends BaseState>(state: T): string {
   return btoa(JSON.stringify(state));
 }
 
-export function decodeState(state: string): Partial<State> {
+export function decodeState<T extends BaseState>(state: string): Partial<T> {
   return JSON.parse(atob(state));
 }
 
@@ -132,6 +163,19 @@ export async function connectProject(
       projectId,
       installationId,
     }),
+  });
+  await parseResponse(response);
+  return;
+}
+
+export async function connectUser(): Promise<void> {
+  const response = await fetch(`/plugins/github/connectUser`, {
+    method: "POST",
+    headers: {
+      ...headers(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
   });
   await parseResponse(response);
   return;

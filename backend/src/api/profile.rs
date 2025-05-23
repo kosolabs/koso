@@ -65,7 +65,7 @@ async fn fetch_plugin_mappings(email: &str, pool: &PgPool) -> Result<Option<Plug
     sqlx::query_as(
         "
         SELECT github_login
-        FROM user
+        FROM users
         WHERE email = $1",
     )
     .bind(email)

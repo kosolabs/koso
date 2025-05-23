@@ -19,7 +19,8 @@
     const code = urlParams.get("code");
     if (!code) {
       toast.info("Redirecting to Github for authorization");
-      github.redirectToGitubOAuth(state);
+      const redirectUri = `${location.origin}/connections/github`;
+      github.redirectToGitubOAuth(state, redirectUri);
       return;
     }
 
@@ -37,7 +38,7 @@
 
   function parseAndValidateState(
     urlParams: URLSearchParams,
-  ): github.State | null {
+  ): github.ConnectProjectState | null {
     const stateParam = urlParams.get("state");
     if (!stateParam) {
       // TODO: Implement an installation/project picker.
@@ -55,7 +56,7 @@
       return null;
     }
 
-    const state = github.decodeState(stateParam);
+    const state = github.decodeState<github.ConnectProjectState>(stateParam);
     console.log("Decoded state", state);
 
     // Add the installation ID passed as a query parameter to the state.
