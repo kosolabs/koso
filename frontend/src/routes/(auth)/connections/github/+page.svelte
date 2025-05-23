@@ -25,15 +25,15 @@
     }
 
     console.log("Logging user in with Github");
-    await authWithCode(code);
+    await authWithCode(state, code);
 
     console.log(
       `Connecting installation '${state.installationId}' and project '${state.projectId}'`,
     );
-    await connectProject(state.projectId, state.installationId);
+    await connectProject(state);
     toast.info("Project connected to Github!");
 
-    await goto(`/projects/${state.projectId}`);
+    await goto(state.redirectUrl);
   });
 
   function parseAndValidateState(
@@ -99,37 +99,47 @@
       );
       return null;
     }
+    if (!state.redirectUrl) {
+      console.warn("No redirectUrl present in state", state);
+      toast.error(
+        "Something went wrong, invalid state. Connect via the 'Connect' button on your project page",
+      );
+      return null;
+    }
 
     return {
       projectId: state.projectId,
       installationId: state.installationId,
       clientId: state.clientId,
       csrf: state.csrf,
+      redirectUrl: state.redirectUrl,
     };
   }
 
-  async function authWithCode(code: string): Promise<void> {
+  async function authWithCode(
+    state: github.BaseState,
+    code: string,
+  ): Promise<void> {
     try {
       await github.authWithCode(code);
     } catch (e) {
       if (e instanceof KosoError && e.hasReason("GITHUB_AUTH_REJECTED")) {
         toast.error("Failed to authenticate with Github. Please try again");
-        await goto("/");
+        await goto(state.redirectUrl);
       }
       throw e;
     }
   }
 
   async function connectProject(
-    projectId: string,
-    installationId: string,
+    state: github.ConnectProjectState,
   ): Promise<void> {
     try {
-      return github.connectProject(projectId, installationId);
+      return github.connectProject(state.projectId, state.installationId);
     } catch (e) {
       if (e instanceof KosoError && e.hasReason("GITHUB_UNAUTHENTICATED")) {
         toast.error("Github authentication expired. Please try again");
-        await goto("/");
+        await goto(state.redirectUrl);
       }
       throw e;
     }

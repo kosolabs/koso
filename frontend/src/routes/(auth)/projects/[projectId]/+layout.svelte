@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import { getAuthContext, showUnauthorizedDialog } from "$lib/auth.svelte";
   import {
     getRegistryContext,
@@ -103,7 +104,9 @@
     new Action({
       id: "ConnectToGitHub",
       callback: async () =>
-        window.location.assign(await githubInstallUrl(ctx.id)),
+        window.location.assign(
+          await githubInstallUrl(ctx.id, page.url.pathname),
+        ),
       title: "Connect to GitHub",
       description: "Connect the project to GitHub",
       icon: UserPlus,

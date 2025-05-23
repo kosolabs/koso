@@ -18,16 +18,17 @@ export type AuthResult = {
  * See
  * https://docs.github.com/en/apps/sharing-github-apps/sharing-your-github-app
  */
-export async function githubInstallUrl(projectId: string) {
+export async function githubInstallUrl(projectId: string, redirectUrl: string) {
   const init = await initGithub();
 
   const state = encodeState<
     Omit<ConnectProjectState, "installationId"> & { installationId?: string }
   >({
     csrf: generateCsrfValue(),
-    projectId: projectId,
+    projectId,
     clientId: init.clientId,
     installationId: undefined,
+    redirectUrl,
   });
   sessionStorage.setItem(stateSessionKey, state);
   return `https://github.com/apps/${init.appName}/installations/new?state=${encodeURIComponent(state)}`;
@@ -38,12 +39,13 @@ export async function githubInstallUrl(projectId: string) {
  * success. See
  * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-web-application-flow-to-generate-a-user-access-token
  */
-export async function redirectToConnectUserFlow() {
+export async function redirectToConnectUserFlow(redirectUrl: string) {
   const init = await initGithub();
 
   const state = encodeState<ConnectUserState>({
     csrf: generateCsrfValue(),
     clientId: init.clientId,
+    redirectUrl,
   });
   sessionStorage.setItem(stateSessionKey, state);
 
@@ -86,6 +88,7 @@ export function redirectToGitubOAuth<T extends BaseState>(
 export type BaseState = {
   csrf: string;
   clientId: string;
+  redirectUrl: string;
 };
 
 export type ConnectProjectState = BaseState & {

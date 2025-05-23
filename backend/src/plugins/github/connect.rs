@@ -6,7 +6,7 @@ use crate::{
     },
     settings::settings,
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use axum::{
     Extension, Json, Router,
     routing::{delete, get, post},

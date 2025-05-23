@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import { headers, parseResponse } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
@@ -108,21 +109,21 @@
     if (
       !(await dialog.confirm({
         message,
-        title: "Delete Github link?",
+        title: "Delete Github Connection?",
         icon: Trash2,
       }))
     ) {
       return;
     }
 
-    const toastId = toast.loading("Deleting Github link...");
+    const toastId = toast.loading("Deleting Github connection...");
 
     try {
       await deleteUserConnection();
-      toast.success("Github link deleted.", { id: toastId });
+      toast.success("Github connection deleted.", { id: toastId });
       profile = load();
     } catch {
-      toast.error("Failed to delete Github link.", { id: toastId });
+      toast.error("Failed to delete Github connection.", { id: toastId });
     }
   }
 </script>
@@ -224,12 +225,12 @@
             <div></div>
           </div>
         {:else}
-          Your Koso profile is not connected to Github. Koso is not linked to
-          Github.
+          Your Koso profile is not connected to Github.
           <Button
             icon={CircleX}
             variant="filled"
-            onclick={async () => await redirectToConnectUserFlow()}
+            onclick={async () =>
+              await redirectToConnectUserFlow(page.url.pathname)}
           >
             Connect to Github
           </Button>
