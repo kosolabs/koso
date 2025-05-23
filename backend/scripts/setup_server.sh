@@ -101,6 +101,10 @@ touch /root/.secrets/github/key.pem
 touch /root/.secrets/github/webhook_secret
 # The Github app's client secret
 touch /root/.secrets/github/client_secret
+# The telegram bot token
+touch /root/.secrets/telegram/token
+# The pem encoded RSA key used to sign telegram auth tokens
+touch /root/.secrets/koso/hmac
 # MANUAL - place secrets in those files
 
 # Finally, run the Deploy action to start the backend.
