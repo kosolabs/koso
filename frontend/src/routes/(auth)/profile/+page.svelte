@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { headers, parse_response } from "$lib/api";
+  import { headers, parseResponse } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
@@ -37,7 +37,7 @@
 
   async function load(): Promise<Profile> {
     let resp = await fetch("/api/profile", { headers: headers() });
-    return await parse_response(resp);
+    return await parseResponse(resp);
   }
 
   async function sendTestTelegramNotification() {
@@ -51,7 +51,7 @@
           "Content-Type": "application/json",
         },
       });
-      await parse_response(resp);
+      await parseResponse(resp);
       toast.success("Test notification sent successfully.", { id: toastId });
     } catch {
       toast.error("Failed to send test notification.", { id: toastId });
@@ -79,7 +79,7 @@
           "Content-Type": "application/json",
         },
       });
-      await parse_response(resp);
+      await parseResponse(resp);
       toast.success("Telegram authorization deleted.", { id: toastId });
       profile = load();
     } catch {

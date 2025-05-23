@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import { headers, parse_response } from "$lib/api";
+  import { headers, parseResponse } from "$lib/api";
   import { Navbar } from "$lib/components/ui/navbar";
   import { Alert } from "$lib/kosui/alert";
   import { getDialoguerContext } from "$lib/kosui/dialog";
@@ -39,7 +39,7 @@
     loading = false;
 
     try {
-      await parse_response(resp);
+      await parseResponse(resp);
       const goHome = await dialog.confirm({
         icon: CircleCheck,
         title: "Telegram authorized",
