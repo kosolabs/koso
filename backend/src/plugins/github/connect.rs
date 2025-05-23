@@ -172,13 +172,10 @@ impl ConnectHandler {
     }
 
     async fn connect_user(&self, user: User) -> ApiResult<Json<ConnectUserResponse>> {
-        let github_user = self.fetch_user(&user).await?;
-        tracing::info!(
-            "Connecting user {} to github user: {github_user:?}",
-            user.email
-        );
+        let octocrab::models::Author { url, id, .. } = self.fetch_user(&user).await?;
 
-        self.update_user_mapping(user, github_user).await?;
+        tracing::info!("Connecting user {} to github user {id} ({url})", user.email);
+        self.update_user_mapping(&user, &id.to_string()).await?;
 
         Ok(Json(ConnectUserResponse {}))
     }
@@ -191,8 +188,8 @@ impl ConnectHandler {
 
     async fn update_user_mapping(
         &self,
-        user: User,
-        github_user: octocrab::models::Author,
+        user: &User,
+        github_user_id: &str,
     ) -> Result<(), api::ErrorResponse> {
         let res = sqlx::query(
             "
@@ -201,7 +198,7 @@ impl ConnectHandler {
             WHERE email = $1",
         )
         .bind(&user.email)
-        .bind(github_user.id.to_string())
+        .bind(github_user_id)
         .execute(self.pool)
         .await?;
         if res.rows_affected() == 0 {
