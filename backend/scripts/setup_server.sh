@@ -23,6 +23,17 @@ EOL
 git clone https://github.com/shadanan/dotfiles.git .dotfiles
 .dotfiles/install
 
+# Enable unattended upgrades
+sudo apt update
+sudo apt install unattended-upgrades
+
+cat >> /etc/apt/apt.conf.d/20auto-upgrades << EOL
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
+EOL
+sudo unattended-upgrades --dry-run --debug
+
 # Clone the Koso repo
 git clone https://github.com/kosolabs/koso.git
 
