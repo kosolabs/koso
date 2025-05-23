@@ -34,7 +34,7 @@
   type NotificationConfig = TelegramNotificationConfig;
 
   type PluginConnections = {
-    githubLogin?: string;
+    githubUserId?: string;
   };
 
   type Profile = {
@@ -202,14 +202,14 @@
       </div>
     {:then profile}
       <SubSection title="Github">
-        {#if profile.pluginConnections.githubLogin}
+        {@const githubUserId = profile.pluginConnections.githubUserId}
+        {#if githubUserId}
           <div class="flex flex-col gap-2">
             <div>
               Your Koso profile is connected to Github user
-              <a
-                href="https://api.github.com/user/{profile.pluginConnections
-                  .githubLogin}">{profile.pluginConnections.githubLogin}</a
-              >
+              <Link href="https://api.github.com/user/{githubUserId}">
+                {githubUserId}
+              </Link>
             </div>
             <div class="flex flex-wrap gap-2">
               <div class="ml-auto">
