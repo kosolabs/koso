@@ -1,2 +1,2 @@
 ALTER TABLE users
-ADD COLUMN github_login text;
+ADD COLUMN github_user_id text;

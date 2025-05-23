@@ -208,7 +208,7 @@ impl ConnectHandler {
         let res = sqlx::query(
             "
             UPDATE users
-            SET github_login = $2
+            SET github_user_id = $2
             WHERE email = $1",
         )
         .bind(&user.email)

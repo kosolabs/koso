@@ -1,2 +1,2 @@
 ALTER TABLE users
-DROP COLUMN github_login;
+DROP COLUMN github_user_id;

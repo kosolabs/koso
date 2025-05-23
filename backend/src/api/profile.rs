@@ -17,13 +17,13 @@ pub(crate) fn router() -> Router {
 #[serde(rename_all = "camelCase")]
 struct Profile {
     notification_configs: Vec<UserNotificationConfig>,
-    plugin_mappings: PluginMappings,
+    plugin_connections: PluginConnections,
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
 #[serde(rename_all = "camelCase")]
-struct PluginMappings {
-    github_login: Option<String>,
+struct PluginConnections {
+    github_user_id: Option<String>,
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -31,17 +31,17 @@ async fn get_profile_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Profile>> {
-    let (notification_configs, plugin_mappings) = try_join!(
+    let (notification_configs, plugin_connections) = try_join!(
         fetch_notification_configs(&user.email, pool),
-        fetch_plugin_mappings(&user.email, pool)
+        fetch_plugin_connections(&user.email, pool)
     )?;
-    let Some(plugin_mappings) = plugin_mappings else {
+    let Some(plugin_connections) = plugin_connections else {
         return Err(not_found_error("NOT_FOUND", "User not found"));
     };
 
     Ok(Json(Profile {
         notification_configs,
-        plugin_mappings,
+        plugin_connections,
     }))
 }
 
@@ -61,15 +61,15 @@ async fn fetch_notification_configs(
     .context("Failed to query notification configs")
 }
 
-async fn fetch_plugin_mappings(email: &str, pool: &PgPool) -> Result<Option<PluginMappings>> {
+async fn fetch_plugin_connections(email: &str, pool: &PgPool) -> Result<Option<PluginConnections>> {
     sqlx::query_as(
         "
-        SELECT github_login
+        SELECT github_user_id
         FROM users
         WHERE email = $1",
     )
     .bind(email)
     .fetch_optional(pool)
     .await
-    .context("Failed to query user plugin mappings")
+    .context("Failed to query user plugin connections")
 }

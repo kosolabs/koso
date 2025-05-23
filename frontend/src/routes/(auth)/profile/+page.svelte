@@ -33,13 +33,13 @@
 
   type NotificationConfig = TelegramNotificationConfig;
 
-  type PluginMappings = {
+  type PluginConnections = {
     githubLogin?: string;
   };
 
   type Profile = {
     notificationConfigs: NotificationConfig[];
-    pluginMappings: PluginMappings;
+    pluginConnections: PluginConnections;
   };
 
   async function load(): Promise<Profile> {
@@ -202,13 +202,13 @@
       </div>
     {:then profile}
       <SubSection title="Github">
-        {#if profile.pluginMappings.githubLogin}
+        {#if profile.pluginConnections.githubLogin}
           <div class="flex flex-col gap-2">
             <div>
               Your Koso profile is connected to Github user
               <a
-                href="https://api.github.com/user/{profile.pluginMappings
-                  .githubLogin}">{profile.pluginMappings.githubLogin}</a
+                href="https://api.github.com/user/{profile.pluginConnections
+                  .githubLogin}">{profile.pluginConnections.githubLogin}</a
               >
             </div>
             <div class="flex flex-wrap gap-2">
