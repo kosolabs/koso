@@ -3,10 +3,9 @@ import { nav } from "$lib/nav.svelte";
 import { jwtDecode } from "jwt-decode";
 import { CircleX } from "lucide-svelte";
 import { getContext, setContext } from "svelte";
-import { headers, parse_response } from "./api";
 import { getDialoguerContext } from "./kosui/dialog";
 import { loads, saves } from "./stores.svelte";
-import type { FullUser } from "./users";
+import { fetchUser, type FullUser } from "./users";
 
 export const CREDENTIAL_KEY = "credential";
 
@@ -97,16 +96,8 @@ export class AuthContext {
 
   async load() {
     if (auth.ok()) {
-      this.#user = await this.#fetchUser(auth.user.email);
+      this.#user = await fetchUser(auth.user.email);
     }
-  }
-
-  async #fetchUser(email: string): Promise<FullUser> {
-    const response = await fetch(`/api/users/${email}`, {
-      method: "GET",
-      headers: headers(),
-    });
-    return parse_response(response);
   }
 }
 

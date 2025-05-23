@@ -1,4 +1,4 @@
-import { headers, parse_response } from "./api";
+import { headers, parseResponse } from "./api";
 
 const stateSessionKey = "github_csrf_state";
 const loginExpirationSessionKey = "github_login_expires_at";
@@ -25,7 +25,7 @@ export async function githubInstallUrl(projectId: string) {
       "Content-Type": "application/json",
     },
   });
-  const init: InitResponse = await parse_response(response);
+  const init: InitResponse = await parseResponse(response);
 
   const state = encodeState({
     csrf: generateCsrfValue(),
@@ -113,7 +113,7 @@ export async function authWithCode(code: string): Promise<void> {
       code: code,
     }),
   });
-  const result: AuthResult = await parse_response(response);
+  const result: AuthResult = await parseResponse(response);
   const expiresAt = Math.floor(Date.now()) + (result.expiresIn - 60) * 1000;
   sessionStorage.setItem(loginExpirationSessionKey, expiresAt.toString());
 }
@@ -133,6 +133,6 @@ export async function connectProject(
       installationId,
     }),
   });
-  await parse_response(response);
+  await parseResponse(response);
   return;
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { headers, parse_response } from "$lib/api";
+  import { headers, parseResponse } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
@@ -92,7 +92,7 @@
       const response = await fetch(`/api/users?q=${filter}`, {
         headers: headers(),
       });
-      let respUsers: User[] = await parse_response(response);
+      let respUsers: User[] = await parseResponse(response);
       if (thisReq !== req) {
         console.log(
           `Discarding request ${thisReq}. A newer request, ${req}, is running.`,

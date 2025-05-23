@@ -42,7 +42,7 @@ export function headers() {
  *
  * @throws {KosoError}
  */
-export async function parse_response<T>(response: Response): Promise<T> {
+export async function parseResponse<T>(response: Response): Promise<T> {
   if (response.ok) {
     return response.json();
   }
@@ -73,12 +73,12 @@ export async function parse_response<T>(response: Response): Promise<T> {
     });
   }
 
-  handle_auth_errors(err, response);
+  handleAuthErrors(err, response);
 
   throw err;
 }
 
-function handle_auth_errors(err: KosoError, response: Response) {
+function handleAuthErrors(err: KosoError, response: Response) {
   const AUTHENTICATION_ERROR = 401;
   if (response.status === AUTHENTICATION_ERROR) {
     console.debug(
