@@ -8,6 +8,7 @@
   import { Link } from "$lib/kosui/link";
   import { CircularProgress } from "$lib/kosui/progress";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
+  import { updateUser } from "$lib/users";
   import { CircleX, Moon, Send, Sun, SunMoon, Trash2 } from "lucide-svelte";
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
@@ -31,8 +32,13 @@
 
   type NotificationConfig = TelegramNotificationConfig;
 
+  type PluginMappings = {
+    githubLogin?: string;
+  };
+
   type Profile = {
     notificationConfigs: NotificationConfig[];
+    pluginMappings: PluginMappings;
   };
 
   async function load(): Promise<Profile> {
@@ -96,6 +102,29 @@
       }
     }
     return null;
+  }
+
+  async function updateGithubMapping(githubLogin?: string) {
+    if (
+      !githubLogin &&
+      !(await dialog.confirm({
+        message,
+        title: "Delete Github link?",
+        icon: Trash2,
+      }))
+    ) {
+      return;
+    }
+
+    const toastId = toast.loading("Updating Github link...");
+
+    try {
+      updateUser(auth.user.email, { githubLogin });
+      toast.success("Github link updated.", { id: toastId });
+      profile = load();
+    } catch {
+      toast.error("Failed to updated Github link.", { id: toastId });
+    }
   }
 </script>
 
@@ -161,6 +190,40 @@
           Koso is not authorized to send messages to Telegram. To authorize
           Koso, start a Telegram Chat with
           <Link href="https://t.me/KosoLabsBot">@KosoLabsBot</Link>.
+        {/if}
+      </SubSection>
+    {/await}
+  </Section>
+  <Section title="Plugins">
+    {#await profile}
+      <div class="flex place-content-center items-center gap-2">
+        <CircularProgress />
+        <div>Loading...</div>
+      </div>
+    {:then profile}
+      <SubSection title="Github">
+        {#if profile.pluginMappings.githubLogin}
+          <div class="flex flex-col gap-2">
+            <div>Koso is authorized to send messages to Telegram.</div>
+            <div class="flex flex-wrap gap-2">
+              <Button icon={Send} onclick={sendTestTelegramNotification}>
+                Send Test Notification
+              </Button>
+              <div class="ml-auto">
+                <Button
+                  icon={CircleX}
+                  variant="filled"
+                  onclick={async () => await updateGithubMapping()}
+                >
+                  Delete Mapping
+                </Button>
+              </div>
+            </div>
+            <div></div>
+          </div>
+        {:else}
+          Koso is not linked to Github. To link Koso, enter your github login:
+          TODO
         {/if}
       </SubSection>
     {/await}
