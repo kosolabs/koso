@@ -10,7 +10,7 @@ pub(super) fn router() -> Router {
         .route("/{email}", get(get_user_handler))
 }
 
-#[tracing::instrument(skip(pool))]
+#[tracing::instrument(skip(pool, user))]
 async fn list_users_handler(
     Extension(pool): Extension<&'static PgPool>,
     Extension(user): Extension<google::User>,
@@ -26,21 +26,13 @@ async fn list_users_handler(
     Ok(Json(users))
 }
 
-#[tracing::instrument(skip(pool))]
+#[tracing::instrument(skip(pool, user))]
 async fn get_user_handler(
     Extension(pool): Extension<&'static PgPool>,
     Extension(user): Extension<google::User>,
     Path(email): Path<String>,
 ) -> ApiResult<Json<User>> {
-    if email.is_empty() {
-        return Err(bad_request_error("EMPTY_EMAIL", "Email must not be empty"));
-    }
-    if email != user.email {
-        return Err(unauthorized_error(&format!(
-            "User {} is not authorized to access {}",
-            user.email, email
-        )));
-    }
+    verify_user_access(&user, &email)?;
 
     let user: Option<User> =
         sqlx::query_as("SELECT email, name, picture, premium FROM users WHERE email=$1;")
@@ -54,4 +46,17 @@ async fn get_user_handler(
             &format!("User {email} not found"),
         )),
     }
+}
+
+fn verify_user_access(user: &google::User, email: &str) -> ApiResult<()> {
+    if email.is_empty() {
+        return Err(bad_request_error("EMPTY_EMAIL", "Email must not be empty"));
+    }
+    if email != user.email {
+        return Err(unauthorized_error(&format!(
+            "User {} is not authorized to access {}",
+            user.email, email
+        )));
+    }
+    Ok(())
 }
