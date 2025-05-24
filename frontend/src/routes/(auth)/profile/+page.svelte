@@ -225,15 +225,20 @@
             <div></div>
           </div>
         {:else}
-          Your Koso profile is not connected to Github.
-          <Button
-            icon={CircleX}
-            variant="filled"
-            onclick={async () =>
-              await redirectToConnectUserFlow(page.url.pathname)}
-          >
-            Connect to Github
-          </Button>
+          <div class="flex flex-col gap-2">
+            <div>Your Koso profile is not connected to Github.</div>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                icon={CircleX}
+                variant="filled"
+                onclick={async () =>
+                  await redirectToConnectUserFlow(page.url.pathname)}
+              >
+                Connect to Github
+              </Button>
+            </div>
+            <div></div>
+          </div>
         {/if}
       </SubSection>
     {/await}
