@@ -7,7 +7,7 @@
   } from "$lib/components/ui/command-palette";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { ProjectShareModal } from "$lib/components/ui/project-share-modal";
-  import { githubInstallUrl } from "$lib/github";
+  import { redirectToGithubInstallFlow } from "$lib/github";
   import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
   import { NavigationAction } from "$lib/navigation-action";
@@ -104,9 +104,7 @@
     new Action({
       id: "ConnectToGitHub",
       callback: async () =>
-        window.location.assign(
-          await githubInstallUrl(ctx.id, page.url.pathname),
-        ),
+        await redirectToGithubInstallFlow(ctx.id, page.url.pathname),
       title: "Connect to GitHub",
       description: "Connect the project to GitHub",
       icon: UserPlus,

@@ -18,7 +18,10 @@ export type AuthResult = {
  * See
  * https://docs.github.com/en/apps/sharing-github-apps/sharing-your-github-app
  */
-export async function githubInstallUrl(projectId: string, redirectUrl: string) {
+export async function redirectToGithubInstallFlow(
+  projectId: string,
+  redirectUrl: string,
+) {
   const init = await initGithub();
 
   const state = encodeState<
@@ -31,7 +34,9 @@ export async function githubInstallUrl(projectId: string, redirectUrl: string) {
     redirectUrl,
   });
   sessionStorage.setItem(stateSessionKey, state);
-  return `https://github.com/apps/${init.appName}/installations/new?state=${encodeURIComponent(state)}`;
+  window.location.assign(
+    `https://github.com/apps/${init.appName}/installations/new?state=${encodeURIComponent(state)}`,
+  );
 }
 
 /**
