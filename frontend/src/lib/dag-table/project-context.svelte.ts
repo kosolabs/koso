@@ -11,7 +11,6 @@ export class ProjectContext {
   socket: KosoSocket;
   name: string = "";
   users: User[] = $state([]);
-  premium: boolean = false;
 
   constructor(id: string, koso: Koso, socket: KosoSocket) {
     this.id = id;
@@ -34,5 +33,7 @@ export function setProjectContext(ctx: ProjectContext): ProjectContext {
 }
 
 export function getProjectContext(): ProjectContext {
-  return getContext<ProjectContext>(ProjectContext);
+  const ctx = getContext<ProjectContext>(ProjectContext);
+  if (!ctx) throw new Error("ProjectContext is undefined");
+  return ctx;
 }

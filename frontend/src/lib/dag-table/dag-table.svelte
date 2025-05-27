@@ -1,7 +1,10 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
@@ -16,6 +19,7 @@
     ChevronsDownUp,
     ChevronsUpDown,
     CircleX,
+    Clipboard,
     Eye,
     EyeOff,
     IndentDecrease,
@@ -31,6 +35,7 @@
     Plus,
     Redo,
     Search,
+    Share,
     SkipBack,
     SkipForward,
     SquarePen,
@@ -54,6 +59,7 @@
 
   const rows: { [key: string]: DagRow } = {};
 
+  const command = getRegistryContext();
   const planningCtx = getPlanningContext();
   const { koso } = planningCtx;
 
@@ -71,7 +77,11 @@
   }
 
   function insertAndEdit(parent: Node, offset: number, user: User) {
-    const taskId = koso.insertTask(parent.name, offset, user);
+    const taskId = koso.insertTask({
+      parent: parent.name,
+      offset,
+      reporter: user.email,
+    });
     const node = parent.child(taskId);
     planningCtx.selected = node;
 
@@ -304,6 +314,19 @@
     koso.organizeTasks(planningCtx.selected.parent.name);
   }
 
+  function copyGitCommitMessage() {
+    if (!planningCtx.selected) return;
+    const taskId = planningCtx.selected.name;
+    navigator.clipboard.writeText(koso.getGitCommitMessage(taskId));
+  }
+
+  function copyTaskLink() {
+    if (!planningCtx.selected) return;
+    navigator.clipboard.writeText(
+      koso.getTaskPermalink(planningCtx.selected.name).toString(),
+    );
+  }
+
   const insertAction: Action<ActionID> = {
     id: "Insert",
     callback: insert,
@@ -314,28 +337,6 @@
     enabled: () =>
       !planningCtx.selected || koso.canInsert(planningCtx.selected.parent.name),
   };
-
-  const undoAction = new Action({
-    id: "Undo",
-    callback: undo,
-    icon: Undo,
-    shortcut: new Shortcut({ key: "z", meta: true }),
-  });
-
-  const redoAction = new Action({
-    id: "Redo",
-    callback: redo,
-    icon: Redo,
-    shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
-  });
-
-  const searchAction = new Action({
-    id: "Search",
-    callback: showSearchPalette,
-    description: "Show the search palette",
-    icon: Search,
-    shortcut: new Shortcut({ key: "p", meta: true }),
-  });
 
   const actions: Action<ActionID>[] = [
     new Action({
@@ -510,8 +511,18 @@
         planningCtx.canIndentNode(planningCtx.selected),
       shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
     }),
-    undoAction,
-    redoAction,
+    new Action({
+      id: "Undo",
+      callback: undo,
+      icon: Undo,
+      shortcut: new Shortcut({ key: "z", meta: true }),
+    }),
+    new Action({
+      id: "Redo",
+      callback: redo,
+      icon: Redo,
+      shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
+    }),
     new Action({
       id: "ToggleTaskStatus",
       callback: toggleStatus,
@@ -538,7 +549,13 @@
       icon: Eye,
       enabled: () => !planningCtx.showDone,
     }),
-    searchAction,
+    new Action({
+      id: "Search",
+      callback: showSearchPalette,
+      description: "Show the search palette",
+      icon: Search,
+      shortcut: new Shortcut({ key: "p", meta: true }),
+    }),
     new Action({
       id: "NextLink",
       callback: selectNextLink,
@@ -557,9 +574,6 @@
       enabled: () => !!planningCtx.selected,
       shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
     }),
-  ];
-
-  actions.push(
     new Action({
       id: "Link",
       callback: linkTask,
@@ -585,7 +599,24 @@
       icon: Wrench,
       enabled: () => !!planningCtx.selected,
     }),
-  );
+    new Action({
+      id: "CopyTaskInfo",
+      callback: copyGitCommitMessage,
+      title: "Copy task info",
+      description: "Copy task git commit message to the clipboard",
+      icon: Clipboard,
+      enabled: () => !!planningCtx.selected,
+    }),
+    new Action({
+      id: "CopyTaskLink",
+      callback: copyTaskLink,
+      title: "Copy task permalink",
+      description: "Share task by copying permalink to the clipboard",
+      icon: Share,
+      shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
+      enabled: () => !!planningCtx.selected,
+    }),
+  ];
 
   onMount(async () => {
     const url = new URL(window.location.href);
@@ -596,12 +627,22 @@
       replaceState(url, {});
       // The task may not exist locally, yet. It
       // might come from the server, so wait for that.
-      if (!planningCtx.koso.getTask(taskId)) {
+      if (planningCtx.koso.getTaskIndex(taskId) < 0) {
         console.debug(
           `Waiting for server sync before selecting task ${taskId}`,
         );
         await koso.serverSynced;
+        await tick();
+
+        if (planningCtx.koso.getTaskIndex(taskId) < 0) {
+          console.warn(
+            `Cannot select ${taskId} after server sync. It doesn't exist`,
+          );
+          toast.warning(`Task not found. It may have been deleted.`);
+          return;
+        }
       }
+
       planningCtx.select(taskId);
     }
   });
@@ -662,56 +703,64 @@
 
 {#await koso.synced then}
   {#if planningCtx.nodes.size > 1}
-    <div class="flex flex-col gap-2">
-      <!-- Add a z-0 to fix a bug in Safari where rows disappear when collapsing
+    <div class="relative h-full">
+      <div class="flex flex-col gap-2">
+        <!-- Add a z-0 to fix a bug in Safari where rows disappear when collapsing
                  and expanding tasks -->
-      <table
-        class="dag-table z-0 w-full border-separate border-spacing-0 rounded-md border"
-      >
-        <thead class="text-left text-xs font-bold uppercase">
-          <tr>
-            <th class="relative m-0 w-0 p-0"></th>
-            <th class="w-32 p-2">ID</th>
-            {#if koso.debug}
-              <th class="border-l p-2">UUID</th>
-            {/if}
-            <th class="border-l p-2">
-              <SquarePen class="h-4 md:hidden" />
-              <div class="max-md:hidden">Status</div></th
-            >
-            <th class="border-l p-2">Name</th>
-            <th class="p-2"></th>
-            <th class="border-l p-2">
-              <UserRoundPlus class="h-4 md:hidden" />
-              <div class="max-md:hidden">Assignee</div>
-            </th>
-            <th class="border-l p-2 max-md:hidden">Reporter</th>
-            <th class="relative m-0 w-0 p-0"></th>
-          </tr>
-        </thead>
+        <table
+          class="dag-table z-0 w-full border-separate border-spacing-0 rounded-md border"
+        >
+          <thead class="text-left text-xs font-bold uppercase">
+            <tr>
+              <th class="relative m-0 w-0 p-0"></th>
+              <th class="w-32 p-2">ID</th>
+              {#if koso.debug}
+                <th class="border-l p-2">UUID</th>
+              {/if}
+              <th class="border-l p-2">
+                <SquarePen class="h-4 md:hidden" />
+                <div class="max-md:hidden">Status</div></th
+              >
+              <th class="border-l p-2">Name</th>
+              <th class="p-2"></th>
+              <th class="border-l p-2">
+                <UserRoundPlus class="h-4 md:hidden" />
+                <div class="max-md:hidden">Assignee</div>
+              </th>
+              <th class="border-l p-2 max-md:hidden">Reporter</th>
+              <th class="relative m-0 w-0 p-0"></th>
+            </tr>
+          </thead>
 
-        {#each [...planningCtx.nodes].slice(1) as node, index (node.id)}
-          <tbody animate:flip={{ duration: 250 }}>
-            <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
-            <!-- svelte-ignore binding_property_non_reactive -->
-            <DagRow bind:this={rows[node.id]} {index} {node} {users} />
-          </tbody>
-        {/each}
-      </table>
+          {#each [...planningCtx.nodes].slice(1) as node, index (node.id)}
+            <tbody animate:flip={{ duration: 250 }}>
+              <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
+              <!-- svelte-ignore binding_property_non_reactive -->
+              <DagRow bind:this={rows[node.id]} {index} {node} {users} />
+            </tbody>
+          {/each}
+        </table>
 
-      <Fab icon={Plus} onclick={insertAction.callback} reserve>
-        {insertAction.title}
-        {#snippet tooltip()}
-          <div class="flex items-center gap-2">
-            {insertAction.description}
-            {#if insertAction.shortcut}
-              <div class="font-bold">
-                {insertAction.shortcut.toString()}
-              </div>
-            {/if}
-          </div>
-        {/snippet}
-      </Fab>
+        <Fab
+          reserveClass="m-0.5"
+          positionClass="m-0"
+          icon={Plus}
+          onclick={insertAction.callback}
+          reserve
+        >
+          {insertAction.title}
+          {#snippet tooltip()}
+            <div class="flex items-center gap-2">
+              {insertAction.description}
+              {#if insertAction.shortcut}
+                <div class="font-bold">
+                  {insertAction.shortcut.toString()}
+                </div>
+              {/if}
+            </div>
+          {/snippet}
+        </Fab>
+      </div>
     </div>
   {:else}
     <div class="flex items-center justify-center pt-8">

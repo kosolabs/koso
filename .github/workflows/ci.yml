@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
 jobs:
   cargo:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./backend
@@ -22,7 +22,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17.5@sha256:864831322bf2520e7d03d899b01b542de6de9ece6fe29c89f19dc5e1d5568ccf
+        image: postgres:17.5@sha256:6efd0df010dc3cb40d5e33e3ef84acecc5e73161bd3df06029ee8698e5e12c60
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -32,10 +32,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Configure rust version
+        id: rust-version
+        run: |
+          VERSION=$(cat ../rust-toolchain.toml| sed -rn 's/^channel = "([0-9]+\.[0-9]+\.[0-9]+)"/\1/p')
+          if [ -z "${VERSION}" ]; then
+            echo "Version not found in rust-toolchain.toml"
+            exit 1
+          fi
+          echo VERSION=$VERSION >> "$GITHUB_OUTPUT"
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b # master
         with:
-          toolchain: stable
+          toolchain: ${{ steps.rust-version.outputs.VERSION }}
+          components: rustfmt,clippy
       - name: Rust build cache
         uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
         with:
@@ -43,6 +53,7 @@ jobs:
           shared-key: "backend-build"
       - name: Run cargo test
         run: |
+          echo "::group::Add Secrets"
           mkdir -p ~/.secrets/github
           echo "::add-mask::${{ secrets.GH_APP_KEY }}"
           echo "${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
@@ -50,14 +61,18 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
+          echo "::endgroup::"
+
           KOSO_SETTING_SECRETS_DIR=$(realpath ~/.secrets) \
             KOSO_SETTING_DATABASE_URL=${{ env.DATABASE_URL }} \
             cargo test --package koso
-      - run: cargo clippy -- -D warnings
-      - run: cargo fmt --all -- --check
+      - name: Run cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run cargo fmt check
+        run: cargo fmt --all -- --check
 
   npm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./frontend
@@ -78,7 +93,7 @@ jobs:
       - run: pnpm run "/^(build|check|lint|test:unit)$/"
 
   playwright:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: ./frontend
@@ -88,7 +103,7 @@ jobs:
       REGISTRY: ghcr.io
     services:
       postgres:
-        image: postgres:17.5@sha256:864831322bf2520e7d03d899b01b542de6de9ece6fe29c89f19dc5e1d5568ccf
+        image: postgres:17.5@sha256:6efd0df010dc3cb40d5e33e3ef84acecc5e73161bd3df06029ee8698e5e12c60
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -116,7 +131,8 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install
-      - run: pnpm exec playwright install --with-deps
+      - name: Setup playwright
+        run: pnpm exec playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       # Find PR number
@@ -154,7 +170,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Backend Docker Image
         id: build-backend
-        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6.16.0
+        uses: docker/build-push-action@1dc73863535b631f98b2378be8619f83b136f4a0 # v6.17.0
         env:
           DOCKER_BUILD_SUMMARY: ${{ github.ref == 'refs/heads/main'}}
           DOCKER_BUILD_RECORD_UPLOAD: ${{ github.ref == 'refs/heads/main'}}
@@ -173,6 +189,7 @@ jobs:
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
       - name: Run Playwright tests
         run: |
+          echo "::group::Add Secrets"
           mkdir -p ~/.secrets/github
           echo "::add-mask::${{ secrets.GH_APP_KEY }}"
           echo "${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
@@ -180,6 +197,8 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
+          echo "::endgroup::"
+
           CI=true \
             KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} \
             KOSO_SETTING_DATABASE_URL=${{ env.DATABASE_URL }} \
@@ -193,7 +212,7 @@ jobs:
       # name for the Docker image that this workflow builds
       # "kosolabs/koso" or, for PRs, "kosolabs/koso/dev"
       IMAGE_NAME: ${{ (github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && 'kosolabs/koso') || 'kosolabs/koso/dev'}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
       contents: read
@@ -254,7 +273,7 @@ jobs:
       # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
       - name: Build and push Docker image
         id: push
-        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6.16.0
+        uses: docker/build-push-action@1dc73863535b631f98b2378be8619f83b136f4a0 # v6.17.0
         env:
           DOCKER_BUILD_SUMMARY: ${{ github.ref == 'refs/heads/main'}}
           DOCKER_BUILD_RECORD_UPLOAD: ${{ github.ref == 'refs/heads/main'}}

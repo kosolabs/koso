@@ -16,9 +16,14 @@ import { NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 const sw = self as unknown as ServiceWorkerGlobalScope;
 sw.__WB_DISABLE_DEV_LOGS = true;
 
+console.debug("Setting up service worker");
+
 sw.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
+    console.debug("Calling service worker skipWaiting", event);
     sw.skipWaiting();
+  } else {
+    console.debug("Got service worker message", event);
   }
 });
 

@@ -1,19 +1,22 @@
 <script lang="ts" module>
   import { type Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
-  import type { TooltipTriggerProps } from ".";
-  import type { PopoverProps } from "../popover";
-  import { Popover } from "../popover";
+  import { Popover, type PopoverProps } from "../popover";
   import type { ClassName } from "../utils";
 
-  type SnippetTooltipTriggerProps = {
+  export type TooltipTriggerProps = {
     ref: (el: HTMLElement) => void;
-  } & Omit<TooltipTriggerProps, "ref">;
+    onclick?: () => void;
+    onmouseenter?: () => void;
+    onmouseleave?: () => void;
+  };
 
   export type TooltipProps = {
     delay?: number;
     open?: boolean;
-    trigger?: Snippet<[SnippetTooltipTriggerProps]>;
+    click?: boolean;
+    rich?: boolean;
+    trigger?: Snippet<[TooltipTriggerProps]>;
   } & ClassName &
     PopoverProps;
 </script>
@@ -22,40 +25,57 @@
   let {
     delay = 1000,
     open = $bindable(false),
+    click = false,
+    rich = false,
+    arrow,
     trigger,
     anchorEl,
     class: className,
     ...restProps
   }: TooltipProps = $props();
 
-  let tooltipTimeout: number;
+  let timeout: number;
 
   export function show(after?: number) {
-    tooltipTimeout = window.setTimeout(
+    timeout = window.setTimeout(
       () => (open = true),
       after === undefined ? delay : after,
     );
   }
 
   export function hide() {
-    window.clearTimeout(tooltipTimeout);
+    window.clearTimeout(timeout);
     open = false;
   }
 
-  export const triggerProps: SnippetTooltipTriggerProps = {
-    ref: (ref) => (anchorEl = ref),
-    onmouseenter: () => show(),
-    onmouseleave: () => hide(),
-  };
+  const triggerProps: TooltipTriggerProps = click
+    ? {
+        ref: (ref) => (anchorEl = ref),
+        onclick: () => (open = true),
+      }
+    : {
+        ref: (ref) => (anchorEl = ref),
+        onmouseenter: () => show(delay),
+        onmouseleave: () => hide(),
+      };
 </script>
 
 <Popover
   bind:open
   role="tooltip"
   {anchorEl}
+  {arrow}
   class={twMerge(
-    "bg-m3-inverse-surface text-m3-inverse-on-surface overflow-visible rounded-sm px-2 py-1 text-xs",
+    arrow && "overflow-visible",
+    rich
+      ? "bg-m3-surface-container shadow-m3-shadow/20 rounded-md border p-2 text-sm shadow"
+      : "bg-m3-inverse-surface text-m3-inverse-on-surface rounded-sm px-2 py-1 text-xs",
     className,
+  )}
+  arrowClass={twMerge(
+    rich
+      ? "bg-m3-surface-container border-r border-b"
+      : "bg-m3-inverse-surface",
   )}
   {...restProps}
 />

@@ -5,11 +5,32 @@ import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import type { Koso } from "./koso.svelte";
 
+export type Reason =
+  | {
+      name: "Actionable";
+    }
+  | {
+      name: "ParentOwner";
+      parents: YTaskProxy[];
+    };
+
+export class ActionItem {
+  task: YTaskProxy;
+  reasons: Reason[];
+  priority: number;
+
+  constructor(task: YTaskProxy, reasons: Reason[], priority: number) {
+    this.task = task;
+    this.reasons = reasons;
+    this.priority = priority;
+  }
+}
+
 export class InboxContext {
   #koso: Koso;
   #yUndoManager: Y.UndoManager;
 
-  #tasks: YTaskProxy[] = $derived(this.#visibleTasks());
+  #tasks: ActionItem[] = $derived(this.#getActionItems());
 
   #selectedRaw: Selected = $state(Selected.default());
   #selected: YTaskProxy | undefined = $derived.by(() => {
@@ -44,7 +65,7 @@ export class InboxContext {
     return this.#koso;
   }
 
-  get tasks(): YTaskProxy[] {
+  get actionItems(): ActionItem[] {
     return this.#tasks;
   }
 
@@ -82,60 +103,95 @@ export class InboxContext {
     }
   }
 
-  #visibleTasks(): YTaskProxy[] {
-    const tasks: YTaskProxy[] = [];
+  #getActionItems(): ActionItem[] {
+    const items: ActionItem[] = [];
     for (const task of this.#koso.tasks) {
-      if (this.#isTaskVisible(task)) {
-        tasks.push(task);
+      const reasons = this.#getActionableReasons(task);
+      if (reasons.length) {
+        items.push(
+          new ActionItem(task, reasons, this.#prioritize(task, reasons)),
+        );
       }
     }
-    return tasks;
+
+    return items.sort((a, b) => {
+      // Sort first by priority.
+      const cmp = b.priority - a.priority;
+      if (cmp !== 0) {
+        return cmp;
+      }
+      // If priorities were equal, sort by number to ensure a stable order.
+      return a.task.num.localeCompare(b.task.num);
+    });
   }
 
-  #isTaskVisible(task: YTaskProxy): boolean {
+  #getActionableReasons(task: YTaskProxy): Reason[] {
+    const reasons: Reason[] = [];
+
     if (task.id === "root") {
-      return false;
+      return reasons;
     }
 
-    // Don't show tasks not assigned to the user
-    if (task.assignee !== null && task.assignee !== auth.user.email) {
-      return false;
-    }
-    // Don't show rollup tasks where every child is assigned.
+    const progress = this.#koso.getProgress(task.id);
+
+    // A leaf task is unblocked, incomplete and assigned to the user
     if (
-      task.yKind === null &&
-      task.children.length > 0 &&
-      Array.from(task.children.slice())
-        .map((childId) => this.#koso.getTask(childId))
-        .every(
-          (child) =>
-            child.assignee !== null ||
-            this.#koso.getProgress(child.id).isComplete(),
-        )
+      task.assignee === auth.user.email &&
+      progress.kind !== "Rollup" &&
+      !progress.isComplete() &&
+      !progress.isBlocked()
     ) {
-      return false;
+      reasons.push({ name: "Actionable" });
     }
 
-    // Don't show unassigned task where none of the parents are assigned to the user
+    // A task is unassigned and one of its rollup parents is assigned to the user
     if (
       task.assignee === null &&
-      this.#koso
-        .getParents(task.id)
-        .filter((parent) => parent.yKind === null)
-        .every((parent) => parent.assignee !== auth.user.email)
+      !progress.isComplete() &&
+      !progress.isBlocked()
     ) {
-      return false;
+      const parents = this.#koso
+        .getParents(task.id)
+        // TODO: Make isRollup() a readable version of the next line
+        .filter((parent) => parent.yKind === null)
+        .filter((parent) => parent.assignee === auth.user.email);
+      if (parents.length) {
+        reasons.push({ name: "ParentOwner", parents });
+      }
     }
-    const progress = this.#koso.getProgress(task.id);
-    return !progress.isComplete() && !progress.isBlocked();
+
+    return reasons;
+  }
+
+  #prioritize(task: YTaskProxy, reasons: Reason[]): number {
+    if (reasons.some((r) => r.name === "ParentOwner")) {
+      return 1000;
+    }
+    if (reasons.some((r) => r.name === "Actionable")) {
+      let priority = 0;
+      // TODO: Recurse upwards and include all ancestors in prioritization.
+      for (const parentId of this.#koso.getParentIds(task.id)) {
+        if (parentId === "root") continue;
+
+        const progress = this.koso.getProgress(parentId);
+        // TODO: Increase priority when this is the last incomplete child task.
+        if (progress.status === "Blocked") {
+          priority += 10;
+        } else if (progress.status !== "Done") {
+          priority += 5;
+        }
+      }
+      return priority;
+    }
+    throw new Error(`Unhandled reasons (${reasons} for task ${task.id}`);
   }
 
   /**
-   * Retrieves the index of the task in tasks {@link tasks}, if found, and -1
-   * otherwise.
+   * Retrieves the index of the task in tasks {@link actionItems}, if found, and
+   * -1 otherwise.
    */
   getTaskIndex(taskId: string): number {
-    return this.tasks.findIndex((t) => t.id === taskId);
+    return this.actionItems.findIndex((t) => t.task.id === taskId);
   }
 
   undo() {
@@ -147,16 +203,14 @@ export class InboxContext {
   }
 }
 
-export function newInboxContext(koso: Koso) {
-  return setInboxContext(new InboxContext(koso));
-}
-
 export function setInboxContext(ctx: InboxContext): InboxContext {
   return setContext<InboxContext>(InboxContext, ctx);
 }
 
 export function getInboxContext(): InboxContext {
-  return getContext<InboxContext>(InboxContext);
+  const ctx = getContext<InboxContext>(InboxContext);
+  if (!ctx) throw new Error("InboxContext is undefined");
+  return ctx;
 }
 
 type SelectedProps = { taskId: string | null; index: number | null };

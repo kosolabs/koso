@@ -1,4 +1,4 @@
-import { headers, parse_response as parseResponse } from "$lib/api";
+import { headers, parseResponse } from "$lib/api";
 import type { FullUser, User } from "$lib/users";
 import type { Graph } from "$lib/yproxy";
 

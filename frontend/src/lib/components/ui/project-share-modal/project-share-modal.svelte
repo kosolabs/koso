@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { headers, parse_response } from "$lib/api";
+  import { headers, parseResponse } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
@@ -11,7 +11,7 @@
     AutocompleteItem,
   } from "$lib/kosui/autocomplete";
   import { Button } from "$lib/kosui/button";
-  import { dialog } from "$lib/kosui/dialog";
+  import { getDialoguerContext } from "$lib/kosui/dialog";
   import { Modal } from "$lib/kosui/modal";
   import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
@@ -49,6 +49,7 @@
 
   async function removeUser(remove: User) {
     if (auth.user.email === remove.email) {
+      const dialog = getDialoguerContext();
       const confirmed = await dialog.confirm({
         icon: TriangleAlert,
         title: "Remove your own access?",
@@ -91,7 +92,7 @@
       const response = await fetch(`/api/users?q=${filter}`, {
         headers: headers(),
       });
-      let respUsers: User[] = await parse_response(response);
+      let respUsers: User[] = await parseResponse(response);
       if (thisReq !== req) {
         console.log(
           `Discarding request ${thisReq}. A newer request, ${req}, is running.`,

@@ -1,4 +1,3 @@
-import { getContext, setContext } from "svelte";
 import { Bindable } from "../bindable.svelte";
 import { OrderedHTMLElements } from "../ordered-html-elements";
 import { Shortcut } from "../shortcut";
@@ -80,16 +79,4 @@ export class ItemContext {
       }
     }
   }
-}
-
-export function newItemContext() {
-  return setItemContext(new ItemContext());
-}
-
-export function setItemContext(state: ItemContext): ItemContext {
-  return setContext<ItemContext>(ItemContext, state);
-}
-
-export function getItemContext(): ItemContext {
-  return getContext<ItemContext>(ItemContext);
 }

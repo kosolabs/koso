@@ -8,6 +8,7 @@
   import { Eye, Pencil, Trash, X } from "lucide-svelte";
   import { tick } from "svelte";
   import { toast } from "svelte-sonner";
+  import { Editable } from "../editable";
 
   export type DetailPanelState = "none" | "view" | "edit";
 
@@ -20,10 +21,16 @@
   let { taskId }: DetailPanelProps = $props();
   let editor: CodeMirror | undefined = $state();
 
+  let titleEditable: Editable | undefined = $state();
+
   const { koso } = getProjectContext();
   const prefs = getPrefsContext();
 
   let task = $derived(taskId ? koso.getTask(taskId) : undefined);
+
+  export function editTitle() {
+    titleEditable?.edit();
+  }
 
   function hideDetails() {
     prefs.detailPanel = "none";
@@ -68,14 +75,31 @@
 
 <div class="relative flex h-full flex-col rounded-md border">
   <div
-    class="flex items-center p-2 text-lg font-extralight"
+    class="flex items-center gap-2 p-2"
     role="heading"
+    aria-label="Task details"
     aria-level="1"
-    ondblclick={editDetails}
   >
-    {$task?.name || "No task selected"}
-    <div class="top-2 right-2 ml-auto flex gap-1">
-      {#if taskId && koso.isEditable(taskId) && prefs.detailPanel === "view"}
+    {#if $task}
+      {#if koso.isEditable($task.id)}
+        <Editable
+          bind:this={titleEditable}
+          class="text-lg font-extralight"
+          value={$task.name}
+          onsave={async (name) => {
+            koso.setTaskName($task.id, name);
+          }}
+        />
+      {:else}
+        <div class="text-lg font-extralight">
+          {$task.name || "Untitled"}
+        </div>
+      {/if}
+    {:else}
+      <div class="text-lg font-extralight">No task selected</div>
+    {/if}
+    <div class="ml-auto flex gap-1">
+      {#if taskId && koso.isEditable(taskId) && (prefs.detailPanel === "view" || !$task || !$task.desc)}
         <Button
           aria-label="Edit task description"
           icon={Pencil}
@@ -83,7 +107,7 @@
           onclick={editDetails}
         />
       {/if}
-      {#if prefs.detailPanel === "edit"}
+      {#if $task && $task.desc && prefs.detailPanel === "edit"}
         <Button
           aria-label="View task description"
           icon={Eye}
@@ -108,8 +132,8 @@
     </div>
   </div>
   <hr />
-  <div class="overflow-y-scroll" role="document" ondblclick={editDetails}>
-    {#if $task && $task.desc && task && task.desc}
+  <div class="grow overflow-y-scroll" role="document" ondblclick={editDetails}>
+    {#if $task && task && $task.desc && task.desc}
       {#if koso.isEditable($task.id) && prefs.detailPanel === "edit"}
         <CodeMirror
           bind:this={editor}
@@ -117,7 +141,11 @@
           onkeydown={handleKeyDownEditing}
         />
       {:else}
-        <MarkdownViewer class="p-2" value={$task.desc.toString()} />
+        <MarkdownViewer
+          class="p-2"
+          value={$task.desc.toString()}
+          ondblclick={editDetails}
+        />
       {/if}
     {/if}
   </div>

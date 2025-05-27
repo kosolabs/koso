@@ -1,14 +1,13 @@
-export {
-  getMarkdownContext,
-  MarkdownContext,
-  newMarkdownContext,
-  setMarkdownContext,
-  type MarkdownComponentProps,
-} from "./context.svelte";
 export { default as MarkdownBlockquote } from "./markdown-blockquote.svelte";
 export { default as MarkdownBr } from "./markdown-br.svelte";
 export { default as MarkdownCode } from "./markdown-code.svelte";
 export { default as MarkdownCodespan } from "./markdown-codespan.svelte";
+export {
+  getMarkdownContext,
+  MarkdownContext,
+  setMarkdownContext,
+  type MarkdownComponentProps,
+} from "./markdown-context.svelte";
 export { default as MarkdownDef } from "./markdown-def.svelte";
 export { default as MarkdownDel } from "./markdown-del.svelte";
 export { default as MarkdownEm } from "./markdown-em.svelte";

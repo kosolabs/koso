@@ -1,7 +1,10 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
   import { auth } from "$lib/auth.svelte";
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { Action } from "$lib/kosui/command";
@@ -12,9 +15,10 @@
     Cable,
     Check,
     CircleX,
+    Clipboard,
     OctagonX,
-    Pencil,
     Redo,
+    Share,
     SquarePen,
     StepBack,
     StepForward,
@@ -22,7 +26,7 @@
     Undo,
     UserRoundPlus,
   } from "lucide-svelte";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
   import { getInboxContext } from "./inbox-context.svelte";
   import TaskRow from "./task-row.svelte";
@@ -32,6 +36,7 @@
   };
   const { users }: Props = $props();
 
+  const command = getRegistryContext();
   const inbox = getInboxContext();
   const { koso } = inbox;
 
@@ -76,11 +81,6 @@
     }
   }
 
-  function edit() {
-    if (!inbox.selected) return;
-    getRow(inbox.selected.id).edit(true);
-  }
-
   function remove() {
     if (!inbox.selected) return;
     koso.deleteTask(inbox.selected.id);
@@ -91,33 +91,37 @@
   }
 
   function selectNext() {
-    if (inbox.tasks.length > 0) {
+    if (inbox.actionItems.length > 0) {
       if (inbox.selected) {
         const selectedIndex = inbox.getTaskIndex(inbox.selected.id);
         if (selectedIndex < 0) {
           inbox.selected = undefined;
         } else {
-          const index = Math.min(selectedIndex + 1, inbox.tasks.length - 1);
-          inbox.selected = inbox.tasks[index].id;
+          const index = Math.min(
+            selectedIndex + 1,
+            inbox.actionItems.length - 1,
+          );
+          inbox.selected = inbox.actionItems[index].task.id;
         }
       } else {
-        inbox.selected = inbox.tasks[0].id;
+        inbox.selected = inbox.actionItems[0].task.id;
       }
     }
   }
 
   function selectPrev() {
-    if (inbox.tasks.length > 0) {
+    if (inbox.actionItems.length > 0) {
       if (inbox.selected) {
         const selectedIndex = inbox.getTaskIndex(inbox.selected.id);
         if (selectedIndex < 0) {
           inbox.selected = undefined;
         } else {
           const index = Math.max(selectedIndex - 1, 0);
-          inbox.selected = inbox.tasks[index].id;
+          inbox.selected = inbox.actionItems[index].task.id;
         }
       } else {
-        inbox.selected = inbox.tasks[inbox.tasks.length - 1].id;
+        inbox.selected =
+          inbox.actionItems[inbox.actionItems.length - 1].task.id;
       }
     }
   }
@@ -140,19 +144,18 @@
     getRow(inbox.selected.id).linkPanel(true, "block");
   }
 
-  const undoAction = new Action({
-    id: "Undo",
-    callback: undo,
-    icon: Undo,
-    shortcut: new Shortcut({ key: "z", meta: true }),
-  });
+  function copyGitCommitMessage() {
+    if (!inbox.selected) return;
+    const taskId = inbox.selected.id;
+    navigator.clipboard.writeText(koso.getGitCommitMessage(taskId));
+  }
 
-  const redoAction = new Action({
-    id: "Redo",
-    callback: redo,
-    icon: Redo,
-    shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
-  });
+  function copyTaskLink() {
+    if (!inbox.selected) return;
+    navigator.clipboard.writeText(
+      koso.getTaskPermalink(inbox.selected.id).toString(),
+    );
+  }
 
   const actions: Action<ActionID>[] = [
     new Action({
@@ -170,22 +173,24 @@
       shortcut: new Shortcut({ key: "ArrowUp" }),
     }),
     new Action({
-      id: "Edit",
-      callback: edit,
-      description: "Edit the current task",
-      icon: Pencil,
-      shortcut: new Shortcut({ key: "Enter" }),
-      enabled: () => !!inbox.selected && koso.isEditable(inbox.selected.id),
-    }),
-    new Action({
       id: "Clear",
       callback: unselect,
       description: "Clear the current selection",
       icon: CircleX,
       shortcut: CANCEL,
     }),
-    undoAction,
-    redoAction,
+    new Action({
+      id: "Undo",
+      callback: undo,
+      icon: Undo,
+      shortcut: new Shortcut({ key: "z", meta: true }),
+    }),
+    new Action({
+      id: "Redo",
+      callback: redo,
+      icon: Redo,
+      shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
+    }),
     new Action({
       id: "ToggleTaskStatus",
       callback: toggleStatus,
@@ -224,6 +229,23 @@
       enabled: () => !!inbox.selected,
       shortcut: new Shortcut({ key: "/", meta: true }),
     }),
+    new Action({
+      id: "CopyTaskInfo",
+      callback: copyGitCommitMessage,
+      title: "Copy task info",
+      description: "Copy task git commit message to the clipboard",
+      icon: Clipboard,
+      enabled: () => !!inbox.selected,
+    }),
+    new Action({
+      id: "CopyTaskLink",
+      callback: copyTaskLink,
+      title: "Copy task permalink",
+      description: "Share task by copying permalink to the clipboard",
+      icon: Share,
+      shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
+      enabled: () => !!inbox.selected,
+    }),
   ];
 
   onMount(async () => {
@@ -236,11 +258,22 @@
 
       // The task may not exist locally, yet. It
       // might come from the server, so wait for that.
-      if (!inbox.koso.getTask(taskId)) {
+      if (inbox.getTaskIndex(taskId) < 0) {
         console.debug(
           `Waiting for server sync before selecting task ${taskId}`,
         );
         await koso.serverSynced;
+        await tick();
+
+        if (inbox.getTaskIndex(taskId) < 0) {
+          console.warn(
+            `Cannot select ${taskId} after server sync. It doesn't exist`,
+          );
+          toast.warning(
+            `Task not found. It may have been removed from your inbox.`,
+          );
+          return;
+        }
       }
       inbox.selected = taskId;
     }
@@ -277,12 +310,13 @@
 
     // The selected task no longer exists. Select the
     // task at the same index or the one at the end of the list.
-    if (inbox.tasks.length > 0) {
+    if (inbox.actionItems.length > 0) {
       console.debug(`Task ${taskId} no longer exists. Selecting new task.`);
-      if (index === null || index >= inbox.tasks.length) {
-        inbox.selected = inbox.tasks[inbox.tasks.length - 1].id;
+      if (index === null || index >= inbox.actionItems.length) {
+        inbox.selected =
+          inbox.actionItems[inbox.actionItems.length - 1].task.id;
       } else {
-        inbox.selected = inbox.tasks[index].id;
+        inbox.selected = inbox.actionItems[index].task.id;
       }
     } else {
       console.debug(`Task ${taskId} no longer exists. Clearing selection.`);
@@ -292,16 +326,17 @@
 </script>
 
 {#await koso.synced then}
-  {#if inbox.tasks.length > 0}
+  {#if inbox.actionItems.length > 0}
     <div class="flex flex-col gap-2">
       <table
         class="task-table w-full border-separate border-spacing-0 rounded-md border"
       >
         <thead class="text-left text-xs font-bold uppercase">
           <tr>
-            <th class="w-32 p-2">ID</th>
+            <th class="p-2">ID</th>
             {#if koso.debug}
               <th class="border-l p-2">UUID</th>
+              <th class="border-l p-2">Priority</th>
             {/if}
             <th class="border-l p-2">
               <SquarePen class="h-4 md:hidden" />
@@ -317,11 +352,16 @@
           </tr>
         </thead>
 
-        {#each inbox.tasks as task, index (task.id)}
+        {#each inbox.actionItems as actionItem, index (actionItem.task.id)}
           <tbody animate:flip={{ duration: 250 }}>
             <!-- eslint-disable-next-line svelte/no-unused-svelte-ignore -->
             <!-- svelte-ignore binding_property_non_reactive -->
-            <TaskRow bind:this={rows[task.id]} {index} {task} {users} />
+            <TaskRow
+              bind:this={rows[actionItem.task.id]}
+              {index}
+              item={actionItem}
+              {users}
+            />
           </tbody>
         {/each}
       </table>

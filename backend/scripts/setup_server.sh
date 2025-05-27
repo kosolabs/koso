@@ -23,6 +23,17 @@ EOL
 git clone https://github.com/shadanan/dotfiles.git .dotfiles
 .dotfiles/install
 
+# Enable unattended upgrades
+sudo apt update
+sudo apt install unattended-upgrades
+
+cat >> /etc/apt/apt.conf.d/20auto-upgrades << EOL
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
+EOL
+sudo unattended-upgrades --dry-run --debug
+
 # Clone the Koso repo
 git clone https://github.com/kosolabs/koso.git
 
@@ -54,7 +65,7 @@ sudo apt update
 sudo apt install -y postgresql-common
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 apt install postgresql-17
-cat >>/etc/postgresql/16/main/postgresql.conf <<EOL
+cat >>/etc/postgresql/17/main/postgresql.conf <<EOL
 
 # Commit asynchronously for better performance
 synchronous_commit = off
@@ -90,6 +101,10 @@ touch /root/.secrets/github/key.pem
 touch /root/.secrets/github/webhook_secret
 # The Github app's client secret
 touch /root/.secrets/github/client_secret
+# The telegram bot token
+touch /root/.secrets/telegram/token
+# The pem encoded RSA key used to sign telegram auth tokens
+touch /root/.secrets/koso/hmac
 # MANUAL - place secrets in those files
 
 # Finally, run the Deploy action to start the backend.

@@ -1,10 +1,14 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { auth } from "$lib/auth.svelte";
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import { auth, getAuthContext } from "$lib/auth.svelte";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { Avatar } from "$lib/kosui/avatar";
+  import { Badge } from "$lib/kosui/badge";
   import { baseClasses } from "$lib/kosui/base";
   import {
     Menu,
@@ -20,11 +24,15 @@
   import { twMerge } from "tailwind-merge";
   import CommandButton from "./command-button.svelte";
   import CommandMenuItem from "./command-menu-item.svelte";
+  import NavigateButton from "./navigate-button.svelte";
 
   type Props = {
     left?: Snippet;
   };
   const { left }: Props = $props();
+
+  const ctx = getAuthContext();
+  const command = getRegistryContext();
 
   type Section = {
     heading: string;
@@ -38,20 +46,45 @@
     },
     {
       heading: "Navigation",
-      actions: ["ProjectsView", "PlanView", "InboxView"],
+      actions: [
+        "ProjectsView",
+        "PlanView",
+        "InboxView",
+        "StorybookAlerts",
+        "StorybookAutocomplete",
+        "StorybookAvatar",
+        "StorybookBadge",
+        "StorybookButtons",
+        "StorybookChips",
+        "StorybookCodeMirror",
+        "StorybookCommand",
+        "StorybookDialogs",
+        "StorybookFab",
+        "StorybookGoto",
+        "StorybookInputs",
+        "StorybookLinks",
+        "StorybookMarkdown",
+        "StorybookMenus",
+        "StorybookProgressIndicators",
+        "StorybookShortcuts",
+        "StorybookToggles",
+        "StorybookTooltips",
+      ],
     },
   ];
 
   let sections = $derived(
-    menu.map((section) => {
-      return {
-        heading: section.heading,
-        actions: section.actions
-          .map((id) => command.get(id))
-          .filter((action) => action !== undefined)
-          .filter((action) => action.enabled()),
-      };
-    }),
+    menu
+      .map((section) => {
+        return {
+          heading: section.heading,
+          actions: section.actions
+            .map((id) => command.get(id))
+            .filter((action) => action !== undefined)
+            .filter((action) => action.enabled()),
+        };
+      })
+      .filter((section) => section.actions.length > 0),
   );
 
   let menuHasActions = $derived(
@@ -60,37 +93,41 @@
 </script>
 
 <nav
-  class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center border-b p-2 shadow"
+  class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center overflow-hidden border-b p-2 shadow"
 >
   <div class="flex items-center">
-    <Menu>
-      <MenuTrigger
-        title="Project menu"
-        class={twMerge(
-          baseClasses({
-            variant: "plain",
-            color: "primary",
-            shape: "circle",
-            focus: true,
-            hover: true,
-          }),
-          "mr-1 p-2 transition-all active:scale-95",
-        )}
-      >
-        <MenuIcon size={20} />
-      </MenuTrigger>
-      {#if menuHasActions}
+    {#if menuHasActions}
+      <Menu>
+        <MenuTrigger
+          title="Project menu"
+          class={twMerge(
+            baseClasses({
+              variant: "plain",
+              color: "primary",
+              shape: "circle",
+              focus: true,
+              hover: true,
+            }),
+            "mr-1 p-2 transition-all active:scale-95",
+          )}
+        >
+          <MenuIcon size={20} />
+        </MenuTrigger>
         <MenuContent>
-          {#each sections as section}
+          {#each sections as section, index (section)}
             {#if section.actions.length > 0}
-              {#each section.actions as action}
+              <MenuHeader>{section.heading}</MenuHeader>
+              {#each section.actions as action (action)}
                 <CommandMenuItem {action} />
               {/each}
+              {#if index < sections.length - 1}
+                <MenuDivider />
+              {/if}
             {/if}
           {/each}
         </MenuContent>
-      {/if}
-    </Menu>
+      </Menu>
+    {/if}
     <a href="/projects" aria-label="Home">
       <KosoLogo class="size-10" />
     </a>
@@ -101,10 +138,12 @@
     <CommandButton name="Undo" desktop />
     <CommandButton name="Redo" desktop />
     <CommandButton name="ShareProject" desktop />
+    <CommandButton name="DetailPanelClose" desktop />
+    <CommandButton name="DetailPanelOpen" desktop />
     <CommandButton name="Search" desktop />
     <CommandButton name="CommandPalette" />
-    <CommandButton name="InboxView" />
-    <CommandButton name="PlanView" />
+    <NavigateButton name="InboxView" />
+    <NavigateButton name="PlanView" />
 
     {#if auth.ok()}
       <Menu>
@@ -112,14 +151,20 @@
           title={auth.user.email}
           class="focus-visible:outline-m3-primary focus-visible:outline-1"
         >
-          <Avatar
-            src={auth.user.picture}
-            alt={auth.user.email}
-            shape="circle"
-            class="transition-all active:scale-95 active:brightness-110"
+          <Badge
+            content={ctx.user?.premium ? "👑" : ""}
+            variant="plain"
+            class="m-[.23rem] rotate-45"
           >
-            <UserRound />
-          </Avatar>
+            <Avatar
+              src={auth.user.picture}
+              alt={auth.user.email}
+              shape="circle"
+              class="transition-all active:scale-95 active:brightness-110"
+            >
+              <UserRound />
+            </Avatar>
+          </Badge>
         </MenuTrigger>
         <MenuContent>
           <UserAvatar class="p-1" user={auth.user} />

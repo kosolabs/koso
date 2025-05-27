@@ -1,7 +1,10 @@
 <script module lang="ts">
   import type { Snippet } from "svelte";
   import type { ClassName } from "../utils";
-  import { newAutocompleteContext } from "./autocomplete-context.svelte";
+  import {
+    AutocompleteContext,
+    setAutocompleteContext,
+  } from "./autocomplete-context.svelte";
 
   export type AutocompleteProps = {
     children: Snippet;
@@ -11,7 +14,7 @@
 <script lang="ts">
   let { children }: AutocompleteProps = $props();
 
-  newAutocompleteContext();
+  setAutocompleteContext(new AutocompleteContext());
 </script>
 
 {@render children()}

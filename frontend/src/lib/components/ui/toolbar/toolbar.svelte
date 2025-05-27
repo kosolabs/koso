@@ -1,14 +1,29 @@
 <script lang="ts">
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { ToolbarButton } from "$lib/components/ui/toolbar";
+  import TaskAction from "$lib/dag-table/task-action.svelte";
   import { twMerge } from "tailwind-merge";
 
   type Props = {
-    actions: ActionID[];
+    selected: boolean;
   };
-  let props: Props = $props();
+  let { selected }: Props = $props();
+
+  const command = getRegistryContext();
+
+  const base: ActionID[] = [
+    "DetailPanelClose",
+    "DetailPanelOpen",
+    "Undo",
+    "Redo",
+    "Search",
+  ];
+
   let actions = $derived(
-    props.actions
+    base
       .map((id) => command.get(id))
       .filter((action) => action !== undefined)
       .filter((action) => action.enabled()),
@@ -23,6 +38,9 @@
   {#each actions as action (action.title)}
     <ToolbarButton {...action} />
   {/each}
+  {#if selected}
+    <TaskAction class="flex flex-1 justify-center p-2" shape="rounded" />
+  {/if}
 </div>
 
 <style>

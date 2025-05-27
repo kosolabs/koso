@@ -125,21 +125,12 @@ export class MenuContext {
   }
 }
 
-export function newMenuContext(
-  getOpen: () => boolean,
-  setOpen: (val: boolean) => void,
-  getAnchorEl: () => HTMLElement | undefined,
-  setAnchorEl: (anchorEl: HTMLElement | undefined) => void,
-) {
-  return setMenuContext(
-    new MenuContext(getOpen, setOpen, getAnchorEl, setAnchorEl),
-  );
-}
-
 export function setMenuContext(state: MenuContext): MenuContext {
   return setContext<MenuContext>(MenuContext, state);
 }
 
 export function getMenuContext(): MenuContext {
-  return getContext<MenuContext>(MenuContext);
+  const ctx = getContext<MenuContext>(MenuContext);
+  if (!ctx) throw new Error("MenuContext is undefined");
+  return ctx;
 }

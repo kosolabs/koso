@@ -6,7 +6,7 @@
   ],
   "timezone": "America/Los_Angeles",
   "schedule": [
-    "before 6am on Monday"
+    "before 7am on Monday"
   ],
   "pinDigests": true,
   "customManagers": [
@@ -49,7 +49,7 @@
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": [
-      "* 1-6 1 * *"
+      "* 1-7 1 * *"
     ],
     "automerge": true,
     "platformAutomerge": false,

@@ -12,7 +12,7 @@
 
 {#if action && action.enabled()}
   {@const Icon = action.icon}
-  <MenuItem class="gap-2" onSelect={action.callback}>
+  <MenuItem class="gap-2" onSelect={action.callback} title={action.description}>
     <Icon size={16} />
     {action.title}
     {#if action.shortcut}

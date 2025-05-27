@@ -472,7 +472,8 @@
       <div class="flex w-full flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}
           <div class="flex flex-wrap items-center gap-x-1">
-            {#each tags as { title, description, onClick, onDelete }}
+            {#each tags as tag (tag)}
+              {@const { title, description, onClick, onDelete } = tag}
               <Chip color="tertiary" title={description} {onClick} {onDelete}>
                 {title}
               </Chip>
@@ -520,10 +521,8 @@
     </div>
   </td>
   <td class={cn("border-t px-1")}>
-    <div class="flex items-center">
-      <div class="max-sm:hidden">
-        <DescAction {task} />
-      </div>
+    <div class="flex place-content-end items-center gap-0.5 max-sm:hidden">
+      <DescAction {task} onSelect={() => (planningCtx.selected = node)} />
       <TaskAction />
     </div>
   </td>

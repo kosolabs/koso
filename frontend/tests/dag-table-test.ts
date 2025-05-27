@@ -2331,12 +2331,12 @@ test.describe("dag table tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      await page
-        .getByRole("row", { name: "Task 1" })
-        .getByRole("button", { name: "Show task description panel" })
-        .click();
+      await page.getByRole("row", { name: "Task 1" }).click();
+      await page.getByRole("button", { name: "Open task description" }).click();
 
-      await expect(page.getByRole("heading", { name: "Task 1" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Task details" }),
+      ).toBeVisible();
 
       await expect(
         page.getByRole("button", { name: "Delete task description" }),
@@ -2346,7 +2346,7 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "Hide task description panel" })
         .click();
       await expect(
-        page.getByRole("heading", { name: "Task 1" }),
+        page.getByRole("heading", { name: "Task details" }),
       ).not.toBeVisible();
     });
 
@@ -2358,15 +2358,15 @@ test.describe("dag table tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      await page
-        .getByRole("row", { name: "Task 1" })
-        .getByRole("button", { name: "Show task description panel" })
-        .click();
+      await page.getByRole("row", { name: "Task 1" }).click();
+      await page.getByRole("button", { name: "Open task description" }).click();
       await expect(page.getByText("Task 1 description")).toBeVisible();
 
       await page.getByRole("row", { name: "Task 2" }).click();
 
-      await expect(page.getByRole("heading", { name: "Task 2" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Task details" }),
+      ).toBeVisible();
       await expect(page.getByText("Task 2 description")).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Delete task description" }),
@@ -2381,10 +2381,8 @@ test.describe("dag table tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      await page
-        .getByRole("row", { name: "Task 1" })
-        .getByRole("button", { name: "Show task description panel" })
-        .click();
+      await page.getByRole("row", { name: "Task 1" }).click();
+      await page.getByRole("button", { name: "Open task description" }).click();
 
       await expect(
         page.getByRole("button", { name: "Delete task description" }),
@@ -2415,18 +2413,44 @@ test.describe("dag table tests", () => {
         { id: "3", name: "Task 3" },
       ]);
 
-      await page
-        .getByRole("row", { name: "Task 1" })
-        .getByRole("button", { name: "Show task description panel" })
-        .click();
-      await expect(page.getByRole("heading", { name: "Task 1" })).toBeVisible();
+      await page.getByRole("row", { name: "Task 1" }).click();
+      await page.getByRole("button", { name: "Open task description" }).click();
+      await expect(
+        page
+          .getByRole("heading", { name: "Task details" })
+          .getByRole("button", { name: "Task 1" }),
+      ).toBeVisible();
 
       await page.keyboard.press("Enter");
       await page.keyboard.type(" Edited");
       await page.keyboard.press("Enter");
       await expect(
-        page.getByRole("heading", { name: "Task 1 Edited" }),
+        page
+          .getByRole("heading", { name: "Task details" })
+          .getByRole("button", { name: "Task 1 Edited" }),
       ).toBeVisible();
+    });
+  });
+
+  test.describe("task actions", () => {
+    test("copy git commit message", async ({ context, page }) => {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "A task description" },
+      ]);
+
+      await page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "Task actions" })
+        .click();
+
+      await page.getByRole("menuitem", { name: "Copy task info" }).click();
+
+      expect(await page.evaluate(() => navigator.clipboard.readText())).toEqual(
+        "koso-1: A task description",
+      );
     });
   });
 });

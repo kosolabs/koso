@@ -34,10 +34,6 @@ export class AutocompleteContext extends ItemContext {
   }
 }
 
-export function newAutocompleteContext() {
-  return setAutocompleteContext(new AutocompleteContext());
-}
-
 export function setAutocompleteContext(
   state: AutocompleteContext,
 ): AutocompleteContext {
@@ -45,5 +41,7 @@ export function setAutocompleteContext(
 }
 
 export function getAutocompleteContext(): AutocompleteContext {
-  return getContext<AutocompleteContext>(AutocompleteContext);
+  const ctx = getContext<AutocompleteContext>(AutocompleteContext);
+  if (!ctx) throw new Error("AutocompleteContext is undefined");
+  return ctx;
 }

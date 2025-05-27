@@ -1,13 +1,15 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import { headers, parse_response } from "$lib/api";
+  import { headers, parseResponse } from "$lib/api";
   import { Navbar } from "$lib/components/ui/navbar";
   import { Alert } from "$lib/kosui/alert";
-  import { dialog } from "$lib/kosui/dialog";
+  import { getDialoguerContext } from "$lib/kosui/dialog";
   import { CircularProgress } from "$lib/kosui/progress";
   import { CircleCheck, CircleSlash, CircleX } from "lucide-svelte";
   import { onMount } from "svelte";
+
+  const dialog = getDialoguerContext();
 
   let loading = $state(true);
 
@@ -37,7 +39,7 @@
     loading = false;
 
     try {
-      await parse_response(resp);
+      await parseResponse(resp);
       const goHome = await dialog.confirm({
         icon: CircleCheck,
         title: "Telegram authorized",

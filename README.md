@@ -265,13 +265,13 @@ We use a [Github Environment](https://docs.github.com/en/actions/managing-workfl
 
 ### Access in bridge mode (old)
 
-1. Add 172.17.0.1 to /etc/postgresql/16/main/postgresql.conf:
+1. Add 172.17.0.1 to /etc/postgresql/17/main/postgresql.conf:
 
    ```
    listen_addresses = 'localhost,172.17.0.1'
    ```
 
-1. Add entry to /etc/postgresql/16/main/pg_hba.conf:
+1. Add entry to /etc/postgresql/17/main/pg_hba.conf:
 
    ```
    # Allow docker bridge

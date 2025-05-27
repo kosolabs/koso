@@ -1,26 +1,28 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
-  import { Editable } from "$lib/components/ui/editable";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
   import { TaskStatus } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { Chip } from "$lib/kosui/chip";
-  import { Link } from "$lib/kosui/link";
+  import { Goto } from "$lib/kosui/goto";
   import type { User } from "$lib/users";
   import { cn } from "$lib/utils";
-  import type { YTaskProxy } from "$lib/yproxy";
+  import { Grip } from "lucide-svelte";
+  import { tick } from "svelte";
+  import ActionItemTooltip from "./action-item-tooltip.svelte";
   import DescAction from "./desc-action.svelte";
-  import { getInboxContext } from "./inbox-context.svelte";
+  import { ActionItem, getInboxContext } from "./inbox-context.svelte";
   import LinkPanel, { type Mode } from "./link-panel.svelte";
   import TaskAction from "./task-action.svelte";
 
   type Props = {
     index: number;
-    task: YTaskProxy;
+    item: ActionItem;
     users: User[];
   };
-  const { index, task, users }: Props = $props();
+  const { index, item, users }: Props = $props();
+  const task = $derived(item.task);
 
   const inbox = getInboxContext();
   const { koso } = inbox;
@@ -28,17 +30,12 @@
   let rowElement: HTMLTableRowElement | undefined = $state();
   let taskStatus = $state<TaskStatus | undefined>();
 
-  let isEditing = $state(false);
   let linkOpen = $state(false);
   let linkMode: Mode = $state("block");
 
   let assignee = $derived(getUser(users, task.assignee));
   let editable = $derived(koso.isEditable(task.id));
   let tags = $derived(getTags());
-
-  export function edit(editing: boolean) {
-    isEditing = editing;
-  }
 
   export function showDoneConfetti() {
     taskStatus?.showDoneConfetti();
@@ -93,24 +90,17 @@
   bind:this={rowElement}
 >
   <td class={cn("border-t px-2")}>
-    <div class="flex items-center">
-      <div class="overflow-x-hidden whitespace-nowrap">
-        <Link
-          href={`/projects/${koso.projectId}?taskId=${task.id}`}
-          onclick={(event) => {
-            event.stopPropagation();
-            event.preventDefault();
-            goto(`/projects/${koso.projectId}?taskId=${task.id}`);
-          }}
-        >
-          {task.num}
-        </Link>
-      </div>
+    <div class="flex cursor-pointer items-center gap-1">
+      <Grip class="w-4" />
+      {task.num}
     </div>
   </td>
   {#if koso.debug}
     <td class={cn("border-t border-l p-2 text-xs lg:text-nowrap")}>
       {task.id}
+    </td>
+    <td class={cn("border-t border-l p-2 text-xs lg:text-nowrap")}>
+      {item.priority}
     </td>
   {/if}
   <td class={cn("border-t border-l p-2")}>
@@ -124,7 +114,8 @@
       <div class="flex w-full flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}
           <div class="flex flex-wrap items-center gap-x-1">
-            {#each tags as { title, description, onClick, onDelete }}
+            {#each tags as tag (tag)}
+              {@const { title, description, onClick, onDelete } = tag}
               <Chip color="tertiary" title={description} {onClick} {onDelete}>
                 {title}
               </Chip>
@@ -132,51 +123,37 @@
           </div>
         {/if}
 
-        {#if editable}
-          <Editable
-            value={task.name}
-            aria-label={`Task ${task.num} Edit Name`}
-            editing={isEditing}
-            closeFocus={rowElement}
-            onsave={async (name) => {
-              koso.setTaskName(task.id, name);
-            }}
-            ondone={() => edit(false)}
-          />
-        {:else}
-          <Link
-            class={cn(
-              "h-auto p-0 text-left text-sm text-wrap whitespace-normal",
-              task.url ? "text" : "",
-            )}
-            aria-label={`Task ${task.num} Name`}
-            onclick={() => {
-              if (!task.url) throw new Error(`No URL set on task ${task}`);
-              window.open(task.url, "_blank")!.focus();
-            }}
-            disabled={!task.url}
-            underline="none"
-          >
-            {task.name || "Untitled"}
-          </Link>
-        {/if}
+        <Goto
+          class="text-sm"
+          href={`/projects/${koso.projectId}?taskId=${task.id}`}
+        >
+          {task.name || "Untitled"}
+        </Goto>
+
         <LinkPanel
           {task}
           {koso}
           bind:open={linkOpen}
           bind:mode={linkMode}
           anchorEl={rowElement}
+          onBlockNewTask={async (taskId) => {
+            await tick();
+            inbox.selected = taskId;
+          }}
         />
       </div>
     </div>
   </td>
   <td class={cn("border-t px-1")}>
-    <div class="flex items-center">
-      <DescAction {task} />
-      <TaskAction />
+    <div class="flex place-content-end items-center gap-0.5">
+      <div class="max-sm:hidden">
+        <DescAction {task} onSelect={() => (inbox.selected = task.id)} />
+      </div>
+      <ActionItemTooltip {item} />
+      <TaskAction class="max-sm:hidden" />
     </div>
   </td>
-  <td class={cn("border-t border-l p-2")}>
+  <td class={cn("w-0 border-t border-l p-2")}>
     <UserSelect
       {users}
       value={assignee}

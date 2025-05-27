@@ -30,17 +30,12 @@ export class ToggleContext<T> {
   }
 }
 
-export function newToggleContext<T>(
-  getValue: () => T | undefined,
-  setValue: (val: T | undefined) => void,
-) {
-  return setToggleContext(new ToggleContext(getValue, setValue));
-}
-
-export function setToggleContext<T>(state: ToggleContext<T>): ToggleContext<T> {
-  return setContext<ToggleContext<T>>(ToggleContext, state);
+export function setToggleContext<T>(ctx: ToggleContext<T>): ToggleContext<T> {
+  return setContext<ToggleContext<T>>(ToggleContext, ctx);
 }
 
 export function getToggleContext<T>(): ToggleContext<T> {
-  return getContext<ToggleContext<T>>(ToggleContext);
+  const ctx = getContext<ToggleContext<T>>(ToggleContext);
+  if (!ctx) throw new Error("ToggleContext is undefined");
+  return ctx;
 }

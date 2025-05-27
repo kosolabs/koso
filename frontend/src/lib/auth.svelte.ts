@@ -1,9 +1,11 @@
 import { goto } from "$app/navigation";
-import { dialog } from "$lib/kosui/dialog";
 import { nav } from "$lib/nav.svelte";
 import { jwtDecode } from "jwt-decode";
 import { CircleX } from "lucide-svelte";
+import { getContext, setContext } from "svelte";
+import { getDialoguerContext } from "./kosui/dialog";
 import { loads, saves } from "./stores.svelte";
+import { fetchUser, type FullUser } from "./users";
 
 export const CREDENTIAL_KEY = "credential";
 
@@ -14,6 +16,7 @@ type User = {
   exp: number;
 };
 
+// TODO: Merge Auth into AuthContext
 class Auth {
   #token: string | null = $state(loads(CREDENTIAL_KEY, null));
   #user: User | null = $derived.by(() => {
@@ -70,6 +73,7 @@ class Auth {
 export const auth = new Auth();
 
 export async function showUnauthorizedDialog() {
+  const dialog = getDialoguerContext();
   await dialog.notice({
     icon: CircleX,
     title: "Unauthorized",
@@ -79,4 +83,30 @@ export async function showUnauthorizedDialog() {
   });
   nav.lastVisitedProjectId = null;
   await goto("/");
+}
+
+export class AuthContext {
+  #user: FullUser | undefined = $state();
+
+  constructor() {}
+
+  get user(): FullUser | undefined {
+    return this.#user;
+  }
+
+  async load() {
+    if (auth.ok()) {
+      this.#user = await fetchUser(auth.user.email);
+    }
+  }
+}
+
+export function setAuthContext(ctx: AuthContext): AuthContext {
+  return setContext<AuthContext>(AuthContext, ctx);
+}
+
+export function getAuthContext(): AuthContext {
+  const ctx = getContext<AuthContext>(AuthContext);
+  if (!ctx) throw new Error("AuthContext is undefined");
+  return ctx;
 }

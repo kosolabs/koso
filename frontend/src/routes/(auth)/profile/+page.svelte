@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { headers, parse_response } from "$lib/api";
+  import { page } from "$app/state";
+  import { headers, parseResponse } from "$lib/api";
   import { auth } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
+  import { deleteUserConnection, redirectToConnectUserFlow } from "$lib/github";
   import { Button } from "$lib/kosui/button";
-  import { dialog } from "$lib/kosui/dialog";
+  import { getDialoguerContext } from "$lib/kosui/dialog";
   import { Link } from "$lib/kosui/link";
   import { CircularProgress } from "$lib/kosui/progress";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
@@ -12,6 +14,8 @@
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
   import SubSection from "./sub-section.svelte";
+
+  const dialog = getDialoguerContext();
 
   let profile: Promise<Profile> = $state(load());
 
@@ -29,13 +33,18 @@
 
   type NotificationConfig = TelegramNotificationConfig;
 
+  type PluginConnections = {
+    githubUserId?: string;
+  };
+
   type Profile = {
     notificationConfigs: NotificationConfig[];
+    pluginConnections: PluginConnections;
   };
 
   async function load(): Promise<Profile> {
     let resp = await fetch("/api/profile", { headers: headers() });
-    return await parse_response(resp);
+    return await parseResponse(resp);
   }
 
   async function sendTestTelegramNotification() {
@@ -49,7 +58,7 @@
           "Content-Type": "application/json",
         },
       });
-      await parse_response(resp);
+      await parseResponse(resp);
       toast.success("Test notification sent successfully.", { id: toastId });
     } catch {
       toast.error("Failed to send test notification.", { id: toastId });
@@ -77,7 +86,7 @@
           "Content-Type": "application/json",
         },
       });
-      await parse_response(resp);
+      await parseResponse(resp);
       toast.success("Telegram authorization deleted.", { id: toastId });
       profile = load();
     } catch {
@@ -94,6 +103,28 @@
       }
     }
     return null;
+  }
+
+  async function deleteUserGithubConnection() {
+    if (
+      !(await dialog.confirm({
+        message,
+        title: "Delete Github Connection?",
+        icon: Trash2,
+      }))
+    ) {
+      return;
+    }
+
+    const toastId = toast.loading("Deleting Github connection...");
+
+    try {
+      await deleteUserConnection();
+      toast.success("Github connection deleted.", { id: toastId });
+      profile = load();
+    } catch {
+      toast.error("Failed to delete Github connection.", { id: toastId });
+    }
   }
 </script>
 
@@ -159,6 +190,55 @@
           Koso is not authorized to send messages to Telegram. To authorize
           Koso, start a Telegram Chat with
           <Link href="https://t.me/KosoLabsBot">@KosoLabsBot</Link>.
+        {/if}
+      </SubSection>
+    {/await}
+  </Section>
+  <Section title="Plugins">
+    {#await profile}
+      <div class="flex place-content-center items-center gap-2">
+        <CircularProgress />
+        <div>Loading...</div>
+      </div>
+    {:then profile}
+      <SubSection title="Github">
+        {@const githubUserId = profile.pluginConnections.githubUserId}
+        {#if githubUserId}
+          <div class="flex flex-col gap-2">
+            <div>
+              Your Koso profile is connected to Github user
+              <Link href="https://api.github.com/user/{githubUserId}">
+                {githubUserId}
+              </Link>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <div class="ml-auto">
+                <Button
+                  icon={CircleX}
+                  variant="filled"
+                  onclick={async () => await deleteUserGithubConnection()}
+                >
+                  Delete Connection
+                </Button>
+              </div>
+            </div>
+            <div></div>
+          </div>
+        {:else}
+          <div class="flex flex-col gap-2">
+            <div>Your Koso profile is not connected to Github.</div>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                icon={CircleX}
+                variant="filled"
+                onclick={async () =>
+                  await redirectToConnectUserFlow(page.url.pathname)}
+              >
+                Connect to Github
+              </Button>
+            </div>
+            <div></div>
+          </div>
         {/if}
       </SubSection>
     {/await}

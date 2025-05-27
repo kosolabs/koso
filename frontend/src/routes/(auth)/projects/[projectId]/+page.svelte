@@ -1,6 +1,9 @@
 <script lang="ts">
   import { KosoError } from "$lib/api";
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { DetailPanel } from "$lib/components/ui/detail-panel";
   import { Editable } from "$lib/components/ui/editable";
   import { Navbar } from "$lib/components/ui/navbar";
@@ -18,6 +21,7 @@
   import { FileDown } from "lucide-svelte";
   import { onMount } from "svelte";
 
+  const command = getRegistryContext();
   const project = getProjectContext();
   const { koso } = project;
   const planningCtx = newPlanningContext(koso);
@@ -113,14 +117,6 @@
   </div>
 
   <div class="sm:hidden">
-    <Toolbar
-      actions={[
-        "Undo",
-        "Redo",
-        "DetailPanelClose",
-        "DetailPanelOpen",
-        "Search",
-      ]}
-    />
+    <Toolbar selected={!!planningCtx.selected} />
   </div>
 </div>

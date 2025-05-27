@@ -1,14 +1,23 @@
 <script lang="ts">
-  import { twMerge } from "tailwind-merge";
+  import { twMerge, type ClassNameValue } from "tailwind-merge";
   import { Button, type ButtonProps } from "../button";
-  import { type ClassName, type ElementRef } from "../utils";
+  import { type ElementRef } from "../utils";
 
-  export type FabProps = { reserve?: boolean } & ElementRef &
-    ClassName &
+  export type FabProps = {
+    verticalAlignment?: "top" | "bottom";
+    horizontalAlignment?: "left" | "right";
+    reserve?: boolean;
+    reserveClass?: ClassNameValue;
+    positionClass?: ClassNameValue;
+  } & ElementRef &
     ButtonProps;
 
   let {
+    verticalAlignment = "bottom",
+    horizontalAlignment = "right",
     reserve: space = false,
+    reserveClass,
+    positionClass,
     el = $bindable(),
     class: className,
     icon,
@@ -20,13 +29,30 @@
 </script>
 
 {#if space && el}
-  <div style:height={`${el.getBoundingClientRect().height}px`}></div>
+  <div
+    class={twMerge(reserveClass)}
+    style:height={`${el.getBoundingClientRect().height}px`}
+  ></div>
 {/if}
 
-<div class="absolute right-2 bottom-2">
+<div
+  class={twMerge(
+    "absolute right-0 bottom-0 m-2",
+    verticalAlignment === "top" && "top-0",
+    verticalAlignment === "bottom" && "bottom-0",
+    horizontalAlignment === "left" && "left-0",
+    horizontalAlignment === "right" && "right-0",
+    positionClass,
+  )}
+>
   <Button
     bind:el
-    class={twMerge("fixed -translate-full", className)}
+    class={twMerge(
+      "fixed backdrop-blur-sm",
+      verticalAlignment === "bottom" && "-translate-y-full",
+      horizontalAlignment === "right" && "-translate-x-full",
+      className,
+    )}
     {variant}
     {shape}
     {icon}

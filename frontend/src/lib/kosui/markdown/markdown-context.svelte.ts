@@ -48,17 +48,12 @@ export class MarkdownContext {
   }
 }
 
-export function newMarkdownContext(
-  renderers: Renderers,
-  tableCellRenderer: TokenRenderer<Tokens.TableCell>,
-) {
-  return setMarkdownContext(new MarkdownContext(renderers, tableCellRenderer));
-}
-
 export function setMarkdownContext(state: MarkdownContext): MarkdownContext {
   return setContext<MarkdownContext>(MarkdownContext, state);
 }
 
 export function getMarkdownContext(): MarkdownContext {
-  return getContext<MarkdownContext>(MarkdownContext);
+  const ctx = getContext<MarkdownContext>(MarkdownContext);
+  if (!ctx) throw new Error("MarkdownContext is undefined");
+  return ctx;
 }

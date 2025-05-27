@@ -253,15 +253,11 @@ test.describe("Collaboration tests", () => {
       { id: "3", name: "Task 3" },
     ]);
 
-    await page1
-      .getByRole("row", { name: "Task 1" })
-      .getByRole("button", { name: "Show task description panel" })
-      .click();
+    await page1.getByRole("row", { name: "Task 1" }).click();
+    await page1.getByRole("button", { name: "Open task description" }).click();
 
-    await page2
-      .getByRole("row", { name: "Task 1" })
-      .getByRole("button", { name: "Show task description panel" })
-      .click();
+    await page2.getByRole("row", { name: "Task 1" }).click();
+    await page2.getByRole("button", { name: "Open task description" }).click();
 
     // Change task name
     await page1
@@ -271,7 +267,9 @@ test.describe("Collaboration tests", () => {
     await page1.keyboard.type(" Edited");
     await page1.keyboard.press("Enter");
     await expect(
-      page2.getByRole("heading", { name: "Task 1 Edited" }),
+      page2
+        .getByRole("heading", { name: "Task details" })
+        .getByRole("button", { name: "Task 1 Edited" }),
     ).toBeVisible();
 
     // Add a task description

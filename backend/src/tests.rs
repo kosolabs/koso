@@ -240,6 +240,21 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
         assert_eq!(users.len(), 2);
     }
 
+    // Get the user.
+    {
+        let res = client
+            .get(format!("http://{addr}/api/users/{}", &claims.email))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let user: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        let user = user.as_object().unwrap();
+        assert_eq!(user.get("email").unwrap().as_str().unwrap(), &claims.email);
+        assert!(user.get("premium").unwrap().as_bool().unwrap());
+    }
+
     server.shutdown_and_wait().await.unwrap();
     Ok(())
 }

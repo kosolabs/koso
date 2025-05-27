@@ -5,7 +5,7 @@
   import { toast } from "$lib/components/ui/sonner";
   import { Alert } from "$lib/kosui/alert";
   import { Button } from "$lib/kosui/button";
-  import { Link } from "$lib/kosui/link";
+  import { Goto } from "$lib/kosui/goto";
   import * as rest from "$lib/projects";
   import { type Project, type ProjectExport } from "$lib/projects";
   import { HardDriveUpload, Layers, PackagePlus, Trash2 } from "lucide-svelte";
@@ -180,9 +180,9 @@
       >
         {#each projects as project (project.projectId)}
           <div class="flex items-center border-t p-2">
-            <Link class="text-lg" href="projects/{project.projectId}">
+            <Goto class="text-lg" href="/projects/{project.projectId}">
               {project.name}
-            </Link>
+            </Goto>
             <Button
               icon={Trash2}
               tooltip="Move Project to Trash"

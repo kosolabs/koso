@@ -1,6 +1,7 @@
 <script module lang="ts">
   import { auth } from "$lib/auth.svelte";
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
+  import { Button } from "$lib/kosui/button";
   import { Chip } from "$lib/kosui/chip";
   import {
     Command,
@@ -15,7 +16,7 @@
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
   import { match } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
-  import { Clipboard, Network } from "lucide-svelte";
+  import { Clipboard, ClipboardPlus, Network, SquarePlus } from "lucide-svelte";
   import { compareTasks } from "./compare-tasks.svelte";
   import type { Koso } from "./koso.svelte";
   import { TaskLinkage } from "./koso.svelte";
@@ -26,6 +27,7 @@
     open: boolean;
     mode?: Mode;
     task: YTaskProxy;
+    onBlockNewTask?: (taskId: string) => void;
     koso: Koso;
   } & Omit<PopoverProps, "children">;
 </script>
@@ -35,6 +37,7 @@
     open = $bindable(false),
     mode = $bindable("link"),
     task,
+    onBlockNewTask,
     koso,
     anchorEl,
     ...restProps
@@ -71,6 +74,27 @@
         if (setStatusBlocked) {
           koso.setKind(task.id, "Task");
           koso.setTaskStatus(task.id, "Blocked", auth.user);
+        }
+      });
+    } else {
+      throw new Error(`Unknown mode: ${mode}`);
+    }
+    open = false;
+  }
+
+  function createAndLink() {
+    if (mode === "block") {
+      koso.doc.transact(() => {
+        const newTaskId = koso.insertTask({
+          name: query,
+          parent: task.id,
+          reporter: auth.user.email,
+          assignee: auth.user.email,
+        });
+        if (setStatusBlocked) {
+          koso.setKind(task.id, "Task");
+          koso.setTaskStatus(task.id, "Blocked", auth.user);
+          onBlockNewTask?.(newTaskId);
         }
       });
     } else {
@@ -126,12 +150,24 @@
       </div>
     {/if}
     <CommandDivider />
-    <CommandSearch
-      bind:value={query}
-      placeholder={mode === "link"
-        ? "Link this task to..."
-        : "Block this task on..."}
-    />
+    <div class="flex items-center gap-2">
+      <CommandSearch
+        bind:value={query}
+        class="grow"
+        placeholder={mode === "link"
+          ? "Link this task to..."
+          : "Block this task on..."}
+      />
+      {#if mode === "block"}
+        <Button
+          variant="plain"
+          shape="circle"
+          icon={SquarePlus}
+          title="Create a new task"
+          disabled={query.length === 0}
+        />
+      {/if}
+    </div>
     <CommandDivider />
     <CommandContent>
       {#if tasks.length > 0}
@@ -166,7 +202,8 @@
             <div class="table-cell rounded-r px-2 align-middle text-nowrap">
               <div class="flex items-center gap-1" title="Tags">
                 <div class="flex flex-wrap items-center gap-x-1">
-                  {#each getTags(task.id) as { title, description }}
+                  {#each getTags(task.id) as tag (tag)}
+                    {@const { title, description } = tag}
                     <Chip title={description}>{title}</Chip>
                   {/each}
                 </div>
@@ -175,7 +212,39 @@
           </CommandItem>
         {/each}
       {:else}
-        <div class="text-center">No results found.</div>
+        <div class="p-2 text-center">No tasks found.</div>
+      {/if}
+      {#if mode === "block" && query.length > 0}
+        <CommandItem
+          class="table-row"
+          onSelect={() => createAndLink()}
+          title="Create new task"
+        >
+          <div class="table-cell rounded-l px-2 py-1 align-middle">
+            <div class="flex items-center gap-1" title="Task Number">
+              <ClipboardPlus size={14} />
+              New
+            </div>
+          </div>
+          <div class="table-cell w-full px-2 align-middle">
+            <div class="flex items-center" title="Task Name">
+              {query}
+            </div>
+          </div>
+          <div class="table-cell px-2 align-middle text-nowrap">
+            <div class="flex items-center gap-1" title="Subtasks">
+              - <Network size={14} />
+            </div>
+          </div>
+          <div class="table-cell px-2 align-middle text-nowrap">
+            <div class="flex items-center gap-1" title="Status"></div>
+          </div>
+          <div class="table-cell rounded-r px-2 align-middle text-nowrap">
+            <div class="flex items-center gap-1" title="Tags">
+              <div class="flex flex-wrap items-center gap-x-1"></div>
+            </div>
+          </div>
+        </CommandItem>
       {/if}
     </CommandContent>
   </Command>

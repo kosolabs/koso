@@ -1,20 +1,24 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import { showUnauthorizedDialog } from "$lib/auth.svelte";
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import { getAuthContext, showUnauthorizedDialog } from "$lib/auth.svelte";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { ProjectShareModal } from "$lib/components/ui/project-share-modal";
-  import { githubInstallUrl } from "$lib/github";
+  import { redirectToGithubInstallFlow } from "$lib/github";
   import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
+  import { NavigationAction } from "$lib/navigation-action";
   import { fetchProject, fetchProjectUsers } from "$lib/projects";
   import {
+    Eye,
     Mail,
     Notebook,
     PanelTopClose,
     PanelTopOpen,
-    SquarePen,
+    Pencil,
     UserPlus,
   } from "lucide-svelte";
   import { onMount, type Snippet } from "svelte";
@@ -28,6 +32,8 @@
   let openShareModal: boolean = $state(false);
 
   const ctx = newProjectContext();
+  const command = getRegistryContext();
+  const authCtx = getAuthContext();
   const prefs = getPrefsContext();
   nav.lastVisitedProjectId = ctx.id;
   const deflicker: Promise<void> = new Promise((r) => window.setTimeout(r, 50));
@@ -40,7 +46,6 @@
     ]);
     ctx.name = project.name;
     ctx.users = users;
-    ctx.premium = users.some((u) => u.premium);
   }
 
   $effect(() => {
@@ -50,21 +55,19 @@
   });
 
   const actions: Action<ActionID>[] = [
-    new Action({
+    new NavigationAction({
       id: "InboxView",
-      callback: () => goto(`/projects/${ctx.id}/inbox`),
+      href: `/projects/${ctx.id}/inbox`,
       title: "Zero inbox",
       description: "Navigate to Zero Inbox view",
       icon: Mail,
-      enabled: () => page.url.pathname !== `/projects/${ctx.id}/inbox`,
     }),
-    new Action({
+    new NavigationAction({
       id: "PlanView",
-      callback: () => goto(`/projects/${ctx.id}`),
+      href: `/projects/${ctx.id}`,
       title: "Project planning",
       description: "Navigate to Project Planning view",
       icon: Notebook,
-      enabled: () => page.url.pathname !== `/projects/${ctx.id}`,
     }),
     new Action({
       id: "DetailPanelClose",
@@ -77,9 +80,17 @@
     new Action({
       id: "DetailPanelOpen",
       callback: () => (prefs.detailPanel = "view"),
+      title: "Open task description",
+      description: "Open / show the task description markdown panel",
+      icon: PanelTopOpen,
+      enabled: () => prefs.detailPanel === "none",
+    }),
+    new Action({
+      id: "DetailPanelViewer",
+      callback: () => (prefs.detailPanel = "view"),
       title: "View task description",
       description: "Open / show the task description markdown viewer",
-      icon: PanelTopOpen,
+      icon: Eye,
       enabled: () => prefs.detailPanel !== "view",
     }),
     new Action({
@@ -87,13 +98,13 @@
       callback: () => (prefs.detailPanel = "edit"),
       title: "Edit task description",
       description: "Open / show the task description markdown editor",
-      icon: SquarePen,
+      icon: Pencil,
       enabled: () => prefs.detailPanel !== "edit",
     }),
     new Action({
       id: "ConnectToGitHub",
       callback: async () =>
-        window.location.assign(await githubInstallUrl(ctx.id)),
+        await redirectToGithubInstallFlow(ctx.id, page.url.pathname),
       title: "Connect to GitHub",
       description: "Connect the project to GitHub",
       icon: UserPlus,
@@ -104,7 +115,7 @@
       title: "Share project",
       description: "Open / show the project share dialog",
       icon: UserPlus,
-      enabled: () => ctx.premium,
+      enabled: () => !!authCtx.user?.premium,
     }),
   ];
 
@@ -123,7 +134,7 @@
     </div>
   {/await}
 {:then}
-  {#if ctx.premium}
+  {#if !!authCtx.user?.premium}
     <ProjectShareModal bind:open={openShareModal} />
   {/if}
 

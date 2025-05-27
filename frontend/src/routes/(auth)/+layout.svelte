@@ -2,7 +2,10 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { auth } from "$lib/auth.svelte";
-  import { command, type ActionID } from "$lib/components/ui/command-palette";
+  import {
+    getRegistryContext,
+    type ActionID,
+  } from "$lib/components/ui/command-palette";
   import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
   import { House } from "lucide-svelte";
@@ -12,6 +15,8 @@
     children: Snippet;
   };
   const { children }: Props = $props();
+
+  const command = getRegistryContext();
 
   $effect(() => {
     if (!auth.ok()) {

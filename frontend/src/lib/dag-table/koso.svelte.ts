@@ -1,3 +1,4 @@
+import { page } from "$app/state";
 import { toast } from "$lib/components/ui/sonner";
 import {
   parseAwarenessStateResponse,
@@ -835,12 +836,19 @@ export class Koso {
     return this.isEditable(parentTaskId);
   }
 
-  insertTask(
-    parent: string,
-    offset: number,
-    user: User,
-    name: string = "",
-  ): string {
+  insertTask({
+    name = "",
+    parent,
+    offset = 0,
+    reporter,
+    assignee = null,
+  }: {
+    name?: string;
+    parent: string;
+    offset?: number;
+    reporter: string;
+    assignee?: string | null;
+  }): string {
     if (!this.canInsert(parent)) {
       throw new Error(`Cannot insert task under parent ${parent}`);
     }
@@ -849,11 +857,11 @@ export class Koso {
       this.upsert({
         id: taskId,
         num: this.newNum(),
-        name: name,
+        name,
         desc: null,
         children: [],
-        reporter: user.email,
-        assignee: null,
+        reporter,
+        assignee,
         status: null,
         statusTime: null,
         kind: null,
@@ -971,6 +979,18 @@ export class Koso {
         return true;
       }
     });
+  }
+
+  getTaskPermalink(taskId: string) {
+    const curr = page.url;
+    curr.pathname = `/projects/${this.projectId}`;
+    curr.search = new URLSearchParams({ taskId }).toString();
+    return curr;
+  }
+
+  getGitCommitMessage(taskId: string) {
+    const task = this.getTask(taskId);
+    return `koso-${task.num}: ${task.name}`;
   }
 
   /** Organizes the given task's children by status, etc. */

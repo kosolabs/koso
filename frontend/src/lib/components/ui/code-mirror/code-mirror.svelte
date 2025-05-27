@@ -42,6 +42,7 @@
           markdown(),
           yCollab(yText, dummyAwareness),
           EditorView.domEventHandlers(handlers),
+          EditorView.lineWrapping,
           mode.current === "dark" ? oneDarkTheme : [],
         ],
       }),

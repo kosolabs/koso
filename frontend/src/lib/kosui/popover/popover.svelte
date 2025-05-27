@@ -3,7 +3,7 @@
   import { type Snippet } from "svelte";
   import type { HTMLAttributes } from "svelte/elements";
   import { scale } from "svelte/transition";
-  import { twMerge } from "tailwind-merge";
+  import { twMerge, type ClassNameValue } from "tailwind-merge";
   import { events } from "..";
   import { mergeProps } from "../merge-props";
   import { Shortcut } from "../shortcut";
@@ -16,6 +16,7 @@
 
   export type PopoverProps = {
     arrow?: boolean;
+    arrowClass?: ClassNameValue;
     placement?: floatingUi.Placement;
     strategy?: floatingUi.Strategy;
     open?: boolean;
@@ -25,6 +26,8 @@
   } & ClassName &
     ElementRef &
     HTMLAttributes<HTMLDivElement>;
+
+  type Side = "top" | "bottom" | "left" | "right";
 </script>
 
 <script lang="ts">
@@ -38,11 +41,24 @@
     onKeydownWhileOpen,
     el: popoverEl = $bindable(),
     ref = noop,
+    arrowClass,
     class: className,
     ...restProps
   }: PopoverProps = $props();
 
   let arrowEl: HTMLDivElement | undefined = $state();
+
+  function getArrowRotation(placement: Side) {
+    if (placement === "top") {
+      return "rotateZ(0deg)";
+    } else if (placement === "right") {
+      return "rotateZ(90deg)";
+    } else if (placement === "bottom") {
+      return "rotateZ(180deg)";
+    } else if (placement === "left") {
+      return "rotateZ(270deg)";
+    }
+  }
 
   function handleEscape(event: KeyboardEvent) {
     if (popoverEl && Shortcut.ESCAPE.matches(event)) {
@@ -122,19 +138,20 @@
       if (computedPosition.middlewareData.arrow) {
         const arrow = computedPosition.middlewareData.arrow;
 
+        const side = computedPosition.placement.split("-")[0] as Side;
+
         const staticSide = {
           top: "bottom",
           right: "left",
           bottom: "top",
           left: "right",
-        }[computedPosition.placement.split("-")[0]]!;
+        }[side];
 
         Object.assign(arrowEl.style, {
           left: arrow.x != null ? `${arrow.x}px` : "",
           top: arrow.y != null ? `${arrow.y}px` : "",
-          right: "",
-          bottom: "",
           [staticSide]: "-4px",
+          transform: getArrowRotation(side),
         });
       }
     }
@@ -158,7 +175,8 @@
     <div
       bind:this={arrowEl}
       class={twMerge(
-        "bg-m3-inverse-surface absolute -z-10 size-2 rotate-45",
+        arrowClass,
+        "absolute size-2 rotate-45",
         arrow ? "block" : "hidden",
       )}
     ></div>
