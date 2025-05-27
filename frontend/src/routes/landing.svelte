@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import collabDemo from "$lib/components/ui/landing/collab-demo.png";
   import editDemo from "$lib/components/ui/landing/edit-demo.png";
@@ -18,6 +19,10 @@
     const t = Math.max(Math.min((window.scrollY - 50) / 250, 1), 0);
     heroTextEl.style.opacity = `${1 - t}`;
     heroTextEl.style.scale = `${1 - 0.2 * t}`;
+  }
+
+  function showVideo() {
+    return page.url.searchParams.get("showVideo") === "true";
   }
 
   $effect(() => {
@@ -57,20 +62,25 @@
   >
     <h2 class="text-2xl lg:text-4xl">Plan at the Speed of Thought</h2>
     <p>Create and edit tasks as if you were typing in a doc.</p>
-    <!-- <img
-      src={editDemo}
-      alt="Create and edit tasks"
-      class="placeholder flex w-full items-center justify-center rounded-lg border"
-    /> -->
-    <video
-      class="flat-gradient rounded-lg border"
-      autoplay
-      loop
-      muted
-      playsinline
-      src="https://storage.cloud.google.com/koso-assets/plan-being-made-dark.mp4"
-      alt="Create and edit tasks"
-    ></video>
+
+    {#if showVideo()}
+      <video
+        class="flat-gradient rounded-lg border"
+        autoplay
+        loop
+        muted
+        playsinline
+        src="https://storage.cloud.google.com/koso-assets/plan-being-made-dark.mp4"
+        title="Create and edit tasks"
+      ></video>
+    {:else}
+      <img
+        src={editDemo}
+        alt="Create and edit tasks"
+        class="placeholder flex w-full items-center justify-center rounded-lg border"
+      />
+    {/if}
+
     <div>
       <h3 class="pb-4 text-xl lg:text-2xl">Quick Edits</h3>
       <p>
@@ -113,19 +123,21 @@
       Tasks are organized as a graph. Drag and drop tasks to link a task as the
       dependency of another. Or link by searching.
     </p>
-    <!-- <img
-      src={linkDemo}
-      alt="Link tasks by searching"
-      class="placeholder flex w-full items-center justify-center rounded-lg border"
-    /> -->
-    <video
-      class="flat-gradient rounded-lg border"
-      autoplay
-      loop
-      muted
-      playsinline
-      src="https://storage.cloud.google.com/koso-assets/drag-and-drop-dark.mp4"
-    ></video>
+
+    {#if showVideo()}<video
+        class="flat-gradient rounded-lg border"
+        autoplay
+        loop
+        muted
+        playsinline
+        src="https://storage.cloud.google.com/koso-assets/drag-and-drop-dark.mp4"
+      ></video>
+    {:else}<img
+        src={linkDemo}
+        alt="Link tasks by searching"
+        class="placeholder flex w-full items-center justify-center rounded-lg border"
+      />
+    {/if}
   </div>
 </div>
 
