@@ -57,11 +57,20 @@
   >
     <h2 class="text-2xl lg:text-4xl">Plan at the Speed of Thought</h2>
     <p>Create and edit tasks as if you were typing in a doc.</p>
-    <img
+    <!-- <img
       src={editDemo}
       alt="Create and edit tasks"
       class="placeholder flex w-full items-center justify-center rounded-lg border"
-    />
+    /> -->
+    <video
+      class="flat-gradient rounded-lg border"
+      autoplay
+      loop
+      muted
+      playsinline
+      src="https://storage.cloud.google.com/koso-assets/plan-being-made-dark.mp4"
+      alt="Create and edit tasks"
+    ></video>
     <div>
       <h3 class="pb-4 text-xl lg:text-2xl">Quick Edits</h3>
       <p>
