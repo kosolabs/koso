@@ -20,7 +20,7 @@
     heroTextEl.style.opacity = `${1 - t}`;
     heroTextEl.style.scale = `${1 - 0.2 * t}`;
   }
-
+  // TODO: Remove this when all videos are ready
   function showVideo() {
     return page.url.searchParams.get("showVideo") === "true";
   }
