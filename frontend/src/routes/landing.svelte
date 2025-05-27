@@ -87,19 +87,11 @@
       Multiple people can organize tasks at the same time. Ask the gizmo expert
       to break down the tasks for gizmo's whatchamacallit feature.
     </p>
-    <!-- <img
+    <img
       src={collabDemo}
       alt="Multiple people collaborating on tasks"
       class="placeholder flex w-full items-center justify-center rounded-lg border"
-    /> -->
-    <video
-      class="flat-gradient rounded-lg border"
-      autoplay
-      loop
-      muted
-      playsinline
-      src="https://storage.googleapis.com/koso-assets/drag-and-drop.mp4"
-    ></video>
+    />
   </div>
 </div>
 
@@ -112,11 +104,19 @@
       Tasks are organized as a graph. Drag and drop tasks to link a task as the
       dependency of another. Or link by searching.
     </p>
-    <img
+    <!-- <img
       src={linkDemo}
       alt="Link tasks by searching"
       class="placeholder flex w-full items-center justify-center rounded-lg border"
-    />
+    /> -->
+    <video
+      class="flat-gradient rounded-lg border"
+      autoplay
+      loop
+      muted
+      playsinline
+      src="https://storage.cloud.google.com/koso-assets/drag-and-drop-dark.mp4"
+    ></video>
   </div>
 </div>
 
