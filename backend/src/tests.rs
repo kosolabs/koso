@@ -766,6 +766,13 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
     .bind("57987456")
     .execute(&pool)
     .await?;
+    sqlx::query(
+        "
+    INSERT INTO users (email, name, picture, premium, github_user_id)
+    VALUES ('foo@koso.test', 'Foo Bar', 'foopic@koso.test', True, '4945355')",
+    )
+    .execute(&pool)
+    .await?;
 
     let mut req = format!("ws://{addr}/api/ws/projects/{}", project.project_id)
         .into_client_request()
@@ -872,6 +879,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         assert_eq!(task.kind.as_ref().unwrap(), "github_pr");
         assert_eq!(task.name, "Tweak VSCode workspace to play nice with rust");
         assert_eq!(task.status.as_ref().unwrap(), "In Progress");
+        assert_eq!(task.assignee.as_ref().unwrap(), "foo@koso.test");
         assert!(task.num.parse::<u64>().unwrap() > 0);
         assert!(parent.children.contains(&task.id));
     }
