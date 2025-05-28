@@ -34,7 +34,7 @@ use sha2::Sha256;
 use sqlx::PgPool;
 use tower_http::request_id::RequestId;
 use tracing::Instrument as _;
-use yrs::{Origin, ReadTxn, TransactionMut, doc};
+use yrs::{Origin, ReadTxn, TransactionMut};
 
 /// Maximum size of request body in bytes.
 const BODY_LIMIT: usize = 10 * 1024 * 1024;
