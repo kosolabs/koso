@@ -87,18 +87,70 @@ export async function showUnauthorizedDialog() {
 }
 
 export class AuthContext {
-  #user: FullUser | undefined = $state();
+  #fullUser: FullUser | undefined = $state();
 
   constructor() {}
 
   get fullUser(): FullUser | undefined {
-    return this.#user;
+    return this.#fullUser;
   }
 
   async load() {
-    if (auth.ok()) {
-      this.#user = await fetchUser(auth.user.email);
+    if (this.ok()) {
+      this.#fullUser = await fetchUser(this.user.email);
     }
+  }
+
+  #token: string | null = $state(loads(CREDENTIAL_KEY, null));
+  #user: User | null = $derived.by(() => {
+    if (this.#token === null) {
+      return null;
+    }
+    const user = jwtDecode(this.#token) as User;
+    // Allow the token to last seven days longer than the given expiry.
+    // This number matches the server's validation in google.rs.
+    const sevenDaysSecs = 7 * 24 * 60 * 60;
+    const realExpiryMillisecs = (user.exp + sevenDaysSecs) * 1000;
+    const remainingLifeMillis = realExpiryMillisecs - Date.now();
+    if (remainingLifeMillis <= 0) {
+      return null;
+    }
+    setTimeout(
+      () => {
+        console.debug("Logging the user out at token expiry");
+        this.logout();
+      },
+      // Avoid exceeding setTimeout's max delay.
+      Math.min(remainingLifeMillis - 90000, 2147483647),
+    );
+    return user;
+  });
+
+  get token(): string {
+    if (!this.#token) throw new Error("Unauthenticated");
+    return this.#token;
+  }
+
+  set token(token: string | null) {
+    this.#token = token;
+    saves(CREDENTIAL_KEY, token);
+  }
+
+  get user(): User {
+    if (!this.#user) throw new Error("Unauthenticated");
+    return this.#user;
+  }
+
+  ok(): boolean {
+    return this.#token !== null && this.#user !== null;
+  }
+
+  headers() {
+    return { Authorization: `Bearer ${this.token}` };
+  }
+
+  logout() {
+    this.token = null;
   }
 }
 
