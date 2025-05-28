@@ -34,7 +34,7 @@ use sha2::Sha256;
 use sqlx::PgPool;
 use tower_http::request_id::RequestId;
 use tracing::Instrument as _;
-use yrs::{Origin, ReadTxn, TransactionMut};
+use yrs::{Origin, ReadTxn, TransactionMut, doc};
 
 /// Maximum size of request body in bytes.
 const BODY_LIMIT: usize = 10 * 1024 * 1024;
@@ -303,11 +303,17 @@ impl Webhook {
             .collab
             .register_local_client(&config.project_id)
             .await?;
-        let doc_box = client.project.doc_box.lock().await;
-        let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;
-        let doc = &doc_box.ydoc;
 
-        let mut txn = doc.transact_mut_with(origin(&event)?);
+        // Avoid any expensive, async work while holding the doc_box lock.
+        self.apply_task_changes(
+            &event,
+            &DocBox::doc_or_error(client.project.doc_box.lock().await.as_ref())?.ydoc,
+        )
+    }
+
+    // Note: This function should remain synchronous to avoid blocking the doc_box lock.
+    fn apply_task_changes(&self, event: &KosoGithubEvent, doc: &YDocProxy) -> Result<()> {
+        let mut txn = doc.transact_mut_with(origin(event)?);
         match (
             get_doc_task(&txn, doc, &event.task.url, PR_KIND)?,
             &event.action,
@@ -331,7 +337,6 @@ impl Webhook {
                 tracing::trace!("Discarding close event without associated task");
             }
         }
-
         Ok(())
     }
 }
