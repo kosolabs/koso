@@ -7,7 +7,7 @@ use crate::{
     },
     plugins::{PluginSettings, config::ConfigStorage, github::app::AppGithub},
 };
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use auth::Auth;
 use axum::{Router, middleware};
 use connect::ConnectHandler;
@@ -83,7 +83,9 @@ impl Plugin {
             )
             .layer((middleware::from_fn(google::authenticate),))
             // Webhook and poller are unauthenticated, so add it AFTER adding the authentication layers.
-            .merge(Webhook::new(self.collab.clone(), self.config_storage.clone())?.router())
+            .merge(
+                Webhook::new(self.collab.clone(), self.config_storage.clone(), self.pool)?.router(),
+            )
             .merge(self.poller().router()))
     }
 
@@ -150,6 +152,8 @@ struct ExternalTask {
     url: String,
     name: String,
     description: String,
+    user_id: Option<String>,
+    koso_user_email: Option<String>,
 }
 
 impl ExternalTask {
@@ -160,10 +164,14 @@ impl ExternalTask {
             return Err(anyhow!("Found PR with empty html_url: {}", pr.url));
         }
         let description = pr.body.unwrap_or_default();
+        let user_id = pr.user.as_ref().map(|u| u.id.to_string());
+        let koso_user_email = pr.user.and_then(|u| u.email);
         Ok(ExternalTask {
             url,
             name,
             description,
+            user_id,
+            koso_user_email,
         })
     }
 }
@@ -177,8 +185,8 @@ fn new_task(external_task: &ExternalTask, num: u64, kind: &Kind) -> Result<Task>
         name: external_task.name.clone(),
         desc: None,
         children: Vec::with_capacity(0),
-        assignee: None,
-        reporter: None,
+        assignee: external_task.koso_user_email.clone(),
+        reporter: external_task.koso_user_email.clone(),
         status: Some("In Progress".to_string()),
         status_time: Some(now()?),
         url: Some(external_task.url.clone()),
@@ -196,6 +204,9 @@ fn update_task(
     if task.get_status(txn)?.is_none_or(|s| s != "In Progress") {
         task.set_status(txn, Some("In Progress"));
         task.set_status_time(txn, Some(now()?));
+    }
+    if task.get_assignee(txn)?.is_none() && external_task.koso_user_email.is_some() {
+        task.set_assignee(txn, external_task.koso_user_email.as_deref());
     }
     Ok(())
 }
@@ -259,6 +270,17 @@ fn now() -> Result<i64> {
         .duration_since(SystemTime::UNIX_EPOCH)?
         .as_millis()
         .try_into()?)
+}
+
+async fn lookup_by_github_user_id(github_user_id: &str, pool: &PgPool) -> Result<Option<String>> {
+    // TODO: Cache and batch these lookups.
+    let email: Option<(String,)> =
+        sqlx::query_as("SELECT email FROM users WHERE github_user_id=$1;")
+            .bind(github_user_id)
+            .fetch_optional(pool)
+            .await
+            .context("Failed to query user by github user id")?;
+    Ok(email.map(|e| e.0))
 }
 
 struct Kind<'a> {
@@ -340,6 +362,8 @@ mod tests {
                 url: "https://github.com/kosolabs/koso/pull/121".into(),
                 name: "koso-15: Something else".into(),
                 description: "Something something".into(),
+                user_id: Some("123".to_string()),
+                koso_user_email: Some("foo@example.com".to_string())
             }),
             HashSet::from_iter(vec!["15".to_string()].into_iter())
         );
@@ -352,6 +376,8 @@ mod tests {
                 url: "https://github.com/kosolabs/koso/pull/121".into(),
                 name: "Something else".into(),
                 description: "Something something koso#17, koso#19".into(),
+                user_id: Some("123".to_string()),
+                koso_user_email: Some("foo@example.com".to_string())
             }),
             HashSet::from_iter(vec!["17".to_string(), "19".to_string()].into_iter())
         );
@@ -364,6 +390,8 @@ mod tests {
                 url: "https://github.com/kosolabs/koso/pull/121".into(),
                 name: "Something else KoSo_18".into(),
                 description: "Somethingkoso#14 something KOSO-17, koso#19".into(),
+                user_id: Some("123".to_string()),
+                koso_user_email: Some("foo@example.com".to_string())
             }),
             HashSet::from_iter(
                 vec!["17".to_string(), "18".to_string(), "19".to_string()].into_iter()

@@ -13,7 +13,8 @@ use crate::{
         config::{Config, ConfigStorage},
         github::{
             ExternalTask, Kind, PLUGIN_KIND, PR_KIND, add_referenced_task_links,
-            get_or_create_kind_parent, new_task, resolve_task, update_task,
+            get_or_create_kind_parent, lookup_by_github_user_id, new_task, resolve_task,
+            update_task,
         },
     },
     secrets::{Secret, read_secret},
@@ -30,6 +31,7 @@ use octocrab::models::webhook_events::{
     WebhookEvent, WebhookEventPayload, payload::PullRequestWebhookEventAction,
 };
 use sha2::Sha256;
+use sqlx::PgPool;
 use tower_http::request_id::RequestId;
 use tracing::Instrument as _;
 use yrs::{Origin, ReadTxn, TransactionMut};
@@ -70,14 +72,20 @@ pub(super) struct Webhook {
     collab: Collab,
     config_storage: ConfigStorage,
     secret: WebhookSecret,
+    pool: &'static PgPool,
 }
 
 impl Webhook {
-    pub(super) fn new(collab: Collab, config_storage: ConfigStorage) -> Result<Webhook> {
+    pub(super) fn new(
+        collab: Collab,
+        config_storage: ConfigStorage,
+        pool: &'static PgPool,
+    ) -> Result<Webhook> {
         Ok(Webhook {
             collab,
             config_storage,
             secret: read_secret("github/webhook_secret")?,
+            pool,
         })
     }
 
@@ -248,8 +256,16 @@ impl Webhook {
         Ok(())
     }
 
-    async fn process_koso_event(&self, event: KosoGithubEvent) -> Result<()> {
+    async fn process_koso_event(&self, mut event: KosoGithubEvent) -> Result<()> {
         tracing::debug!("Processing Koso event: {event:?}");
+
+        // Populate the email of the author if we're able to.
+        if let Some(user_id) = &event.task.user_id {
+            if let Some(email) = lookup_by_github_user_id(user_id, self.pool).await? {
+                event.task.koso_user_email = Some(email);
+            }
+        }
+
         let configs = self
             .config_storage
             .list_for_external_id(PLUGIN_KIND.id, &event.installation_id.to_string())
