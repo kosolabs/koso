@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { auth, getAuthContext } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import {
     getRegistryContext,
     type ActionID,
@@ -145,20 +145,20 @@
     <NavigateButton name="InboxView" />
     <NavigateButton name="PlanView" />
 
-    {#if auth.ok()}
+    {#if ctx.ok()}
       <Menu>
         <MenuTrigger
-          title={auth.user.email}
+          title={ctx.user.email}
           class="focus-visible:outline-m3-primary focus-visible:outline-1"
         >
           <Badge
-            content={ctx.user?.premium ? "👑" : ""}
+            content={ctx.fullUser?.premium ? "👑" : ""}
             variant="plain"
             class="m-[.23rem] rotate-45"
           >
             <Avatar
-              src={auth.user.picture}
-              alt={auth.user.email}
+              src={ctx.user.picture}
+              alt={ctx.user.email}
               shape="circle"
               class="transition-all active:scale-95 active:brightness-110"
             >
@@ -167,7 +167,7 @@
           </Badge>
         </MenuTrigger>
         <MenuContent>
-          <UserAvatar class="p-1" user={auth.user} />
+          <UserAvatar class="p-1" user={ctx.user} />
           <MenuDivider />
           <MenuItem onSelect={() => goto("/profile")}>Profile</MenuItem>
           <MenuDivider />
@@ -192,7 +192,7 @@
           </MenuItem>
           <MenuDivider />
           <MenuItem onSelect={() => goto("/projects")}>Projects</MenuItem>
-          <MenuItem onSelect={() => auth.logout()}>Logout</MenuItem>
+          <MenuItem onSelect={() => ctx.logout()}>Logout</MenuItem>
         </MenuContent>
       </Menu>
     {/if}
