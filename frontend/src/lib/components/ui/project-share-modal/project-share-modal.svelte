@@ -1,6 +1,6 @@
 <script lang="ts">
   import { headers, parseResponse } from "$lib/api";
-  import { auth } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { getProjectContext } from "$lib/dag-table";
@@ -27,6 +27,7 @@
   };
   let { open = $bindable() }: Props = $props();
   const project = getProjectContext();
+  const auth = getAuthContext();
 
   let filter: string = $state("");
   let users: User[] = $state([]);
