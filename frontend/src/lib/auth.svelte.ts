@@ -70,6 +70,7 @@ class Auth {
     this.token = null;
   }
 }
+// Remove this and replace with context
 export const auth = new Auth();
 
 export async function showUnauthorizedDialog() {
@@ -90,7 +91,7 @@ export class AuthContext {
 
   constructor() {}
 
-  get user(): FullUser | undefined {
+  get fullUser(): FullUser | undefined {
     return this.#user;
   }
 

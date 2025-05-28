@@ -115,7 +115,7 @@
       title: "Share project",
       description: "Open / show the project share dialog",
       icon: UserPlus,
-      enabled: () => !!authCtx.user?.premium,
+      enabled: () => !!authCtx.fullUser?.premium,
     }),
   ];
 
@@ -134,7 +134,7 @@
     </div>
   {/await}
 {:then}
-  {#if !!authCtx.user?.premium}
+  {#if !!authCtx.fullUser?.premium}
     <ProjectShareModal bind:open={openShareModal} />
   {/if}
 
