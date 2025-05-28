@@ -13,7 +13,7 @@
   import ActionItemTooltip from "./action-item-tooltip.svelte";
   import DescAction from "./desc-action.svelte";
   import { ActionItem, getInboxContext } from "./inbox-context.svelte";
-  import LinkPanel, { type Mode } from "./link-panel.svelte";
+  import LinkTaskPanel, { type Mode } from "./link-task-panel.svelte";
   import TaskAction from "./task-action.svelte";
 
   type Props = {
@@ -130,7 +130,7 @@
           {task.name || "Untitled"}
         </Goto>
 
-        <LinkPanel
+        <LinkTaskPanel
           {task}
           {koso}
           bind:open={linkOpen}
