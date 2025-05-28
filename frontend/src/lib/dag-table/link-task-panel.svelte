@@ -65,7 +65,7 @@
       : [],
   );
 
-  function link(taskId: string) {
+  function select(taskId: string) {
     if (mode === "link") {
       koso.link(new TaskLinkage({ parentId: taskId, id: task.id }));
     } else if (mode === "block") {
@@ -83,23 +83,22 @@
   }
 
   function createAndLink() {
-    if (mode === "block") {
-      koso.doc.transact(() => {
-        const newTaskId = koso.insertTask({
-          name: query,
-          parent: task.id,
-          reporter: auth.user.email,
-          assignee: auth.user.email,
-        });
-        if (setStatusBlocked) {
-          koso.setKind(task.id, "Task");
-          koso.setTaskStatus(task.id, "Blocked", auth.user);
-          onBlockNewTask?.(newTaskId);
-        }
-      });
-    } else {
-      throw new Error(`Unknown mode: ${mode}`);
+    if (mode !== "block") {
+      throw new Error(`createAndLink only works on block, got: ${mode}`);
     }
+    koso.doc.transact(() => {
+      const newTaskId = koso.insertTask({
+        name: query,
+        parent: task.id,
+        reporter: auth.user.email,
+        assignee: auth.user.email,
+      });
+      if (setStatusBlocked) {
+        koso.setKind(task.id, "Task");
+        koso.setTaskStatus(task.id, "Blocked", auth.user);
+        onBlockNewTask?.(newTaskId);
+      }
+    });
     open = false;
   }
 
@@ -154,9 +153,10 @@
       <CommandSearch
         bind:value={query}
         class="grow"
-        placeholder={mode === "link"
-          ? "Link this task to..."
-          : "Block this task on..."}
+        placeholder={(() => {
+          if (mode === "link") return "Link this task to...";
+          if (mode === "block") return "Block this task on...";
+        })()}
       />
       {#if mode === "block"}
         <Button
@@ -174,7 +174,7 @@
         {#each tasks as task (task.id)}
           <CommandItem
             class="table-row"
-            onSelect={() => link(task.id)}
+            onSelect={() => select(task.id)}
             aria-label="Task {task.id} Command Item"
           >
             <div class="table-cell rounded-l px-2 py-1 align-middle">

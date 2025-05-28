@@ -1958,6 +1958,32 @@ test.describe("dag table tests", () => {
         f2: { children: [] },
       });
     });
+
+    test("link panel moves a task to a new parent", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["m1", "b1"] },
+        { id: "m1", name: "Milestone 1", children: ["f1"] },
+        { id: "b1", name: "Backlog", children: ["f2"] },
+        { id: "f1", name: "Feature 1", children: [] },
+        { id: "f2", name: "Feature 2", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Task m1 Toggle Expand" }).click();
+      await page.getByRole("button", { name: "Task b1 Toggle Expand" }).click();
+      await page.getByRole("button", { name: "Task f2 Drag Handle" }).click();
+
+      await page.keyboard.press("Meta+/");
+      await page.getByRole("option", { name: "Move to" }).click();
+      await page.getByRole("option", { name: "Task m1 Command Item" }).click();
+
+      await expectKosoGraph(page).toMatchObject({
+        root: { children: ["m1", "b1"] },
+        m1: { children: ["f2", "f1"] },
+        b1: { children: [] },
+        f1: { children: [] },
+        f2: { children: [] },
+      });
+    });
   });
 
   test.describe("task tags", () => {

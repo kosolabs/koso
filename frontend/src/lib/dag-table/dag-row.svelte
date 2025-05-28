@@ -18,7 +18,7 @@
   import DescAction from "./desc-action.svelte";
   import DropIndicator from "./drop-indicator.svelte";
   import { TaskLinkage } from "./koso.svelte";
-  import LinkPanel, { type Mode } from "./link-panel.svelte";
+  import LinkNodePanel, { type Mode } from "./link-node-panel.svelte";
   import { getPlanningContext, Node } from "./planning-context.svelte";
   import TaskAction from "./task-action.svelte";
 
@@ -510,8 +510,8 @@
             {task.name || "Untitled"}
           </Link>
         {/if}
-        <LinkPanel
-          {task}
+        <LinkNodePanel
+          {node}
           {koso}
           bind:open={linkOpen}
           bind:mode={linkMode}
