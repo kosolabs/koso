@@ -130,64 +130,18 @@ impl Poller {
             .collab
             .register_local_client(&config.project_id)
             .await?;
-        let doc_box = client.project.doc_box.lock().await;
-        let doc_box = DocBox::doc_or_error(doc_box.as_ref())?;
-        let doc = &doc_box.ydoc;
-
-        let mut txn = doc.transact_mut_with(origin(&config)?);
-
-        let parent = get_or_create_kind_parent(&mut txn, doc, PR_KIND)?;
-        let doc_tasks_by_url = self.list_doc_tasks(&txn, doc, &parent, PR_KIND)?;
-        tracing::trace!(
-            "Found existing tasks in doc: {:?}",
-            doc_tasks_by_url
-                .iter()
-                .map(|(k, v)| Ok(format!("{}:{k}", v.get_id(&txn)?)))
-                .collect::<Result<Vec<_>>>()
-        );
-
-        // Resolve or update tasks that already exist in the doc.
-        for (url, task) in doc_tasks_by_url.iter() {
-            match github_tasks_by_url.get(url) {
-                Some(github_task) => {
-                    update_task(&mut txn, task, github_task)?;
-
-                    let task_id = task.get_id(&txn)?;
-                    add_referenced_task_links(&mut txn, doc, &task_id, github_task)?;
-                }
-                None => {
-                    // Note: we didn't fetch the closed PR so we can't call add_referenced_task_links
-                    // to add links. In most cases this won't matter because the webhook
-                    // will have done it already
-                    // TODO: If this is a problem, we could fetch the closed PR here and add reference links.
-                    resolve_task(&mut txn, task)?
-                }
-            }
-        }
-
-        // Create any new tasks that don't already exist.
-        let mut next_num: u64 = doc.next_num(&txn)?;
-        let mut children = parent.get_children(&txn)?;
-        for github_task in github_tasks_by_url.values() {
-            match doc_tasks_by_url.get(&github_task.url) {
-                Some(_) => {}
-                None => {
-                    let task = new_task(github_task, next_num, PR_KIND)?;
-
-                    next_num += 1;
-                    doc.set(&mut txn, &task);
-                    children.push(task.id.clone());
-
-                    add_referenced_task_links(&mut txn, doc, &task.id, github_task)?;
-                }
-            }
-        }
-        parent.set_children(&mut txn, &children);
+        let task_count =
+            // Avoid any expensive, async work while holding the doc_box lock.
+            self.merge_tasks(
+                &github_tasks_by_url,
+                &config,
+                &DocBox::doc_or_error(client.project.doc_box.lock().await.as_ref())?.ydoc,
+            )?;
 
         tracing::debug!(
             "Finished polling installation with {} active and {} total tasks",
             github_tasks_by_url.len(),
-            children.len()
+            task_count
         );
 
         Ok(())
@@ -242,6 +196,66 @@ impl Poller {
             }
         }
         Ok(results)
+    }
+
+    // Note: This function should remain synchronous to avoid blocking the doc_box lock.
+    fn merge_tasks(
+        &self,
+        github_tasks_by_url: &HashMap<String, ExternalTask>,
+        config: &Config,
+        doc: &YDocProxy,
+    ) -> Result<usize> {
+        let mut txn = doc.transact_mut_with(origin(config)?);
+
+        let parent = get_or_create_kind_parent(&mut txn, doc, PR_KIND)?;
+        let doc_tasks_by_url = self.list_doc_tasks(&txn, doc, &parent, PR_KIND)?;
+        tracing::trace!(
+            "Found existing tasks in doc: {:?}",
+            doc_tasks_by_url
+                .iter()
+                .map(|(k, v)| Ok(format!("{}:{k}", v.get_id(&txn)?)))
+                .collect::<Result<Vec<_>>>()
+        );
+
+        // Resolve or update tasks that already exist in the doc.
+        for (url, task) in doc_tasks_by_url.iter() {
+            match github_tasks_by_url.get(url) {
+                Some(github_task) => {
+                    update_task(&mut txn, task, github_task)?;
+
+                    let task_id = task.get_id(&txn)?;
+                    add_referenced_task_links(&mut txn, doc, &task_id, github_task)?;
+                }
+                None => {
+                    // Note: we didn't fetch the closed PR so we can't call add_referenced_task_links
+                    // to add links. In most cases this won't matter because the webhook
+                    // will have done it already
+                    // TODO: If this is a problem, we could fetch the closed PR here and add reference links.
+                    resolve_task(&mut txn, task)?
+                }
+            }
+        }
+
+        // Create any new tasks that don't already exist.
+        let mut next_num: u64 = doc.next_num(&txn)?;
+        let mut children = parent.get_children(&txn)?;
+        for github_task in github_tasks_by_url.values() {
+            match doc_tasks_by_url.get(&github_task.url) {
+                Some(_) => {}
+                None => {
+                    let task = new_task(github_task, next_num, PR_KIND)?;
+
+                    next_num += 1;
+                    doc.set(&mut txn, &task);
+                    children.push(task.id.clone());
+
+                    add_referenced_task_links(&mut txn, doc, &task.id, github_task)?;
+                }
+            }
+        }
+        parent.set_children(&mut txn, &children);
+
+        Ok(children.len())
     }
 }
 
