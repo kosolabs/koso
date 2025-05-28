@@ -130,7 +130,7 @@ impl Poller {
             .collab
             .register_local_client(&config.project_id)
             .await?;
-        let task_count = 
+        let task_count =
             // Avoid any expensive, async work while holding the doc_box lock.
             self.merge_tasks(
                 &github_tasks_by_url,
