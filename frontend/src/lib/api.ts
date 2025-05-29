@@ -1,5 +1,5 @@
 import { version } from "$app/environment";
-import { getAuthContext } from "./auth.svelte";
+import { AuthContext } from "./auth.svelte";
 
 export type ErrorResponseBody = {
   status: number;
@@ -30,9 +30,9 @@ export class KosoError extends Error {
   }
 }
 
-export function headers() {
+export function headers(ctx: AuthContext) {
   return {
-    ...getAuthContext().headers(),
+    ...ctx.headers(),
     "koso-client-version": version,
   };
 }
@@ -42,7 +42,10 @@ export function headers() {
  *
  * @throws {KosoError}
  */
-export async function parseResponse<T>(response: Response): Promise<T> {
+export async function parseResponse<T>(
+  ctx: AuthContext,
+  response: Response,
+): Promise<T> {
   if (response.ok) {
     return response.json();
   }
@@ -73,12 +76,16 @@ export async function parseResponse<T>(response: Response): Promise<T> {
     });
   }
 
-  handleAuthErrors(err, response);
+  handleAuthErrors(ctx, err, response);
 
   throw err;
 }
 
-function handleAuthErrors(err: KosoError, response: Response) {
+function handleAuthErrors(
+  ctx: AuthContext,
+  err: KosoError,
+  response: Response,
+) {
   const AUTHENTICATION_ERROR = 401;
   if (response.status === AUTHENTICATION_ERROR) {
     console.debug(
@@ -86,6 +93,6 @@ function handleAuthErrors(err: KosoError, response: Response) {
       response,
       err,
     );
-    getAuthContext().logout();
+    ctx.logout();
   }
 }

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
+  import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
   import { Alert } from "$lib/kosui/alert";
@@ -10,8 +11,10 @@
   import { type Project, type ProjectExport } from "$lib/projects";
   import { HardDriveUpload, Layers, PackagePlus, Trash2 } from "lucide-svelte";
 
+  const auth = getAuthContext();
+
   let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
-  let projects: Promise<Project[]> = rest.fetchProjects();
+  let projects: Promise<Project[]> = rest.fetchProjects(auth);
 
   async function createProject(projectExport: ProjectExport | null = null) {
     const toastId = toast.loading(
@@ -20,7 +23,7 @@
         : `Creating project...`,
     );
     try {
-      let project = await rest.createProject(projectExport);
+      let project = await rest.createProject(auth, projectExport);
       await goto(`/projects/${project.projectId}`);
       toast.success(projectExport ? "Project imported!" : "Project created!", {
         id: toastId,
@@ -54,8 +57,8 @@
   async function deleteProject(project: Project) {
     const toastId = toast.loading(`Moving ${project.name} to the trash...`);
     try {
-      await rest.deleteProject(project);
-      projects = rest.fetchProjects();
+      await rest.deleteProject(auth, project);
+      projects = rest.fetchProjects(auth);
       toast.success(
         `${project.name} has been placed in the trash and will be permanently deleted in 30 days.`,
         { id: toastId },

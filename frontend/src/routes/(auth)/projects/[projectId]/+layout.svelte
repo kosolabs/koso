@@ -31,9 +31,9 @@
 
   let openShareModal: boolean = $state(false);
 
-  const ctx = newProjectContext();
-  const command = getRegistryContext();
   const authCtx = getAuthContext();
+  const ctx = newProjectContext(authCtx);
+  const command = getRegistryContext();
   const prefs = getPrefsContext();
   nav.lastVisitedProjectId = ctx.id;
   const deflicker: Promise<void> = new Promise((r) => window.setTimeout(r, 50));
@@ -41,8 +41,8 @@
 
   async function load() {
     const [project, users] = await Promise.all([
-      fetchProject(ctx.id),
-      fetchProjectUsers(ctx.id),
+      fetchProject(authCtx, ctx.id),
+      fetchProjectUsers(authCtx, ctx.id),
     ]);
     ctx.name = project.name;
     ctx.users = users;
@@ -104,7 +104,7 @@
     new Action({
       id: "ConnectToGitHub",
       callback: async () =>
-        await redirectToGithubInstallFlow(ctx.id, page.url.pathname),
+        await redirectToGithubInstallFlow(authCtx, ctx.id, page.url.pathname),
       title: "Connect to GitHub",
       description: "Connect the project to GitHub",
       icon: UserPlus,

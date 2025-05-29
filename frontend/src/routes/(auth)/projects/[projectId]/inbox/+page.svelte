@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getAuthContext } from "$lib/auth.svelte";
   import {
     getRegistryContext,
     type ActionID,
@@ -19,10 +20,11 @@
   import { Pencil } from "lucide-svelte";
   import { onMount, tick } from "svelte";
 
+  const auth = getAuthContext();
   const project = getProjectContext();
   const { koso } = project;
   const prefs = getPrefsContext();
-  const inbox = setInboxContext(new InboxContext(koso));
+  const inbox = setInboxContext(new InboxContext(auth, koso));
   const command = getRegistryContext();
 
   let detailPanel: DetailPanel | undefined = $state();

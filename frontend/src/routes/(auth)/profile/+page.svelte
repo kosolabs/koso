@@ -52,8 +52,8 @@
   };
 
   async function load(): Promise<Profile> {
-    let resp = await fetch("/api/profile", { headers: headers() });
-    return await parseResponse(resp);
+    let resp = await fetch("/api/profile", { headers: headers(auth) });
+    return await parseResponse(auth, resp);
   }
 
   async function sendTestTelegramNotification() {
@@ -63,11 +63,11 @@
       let resp = await fetch("/api/notifiers/telegram/test", {
         method: "POST",
         headers: {
-          ...headers(),
+          ...headers(auth),
           "Content-Type": "application/json",
         },
       });
-      await parseResponse(resp);
+      await parseResponse(auth, resp);
       toast.success("Test notification sent successfully.", { id: toastId });
     } catch {
       toast.error("Failed to send test notification.", { id: toastId });
@@ -91,11 +91,11 @@
       let resp = await fetch("/api/notifiers/telegram", {
         method: "DELETE",
         headers: {
-          ...headers(),
+          ...headers(auth),
           "Content-Type": "application/json",
         },
       });
-      await parseResponse(resp);
+      await parseResponse(auth, resp);
       toast.success("Telegram authorization deleted.", { id: toastId });
       profile = load();
     } catch {
@@ -128,7 +128,7 @@
     const toastId = toast.loading("Deleting Github connection...");
 
     try {
-      await deleteUserConnection();
+      await deleteUserConnection(auth);
       toast.success("Github connection deleted.", { id: toastId });
       profile = load();
     } catch {
@@ -240,7 +240,7 @@
               <Button
                 icon={Github}
                 onclick={async () =>
-                  await redirectToConnectUserFlow(page.url.pathname)}
+                  await redirectToConnectUserFlow(auth, page.url.pathname)}
               >
                 Connect to Github
               </Button>

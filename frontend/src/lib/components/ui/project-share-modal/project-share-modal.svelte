@@ -35,7 +35,7 @@
   let showCompletions: boolean = $derived(wantCompletions && users.length > 0);
 
   async function addUser(add: User) {
-    await updateProjectUsers({
+    await updateProjectUsers(auth, {
       projectId: project.id,
       addEmails: [add.email],
       removeEmails: [],
@@ -64,7 +64,7 @@
     let i = project.users.findIndex((u) => u.email === remove.email);
     if (i == -1) throw new Error("Could not find user");
 
-    await updateProjectUsers({
+    await updateProjectUsers(auth, {
       projectId: project.id,
       addEmails: [],
       removeEmails: [remove.email],
@@ -91,9 +91,9 @@
       const thisReq = req + 1;
       req = thisReq;
       const response = await fetch(`/api/users?q=${filter}`, {
-        headers: headers(),
+        headers: headers(auth),
       });
-      let respUsers: User[] = await parseResponse(response);
+      let respUsers: User[] = await parseResponse(auth, response);
       if (thisReq !== req) {
         console.log(
           `Discarding request ${thisReq}. A newer request, ${req}, is running.`,

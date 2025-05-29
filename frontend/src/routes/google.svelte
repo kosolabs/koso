@@ -51,7 +51,7 @@
             auth.token = oneTapResponse.credential;
             const loginResponse = await fetch("/api/auth/login", {
               method: "POST",
-              headers: headers(),
+              headers: headers(auth),
             });
             if (loginResponse.ok) {
               onsuccess();

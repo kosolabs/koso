@@ -4,6 +4,7 @@ import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import { Koso } from "./koso.svelte";
 import { KosoSocket } from "./socket.svelte";
+import type { AuthContext } from "$lib/auth.svelte";
 
 export class ProjectContext {
   id: string;
@@ -19,10 +20,10 @@ export class ProjectContext {
   }
 }
 
-export function newProjectContext(): ProjectContext {
+export function newProjectContext(auth: AuthContext): ProjectContext {
   const id = page.params.projectId;
   const koso = new Koso(id, new Y.Doc());
-  const socket = new KosoSocket(koso, id);
+  const socket = new KosoSocket(auth, koso, id);
   window.koso = koso;
   window.Y = Y;
   return setProjectContext(new ProjectContext(id, koso, socket));

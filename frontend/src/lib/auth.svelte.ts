@@ -26,7 +26,7 @@ export class AuthContext {
 
   async load() {
     if (this.ok()) {
-      this.#fullUser = await fetchUser(this.user.email);
+      this.#fullUser = await fetchUser(this, this.user.email);
     }
   }
 

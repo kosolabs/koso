@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { headers, parseResponse } from "$lib/api";
+  import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { Alert } from "$lib/kosui/alert";
   import { getDialoguerContext } from "$lib/kosui/dialog";
@@ -10,6 +11,7 @@
   import { onMount } from "svelte";
 
   const dialog = getDialoguerContext();
+  const auth = getAuthContext();
 
   let loading = $state(true);
 
@@ -31,7 +33,7 @@
     let resp = await fetch("/api/notifiers/telegram", {
       method: "POST",
       headers: {
-        ...headers(),
+        ...headers(auth),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ token }),
@@ -39,7 +41,7 @@
     loading = false;
 
     try {
-      await parseResponse(resp);
+      await parseResponse(auth, resp);
       const goHome = await dialog.confirm({
         icon: CircleCheck,
         title: "Telegram authorized",
