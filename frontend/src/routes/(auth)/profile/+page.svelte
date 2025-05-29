@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { headers, parseResponse } from "$lib/api";
-  import { auth } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
   import { deleteUserConnection, redirectToConnectUserFlow } from "$lib/github";
@@ -25,6 +25,7 @@
 
   const dialog = getDialoguerContext();
 
+  let auth = getAuthContext();
   let profile: Promise<Profile> = $state(load());
 
   type Base = {
