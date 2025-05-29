@@ -29,9 +29,9 @@ export type Task = {
   // e.g. a Github PR URL.
   url: string | null;
   // An estimate of how long the task will take to complete.
-  estimate?: Estimate | null;
+  estimate: Estimate | null;
   // When this task is targetted for completion.
-  deadline?: number | null;
+  deadline: number | null;
 };
 export type Status = "Not Started" | "In Progress" | "Done" | "Blocked";
 export type Kind = YKind | "Rollup";
@@ -40,7 +40,7 @@ export const unmanagedKinds: ImmutableSet<Kind> = ImmutableSet.of(
   "Rollup",
   "Task",
 );
-export type Estimate = 1 | 2 | 3 | 5 | 8 | 13 | 21 | 34;
+export type Estimate = 0 | 1 | 2 | 3 | 5 | 8 | 13 | 21 | 34;
 
 export type Slice = {
   start?: number;

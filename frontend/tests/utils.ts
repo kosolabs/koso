@@ -167,8 +167,8 @@ export async function init(
             statusTime: task.statusTime ?? null,
             kind: task.kind ?? null,
             url: task.url ?? null,
-            estimate: task.estimate,
-            deadline: task.deadline,
+            estimate: task.estimate ?? null,
+            deadline: task.deadline ?? null,
           });
         }
         for (const taskId of remainingTaskIds) {
@@ -184,6 +184,8 @@ export async function init(
             statusTime: null,
             kind: null,
             url: null,
+            estimate: null,
+            deadline: null,
           });
         }
       });

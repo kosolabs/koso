@@ -30,8 +30,8 @@ describe("PlanningContext tests", () => {
           statusTime: task.statusTime ?? null,
           kind: (task.kind as Kind) ?? null,
           url: task.url ?? null,
-          estimate: task.estimate,
-          deadline: task.deadline,
+          estimate: task.estimate ?? null,
+          deadline: task.deadline ?? null,
         });
       }
       for (const taskId of remainingTaskIds) {
@@ -47,6 +47,8 @@ describe("PlanningContext tests", () => {
           statusTime: null,
           kind: null,
           url: null,
+          estimate: null,
+          deadline: null,
         });
       }
     });

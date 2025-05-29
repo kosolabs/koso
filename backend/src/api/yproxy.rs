@@ -167,7 +167,7 @@ impl YTaskProxy {
         };
         match result {
             Out::Any(Any::Number(result)) => Ok(Some(result as i64)),
-            Out::Any(Any::Null) => Ok(None),
+            Out::Any(Any::Null) | Out::Any(Any::Undefined) => Ok(None),
             _ => Err(anyhow!("invalid field: {field}: {result:?}")),
         }
     }
@@ -178,7 +178,7 @@ impl YTaskProxy {
         };
         match result {
             Out::Any(Any::String(result)) => Ok(Some(result.to_string())),
-            Out::Any(Any::Null) => Ok(None),
+            Out::Any(Any::Null) | Out::Any(Any::Undefined) => Ok(None),
             _ => Err(anyhow!("invalid field: {field}: {result:?}")),
         }
     }
@@ -221,7 +221,7 @@ impl YTaskProxy {
 
         match result {
             Out::YText(text_ref) => Ok(Some(text_ref.get_string(txn))),
-            Out::Any(Any::Null) => Ok(None),
+            Out::Any(Any::Null) | Out::Any(Any::Undefined) => Ok(None),
             _ => Err(anyhow!("invalid type for desc field: {result:?}")),
         }
     }
