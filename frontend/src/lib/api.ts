@@ -1,5 +1,7 @@
 import { version } from "$app/environment";
-import { auth } from "./auth.svelte";
+import { getAuthContext } from "./auth.svelte";
+
+const auth = getAuthContext();
 
 export type ErrorResponseBody = {
   status: number;
