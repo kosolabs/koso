@@ -28,6 +28,10 @@ export type Task = {
   // to associate this task with some external entity.
   // e.g. a Github PR URL.
   url: string | null;
+  // An estimate of how long the task will take to complete.
+  estimate?: Estimate | null;
+  // When this task is targetted for completion.
+  deadline?: number | null;
 };
 export type Status = "Not Started" | "In Progress" | "Done" | "Blocked";
 export type Kind = YKind | "Rollup";
@@ -36,6 +40,7 @@ export const unmanagedKinds: ImmutableSet<Kind> = ImmutableSet.of(
   "Rollup",
   "Task",
 );
+export type Estimate = 1 | 2 | 3 | 5 | 8 | 13 | 21 | 34;
 
 export type Slice = {
   start?: number;
@@ -88,6 +93,8 @@ export class YGraphProxy {
       ["statusTime", task.statusTime],
       ["kind", task.kind],
       ["url", task.url],
+      ["estimate", task.estimate],
+      ["deadline", task.deadline],
     ]);
     this.#yGraph.set(task.id, value);
     return new YTaskProxy(value);
@@ -206,6 +213,22 @@ export class YTaskProxy {
 
   get url(): string | null {
     return (this.#yTask.get("url") as string) || null;
+  }
+
+  get estimate(): Estimate | null {
+    return (this.#yTask.get("estimate") as Estimate) || null;
+  }
+
+  set estimate(value: Estimate | null) {
+    this.#yTask.set("estimate", value);
+  }
+
+  get deadline(): number | null {
+    return (this.#yTask.get("deadline") as number) || null;
+  }
+
+  set deadline(value: number | null) {
+    this.#yTask.set("deadline", value);
   }
 
   observe(f: (arg0: Y.YMapEvent<YTaskProps>, arg1: Y.Transaction) => void) {

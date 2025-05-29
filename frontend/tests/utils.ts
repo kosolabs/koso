@@ -1,5 +1,5 @@
 import type { Koso } from "$lib/dag-table/koso.svelte";
-import type { Graph, Kind, Status } from "$lib/yproxy";
+import type { Estimate, Graph, Kind, Status } from "$lib/yproxy";
 import { expect, request, type Page } from "@playwright/test";
 import * as encoding from "lib0/encoding";
 import * as Y from "yjs";
@@ -16,6 +16,8 @@ export type TaskBuilder = {
   statusTime?: number | null;
   url?: string | null;
   kind?: Kind | null;
+  estimate?: Estimate | null;
+  deadline?: number | null;
 };
 
 export async function getKosoGraph(page: Page): Promise<Graph> {
@@ -165,6 +167,8 @@ export async function init(
             statusTime: task.statusTime ?? null,
             kind: task.kind ?? null,
             url: task.url ?? null,
+            estimate: task.estimate,
+            deadline: task.deadline,
           });
         }
         for (const taskId of remainingTaskIds) {

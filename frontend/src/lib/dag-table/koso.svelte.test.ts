@@ -41,6 +41,8 @@ describe("Koso tests", () => {
           statusTime: task.statusTime ?? null,
           kind: (task.kind as Kind) ?? null,
           url: task.url ?? null,
+          estimate: task.estimate,
+          deadline: task.deadline,
         });
       }
       for (const taskId of remainingTaskIds) {
@@ -1043,6 +1045,8 @@ describe("Koso tests", () => {
         statusTime: 123,
         kind: "github",
         url: "http://example.com/foo/bar",
+        estimate: undefined,
+        deadline: undefined,
       });
     });
 
