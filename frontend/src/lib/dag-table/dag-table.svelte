@@ -1,6 +1,6 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
-  import { auth } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import {
     getRegistryContext,
     type ActionID,
@@ -51,6 +51,7 @@
   import DagRow from "./dag-row.svelte";
   import { getPlanningContext, Node } from "./planning-context.svelte";
   import SearchPanel from "./search-panel.svelte";
+  import { get } from "http";
 
   type Props = {
     users: User[];
@@ -62,6 +63,7 @@
   const command = getRegistryContext();
   const planningCtx = getPlanningContext();
   const { koso } = planningCtx;
+  const auth = getAuthContext();
 
   function getRow(node: Node) {
     const maybeRow = rows[node.id];
