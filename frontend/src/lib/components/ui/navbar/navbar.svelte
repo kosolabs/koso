@@ -31,7 +31,7 @@
   };
   const { left }: Props = $props();
 
-  const ctx = getAuthContext();
+  const auth = getAuthContext();
   const command = getRegistryContext();
 
   type Section = {
@@ -145,20 +145,20 @@
     <NavigateButton name="InboxView" />
     <NavigateButton name="PlanView" />
 
-    {#if ctx.ok()}
+    {#if auth.ok()}
       <Menu>
         <MenuTrigger
-          title={ctx.user.email}
+          title={auth.user.email}
           class="focus-visible:outline-m3-primary focus-visible:outline-1"
         >
           <Badge
-            content={ctx.fullUser?.premium ? "👑" : ""}
+            content={auth.fullUser?.premium ? "👑" : ""}
             variant="plain"
             class="m-[.23rem] rotate-45"
           >
             <Avatar
-              src={ctx.user.picture}
-              alt={ctx.user.email}
+              src={auth.user.picture}
+              alt={auth.user.email}
               shape="circle"
               class="transition-all active:scale-95 active:brightness-110"
             >
@@ -167,7 +167,7 @@
           </Badge>
         </MenuTrigger>
         <MenuContent>
-          <UserAvatar class="p-1" user={ctx.user} />
+          <UserAvatar class="p-1" user={auth.user} />
           <MenuDivider />
           <MenuItem onSelect={() => goto("/profile")}>Profile</MenuItem>
           <MenuDivider />
@@ -192,7 +192,7 @@
           </MenuItem>
           <MenuDivider />
           <MenuItem onSelect={() => goto("/projects")}>Projects</MenuItem>
-          <MenuItem onSelect={() => ctx.logout()}>Logout</MenuItem>
+          <MenuItem onSelect={() => auth.logout()}>Logout</MenuItem>
         </MenuContent>
       </Menu>
     {/if}
