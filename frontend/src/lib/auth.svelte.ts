@@ -15,20 +15,6 @@ type User = {
   picture: string;
   exp: number;
 };
-
-export async function showUnauthorizedDialog() {
-  const dialog = getDialoguerContext();
-  await dialog.notice({
-    icon: CircleX,
-    title: "Unauthorized",
-    message:
-      "You do not have access to this project or the project does not exist.",
-    acceptText: "Return Home",
-  });
-  nav.lastVisitedProjectId = null;
-  await goto("/");
-}
-
 export class AuthContext {
   #fullUser: FullUser | undefined = $state();
 
@@ -95,6 +81,19 @@ export class AuthContext {
   logout() {
     this.token = null;
   }
+}
+
+export async function showUnauthorizedDialog() {
+  const dialog = getDialoguerContext();
+  await dialog.notice({
+    icon: CircleX,
+    title: "Unauthorized",
+    message:
+      "You do not have access to this project or the project does not exist.",
+    acceptText: "Return Home",
+  });
+  nav.lastVisitedProjectId = null;
+  await goto("/");
 }
 
 export function setAuthContext(ctx: AuthContext): AuthContext {
