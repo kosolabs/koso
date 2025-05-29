@@ -51,7 +51,6 @@
   import DagRow from "./dag-row.svelte";
   import { getPlanningContext, Node } from "./planning-context.svelte";
   import SearchPanel from "./search-panel.svelte";
-  import { get } from "http";
 
   type Props = {
     users: User[];
