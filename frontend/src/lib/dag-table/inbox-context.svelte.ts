@@ -1,9 +1,11 @@
-import { auth } from "$lib/auth.svelte";
+import { getAuthContext } from "$lib/auth.svelte";
 import { YTaskProxy } from "$lib/yproxy";
 import { Record } from "immutable";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import type { Koso } from "./koso.svelte";
+
+const auth = getAuthContext();
 
 export type Reason =
   | {

@@ -1,9 +1,12 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { auth } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import { nav } from "$lib/nav.svelte";
   import { fetchProjects } from "$lib/projects";
+  import { get } from "http";
   import Landing from "./landing.svelte";
+
+  const auth = getAuthContext();
 
   if (auth.ok()) {
     redirectOnLogin();

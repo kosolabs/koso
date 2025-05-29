@@ -1,7 +1,8 @@
 import { version } from "$app/environment";
-import { auth } from "$lib/auth.svelte";
+import { getAuthContext } from "$lib/auth.svelte";
 import type { Koso } from "./koso.svelte";
 
+const auth = getAuthContext();
 export class KosoSocket {
   #unauthorized: boolean = $state(false);
   #offline: boolean = $state(false);
