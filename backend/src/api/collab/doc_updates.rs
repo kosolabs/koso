@@ -202,7 +202,7 @@ impl GraphObserver {
         project: Arc<T>,
         origin: YOrigin,
     ) -> Result<()> {
-        let doc_box = project.get_doc_box().await;
+        let doc_box = project.lock_doc_box().await;
         let doc = &DocBox::doc_or_error(doc_box.as_ref())?.ydoc;
         let mut txn = doc.transact_mut_with(origin.as_origin()?);
 
@@ -321,7 +321,7 @@ mod tests {
 
     #[async_trait]
     impl DocBoxProvider for TestDocBoxProvider {
-        async fn get_doc_box(&self) -> MutexGuard<'_, Option<DocBox>> {
+        async fn lock_doc_box(&self) -> MutexGuard<'_, Option<DocBox>> {
             self.db.lock().await
         }
     }
