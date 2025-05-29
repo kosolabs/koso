@@ -1,8 +1,6 @@
 import { version } from "$app/environment";
 import { getAuthContext } from "./auth.svelte";
 
-const auth = getAuthContext();
-
 export type ErrorResponseBody = {
   status: number;
   details: ErrorDetail[];
@@ -34,7 +32,7 @@ export class KosoError extends Error {
 
 export function headers() {
   return {
-    ...auth.headers(),
+    ...getAuthContext().headers(),
     "koso-client-version": version,
   };
 }
@@ -88,6 +86,6 @@ function handleAuthErrors(err: KosoError, response: Response) {
       response,
       err,
     );
-    auth.logout();
+    getAuthContext().logout();
   }
 }
