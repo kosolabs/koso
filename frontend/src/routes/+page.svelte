@@ -3,7 +3,6 @@
   import { getAuthContext } from "$lib/auth.svelte";
   import { nav } from "$lib/nav.svelte";
   import { fetchProjects } from "$lib/projects";
-  import { get } from "http";
   import Landing from "./landing.svelte";
 
   const auth = getAuthContext();
