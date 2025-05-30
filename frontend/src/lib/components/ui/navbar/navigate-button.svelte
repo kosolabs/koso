@@ -2,10 +2,10 @@
   import { Goto } from "$lib/kosui/goto";
   import type { NavigationAction } from "$lib/navigation-action";
   import { twMerge } from "tailwind-merge";
-  import { getRegistryContext, type ActionID } from "../command-palette";
+  import { getRegistryContext } from "../command-palette";
 
   type Props = {
-    name: ActionID;
+    name: string;
     desktop?: boolean;
   };
   const { name, desktop = false }: Props = $props();

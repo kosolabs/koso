@@ -1,10 +1,8 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { getAuthContext, showUnauthorizedDialog } from "$lib/auth.svelte";
-  import {
-    getRegistryContext,
-    type ActionID,
-  } from "$lib/components/ui/command-palette";
+  import { getRegistryContext } from "$lib/components/ui/command-palette";
+  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { ProjectShareModal } from "$lib/components/ui/project-share-modal";
   import { redirectToGithubInstallFlow } from "$lib/github";
@@ -54,23 +52,23 @@
     }
   });
 
-  const actions: Action<ActionID>[] = [
+  const actions: Action[] = [
     new NavigationAction({
-      id: "InboxView",
+      id: ActionIds.InboxView,
       href: `/projects/${ctx.id}/inbox`,
       title: "Zero inbox",
       description: "Navigate to Zero Inbox view",
       icon: Mail,
     }),
     new NavigationAction({
-      id: "PlanView",
+      id: ActionIds.PlanView,
       href: `/projects/${ctx.id}`,
       title: "Project planning",
       description: "Navigate to Project Planning view",
       icon: Notebook,
     }),
     new Action({
-      id: "DetailPanelClose",
+      id: ActionIds.DetailPanelClose,
       callback: () => (prefs.detailPanel = "none"),
       title: "Close task description",
       description: "Close / hide the task description markdown panel",
@@ -78,7 +76,7 @@
       enabled: () => prefs.detailPanel !== "none",
     }),
     new Action({
-      id: "DetailPanelOpen",
+      id: ActionIds.DetailPanelOpen,
       callback: () => (prefs.detailPanel = "view"),
       title: "Open task description",
       description: "Open / show the task description markdown panel",
@@ -86,7 +84,7 @@
       enabled: () => prefs.detailPanel === "none",
     }),
     new Action({
-      id: "DetailPanelViewer",
+      id: ActionIds.DetailPanelViewer,
       callback: () => (prefs.detailPanel = "view"),
       title: "View task description",
       description: "Open / show the task description markdown viewer",
@@ -94,7 +92,7 @@
       enabled: () => prefs.detailPanel !== "view",
     }),
     new Action({
-      id: "DetailPanelEditor",
+      id: ActionIds.DetailPanelEditor,
       callback: () => (prefs.detailPanel = "edit"),
       title: "Edit task description",
       description: "Open / show the task description markdown editor",
@@ -102,7 +100,7 @@
       enabled: () => prefs.detailPanel !== "edit",
     }),
     new Action({
-      id: "ConnectToGitHub",
+      id: ActionIds.ConnectToGitHub,
       callback: async () =>
         await redirectToGithubInstallFlow(auth, ctx.id, page.url.pathname),
       title: "Connect to GitHub",
@@ -110,7 +108,7 @@
       icon: UserPlus,
     }),
     new Action({
-      id: "ShareProject",
+      id: ActionIds.ShareProject,
       callback: () => (openShareModal = true),
       title: "Share project",
       description: "Open / show the project share dialog",

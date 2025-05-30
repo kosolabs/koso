@@ -1,33 +1,5 @@
 <script module lang="ts">
-  export const paths: string[] = [
-    "/storybook/alerts",
-    "/storybook/autocomplete",
-    "/storybook/avatar",
-    "/storybook/badge",
-    "/storybook/buttons",
-    "/storybook/chips",
-    "/storybook/code-mirror",
-    "/storybook/command",
-    "/storybook/dialogs",
-    "/storybook/fab",
-    "/storybook/goto",
-    "/storybook/inputs",
-    "/storybook/links",
-    "/storybook/markdown",
-    "/storybook/menus",
-    "/storybook/progress-indicators",
-    "/storybook/shortcuts",
-    "/storybook/toggles",
-    "/storybook/tooltips",
-  ];
-</script>
-
-<script lang="ts">
-  import {
-    getRegistryContext,
-    type ActionID,
-  } from "$lib/components/ui/command-palette";
-
+  import { getRegistryContext } from "$lib/components/ui/command-palette";
   import { Navbar } from "$lib/components/ui/navbar";
   import { Breadcrumbs } from "$lib/kosui/breadcrumbs";
   import { toTitleCase } from "$lib/kosui/utils";
@@ -35,6 +7,44 @@
   import { Book } from "lucide-svelte";
   import { onMount, type Snippet } from "svelte";
 
+  export const StorybookNavigationActionIds = {
+    Alerts: "/storybook/alerts",
+    Autocomplete: "/storybook/autocomplete",
+    Avatar: "/storybook/avatar",
+    Badge: "/storybook/badge",
+    Buttons: "/storybook/buttons",
+    Chips: "/storybook/chips",
+    CodeMirror: "/storybook/code-mirror",
+    Command: "/storybook/command",
+    Dialogs: "/storybook/dialogs",
+    Fab: "/storybook/fab",
+    Goto: "/storybook/goto",
+    Inputs: "/storybook/inputs",
+    Links: "/storybook/links",
+    Markdown: "/storybook/markdown",
+    Menus: "/storybook/menus",
+    ProgressIndicators: "/storybook/progress-indicators",
+    Shortcuts: "/storybook/shortcuts",
+    Toggles: "/storybook/toggles",
+    Tooltips: "/storybook/tooltips",
+  };
+
+  const actions: NavigationAction[] = Object.values(
+    StorybookNavigationActionIds,
+  ).map((path) => {
+    const name = toTitleCase(path.split("/").slice(-1)[0]);
+
+    return new NavigationAction({
+      id: path,
+      href: path,
+      title: `Storybook ${name}`,
+      description: `Navigate to storybook ${name}`,
+      icon: Book,
+    });
+  });
+</script>
+
+<script lang="ts">
   type Props = {
     children: Snippet;
   };
@@ -42,21 +52,6 @@
   const { children }: Props = $props();
 
   const command = getRegistryContext();
-
-  const actions: NavigationAction[] = paths.map((path) => {
-    const name = toTitleCase(path.split("/").slice(-1)[0]);
-    const id = `Storybook${name.replaceAll(" ", "")}` as ActionID;
-
-    return new NavigationAction({
-      id,
-      href: path,
-      title: `Storybook ${name}`,
-      description: `Navigate to storybook ${name}`,
-      icon: Book,
-    });
-  });
-
-  console.log(actions);
 
   onMount(() => {
     return command.register(...actions);

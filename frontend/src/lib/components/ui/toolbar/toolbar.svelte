@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
+    ActionIds,
     getRegistryContext,
-    type ActionID,
   } from "$lib/components/ui/command-palette";
   import { ToolbarButton } from "$lib/components/ui/toolbar";
   import TaskAction from "$lib/dag-table/task-action.svelte";
@@ -14,12 +14,12 @@
 
   const command = getRegistryContext();
 
-  const base: ActionID[] = [
-    "DetailPanelClose",
-    "DetailPanelOpen",
-    "Undo",
-    "Redo",
-    "Search",
+  const base: string[] = [
+    ActionIds.DetailPanelClose,
+    ActionIds.DetailPanelOpen,
+    ActionIds.Undo,
+    ActionIds.Redo,
+    ActionIds.Search,
   ];
 
   let actions = $derived(

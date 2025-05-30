@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
+    ActionIds,
     getRegistryContext,
-    type ActionID,
   } from "$lib/components/ui/command-palette";
   import {
     Menu,
@@ -21,19 +21,19 @@
 
   type Section = {
     heading: string;
-    actions: ActionID[];
+    actions: string[];
   }[];
 
   const menu: Section = [
     {
       heading: "Actions",
       actions: [
-        "Indent",
-        "Undent",
-        "InsertSubtask",
-        "Delete",
-        "CopyTaskInfo",
-        "CopyTaskLink",
+        ActionIds.Indent,
+        ActionIds.Undent,
+        ActionIds.InsertSubtask,
+        ActionIds.Delete,
+        ActionIds.CopyTaskInfo,
+        ActionIds.CopyTaskLink,
       ],
     },
     {
