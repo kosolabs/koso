@@ -1,10 +1,8 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
   import { getAuthContext } from "$lib/auth.svelte";
-  import {
-    getRegistryContext,
-    type ActionID,
-  } from "$lib/components/ui/command-palette";
+  import { getRegistryContext } from "$lib/components/ui/command-palette";
+  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { Action } from "$lib/kosui/command";
@@ -158,42 +156,42 @@
     );
   }
 
-  const actions: Action<ActionID>[] = [
+  const actions: Action[] = [
     new Action({
-      id: "Next",
+      id: ActionIds.Next,
       callback: selectNext,
       description: "Select next task",
       icon: StepForward,
       shortcut: new Shortcut({ key: "ArrowDown" }),
     }),
     new Action({
-      id: "Previous",
+      id: ActionIds.Previous,
       callback: selectPrev,
       description: "Select previous task",
       icon: StepBack,
       shortcut: new Shortcut({ key: "ArrowUp" }),
     }),
     new Action({
-      id: "Clear",
+      id: ActionIds.Clear,
       callback: unselect,
       description: "Clear the current selection",
       icon: CircleX,
       shortcut: CANCEL,
     }),
     new Action({
-      id: "Undo",
+      id: ActionIds.Undo,
       callback: undo,
       icon: Undo,
       shortcut: new Shortcut({ key: "z", meta: true }),
     }),
     new Action({
-      id: "Redo",
+      id: ActionIds.Redo,
       callback: redo,
       icon: Redo,
       shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
     }),
     new Action({
-      id: "ToggleTaskStatus",
+      id: ActionIds.ToggleTaskStatus,
       callback: toggleStatus,
       title: "Toggle Task Status",
       description: "Toggle the task status to In Progress or Done",
@@ -202,7 +200,7 @@
       enabled: () => !!inbox.selected && koso.isEditable(inbox.selected.id),
     }),
     new Action({
-      id: "Delete",
+      id: ActionIds.Delete,
       callback: remove,
       title: "Delete task",
       description: "Delete the current task",
@@ -214,7 +212,7 @@
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
-      id: "Link",
+      id: ActionIds.Link,
       callback: linkTask,
       title: "Link task to...",
       description: "Link current task to another task",
@@ -222,7 +220,7 @@
       enabled: () => !!inbox.selected,
     }),
     new Action({
-      id: "Block",
+      id: ActionIds.Block,
       callback: blockTask,
       title: "Block task on...",
       description: "Block current task to another task",
@@ -231,7 +229,7 @@
       shortcut: new Shortcut({ key: "/", meta: true }),
     }),
     new Action({
-      id: "CopyTaskInfo",
+      id: ActionIds.CopyTaskInfo,
       callback: copyGitCommitMessage,
       title: "Copy task info",
       description: "Copy task git commit message to the clipboard",
@@ -239,7 +237,7 @@
       enabled: () => !!inbox.selected,
     }),
     new Action({
-      id: "CopyTaskLink",
+      id: ActionIds.CopyTaskLink,
       callback: copyTaskLink,
       title: "Copy task permalink",
       description: "Share task by copying permalink to the clipboard",

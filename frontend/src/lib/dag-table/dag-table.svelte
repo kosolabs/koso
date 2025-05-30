@@ -1,10 +1,8 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
   import { getAuthContext } from "$lib/auth.svelte";
-  import {
-    getRegistryContext,
-    type ActionID,
-  } from "$lib/components/ui/command-palette";
+  import { getRegistryContext } from "$lib/components/ui/command-palette";
+  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
@@ -328,8 +326,8 @@
     );
   }
 
-  const insertAction: Action<ActionID> = {
-    id: "Insert",
+  const insertAction: Action = {
+    id: ActionIds.Insert,
     callback: insert,
     title: "Add Task",
     description: "Add or insert a new task",
@@ -339,23 +337,23 @@
       !planningCtx.selected || koso.canInsert(planningCtx.selected.parent.name),
   };
 
-  const actions: Action<ActionID>[] = [
+  const actions: Action[] = [
     new Action({
-      id: "Next",
+      id: ActionIds.Next,
       callback: selectNext,
       description: "Select next task",
       icon: StepForward,
       shortcut: new Shortcut({ key: "ArrowDown" }),
     }),
     new Action({
-      id: "Previous",
+      id: ActionIds.Previous,
       callback: selectPrev,
       description: "Select previous task",
       icon: StepBack,
       shortcut: new Shortcut({ key: "ArrowUp" }),
     }),
     new Action({
-      id: "Expand",
+      id: ActionIds.Expand,
       callback: expand,
       description: "Expand the current task",
       icon: ChevronsUpDown,
@@ -364,7 +362,7 @@
       shortcut: new Shortcut({ key: "ArrowRight" }),
     }),
     new Action({
-      id: "Collapse",
+      id: ActionIds.Collapse,
       callback: collapse,
       description: "Collapse the current task",
       icon: ChevronsDownUp,
@@ -373,14 +371,14 @@
       shortcut: new Shortcut({ key: "ArrowLeft" }),
     }),
     new Action({
-      id: "ExpandAll",
+      id: ActionIds.ExpandAll,
       callback: () => planningCtx.expandAll(),
       title: "Expand All",
       description: "Expand all tasks",
       icon: ChevronsUpDown,
     }),
     new Action({
-      id: "CollapseAll",
+      id: ActionIds.CollapseAll,
       callback: () => planningCtx.collapseAll(),
       title: "Collapse All",
       description: "Collapse all tasks",
@@ -388,7 +386,7 @@
     }),
     insertAction,
     new Action({
-      id: "InsertAbove",
+      id: ActionIds.InsertAbove,
       callback: insertAbove,
       title: "Insert Above",
       description: "Insert a new task above",
@@ -399,7 +397,7 @@
         koso.canInsert(planningCtx.selected.parent.name),
     }),
     new Action({
-      id: "InsertSubtask",
+      id: ActionIds.InsertSubtask,
       callback: insertChild,
       title: "Insert subtask",
       description: "Insert a new task as a child",
@@ -409,7 +407,7 @@
       shortcut: INSERT_CHILD_NODE,
     }),
     new Action({
-      id: "InsertSubtaskAbove",
+      id: ActionIds.InsertSubtaskAbove,
       callback: insertChildAbove,
       title: "Insert subtask above",
       description: "Insert a new task as a child of the previous task",
@@ -429,7 +427,7 @@
       }),
     }),
     new Action({
-      id: "Edit",
+      id: ActionIds.Edit,
       callback: edit,
       description: "Edit the current task",
       icon: Pencil,
@@ -438,14 +436,14 @@
         !!planningCtx.selected && koso.isEditable(planningCtx.selected.name),
     }),
     new Action({
-      id: "Clear",
+      id: ActionIds.Clear,
       callback: unselect,
       description: "Clear the current selection",
       icon: CircleX,
       shortcut: CANCEL,
     }),
     new Action({
-      id: "Delete",
+      id: ActionIds.Delete,
       callback: remove,
       title: "Delete task",
       description: "Delete the current task",
@@ -455,7 +453,7 @@
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
-      id: "MoveUp",
+      id: ActionIds.MoveUp,
       callback: moveUp,
       title: "Move up",
       description: "Move the current task up",
@@ -464,7 +462,7 @@
       shortcut: new Shortcut({ key: "ArrowUp", alt: true }),
     }),
     new Action({
-      id: "MoveDown",
+      id: ActionIds.MoveDown,
       callback: moveDown,
       title: "Move down",
       description: "Move the current task down",
@@ -473,7 +471,7 @@
       shortcut: new Shortcut({ key: "ArrowDown", alt: true }),
     }),
     new Action({
-      id: "MoveToStart",
+      id: ActionIds.MoveToStart,
       callback: moveStart,
       title: "Move to start",
       description: "Move the current task to the top of its group",
@@ -482,7 +480,7 @@
       shortcut: new Shortcut({ key: "ArrowUp", alt: true, shift: true }),
     }),
     new Action({
-      id: "MoveToEnd",
+      id: ActionIds.MoveToEnd,
       callback: moveEnd,
       title: "Move to end",
       description: "Move the current task to the bottom of its group",
@@ -491,7 +489,7 @@
       shortcut: new Shortcut({ key: "ArrowDown", alt: true, shift: true }),
     }),
     new Action({
-      id: "Undent",
+      id: ActionIds.Undent,
       callback: undent,
       title: "Unindent task",
       description: "Make the current task a peer of its parent",
@@ -502,7 +500,7 @@
       shortcut: new Shortcut({ key: "ArrowLeft", alt: true }),
     }),
     new Action({
-      id: "Indent",
+      id: ActionIds.Indent,
       callback: indent,
       title: "Indent task",
       description: "Make the current task a child of its peer",
@@ -513,19 +511,19 @@
       shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
     }),
     new Action({
-      id: "Undo",
+      id: ActionIds.Undo,
       callback: undo,
       icon: Undo,
       shortcut: new Shortcut({ key: "z", meta: true }),
     }),
     new Action({
-      id: "Redo",
+      id: ActionIds.Redo,
       callback: redo,
       icon: Redo,
       shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
     }),
     new Action({
-      id: "ToggleTaskStatus",
+      id: ActionIds.ToggleTaskStatus,
       callback: toggleStatus,
       title: "Toggle Task Status",
       description: "Toggle the task status to In Progress or Done",
@@ -535,7 +533,7 @@
         !!planningCtx.selected && koso.isEditable(planningCtx.selected.name),
     }),
     new Action({
-      id: "HideDoneTasks",
+      id: ActionIds.HideDoneTasks,
       callback: hideDoneTasks,
       title: "Hide Done Tasks",
       description: "Hide tasks that have been marked done",
@@ -543,7 +541,7 @@
       enabled: () => planningCtx.showDone,
     }),
     new Action({
-      id: "ShowDoneTasks",
+      id: ActionIds.ShowDoneTasks,
       callback: showDoneTasks,
       title: "Show Done Tasks",
       description: "Show tasks that have been marked done",
@@ -551,14 +549,14 @@
       enabled: () => !planningCtx.showDone,
     }),
     new Action({
-      id: "Search",
+      id: ActionIds.Search,
       callback: showSearchPalette,
       description: "Show the search palette",
       icon: Search,
       shortcut: new Shortcut({ key: "p", meta: true }),
     }),
     new Action({
-      id: "NextLink",
+      id: ActionIds.NextLink,
       callback: selectNextLink,
       title: "Next Link",
       description: "Select next link to current task",
@@ -567,7 +565,7 @@
       shortcut: new Shortcut({ key: "ArrowDown", meta: true }),
     }),
     new Action({
-      id: "PreviousLink",
+      id: ActionIds.PreviousLink,
       callback: selectPrevLink,
       title: "Previous Link",
       description: "Select previous link to current task",
@@ -576,7 +574,7 @@
       shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
     }),
     new Action({
-      id: "Link",
+      id: ActionIds.Link,
       callback: linkTask,
       title: "Link task to...",
       description: "Link current task to another task",
@@ -585,7 +583,7 @@
       shortcut: new Shortcut({ key: "/", meta: true }),
     }),
     new Action({
-      id: "Block",
+      id: ActionIds.Block,
       callback: blockTask,
       title: "Block task on...",
       description: "Block current task to another task",
@@ -593,7 +591,7 @@
       enabled: () => !!planningCtx.selected,
     }),
     new Action({
-      id: "Organize",
+      id: ActionIds.Organize,
       callback: organizeTasks,
       title: "Organize Tasks",
       description: "Organize the current task and its peers",
@@ -601,7 +599,7 @@
       enabled: () => !!planningCtx.selected,
     }),
     new Action({
-      id: "CopyTaskInfo",
+      id: ActionIds.CopyTaskInfo,
       callback: copyGitCommitMessage,
       title: "Copy task info",
       description: "Copy task git commit message to the clipboard",
@@ -609,7 +607,7 @@
       enabled: () => !!planningCtx.selected,
     }),
     new Action({
-      id: "CopyTaskLink",
+      id: ActionIds.CopyTaskLink,
       callback: copyTaskLink,
       title: "Copy task permalink",
       description: "Share task by copying permalink to the clipboard",

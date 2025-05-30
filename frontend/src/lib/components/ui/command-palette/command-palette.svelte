@@ -7,82 +7,62 @@
   import type { Snippet } from "svelte";
   import { getContext, onMount, setContext } from "svelte";
 
-  export type ActionID =
-    | "Block"
-    | "Clear"
-    | "Collapse"
-    | "CollapseAll"
-    | "CopyTaskInfo"
-    | "CopyTaskLink"
-    | "CommandPalette"
-    | "ConnectToGitHub"
-    | "DarkTheme"
-    | "Delete"
-    | "DetailPanelClose"
-    | "DetailPanelOpen"
-    | "DetailPanelViewer"
-    | "DetailPanelEditor"
-    | "Edit"
-    | "Expand"
-    | "ExpandAll"
-    | "ExportProject"
-    | "HideDoneTasks"
-    | "InboxView"
-    | "Indent"
-    | "Insert"
-    | "InsertAbove"
-    | "InsertSubtask"
-    | "InsertSubtaskAbove"
-    | "LightTheme"
-    | "Link"
-    | "MoveDown"
-    | "MoveToEnd"
-    | "MoveToStart"
-    | "MoveUp"
-    | "Next"
-    | "NextLink"
-    | "Organize"
-    | "PlanView"
-    | "Previous"
-    | "PreviousLink"
-    | "ProjectsView"
-    | "Redo"
-    | "Search"
-    | "ShareProject"
-    | "ShowDoneTasks"
-    | "Storybook"
-    | "StorybookAlerts"
-    | "StorybookAutocomplete"
-    | "StorybookAvatar"
-    | "StorybookBadge"
-    | "StorybookButtons"
-    | "StorybookChips"
-    | "StorybookCodeMirror"
-    | "StorybookCommand"
-    | "StorybookDialogs"
-    | "StorybookFab"
-    | "StorybookGoto"
-    | "StorybookInputs"
-    | "StorybookLinks"
-    | "StorybookMarkdown"
-    | "StorybookMenus"
-    | "StorybookProgressIndicators"
-    | "StorybookShortcuts"
-    | "StorybookToggles"
-    | "StorybookTooltips"
-    | "SystemTheme"
-    | "ToggleTaskStatus"
-    | "Undent"
-    | "Undo";
+  export const ActionIds = {
+    Block: "Block",
+    Clear: "Clear",
+    Collapse: "Collapse",
+    CollapseAll: "CollapseAll",
+    CopyTaskInfo: "CopyTaskInfo",
+    CopyTaskLink: "CopyTaskLink",
+    CommandPalette: "CommandPalette",
+    ConnectToGitHub: "ConnectToGitHub",
+    DarkTheme: "DarkTheme",
+    Delete: "Delete",
+    DetailPanelClose: "DetailPanelClose",
+    DetailPanelOpen: "DetailPanelOpen",
+    DetailPanelViewer: "DetailPanelViewer",
+    DetailPanelEditor: "DetailPanelEditor",
+    Edit: "Edit",
+    Expand: "Expand",
+    ExpandAll: "ExpandAll",
+    ExportProject: "ExportProject",
+    HideDoneTasks: "HideDoneTasks",
+    InboxView: "InboxView",
+    Indent: "Indent",
+    Insert: "Insert",
+    InsertAbove: "InsertAbove",
+    InsertSubtask: "InsertSubtask",
+    InsertSubtaskAbove: "InsertSubtaskAbove",
+    LightTheme: "LightTheme",
+    Link: "Link",
+    MoveDown: "MoveDown",
+    MoveToEnd: "MoveToEnd",
+    MoveToStart: "MoveToStart",
+    MoveUp: "MoveUp",
+    Next: "Next",
+    NextLink: "NextLink",
+    Organize: "Organize",
+    PlanView: "PlanView",
+    Previous: "Previous",
+    PreviousLink: "PreviousLink",
+    ProjectsView: "ProjectsView",
+    Redo: "Redo",
+    Search: "Search",
+    ShareProject: "ShareProject",
+    ShowDoneTasks: "ShowDoneTasks",
+    Storybook: "Storybook",
+    SystemTheme: "SystemTheme",
+    ToggleTaskStatus: "ToggleTaskStatus",
+    Undent: "Undent",
+    Undo: "Undo",
+  };
 
-  export function setRegistryContext(
-    ctx: Registry<ActionID>,
-  ): Registry<ActionID> {
-    return setContext<Registry<ActionID>>(Registry<ActionID>, ctx);
+  export function setRegistryContext(ctx: Registry): Registry {
+    return setContext<Registry>(Registry, ctx);
   }
 
-  export function getRegistryContext(): Registry<ActionID> {
-    const ctx = getContext<Registry<ActionID>>(Registry<ActionID>);
+  export function getRegistryContext(): Registry {
+    const ctx = getContext<Registry>(Registry);
     if (!ctx) throw new Error("RegistryContext is undefined");
     return ctx;
   }
@@ -94,13 +74,13 @@
   };
   let { children }: Props = $props();
 
-  const command = setRegistryContext(new Registry<ActionID>());
+  const command = setRegistryContext(new Registry());
 
   let paletteOpen = $state(false);
 
-  const actions: Action<ActionID>[] = [
+  const actions: Action[] = [
     new Action({
-      id: "CommandPalette",
+      id: ActionIds.CommandPalette,
       callback: () => (paletteOpen = !paletteOpen),
       title: "Command palette",
       description: "Show the command palette",
@@ -109,28 +89,28 @@
       shortcut: new Shortcut({ key: "p", shift: true, meta: true }),
     }),
     new Action({
-      id: "LightTheme",
+      id: ActionIds.LightTheme,
       callback: () => setMode("light"),
       title: "Light",
       description: "Set the theme to light mode",
       icon: Sun,
     }),
     new Action({
-      id: "DarkTheme",
+      id: ActionIds.DarkTheme,
       callback: () => setMode("dark"),
       title: "Dark",
       description: "Set the theme to dark mode",
       icon: Moon,
     }),
     new Action({
-      id: "SystemTheme",
+      id: ActionIds.SystemTheme,
       callback: () => resetMode(),
       title: "System",
       description: "Set the theme to system",
       icon: SunMoon,
     }),
     new Action({
-      id: "Storybook",
+      id: ActionIds.Storybook,
       callback: () => goto("/storybook"),
       title: "Storybook",
       description: "Navigate to Koso's component library storybook",

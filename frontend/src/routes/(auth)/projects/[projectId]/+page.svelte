@@ -1,10 +1,8 @@
 <script lang="ts">
   import { KosoError } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
-  import {
-    getRegistryContext,
-    type ActionID,
-  } from "$lib/components/ui/command-palette";
+  import { getRegistryContext } from "$lib/components/ui/command-palette";
+  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { DetailPanel } from "$lib/components/ui/detail-panel";
   import { Editable } from "$lib/components/ui/editable";
   import { Navbar } from "$lib/components/ui/navbar";
@@ -72,9 +70,9 @@
     a.click();
   }
 
-  const actions: Action<ActionID>[] = [
+  const actions: Action[] = [
     new Action({
-      id: "ExportProject",
+      id: ActionIds.ExportProject,
       callback: exportProjectToFile,
       title: "Export project",
       description: "Export project to JSON",

@@ -1,13 +1,10 @@
 <script lang="ts">
-  import {
-    getRegistryContext,
-    type ActionID,
-  } from "$lib/components/ui/command-palette";
+  import { getRegistryContext } from "$lib/components/ui/command-palette";
   import { Button } from "$lib/kosui/button";
   import { twMerge } from "tailwind-merge";
 
   type Props = {
-    name: ActionID;
+    name: string;
     desktop?: boolean;
   };
 

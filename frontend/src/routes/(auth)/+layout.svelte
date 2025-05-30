@@ -2,10 +2,8 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { getAuthContext } from "$lib/auth.svelte";
-  import {
-    getRegistryContext,
-    type ActionID,
-  } from "$lib/components/ui/command-palette";
+  import { getRegistryContext } from "$lib/components/ui/command-palette";
+  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
   import { House } from "lucide-svelte";
@@ -26,9 +24,9 @@
     }
   });
 
-  const actions: Action<ActionID>[] = [
+  const actions: Action[] = [
     new Action({
-      id: "ProjectsView",
+      id: ActionIds.ProjectsView,
       callback: () => goto(`/projects`),
       title: "All projects",
       description: "Navigate to all projects view",

@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { type ActionID } from "$lib/components/ui/command-palette";
   import type { Action } from "$lib/kosui/command";
   import { MenuItem } from "$lib/kosui/menu";
   import { ShortcutBadge } from "$lib/kosui/shortcut";
 
   type Props = {
-    action: Action<ActionID>;
+    action: Action;
   };
   const { action }: Props = $props();
 </script>

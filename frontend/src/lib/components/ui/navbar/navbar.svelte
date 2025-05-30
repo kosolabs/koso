@@ -2,8 +2,8 @@
   import { goto } from "$app/navigation";
   import { getAuthContext } from "$lib/auth.svelte";
   import {
+    ActionIds,
     getRegistryContext,
-    type ActionID,
   } from "$lib/components/ui/command-palette";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { UserAvatar } from "$lib/components/ui/user-select";
@@ -22,6 +22,7 @@
   import { userPrefersMode as mode, resetMode, setMode } from "mode-watcher";
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
+  import { StorybookNavigationActionIds } from "../../../../routes/storybook/+layout.svelte";
   import CommandButton from "./command-button.svelte";
   import CommandMenuItem from "./command-menu-item.svelte";
   import NavigateButton from "./navigate-button.svelte";
@@ -36,39 +37,43 @@
 
   type Section = {
     heading: string;
-    actions: ActionID[];
+    actions: string[];
   }[];
 
   const menu: Section = [
     {
       heading: "Project",
-      actions: ["ConnectToGitHub", "ExportProject", "ShareProject"],
+      actions: [
+        ActionIds.ConnectToGitHub,
+        ActionIds.ExportProject,
+        ActionIds.ShareProject,
+      ],
     },
     {
       heading: "Navigation",
       actions: [
-        "ProjectsView",
-        "PlanView",
-        "InboxView",
-        "StorybookAlerts",
-        "StorybookAutocomplete",
-        "StorybookAvatar",
-        "StorybookBadge",
-        "StorybookButtons",
-        "StorybookChips",
-        "StorybookCodeMirror",
-        "StorybookCommand",
-        "StorybookDialogs",
-        "StorybookFab",
-        "StorybookGoto",
-        "StorybookInputs",
-        "StorybookLinks",
-        "StorybookMarkdown",
-        "StorybookMenus",
-        "StorybookProgressIndicators",
-        "StorybookShortcuts",
-        "StorybookToggles",
-        "StorybookTooltips",
+        ActionIds.ProjectsView,
+        ActionIds.PlanView,
+        ActionIds.InboxView,
+        StorybookNavigationActionIds.Alerts,
+        StorybookNavigationActionIds.Autocomplete,
+        StorybookNavigationActionIds.Avatar,
+        StorybookNavigationActionIds.Badge,
+        StorybookNavigationActionIds.Buttons,
+        StorybookNavigationActionIds.Chips,
+        StorybookNavigationActionIds.CodeMirror,
+        StorybookNavigationActionIds.Command,
+        StorybookNavigationActionIds.Dialogs,
+        StorybookNavigationActionIds.Fab,
+        StorybookNavigationActionIds.Goto,
+        StorybookNavigationActionIds.Inputs,
+        StorybookNavigationActionIds.Links,
+        StorybookNavigationActionIds.Markdown,
+        StorybookNavigationActionIds.Menus,
+        StorybookNavigationActionIds.ProgressIndicators,
+        StorybookNavigationActionIds.Shortcuts,
+        StorybookNavigationActionIds.Toggles,
+        StorybookNavigationActionIds.Tooltips,
       ],
     },
   ];

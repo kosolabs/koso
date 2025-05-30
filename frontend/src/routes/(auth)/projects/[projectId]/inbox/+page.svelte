@@ -1,9 +1,7 @@
 <script lang="ts">
   import { getAuthContext } from "$lib/auth.svelte";
-  import {
-    getRegistryContext,
-    type ActionID,
-  } from "$lib/components/ui/command-palette";
+  import { getRegistryContext } from "$lib/components/ui/command-palette";
+  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { DetailPanel } from "$lib/components/ui/detail-panel";
   import { Navbar } from "$lib/components/ui/navbar";
   import { getPrefsContext } from "$lib/components/ui/prefs";
@@ -37,9 +35,9 @@
     detailPanel?.editTitle();
   }
 
-  const actions: Action<ActionID>[] = [
+  const actions: Action[] = [
     new Action({
-      id: "Edit",
+      id: ActionIds.Edit,
       callback: edit,
       description: "Edit the current task",
       icon: Pencil,

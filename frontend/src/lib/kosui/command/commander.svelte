@@ -13,19 +13,19 @@
   import { Modal } from "../modal";
   import { Shortcut, ShortcutBadge } from "../shortcut";
 
-  export type CommanderProps<T extends string> = {
+  export type CommanderProps = {
     open?: boolean;
     query?: string;
-    command: Registry<T>;
+    command: Registry;
   };
 </script>
 
-<script lang="ts" generics="T extends string">
+<script lang="ts">
   let {
     open = $bindable(false),
     query = $bindable(""),
     command,
-  }: CommanderProps<T> = $props();
+  }: CommanderProps = $props();
 
   const actions = $derived(
     command.actions.filter(
@@ -37,7 +37,7 @@
     ),
   );
 
-  function handleSelect(action: Action<T>) {
+  function handleSelect(action: Action) {
     action.callback();
     open = false;
   }
