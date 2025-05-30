@@ -1,5 +1,5 @@
 <script module lang="ts">
-  import { auth } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
   import { Button } from "$lib/kosui/button";
   import { Chip } from "$lib/kosui/chip";
@@ -45,6 +45,7 @@
   }: LinkPanelProps = $props();
 
   const plan = getContext<PlanningContext>(PlanningContext);
+  const auth = getAuthContext();
 
   let query = $state("");
   let setStatusBlocked: boolean = $state(true);
