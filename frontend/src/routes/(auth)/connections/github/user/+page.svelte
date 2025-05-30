@@ -30,7 +30,7 @@
 
     console.log(`Connecting user`);
     await connectUser(state);
-    toast.info("User connected to Github!");
+    toast.success("User connected to Github!");
 
     await goto(state.redirectUrl);
   });
