@@ -50,6 +50,27 @@ describe("YTaskProxy", () => {
     expect(task.children.toArray()).toEqual(["new-child"]);
   });
 
+  it("should handle estimate operations", () => {
+    expect(task.estimate).toBeNull();
+    task.estimate = 0;
+    expect(task.estimate).toStrictEqual(0);
+    task.estimate = 1;
+    expect(task.estimate).toStrictEqual(1);
+    task.estimate = 13;
+    expect(task.estimate).toStrictEqual(13);
+  });
+
+  it("should handle deadline operations", () => {
+    expect(task.deadline).toBeNull();
+    task.deadline = 0;
+    expect(task.deadline).toBeNull();
+    task.deadline = 1;
+    expect(task.deadline).toStrictEqual(1);
+    const now = Date.now();
+    task.deadline = now;
+    expect(task.deadline).toStrictEqual(now);
+  });
+
   it("should handle subscribe/unsubscribe functionality", () => {
     const changes: string[] = [];
     const unsubscribe = task.subscribe((value) => {
