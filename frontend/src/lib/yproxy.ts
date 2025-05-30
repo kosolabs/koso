@@ -216,7 +216,7 @@ export class YTaskProxy {
   }
 
   get estimate(): Estimate | null {
-    return (this.#yTask.get("estimate") as Estimate) || null;
+    return (this.#yTask.get("estimate") as Estimate) ?? null;
   }
 
   set estimate(value: Estimate | null) {
