@@ -217,19 +217,17 @@ impl ProjectsState {
     }
 
     pub(super) async fn stop(&self) {
-        let res = {
-            let mut projects = self.projects.lock().await;
-            projects.stopped = true;
+        let mut projects = self.projects.lock().await;
+        projects.stopped = true;
 
-            let mut res = Vec::new();
-            for project in projects.map.values() {
-                if let Some(project) = project.upgrade() {
-                    res.push(ProjectState::stop(project));
-                }
+        let mut res = Vec::new();
+        for project in projects.map.values() {
+            if let Some(project) = project.upgrade() {
+                res.push(ProjectState::stop(project));
             }
-            drop(projects);
-            res
-        };
+        }
+        drop(projects);
+
         futures::future::join_all(res).await;
     }
 }
@@ -464,8 +462,9 @@ impl ProjectState {
                     .await;
             });
         }
-        futures::future::join_all(res).await;
         drop(clients);
+
+        futures::future::join_all(res).await;
     }
 
     pub(super) async fn update_awareness(
