@@ -7,6 +7,7 @@ import * as Y from "yjs";
 
 export class PlanningContext {
   #koso: Koso;
+  #root: Node;
 
   #yUndoManager: Y.UndoManager;
 
@@ -39,8 +40,9 @@ export class PlanningContext {
   #dropEffect: "copy" | "move" | "none" = $state("none");
   #focus: boolean = $state(false);
 
-  constructor(koso: Koso) {
+  constructor(koso: Koso, root?: string) {
     this.#koso = koso;
+    this.#root = root ? Node.parse(root) : new Node();
 
     this.#yUndoManager = new Y.UndoManager(this.koso.graph.yGraph, {
       captureTransaction: (txn) => txn.local,
@@ -85,7 +87,7 @@ export class PlanningContext {
   }
 
   get root(): Node {
-    return new Node();
+    return this.#root;
   }
 
   get nodes(): List<Node> {
@@ -666,7 +668,6 @@ export class PlanningContext {
     );
   }
 
-  /** Do not call this directly. Use #flattenFn instead. */
   #defaultFlatten(
     node: Node,
     expanded: Set<Node>,
@@ -709,8 +710,8 @@ export class PlanningContext {
   }
 }
 
-export function newPlanningContext(koso: Koso): PlanningContext {
-  const ctx = new PlanningContext(koso);
+export function newPlanningContext(koso: Koso, root?: string): PlanningContext {
+  const ctx = new PlanningContext(koso, root);
   window.planningCtx = ctx;
   return setPlanningContext(ctx);
 }
