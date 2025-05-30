@@ -228,7 +228,7 @@ impl ClientMessageProcessor {
                     tracing::debug!("{update:?}");
                     msg.project
                         .update_awareness(&msg.who, &msg.user, update)
-                        .await;
+                        .await?;
                     Ok(())
                 }
                 invalid_type => Err(anyhow!("Invalid Koso awareness type: {invalid_type}")),
