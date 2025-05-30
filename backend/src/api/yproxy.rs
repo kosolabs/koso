@@ -426,10 +426,29 @@ mod tests {
                     status_time: Some(1),
                     url: Some("https://example.com/1".to_string()),
                     kind: Some("Kind1".to_string()),
-                    estimate: Some(8),
+                    estimate: Some(0),
                     deadline: Some(152),
                 },
             );
+
+            assert_eq!(
+                ydoc.get(&txn, "id1").unwrap().to_task(&txn).unwrap(),
+                Task {
+                    id: "id1".to_string(),
+                    num: "1".to_string(),
+                    name: "Task 1".to_string(),
+                    desc: Some("Task 1 description".to_string()),
+                    children: vec!["2".to_string()],
+                    assignee: Some("a@gmail.com".to_string()),
+                    reporter: Some("r@gmail.com".to_string()),
+                    status: Some("Done".to_string()),
+                    status_time: Some(1),
+                    url: Some("https://example.com/1".to_string()),
+                    kind: Some("Kind1".to_string()),
+                    estimate: Some(0),
+                    deadline: Some(152),
+                }
+            )
         }
 
         {
