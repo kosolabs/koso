@@ -40,7 +40,8 @@ export const unmanagedKinds: ImmutableSet<Kind> = ImmutableSet.of(
   "Rollup",
   "Task",
 );
-export type Estimate = 0 | 1 | 2 | 3 | 5 | 8 | 13 | 21 | 34;
+export const ESTIMATES = <const>[0, 1, 2, 3, 5, 8, 13, 21, 34];
+export type Estimate = (typeof ESTIMATES)[number];
 
 export type Slice = {
   start?: number;

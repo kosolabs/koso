@@ -1,6 +1,8 @@
 <script lang="ts">
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
+  import { Deadline } from "$lib/components/ui/deadline";
   import { Editable } from "$lib/components/ui/editable";
+  import Estimate from "$lib/components/ui/estimate/estimate.svelte";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
   import { toast } from "$lib/components/ui/sonner";
   import { TaskStatus } from "$lib/components/ui/task-status";
@@ -539,6 +541,24 @@
       {editable}
       onSelect={(user) => {
         koso.setReporter(task.id, user);
+      }}
+    />
+  </td>
+  <td class={cn("border-t border-l p-2 max-md:hidden")}>
+    <Estimate
+      value={task.estimate}
+      {editable}
+      onSelect={(estimate) => {
+        task.estimate = estimate;
+      }}
+    />
+  </td>
+  <td class={cn("border-t border-l p-2 max-md:hidden")}>
+    <Deadline
+      value={task.deadline}
+      {editable}
+      onSelect={(deadline) => {
+        task.deadline = deadline;
       }}
     />
   </td>
