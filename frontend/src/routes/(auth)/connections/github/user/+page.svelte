@@ -1,11 +1,14 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
+  import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
   import type { BaseState } from "$lib/github";
   import * as github from "$lib/github";
   import { onMount } from "svelte";
+
+  const auth = getAuthContext();
 
   onMount(async () => {
     // See https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-web-application-flow-to-generate-a-user-access-token
@@ -75,7 +78,7 @@
 
   async function authWithCode(state: BaseState, code: string): Promise<void> {
     try {
-      await github.authWithCode(code);
+      await github.authWithCode(auth, code);
     } catch (e) {
       if (e instanceof KosoError && e.hasReason("GITHUB_AUTH_REJECTED")) {
         toast.error("Failed to authenticate with Github. Please try again");
@@ -87,7 +90,7 @@
 
   async function connectUser(state: github.ConnectUserState): Promise<void> {
     try {
-      return github.connectUser();
+      return github.connectUser(auth);
     } catch (e) {
       if (e instanceof KosoError && e.hasReason("GITHUB_UNAUTHENTICATED")) {
         toast.error("Github authentication expired. Please try again");

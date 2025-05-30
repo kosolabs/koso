@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import { auth } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import {
     getRegistryContext,
     type ActionID,
@@ -17,6 +17,7 @@
   const { children }: Props = $props();
 
   const command = getRegistryContext();
+  const auth = getAuthContext();
 
   $effect(() => {
     if (!auth.ok()) {

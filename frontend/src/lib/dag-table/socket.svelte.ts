@@ -1,5 +1,5 @@
 import { version } from "$app/environment";
-import { auth } from "$lib/auth.svelte";
+import type { AuthContext } from "$lib/auth.svelte";
 import type { Koso } from "./koso.svelte";
 
 export class KosoSocket {
@@ -12,8 +12,10 @@ export class KosoSocket {
   #lastReconnectTime: number | null = null;
   #koso: Koso;
   #projectId: string;
+  #auth: AuthContext;
 
-  constructor(koso: Koso, projectId: string) {
+  constructor(auth: AuthContext, koso: Koso, projectId: string) {
+    this.#auth = auth;
     this.#koso = koso;
     this.#projectId = projectId;
 
@@ -86,7 +88,7 @@ export class KosoSocket {
     const wsUrl = `${host}/api/ws/projects/${this.#projectId}`;
     const socket = new WebSocket(wsUrl, [
       "bearer",
-      auth.token,
+      this.#auth.token,
       "koso-client-version",
       version,
     ]);

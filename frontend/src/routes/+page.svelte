@@ -1,9 +1,11 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { auth } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import { nav } from "$lib/nav.svelte";
   import { fetchProjects } from "$lib/projects";
   import Landing from "./landing.svelte";
+
+  const auth = getAuthContext();
 
   if (auth.ok()) {
     redirectOnLogin();
@@ -33,7 +35,7 @@
     }
 
     // If there's only 1 project, go to it.
-    const projects = await fetchProjects();
+    const projects = await fetchProjects(auth);
     if (projects.length == 1) {
       const onlyProjectId = projects[0].projectId;
       console.debug(`Going to singular project: ${onlyProjectId}`);

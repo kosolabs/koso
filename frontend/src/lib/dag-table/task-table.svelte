@@ -1,6 +1,6 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
-  import { auth } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import {
     getRegistryContext,
     type ActionID,
@@ -36,6 +36,7 @@
   };
   const { users }: Props = $props();
 
+  const auth = getAuthContext();
   const command = getRegistryContext();
   const inbox = getInboxContext();
   const { koso } = inbox;

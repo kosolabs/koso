@@ -15,9 +15,21 @@ type User = {
   picture: string;
   exp: number;
 };
+export class AuthContext {
+  #fullUser: FullUser | undefined = $state();
 
-// TODO: Merge Auth into AuthContext
-class Auth {
+  constructor() {}
+
+  get fullUser(): FullUser | undefined {
+    return this.#fullUser;
+  }
+
+  async load() {
+    if (this.ok()) {
+      this.#fullUser = await fetchUser(this, this.user.email);
+    }
+  }
+
   #token: string | null = $state(loads(CREDENTIAL_KEY, null));
   #user: User | null = $derived.by(() => {
     if (this.#token === null) {
@@ -70,7 +82,6 @@ class Auth {
     this.token = null;
   }
 }
-export const auth = new Auth();
 
 export async function showUnauthorizedDialog() {
   const dialog = getDialoguerContext();
@@ -83,22 +94,6 @@ export async function showUnauthorizedDialog() {
   });
   nav.lastVisitedProjectId = null;
   await goto("/");
-}
-
-export class AuthContext {
-  #user: FullUser | undefined = $state();
-
-  constructor() {}
-
-  get user(): FullUser | undefined {
-    return this.#user;
-  }
-
-  async load() {
-    if (auth.ok()) {
-      this.#user = await fetchUser(auth.user.email);
-    }
-  }
 }
 
 export function setAuthContext(ctx: AuthContext): AuthContext {

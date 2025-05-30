@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { auth, getAuthContext } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import {
     getRegistryContext,
     type ActionID,
@@ -31,7 +31,7 @@
   };
   const { left }: Props = $props();
 
-  const ctx = getAuthContext();
+  const auth = getAuthContext();
   const command = getRegistryContext();
 
   type Section = {
@@ -152,7 +152,7 @@
           class="focus-visible:outline-m3-primary focus-visible:outline-1"
         >
           <Badge
-            content={ctx.user?.premium ? "👑" : ""}
+            content={auth.fullUser?.premium ? "👑" : ""}
             variant="plain"
             class="m-[.23rem] rotate-45"
           >

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
-  import { auth } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import {
     getRegistryContext,
     type ActionID,
@@ -62,6 +62,7 @@
   const command = getRegistryContext();
   const planningCtx = getPlanningContext();
   const { koso } = planningCtx;
+  const auth = getAuthContext();
 
   function getRow(node: Node) {
     const maybeRow = rows[node.id];

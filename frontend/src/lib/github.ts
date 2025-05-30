@@ -1,5 +1,6 @@
 import { goto } from "$app/navigation";
 import { headers, parseResponse } from "./api";
+import type { AuthContext } from "./auth.svelte";
 
 const stateSessionKey = "github_csrf_state";
 const loginExpirationSessionKey = "github_login_expires_at";
@@ -19,10 +20,11 @@ export type AuthResult = {
  * https://docs.github.com/en/apps/sharing-github-apps/sharing-your-github-app
  */
 export async function redirectToGithubInstallFlow(
+  auth: AuthContext,
   projectId: string,
   redirectUrl: string,
 ) {
-  const init = await initGithub();
+  const init = await initGithub(auth);
 
   const state = encodeState<
     Omit<ConnectProjectState, "installationId"> & { installationId?: string }
@@ -44,8 +46,11 @@ export async function redirectToGithubInstallFlow(
  * success. See
  * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-web-application-flow-to-generate-a-user-access-token
  */
-export async function redirectToConnectUserFlow(redirectUrl: string) {
-  const init = await initGithub();
+export async function redirectToConnectUserFlow(
+  auth: AuthContext,
+  redirectUrl: string,
+) {
+  const init = await initGithub(auth);
 
   const state = encodeState<ConnectUserState>({
     csrf: generateCsrfValue(),
@@ -57,15 +62,15 @@ export async function redirectToConnectUserFlow(redirectUrl: string) {
   await goto(`/connections/github/user?state=${encodeURIComponent(state)}`);
 }
 
-async function initGithub(): Promise<InitResponse> {
+async function initGithub(auth: AuthContext): Promise<InitResponse> {
   const response = await fetch(`/plugins/github/init`, {
     method: "GET",
     headers: {
-      ...headers(),
+      ...headers(auth),
       "Content-Type": "application/json",
     },
   });
-  return await parseResponse(response);
+  return await parseResponse(auth, response);
 }
 
 /**
@@ -139,30 +144,34 @@ export function validateStateForCsrf(state: string): boolean {
  * See
  * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#generating-a-user-access-token-when-a-user-installs-your-app
  */
-export async function authWithCode(code: string): Promise<void> {
+export async function authWithCode(
+  auth: AuthContext,
+  code: string,
+): Promise<void> {
   const response = await fetch(`/plugins/github/auth`, {
     method: "POST",
     headers: {
-      ...headers(),
+      ...headers(auth),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       code: code,
     }),
   });
-  const result: AuthResult = await parseResponse(response);
+  const result: AuthResult = await parseResponse(auth, response);
   const expiresAt = Math.floor(Date.now()) + (result.expiresIn - 60) * 1000;
   sessionStorage.setItem(loginExpirationSessionKey, expiresAt.toString());
 }
 
 export async function connectProject(
+  auth: AuthContext,
   projectId: string,
   installationId: string,
 ): Promise<void> {
   const response = await fetch(`/plugins/github/connect`, {
     method: "POST",
     headers: {
-      ...headers(),
+      ...headers(auth),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -170,30 +179,30 @@ export async function connectProject(
       installationId,
     }),
   });
-  await parseResponse(response);
+  await parseResponse(auth, response);
   return;
 }
 
-export async function connectUser(): Promise<void> {
+export async function connectUser(auth: AuthContext): Promise<void> {
   const response = await fetch(`/plugins/github/userConnections`, {
     method: "POST",
     headers: {
-      ...headers(),
+      ...headers(auth),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({}),
   });
-  await parseResponse(response);
+  await parseResponse(auth, response);
   return;
 }
 
-export async function deleteUserConnection(): Promise<void> {
+export async function deleteUserConnection(auth: AuthContext): Promise<void> {
   const response = await fetch(`/plugins/github/userConnections`, {
     method: "DELETE",
     headers: {
-      ...headers(),
+      ...headers(auth),
     },
   });
-  await parseResponse(response);
+  await parseResponse(auth, response);
   return;
 }

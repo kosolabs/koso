@@ -1,5 +1,6 @@
 <script lang="ts">
   import { KosoError } from "$lib/api";
+  import { getAuthContext } from "$lib/auth.svelte";
   import {
     getRegistryContext,
     type ActionID,
@@ -21,6 +22,7 @@
   import { FileDown } from "lucide-svelte";
   import { onMount } from "svelte";
 
+  const auth = getAuthContext();
   const command = getRegistryContext();
   const project = getProjectContext();
   const { koso } = project;
@@ -30,7 +32,10 @@
   async function saveEditedProjectName(name: string) {
     let updatedProject;
     try {
-      updatedProject = await updateProject({ projectId: project.id, name });
+      updatedProject = await updateProject(auth, {
+        projectId: project.id,
+        name,
+      });
     } catch (err) {
       if (err instanceof KosoError && err.hasReason("EMPTY_NAME")) {
         toast.warning("Project name may not be blank.");
@@ -46,7 +51,7 @@
 
   async function exportProjectToFile() {
     toast.info("Exporting project...");
-    const projectExport = await exportProject(project.id);
+    const projectExport = await exportProject(auth, project.id);
 
     let projectName = (project.name || "project")
       .toLowerCase()

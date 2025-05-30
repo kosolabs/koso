@@ -1,6 +1,6 @@
 <script lang="ts">
   import { headers, parseResponse } from "$lib/api";
-  import { auth } from "$lib/auth.svelte";
+  import { getAuthContext } from "$lib/auth.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { getProjectContext } from "$lib/dag-table";
@@ -27,6 +27,7 @@
   };
   let { open = $bindable() }: Props = $props();
   const project = getProjectContext();
+  const auth = getAuthContext();
 
   let filter: string = $state("");
   let users: User[] = $state([]);
@@ -34,7 +35,7 @@
   let showCompletions: boolean = $derived(wantCompletions && users.length > 0);
 
   async function addUser(add: User) {
-    await updateProjectUsers({
+    await updateProjectUsers(auth, {
       projectId: project.id,
       addEmails: [add.email],
       removeEmails: [],
@@ -63,7 +64,7 @@
     let i = project.users.findIndex((u) => u.email === remove.email);
     if (i == -1) throw new Error("Could not find user");
 
-    await updateProjectUsers({
+    await updateProjectUsers(auth, {
       projectId: project.id,
       addEmails: [],
       removeEmails: [remove.email],
@@ -90,9 +91,9 @@
       const thisReq = req + 1;
       req = thisReq;
       const response = await fetch(`/api/users?q=${filter}`, {
-        headers: headers(),
+        headers: headers(auth),
       });
-      let respUsers: User[] = await parseResponse(response);
+      let respUsers: User[] = await parseResponse(auth, response);
       if (thisReq !== req) {
         console.log(
           `Discarding request ${thisReq}. A newer request, ${req}, is running.`,
