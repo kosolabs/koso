@@ -31,8 +31,8 @@
 
   let openShareModal: boolean = $state(false);
 
-  const authCtx = getAuthContext();
-  const ctx = newProjectContext(authCtx);
+  const auth = getAuthContext();
+  const ctx = newProjectContext(auth);
   const command = getRegistryContext();
   const prefs = getPrefsContext();
   nav.lastVisitedProjectId = ctx.id;
@@ -41,8 +41,8 @@
 
   async function load() {
     const [project, users] = await Promise.all([
-      fetchProject(authCtx, ctx.id),
-      fetchProjectUsers(authCtx, ctx.id),
+      fetchProject(auth, ctx.id),
+      fetchProjectUsers(auth, ctx.id),
     ]);
     ctx.name = project.name;
     ctx.users = users;
@@ -104,7 +104,7 @@
     new Action({
       id: "ConnectToGitHub",
       callback: async () =>
-        await redirectToGithubInstallFlow(authCtx, ctx.id, page.url.pathname),
+        await redirectToGithubInstallFlow(auth, ctx.id, page.url.pathname),
       title: "Connect to GitHub",
       description: "Connect the project to GitHub",
       icon: UserPlus,
@@ -115,7 +115,7 @@
       title: "Share project",
       description: "Open / show the project share dialog",
       icon: UserPlus,
-      enabled: () => !!authCtx.fullUser?.premium,
+      enabled: () => !!auth.fullUser?.premium,
     }),
   ];
 
@@ -134,7 +134,7 @@
     </div>
   {/await}
 {:then}
-  {#if !!authCtx.fullUser?.premium}
+  {#if !!auth.fullUser?.premium}
     <ProjectShareModal bind:open={openShareModal} />
   {/if}
 
