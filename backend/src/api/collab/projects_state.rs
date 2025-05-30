@@ -494,7 +494,7 @@ impl fmt::Display for ProjectState {
 
 #[async_trait]
 impl DocBoxProvider for ProjectState {
-    async fn get_doc_box(&self) -> MutexGuard<'_, Option<DocBox>> {
+    async fn lock_doc_box(&self) -> MutexGuard<'_, Option<DocBox>> {
         self.doc_box.lock().await
     }
 }
@@ -543,5 +543,5 @@ impl DocBox {
 
 #[async_trait]
 pub(crate) trait DocBoxProvider: Sync + Send {
-    async fn get_doc_box(&self) -> MutexGuard<'_, Option<DocBox>>;
+    async fn lock_doc_box(&self) -> MutexGuard<'_, Option<DocBox>>;
 }

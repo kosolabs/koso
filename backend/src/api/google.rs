@@ -60,8 +60,8 @@ impl KeySet {
         }
 
         // This is the happy path. The key is already cached and ready to go.
-        if let Some(key) = self.inner.certs.lock().await.get(kid) {
-            return Ok(key.key.clone());
+        if let Some(key) = self.inner.certs.lock().await.get_key(kid) {
+            return Ok(key);
         }
         // Maybe the key is new, so try reloading from Google.
         // NOTE: we might also reload keys periodically to better handle key revocation
@@ -77,7 +77,11 @@ impl KeySet {
         // Limit how often we make the remote call to avoid being DOS'd.
         // If we didn't find the cert a minute ago, it probably still doesn't exist.
         if Instant::now() - *last_load < KeySet::LOAD_DEBOUNCE_DURATION {
-            return Ok(None);
+            return if let Some(kid) = kid {
+                Ok(self.inner.certs.lock().await.get_key(kid))
+            } else {
+                Ok(None)
+            };
         }
 
         let json = self
@@ -91,7 +95,7 @@ impl KeySet {
         let certs = Certs::parse(&json)?;
         tracing::debug!("Fetched google certs: {certs:?}");
 
-        let key = kid.and_then(|kid| certs.get(kid).map(|key| key.key.clone()));
+        let key = kid.and_then(|kid| certs.get_key(kid));
         *last_load = Instant::now();
         *self.inner.certs.lock().await = certs;
 
@@ -112,6 +116,10 @@ struct Certs {
 impl Certs {
     fn get(&self, kid: &str) -> Option<&Key> {
         self.keys.iter().find(|&key| key.kid == *kid)
+    }
+
+    fn get_key(&self, kid: &str) -> Option<DecodingKey> {
+        self.get(kid).map(|k| k.key.clone())
     }
 
     fn parse(json: &str) -> Result<Certs> {
@@ -288,8 +296,14 @@ pub(crate) struct User {
 
 #[cfg(test)]
 mod tests {
-    use crate::api::google::Certs;
-    use crate::api::google::KeySet;
+    use crate::api::google::{
+        Certs, KeySet,
+        test_utils::{KID_1, KID_2, testonly_key_set},
+    };
+    use std::time::{Duration, Instant};
+    use tokio::{task::yield_now, time::sleep};
+
+    const TEST_KID: &str = "load_does_not_block_get_of_existing_keys_kid";
 
     fn certs() -> Certs {
         Certs::parse(include_str!("../testdata/certs.json")).unwrap()
@@ -316,11 +330,60 @@ mod tests {
         assert!(key_set.get(&kid).await.is_ok());
     }
 
+    #[tokio::test]
+    async fn load_does_not_block_get_of_existing_keys() {
+        let key_set = testonly_key_set().await.unwrap();
+        // Simulate a running call to load remote keys.
+        // This will block any calls to fetch keys that don't exist, but will NOT
+        // block fetches of keys that are already loaded.
+        let mut last_load = key_set.inner.last_load.try_lock().unwrap();
+        *last_load = Instant::now();
+
+        assert!(key_set.get(KID_1).await.is_ok());
+        assert!(key_set.get(KID_2).await.is_ok());
+
+        // Spawn a task to fetch a key that does not and will not exist.
+        // This will block on `last_load` being dropped.
+        let not_found = {
+            let key_set = key_set.clone();
+            tokio::spawn(async move { key_set.get("does_not_exist_kid").await })
+        };
+        // Spawn a task to fetch a key that does not exist but will exist after load.
+        // This will block on `last_load` being dropped.
+        let found = {
+            let key_set = key_set.clone();
+            tokio::spawn(async move { key_set.get(TEST_KID).await })
+        };
+        yield_now().await;
+        sleep(Duration::from_millis(50)).await;
+        assert!(!not_found.is_finished());
+        assert!(!found.is_finished());
+
+        // Insert a new key, simulating loading of a new key.
+        {
+            let mut certs = key_set.inner.certs.lock().await;
+            let key = certs.keys.first().unwrap().key.clone();
+            certs.keys.push(crate::api::google::Key {
+                kid: TEST_KID.to_string(),
+                key,
+            });
+        }
+        drop(last_load);
+
+        let Err(error) = not_found.await.unwrap() else {
+            panic!("not_found call unexpectedly succeeded");
+        };
+        assert!(error.to_string().contains("Key not found"));
+
+        assert!(found.await.unwrap().is_ok());
+    }
+
     #[test]
     fn get_returns_error_if_kid_is_missing() {
         let certs = certs();
         assert!(certs.get("missing").is_none())
     }
+
     #[test]
     fn get_returns_key_if_kid_exists() {
         let certs = certs();
