@@ -8,10 +8,9 @@
     dest: YTaskProxy;
     height: number;
     width: number;
-    offset: number;
     type: "Peer" | "Child";
   };
-  const { src, dest, width, height, offset, type }: Props = $props();
+  const { src, dest, width, height, type }: Props = $props();
 
   let tooltip: Tooltip | undefined = $state();
   $effect(() => tooltip?.show());
@@ -26,10 +25,9 @@
     <div
       use:ref
       class="bg-m3-primary absolute h-0 -translate-y-1/2 rounded"
-      style:width={`${width}px`}
+      style:width={type === "Peer" ? `${width}px` : `${width - 20}px`}
       style:height={type === "Peer" ? "4px" : "0"}
       style:top={type === "Peer" ? `${height}px` : `${height / 2}px`}
-      style:left={`${offset}px`}
     ></div>
   {/snippet}
   <div class="flex items-center gap-1">

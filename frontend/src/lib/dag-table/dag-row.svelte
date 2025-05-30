@@ -43,6 +43,7 @@
   let linkOpen = $state(false);
   let linkMode: Mode = $state("link");
 
+  let isFullGraph = $derived(planningCtx.root.name === "root");
   let task = $derived(koso.getTask(node.name));
   let reporter = $derived(getUser(users, task.reporter));
   let assignee = $derived(getUser(users, task.assignee));
@@ -369,8 +370,6 @@
     {#if rowElement}
       {@const rowWidth = rowElement.clientWidth}
       {@const rowHeight = rowElement.clientHeight}
-      {@const peerOffset = node.length * 20}
-      {@const childOffset = (node.length + 1) * 20}
 
       <button
         class={cn(
@@ -393,8 +392,7 @@
           src={source}
           dest={task}
           height={rowHeight}
-          width={rowWidth - peerOffset}
-          offset={peerOffset}
+          width={rowWidth}
           type="Peer"
         />
       {/if}
@@ -420,8 +418,7 @@
           src={source}
           dest={task}
           height={rowHeight}
-          width={rowWidth - childOffset}
-          offset={childOffset}
+          width={rowWidth}
           type="Child"
         />
       {/if}
@@ -429,7 +426,7 @@
   </td>
   <td class={cn("border-t px-2")} bind:this={idCellElement}>
     <div class="flex items-center">
-      <div style="width: {(node.length - 1) * 20}px"></div>
+      <div style="width: {(node.length - (isFullGraph ? 1 : 2)) * 20}px"></div>
       {#if task.children.length > 0}
         <button
           class={cn("w-4 transition-transform", open ? "rotate-90" : "")}
