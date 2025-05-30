@@ -132,11 +132,13 @@ impl Poller {
             .await?;
         let task_count =
             // Avoid any expensive, async work while holding the doc_box lock.
-            self.merge_tasks(
+            {
+                let doc_box = client.project.doc_box.lock().await;
+                self.merge_tasks(
                 &github_tasks_by_url,
                 &config,
-                &DocBox::doc_or_error(client.project.doc_box.lock().await.as_ref())?.ydoc,
-            )?;
+                &DocBox::doc_or_error(doc_box.as_ref())?.ydoc,
+            )?};
 
         tracing::debug!(
             "Finished polling installation with {} active and {} total tasks",

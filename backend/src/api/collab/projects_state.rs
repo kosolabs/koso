@@ -217,18 +217,17 @@ impl ProjectsState {
     }
 
     pub(super) async fn stop(&self) {
-        let res = {
-            let mut projects = self.projects.lock().await;
-            projects.stopped = true;
+        let mut projects = self.projects.lock().await;
+        projects.stopped = true;
 
-            let mut res = Vec::new();
-            for project in projects.map.values() {
-                if let Some(project) = project.upgrade() {
-                    res.push(ProjectState::stop(project));
-                }
+        let mut res = Vec::new();
+        for project in projects.map.values() {
+            if let Some(project) = project.upgrade() {
+                res.push(ProjectState::stop(project));
             }
-            res
-        };
+        }
+        drop(projects);
+
         futures::future::join_all(res).await;
     }
 }
@@ -371,14 +370,16 @@ impl ProjectState {
     }
 
     pub(super) async fn encode_state_as_update(&self, sv: &StateVector) -> Result<Vec<u8>> {
-        let update = DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
+        let doc_box = self.doc_box.lock().await;
+        let update = DocBox::doc_or_error(doc_box.as_ref())?
             .ydoc
             .transact()
             .encode_state_as_update_v2(sv);
         Ok(update)
     }
     pub(super) async fn apply_doc_update(&self, origin: YOrigin, update: Update) -> Result<()> {
-        DocBox::doc_or_error(self.doc_box.lock().await.as_ref())?
+        let doc_box = self.doc_box.lock().await;
+        DocBox::doc_or_error(doc_box.as_ref())?
             .ydoc
             .transact_mut_with(origin.as_origin()?)
             .apply_update(update)
@@ -413,7 +414,7 @@ impl ProjectState {
 
     pub(super) async fn remove_and_close_client(&self, who: &String, closure: ClientClosure) {
         let (client, remaining_clients) = {
-            let clients = &mut self.clients.lock().await;
+            let mut clients = self.clients.lock().await;
             if clients.stopped {
                 tracing::debug!("Tryed to remove client during shutdown");
                 return;
@@ -427,7 +428,9 @@ impl ProjectState {
         );
 
         self.awarenesses.lock().await.remove(who);
-        self.broadcast_awarenesses().await;
+        if let Err(e) = self.broadcast_awarenesses().await {
+            tracing::warn!("Failed to broadcast awareness: {e:?}");
+        }
 
         match client {
             Some(mut client) => {
@@ -459,24 +462,31 @@ impl ProjectState {
                     .await;
             });
         }
+        drop(clients);
+
         futures::future::join_all(res).await;
     }
 
-    pub(super) async fn update_awareness(&self, who: &str, user: &User, update: AwarenessUpdate) {
+    pub(super) async fn update_awareness(
+        &self,
+        who: &str,
+        user: &User,
+        update: AwarenessUpdate,
+    ) -> Result<()> {
         let state = update.into_state(user);
         self.awarenesses.lock().await.insert(who.into(), state);
-        self.broadcast_awarenesses().await;
+        self.broadcast_awarenesses().await?;
+        Ok(())
     }
 
-    async fn broadcast_awarenesses(&self) {
-        let Ok(state) =
-            serde_json::to_string(&self.awarenesses.lock().await.values().collect::<Vec<_>>())
-        else {
-            tracing::warn!("Failed to serialize awarenesses");
-            return;
+    async fn broadcast_awarenesses(&self) -> Result<()> {
+        let state = {
+            let awarenesses = self.awarenesses.lock().await;
+            serde_json::to_string(&awarenesses.values().collect::<Vec<_>>())?
         };
         let msg = koso_awareness_state(&state);
         self.broadcast_msg(msg, None).await;
+        Ok(())
     }
 }
 
@@ -508,10 +518,13 @@ impl Drop for ProjectState {
 
         // Avoid compaction on shutdown to speed shutdown along
         // and avoid the burst of compacting many projects at once.
-        if let Ok(clients) = self.clients.try_lock() {
-            if clients.stopped {
-                tracing::trace!("Skipping compacting, shutting down");
-                return;
+        {
+            let clients = self.clients.try_lock();
+            if let Ok(clients) = clients {
+                if clients.stopped {
+                    tracing::trace!("Skipping compacting, shutting down");
+                    return;
+                }
             }
         }
 

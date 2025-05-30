@@ -305,10 +305,10 @@ impl Webhook {
             .await?;
 
         // Avoid any expensive, async work while holding the doc_box lock.
-        self.apply_task_changes(
-            &event,
-            &DocBox::doc_or_error(client.project.doc_box.lock().await.as_ref())?.ydoc,
-        )
+        {
+            let doc_box = client.project.doc_box.lock().await;
+            self.apply_task_changes(&event, &DocBox::doc_or_error(doc_box.as_ref())?.ydoc)
+        }
     }
 
     // Note: This function should remain synchronous to avoid blocking the doc_box lock.

@@ -60,9 +60,13 @@ impl KeySet {
         }
 
         // This is the happy path. The key is already cached and ready to go.
-        if let Some(key) = self.inner.certs.lock().await.get_key(kid) {
-            return Ok(key);
+        {
+            let certs = self.inner.certs.lock().await;
+            if let Some(key) = certs.get_key(kid) {
+                return Ok(key);
+            }
         }
+
         // Maybe the key is new, so try reloading from Google.
         // NOTE: we might also reload keys periodically to better handle key revocation
         // but this works well enough in practice.
@@ -98,6 +102,7 @@ impl KeySet {
         let key = kid.and_then(|kid| certs.get_key(kid));
         *last_load = Instant::now();
         *self.inner.certs.lock().await = certs;
+        drop(last_load);
 
         Ok(key)
     }
