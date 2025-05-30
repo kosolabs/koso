@@ -10,7 +10,15 @@
   import { Link } from "$lib/kosui/link";
   import { CircularProgress } from "$lib/kosui/progress";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
-  import { CircleX, Moon, Send, Sun, SunMoon, Trash2 } from "lucide-svelte";
+  import {
+    CircleX,
+    Github,
+    Moon,
+    Send,
+    Sun,
+    SunMoon,
+    Trash2,
+  } from "lucide-svelte";
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
   import SubSection from "./sub-section.svelte";
@@ -229,8 +237,7 @@
             <div>Your Koso profile is not connected to Github.</div>
             <div class="flex flex-wrap gap-2">
               <Button
-                icon={CircleX}
-                variant="filled"
+                icon={Github}
                 onclick={async () =>
                   await redirectToConnectUserFlow(page.url.pathname)}
               >

@@ -501,7 +501,6 @@
               if (!task.url) throw new Error(`No URL set on task ${task}`);
               window.open(task.url, "_blank")!.focus();
             }}
-            disabled={!task.url}
             underline="none"
           >
             {task.name || "Untitled"}
