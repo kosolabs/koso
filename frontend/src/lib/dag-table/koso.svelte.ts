@@ -506,6 +506,8 @@ export class Koso {
         statusTime: null,
         kind: null,
         url: null,
+        estimate: null,
+        deadline: null,
       });
     }, "koso.upsertRoot");
   }
@@ -866,6 +868,8 @@ export class Koso {
         statusTime: null,
         kind: null,
         url: null,
+        estimate: null,
+        deadline: null,
       });
       this.link(new TaskLinkage({ parentId: parent, id: taskId }), offset);
     });

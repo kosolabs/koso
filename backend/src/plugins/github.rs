@@ -141,6 +141,8 @@ fn create_container(
             status_time: None,
             url: None,
             kind: Some(kind.id.to_string()),
+            estimate: None,
+            deadline: None,
         },
     );
     container_parent.set_children(txn, &plugin_children);
@@ -191,6 +193,8 @@ fn new_task(external_task: &ExternalTask, num: u64, kind: &Kind) -> Result<Task>
         status_time: Some(now()?),
         url: Some(external_task.url.clone()),
         kind: Some(kind.id.to_string()),
+        estimate: None,
+        deadline: None,
     })
 }
 

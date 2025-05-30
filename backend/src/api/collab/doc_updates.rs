@@ -244,6 +244,8 @@ mod tests {
             status_time: None,
             url: None,
             kind: None,
+            estimate: None,
+            deadline: None,
         };
         let mut task2 = Task {
             id: "id2".into(),
@@ -257,6 +259,8 @@ mod tests {
             status_time: None,
             url: None,
             kind: None,
+            estimate: None,
+            deadline: None,
         };
         let origin = YOrigin {
             who: "graph_observer_test".into(),

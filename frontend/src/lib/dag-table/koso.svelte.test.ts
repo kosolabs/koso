@@ -1,5 +1,5 @@
 import type { User } from "$lib/users";
-import type { Kind } from "$lib/yproxy";
+import type { Kind, Task } from "$lib/yproxy";
 import { Set } from "immutable";
 import { uuidv4 } from "lib0/random.js";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -41,6 +41,8 @@ describe("Koso tests", () => {
           statusTime: task.statusTime ?? null,
           kind: (task.kind as Kind) ?? null,
           url: task.url ?? null,
+          estimate: task.estimate ?? null,
+          deadline: task.deadline ?? null,
         });
       }
       for (const taskId of remainingTaskIds) {
@@ -56,6 +58,8 @@ describe("Koso tests", () => {
           statusTime: null,
           kind: null,
           url: null,
+          estimate: null,
+          deadline: null,
         });
       }
     });
@@ -363,7 +367,7 @@ describe("Koso tests", () => {
         parent: "root",
         reporter: USER.email,
       });
-      expect(koso.toJSON()).toEqual({
+      expect(koso.toJSON()).toEqual<{ [id: string]: Task }>({
         root: {
           id: "root",
           num: "0",
@@ -376,6 +380,8 @@ describe("Koso tests", () => {
           statusTime: null,
           kind: null,
           url: null,
+          estimate: null,
+          deadline: null,
         },
         [id1]: {
           id: id1,
@@ -389,6 +395,8 @@ describe("Koso tests", () => {
           statusTime: null,
           kind: null,
           url: null,
+          estimate: null,
+          deadline: null,
         },
       });
     });
@@ -1028,10 +1036,12 @@ describe("Koso tests", () => {
           statusTime: 123,
           kind: "github",
           url: "http://example.com/foo/bar",
+          estimate: 0,
+          deadline: 123,
         },
       ]);
 
-      expect(koso.getTask("1").toJSON()).toStrictEqual({
+      expect(koso.getTask("1").toJSON()).toStrictEqual<Task>({
         id: "1",
         num: "num",
         name: "Task 1",
@@ -1043,6 +1053,8 @@ describe("Koso tests", () => {
         statusTime: 123,
         kind: "github",
         url: "http://example.com/foo/bar",
+        estimate: 0,
+        deadline: 123,
       });
     });
 

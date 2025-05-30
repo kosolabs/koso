@@ -54,6 +54,8 @@ impl YDocProxy {
         y_task.set_status_time(txn, task.status_time);
         y_task.set_url(txn, task.url.as_deref());
         y_task.set_kind(txn, task.kind.as_deref());
+        y_task.set_estimate(txn, task.estimate);
+        y_task.set_deadline(txn, task.deadline);
         y_task
     }
 
@@ -154,6 +156,8 @@ impl YTaskProxy {
             status_time: self.get_status_time(txn)?,
             url: self.get_url(txn)?,
             kind: self.get_kind(txn)?,
+            estimate: self.get_estimate(txn)?,
+            deadline: self.get_deadline(txn)?,
         })
     }
 
@@ -163,7 +167,7 @@ impl YTaskProxy {
         };
         match result {
             Out::Any(Any::Number(result)) => Ok(Some(result as i64)),
-            Out::Any(Any::Null) => Ok(None),
+            Out::Any(Any::Null) | Out::Any(Any::Undefined) => Ok(None),
             _ => Err(anyhow!("invalid field: {field}: {result:?}")),
         }
     }
@@ -174,7 +178,7 @@ impl YTaskProxy {
         };
         match result {
             Out::Any(Any::String(result)) => Ok(Some(result.to_string())),
-            Out::Any(Any::Null) => Ok(None),
+            Out::Any(Any::Null) | Out::Any(Any::Undefined) => Ok(None),
             _ => Err(anyhow!("invalid field: {field}: {result:?}")),
         }
     }
@@ -217,7 +221,7 @@ impl YTaskProxy {
 
         match result {
             Out::YText(text_ref) => Ok(Some(text_ref.get_string(txn))),
-            Out::Any(Any::Null) => Ok(None),
+            Out::Any(Any::Null) | Out::Any(Any::Undefined) => Ok(None),
             _ => Err(anyhow!("invalid type for desc field: {result:?}")),
         }
     }
@@ -371,6 +375,22 @@ impl YTaskProxy {
     pub fn set_kind(&self, txn: &mut TransactionMut, kind: Option<&str>) {
         self.y_task.try_update(txn, "kind", kind);
     }
+
+    pub fn get_estimate<T: ReadTxn>(&self, txn: &T) -> Result<Option<i64>> {
+        self.get_optional_number(txn, "estimate")
+    }
+
+    pub fn set_estimate(&self, txn: &mut TransactionMut, status_time: Option<i64>) {
+        self.y_task.try_update(txn, "estimate", status_time);
+    }
+
+    pub fn get_deadline<T: ReadTxn>(&self, txn: &T) -> Result<Option<i64>> {
+        self.get_optional_number(txn, "deadline")
+    }
+
+    pub fn set_deadline(&self, txn: &mut TransactionMut, status_time: Option<i64>) {
+        self.y_task.try_update(txn, "deadline", status_time);
+    }
 }
 
 #[cfg(test)]
@@ -406,8 +426,29 @@ mod tests {
                     status_time: Some(1),
                     url: Some("https://example.com/1".to_string()),
                     kind: Some("Kind1".to_string()),
+                    estimate: Some(0),
+                    deadline: Some(152),
                 },
             );
+
+            assert_eq!(
+                ydoc.get(&txn, "id1").unwrap().to_task(&txn).unwrap(),
+                Task {
+                    id: "id1".to_string(),
+                    num: "1".to_string(),
+                    name: "Task 1".to_string(),
+                    desc: Some("Task 1 description".to_string()),
+                    children: vec!["2".to_string()],
+                    assignee: Some("a@gmail.com".to_string()),
+                    reporter: Some("r@gmail.com".to_string()),
+                    status: Some("Done".to_string()),
+                    status_time: Some(1),
+                    url: Some("https://example.com/1".to_string()),
+                    kind: Some("Kind1".to_string()),
+                    estimate: Some(0),
+                    deadline: Some(152),
+                }
+            )
         }
 
         {
@@ -426,6 +467,8 @@ mod tests {
                     status_time: Some(1),
                     url: Some("https://example.com/1".to_string()),
                     kind: Some("Kind1".to_string()),
+                    estimate: Some(8),
+                    deadline: Some(152),
                 },
             );
         }
@@ -446,6 +489,8 @@ mod tests {
                 status_time: Some(1),
                 url: Some("https://example.com/1".to_string()),
                 kind: Some("Kind1".to_string()),
+                estimate: Some(8),
+                deadline: Some(152),
             }
         )
     }

@@ -488,6 +488,8 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
                 status_time: None,
                 url: None,
                 kind: None,
+                estimate: None,
+                deadline: None,
             },
         );
         ydoc_2.set(
@@ -504,6 +506,8 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
                 status_time: None,
                 url: None,
                 kind: None,
+                estimate: None,
+                deadline: None,
             },
         );
     }
@@ -635,6 +639,8 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
                 status_time: None,
                 url: None,
                 kind: None,
+                estimate: None,
+                deadline: None,
             },
         );
         let update = txn.encode_update_v2();
@@ -807,6 +813,8 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
                 status_time: None,
                 url: None,
                 kind: None,
+                estimate: None,
+                deadline: None,
             },
         );
         socket
