@@ -3,7 +3,7 @@ import { nav } from "$lib/nav.svelte";
 import { jwtDecode } from "jwt-decode";
 import { CircleX } from "lucide-svelte";
 import { getContext, setContext } from "svelte";
-import { getDialoguerContext } from "./kosui/dialog";
+import { getDialoguerContext } from "./kosui/dialog/dialoguer-context.svelte";
 import { loads, saves } from "./stores.svelte";
 import { fetchUser, type FullUser } from "./users";
 
