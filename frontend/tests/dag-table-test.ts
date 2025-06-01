@@ -2479,4 +2479,65 @@ test.describe("dag table tests", () => {
       );
     });
   });
+
+  test.describe("changing estimate", () => {
+    test("set and unset", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Unset" }).nth(0).click();
+      await page.getByRole("menuitem", { name: "0 days", exact: true }).click();
+      await expectKosoGraph(page).toMatchObject({ ["1"]: { estimate: 0 } });
+
+      await page.getByRole("button", { name: "0 days", exact: true }).click();
+      await page.getByRole("menuitem", { name: "1 day", exact: true }).click();
+      await expectKosoGraph(page).toMatchObject({ ["1"]: { estimate: 1 } });
+
+      await page.getByRole("button", { name: "1 day", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Unset" }).click();
+      await expectKosoGraph(page).toMatchObject({ ["1"]: { estimate: null } });
+      await expect(
+        page.getByRole("button", { name: "Unset", exact: true }).nth(0),
+      ).toBeVisible();
+    });
+  });
+
+  test.describe("changing deadline", () => {
+    test("set and unset", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: [] },
+      ]);
+
+      await page.getByRole("button", { name: "Unset" }).nth(1).click();
+      await page.keyboard.type("12262025");
+      await page.keyboard.press("Enter");
+      await expectKosoGraph(page).toMatchObject({
+        ["1"]: { deadline: Date.parse("2025-12-26") },
+      });
+
+      await page
+        .getByRole("button", { name: "12/26/2025", exact: true })
+        .click();
+      await page.keyboard.type("050324");
+      await page.keyboard.press("Enter");
+      await expectKosoGraph(page).toMatchObject({
+        ["1"]: { deadline: Date.parse("0024-05-03") },
+      });
+
+      await page
+        .getByRole("button", { name: "05/03/0024", exact: true })
+        .click();
+      await page.keyboard.press("Delete");
+      await page.keyboard.press("Enter");
+      await expectKosoGraph(page).toMatchObject({
+        ["1"]: { deadline: null },
+      });
+      await expect(
+        await page.getByRole("button", { name: "Unset" }).nth(1),
+      ).toBeVisible();
+    });
+  });
 });
