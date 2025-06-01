@@ -16,24 +16,34 @@
   }
 
   let open: boolean = $state(false);
+
+  function formatEstimate(estimate: number | null): string {
+    if (estimate === null) {
+      return "Unset";
+    }
+    if (estimate === 1) {
+      return "1 day";
+    }
+    return estimate + " days";
+  }
 </script>
 
 {#if editable}
   <Menu bind:open>
     <MenuTrigger class="flex items-center gap-2" title={`${value ?? "Unset"}`}>
-      <ResponsiveText>{value ?? "Unset"}</ResponsiveText>
+      <ResponsiveText>{formatEstimate(value)}</ResponsiveText>
     </MenuTrigger>
     <MenuContent>
       <MenuItem onSelect={() => select(null)}>Unset</MenuItem>
       {#each ESTIMATES as estimate (estimate)}
         <MenuItem onSelect={() => select(estimate)}>
-          <ResponsiveText>{estimate} days</ResponsiveText>
+          <ResponsiveText>{formatEstimate(estimate)}</ResponsiveText>
         </MenuItem>
       {/each}
     </MenuContent>
   </Menu>
 {:else}
   <div class="flex items-center gap-2" title={`${value ?? "Unset"}`}>
-    <ResponsiveText>{value ?? "Unset"}</ResponsiveText>
+    <ResponsiveText>{formatEstimate(value)}</ResponsiveText>
   </div>
 {/if}
