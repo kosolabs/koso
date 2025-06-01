@@ -4,6 +4,7 @@
   import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE, OK } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
   import { tick } from "svelte";
+  import type { HTMLInputTypeAttribute } from "svelte/elements";
 
   type Props = {
     value: string;
@@ -11,6 +12,7 @@
     editing?: boolean;
     class?: string;
     "aria-label"?: string;
+    type?: HTMLInputTypeAttribute;
     closeFocus?: HTMLElement;
     onclick?: (event: MouseEvent) => void;
     // Callback invoked to apply the edited value.
@@ -19,6 +21,7 @@
     onsave: (value: string) => Promise<void>;
     ondone?: () => void;
     onkeydown?: (event: KeyboardEvent) => void;
+    renderValue?: (value: string) => string;
   };
 
   let {
@@ -27,10 +30,12 @@
     placeholder = "Click to edit",
     class: classes,
     "aria-label": ariaLabel,
+    type = "text",
     closeFocus,
     onclick,
     onsave,
     ondone,
+    renderValue = (value) => value,
   }: Props = $props();
 
   let edited: string = $state(value);
@@ -101,6 +106,7 @@
     onblur={save}
     onkeydown={handleKeyDown}
     autocomplete="off"
+    {type}
   />
 {:else}
   <Link
@@ -112,6 +118,6 @@
     onclick={handleButtonClick}
     underline="none"
   >
-    {value || placeholder}
+    {value ? renderValue(value) : placeholder}
   </Link>
 {/if}
