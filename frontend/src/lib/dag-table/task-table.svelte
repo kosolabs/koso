@@ -347,6 +347,8 @@
               <UserRoundPlus class="h-4 md:hidden" />
               <div class="max-md:hidden">Assignee</div>
             </th>
+            <th class="border-l p-2 max-md:hidden">Estimate</th>
+            <th class="border-l p-2 max-md:hidden">Deadline</th>
             <th class="relative m-0 w-0 p-0"></th>
           </tr>
         </thead>
