@@ -5,17 +5,14 @@
 
   type Props = {
     value: Estimate | null;
-    editable?: boolean;
-    onSelect?: (select: Estimate | null) => void;
+    editable: boolean;
+    onSelect: (select: Estimate | null) => void;
   };
-  let { value = null, editable = true, onSelect }: Props = $props();
+  let { value, editable, onSelect }: Props = $props();
 
   function select(deadline: Estimate | null) {
-    value = deadline;
-    onSelect?.(deadline);
+    onSelect(deadline);
   }
-
-  let open: boolean = $state(false);
 
   function formatEstimate(estimate: number | null): string {
     if (estimate === null) {
@@ -29,9 +26,10 @@
 </script>
 
 {#if editable}
-  <Menu bind:open>
-    <MenuTrigger class="flex items-center gap-2" title={`${value ?? "Unset"}`}>
-      <ResponsiveText>{formatEstimate(value)}</ResponsiveText>
+  <Menu>
+    {@const estimate = formatEstimate(value)}
+    <MenuTrigger class="flex items-center gap-2" title={estimate}>
+      <ResponsiveText>{estimate}</ResponsiveText>
     </MenuTrigger>
     <MenuContent>
       <MenuItem onSelect={() => select(null)}>Unset</MenuItem>
@@ -43,7 +41,8 @@
     </MenuContent>
   </Menu>
 {:else}
-  <div class="flex items-center gap-2" title={`${value ?? "Unset"}`}>
-    <ResponsiveText>{formatEstimate(value)}</ResponsiveText>
+  {@const estimate = formatEstimate(value)}
+  <div class="flex items-center gap-2" title={estimate}>
+    <ResponsiveText>{estimate}</ResponsiveText>
   </div>
 {/if}
