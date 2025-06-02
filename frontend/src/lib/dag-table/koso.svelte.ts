@@ -61,6 +61,8 @@ export class Progress {
   lastStatusTime: number;
   status: Status;
   childrenStatus: Status | null;
+  estimate: number | null;
+  remainingEstimate: number | null;
   /**
    * Unlike task.yKind which may be null, this Kind applies auto-kind rules.
    * Namely, if yKind is null, kind is inferred based on the presence of
@@ -76,6 +78,8 @@ export class Progress {
     this.status = props.status ?? "Not Started";
     this.kind = props.kind ?? "Task";
     this.childrenStatus = props.childrenStatus ?? null;
+    this.estimate = props.estimate ?? null;
+    this.remainingEstimate = props.remainingEstimate ?? null;
   }
 
   isComplete(): boolean {
@@ -409,12 +413,16 @@ export class Koso {
       total: 0,
       lastStatusTime: task.statusTime ?? 0,
       kind: task.yKind || (task.children.length > 0 ? "Rollup" : "Task"),
+      estimate: null,
+      remainingEstimate: null,
     });
 
     let childInProgress = 0;
     let childDone = 0;
     let childTotal = 0;
     let childLastStatusTime = 0;
+    let childrenEstimate: number | null = null;
+    let childrenRemainingEstimate: number | null = null;
     task.children.forEach((taskId) => {
       // If performance is ever an issue for large, nested graphs,
       // we can memoize the recursive call and trade memory for time.
@@ -426,6 +434,20 @@ export class Koso {
         childLastStatusTime,
         childProgress.lastStatusTime,
       );
+      if (childProgress.estimate !== null) {
+        if (childrenEstimate === null) {
+          childrenEstimate = childProgress.estimate;
+        } else {
+          childrenEstimate += childProgress.estimate;
+        }
+      }
+      if (childProgress.remainingEstimate !== null) {
+        if (childrenRemainingEstimate === null) {
+          childrenRemainingEstimate = childProgress.remainingEstimate;
+        } else {
+          childrenRemainingEstimate += childProgress.remainingEstimate;
+        }
+      }
     });
     result.lastStatusTime = Math.max(
       result.lastStatusTime,
@@ -446,12 +468,20 @@ export class Koso {
       result.done += childDone;
       result.total += childTotal;
       result.status = result.childrenStatus || "Not Started";
+      result.estimate = childrenEstimate;
+      result.remainingEstimate = childrenRemainingEstimate;
     } else {
+      const estimate = task.estimate;
+      result.estimate = estimate;
+      result.remainingEstimate = estimate;
       switch (task.yStatus || "Not Started") {
         case "Done":
           result.done = 1;
           result.total = 1;
           result.status = "Done";
+          if (result.remainingEstimate !== null) {
+            result.remainingEstimate = 0;
+          }
           break;
         case "In Progress":
           result.inProgress = 1;

@@ -1279,6 +1279,8 @@ describe("Koso tests", () => {
         kind: "Task",
         status: "Not Started",
         childrenStatus: null,
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1296,6 +1298,8 @@ describe("Koso tests", () => {
         kind: "Task",
         status: "Not Started",
         childrenStatus: null,
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1313,6 +1317,8 @@ describe("Koso tests", () => {
         kind: "Task",
         status: "Done",
         childrenStatus: null,
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1330,6 +1336,8 @@ describe("Koso tests", () => {
         kind: "Task",
         status: "In Progress",
         childrenStatus: null,
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1355,6 +1363,8 @@ describe("Koso tests", () => {
         kind: "Task",
         status: "In Progress",
         childrenStatus: "Done",
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1380,6 +1390,8 @@ describe("Koso tests", () => {
         kind: "Task",
         status: "Done",
         childrenStatus: "In Progress",
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1405,6 +1417,8 @@ describe("Koso tests", () => {
         kind: "Task",
         status: "In Progress",
         childrenStatus: "In Progress",
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1430,6 +1444,8 @@ describe("Koso tests", () => {
         kind: "Task",
         status: "Done",
         childrenStatus: "In Progress",
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1453,6 +1469,8 @@ describe("Koso tests", () => {
         kind: "Task",
         status: "In Progress",
         childrenStatus: null,
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1472,6 +1490,8 @@ describe("Koso tests", () => {
         kind: "Rollup",
         status: "Done",
         childrenStatus: "Done",
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1491,6 +1511,8 @@ describe("Koso tests", () => {
         kind: "Rollup",
         status: "In Progress",
         childrenStatus: "In Progress",
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1510,6 +1532,8 @@ describe("Koso tests", () => {
         kind: "Rollup",
         status: "Not Started",
         childrenStatus: "Not Started",
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1530,6 +1554,8 @@ describe("Koso tests", () => {
         kind: "Rollup",
         status: "In Progress",
         childrenStatus: "In Progress",
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1549,6 +1575,8 @@ describe("Koso tests", () => {
         kind: "Rollup",
         status: "Done",
         childrenStatus: "Done",
+        estimate: null,
+        remainingEstimate: null,
       });
     });
 
@@ -1556,9 +1584,9 @@ describe("Koso tests", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2"] },
-        { id: "2", children: ["3", "4"] },
-        { id: "3", status: "In Progress", statusTime: now },
-        { id: "4", status: "Done", statusTime: now },
+        { id: "2", children: ["3", "4"], estimate: 20 },
+        { id: "3", status: "In Progress", statusTime: now, estimate: 2 },
+        { id: "4", status: "Done", statusTime: now, estimate: 3 },
       ]);
 
       expect(koso.getProgress("1")).toEqual({
@@ -1569,6 +1597,126 @@ describe("Koso tests", () => {
         kind: "Rollup",
         status: "In Progress",
         childrenStatus: "In Progress",
+        estimate: 5,
+        remainingEstimate: 2,
+      });
+    });
+
+    it("task with no estimate has a null estimate", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: [], estimate: null },
+      ]);
+
+      expect(koso.getProgress("1")).toMatchObject({
+        estimate: null,
+        remainingEstimate: null,
+      });
+    });
+
+    it("task with estimate", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: [], estimate: 5 },
+      ]);
+
+      expect(koso.getProgress("1")).toMatchObject({
+        estimate: 5,
+      });
+    });
+
+    it("rollup task with sparse children estimates has correct estimate", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3", "4", "5", "6"] },
+        { id: "2" },
+        { id: "3", estimate: 3 },
+        { id: "4", estimate: 5 },
+        { id: "5", estimate: 13, status: "Done" },
+        { id: "6" },
+      ]);
+
+      expect(koso.getProgress("1")).toMatchObject({
+        kind: "Rollup",
+        estimate: 21,
+        remainingEstimate: 8,
+      });
+    });
+
+    it("rollup task with duplicate descendants recounts each", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "5"] },
+        { id: "2", children: ["3", "4"] },
+        { id: "3", estimate: 3 },
+        { id: "4", estimate: 5 },
+        { id: "5", children: ["2"] },
+      ]);
+
+      expect(koso.getProgress("1")).toMatchObject({
+        kind: "Rollup",
+        estimate: 16,
+        remainingEstimate: 16,
+      });
+      expect(koso.getProgress("2")).toMatchObject({
+        kind: "Rollup",
+        estimate: 8,
+        remainingEstimate: 8,
+      });
+      expect(koso.getProgress("5")).toMatchObject({
+        kind: "Rollup",
+        estimate: 8,
+        remainingEstimate: 8,
+      });
+    });
+
+    it("regular task with children and estimate uses own estimate", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", children: ["3", "4", "5"], kind: "Task", estimate: 1 },
+        {
+          id: "2",
+          children: ["3", "4", "5"],
+          kind: "Task",
+          estimate: 1,
+          status: "Done",
+        },
+        { id: "3", estimate: 3 },
+        { id: "4", estimate: 5 },
+        { id: "5" },
+      ]);
+
+      expect(koso.getProgress("1")).toMatchObject({
+        kind: "Task",
+        estimate: 1,
+        remainingEstimate: 1,
+      });
+      expect(koso.getProgress("2")).toMatchObject({
+        kind: "Task",
+        estimate: 1,
+        remainingEstimate: 0,
+      });
+    });
+
+    it("regular task with children and no estimate has null estimate", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        {
+          id: "1",
+          children: ["2", "3", "4", "5"],
+          kind: "Task",
+          estimate: null,
+        },
+        { id: "2" },
+        { id: "3", estimate: 3 },
+        { id: "4", estimate: 5 },
+        { id: "5" },
+      ]);
+
+      expect(koso.getProgress("1")).toMatchObject({
+        kind: "Task",
+        estimate: null,
+        remainingEstimate: null,
       });
     });
   });

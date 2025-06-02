@@ -41,6 +41,7 @@
   let assignee = $derived(getUser(users, task.assignee));
   let editable = $derived(koso.isEditable(task.id));
   let tags = $derived(getTags());
+  let progress = $derived(koso.getProgress(task.id));
 
   export function edit(editing: boolean) {
     isEditing = editing;
@@ -197,8 +198,10 @@
   </td>
   <td class={cn("border-t border-l p-2 max-md:hidden")}>
     <Estimate
-      value={task.estimate}
-      {editable}
+      value={progress.kind === "Rollup"
+        ? progress.remainingEstimate
+        : progress.estimate}
+      editable={editable && progress.kind !== "Rollup"}
       onSelect={(estimate) => {
         task.estimate = estimate;
       }}
