@@ -3,7 +3,10 @@
   import { page } from "$app/state";
   import { getAuthContext } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
-  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
+  import {
+    ActionIds,
+    Categories,
+  } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
   import { House } from "lucide-svelte";
@@ -28,7 +31,8 @@
     new Action({
       id: ActionIds.ProjectsView,
       callback: () => goto(`/projects`),
-      title: "All projects",
+      category: Categories.Navigate,
+      name: "List Projects",
       description: "Navigate to all projects view",
       icon: House,
       enabled: () => page.url.pathname !== `/projects`,

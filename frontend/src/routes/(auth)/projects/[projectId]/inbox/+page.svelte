@@ -1,18 +1,20 @@
 <script lang="ts">
   import { getAuthContext } from "$lib/auth.svelte";
-  import { getRegistryContext } from "$lib/components/ui/command-palette";
-  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
+  import {
+    ActionIds,
+    Categories,
+    getRegistryContext,
+  } from "$lib/components/ui/command-palette";
   import { DetailPanel } from "$lib/components/ui/detail-panel";
   import { Navbar } from "$lib/components/ui/navbar";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { Toolbar } from "$lib/components/ui/toolbar";
-  import { TaskTable } from "$lib/dag-table";
+  import { getProjectContext, TaskTable } from "$lib/dag-table";
   import {
     InboxContext,
     setInboxContext,
   } from "$lib/dag-table/inbox-context.svelte";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
-  import { getProjectContext } from "$lib/dag-table/project-context.svelte";
   import { Action } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { Pencil } from "lucide-svelte";
@@ -39,6 +41,8 @@
     new Action({
       id: ActionIds.Edit,
       callback: edit,
+      category: Categories.Edit,
+      name: "Task Name",
       description: "Edit the current task",
       icon: Pencil,
       shortcut: new Shortcut({ key: "Enter" }),

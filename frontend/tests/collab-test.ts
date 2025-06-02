@@ -81,7 +81,7 @@ test.describe("Collaboration tests", () => {
   });
 
   test("Collaborate to create and delete tasks", async ({ page1, page2 }) => {
-    await page1.getByRole("button", { name: "Add Task" }).click();
+    await page1.getByRole("button", { name: "New Task" }).click();
 
     await expect(page1.getByRole("row", { name: "Task 1" })).toBeVisible();
     let graph = await getKosoGraph(page1);
@@ -90,7 +90,7 @@ test.describe("Collaboration tests", () => {
     await expect(page2.getByRole("row", { name: "Task 1" })).toBeVisible();
     expect(graph).toStrictEqual(await getKosoGraph(page2));
 
-    await page2.getByRole("button", { name: "Add Task" }).click();
+    await page2.getByRole("button", { name: "New Task" }).click();
 
     await expect(page2.getByRole("row", { name: "Task 2" })).toBeVisible();
     graph = await getKosoGraph(page2);
@@ -130,9 +130,9 @@ test.describe("Collaboration tests", () => {
     page1,
     page2,
   }) => {
-    await page1.getByRole("button", { name: "Add Task" }).click();
-    await page1.getByRole("button", { name: "Add Task" }).click();
-    await page1.getByRole("button", { name: "Add Task" }).click();
+    await page1.getByRole("button", { name: "New Task" }).click();
+    await page1.getByRole("button", { name: "New Task" }).click();
+    await page1.getByRole("button", { name: "New Task" }).click();
 
     await expect(page1.getByRole("row", { name: "Task 1" })).toBeVisible();
     await expect(page1.getByRole("row", { name: "Task 2" })).toBeVisible();
@@ -156,8 +156,8 @@ test.describe("Collaboration tests", () => {
 
     await expectNothingFocused(page1);
     await expectNothingFocused(page2);
-    await expect(page1.getByRole("button", { name: "Add Task" })).toBeVisible();
-    await expect(page1.getByRole("button", { name: "Add Task" })).toBeVisible();
+    await expect(page1.getByRole("button", { name: "New Task" })).toBeVisible();
+    await expect(page1.getByRole("button", { name: "New Task" })).toBeVisible();
   });
 
   test("Undo ignores tasks inserted by other user", async ({
@@ -171,7 +171,7 @@ test.describe("Collaboration tests", () => {
       window.planningCtx.undoManager.captureTimeout = 0;
     });
 
-    await page1.getByRole("button", { name: "Add Task" }).click();
+    await page1.getByRole("button", { name: "New Task" }).click();
     await expect(page1.getByRole("row", { name: "Task 1" })).toBeVisible();
     await expect(page2.getByRole("row", { name: "Task 1" })).toBeVisible();
 
@@ -195,7 +195,7 @@ test.describe("Collaboration tests", () => {
       window.planningCtx.undoManager.captureTimeout = 0;
     });
 
-    await page1.getByRole("button", { name: "Add Task" }).click();
+    await page1.getByRole("button", { name: "New Task" }).click();
     await expect(page1.getByRole("row", { name: "Task 1" })).toBeVisible();
     await expect(page2.getByRole("row", { name: "Task 1" })).toBeVisible();
     await page1.keyboard.type("EditedTask");
@@ -254,10 +254,14 @@ test.describe("Collaboration tests", () => {
     ]);
 
     await page1.getByRole("row", { name: "Task 1" }).click();
-    await page1.getByRole("button", { name: "Open task description" }).click();
+    await page1
+      .getByRole("button", { name: "Show the task description markdown panel" })
+      .click();
 
     await page2.getByRole("row", { name: "Task 1" }).click();
-    await page2.getByRole("button", { name: "Open task description" }).click();
+    await page2
+      .getByRole("button", { name: "Show the task description markdown panel" })
+      .click();
 
     // Change task name
     await page1

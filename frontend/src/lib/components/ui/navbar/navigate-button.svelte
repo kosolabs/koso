@@ -20,7 +20,7 @@
     variant="plain"
     shape="circle"
     href={action.href}
-    title={action.title}
+    title={action.name}
     class={twMerge("flex aspect-square", desktop && "max-sm:hidden")}
   >
     <action.icon size={20} />

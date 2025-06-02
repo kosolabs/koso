@@ -1,8 +1,6 @@
 <script lang="ts">
   import { KosoError } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
-  import { getRegistryContext } from "$lib/components/ui/command-palette";
-  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { DetailPanel } from "$lib/components/ui/detail-panel";
   import { Editable } from "$lib/components/ui/editable";
   import { Navbar } from "$lib/components/ui/navbar";
@@ -15,13 +13,9 @@
     newPlanningContext,
     OfflineAlert,
   } from "$lib/dag-table";
-  import { Action } from "$lib/kosui/command";
-  import { exportProject, updateProject } from "$lib/projects";
-  import { FileDown } from "lucide-svelte";
-  import { onMount } from "svelte";
+  import { updateProject } from "$lib/projects";
 
   const auth = getAuthContext();
-  const command = getRegistryContext();
   const project = getProjectContext();
   const { koso } = project;
   const planningCtx = newPlanningContext(koso);
@@ -46,43 +40,6 @@
     }
     project.name = updatedProject.name;
   }
-
-  async function exportProjectToFile() {
-    toast.info("Exporting project...");
-    const projectExport = await exportProject(auth, project.id);
-
-    let projectName = (project.name || "project")
-      .toLowerCase()
-      .trim()
-      .replaceAll(/[\s+]/g, "-")
-      .replaceAll(/[^-_a-z0-9]/g, "");
-    let now = new Date();
-    const fileName = `${projectName}-export-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}.json`;
-    saveJsonFile(JSON.stringify(projectExport, null, 2), fileName);
-  }
-
-  function saveJsonFile(json: string, name: string) {
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    a.click();
-  }
-
-  const actions: Action[] = [
-    new Action({
-      id: ActionIds.ExportProject,
-      callback: exportProjectToFile,
-      title: "Export project",
-      description: "Export project to JSON",
-      icon: FileDown,
-    }),
-  ];
-
-  onMount(() => {
-    return command.register(...actions);
-  });
 </script>
 
 <div class="flex h-dvh flex-col">

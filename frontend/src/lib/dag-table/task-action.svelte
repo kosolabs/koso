@@ -79,7 +79,7 @@
             disabled={!action.enabled()}
             title={action.description}
           >
-            {action.title}
+            {action.name}
             {#if action.shortcut}
               <div class="ml-auto pl-2 text-xs">
                 {action.shortcut.toString()}

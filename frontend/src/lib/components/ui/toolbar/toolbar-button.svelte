@@ -2,7 +2,13 @@
   import { Button } from "$lib/kosui/button";
   import type { Action } from "$lib/kosui/command";
 
-  const { icon, title, description, shortcut, callback }: Action = $props();
+  const {
+    icon,
+    name: title,
+    description,
+    shortcut,
+    callback,
+  }: Action = $props();
 </script>
 
 <Button

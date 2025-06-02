@@ -21,14 +21,14 @@ test.describe("import export tests", () => {
 
   test("export and import a project", async ({ page }) => {
     // Add or Insert a few tasks.
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "New Task" }).click();
     await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "New Task" }).click();
     await page.keyboard.type("Task 2 name");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "New Task" }).click();
     await page.keyboard.type("Task 3 child name");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("row", { name: "Task 3" })).toBeVisible();
@@ -36,7 +36,9 @@ test.describe("import export tests", () => {
     // Export the project
     const downloadPromise = download(page);
     await page.getByRole("button", { name: "Project menu" }).click();
-    await page.getByRole("menuitem", { name: "Export project" }).click();
+    await page
+      .getByRole("menuitem", { name: "Export Project to JSON" })
+      .click();
     const projectExport1 = await downloadPromise;
     expect(projectExport1.filename).toContain("export");
     expect(projectExport1.data.projectId).toEqual(await getKosoProjectId(page));
@@ -57,7 +59,9 @@ test.describe("import export tests", () => {
     // Export the newly imported project.
     const downloadPromise2 = download(page);
     await page.getByRole("button", { name: "Project menu" }).click();
-    await page.getByRole("menuitem", { name: "Export project" }).click();
+    await page
+      .getByRole("menuitem", { name: "Export Project to JSON" })
+      .click();
     const projectExport2 = await downloadPromise2;
     expect(projectExport2.filename).toContain("export");
     expect(projectExport2.data.projectId).toEqual(await getKosoProjectId(page));
@@ -65,7 +69,7 @@ test.describe("import export tests", () => {
     expect(projectExport2.data.graph).toEqual(projectExport1.data.graph);
 
     // Validate that a new task can be created
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "New Task" }).click();
     await page.keyboard.type("Task 4");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("row", { name: "Task 4" })).toBeVisible();

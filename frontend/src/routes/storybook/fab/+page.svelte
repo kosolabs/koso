@@ -13,7 +13,7 @@
   <div
     class="bg-m3-surface-container-highest relative h-48 w-96 rounded-lg p-2"
   >
-    <Fab icon={Plus}>Add Task</Fab>
+    <Fab icon={Plus}>New Task</Fab>
   </div>
 
   <div

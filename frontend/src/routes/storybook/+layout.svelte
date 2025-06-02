@@ -1,5 +1,8 @@
 <script module lang="ts">
-  import { getRegistryContext } from "$lib/components/ui/command-palette";
+  import {
+    Categories,
+    getRegistryContext,
+  } from "$lib/components/ui/command-palette";
   import { Navbar } from "$lib/components/ui/navbar";
   import { Breadcrumbs } from "$lib/kosui/breadcrumbs";
   import { toTitleCase } from "$lib/kosui/utils";
@@ -37,7 +40,8 @@
     return new NavigationAction({
       id: path,
       href: path,
-      title: `Storybook ${name}`,
+      category: Categories.Storybook,
+      name: name,
       description: `Navigate to storybook ${name}`,
       icon: Book,
     });

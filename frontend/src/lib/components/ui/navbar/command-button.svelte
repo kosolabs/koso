@@ -20,13 +20,13 @@
     shape="circle"
     icon={action.icon}
     size={20}
-    aria-label={action.title}
+    aria-label={action.description}
     onclick={action.callback}
     class={twMerge(desktop && "max-sm:hidden")}
   >
     {#snippet tooltip()}
       <div class="flex items-center gap-2">
-        {action.title}
+        {action.description}
         {#if action.shortcut}
           <div class="font-bold">
             {action.shortcut.toString()}
