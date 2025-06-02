@@ -523,7 +523,7 @@
       id: ActionIds.Edit,
       callback: edit,
       category: Categories.Edit,
-      name: "Task Name",
+      name: "Edit Task Name",
       description: "Edit the current task",
       icon: Pencil,
       shortcut: new Shortcut({ key: "Enter" }),

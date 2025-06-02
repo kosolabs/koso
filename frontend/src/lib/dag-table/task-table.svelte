@@ -18,6 +18,7 @@
     CircleX,
     Clipboard,
     OctagonX,
+    Pencil,
     Redo,
     Share,
     SquarePen,
@@ -81,6 +82,11 @@
       default:
         throw new Error(`Unhandled status ${task.yStatus}`);
     }
+  }
+
+  function edit() {
+    if (!inbox.selected) return;
+    getRow(inbox.selected.id).edit(true);
   }
 
   function remove() {
@@ -203,6 +209,16 @@
       name: "Redo",
       icon: Redo,
       shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
+    }),
+    new Action({
+      id: ActionIds.Edit,
+      callback: edit,
+      category: Categories.Edit,
+      name: "Edit Task Name",
+      description: "Edit the current task",
+      icon: Pencil,
+      shortcut: new Shortcut({ key: "Enter" }),
+      enabled: () => !!inbox.selected && koso.isEditable(inbox.selected.id),
     }),
     new Action({
       id: ActionIds.ToggleTaskStatus,
