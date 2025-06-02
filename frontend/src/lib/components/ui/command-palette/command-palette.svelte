@@ -7,6 +7,20 @@
   import type { Snippet } from "svelte";
   import { getContext, onMount, setContext } from "svelte";
 
+  export const Categories = {
+    Edit: "Edit",
+    Graph: "Graph",
+    Navigate: "Navigate",
+    MarkdownPanel: "Markdown Panel",
+    Project: "Project",
+    Select: "Select",
+    Storybook: "Storybook",
+    Task: "Task",
+    Theme: "Theme",
+    Tools: "Tools",
+    View: "View",
+  };
+
   export const ActionIds = {
     Block: "Block",
     Clear: "Clear",
@@ -82,7 +96,8 @@
     new Action({
       id: ActionIds.CommandPalette,
       callback: () => (paletteOpen = !paletteOpen),
-      title: "Command palette",
+      category: Categories.Tools,
+      name: "Command Palette",
       description: "Show the command palette",
       icon: Terminal,
       enabled: () => true,
@@ -91,28 +106,32 @@
     new Action({
       id: ActionIds.LightTheme,
       callback: () => setMode("light"),
-      title: "Light",
+      category: Categories.Theme,
+      name: "Light",
       description: "Set the theme to light mode",
       icon: Sun,
     }),
     new Action({
       id: ActionIds.DarkTheme,
       callback: () => setMode("dark"),
-      title: "Dark",
+      category: Categories.Theme,
+      name: "Dark",
       description: "Set the theme to dark mode",
       icon: Moon,
     }),
     new Action({
       id: ActionIds.SystemTheme,
       callback: () => resetMode(),
-      title: "System",
+      category: Categories.Theme,
+      name: "System",
       description: "Set the theme to system",
       icon: SunMoon,
     }),
     new Action({
       id: ActionIds.Storybook,
       callback: () => goto("/storybook"),
-      title: "Storybook",
+      category: Categories.Navigate,
+      name: "Storybook",
       description: "Navigate to Koso's component library storybook",
       icon: Book,
     }),

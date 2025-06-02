@@ -2,7 +2,10 @@
   import { replaceState } from "$app/navigation";
   import { getAuthContext } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
-  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
+  import {
+    ActionIds,
+    Categories,
+  } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
@@ -313,10 +316,10 @@
     koso.organizeTasks(planningCtx.selected.parent.name);
   }
 
-  function copyGitCommitMessage() {
+  function copyTaskId() {
     if (!planningCtx.selected) return;
     const taskId = planningCtx.selected.name;
-    navigator.clipboard.writeText(koso.getGitCommitMessage(taskId));
+    navigator.clipboard.writeText(koso.getGitCommitId(taskId));
   }
 
   function copyTaskLink() {
@@ -326,21 +329,25 @@
     );
   }
 
-  const insertAction: Action = {
+  const insertAction: Action = new Action({
     id: ActionIds.Insert,
     callback: insert,
-    title: "Add Task",
+    category: Categories.Task,
+    name: "New Task",
     description: "Add or insert a new task",
     icon: ListPlus,
     shortcut: INSERT_NODE,
     enabled: () =>
       !planningCtx.selected || koso.canInsert(planningCtx.selected.parent.name),
-  };
+  });
 
   const actions: Action[] = [
+    // Select
     new Action({
       id: ActionIds.Next,
       callback: selectNext,
+      category: Categories.Select,
+      name: "Next Task",
       description: "Select next task",
       icon: StepForward,
       shortcut: new Shortcut({ key: "ArrowDown" }),
@@ -348,47 +355,57 @@
     new Action({
       id: ActionIds.Previous,
       callback: selectPrev,
+      category: Categories.Select,
+      name: "Previous Task",
       description: "Select previous task",
       icon: StepBack,
       shortcut: new Shortcut({ key: "ArrowUp" }),
     }),
     new Action({
-      id: ActionIds.Expand,
-      callback: expand,
-      description: "Expand the current task",
-      icon: ChevronsUpDown,
-      enabled: () =>
-        !!planningCtx.selected && planningCtx.canExpand(planningCtx.selected),
-      shortcut: new Shortcut({ key: "ArrowRight" }),
+      id: ActionIds.Clear,
+      callback: unselect,
+      category: Categories.Select,
+      name: "Deselect Task",
+      description: "Clear the current selection",
+      icon: CircleX,
+      shortcut: CANCEL,
     }),
     new Action({
-      id: ActionIds.Collapse,
-      callback: collapse,
-      description: "Collapse the current task",
-      icon: ChevronsDownUp,
-      enabled: () =>
-        !!planningCtx.selected && planningCtx.canCollapse(planningCtx.selected),
-      shortcut: new Shortcut({ key: "ArrowLeft" }),
+      id: ActionIds.NextLink,
+      callback: selectNextLink,
+      category: Categories.Select,
+      name: "Jump to Next Task Link",
+      description: "Select next link to current task",
+      icon: SkipForward,
+      enabled: () => !!planningCtx.selected,
+      shortcut: new Shortcut({ key: "ArrowDown", meta: true }),
     }),
     new Action({
-      id: ActionIds.ExpandAll,
-      callback: () => planningCtx.expandAll(),
-      title: "Expand All",
-      description: "Expand all tasks",
-      icon: ChevronsUpDown,
+      id: ActionIds.PreviousLink,
+      callback: selectPrevLink,
+      category: Categories.Select,
+      name: "Jump to Previous Task Link",
+      description: "Select previous link to current task",
+      icon: SkipBack,
+      enabled: () => !!planningCtx.selected,
+      shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
     }),
     new Action({
-      id: ActionIds.CollapseAll,
-      callback: () => planningCtx.collapseAll(),
-      title: "Collapse All",
-      description: "Collapse all tasks",
-      icon: ChevronsDownUp,
+      id: ActionIds.Search,
+      callback: showSearchPalette,
+      category: Categories.Select,
+      name: "Search for Task...",
+      description: "Show the task search palette",
+      icon: Search,
+      shortcut: new Shortcut({ key: "p", meta: true }),
     }),
+
     insertAction,
     new Action({
       id: ActionIds.InsertAbove,
       callback: insertAbove,
-      title: "Insert Above",
+      category: Categories.Task,
+      name: "New Above",
       description: "Insert a new task above",
       icon: ListPlus,
       shortcut: new Shortcut({ key: "Enter", meta: true, shift: true }),
@@ -399,8 +416,9 @@
     new Action({
       id: ActionIds.InsertSubtask,
       callback: insertChild,
-      title: "Insert subtask",
-      description: "Insert a new task as a child",
+      category: Categories.Task,
+      name: "New Child",
+      description: "Insert a new subtask as a child of the current task",
       icon: ListTree,
       enabled: () =>
         !!planningCtx.selected && koso.canInsert(planningCtx.selected.name),
@@ -409,8 +427,9 @@
     new Action({
       id: ActionIds.InsertSubtaskAbove,
       callback: insertChildAbove,
-      title: "Insert subtask above",
-      description: "Insert a new task as a child of the previous task",
+      category: Categories.Task,
+      name: "New Child Above",
+      description: "Insert a new subtask as a child of the previous task",
       icon: ListTree,
       enabled: () => {
         if (!planningCtx.selected) {
@@ -426,9 +445,85 @@
         shift: true,
       }),
     }),
+
+    new Action({
+      id: ActionIds.Expand,
+      callback: expand,
+      category: Categories.View,
+      name: "Expand Selected Task",
+      description: "Expand the current task",
+      icon: ChevronsUpDown,
+      enabled: () =>
+        !!planningCtx.selected && planningCtx.canExpand(planningCtx.selected),
+      shortcut: new Shortcut({ key: "ArrowRight" }),
+    }),
+    new Action({
+      id: ActionIds.Collapse,
+      callback: collapse,
+      category: Categories.View,
+      name: "Collapse Selected Task",
+      description: "Collapse the current task",
+      icon: ChevronsDownUp,
+      enabled: () =>
+        !!planningCtx.selected && planningCtx.canCollapse(planningCtx.selected),
+      shortcut: new Shortcut({ key: "ArrowLeft" }),
+    }),
+    new Action({
+      id: ActionIds.ExpandAll,
+      callback: () => planningCtx.expandAll(),
+      category: Categories.View,
+      name: "Expand All",
+      description: "Expand all tasks",
+      icon: ChevronsUpDown,
+    }),
+    new Action({
+      id: ActionIds.CollapseAll,
+      callback: () => planningCtx.collapseAll(),
+      category: Categories.View,
+      name: "Collapse All",
+      description: "Collapse all tasks",
+      icon: ChevronsDownUp,
+    }),
+    new Action({
+      id: ActionIds.HideDoneTasks,
+      callback: hideDoneTasks,
+      category: Categories.View,
+      name: "Hide Done Tasks",
+      description: "Hide tasks that have been marked done",
+      icon: EyeOff,
+      enabled: () => planningCtx.showDone,
+    }),
+    new Action({
+      id: ActionIds.ShowDoneTasks,
+      callback: showDoneTasks,
+      category: Categories.View,
+      name: "Show Done Tasks",
+      description: "Show tasks that have been marked done",
+      icon: Eye,
+      enabled: () => !planningCtx.showDone,
+    }),
+
+    new Action({
+      id: ActionIds.Undo,
+      callback: undo,
+      category: Categories.Edit,
+      name: "Undo",
+      icon: Undo,
+      shortcut: new Shortcut({ key: "z", meta: true }),
+    }),
+    new Action({
+      id: ActionIds.Redo,
+      callback: redo,
+      category: Categories.Edit,
+      name: "Redo",
+      icon: Redo,
+      shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
+    }),
     new Action({
       id: ActionIds.Edit,
       callback: edit,
+      category: Categories.Edit,
+      name: "Task Name",
       description: "Edit the current task",
       icon: Pencil,
       shortcut: new Shortcut({ key: "Enter" }),
@@ -436,16 +531,21 @@
         !!planningCtx.selected && koso.isEditable(planningCtx.selected.name),
     }),
     new Action({
-      id: ActionIds.Clear,
-      callback: unselect,
-      description: "Clear the current selection",
-      icon: CircleX,
-      shortcut: CANCEL,
+      id: ActionIds.ToggleTaskStatus,
+      callback: toggleStatus,
+      category: Categories.Edit,
+      name: "Toggle Task Status",
+      description: "Toggle the task status to In Progress or Done",
+      icon: Check,
+      shortcut: new Shortcut({ key: " " }),
+      enabled: () =>
+        !!planningCtx.selected && koso.isEditable(planningCtx.selected.name),
     }),
     new Action({
       id: ActionIds.Delete,
       callback: remove,
-      title: "Delete task",
+      category: Categories.Edit,
+      name: "Delete Task",
       description: "Delete the current task",
       icon: Trash,
       enabled: () =>
@@ -453,9 +553,30 @@
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
+      id: ActionIds.CopyTaskInfo,
+      callback: copyTaskId,
+      category: Categories.Edit,
+      name: "Copy Task ID",
+      description: "Copy task ID to the clipboard",
+      icon: Clipboard,
+      enabled: () => !!planningCtx.selected,
+    }),
+    new Action({
+      id: ActionIds.CopyTaskLink,
+      callback: copyTaskLink,
+      category: Categories.Edit,
+      name: "Copy Task Permalink",
+      description: "Share task by copying permalink to the clipboard",
+      icon: Share,
+      shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
+      enabled: () => !!planningCtx.selected,
+    }),
+
+    new Action({
       id: ActionIds.MoveUp,
       callback: moveUp,
-      title: "Move up",
+      category: Categories.Graph,
+      name: "Move Task Up",
       description: "Move the current task up",
       icon: MoveUp,
       enabled: () => !!planningCtx.selected,
@@ -464,7 +585,8 @@
     new Action({
       id: ActionIds.MoveDown,
       callback: moveDown,
-      title: "Move down",
+      category: Categories.Graph,
+      name: "Move Task Down",
       description: "Move the current task down",
       icon: MoveDown,
       enabled: () => !!planningCtx.selected,
@@ -473,7 +595,8 @@
     new Action({
       id: ActionIds.MoveToStart,
       callback: moveStart,
-      title: "Move to start",
+      category: Categories.Graph,
+      name: "Move Task to Start",
       description: "Move the current task to the top of its group",
       icon: ListStart,
       enabled: () => !!planningCtx.selected,
@@ -482,27 +605,18 @@
     new Action({
       id: ActionIds.MoveToEnd,
       callback: moveEnd,
-      title: "Move to end",
+      category: Categories.Graph,
+      name: "Move Task to End",
       description: "Move the current task to the bottom of its group",
       icon: ListEnd,
       enabled: () => !!planningCtx.selected,
       shortcut: new Shortcut({ key: "ArrowDown", alt: true, shift: true }),
     }),
     new Action({
-      id: ActionIds.Undent,
-      callback: undent,
-      title: "Unindent task",
-      description: "Make the current task a peer of its parent",
-      icon: IndentDecrease,
-      enabled: () =>
-        !!planningCtx.selected &&
-        planningCtx.canUndentNode(planningCtx.selected),
-      shortcut: new Shortcut({ key: "ArrowLeft", alt: true }),
-    }),
-    new Action({
       id: ActionIds.Indent,
       callback: indent,
-      title: "Indent task",
+      category: Categories.Graph,
+      name: "Indent",
       description: "Make the current task a child of its peer",
       icon: IndentIncrease,
       enabled: () =>
@@ -511,72 +625,23 @@
       shortcut: new Shortcut({ key: "ArrowRight", alt: true }),
     }),
     new Action({
-      id: ActionIds.Undo,
-      callback: undo,
-      icon: Undo,
-      shortcut: new Shortcut({ key: "z", meta: true }),
-    }),
-    new Action({
-      id: ActionIds.Redo,
-      callback: redo,
-      icon: Redo,
-      shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
-    }),
-    new Action({
-      id: ActionIds.ToggleTaskStatus,
-      callback: toggleStatus,
-      title: "Toggle Task Status",
-      description: "Toggle the task status to In Progress or Done",
-      icon: Check,
-      shortcut: new Shortcut({ key: " " }),
+      id: ActionIds.Undent,
+      callback: undent,
+      category: Categories.Graph,
+      name: "Unindent",
+      description: "Make the current task a peer of its parent",
+      icon: IndentDecrease,
       enabled: () =>
-        !!planningCtx.selected && koso.isEditable(planningCtx.selected.name),
+        !!planningCtx.selected &&
+        planningCtx.canUndentNode(planningCtx.selected),
+      shortcut: new Shortcut({ key: "ArrowLeft", alt: true }),
     }),
-    new Action({
-      id: ActionIds.HideDoneTasks,
-      callback: hideDoneTasks,
-      title: "Hide Done Tasks",
-      description: "Hide tasks that have been marked done",
-      icon: EyeOff,
-      enabled: () => planningCtx.showDone,
-    }),
-    new Action({
-      id: ActionIds.ShowDoneTasks,
-      callback: showDoneTasks,
-      title: "Show Done Tasks",
-      description: "Show tasks that have been marked done",
-      icon: Eye,
-      enabled: () => !planningCtx.showDone,
-    }),
-    new Action({
-      id: ActionIds.Search,
-      callback: showSearchPalette,
-      description: "Show the search palette",
-      icon: Search,
-      shortcut: new Shortcut({ key: "p", meta: true }),
-    }),
-    new Action({
-      id: ActionIds.NextLink,
-      callback: selectNextLink,
-      title: "Next Link",
-      description: "Select next link to current task",
-      icon: SkipForward,
-      enabled: () => !!planningCtx.selected,
-      shortcut: new Shortcut({ key: "ArrowDown", meta: true }),
-    }),
-    new Action({
-      id: ActionIds.PreviousLink,
-      callback: selectPrevLink,
-      title: "Previous Link",
-      description: "Select previous link to current task",
-      icon: SkipBack,
-      enabled: () => !!planningCtx.selected,
-      shortcut: new Shortcut({ key: "ArrowUp", meta: true }),
-    }),
+
     new Action({
       id: ActionIds.Link,
       callback: linkTask,
-      title: "Link task to...",
+      category: Categories.Graph,
+      name: "Link Task To...",
       description: "Link current task to another task",
       icon: Cable,
       enabled: () => !!planningCtx.selected,
@@ -585,7 +650,8 @@
     new Action({
       id: ActionIds.Block,
       callback: blockTask,
-      title: "Block task on...",
+      category: Categories.Graph,
+      name: "Block Task On...",
       description: "Block current task to another task",
       icon: OctagonX,
       enabled: () => !!planningCtx.selected,
@@ -593,26 +659,10 @@
     new Action({
       id: ActionIds.Organize,
       callback: organizeTasks,
-      title: "Organize Tasks",
+      category: Categories.Graph,
+      name: "Organize Tasks",
       description: "Organize the current task and its peers",
       icon: Wrench,
-      enabled: () => !!planningCtx.selected,
-    }),
-    new Action({
-      id: ActionIds.CopyTaskInfo,
-      callback: copyGitCommitMessage,
-      title: "Copy task info",
-      description: "Copy task git commit message to the clipboard",
-      icon: Clipboard,
-      enabled: () => !!planningCtx.selected,
-    }),
-    new Action({
-      id: ActionIds.CopyTaskLink,
-      callback: copyTaskLink,
-      title: "Copy task permalink",
-      description: "Share task by copying permalink to the clipboard",
-      icon: Share,
-      shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
       enabled: () => !!planningCtx.selected,
     }),
   ];
@@ -743,13 +793,15 @@
         </table>
 
         <Fab
+          class="py-6"
+          size={20}
           reserveClass="m-0.5"
           positionClass="m-0"
           icon={Plus}
           onclick={insertAction.callback}
           reserve
         >
-          {insertAction.title}
+          {insertAction.name}
           {#snippet tooltip()}
             <div class="flex items-center gap-2">
               {insertAction.description}
@@ -778,7 +830,7 @@
           </div>
           <div class="mt-4">
             <Button variant="filled" icon={ListPlus} onclick={insert}>
-              Add task
+              New Task
             </Button>
           </div>
         </div>

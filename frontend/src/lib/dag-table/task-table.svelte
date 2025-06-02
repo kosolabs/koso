@@ -2,7 +2,10 @@
   import { replaceState } from "$app/navigation";
   import { getAuthContext } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
-  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
+  import {
+    ActionIds,
+    Categories,
+  } from "$lib/components/ui/command-palette/command-palette.svelte";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { toast } from "$lib/components/ui/sonner";
   import { Action } from "$lib/kosui/command";
@@ -143,10 +146,10 @@
     getRow(inbox.selected.id).linkPanel(true, "block");
   }
 
-  function copyGitCommitMessage() {
+  function copyTaskId() {
     if (!inbox.selected) return;
     const taskId = inbox.selected.id;
-    navigator.clipboard.writeText(koso.getGitCommitMessage(taskId));
+    navigator.clipboard.writeText(koso.getGitCommitId(taskId));
   }
 
   function copyTaskLink() {
@@ -160,6 +163,8 @@
     new Action({
       id: ActionIds.Next,
       callback: selectNext,
+      category: Categories.Select,
+      name: "Next Task",
       description: "Select next task",
       icon: StepForward,
       shortcut: new Shortcut({ key: "ArrowDown" }),
@@ -167,6 +172,8 @@
     new Action({
       id: ActionIds.Previous,
       callback: selectPrev,
+      category: Categories.Select,
+      name: "Previous Task",
       description: "Select previous task",
       icon: StepBack,
       shortcut: new Shortcut({ key: "ArrowUp" }),
@@ -174,26 +181,34 @@
     new Action({
       id: ActionIds.Clear,
       callback: unselect,
+      category: Categories.Select,
+      name: "Deselect Task",
       description: "Clear the current selection",
       icon: CircleX,
       shortcut: CANCEL,
     }),
+
     new Action({
       id: ActionIds.Undo,
       callback: undo,
+      category: Categories.Edit,
+      name: "Undo",
       icon: Undo,
       shortcut: new Shortcut({ key: "z", meta: true }),
     }),
     new Action({
       id: ActionIds.Redo,
       callback: redo,
+      category: Categories.Edit,
+      name: "Redo",
       icon: Redo,
       shortcut: new Shortcut({ key: "z", meta: true, shift: true }),
     }),
     new Action({
       id: ActionIds.ToggleTaskStatus,
       callback: toggleStatus,
-      title: "Toggle Task Status",
+      category: Categories.Edit,
+      name: "Toggle Task Status",
       description: "Toggle the task status to In Progress or Done",
       icon: Check,
       shortcut: new Shortcut({ key: " " }),
@@ -202,7 +217,8 @@
     new Action({
       id: ActionIds.Delete,
       callback: remove,
-      title: "Delete task",
+      category: Categories.Edit,
+      name: "Delete Task",
       description: "Delete the current task",
       icon: Trash,
       enabled: () =>
@@ -212,9 +228,30 @@
       shortcut: new Shortcut({ key: "Delete" }),
     }),
     new Action({
+      id: ActionIds.CopyTaskInfo,
+      callback: copyTaskId,
+      category: Categories.Edit,
+      name: "Copy Task ID",
+      description: "Copy task ID to the clipboard",
+      icon: Clipboard,
+      enabled: () => !!inbox.selected,
+    }),
+    new Action({
+      id: ActionIds.CopyTaskLink,
+      callback: copyTaskLink,
+      category: Categories.Edit,
+      name: "Copy Task Permalink",
+      description: "Share task by copying permalink to the clipboard",
+      icon: Share,
+      shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
+      enabled: () => !!inbox.selected,
+    }),
+
+    new Action({
       id: ActionIds.Link,
       callback: linkTask,
-      title: "Link task to...",
+      category: Categories.Graph,
+      name: "Link Task To...",
       description: "Link current task to another task",
       icon: Cable,
       enabled: () => !!inbox.selected,
@@ -222,28 +259,12 @@
     new Action({
       id: ActionIds.Block,
       callback: blockTask,
-      title: "Block task on...",
+      category: Categories.Graph,
+      name: "Block Task On...",
       description: "Block current task to another task",
       icon: OctagonX,
       enabled: () => !!inbox.selected,
       shortcut: new Shortcut({ key: "/", meta: true }),
-    }),
-    new Action({
-      id: ActionIds.CopyTaskInfo,
-      callback: copyGitCommitMessage,
-      title: "Copy task info",
-      description: "Copy task git commit message to the clipboard",
-      icon: Clipboard,
-      enabled: () => !!inbox.selected,
-    }),
-    new Action({
-      id: ActionIds.CopyTaskLink,
-      callback: copyTaskLink,
-      title: "Copy task permalink",
-      description: "Share task by copying permalink to the clipboard",
-      icon: Share,
-      shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
-      enabled: () => !!inbox.selected,
     }),
   ];
 

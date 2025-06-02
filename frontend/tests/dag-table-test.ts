@@ -21,7 +21,7 @@ test.describe("dag table tests", () => {
 
   test.describe("creating tasks", () => {
     test("create a task by clicking the Add button", async ({ page }) => {
-      await page.getByRole("button", { name: "Add task", exact: true }).click();
+      await page.getByRole("button", { name: "New Task", exact: true }).click();
       await page.keyboard.press("Escape");
 
       await expect(page.getByRole("row", { name: "Task 1" })).toBeFocused();
@@ -35,7 +35,7 @@ test.describe("dag table tests", () => {
     test("create a task by clicking the Add button and then edit", async ({
       page,
     }) => {
-      await page.getByRole("button", { name: "Add task", exact: true }).click();
+      await page.getByRole("button", { name: "New Task", exact: true }).click();
 
       await expect(
         page.getByRole("textbox", { name: "Task 1 Edit Name" }),
@@ -2336,7 +2336,7 @@ test.describe("dag table tests", () => {
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
 
-      await page.getByRole("button", { name: "Palette" }).click();
+      await page.getByRole("button", { name: "Command palette" }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
 
       await page.keyboard.type("Organize Tasks");
@@ -2358,7 +2358,11 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("row", { name: "Task 1" }).click();
-      await page.getByRole("button", { name: "Open task description" }).click();
+      await page
+        .getByRole("button", {
+          name: "Show the task description markdown panel",
+        })
+        .click();
 
       await expect(
         page.getByRole("heading", { name: "Task details" }),
@@ -2385,7 +2389,11 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("row", { name: "Task 1" }).click();
-      await page.getByRole("button", { name: "Open task description" }).click();
+      await page
+        .getByRole("button", {
+          name: "Show the task description markdown panel",
+        })
+        .click();
       await expect(page.getByText("Task 1 description")).toBeVisible();
 
       await page.getByRole("row", { name: "Task 2" }).click();
@@ -2408,7 +2416,11 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("row", { name: "Task 1" }).click();
-      await page.getByRole("button", { name: "Open task description" }).click();
+      await page
+        .getByRole("button", {
+          name: "Show the task description markdown panel",
+        })
+        .click();
 
       await expect(
         page.getByRole("button", { name: "Delete task description" }),
@@ -2440,7 +2452,11 @@ test.describe("dag table tests", () => {
       ]);
 
       await page.getByRole("row", { name: "Task 1" }).click();
-      await page.getByRole("button", { name: "Open task description" }).click();
+      await page
+        .getByRole("button", {
+          name: "Show the task description markdown panel",
+        })
+        .click();
       await expect(
         page
           .getByRole("heading", { name: "Task details" })
@@ -2472,10 +2488,10 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "Task actions" })
         .click();
 
-      await page.getByRole("menuitem", { name: "Copy task info" }).click();
+      await page.getByRole("menuitem", { name: "Copy Task ID" }).click();
 
       expect(await page.evaluate(() => navigator.clipboard.readText())).toEqual(
-        "koso-1: A task description",
+        "koso-1",
       );
     });
   });

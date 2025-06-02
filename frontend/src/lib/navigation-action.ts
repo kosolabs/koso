@@ -7,7 +7,10 @@ import type { Shortcut } from "./kosui/shortcut";
 type NavigationActionProps = {
   id: string;
   href: string;
-  title?: string;
+  category?: string;
+  categoryIndex?: number;
+  name?: string;
+  index?: number;
   description?: string;
   icon?: typeof Icon;
   shortcut?: Shortcut;

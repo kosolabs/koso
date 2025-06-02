@@ -2,16 +2,25 @@
   import { page } from "$app/state";
   import { getAuthContext, showUnauthorizedDialog } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
-  import { ActionIds } from "$lib/components/ui/command-palette/command-palette.svelte";
+  import {
+    ActionIds,
+    Categories,
+  } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { ProjectShareModal } from "$lib/components/ui/project-share-modal";
+  import { toast } from "$lib/components/ui/sonner";
   import { redirectToGithubInstallFlow } from "$lib/github";
   import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
   import { NavigationAction } from "$lib/navigation-action";
-  import { fetchProject, fetchProjectUsers } from "$lib/projects";
+  import {
+    exportProject,
+    fetchProject,
+    fetchProjectUsers,
+  } from "$lib/projects";
   import {
     Eye,
+    FileDown,
     Mail,
     Notebook,
     PanelTopClose,
@@ -37,6 +46,29 @@
   const deflicker: Promise<void> = new Promise((r) => window.setTimeout(r, 50));
   const loading = load();
 
+  async function exportProjectToFile() {
+    toast.info("Exporting project...");
+    const projectExport = await exportProject(auth, ctx.id);
+
+    let projectName = (ctx.name || "project")
+      .toLowerCase()
+      .trim()
+      .replaceAll(/[\s+]/g, "-")
+      .replaceAll(/[^-_a-z0-9]/g, "");
+    let now = new Date();
+    const fileName = `${projectName}-export-${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}.json`;
+    saveJsonFile(JSON.stringify(projectExport, null, 2), fileName);
+  }
+
+  function saveJsonFile(json: string, name: string) {
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+  }
+
   async function load() {
     const [project, users] = await Promise.all([
       fetchProject(auth, ctx.id),
@@ -56,21 +88,24 @@
     new NavigationAction({
       id: ActionIds.InboxView,
       href: `/projects/${ctx.id}/inbox`,
-      title: "Zero inbox",
+      category: Categories.Navigate,
+      name: "Zero Inbox",
       description: "Navigate to Zero Inbox view",
       icon: Mail,
     }),
     new NavigationAction({
       id: ActionIds.PlanView,
       href: `/projects/${ctx.id}`,
-      title: "Project planning",
+      category: Categories.Navigate,
+      name: "Project Planning",
       description: "Navigate to Project Planning view",
       icon: Notebook,
     }),
     new Action({
       id: ActionIds.DetailPanelClose,
       callback: () => (prefs.detailPanel = "none"),
-      title: "Close task description",
+      category: Categories.MarkdownPanel,
+      name: "Close Markdown Panel",
       description: "Close / hide the task description markdown panel",
       icon: PanelTopClose,
       enabled: () => prefs.detailPanel !== "none",
@@ -78,7 +113,8 @@
     new Action({
       id: ActionIds.DetailPanelOpen,
       callback: () => (prefs.detailPanel = "view"),
-      title: "Open task description",
+      category: Categories.MarkdownPanel,
+      name: "Open Markdown Panel",
       description: "Open / show the task description markdown panel",
       icon: PanelTopOpen,
       enabled: () => prefs.detailPanel === "none",
@@ -86,7 +122,8 @@
     new Action({
       id: ActionIds.DetailPanelViewer,
       callback: () => (prefs.detailPanel = "view"),
-      title: "View task description",
+      category: Categories.MarkdownPanel,
+      name: "Show Markdown Viewer",
       description: "Open / show the task description markdown viewer",
       icon: Eye,
       enabled: () => prefs.detailPanel !== "view",
@@ -94,7 +131,8 @@
     new Action({
       id: ActionIds.DetailPanelEditor,
       callback: () => (prefs.detailPanel = "edit"),
-      title: "Edit task description",
+      category: Categories.MarkdownPanel,
+      name: "Show Markdown Editor",
       description: "Open / show the task description markdown editor",
       icon: Pencil,
       enabled: () => prefs.detailPanel !== "edit",
@@ -103,17 +141,27 @@
       id: ActionIds.ConnectToGitHub,
       callback: async () =>
         await redirectToGithubInstallFlow(auth, ctx.id, page.url.pathname),
-      title: "Connect to GitHub",
+      category: Categories.Project,
+      name: "Connect to GitHub",
       description: "Connect the project to GitHub",
       icon: UserPlus,
     }),
     new Action({
       id: ActionIds.ShareProject,
       callback: () => (openShareModal = true),
-      title: "Share project",
+      category: Categories.Project,
+      name: "Share Project...",
       description: "Open / show the project share dialog",
       icon: UserPlus,
       enabled: () => !!auth.fullUser?.premium,
+    }),
+    new Action({
+      id: ActionIds.ExportProject,
+      callback: exportProjectToFile,
+      category: Categories.Project,
+      name: "Export Project to JSON",
+      description: "Export Project to JSON",
+      icon: FileDown,
     }),
   ];
 

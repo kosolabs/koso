@@ -35,7 +35,7 @@
     "standalone-margin flex w-full flex-1 items-center gap-1 overflow-x-scroll border-t p-2",
   )}
 >
-  {#each actions as action (action.title)}
+  {#each actions as action (action.name)}
     <ToolbarButton {...action} />
   {/each}
   {#if selected}

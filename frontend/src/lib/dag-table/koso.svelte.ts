@@ -992,9 +992,9 @@ export class Koso {
     return curr;
   }
 
-  getGitCommitMessage(taskId: string) {
+  getGitCommitId(taskId: string) {
     const task = this.getTask(taskId);
-    return `koso-${task.num}: ${task.name}`;
+    return `koso-${task.num}`;
   }
 
   /** Organizes the given task's children by status, etc. */
