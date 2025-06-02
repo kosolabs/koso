@@ -55,8 +55,9 @@
 
   type Props = {
     users: User[];
+    hideFab?: boolean;
   };
-  const { users }: Props = $props();
+  const { users, hideFab = false }: Props = $props();
 
   const rows: { [key: string]: DagRow } = {};
 
@@ -753,7 +754,7 @@
 {#await koso.synced then}
   {#if planningCtx.nodes.size > 1}
     <div class="relative h-full">
-      <div class="flex flex-col gap-2">
+      <div class="flex h-full flex-col">
         <!-- Add a z-0 to fix a bug in Safari where rows disappear when collapsing
                  and expanding tasks -->
         <table
@@ -792,27 +793,26 @@
           {/each}
         </table>
 
-        <Fab
-          class="py-6"
-          size={20}
-          reserveClass="m-0.5"
-          positionClass="m-0"
-          icon={Plus}
-          onclick={insertAction.callback}
-          reserve
-        >
-          {insertAction.name}
-          {#snippet tooltip()}
-            <div class="flex items-center gap-2">
-              {insertAction.description}
-              {#if insertAction.shortcut}
-                <div class="font-bold">
-                  {insertAction.shortcut.toString()}
-                </div>
-              {/if}
-            </div>
-          {/snippet}
-        </Fab>
+        {#if !hideFab}
+          <Fab
+            class="mt-3 py-6"
+            size={20}
+            icon={Plus}
+            onclick={insertAction.callback}
+          >
+            {insertAction.name}
+            {#snippet tooltip()}
+              <div class="flex items-center gap-2">
+                {insertAction.description}
+                {#if insertAction.shortcut}
+                  <div class="font-bold">
+                    {insertAction.shortcut.toString()}
+                  </div>
+                {/if}
+              </div>
+            {/snippet}
+          </Fab>
+        {/if}
       </div>
     </div>
   {:else}

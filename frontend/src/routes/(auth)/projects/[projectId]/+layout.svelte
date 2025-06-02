@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { getAuthContext, showUnauthorizedDialog } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
@@ -19,8 +20,10 @@
     fetchProjectUsers,
   } from "$lib/projects";
   import {
+    CircleGauge,
     Eye,
     FileDown,
+    Github,
     Mail,
     Notebook,
     PanelTopClose,
@@ -78,6 +81,15 @@
     ctx.users = users;
   }
 
+  function getNextIterationDashboard() {
+    const plannedTasks = ctx.koso.tasks
+      .filter((yTask) => yTask.deadline !== null && yTask.deadline > Date.now())
+      .sort((yTaskA, yTaskB) => yTaskA.deadline! - yTaskB.deadline!);
+    if (plannedTasks.length > 0) {
+      return `/projects/${ctx.id}/dash/${plannedTasks[0].id}`;
+    }
+  }
+
   $effect(() => {
     if (ctx.socket.unauthorized) {
       showUnauthorizedDialog();
@@ -100,6 +112,15 @@
       name: "Project Planning",
       description: "Navigate to Project Planning view",
       icon: Notebook,
+    }),
+    new Action({
+      id: ActionIds.DashView,
+      callback: () => goto(getNextIterationDashboard()!),
+      category: Categories.Navigate,
+      name: "Dashboard",
+      description: "Navigate to Project Dashboard view",
+      icon: CircleGauge,
+      enabled: () => !!getNextIterationDashboard(),
     }),
     new Action({
       id: ActionIds.DetailPanelClose,
@@ -144,7 +165,7 @@
       category: Categories.Project,
       name: "Connect to GitHub",
       description: "Connect the project to GitHub",
-      icon: UserPlus,
+      icon: Github,
     }),
     new Action({
       id: ActionIds.ShareProject,
