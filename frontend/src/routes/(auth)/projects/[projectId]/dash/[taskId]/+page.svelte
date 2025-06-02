@@ -123,5 +123,5 @@
 
   <h2 class="text-2xl font-extralight">Tasks</h2>
   <hr />
-  <DagTable {users} />
+  <DagTable {users} hideFab />
 </div>

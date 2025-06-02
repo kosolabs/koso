@@ -31,6 +31,7 @@
     CommandPalette: "CommandPalette",
     ConnectToGitHub: "ConnectToGitHub",
     DarkTheme: "DarkTheme",
+    DashView: "DashView",
     Delete: "Delete",
     DetailPanelClose: "DetailPanelClose",
     DetailPanelOpen: "DetailPanelOpen",
