@@ -50,6 +50,7 @@
   let reporter = $derived(getUser(users, task.reporter));
   let assignee = $derived(getUser(users, task.assignee));
   let open = $derived(planningCtx.expanded.has(node));
+  let progress = $derived(koso.getProgress(task.id));
   let isDragging = $derived(node.equals(planningCtx.dragged));
   let isMoving = $derived(isDragging && planningCtx.dropEffect === "move");
   let isHovered = $derived(planningCtx.highlighted === node.name);
@@ -546,8 +547,10 @@
   </td>
   <td class={cn("border-t border-l p-2 max-md:hidden")}>
     <Estimate
-      value={task.estimate}
-      {editable}
+      value={progress.kind === "Rollup"
+        ? progress.remainingEstimate
+        : progress.estimate}
+      editable={editable && progress.kind !== "Rollup"}
       onSelect={(estimate) => {
         task.estimate = estimate;
       }}

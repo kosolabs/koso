@@ -4,7 +4,7 @@
   import ResponsiveText from "../responsive-text/responsive-text.svelte";
 
   type Props = {
-    value: Estimate | null;
+    value: number | null;
     editable: boolean;
     onSelect: (select: Estimate | null) => void;
   };

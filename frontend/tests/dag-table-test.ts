@@ -2518,6 +2518,38 @@ test.describe("dag table tests", () => {
         page.getByRole("button", { name: "Unset", exact: true }).nth(0),
       ).toBeVisible();
     });
+
+    test("rollup shows sub-tree estimate", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "3", "4", "5"] },
+        { id: "2", estimate: 2 },
+        { id: "3", estimate: 13, status: "Done", statusTime: Date.now() },
+        { id: "4", estimate: 1, status: "In Progress" },
+        { id: "5" },
+      ]);
+      await page.getByRole("button", { name: "Task 1 Toggle Expand" }).click();
+
+      await expect(
+        page.getByRole("row", { name: "Task 1" }).getByText("3 days"),
+      ).toBeVisible();
+
+      await page
+        .getByRole("row", { name: "Task 2" })
+        .getByRole("button", { name: "2 days" })
+        .click();
+      await page.getByRole("menuitem", { name: "5 days", exact: true }).click();
+      await expectKosoGraph(page).toMatchObject({ ["2"]: { estimate: 5 } });
+
+      await expect(
+        page.getByRole("row", { name: "Task 1" }).getByText("6 days"),
+      ).toBeVisible();
+      await expect(
+        page
+          .getByRole("row", { name: "Task 1" })
+          .getByRole("button", { name: "days" }),
+      ).toBeHidden();
+    });
   });
 
   test.describe("changing deadline", () => {
