@@ -1643,7 +1643,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("rollup task with duplicate descendants recounts each", () => {
+    it("rollup task with duplicate descendants does not double count", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "5"] },
@@ -1655,16 +1655,25 @@ describe("Koso tests", () => {
 
       expect(koso.getProgress("1")).toMatchObject({
         kind: "Rollup",
-        estimate: 16,
-        remainingEstimate: 16,
+        inProgress: 0,
+        done: 0,
+        total: 2,
+        estimate: 8,
+        remainingEstimate: 8,
       });
       expect(koso.getProgress("2")).toMatchObject({
         kind: "Rollup",
+        inProgress: 0,
+        done: 0,
+        total: 2,
         estimate: 8,
         remainingEstimate: 8,
       });
       expect(koso.getProgress("5")).toMatchObject({
         kind: "Rollup",
+        inProgress: 0,
+        done: 0,
+        total: 2,
         estimate: 8,
         remainingEstimate: 8,
       });

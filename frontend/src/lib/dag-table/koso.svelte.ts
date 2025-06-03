@@ -405,7 +405,16 @@ export class Koso {
    * @throws Will throw an error if the task status is invalid.
    */
   getProgress(taskId: string): Progress {
+    return this.#recursivelyGetProgress(taskId, {});
+  }
+
+  /** Helper for getProgress. Don't use directly. */
+  #recursivelyGetProgress(
+    taskId: string,
+    visited: { [taskId: string]: boolean },
+  ): Progress {
     const task = this.getTask(taskId);
+    visited[taskId] = true;
 
     const result: Progress = new Progress({
       inProgress: 0,
@@ -424,9 +433,14 @@ export class Koso {
     let childrenEstimate: number | null = null;
     let childrenRemainingEstimate: number | null = null;
     task.children.forEach((taskId) => {
+      // Avoid re-counting tasks present more than once in a sub-tree.
+      if (visited[taskId]) {
+        return;
+      }
+
       // If performance is ever an issue for large, nested graphs,
       // we can memoize the recursive call and trade memory for time.
-      const childProgress = this.getProgress(taskId);
+      const childProgress = this.#recursivelyGetProgress(taskId, visited);
       childInProgress += childProgress.inProgress;
       childDone += childProgress.done;
       childTotal += childProgress.total;
