@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Menu, MenuContent, MenuItem, MenuTrigger } from "$lib/kosui/menu";
   import { ESTIMATES, type Estimate } from "$lib/yproxy";
-  import ResponsiveText from "../responsive-text/responsive-text.svelte";
+  import { CalendarDays, CircleSlash } from "lucide-svelte";
 
   type Props = {
     value: number | null;
@@ -25,24 +25,41 @@
   }
 </script>
 
+{#snippet format(value: number | null)}
+  {#if value === null}
+    <CircleSlash size={16} />
+  {:else}
+    {value}
+  {/if}
+{/snippet}
+
 {#if editable}
   <Menu>
-    {@const estimate = formatEstimate(value)}
-    <MenuTrigger class="flex items-center gap-2" title={estimate}>
-      <ResponsiveText>{estimate}</ResponsiveText>
+    <MenuTrigger class="px-2 text-sm" title="Task estimate">
+      {@render format(value)}
     </MenuTrigger>
     <MenuContent>
-      <MenuItem onSelect={() => select(null)}>Unset</MenuItem>
+      <MenuItem
+        class="flex items-center gap-2 rounded text-sm"
+        onSelect={() => select(null)}
+        title="Unset"
+      >
+        <CircleSlash size={16} />
+        Unset
+      </MenuItem>
       {#each ESTIMATES as estimate (estimate)}
-        <MenuItem onSelect={() => select(estimate)}>
-          <ResponsiveText>{formatEstimate(estimate)}</ResponsiveText>
+        <MenuItem
+          class="flex items-center gap-2 rounded text-sm"
+          onSelect={() => select(estimate)}
+        >
+          <CalendarDays size={16} />
+          {formatEstimate(estimate)}
         </MenuItem>
       {/each}
     </MenuContent>
   </Menu>
 {:else}
-  {@const estimate = formatEstimate(value)}
-  <div class="flex items-center gap-2" title={estimate}>
-    <ResponsiveText>{estimate}</ResponsiveText>
+  <div class="text-sm" title="Task estimate">
+    {@render format(value)}
   </div>
 {/if}
