@@ -7,6 +7,7 @@
   import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";
   import { Navbar } from "$lib/components/ui/navbar";
   import { DagTable, newPlanningContext } from "$lib/dag-table";
+  import type { Progress } from "$lib/dag-table/koso.svelte";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import type { Node } from "$lib/dag-table/planning-context.svelte";
   import { getProjectContext } from "$lib/dag-table/project-context.svelte";
@@ -57,9 +58,23 @@
     return paths;
   }
 
+  function formatDate(ts: number) {
+    const date = new Date(ts);
+    return date.toLocaleDateString();
+  }
+
+  function getStatus(deadline: number, progress: Progress): Status {
+    const remainingDays = Math.floor((deadline - Date.now()) / 86400000);
+    return progress.remainingEstimate! < remainingDays ? "On Track" : "At Risk";
+  }
+
   let task = $derived(koso.getTask(taskId));
-  let status: Status = $derived("At Risk");
-  let progress = $derived(koso.getProgress(taskId));
+  let progress = $derived.by(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    koso.events;
+    return koso.getProgress(taskId);
+  });
+  let status = $derived(getStatus($task.deadline!, progress));
   let paths = $derived(getLongestPaths());
 </script>
 
@@ -77,29 +92,33 @@
   <h1 class="text-3xl font-extralight">{task.name}</h1>
   <hr />
 
-  <h2 class="text-2xl font-extralight">Status</h2>
-  <hr />
-  <div class="flex flex-col items-center gap-2 rounded-md border p-2">
-    <Alert
-      class="text-xl font-extralight"
-      variant="filled"
-      color={getStatusColor(status)}
-    >
-      {status}
-    </Alert>
-    <div class="text-xl font-extralight">Due Date: TBD</div>
+  {#if task.deadline}
+    <h2 class="text-2xl font-extralight">Status</h2>
+    <hr />
+    <div class="flex flex-col items-center gap-2 rounded-md border p-2">
+      <Alert
+        class="text-xl font-extralight"
+        variant="filled"
+        color={getStatusColor(status)}
+      >
+        {status}
+      </Alert>
+      <div class="text-xl font-extralight">
+        Due Date: {formatDate(task.deadline)}
+      </div>
 
-    <h2 class="text-xl font-extralight">
-      Progress: {progress.done} / {progress.total}
-    </h2>
-    <CircularProgress
-      class="text-m3-primary"
-      size="100"
-      progress={progress.done / progress.total}
-    >
-      {(progress.done * 100) / progress.total}%
-    </CircularProgress>
-  </div>
+      <h2 class="text-xl font-extralight">
+        Progress: {progress.done} / {progress.total}
+      </h2>
+      <CircularProgress
+        class="text-m3-primary"
+        size="100"
+        progress={progress.done / progress.total}
+      >
+        {(progress.done * 100) / progress.total}%
+      </CircularProgress>
+    </div>
+  {/if}
 
   <h2 class="text-2xl font-extralight">Critical Paths</h2>
   <hr />
