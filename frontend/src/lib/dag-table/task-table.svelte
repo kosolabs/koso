@@ -59,14 +59,14 @@
     if (!inbox.selected) return;
 
     const task = koso.getTask(inbox.selected.id);
-    let progress = koso.getProgress(task.id);
-    if (progress.kind === "Rollup") {
+    if (task.kind === "Rollup") {
       toast.warning(
         "Cannot change the status of a Rollup task. Change the status of the task's children instead.",
       );
       return;
     }
 
+    let progress = koso.getProgress(task.id);
     switch (progress.status) {
       case "Done":
         return;

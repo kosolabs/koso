@@ -34,8 +34,7 @@ export type Task = {
   deadline: number | null;
 };
 export type Status = "Not Started" | "In Progress" | "Done" | "Blocked";
-export type Kind = YKind | "Rollup";
-export type YKind = "Task" | "github" | "github_pr";
+export type Kind = "Rollup" | "Task" | "github" | "github_pr";
 export const unmanagedKinds: ImmutableSet<Kind> = ImmutableSet.of(
   "Rollup",
   "Task",
@@ -204,11 +203,15 @@ export class YTaskProxy {
     this.#yTask.set("statusTime", value);
   }
 
-  get yKind(): YKind | null {
-    return (this.#yTask.get("kind") as YKind) || null;
+  get rawKind(): Kind | null {
+    return this.#yTask.get("kind") as Kind;
   }
 
-  set yKind(value: YKind | null) {
+  get kind(): Kind {
+    return (this.#yTask.get("kind") as Kind) || "Task";
+  }
+
+  set kind(value: Kind) {
     this.#yTask.set("kind", value);
   }
 

@@ -315,7 +315,7 @@ impl EventProcessor {
                     let descendent = doc.get(&txn, &descendent_id)?;
                     let kind = descendent.get_kind(&txn)?;
                     let children = descendent.get_children(&txn)?;
-                    if kind.is_some() || children.is_empty() {
+                    if kind.as_deref().unwrap_or("Task") != "Rollup" {
                         if descendent.get_status(&txn)?.unwrap_or_default() != "Done" {
                             complete = false;
                             break;

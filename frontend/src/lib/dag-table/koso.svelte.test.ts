@@ -56,7 +56,7 @@ describe("Koso tests", () => {
           reporter: null,
           status: null,
           statusTime: null,
-          kind: null,
+          kind: "Task",
           url: null,
           estimate: null,
           deadline: null,

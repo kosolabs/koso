@@ -42,13 +42,9 @@
 
   let progress = $derived(koso.getProgress(task.id));
   let canSetStatus = $derived(
-    koso.isEditable(task.id) && progress.kind !== "Rollup",
+    koso.isEditable(task.id) && task.kind !== "Rollup",
   );
-  let canSetKind = $derived(
-    koso.isEditable(task.id) &&
-      (progress.kind === "Rollup" ||
-        (progress.kind === "Task" && progress.childrenStatus != null)),
-  );
+  let canSetKind = $derived(koso.isEditable(task.id));
   let statuses: Status[] = ["Not Started", "In Progress", "Done", "Blocked"];
   let deadline = $derived(
     task.deadline
@@ -95,7 +91,7 @@
   }
 
   function triggerTitle() {
-    if (progress.kind !== "Rollup") {
+    if (task.kind !== "Rollup") {
       return `${progress.status}${progress.lastStatusTime ? ` - ${new Date(progress.lastStatusTime).toLocaleString()}` : ""}`;
     }
     return `${progress.done} of ${progress.total} (${Math.round(
@@ -143,7 +139,7 @@
     disabled={!canSetStatus && !canSetKind}
     onkeydown={handleKeyDown}
   >
-    {#if progress.kind === "Rollup"}
+    {#if task.kind === "Rollup"}
       {#if progress.status === "Done"}
         <CircleCheck class="text-m3-primary" />
         {@render responsiveTextWithDeadline("Done")}
@@ -189,7 +185,7 @@
       >
         <IterationCcw class="text-m3-primary" />
         Iteration...
-        {#if progress.kind === "Rollup" && deadline}
+        {#if task.kind === "Rollup" && deadline}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -199,7 +195,7 @@
       >
         <LoaderCircle class="text-m3-primary" />
         Rollup
-        {#if progress.kind === "Rollup" && !deadline}
+        {#if task.kind === "Rollup" && !deadline}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -209,7 +205,7 @@
       >
         <ClipboardCheck class="text-m3-primary" />
         Task
-        {#if progress.kind === "Task"}
+        {#if task.kind === "Task"}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
