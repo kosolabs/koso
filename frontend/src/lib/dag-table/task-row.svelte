@@ -196,24 +196,28 @@
       }}
     />
   </td>
-  <td class={cn("border-t border-l p-2 max-md:hidden")}>
-    <Estimate
-      value={progress.kind === "Rollup"
-        ? progress.remainingEstimate
-        : progress.estimate}
-      editable={editable && progress.kind !== "Rollup"}
-      onSelect={(estimate) => {
-        task.estimate = estimate;
-      }}
-    />
+  <td class={cn("border-t border-l max-md:hidden")}>
+    <div class="flex place-content-center items-center">
+      <Estimate
+        value={progress.kind === "Rollup"
+          ? progress.remainingEstimate
+          : progress.estimate}
+        editable={editable && progress.kind !== "Rollup"}
+        onSelect={(estimate) => {
+          task.estimate = estimate;
+        }}
+      />
+    </div>
   </td>
-  <td class={cn("border-t border-l p-2 max-md:hidden")}>
-    <Deadline
-      value={task.deadline}
-      {editable}
-      onSelect={(deadline) => {
-        task.deadline = deadline;
-      }}
-    />
-  </td>
+  {#if koso.debug}
+    <td class={cn("border-t border-l p-2 max-md:hidden")}>
+      <Deadline
+        value={task.deadline}
+        {editable}
+        onSelect={(deadline) => {
+          task.deadline = deadline;
+        }}
+      />
+    </td>
+  {/if}
 </tr>
