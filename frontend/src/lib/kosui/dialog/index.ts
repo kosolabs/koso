@@ -1,5 +1,8 @@
-export { default as DialogButton } from "./dialog-button.svelte";
-export { default as Dialog } from "./dialog.svelte";
+export {
+  default as DialogButton,
+  type DialogButtonProps,
+} from "./dialog-button.svelte";
+export { default as Dialog, type DialogProps } from "./dialog.svelte";
 export {
   getDialoguerContext,
   setDialoguerContext,

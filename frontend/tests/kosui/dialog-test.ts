@@ -122,7 +122,20 @@ test.describe("Dialog Component Tests", () => {
 
     // Select and check result
     await dialog.getByRole("button", { name: "East" }).click();
-    await expect(page.getByText("Select Dialog East")).toBeVisible();
+    await expect(page.getByText("Selected: East")).toBeVisible();
+  });
+
+  test("date picker dialog should show all options and return selection", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "Show Date Picker" }).click();
+    const dialog = page.getByRole("dialog");
+
+    await expect(dialog).toBeVisible();
+    await page.keyboard.type("07012001");
+
+    await dialog.getByRole("button", { name: "Accept" }).click();
+    await expect(page.getByText("Date: 2001-07-01")).toBeVisible();
   });
 
   test("select dialog should cancel with Escape", async ({ page }) => {

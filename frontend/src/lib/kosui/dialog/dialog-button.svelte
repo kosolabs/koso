@@ -1,14 +1,13 @@
 <script module lang="ts">
   import type { Snippet } from "svelte";
-  import type { Variants } from "../base";
-  import { Button } from "../button";
+  import { Button, type ButtonProps } from "../button";
 
-  type ButtonProps<T> = {
-    value: T;
+  export type DialogButtonProps<T> = {
+    value: T | undefined;
     autofocus?: boolean;
-    onSelect: (value: T) => void;
+    onSelect: (value: T | undefined) => void;
     children: Snippet;
-  } & Variants;
+  } & Omit<ButtonProps, "value">;
 </script>
 
 <script lang="ts" generics="T">
@@ -18,7 +17,7 @@
     autofocus = false,
     children,
     ...restProps
-  }: ButtonProps<T> = $props();
+  }: DialogButtonProps<T> = $props();
 </script>
 
 <Button onclick={() => onSelect(value)} {autofocus} {...restProps}>

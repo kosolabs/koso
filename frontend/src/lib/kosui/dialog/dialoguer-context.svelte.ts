@@ -1,8 +1,9 @@
 import type { Icon } from "lucide-svelte";
 import { getContext, setContext, type Snippet } from "svelte";
+import type { HTMLInputTypeAttribute } from "svelte/elements";
 import type { Variants } from "../base";
 
-type ButtonProps<T> = {
+export type ButtonProps<T> = {
   text: string;
   value: T;
   default?: boolean;
@@ -11,6 +12,7 @@ type ButtonProps<T> = {
 type ShowDialogProps<T> = {
   icon?: typeof Icon;
   title?: string;
+  type?: HTMLInputTypeAttribute;
   message: Snippet | string;
   buttons: ButtonProps<T>[];
 };
@@ -30,10 +32,20 @@ type ConfirmDialogProps = {
   acceptText?: string;
 };
 
+type InputDialogProps = {
+  icon?: typeof Icon;
+  title?: string;
+  type: HTMLInputTypeAttribute;
+  message: Snippet | string;
+  cancelText?: string;
+  acceptText?: string;
+};
+
 export class DialoguerContext {
   message: Snippet | string = $state("");
   icon: typeof Icon | undefined = $state();
   title: string | undefined = $state();
+  type: HTMLInputTypeAttribute | undefined = $state();
   buttons: ButtonProps<unknown>[] = $state.raw([]);
   resolve: (value: unknown) => void = $state(() => {});
   open: boolean = $state(false);
@@ -42,6 +54,7 @@ export class DialoguerContext {
     ({
       icon: this.icon,
       title: this.title,
+      type: this.type,
       message: this.message,
       buttons: this.buttons,
     } = dialog);
@@ -55,6 +68,7 @@ export class DialoguerContext {
     await this.show({
       icon: dialog.icon,
       title: dialog.title,
+      type: undefined,
       message: dialog.message,
       buttons: [
         {
@@ -70,6 +84,7 @@ export class DialoguerContext {
     return await this.show({
       icon: dialog.icon,
       title: dialog.title,
+      type: undefined,
       message: dialog.message,
       buttons: [
         {
@@ -82,6 +97,26 @@ export class DialoguerContext {
           value: true,
           variant: "filled",
           default: true,
+        },
+      ],
+    });
+  }
+
+  async input(dialog: InputDialogProps): Promise<string | undefined> {
+    return await this.show({
+      icon: dialog.icon,
+      title: dialog.title,
+      type: dialog.type,
+      message: dialog.message,
+      buttons: [
+        {
+          text: dialog.cancelText ?? "Cancel",
+          value: "cancel",
+        },
+        {
+          text: dialog.acceptText ?? "Accept",
+          value: "accept",
+          variant: "filled",
         },
       ],
     });
