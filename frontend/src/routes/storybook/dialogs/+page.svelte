@@ -2,12 +2,13 @@
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
   import { Dialog, DialogButton, getDialoguerContext } from "$lib/kosui/dialog";
-  import { TriangleAlert } from "lucide-svelte";
+  import { CalendarDays, TriangleAlert } from "lucide-svelte";
 
   const dialog = getDialoguerContext();
 
   let noticeResult: Promise<void> | undefined = $state();
   let confirmResult: Promise<boolean> | undefined = $state();
+  let inputResult: Promise<string | undefined> | undefined = $state();
 
   type Cardinal = "North" | "South" | "East" | "West";
   let directionResult: Promise<Cardinal> | undefined = $state();
@@ -19,7 +20,7 @@
   }
 
   let customConfirmOpen: boolean = $state(false);
-  function handleConfirm(value: "ok" | "" | undefined) {
+  function handleConfirm(value: "ok" | undefined) {
     if (value === "ok") {
       open = false;
       handleSelect("four");
@@ -63,8 +64,8 @@
   {#if confirmResult}
     {#await confirmResult}
       <div>Confirm Dialog Open!</div>
-    {:then confirmResult}
-      {#if confirmResult}
+    {:then result}
+      {#if result}
         <div class="text-m3-primary">Confirm Dialog Accepted!</div>
       {:else}
         <div class="text-m3-error">Confirm Dialog Cancelled!</div>
@@ -93,15 +94,41 @@
   {#if directionResult}
     {#await directionResult}
       <div>Select Dialog Open!</div>
-    {:then directionResult}
-      {#if directionResult}
-        <div class="text-m3-primary">Select Dialog {directionResult}</div>
+    {:then result}
+      {#if result}
+        <div>Selected: <span class="text-m3-primary">{result}</span></div>
       {:else}
         <div class="text-m3-error">Select Dialog Cancelled!</div>
       {/if}
     {/await}
   {:else}
     <div>Select Dialog Closed!</div>
+  {/if}
+</div>
+
+<div class="flex flex-wrap items-center gap-2 rounded-lg border p-4">
+  <Button
+    onclick={() => {
+      inputResult = dialog.input({
+        type: "date",
+        message: "Select some date that's special to you!",
+        title: "Pick a Date",
+        icon: CalendarDays,
+      });
+    }}>Show Date Picker</Button
+  >
+  {#if inputResult}
+    {#await inputResult}
+      <div>Date Picker Dialog Open!</div>
+    {:then result}
+      {#if result}
+        <div>Date: <span class="text-m3-primary">{result}</span></div>
+      {:else}
+        <div class="text-m3-error">Date Picker Dialog Cancelled!</div>
+      {/if}
+    {/await}
+  {:else}
+    <div>Date Picker Dialog Closed!</div>
   {/if}
 </div>
 
@@ -157,7 +184,7 @@
   Are you sure you want to select four?
 
   {#snippet actions(props)}
-    <DialogButton value="" {...props}>No way!</DialogButton>
+    <DialogButton value={undefined} {...props}>No way!</DialogButton>
     <DialogButton variant="filled" value="ok" {...props}>
       Absolutely!
     </DialogButton>

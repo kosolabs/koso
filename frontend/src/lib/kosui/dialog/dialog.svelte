@@ -5,13 +5,13 @@
   import { mergeComponentProps } from "../merge-props";
   import { Modal, type ModalProps } from "../modal";
 
-  type DialogProps<T> = {
+  export type DialogProps<T> = {
     ref?: HTMLDialogElement;
-    onSelect?: (value?: T) => void;
+    onSelect?: (value: T | undefined) => void;
     icon?: typeof Icon;
     title?: string;
     children: Snippet;
-    actions?: Snippet<[{ onSelect: (value: T) => void }]>;
+    actions?: Snippet<[{ onSelect: (value: T | undefined) => void }]>;
   } & ModalProps;
 </script>
 
@@ -28,13 +28,13 @@
     ...restProps
   }: DialogProps<T> = $props();
 
-  function handleSelect(value: T) {
+  function handleSelect(value: T | undefined) {
     onSelect?.(value);
     open = false;
   }
 
   function handleCancel() {
-    onSelect?.();
+    onSelect?.(undefined);
   }
 </script>
 
