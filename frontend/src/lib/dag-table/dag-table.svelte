@@ -764,23 +764,29 @@
         >
           <thead class="text-left text-xs font-bold uppercase">
             <tr>
-              <th class="relative m-0 w-0 p-0"> </th>
+              <th class="relative m-0 w-0 p-0"></th>
               <th class="w-32 p-2">
-                <Hash class="h-4 md:hidden" />
-                <div class="max-md:hidden">ID</div>
+                <div class="flex items-center" title="ID">
+                  <Hash class="h-4" />
+                  <div class="max-md:hidden">ID</div>
+                </div>
               </th>
               {#if koso.debug}
                 <th class="border-l p-2">UUID</th>
               {/if}
               <th class="border-l p-2">
-                <SquarePen class="h-4 md:hidden" />
-                <div class="max-md:hidden">Status</div>
+                <div class="flex items-center" title="Status">
+                  <SquarePen class="h-4" />
+                  <div class="max-md:hidden">Status</div>
+                </div>
               </th>
               <th class="border-l p-2">Name</th>
               <th class="p-2"></th>
               <th class="border-l p-2">
-                <UserRoundPlus class="h-4 md:hidden" />
-                <div class="max-md:hidden">Assignee</div>
+                <div class="flex items-center" title="Assignee">
+                  <UserRoundPlus class="h-4" />
+                  <div class="max-md:hidden">Assignee</div>
+                </div>
               </th>
               <th class="border-l p-2 max-md:hidden">Reporter</th>
               <th class="border-l max-md:hidden">

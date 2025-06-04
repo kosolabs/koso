@@ -14,9 +14,11 @@
   import type { User } from "$lib/users";
   import {
     Cable,
+    CalendarDays,
     Check,
     CircleX,
     Clipboard,
+    Hash,
     OctagonX,
     Pencil,
     Redo,
@@ -369,22 +371,38 @@
       >
         <thead class="text-left text-xs font-bold uppercase">
           <tr>
-            <th class="p-2">ID</th>
+            <th class="p-2">
+              <div class="flex items-center" title="ID">
+                <Hash class="h-4" />
+                <div class="max-md:hidden">ID</div>
+              </div>
+            </th>
             {#if koso.debug}
               <th class="border-l p-2">UUID</th>
               <th class="border-l p-2">Priority</th>
             {/if}
             <th class="border-l p-2">
-              <SquarePen class="h-4 md:hidden" />
-              <div class="max-md:hidden">Status</div></th
-            >
+              <div class="flex items-center" title="Status">
+                <SquarePen class="h-4" />
+                <div class="max-md:hidden">Status</div>
+              </div>
+            </th>
             <th class="border-l p-2">Name</th>
             <th class="p-2"></th>
             <th class="border-l p-2">
-              <UserRoundPlus class="h-4 md:hidden" />
-              <div class="max-md:hidden">Assignee</div>
+              <div class="flex items-center" title="Assignee">
+                <UserRoundPlus class="h-4" />
+                <div class="max-md:hidden">Assignee</div>
+              </div>
             </th>
-            <th class="border-l p-2 max-md:hidden">Est</th>
+            <th class="border-l p-2 max-md:hidden">
+              <div
+                class="flex place-content-center align-middle"
+                title="Estimate"
+              >
+                <CalendarDays class="h-4" />
+              </div>
+            </th>
             {#if koso.debug}
               <th class="border-l p-2 max-md:hidden">Deadline</th>
             {/if}
