@@ -1643,7 +1643,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("rollup task with duplicate descendants recounts each", () => {
+    it("rollup task with duplicate descendants does not double count", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", children: ["2", "5"] },
@@ -1655,18 +1655,110 @@ describe("Koso tests", () => {
 
       expect(koso.getProgress("1")).toMatchObject({
         kind: "Rollup",
-        estimate: 16,
-        remainingEstimate: 16,
+        inProgress: 0,
+        done: 0,
+        total: 2,
+        estimate: 8,
+        remainingEstimate: 8,
       });
       expect(koso.getProgress("2")).toMatchObject({
         kind: "Rollup",
+        inProgress: 0,
+        done: 0,
+        total: 2,
         estimate: 8,
         remainingEstimate: 8,
       });
       expect(koso.getProgress("5")).toMatchObject({
         kind: "Rollup",
+        inProgress: 0,
+        done: 0,
+        total: 2,
         estimate: 8,
         remainingEstimate: 8,
+      });
+    });
+
+    it("rollup task with duplicate descendants has correct status", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "5"] },
+        { id: "2", children: ["3", "4"] },
+        { id: "3", estimate: 3, status: "Done" },
+        { id: "4", estimate: 5, status: "Done" },
+        { id: "5", children: ["2"] },
+      ]);
+
+      expect(koso.getProgress("1")).toMatchObject({
+        kind: "Rollup",
+        inProgress: 0,
+        done: 2,
+        total: 2,
+        estimate: 8,
+        remainingEstimate: 0,
+        status: "Done",
+      });
+      expect(koso.getProgress("2")).toMatchObject({
+        kind: "Rollup",
+        inProgress: 0,
+        done: 2,
+        total: 2,
+        estimate: 8,
+        remainingEstimate: 0,
+        status: "Done",
+      });
+      expect(koso.getProgress("5")).toMatchObject({
+        kind: "Rollup",
+        inProgress: 0,
+        done: 2,
+        total: 2,
+        estimate: 8,
+        remainingEstimate: 0,
+        status: "Done",
+      });
+    });
+
+    it("blocked task with duplicate descendants has correct status", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", children: ["2", "4"], kind: "Task", status: "Blocked" },
+        {
+          id: "2",
+          children: ["3"],
+          kind: "Task",
+          status: "Done",
+          estimate: 13,
+        },
+        { id: "3", estimate: 3, status: "In Progress" },
+        { id: "4", estimate: 5, children: ["3"] },
+      ]);
+
+      expect(koso.getProgress("1")).toMatchObject({
+        kind: "Task",
+        inProgress: 0,
+        done: 0,
+        total: 1,
+        estimate: null,
+        remainingEstimate: null,
+        status: "Blocked",
+      });
+      expect(koso.getProgress("2")).toMatchObject({
+        kind: "Task",
+        inProgress: 0,
+        done: 1,
+        total: 1,
+        estimate: 13,
+        remainingEstimate: 0,
+        status: "Done",
+      });
+      expect(koso.getProgress("4")).toMatchObject({
+        kind: "Rollup",
+        inProgress: 1,
+        done: 0,
+        total: 1,
+        estimate: 3,
+        remainingEstimate: 3,
+        status: "In Progress",
       });
     });
 
