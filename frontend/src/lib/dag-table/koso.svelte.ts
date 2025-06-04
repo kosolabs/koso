@@ -413,18 +413,10 @@ export class Koso {
     taskId: string,
     visited: { [taskId: string]: boolean },
   ): Progress {
-    const task = this.getTask(taskId);
     visited[taskId] = true;
 
-    const result: Progress = new Progress({
-      inProgress: 0,
-      done: 0,
-      total: 0,
-      lastStatusTime: task.statusTime ?? 0,
-      kind: task.yKind || (task.children.length > 0 ? "Rollup" : "Task"),
-      estimate: null,
-      remainingEstimate: null,
-    });
+    const task = this.getTask(taskId);
+    const kind = task.yKind || (task.children.length > 0 ? "Rollup" : "Task");
 
     let childInProgress = 0;
     let childDone = 0;
@@ -440,7 +432,12 @@ export class Koso {
 
       // If performance is ever an issue for large, nested graphs,
       // we can memoize the recursive call and trade memory for time.
-      const childProgress = this.#recursivelyGetProgress(taskId, visited);
+      const childProgress = this.#recursivelyGetProgress(
+        taskId,
+        // We only need to dedupe for rollups.
+        // Child estimates and counts are NOT carried forward for other types.
+        kind === "Rollup" ? visited : {},
+      );
       childInProgress += childProgress.inProgress;
       childDone += childProgress.done;
       childTotal += childProgress.total;
@@ -449,82 +446,63 @@ export class Koso {
         childProgress.lastStatusTime,
       );
       if (childProgress.estimate !== null) {
-        if (childrenEstimate === null) {
-          childrenEstimate = childProgress.estimate;
-        } else {
-          childrenEstimate += childProgress.estimate;
-        }
+        childrenEstimate = (childrenEstimate ?? 0) + childProgress.estimate;
       }
       if (childProgress.remainingEstimate !== null) {
-        if (childrenRemainingEstimate === null) {
-          childrenRemainingEstimate = childProgress.remainingEstimate;
-        } else {
-          childrenRemainingEstimate += childProgress.remainingEstimate;
-        }
+        childrenRemainingEstimate =
+          (childrenRemainingEstimate ?? 0) + childProgress.remainingEstimate;
       }
     });
-    result.lastStatusTime = Math.max(
-      result.lastStatusTime,
-      childLastStatusTime,
-    );
+
+    let childrenStatus: Status | null;
     if (childTotal > 0) {
       if (childDone === childTotal) {
-        result.childrenStatus = "Done";
+        childrenStatus = "Done";
       } else if (childInProgress > 0 || childDone > 0) {
-        result.childrenStatus = "In Progress";
+        childrenStatus = "In Progress";
       } else {
-        result.childrenStatus = "Not Started";
+        childrenStatus = "Not Started";
       }
+    } else {
+      childrenStatus = null;
     }
 
-    if (result.kind === "Rollup") {
-      result.inProgress += childInProgress;
-      result.done += childDone;
-      result.total += childTotal;
-      result.status = result.childrenStatus || "Not Started";
-      result.estimate = childrenEstimate;
-      result.remainingEstimate = childrenRemainingEstimate;
+    if (kind === "Rollup") {
+      return new Progress({
+        inProgress: childInProgress,
+        done: childDone,
+        total: childTotal,
+        status: childrenStatus || "Not Started",
+        lastStatusTime: Math.max(task.statusTime ?? 0, childLastStatusTime),
+        kind,
+        estimate: childrenEstimate,
+        remainingEstimate: childrenRemainingEstimate,
+        childrenStatus,
+      });
     } else {
-      const estimate = task.estimate;
-      result.estimate = estimate;
-      result.remainingEstimate = estimate;
-      switch (task.yStatus || "Not Started") {
-        case "Done":
-          result.done = 1;
-          result.total = 1;
-          result.status = "Done";
-          if (result.remainingEstimate !== null) {
-            result.remainingEstimate = 0;
-          }
-          break;
-        case "In Progress":
-          result.inProgress = 1;
-          result.total = 1;
-          result.status = "In Progress";
-          break;
-        case "Not Started":
-          result.total = 1;
-          result.status = "Not Started";
-          break;
-        case "Blocked":
-          result.total = 1;
-          result.status = "Blocked";
-          break;
-        default:
-          throw new Error(
-            `Invalid status ${task.yStatus} for task ${task.name}`,
-          );
-      }
-
-      if (result.kind === "Task") {
-        if (result.status === "Blocked" && !result.isChildrenIncomplete()) {
-          // Auto-unblock unblocked tasks with the Blocked status
-          result.status = "Not Started";
+      let status = task.yStatus || "Not Started";
+      // Auto-unblock unblocked tasks with the Blocked status
+      if (kind === "Task" && status === "Blocked") {
+        const childrenComplete =
+          childrenStatus === null || childrenStatus === "Done";
+        if (childrenComplete) {
+          status = "Not Started";
         }
       }
-    }
 
-    return result;
+      return new Progress({
+        inProgress: status === "In Progress" ? 1 : 0,
+        done: status === "Done" ? 1 : 0,
+        total: 1,
+        status,
+        lastStatusTime: Math.max(task.statusTime ?? 0, childLastStatusTime),
+        kind: kind,
+        estimate: task.estimate,
+        remainingEstimate:
+          task.estimate === null ? null : status === "Done" ? 0 : task.estimate,
+        childrenStatus,
+      });
+    }
   }
 
   /** Inserts or updates a task in the graph. */
