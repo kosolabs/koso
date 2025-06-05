@@ -110,7 +110,7 @@
   <Button
     onclick={() => {
       inputResult = dialog.input({
-        type: "date",
+        props: { type: "date" },
         message: "Select some date that's special to you!",
         title: "Pick a Date",
         icon: CalendarDays,

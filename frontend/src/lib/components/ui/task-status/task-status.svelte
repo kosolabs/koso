@@ -3,6 +3,7 @@
   import { getRegistryContext } from "$lib/components/ui/command-palette";
   import { toast } from "$lib/components/ui/sonner";
   import type { Koso } from "$lib/dag-table/koso.svelte";
+  import { getDialoguerContext } from "$lib/kosui/dialog";
   import {
     Menu,
     MenuContent,
@@ -11,13 +12,15 @@
     MenuTrigger,
   } from "$lib/kosui/menu";
   import { Shortcut } from "$lib/kosui/shortcut";
+  import { YTaskProxy, type Status } from "$lib/yproxy";
   import {
-    unmanagedKinds,
-    YTaskProxy,
-    type Kind,
-    type Status,
-  } from "$lib/yproxy";
-  import { Bot, Check, CircleCheck, LoaderCircle } from "lucide-svelte";
+    CalendarDays,
+    Check,
+    CircleCheck,
+    ClipboardCheck,
+    IterationCcw,
+    LoaderCircle,
+  } from "lucide-svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../../../kosui/progress";
   import { confetti } from "../confetti";
@@ -32,6 +35,7 @@
 
   const command = getRegistryContext();
   const auth = getAuthContext();
+  const dialog = getDialoguerContext();
 
   let open = $state(false);
   let statusElement: HTMLElement | undefined = $state();
@@ -46,10 +50,34 @@
         (progress.kind === "Task" && progress.childrenStatus != null)),
   );
   let statuses: Status[] = ["Not Started", "In Progress", "Done", "Blocked"];
+  let deadline = $derived(
+    task.deadline
+      ? new Date(task.deadline).toISOString().split("T")[0]
+      : undefined,
+  );
 
-  function handleOnSelectKind(kind: Kind) {
-    if (progress.kind === kind) return;
-    koso.setKind(task.id, kind);
+  function handleSelectKindTask() {
+    koso.setKind(task.id, "Task");
+  }
+
+  function handleSelectKindRollup() {
+    task.deadline = null;
+    koso.setKind(task.id, "Rollup");
+  }
+
+  async function handleSelectKindIteration() {
+    const date = await dialog.input({
+      props: { type: "date", value: deadline },
+      icon: CalendarDays,
+      title: "Iteration End Date",
+      message: "Select a date to mark the end of this iteration.",
+    });
+    if (date) {
+      koso.doc.transact(() => {
+        task.deadline = Date.parse(date);
+        koso.setKind(task.id, "Rollup");
+      });
+    }
   }
 
   function handleOnSelectStatus(status: Status) {
@@ -98,6 +126,15 @@
   }
 </script>
 
+{#snippet responsiveTextWithDeadline(text: string)}
+  <ResponsiveText class="flex flex-col items-start">
+    <div>{text}</div>
+    {#if deadline}
+      <div class="text-xs">{deadline}</div>
+    {/if}
+  </ResponsiveText>
+{/snippet}
+
 <Menu bind:open bind:el={statusElement}>
   <MenuTrigger
     class="focus:ring-m3-primary flex w-full items-center gap-2 focus-visible:ring-1 focus-visible:outline-hidden"
@@ -109,10 +146,10 @@
     {#if progress.kind === "Rollup"}
       {#if progress.status === "Done"}
         <CircleCheck class="text-m3-primary" />
-        <ResponsiveText>Done</ResponsiveText>
+        {@render responsiveTextWithDeadline("Done")}
       {:else if progress.status === "Not Started"}
         <CircularProgress progress={0} class="text-m3-primary" />
-        <ResponsiveText>Not Started</ResponsiveText>
+        {@render responsiveTextWithDeadline("Not Started")}
       {:else}
         <CircularProgress
           progress={progress.done / progress.total}
@@ -120,7 +157,7 @@
         >
           {Math.round((progress.done * 100) / progress.total)}%
         </CircularProgress>
-        <ResponsiveText>In Progress</ResponsiveText>
+        {@render responsiveTextWithDeadline("In Progress")}
       {/if}
     {:else}
       <TaskStatusIcon status={progress.status} />
@@ -146,22 +183,36 @@
       <MenuDivider />
     {/if}
     {#if canSetKind}
-      {#each unmanagedKinds as kind (kind)}
-        <MenuItem
-          class="flex items-center gap-2 rounded text-sm"
-          onSelect={() => handleOnSelectKind(kind)}
-        >
-          {#if kind === "Rollup"}
-            <LoaderCircle class="text-m3-primary" />
-          {:else if kind === "Task"}
-            <Bot class="text-m3-primary" />
-          {/if}
-          {kind}
-          {#if progress.kind === kind}
-            <Check class="text-m3-primary ml-auto" size={20} />
-          {/if}
-        </MenuItem>
-      {/each}
+      <MenuItem
+        class="flex items-center gap-2 rounded text-sm"
+        onSelect={() => handleSelectKindIteration()}
+      >
+        <IterationCcw class="text-m3-primary" />
+        Iteration...
+        {#if progress.kind === "Rollup" && deadline}
+          <Check class="text-m3-primary ml-auto" size={20} />
+        {/if}
+      </MenuItem>
+      <MenuItem
+        class="flex items-center gap-2 rounded text-sm"
+        onSelect={() => handleSelectKindRollup()}
+      >
+        <LoaderCircle class="text-m3-primary" />
+        Rollup
+        {#if progress.kind === "Rollup" && !deadline}
+          <Check class="text-m3-primary ml-auto" size={20} />
+        {/if}
+      </MenuItem>
+      <MenuItem
+        class="flex items-center gap-2 rounded text-sm"
+        onSelect={() => handleSelectKindTask()}
+      >
+        <ClipboardCheck class="text-m3-primary" />
+        Task
+        {#if progress.kind === "Task"}
+          <Check class="text-m3-primary ml-auto" size={20} />
+        {/if}
+      </MenuItem>
     {/if}
   </MenuContent>
 </Menu>

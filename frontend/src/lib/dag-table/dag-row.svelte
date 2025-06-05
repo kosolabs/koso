@@ -461,7 +461,7 @@
       {task.id}
     </td>
   {/if}
-  <td class={cn("border-t border-l p-2")}>
+  <td class={cn("border-t border-l px-2")}>
     <TaskStatus {koso} {task} inboxView={false} bind:this={taskStatus} />
   </td>
   <td class={cn("w-full border-t border-l px-2 py-1")}>

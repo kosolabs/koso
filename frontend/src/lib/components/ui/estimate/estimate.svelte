@@ -35,7 +35,7 @@
 
 {#if editable}
   <Menu>
-    <MenuTrigger class="px-2 text-sm" title="Task estimate">
+    <MenuTrigger class="text-m3-primary px-2 text-sm" title="Task estimate">
       {@render format(value)}
     </MenuTrigger>
     <MenuContent>
