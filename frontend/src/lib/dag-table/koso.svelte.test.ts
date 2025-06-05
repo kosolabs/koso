@@ -1294,7 +1294,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-
         status: "Not Started",
         childrenStatus: null,
         estimate: null,
@@ -1313,7 +1312,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-
         status: "Done",
         childrenStatus: null,
         estimate: null,
@@ -1332,7 +1330,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-
         status: "In Progress",
         childrenStatus: null,
         estimate: null,
@@ -1359,7 +1356,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-
         status: "In Progress",
         childrenStatus: "Done",
         estimate: null,
@@ -1386,7 +1382,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-
         status: "Done",
         childrenStatus: "In Progress",
         estimate: null,
@@ -1413,7 +1408,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-
         status: "In Progress",
         childrenStatus: "In Progress",
         estimate: null,
@@ -1440,7 +1434,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-
         status: "Done",
         childrenStatus: "In Progress",
         estimate: null,
@@ -1465,7 +1458,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-
         status: "In Progress",
         childrenStatus: null,
         estimate: null,
@@ -1486,7 +1478,6 @@ describe("Koso tests", () => {
         done: 2,
         total: 2,
         lastStatusTime: now,
-
         status: "Done",
         childrenStatus: "Done",
         estimate: null,
@@ -1507,7 +1498,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 2,
         lastStatusTime: now,
-
         status: "In Progress",
         childrenStatus: "In Progress",
         estimate: null,
@@ -1528,7 +1518,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 2,
         lastStatusTime: now,
-
         status: "Not Started",
         childrenStatus: "Not Started",
         estimate: null,
@@ -1550,7 +1539,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 3,
         lastStatusTime: now,
-
         status: "In Progress",
         childrenStatus: "In Progress",
         estimate: null,
@@ -1571,7 +1559,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-
         status: "Done",
         childrenStatus: "Done",
         estimate: null,
@@ -1593,7 +1580,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 2,
         lastStatusTime: now,
-
         status: "In Progress",
         childrenStatus: "In Progress",
         estimate: 5,
