@@ -313,15 +313,13 @@ impl EventProcessor {
 
                     // Next, check if this task or all of its descendants are complete.
                     let descendent = doc.get(&txn, &descendent_id)?;
-                    let kind = descendent.get_kind(&txn)?;
-                    let children = descendent.get_children(&txn)?;
-                    if kind.as_deref().unwrap_or("Task") != "Rollup" {
+                    if descendent.is_rollup(&txn)? {
                         if descendent.get_status(&txn)?.unwrap_or_default() != "Done" {
                             complete = false;
                             break;
                         }
                     } else {
-                        stack.extend(children);
+                        stack.extend(descendent.get_children(&txn)?);
                     }
                 }
                 if found && complete {

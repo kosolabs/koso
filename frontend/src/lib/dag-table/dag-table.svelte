@@ -139,7 +139,7 @@
     if (!planningCtx.selected) return;
 
     const task = koso.getTask(planningCtx.selected.name);
-    if (task.kind === "Rollup") {
+    if (task.isRollup()) {
       toast.warning(
         "Cannot change the status of a Rollup task. Change the status of the task's children instead.",
       );

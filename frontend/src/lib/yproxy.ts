@@ -203,15 +203,11 @@ export class YTaskProxy {
     this.#yTask.set("statusTime", value);
   }
 
-  get rawKind(): Kind | null {
+  get kind(): Kind | null {
     return this.#yTask.get("kind") as Kind;
   }
 
-  get kind(): Kind {
-    return (this.#yTask.get("kind") as Kind) || "Task";
-  }
-
-  set kind(value: Kind) {
+  set kind(value: Kind | null) {
     this.#yTask.set("kind", value);
   }
 
@@ -233,6 +229,14 @@ export class YTaskProxy {
 
   set deadline(value: number | null) {
     this.#yTask.set("deadline", value);
+  }
+
+  isRollup(): boolean {
+    const kind = this.kind;
+    if (kind !== null) {
+      return kind === "Rollup";
+    }
+    return this.children.length > 0;
   }
 
   observe(f: (arg0: Y.YMapEvent<YTaskProps>, arg1: Y.Transaction) => void) {

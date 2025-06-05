@@ -391,6 +391,13 @@ impl YTaskProxy {
     pub fn set_deadline(&self, txn: &mut TransactionMut, status_time: Option<i64>) {
         self.y_task.try_update(txn, "deadline", status_time);
     }
+
+    pub fn is_rollup<T: ReadTxn>(&self, txn: &T) -> Result<bool> {
+        Ok(match self.get_kind(txn)? {
+            Some(kind) => kind == "Rollup",
+            None => !self.get_children(txn)?.is_empty(),
+        })
+    }
 }
 
 #[cfg(test)]

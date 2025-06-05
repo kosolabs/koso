@@ -139,7 +139,7 @@ export class InboxContext {
     // A leaf task is unblocked, incomplete and assigned to the user
     if (
       task.assignee === this.#auth.user.email &&
-      task.kind !== "Rollup" &&
+      !task.isRollup() &&
       !progress.isComplete() &&
       !progress.isBlocked()
     ) {
@@ -154,7 +154,7 @@ export class InboxContext {
     ) {
       const parents = this.#koso
         .getParents(task.id)
-        .filter((parent) => parent.kind === "Rollup")
+        .filter((parent) => parent.isRollup())
         .filter((parent) => parent.assignee === this.#auth.user.email);
       if (parents.length) {
         reasons.push({ name: "ParentOwner", parents });

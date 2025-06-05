@@ -182,7 +182,7 @@ export async function init(
             reporter: null,
             status: null,
             statusTime: null,
-            kind: "Task",
+            kind: null,
             url: null,
             estimate: null,
             deadline: null,

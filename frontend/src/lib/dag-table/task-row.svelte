@@ -121,7 +121,7 @@
   <td class={cn("w-full border-t border-l px-2 py-1")}>
     <div class={cn("flex items-center gap-x-1")}>
       {#if koso.isManagedTask(task.id)}
-        <ManagedTaskIcon kind={task.kind} />
+        <ManagedTaskIcon kind={task.kind ?? ""} />
       {/if}
       <div class="flex w-full flex-wrap-reverse gap-x-1">
         {#if tags.length > 0}
@@ -199,10 +199,8 @@
   <td class={cn("border-t border-l max-md:hidden")}>
     <div class="flex place-content-center items-center">
       <Estimate
-        value={task.kind === "Rollup"
-          ? progress.remainingEstimate
-          : progress.estimate}
-        editable={editable && task.kind !== "Rollup"}
+        value={task.isRollup() ? progress.remainingEstimate : progress.estimate}
+        editable={editable && !task.isRollup()}
         onSelect={(estimate) => {
           task.estimate = estimate;
         }}

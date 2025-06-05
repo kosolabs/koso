@@ -189,8 +189,6 @@ export class Koso {
           this.upsertRoot();
         }
 
-        this.#applyMigrations();
-
         this.#resolveServerSync();
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
@@ -412,8 +410,6 @@ export class Koso {
     visited[taskId] = true;
 
     const task = this.getTask(taskId);
-    // TODO
-    const kind = task.kind || (task.children.length > 0 ? "Rollup" : "Task");
 
     let childInProgress = 0;
     let childDone = 0;
@@ -433,7 +429,7 @@ export class Koso {
         taskId,
         // We only need to dedupe for rollups.
         // Child estimates and counts are NOT carried forward for other types.
-        kind === "Rollup" ? visited : {},
+        task.isRollup() ? visited : {},
       );
       childInProgress += childProgress.inProgress;
       childDone += childProgress.done;
@@ -464,7 +460,7 @@ export class Koso {
       childrenStatus = null;
     }
 
-    if (kind === "Rollup") {
+    if (task.isRollup()) {
       return new Progress({
         inProgress: childInProgress,
         done: childDone,
@@ -478,7 +474,7 @@ export class Koso {
     } else {
       let status = task.yStatus || "Not Started";
       // Auto-unblock unblocked tasks with the Blocked status
-      if (kind === "Task" && status === "Blocked") {
+      if (status === "Blocked") {
         const childrenComplete =
           childrenStatus === null || childrenStatus === "Done";
         if (childrenComplete) {
@@ -883,7 +879,7 @@ export class Koso {
         assignee,
         status: null,
         statusTime: null,
-        kind: "Task",
+        kind: null,
         url: null,
         estimate: null,
         deadline: null,
@@ -973,6 +969,7 @@ export class Koso {
 
         return true;
       } else if (status === "Blocked") {
+        // TODO
         if (task.kind !== "Task") {
           throw new Error(`Can only set Tasks to blocked: ${taskId}`);
         }
@@ -1049,22 +1046,6 @@ export class Koso {
 
     this.doc.transact(() => {
       parent.children.replace(children);
-    });
-  }
-
-  #applyMigrations() {
-    this.doc.transact(() => {
-      this.#tasks
-        .filter(
-          (task) =>
-            task.rawKind === null &&
-            task.id != "root" &&
-            task.children.length > 0,
-        )
-        .forEach((task) => {
-          console.log(`Migrating task ${task.id} to explicit Rollup`);
-          task.kind = "Rollup";
-        });
     });
   }
 }

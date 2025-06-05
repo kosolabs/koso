@@ -41,9 +41,7 @@
   let statusElement: HTMLElement | undefined = $state();
 
   let progress = $derived(koso.getProgress(task.id));
-  let canSetStatus = $derived(
-    koso.isEditable(task.id) && task.kind !== "Rollup",
-  );
+  let canSetStatus = $derived(koso.isEditable(task.id) && !task.isRollup());
   let canSetKind = $derived(koso.isEditable(task.id));
   let statuses: Status[] = ["Not Started", "In Progress", "Done", "Blocked"];
   let deadline = $derived(
@@ -91,7 +89,7 @@
   }
 
   function triggerTitle() {
-    if (task.kind !== "Rollup") {
+    if (!task.isRollup()) {
       return `${progress.status}${progress.lastStatusTime ? ` - ${new Date(progress.lastStatusTime).toLocaleString()}` : ""}`;
     }
     return `${progress.done} of ${progress.total} (${Math.round(
@@ -139,7 +137,7 @@
     disabled={!canSetStatus && !canSetKind}
     onkeydown={handleKeyDown}
   >
-    {#if task.kind === "Rollup"}
+    {#if task.isRollup()}
       {#if progress.status === "Done"}
         <CircleCheck class="text-m3-primary" />
         {@render responsiveTextWithDeadline("Done")}
@@ -185,7 +183,7 @@
       >
         <IterationCcw class="text-m3-primary" />
         Iteration...
-        {#if task.kind === "Rollup" && deadline}
+        {#if task.isRollup() && deadline}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -195,7 +193,7 @@
       >
         <LoaderCircle class="text-m3-primary" />
         Rollup
-        {#if task.kind === "Rollup" && !deadline}
+        {#if task.isRollup() && !deadline}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -205,7 +203,7 @@
       >
         <ClipboardCheck class="text-m3-primary" />
         Task
-        {#if task.kind === "Task"}
+        {#if !task.isRollup()}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
