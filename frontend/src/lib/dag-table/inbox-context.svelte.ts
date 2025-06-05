@@ -1,9 +1,9 @@
+import type { AuthContext } from "$lib/auth.svelte";
 import { YTaskProxy } from "$lib/yproxy";
 import { Record } from "immutable";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import type { Koso } from "./koso.svelte";
-import type { AuthContext } from "$lib/auth.svelte";
 
 export type Reason =
   | {
@@ -139,7 +139,7 @@ export class InboxContext {
     // A leaf task is unblocked, incomplete and assigned to the user
     if (
       task.assignee === this.#auth.user.email &&
-      progress.kind !== "Rollup" &&
+      !task.isRollup() &&
       !progress.isComplete() &&
       !progress.isBlocked()
     ) {
@@ -154,8 +154,7 @@ export class InboxContext {
     ) {
       const parents = this.#koso
         .getParents(task.id)
-        // TODO: Make isRollup() a readable version of the next line
-        .filter((parent) => parent.yKind === null)
+        .filter((parent) => parent.isRollup())
         .filter((parent) => parent.assignee === this.#auth.user.email);
       if (parents.length) {
         reasons.push({ name: "ParentOwner", parents });

@@ -1276,7 +1276,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: 0,
-        kind: "Task",
         status: "Not Started",
         childrenStatus: null,
         estimate: null,
@@ -1295,7 +1294,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-        kind: "Task",
         status: "Not Started",
         childrenStatus: null,
         estimate: null,
@@ -1314,7 +1312,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-        kind: "Task",
         status: "Done",
         childrenStatus: null,
         estimate: null,
@@ -1333,7 +1330,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-        kind: "Task",
         status: "In Progress",
         childrenStatus: null,
         estimate: null,
@@ -1360,7 +1356,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-        kind: "Task",
         status: "In Progress",
         childrenStatus: "Done",
         estimate: null,
@@ -1387,7 +1382,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-        kind: "Task",
         status: "Done",
         childrenStatus: "In Progress",
         estimate: null,
@@ -1414,7 +1408,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-        kind: "Task",
         status: "In Progress",
         childrenStatus: "In Progress",
         estimate: null,
@@ -1441,7 +1434,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-        kind: "Task",
         status: "Done",
         childrenStatus: "In Progress",
         estimate: null,
@@ -1466,7 +1458,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 1,
         lastStatusTime: now,
-        kind: "Task",
         status: "In Progress",
         childrenStatus: null,
         estimate: null,
@@ -1487,7 +1478,6 @@ describe("Koso tests", () => {
         done: 2,
         total: 2,
         lastStatusTime: now,
-        kind: "Rollup",
         status: "Done",
         childrenStatus: "Done",
         estimate: null,
@@ -1508,7 +1498,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 2,
         lastStatusTime: now,
-        kind: "Rollup",
         status: "In Progress",
         childrenStatus: "In Progress",
         estimate: null,
@@ -1529,7 +1518,6 @@ describe("Koso tests", () => {
         done: 0,
         total: 2,
         lastStatusTime: now,
-        kind: "Rollup",
         status: "Not Started",
         childrenStatus: "Not Started",
         estimate: null,
@@ -1551,7 +1539,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 3,
         lastStatusTime: now,
-        kind: "Rollup",
         status: "In Progress",
         childrenStatus: "In Progress",
         estimate: null,
@@ -1572,7 +1559,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 1,
         lastStatusTime: now,
-        kind: "Rollup",
         status: "Done",
         childrenStatus: "Done",
         estimate: null,
@@ -1594,7 +1580,6 @@ describe("Koso tests", () => {
         done: 1,
         total: 2,
         lastStatusTime: now,
-        kind: "Rollup",
         status: "In Progress",
         childrenStatus: "In Progress",
         estimate: 5,
@@ -1637,7 +1622,6 @@ describe("Koso tests", () => {
       ]);
 
       expect(koso.getProgress("1")).toMatchObject({
-        kind: "Rollup",
         estimate: 21,
         remainingEstimate: 8,
       });
@@ -1654,7 +1638,6 @@ describe("Koso tests", () => {
       ]);
 
       expect(koso.getProgress("1")).toMatchObject({
-        kind: "Rollup",
         inProgress: 0,
         done: 0,
         total: 2,
@@ -1662,7 +1645,6 @@ describe("Koso tests", () => {
         remainingEstimate: 8,
       });
       expect(koso.getProgress("2")).toMatchObject({
-        kind: "Rollup",
         inProgress: 0,
         done: 0,
         total: 2,
@@ -1670,7 +1652,6 @@ describe("Koso tests", () => {
         remainingEstimate: 8,
       });
       expect(koso.getProgress("5")).toMatchObject({
-        kind: "Rollup",
         inProgress: 0,
         done: 0,
         total: 2,
@@ -1690,7 +1671,6 @@ describe("Koso tests", () => {
       ]);
 
       expect(koso.getProgress("1")).toMatchObject({
-        kind: "Rollup",
         inProgress: 0,
         done: 2,
         total: 2,
@@ -1699,7 +1679,6 @@ describe("Koso tests", () => {
         status: "Done",
       });
       expect(koso.getProgress("2")).toMatchObject({
-        kind: "Rollup",
         inProgress: 0,
         done: 2,
         total: 2,
@@ -1708,7 +1687,6 @@ describe("Koso tests", () => {
         status: "Done",
       });
       expect(koso.getProgress("5")).toMatchObject({
-        kind: "Rollup",
         inProgress: 0,
         done: 2,
         total: 2,
@@ -1734,7 +1712,6 @@ describe("Koso tests", () => {
       ]);
 
       expect(koso.getProgress("1")).toMatchObject({
-        kind: "Task",
         inProgress: 0,
         done: 0,
         total: 1,
@@ -1743,7 +1720,6 @@ describe("Koso tests", () => {
         status: "Blocked",
       });
       expect(koso.getProgress("2")).toMatchObject({
-        kind: "Task",
         inProgress: 0,
         done: 1,
         total: 1,
@@ -1752,7 +1728,6 @@ describe("Koso tests", () => {
         status: "Done",
       });
       expect(koso.getProgress("4")).toMatchObject({
-        kind: "Rollup",
         inProgress: 1,
         done: 0,
         total: 1,
@@ -1779,12 +1754,10 @@ describe("Koso tests", () => {
       ]);
 
       expect(koso.getProgress("1")).toMatchObject({
-        kind: "Task",
         estimate: 1,
         remainingEstimate: 1,
       });
       expect(koso.getProgress("2")).toMatchObject({
-        kind: "Task",
         estimate: 1,
         remainingEstimate: 0,
       });
@@ -1806,7 +1779,6 @@ describe("Koso tests", () => {
       ]);
 
       expect(koso.getProgress("1")).toMatchObject({
-        kind: "Task",
         estimate: null,
         remainingEstimate: null,
       });
@@ -2145,7 +2117,7 @@ describe("Koso tests", () => {
         root: { status: null, children: ["1", "2"], assignee: null },
         ["1"]: { status: null, children: [], assignee: null },
         ["2"]: {
-          kind: null,
+          kind: "Rollup",
           status: null,
           children: ["1"],
           assignee: null,
@@ -2153,7 +2125,7 @@ describe("Koso tests", () => {
       });
     });
 
-    it("set existing rollup task to rollup does nothing", () => {
+    it("set existing auto-rollup task to rollup store rollup kind", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", name: "Task 1" },
@@ -2172,8 +2144,35 @@ describe("Koso tests", () => {
         root: { status: null, children: ["1", "2"], assignee: null },
         ["1"]: { status: null, children: [], assignee: null },
         ["2"]: {
-          kind: null,
+          kind: "Rollup",
           status: null,
+          children: ["1"],
+          assignee: null,
+        },
+      });
+    });
+
+    it("set existing explicit rollup task to rollup does nothing", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        {
+          id: "2",
+          name: "Task 2",
+          kind: "Rollup",
+          status: "Done",
+          children: ["1"],
+        },
+      ]);
+
+      expect(koso.setKind("2", "Rollup")).toBe(false);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: null, children: [], assignee: null },
+        ["2"]: {
+          kind: "Rollup",
+          status: "Done",
           children: ["1"],
           assignee: null,
         },

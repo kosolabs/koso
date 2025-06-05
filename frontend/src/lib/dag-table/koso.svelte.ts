@@ -63,12 +63,6 @@ export class Progress {
   childrenStatus: Status | null;
   estimate: number | null;
   remainingEstimate: number | null;
-  /**
-   * Unlike task.yKind which may be null, this Kind applies auto-kind rules.
-   * Namely, if yKind is null, kind is inferred based on the presence of
-   * children or not, "Rollup" or "Task" respectively.
-   */
-  kind: Kind;
 
   constructor(props: Partial<Progress> = {}) {
     this.inProgress = props.inProgress ?? 0;
@@ -76,7 +70,6 @@ export class Progress {
     this.total = props.total ?? 0;
     this.lastStatusTime = props.lastStatusTime ?? 0;
     this.status = props.status ?? "Not Started";
-    this.kind = props.kind ?? "Task";
     this.childrenStatus = props.childrenStatus ?? null;
     this.estimate = props.estimate ?? null;
     this.remainingEstimate = props.remainingEstimate ?? null;
@@ -195,6 +188,7 @@ export class Koso {
         if (this.graph.size === 0) {
           this.upsertRoot();
         }
+
         this.#resolveServerSync();
       } else if (syncType === MSG_SYNC_UPDATE) {
         const message = decoding.readVarUint8Array(decoder);
@@ -416,7 +410,6 @@ export class Koso {
     visited[taskId] = true;
 
     const task = this.getTask(taskId);
-    const kind = task.yKind || (task.children.length > 0 ? "Rollup" : "Task");
 
     let childInProgress = 0;
     let childDone = 0;
@@ -436,7 +429,7 @@ export class Koso {
         taskId,
         // We only need to dedupe for rollups.
         // Child estimates and counts are NOT carried forward for other types.
-        kind === "Rollup" ? visited : {},
+        task.isRollup() ? visited : {},
       );
       childInProgress += childProgress.inProgress;
       childDone += childProgress.done;
@@ -467,14 +460,13 @@ export class Koso {
       childrenStatus = null;
     }
 
-    if (kind === "Rollup") {
+    if (task.isRollup()) {
       return new Progress({
         inProgress: childInProgress,
         done: childDone,
         total: childTotal,
         status: childrenStatus || "Not Started",
         lastStatusTime: Math.max(task.statusTime ?? 0, childLastStatusTime),
-        kind,
         estimate: childrenEstimate,
         remainingEstimate: childrenRemainingEstimate,
         childrenStatus,
@@ -482,7 +474,7 @@ export class Koso {
     } else {
       let status = task.yStatus || "Not Started";
       // Auto-unblock unblocked tasks with the Blocked status
-      if (kind === "Task" && status === "Blocked") {
+      if (status === "Blocked") {
         const childrenComplete =
           childrenStatus === null || childrenStatus === "Done";
         if (childrenComplete) {
@@ -496,7 +488,6 @@ export class Koso {
         total: 1,
         status,
         lastStatusTime: Math.max(task.statusTime ?? 0, childLastStatusTime),
-        kind: kind,
         estimate: task.estimate,
         remainingEstimate:
           task.estimate === null ? null : status === "Done" ? 0 : task.estimate,
@@ -790,7 +781,7 @@ export class Koso {
    * property.
    */
   isManagedTask(taskId: string): boolean {
-    const kind = this.getTask(taskId).yKind;
+    const kind = this.getTask(taskId).kind;
     return !!kind && !unmanagedKinds.includes(kind);
   }
 
@@ -818,7 +809,7 @@ export class Koso {
     if (task === "root") {
       return true;
     }
-    const kind = this.getTask(task).yKind;
+    const kind = this.getTask(task).kind;
     if (!kind || unmanagedKinds.includes(kind)) {
       return false;
     }
@@ -932,18 +923,18 @@ export class Koso {
   setKind(taskId: string, kind: Kind): boolean {
     return this.doc.transact(() => {
       const task = this.getTask(taskId);
-      if (task.yKind === kind) return false;
+      if (task.kind === kind) return false;
 
       if (kind === "Task") {
         const progress = this.getProgress(taskId);
-        task.yKind = "Task";
+        task.kind = "Task";
         if (progress.status !== task.yStatus) {
           task.yStatus = progress.status;
           task.statusTime = Date.now();
         }
         return true;
       } else if (kind === "Rollup") {
-        task.yKind = null;
+        task.kind = "Rollup";
         task.yStatus = null;
         task.statusTime = Date.now();
         return true;
@@ -978,7 +969,8 @@ export class Koso {
 
         return true;
       } else if (status === "Blocked") {
-        if (task.yKind !== "Task") {
+        // TODO
+        if (task.kind !== "Task") {
           throw new Error(`Can only set Tasks to blocked: ${taskId}`);
         }
 

@@ -34,8 +34,7 @@ export type Task = {
   deadline: number | null;
 };
 export type Status = "Not Started" | "In Progress" | "Done" | "Blocked";
-export type Kind = YKind | "Rollup";
-export type YKind = "Task" | "github" | "github_pr";
+export type Kind = "Rollup" | "Task" | "github" | "github_pr";
 export const unmanagedKinds: ImmutableSet<Kind> = ImmutableSet.of(
   "Rollup",
   "Task",
@@ -204,11 +203,11 @@ export class YTaskProxy {
     this.#yTask.set("statusTime", value);
   }
 
-  get yKind(): YKind | null {
-    return (this.#yTask.get("kind") as YKind) || null;
+  get kind(): Kind | null {
+    return this.#yTask.get("kind") as Kind;
   }
 
-  set yKind(value: YKind | null) {
+  set kind(value: Kind | null) {
     this.#yTask.set("kind", value);
   }
 
@@ -230,6 +229,11 @@ export class YTaskProxy {
 
   set deadline(value: number | null) {
     this.#yTask.set("deadline", value);
+  }
+
+  isRollup(): boolean {
+    const kind = this.kind;
+    return kind === "Rollup" || (kind === null && this.children.length > 0);
   }
 
   observe(f: (arg0: Y.YMapEvent<YTaskProps>, arg1: Y.Transaction) => void) {
