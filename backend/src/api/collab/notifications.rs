@@ -313,7 +313,7 @@ impl EventProcessor {
 
                     // Next, check if this task or all of its descendants are complete.
                     let descendent = doc.get(&txn, &descendent_id)?;
-                    if descendent.is_rollup(&txn)? {
+                    if !descendent.is_rollup(&txn)? {
                         if descendent.get_status(&txn)?.unwrap_or_default() != "Done" {
                             complete = false;
                             break;
