@@ -233,10 +233,7 @@ export class YTaskProxy {
 
   isRollup(): boolean {
     const kind = this.kind;
-    if (kind !== null) {
-      return kind === "Rollup";
-    }
-    return this.children.length > 0;
+    return kind === "Rollup" || (kind === null && this.children.length > 0);
   }
 
   observe(f: (arg0: Y.YMapEvent<YTaskProps>, arg1: Y.Transaction) => void) {
