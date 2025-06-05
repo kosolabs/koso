@@ -16,10 +16,10 @@
   };
   let { children }: Props = $props();
 
-  let value: string = $state("");
+  let value: string = $derived(dialog.inputProps?.value ?? "");
 
   function getValue(button: ButtonProps<unknown>) {
-    if (dialog.type === undefined) {
+    if (dialog.inputProps === undefined) {
       return button.value;
     }
     if (button.value === "cancel") {
@@ -44,8 +44,8 @@
     {dialog.message}
   {/if}
 
-  {#if dialog.type !== undefined}
-    <Input class="mt-2 w-full" bind:value type={dialog.type} autofocus />
+  {#if dialog.inputProps !== undefined}
+    <Input class="mt-2 w-full" bind:value autofocus {...dialog.inputProps} />
   {/if}
 
   {#snippet actions(props)}

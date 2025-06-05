@@ -1,7 +1,7 @@
 import type { Icon } from "lucide-svelte";
 import { getContext, setContext, type Snippet } from "svelte";
-import type { HTMLInputTypeAttribute } from "svelte/elements";
 import type { Variants } from "../base";
+import type { InputProps } from "../input";
 
 export type ButtonProps<T> = {
   text: string;
@@ -12,7 +12,7 @@ export type ButtonProps<T> = {
 type ShowDialogProps<T> = {
   icon?: typeof Icon;
   title?: string;
-  type?: HTMLInputTypeAttribute;
+  inputProps?: InputProps;
   message: Snippet | string;
   buttons: ButtonProps<T>[];
 };
@@ -35,7 +35,7 @@ type ConfirmDialogProps = {
 type InputDialogProps = {
   icon?: typeof Icon;
   title?: string;
-  type: HTMLInputTypeAttribute;
+  props: InputProps;
   message: Snippet | string;
   cancelText?: string;
   acceptText?: string;
@@ -45,7 +45,7 @@ export class DialoguerContext {
   message: Snippet | string = $state("");
   icon: typeof Icon | undefined = $state();
   title: string | undefined = $state();
-  type: HTMLInputTypeAttribute | undefined = $state();
+  inputProps: InputProps | undefined = $state();
   buttons: ButtonProps<unknown>[] = $state.raw([]);
   resolve: (value: unknown) => void = $state(() => {});
   open: boolean = $state(false);
@@ -54,7 +54,7 @@ export class DialoguerContext {
     ({
       icon: this.icon,
       title: this.title,
-      type: this.type,
+      inputProps: this.inputProps,
       message: this.message,
       buttons: this.buttons,
     } = dialog);
@@ -68,7 +68,7 @@ export class DialoguerContext {
     await this.show({
       icon: dialog.icon,
       title: dialog.title,
-      type: undefined,
+      inputProps: undefined,
       message: dialog.message,
       buttons: [
         {
@@ -84,7 +84,7 @@ export class DialoguerContext {
     return await this.show({
       icon: dialog.icon,
       title: dialog.title,
-      type: undefined,
+      inputProps: undefined,
       message: dialog.message,
       buttons: [
         {
@@ -106,7 +106,7 @@ export class DialoguerContext {
     return await this.show({
       icon: dialog.icon,
       title: dialog.title,
-      type: dialog.type,
+      inputProps: dialog.props,
       message: dialog.message,
       buttons: [
         {
