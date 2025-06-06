@@ -9,6 +9,8 @@
     onclick?: () => void;
     onmouseenter?: () => void;
     onmouseleave?: () => void;
+    ontouchstart?: () => void;
+    ontouchend?: () => void;
   };
 
   export type TooltipProps = {
@@ -34,17 +36,27 @@
     ...restProps
   }: TooltipProps = $props();
 
+  const isTouchDevice =
+    "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
   let timeout: number;
 
   export function show(after?: number) {
     timeout = window.setTimeout(
-      () => (open = true),
+      () => {
+        open = true;
+        navigator.vibrate(25);
+      },
       after === undefined ? delay : after,
     );
   }
 
-  export function hide() {
+  export function cancel() {
     window.clearTimeout(timeout);
+  }
+
+  export function hide() {
+    cancel();
     open = false;
   }
 
@@ -55,8 +67,10 @@
       }
     : {
         ref: (ref) => (anchorEl = ref),
-        onmouseenter: () => show(delay),
+        onmouseenter: () => !isTouchDevice && show(),
         onmouseleave: () => hide(),
+        ontouchstart: () => show(delay),
+        ontouchend: () => cancel(),
       };
 </script>
 
