@@ -39,6 +39,7 @@
       ActionIds.ShareProject,
 
       // Navigation
+      ActionIds.Home,
       ActionIds.ProjectsView,
       ActionIds.PlanView,
       ActionIds.InboxView,
