@@ -4,7 +4,7 @@
   import { Button } from "$lib/kosui/button";
   import { Tooltip } from "$lib/kosui/tooltip";
   import type { YTaskProxy } from "$lib/yproxy";
-  import { Eye, FilePlus2, FileText, Pencil } from "lucide-svelte";
+  import { Eye, FileText, Pencil } from "lucide-svelte";
 
   type Props = {
     task: YTaskProxy;
@@ -37,7 +37,7 @@
         color="primary"
         shape="circle"
         aria-label="Show task description panel"
-        icon={task.desc !== null ? FileText : FilePlus2}
+        icon={FileText}
         onclick={(event) => {
           onclick?.();
           event?.stopImmediatePropagation();

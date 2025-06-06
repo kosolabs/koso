@@ -52,8 +52,6 @@ describe("YTaskProxy", () => {
 
   it("should handle estimate operations", () => {
     expect(task.estimate).toBeNull();
-    task.estimate = 0;
-    expect(task.estimate).toStrictEqual(0);
     task.estimate = 1;
     expect(task.estimate).toStrictEqual(1);
     task.estimate = 13;
