@@ -1783,6 +1783,25 @@ describe("Koso tests", () => {
         remainingEstimate: null,
       });
     });
+
+    it("rollup task with no children is Done", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        {
+          id: "1",
+          children: [],
+          kind: "Rollup",
+          estimate: 5,
+        },
+      ]);
+
+      expect(koso.getProgress("1")).toMatchObject({
+        estimate: null,
+        remainingEstimate: null,
+        status: "Done",
+        childrenStatus: null,
+      });
+    });
   });
 
   describe("toJSON", () => {

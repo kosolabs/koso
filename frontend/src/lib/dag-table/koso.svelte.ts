@@ -465,7 +465,7 @@ export class Koso {
         inProgress: childInProgress,
         done: childDone,
         total: childTotal,
-        status: childrenStatus || "Not Started",
+        status: childrenStatus ?? (childTotal === 0 ? "Done" : "Not Started"),
         lastStatusTime: Math.max(task.statusTime ?? 0, childLastStatusTime),
         estimate: childrenEstimate,
         remainingEstimate: childrenRemainingEstimate,
@@ -920,21 +920,24 @@ export class Koso {
     });
   }
 
-  setKind(taskId: string, kind: Kind): boolean {
+  setKind(taskId: string, kind: Kind | null): boolean {
     return this.doc.transact(() => {
       const task = this.getTask(taskId);
       if (task.kind === kind) return false;
 
-      if (kind === "Task") {
+      if (kind === "Task" || (kind === null && task.children.length === 0)) {
         const progress = this.getProgress(taskId);
-        task.kind = "Task";
+        task.kind = kind;
         if (progress.status !== task.yStatus) {
           task.yStatus = progress.status;
           task.statusTime = Date.now();
         }
         return true;
-      } else if (kind === "Rollup") {
-        task.kind = "Rollup";
+      } else if (
+        kind === "Rollup" ||
+        (kind === null && task.children.length > 0)
+      ) {
+        task.kind = kind;
         task.yStatus = null;
         task.statusTime = Date.now();
         return true;
