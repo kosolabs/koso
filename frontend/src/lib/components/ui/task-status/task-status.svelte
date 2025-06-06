@@ -20,6 +20,7 @@
     ClipboardCheck,
     IterationCcw,
     LoaderCircle,
+    WandSparkles,
   } from "lucide-svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../../../kosui/progress";
@@ -74,6 +75,12 @@
     }
   }
 
+  async function handleSelectKindAuto() {
+    koso.doc.transact(() => {
+      koso.setKind(task.id, null);
+    });
+  }
+
   function handleOnSelectStatus(status: Status) {
     if (status === "Done") {
       showDoneConfetti();
@@ -117,6 +124,22 @@
       statusElement?.blur();
       event.stopImmediatePropagation();
     }
+  }
+
+  function currentKind():
+    | "Iteration"
+    | "Rollup"
+    | "Task"
+    | "AutoRollup"
+    | "AutoTask"
+    | null {
+    if (task.kind === null) {
+      return task.isRollup() ? "AutoRollup" : "AutoTask";
+    }
+    if (task.isRollup()) {
+      return task.deadline ? "Iteration" : "Rollup";
+    }
+    return task.kind === "Task" ? "Task" : null;
   }
 </script>
 
@@ -177,13 +200,15 @@
       <MenuDivider />
     {/if}
     {#if canSetKind}
+      {@const kind = currentKind()}
+
       <MenuItem
         class="flex items-center gap-2 rounded text-sm"
         onSelect={() => handleSelectKindIteration()}
       >
         <IterationCcw class="text-m3-primary" />
         Iteration...
-        {#if task.isRollup() && deadline}
+        {#if kind === "Iteration"}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -193,7 +218,7 @@
       >
         <LoaderCircle class="text-m3-primary" />
         Rollup
-        {#if task.isRollup() && !deadline}
+        {#if kind === "Rollup"}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -203,8 +228,26 @@
       >
         <ClipboardCheck class="text-m3-primary" />
         Task
-        {#if !task.isRollup()}
+        {#if kind === "Task"}
           <Check class="text-m3-primary ml-auto" size={20} />
+        {/if}
+      </MenuItem>
+
+      <MenuItem
+        class="flex items-center gap-2 rounded text-sm"
+        onSelect={() => handleSelectKindAuto()}
+      >
+        <WandSparkles class="text-m3-primary" />
+        {#if kind === "AutoRollup"}
+          Auto (Rollup)
+          <Check class="text-m3-primary ml-auto" size={20} />
+        {:else if kind === "AutoTask"}
+          Auto (Task)
+          <Check class="text-m3-primary ml-auto" size={20} />
+        {:else if task.children.length > 0}
+          Auto (Rollup)
+        {:else}
+          Auto (Task)
         {/if}
       </MenuItem>
     {/if}
