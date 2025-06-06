@@ -1,5 +1,4 @@
 import { goto } from "$app/navigation";
-import { page } from "$app/state";
 import type { Icon } from "lucide-svelte";
 import { Action } from "./kosui/command";
 import type { Shortcut } from "./kosui/shortcut";
@@ -23,7 +22,6 @@ export class NavigationAction extends Action {
     super({
       id,
       callback: () => goto(href),
-      enabled: () => page.url.pathname !== href,
       ...restProps,
     });
     this.#href = href;

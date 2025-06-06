@@ -100,7 +100,7 @@
     new NavigationAction({
       id: ActionIds.InboxView,
       href: `/projects/${ctx.id}/inbox`,
-      category: Categories.Navigate,
+      category: Categories.Navigation,
       name: "Zero Inbox",
       description: "Navigate to Zero Inbox view",
       icon: Mail,
@@ -108,7 +108,7 @@
     new NavigationAction({
       id: ActionIds.PlanView,
       href: `/projects/${ctx.id}`,
-      category: Categories.Navigate,
+      category: Categories.Navigation,
       name: "Project Planning",
       description: "Navigate to Project Planning view",
       icon: Notebook,
@@ -116,7 +116,7 @@
     new Action({
       id: ActionIds.DashView,
       callback: () => goto(getNextIterationDashboard()!),
-      category: Categories.Navigate,
+      category: Categories.Navigation,
       name: "Dashboard",
       description: "Navigate to Project Dashboard view",
       icon: CircleGauge,

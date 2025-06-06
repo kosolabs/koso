@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { getAuthContext } from "$lib/auth.svelte";
   import {
     ActionIds,
@@ -12,19 +11,16 @@
   import { baseClasses } from "$lib/kosui/base";
   import {
     Menu,
+    MenuActions,
     MenuContent,
     MenuDivider,
-    MenuHeader,
-    MenuItem,
     MenuTrigger,
   } from "$lib/kosui/menu";
-  import { Check, MenuIcon, UserRound } from "lucide-svelte";
-  import { userPrefersMode as mode, resetMode, setMode } from "mode-watcher";
+  import { MenuIcon, UserRound } from "lucide-svelte";
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
   import { StorybookNavigationActionIds } from "../../../../routes/storybook/+layout.svelte";
   import CommandButton from "./command-button.svelte";
-  import CommandMenuItem from "./command-menu-item.svelte";
   import NavigateButton from "./navigate-button.svelte";
 
   type Props = {
@@ -35,65 +31,55 @@
   const auth = getAuthContext();
   const command = getRegistryContext();
 
-  type Section = {
-    heading: string;
-    actions: string[];
-  }[];
+  let navActions = $derived(
+    [
+      // Project
+      ActionIds.ConnectToGitHub,
+      ActionIds.ExportProject,
+      ActionIds.ShareProject,
 
-  const menu: Section = [
-    {
-      heading: "Project",
-      actions: [
-        ActionIds.ConnectToGitHub,
-        ActionIds.ExportProject,
-        ActionIds.ShareProject,
-      ],
-    },
-    {
-      heading: "Navigation",
-      actions: [
-        ActionIds.ProjectsView,
-        ActionIds.PlanView,
-        ActionIds.InboxView,
-        StorybookNavigationActionIds.Alerts,
-        StorybookNavigationActionIds.Autocomplete,
-        StorybookNavigationActionIds.Avatar,
-        StorybookNavigationActionIds.Badge,
-        StorybookNavigationActionIds.Buttons,
-        StorybookNavigationActionIds.Chips,
-        StorybookNavigationActionIds.CodeMirror,
-        StorybookNavigationActionIds.Command,
-        StorybookNavigationActionIds.Dialogs,
-        StorybookNavigationActionIds.Fab,
-        StorybookNavigationActionIds.Goto,
-        StorybookNavigationActionIds.Inputs,
-        StorybookNavigationActionIds.Links,
-        StorybookNavigationActionIds.Markdown,
-        StorybookNavigationActionIds.Menus,
-        StorybookNavigationActionIds.ProgressIndicators,
-        StorybookNavigationActionIds.Shortcuts,
-        StorybookNavigationActionIds.Toggles,
-        StorybookNavigationActionIds.Tooltips,
-      ],
-    },
-  ];
-
-  let sections = $derived(
-    menu
-      .map((section) => {
-        return {
-          heading: section.heading,
-          actions: section.actions
-            .map((id) => command.get(id))
-            .filter((action) => action !== undefined)
-            .filter((action) => action.enabled()),
-        };
-      })
-      .filter((section) => section.actions.length > 0),
+      // Navigation
+      ActionIds.ProjectsView,
+      ActionIds.PlanView,
+      ActionIds.InboxView,
+      ActionIds.Storybook,
+      StorybookNavigationActionIds.Alerts,
+      StorybookNavigationActionIds.Autocomplete,
+      StorybookNavigationActionIds.Avatar,
+      StorybookNavigationActionIds.Badge,
+      StorybookNavigationActionIds.Buttons,
+      StorybookNavigationActionIds.Chips,
+      StorybookNavigationActionIds.CodeMirror,
+      StorybookNavigationActionIds.Command,
+      StorybookNavigationActionIds.Dialogs,
+      StorybookNavigationActionIds.Fab,
+      StorybookNavigationActionIds.Goto,
+      StorybookNavigationActionIds.Inputs,
+      StorybookNavigationActionIds.Links,
+      StorybookNavigationActionIds.Markdown,
+      StorybookNavigationActionIds.Menus,
+      StorybookNavigationActionIds.ProgressIndicators,
+      StorybookNavigationActionIds.Shortcuts,
+      StorybookNavigationActionIds.Toggles,
+      StorybookNavigationActionIds.Tooltips,
+    ]
+      .map((id) => command.get(id))
+      .filter((action) => action !== undefined),
   );
 
-  let menuHasActions = $derived(
-    sections.flatMap((section) => section.actions).length > 0,
+  let profileActions = $derived(
+    [
+      // Theme
+      ActionIds.LightTheme,
+      ActionIds.DarkTheme,
+      ActionIds.SystemTheme,
+
+      // Account
+      ActionIds.ProfileView,
+      ActionIds.Logout,
+    ]
+      .map((id) => command.get(id))
+      .filter((action) => action !== undefined),
   );
 </script>
 
@@ -101,7 +87,7 @@
   class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center overflow-hidden border-b p-2 shadow"
 >
   <div class="flex items-center">
-    {#if menuHasActions}
+    {#if navActions.length > 0}
       <Menu>
         <MenuTrigger
           title="Project menu"
@@ -119,17 +105,7 @@
           <MenuIcon size={20} />
         </MenuTrigger>
         <MenuContent>
-          {#each sections as section, index (section)}
-            {#if section.actions.length > 0}
-              <MenuHeader>{section.heading}</MenuHeader>
-              {#each section.actions as action (action)}
-                <CommandMenuItem {action} />
-              {/each}
-              {#if index < sections.length - 1}
-                <MenuDivider />
-              {/if}
-            {/if}
-          {/each}
+          <MenuActions actions={navActions} />
         </MenuContent>
       </Menu>
     {/if}
@@ -147,8 +123,8 @@
     <CommandButton name="DetailPanelOpen" desktop />
     <CommandButton name="Search" desktop />
     <CommandButton name="CommandPalette" />
-    <NavigateButton name="InboxView" />
-    <NavigateButton name="PlanView" />
+    <NavigateButton name="InboxView" desktop />
+    <NavigateButton name="PlanView" desktop />
 
     {#if auth.ok()}
       <Menu>
@@ -174,30 +150,7 @@
         <MenuContent>
           <UserAvatar class="p-1" user={auth.user} />
           <MenuDivider />
-          <MenuItem onSelect={() => goto("/profile")}>Profile</MenuItem>
-          <MenuDivider />
-          <MenuHeader>Theme</MenuHeader>
-          <MenuItem onSelect={() => setMode("light")}>
-            Light
-            {#if mode.current === "light"}
-              <Check class="text-m3-primary ml-auto" size={16} />
-            {/if}
-          </MenuItem>
-          <MenuItem onSelect={() => setMode("dark")}>
-            Dark
-            {#if mode.current === "dark"}
-              <Check class="text-m3-primary ml-auto" size={16} />
-            {/if}
-          </MenuItem>
-          <MenuItem onSelect={() => resetMode()}>
-            System
-            {#if mode.current === "system"}
-              <Check class="text-m3-primary ml-auto" size={16} />
-            {/if}
-          </MenuItem>
-          <MenuDivider />
-          <MenuItem onSelect={() => goto("/projects")}>Projects</MenuItem>
-          <MenuItem onSelect={() => auth.logout()}>Logout</MenuItem>
+          <MenuActions actions={profileActions} />
         </MenuContent>
       </Menu>
     {/if}

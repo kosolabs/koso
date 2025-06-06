@@ -10,6 +10,7 @@ type ActionProps = {
   description?: string;
   icon?: typeof Icon;
   enabled?: () => boolean;
+  selected?: () => boolean;
   shortcut?: Shortcut;
 };
 
@@ -21,6 +22,7 @@ export class Action {
   description: string;
   icon: typeof Icon;
   enabled: () => boolean;
+  selected?: () => boolean;
   shortcut?: Shortcut;
 
   constructor({
@@ -31,6 +33,7 @@ export class Action {
     description,
     icon = CircleSlash,
     enabled = () => true,
+    selected,
     shortcut,
   }: ActionProps) {
     this.id = id;
@@ -40,6 +43,7 @@ export class Action {
     this.description = description ?? name ?? id;
     this.icon = icon;
     this.enabled = enabled;
+    this.selected = selected;
     this.shortcut = shortcut;
   }
 }
