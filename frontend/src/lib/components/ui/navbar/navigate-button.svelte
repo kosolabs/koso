@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import { Goto } from "$lib/kosui/goto";
   import type { NavigationAction } from "$lib/navigation-action";
   import { twMerge } from "tailwind-merge";
@@ -15,7 +16,7 @@
   let action = $derived(command.get(name)) as NavigationAction;
 </script>
 
-{#if action && action.href && action.enabled()}
+{#if action && action.href && action.enabled() && page.url.pathname !== action.href}
   <Goto
     variant="plain"
     shape="circle"

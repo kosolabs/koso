@@ -27,7 +27,12 @@
     {/if}
     <MenuHeader>{action.category}</MenuHeader>
   {/if}
-  <MenuItem class="gap-2" onSelect={action.callback} title={action.description}>
+  <MenuItem
+    class="gap-2"
+    onSelect={action.callback}
+    title={action.description}
+    disabled={!action.enabled()}
+  >
     {#if categoryHasSelected[action.category]}
       {#if action.selected?.()}
         <Check class="text-m3-primary" size={16} />
