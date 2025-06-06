@@ -1036,7 +1036,7 @@ describe("Koso tests", () => {
           statusTime: 123,
           kind: "github",
           url: "http://example.com/foo/bar",
-          estimate: 0,
+          estimate: 1,
           deadline: 123,
         },
       ]);
@@ -1053,7 +1053,7 @@ describe("Koso tests", () => {
         statusTime: 123,
         kind: "github",
         url: "http://example.com/foo/bar",
-        estimate: 0,
+        estimate: 1,
         deadline: 123,
       });
     });

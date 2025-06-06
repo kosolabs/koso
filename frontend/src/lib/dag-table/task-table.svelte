@@ -14,7 +14,6 @@
   import type { User } from "$lib/users";
   import {
     Cable,
-    CalendarDays,
     Check,
     CircleX,
     Clipboard,
@@ -33,6 +32,7 @@
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
   import { getInboxContext } from "./inbox-context.svelte";
+  import TaskEstimateHeading from "./task-estimate-heading.svelte";
   import TaskRow from "./task-row.svelte";
 
   type Props = {
@@ -396,12 +396,7 @@
               </div>
             </th>
             <th class="border-l p-2 max-md:hidden">
-              <div
-                class="flex place-content-center align-middle"
-                title="Estimate"
-              >
-                <CalendarDays class="h-4" />
-              </div>
+              <TaskEstimateHeading />
             </th>
             {#if koso.debug}
               <th class="border-l p-2 max-md:hidden">Deadline</th>

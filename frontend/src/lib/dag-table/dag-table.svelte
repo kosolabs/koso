@@ -16,7 +16,6 @@
   import type { User } from "$lib/users";
   import {
     Cable,
-    CalendarDays,
     Check,
     ChevronsDownUp,
     ChevronsUpDown,
@@ -54,6 +53,7 @@
   import DagRow from "./dag-row.svelte";
   import { getPlanningContext, Node } from "./planning-context.svelte";
   import SearchPanel from "./search-panel.svelte";
+  import TaskEstimateHeading from "./task-estimate-heading.svelte";
 
   type Props = {
     users: User[];
@@ -789,12 +789,7 @@
               </th>
               <th class="border-l p-2 max-md:hidden">Reporter</th>
               <th class="border-l max-md:hidden">
-                <div
-                  class="flex place-content-center align-middle"
-                  title="Estimate"
-                >
-                  <CalendarDays class="h-4" />
-                </div>
+                <TaskEstimateHeading />
               </th>
               {#if koso.debug}
                 <th class="border-l p-2 max-md:hidden">Deadline</th>
