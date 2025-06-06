@@ -1,5 +1,9 @@
 export { Divider as MenuDivider, Header as MenuHeader } from "../common";
 export {
+  default as MenuActions,
+  type MenuActionsProps,
+} from "./menu-actions.svelte";
+export {
   default as MenuContent,
   type MenuContentProps,
 } from "./menu-content.svelte";

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { page } from "$app/state";
   import { getAuthContext } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
   import {
@@ -9,7 +8,8 @@
   } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
-  import { House } from "lucide-svelte";
+  import { NavigationAction } from "$lib/navigation-action";
+  import { LogOut, Rows3, UserCog } from "lucide-svelte";
   import { onMount, type Snippet } from "svelte";
 
   type Props = {
@@ -28,14 +28,29 @@
   });
 
   const actions: Action[] = [
-    new Action({
+    new NavigationAction({
       id: ActionIds.ProjectsView,
-      callback: () => goto(`/projects`),
-      category: Categories.Navigate,
+      href: "/projects",
+      category: Categories.Navigation,
       name: "List Projects",
-      description: "Navigate to all projects view",
-      icon: House,
-      enabled: () => page.url.pathname !== `/projects`,
+      description: "Navigate to All Projects view",
+      icon: Rows3,
+    }),
+    new NavigationAction({
+      id: ActionIds.ProfileView,
+      href: "/profile",
+      category: Categories.Account,
+      name: "User Profile",
+      description: "Navigate to your user profile settings",
+      icon: UserCog,
+    }),
+    new Action({
+      id: ActionIds.Logout,
+      callback: () => auth.logout(),
+      category: Categories.Account,
+      name: "Logout",
+      description: "Log out of your account",
+      icon: LogOut,
     }),
   ];
 

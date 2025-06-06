@@ -1,6 +1,6 @@
 <script module lang="ts">
   import { match } from "$lib/utils";
-  import { ChevronRight } from "lucide-svelte";
+  import { Check, ChevronRight } from "lucide-svelte";
   import {
     Action,
     Command,
@@ -28,7 +28,7 @@
     command,
   }: CommanderProps = $props();
 
-  const actions = $derived(
+  let actions = $derived(
     command.actions.filter(
       (action) =>
         action.enabled() &&
@@ -36,6 +36,16 @@
           (action.category && match(action.category, query)) ||
           match(action.name, query) ||
           match(action.description, query)),
+    ),
+  );
+
+  let categoryHasSelected = $derived(
+    actions.reduce(
+      (acc, { category, selected }) => ({
+        ...acc,
+        [category]: acc[category] || selected !== undefined,
+      }),
+      {} as Record<string, boolean>,
     ),
   );
 
@@ -74,9 +84,16 @@
             title={action.description}
           >
             <action.icon size={14} class="mr-2" />
-            {action.category}
+            <div>{action.category}</div>
             <ChevronRight size={14} />
-            {action.name}
+            {#if categoryHasSelected[action.category]}
+              {#if action.selected?.()}
+                <Check size={16} class="text-m3-primary" />
+              {:else}
+                <div class="size-4"></div>
+              {/if}
+            {/if}
+            <div>{action.name}</div>
             {#if action.shortcut}
               <ShortcutBadge class="ml-auto" shortcut={action.shortcut} />
             {/if}

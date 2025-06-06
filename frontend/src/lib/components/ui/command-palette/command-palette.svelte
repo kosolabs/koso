@@ -1,16 +1,17 @@
 <script module lang="ts">
-  import { goto } from "$app/navigation";
   import { Action, Commander, Registry } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
-  import { Book, Moon, Sun, SunMoon, Terminal } from "lucide-svelte";
-  import { resetMode, setMode } from "mode-watcher";
+  import { NavigationAction } from "$lib/navigation-action";
+  import { Book, House, Moon, Sun, SunMoon, Terminal } from "lucide-svelte";
+  import { userPrefersMode as mode, resetMode, setMode } from "mode-watcher";
   import type { Snippet } from "svelte";
   import { getContext, onMount, setContext } from "svelte";
 
   export const Categories = {
+    Account: "Account",
     Edit: "Edit",
     Graph: "Graph",
-    Navigate: "Navigate",
+    Navigation: "Navigation",
     MarkdownPanel: "Markdown Panel",
     Project: "Project",
     Select: "Select",
@@ -42,6 +43,7 @@
     ExpandAll: "ExpandAll",
     ExportProject: "ExportProject",
     HideDoneTasks: "HideDoneTasks",
+    Home: "Home",
     InboxView: "InboxView",
     Indent: "Indent",
     Insert: "Insert",
@@ -50,6 +52,7 @@
     InsertSubtaskAbove: "InsertSubtaskAbove",
     LightTheme: "LightTheme",
     Link: "Link",
+    Logout: "Logout",
     MoveDown: "MoveDown",
     MoveToEnd: "MoveToEnd",
     MoveToStart: "MoveToStart",
@@ -60,6 +63,7 @@
     PlanView: "PlanView",
     Previous: "Previous",
     PreviousLink: "PreviousLink",
+    ProfileView: "ProfileView",
     ProjectsView: "ProjectsView",
     Redo: "Redo",
     Search: "Search",
@@ -111,6 +115,7 @@
       name: "Light",
       description: "Set the theme to light mode",
       icon: Sun,
+      selected: () => mode.current === "light",
     }),
     new Action({
       id: ActionIds.DarkTheme,
@@ -119,6 +124,7 @@
       name: "Dark",
       description: "Set the theme to dark mode",
       icon: Moon,
+      selected: () => mode.current === "dark",
     }),
     new Action({
       id: ActionIds.SystemTheme,
@@ -127,11 +133,20 @@
       name: "System",
       description: "Set the theme to system",
       icon: SunMoon,
+      selected: () => mode.current === "system",
     }),
-    new Action({
+    new NavigationAction({
+      id: ActionIds.Home,
+      href: "/",
+      category: Categories.Navigation,
+      name: "Home",
+      description: "Navigate Home",
+      icon: House,
+    }),
+    new NavigationAction({
       id: ActionIds.Storybook,
-      callback: () => goto("/storybook"),
-      category: Categories.Navigate,
+      href: "/storybook",
+      category: Categories.Navigation,
       name: "Storybook",
       description: "Navigate to Koso's component library storybook",
       icon: Book,
