@@ -58,6 +58,7 @@
     MoveToStart: "MoveToStart",
     MoveUp: "MoveUp",
     Next: "Next",
+    NextDashView: "NextDashView",
     NextLink: "NextLink",
     Organize: "Organize",
     PlanView: "PlanView",
