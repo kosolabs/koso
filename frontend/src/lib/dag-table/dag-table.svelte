@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { replaceState } from "$app/navigation";
+  import { goto, replaceState } from "$app/navigation";
   import { getAuthContext } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
   import {
@@ -19,6 +19,7 @@
     Check,
     ChevronsDownUp,
     ChevronsUpDown,
+    CircleGauge,
     CircleX,
     Clipboard,
     Eye,
@@ -52,6 +53,7 @@
   import { flip } from "svelte/animate";
   import DagRow from "./dag-row.svelte";
   import { getPlanningContext, Node } from "./planning-context.svelte";
+  import { getProjectContext } from "./project-context.svelte";
   import SearchPanel from "./search-panel.svelte";
   import TaskEstimateHeading from "./task-estimate-heading.svelte";
 
@@ -64,6 +66,7 @@
   const rows: { [key: string]: DagRow } = {};
 
   const command = getRegistryContext();
+  const projectCtx = getProjectContext();
   const planningCtx = getPlanningContext();
   const { koso } = planningCtx;
   const auth = getAuthContext();
@@ -666,6 +669,20 @@
       description: "Organize the current task and its peers",
       icon: Wrench,
       enabled: () => !!planningCtx.selected,
+    }),
+
+    new Action({
+      id: ActionIds.DashView,
+      callback: () =>
+        goto(`/projects/${projectCtx.id}/dash/${planningCtx.selected?.name}`),
+      category: Categories.Navigation,
+      name: "Dashboard",
+      description: "Navigate to Project Dashboard view",
+      icon: CircleGauge,
+      enabled: () =>
+        !!planningCtx.selected &&
+        koso.getTask(planningCtx.selected.name).isRollup() &&
+        koso.getTask(planningCtx.selected.name).deadline !== null,
     }),
   ];
 

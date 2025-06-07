@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { replaceState } from "$app/navigation";
+  import { goto, replaceState } from "$app/navigation";
   import { getAuthContext } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
   import {
@@ -15,6 +15,7 @@
   import {
     Cable,
     Check,
+    CircleGauge,
     CircleX,
     Clipboard,
     Hash,
@@ -32,6 +33,7 @@
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
   import { getInboxContext } from "./inbox-context.svelte";
+  import { getProjectContext } from "./project-context.svelte";
   import TaskEstimateHeading from "./task-estimate-heading.svelte";
   import TaskRow from "./task-row.svelte";
 
@@ -41,6 +43,7 @@
   const { users }: Props = $props();
 
   const auth = getAuthContext();
+  const projectCtx = getProjectContext();
   const command = getRegistryContext();
   const inbox = getInboxContext();
   const { koso } = inbox;
@@ -283,6 +286,20 @@
       icon: OctagonX,
       enabled: () => !!inbox.selected,
       shortcut: new Shortcut({ key: "/", meta: true }),
+    }),
+
+    new Action({
+      id: ActionIds.DashView,
+      callback: () =>
+        goto(`/projects/${projectCtx.id}/dash/${inbox.selected?.id}`),
+      category: Categories.Navigation,
+      name: "Dashboard",
+      description: "Navigate to Project Dashboard view",
+      icon: CircleGauge,
+      enabled: () =>
+        !!inbox.selected &&
+        inbox.selected.isRollup() &&
+        inbox.selected.deadline !== null,
     }),
   ];
 

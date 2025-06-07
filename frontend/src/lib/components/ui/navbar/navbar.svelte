@@ -43,6 +43,7 @@
       ActionIds.ProjectsView,
       ActionIds.PlanView,
       ActionIds.InboxView,
+      ActionIds.NextDashView,
       ActionIds.Storybook,
       StorybookNavigationActionIds.Alerts,
       StorybookNavigationActionIds.Autocomplete,

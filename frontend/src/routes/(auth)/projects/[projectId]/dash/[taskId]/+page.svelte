@@ -14,6 +14,7 @@
   import { Alert } from "$lib/kosui/alert";
   import type { colors } from "$lib/kosui/base";
   import CircularProgress from "$lib/kosui/progress/circular-progress.svelte";
+  import { Tooltip } from "$lib/kosui/tooltip";
   import { List } from "immutable";
 
   const taskId = page.params.taskId;
@@ -65,7 +66,9 @@
 
   function getStatus(deadline: number, progress: Progress): Status {
     const remainingDays = Math.floor((deadline - Date.now()) / 86400000);
-    return progress.remainingEstimate! < remainingDays ? "On Track" : "At Risk";
+    return progress.remainingEstimate! / 2 < remainingDays
+      ? "On Track"
+      : "At Risk";
   }
 
   let task = $derived(koso.getTask(taskId));
@@ -93,30 +96,44 @@
   <hr />
 
   {#if task.deadline}
-    <h2 class="text-2xl font-extralight">Status</h2>
+    <h2 class="gap-2 text-2xl font-extralight">Status</h2>
     <hr />
-    <div class="flex flex-col items-center gap-2 rounded-md border p-2">
-      <Alert
-        class="text-xl font-extralight"
-        variant="filled"
-        color={getStatusColor(status)}
-      >
-        {status}
-      </Alert>
-      <div class="text-xl font-extralight">
-        Due Date: {formatDate(task.deadline)}
-      </div>
+    <div class="flex flex-wrap items-center gap-2 rounded-md border p-2">
+      <Tooltip arrow rich>
+        {#snippet trigger({ ref, ...props })}
+          <button use:ref {...props}>
+            <CircularProgress
+              class="text-m3-primary"
+              size="100"
+              progress={progress.done / progress.total}
+            >
+              {Math.round((progress.done * 100) / progress.total)}%
+            </CircularProgress>
+          </button>
+        {/snippet}
+        <h2 class="text-xl font-extralight">
+          Progress: {progress.done} / {progress.total}
+        </h2>
+      </Tooltip>
+      <div class="flex flex-col items-start">
+        <Alert
+          class="py-1 text-xl font-extralight"
+          variant="filled"
+          color={getStatusColor(status)}
+        >
+          {status}
+        </Alert>
 
-      <h2 class="text-xl font-extralight">
-        Progress: {progress.done} / {progress.total}
-      </h2>
-      <CircularProgress
-        class="text-m3-primary"
-        size="100"
-        progress={progress.done / progress.total}
-      >
-        {(progress.done * 100) / progress.total}%
-      </CircularProgress>
+        <div class="text-xl font-extralight">
+          Due Date: {formatDate(task.deadline)} ({Math.floor(
+            (task.deadline - Date.now()) / 86400000,
+          )} days)
+        </div>
+        <h2 class="text-xl font-extralight">
+          Remaining Estimate: {progress.remainingEstimate} points ({(progress.remainingEstimate ??
+            0) / 2} days)
+        </h2>
+      </div>
     </div>
   {/if}
 

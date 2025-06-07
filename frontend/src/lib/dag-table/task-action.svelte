@@ -33,6 +33,8 @@
 
       ActionIds.Link,
       ActionIds.Block,
+
+      ActionIds.DashView,
     ]
       .map((id) => command.get(id))
       .filter((action) => action !== undefined)
