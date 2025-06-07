@@ -808,9 +808,6 @@
               <th class="border-l max-md:hidden">
                 <TaskEstimateHeading />
               </th>
-              {#if koso.debug}
-                <th class="border-l p-2 max-md:hidden">Deadline</th>
-              {/if}
               <th class="relative m-0 w-0 p-0"></th>
             </tr>
           </thead>

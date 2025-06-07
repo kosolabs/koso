@@ -25,7 +25,7 @@
 
 <script lang="ts">
   let {
-    delay = 1000,
+    delay = 500,
     open = $bindable(false),
     click = false,
     rich = false,
@@ -43,10 +43,7 @@
 
   export function show(after?: number) {
     timeout = window.setTimeout(
-      () => {
-        open = true;
-        navigator.vibrate(25);
-      },
+      () => (open = true),
       after === undefined ? delay : after,
     );
   }
