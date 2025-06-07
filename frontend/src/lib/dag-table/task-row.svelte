@@ -1,7 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
-  import { Deadline } from "$lib/components/ui/deadline";
   import { Editable } from "$lib/components/ui/editable";
   import { Estimate } from "$lib/components/ui/estimate";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
@@ -207,15 +206,4 @@
       />
     </div>
   </td>
-  {#if koso.debug}
-    <td class={cn("border-t border-l p-2 max-md:hidden")}>
-      <Deadline
-        value={task.deadline}
-        {editable}
-        onSelect={(deadline) => {
-          task.deadline = deadline;
-        }}
-      />
-    </td>
-  {/if}
 </tr>
