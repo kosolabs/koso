@@ -39,6 +39,10 @@ export const unmanagedKinds: ImmutableSet<Kind> = ImmutableSet.of(
   "Rollup",
   "Task",
 );
+export const MANAGED_KINDS: ImmutableSet<Kind> = ImmutableSet.of(
+  "github",
+  "github_pr",
+);
 export const ESTIMATES = <const>[1, 2, 3, 5, 8, 13, 20];
 export type Estimate = (typeof ESTIMATES)[number];
 
@@ -122,6 +126,8 @@ export class YGraphProxy {
     this.#yGraph.unobserveDeep(f);
   }
 }
+
+export type Iteration = YTaskProxy & { deadline: number };
 
 export class YTaskProxy {
   #yTask: YTask;
@@ -231,6 +237,18 @@ export class YTaskProxy {
     this.#yTask.set("deadline", value);
   }
 
+  isLeaf(): boolean {
+    return this.children.length === 0;
+  }
+
+  isAuto(): boolean {
+    return this.kind === null;
+  }
+
+  isTask(): boolean {
+    return this.kind === "Task" || (this.isAuto() && this.isLeaf());
+  }
+
   /**
    * Use in conjuction with {@link isAuto()} to identify auto tasks and their
    * type.
@@ -239,24 +257,22 @@ export class YTaskProxy {
     return this.children.length > 0 ? "Rollup" : "Task";
   }
 
-  /** Determins if this task is an auto task. */
-  isAuto(): boolean {
-    return this.kind === null;
-  }
-
   /**
    * Determines whether this task is a Rollup type task.
    *
    * Note: iteration tasks are also rollups, but not all rollups are iterations.
    */
   isRollup(): boolean {
-    return (
-      this.kind === "Rollup" || (this.isAuto() && this.autoType() === "Rollup")
-    );
+    const kind = this.kind;
+    return kind === "Rollup" || (this.isAuto() && !this.isLeaf());
   }
 
-  isIteration(): boolean {
-    return this.kind === "Rollup" && !!this.deadline;
+  isIteration(): this is Iteration {
+    return this.isRollup() && !!this.deadline;
+  }
+
+  isManaged(): boolean {
+    return this.kind !== null && MANAGED_KINDS.contains(this.kind);
   }
 
   observe(f: (arg0: Y.YMapEvent<YTaskProps>, arg1: Y.Transaction) => void) {

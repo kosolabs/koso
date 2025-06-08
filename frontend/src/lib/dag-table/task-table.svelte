@@ -396,7 +396,7 @@
             </th>
             {#if koso.debug}
               <th class="border-l p-2">UUID</th>
-              <th class="border-l p-2">Priority</th>
+              <th class="border-l p-2">Score</th>
             {/if}
             <th class="border-l p-2">
               <div class="flex items-center" title="Status">

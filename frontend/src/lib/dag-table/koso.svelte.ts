@@ -19,6 +19,7 @@ import {
   YChildrenProxy,
   YGraphProxy,
   YTaskProxy,
+  type Iteration,
   type Kind,
   type Status,
   type Task,
@@ -347,9 +348,7 @@ export class Koso {
 
   /** Retrieves the parent task IDs of the given task ID. */
   getParentIds(taskId: string): string[] {
-    const parents = this.#parents.get(taskId);
-    if (!parents) throw new Error(`No parents entry found for ${taskId}`);
-    return parents;
+    return this.#parents.get(taskId) ?? [];
   }
 
   /** Retrieves the children of a given task ID. */
@@ -494,6 +493,28 @@ export class Koso {
         childrenStatus,
       });
     }
+  }
+
+  getIterations(): Iteration[] {
+    return this.tasks
+      .filter((task) => task.isIteration())
+      .sort((taskA, taskB) => taskA.deadline - taskB.deadline);
+  }
+
+  getCurrentIterations(): Iteration[] {
+    return this.getIterations().filter((task) => task.deadline > Date.now());
+  }
+
+  hasDescendant(ancestor: string, descendant: string): boolean {
+    const parents = [descendant];
+
+    while (parents.length > 0) {
+      const curr = parents.pop()!;
+      if (ancestor === curr) return true;
+      parents.push(...this.getParentIds(curr));
+    }
+
+    return false;
   }
 
   /** Inserts or updates a task in the graph. */

@@ -1,28 +1,33 @@
 import type { AuthContext } from "$lib/auth.svelte";
-import { YTaskProxy } from "$lib/yproxy";
+import { YTaskProxy, type Iteration } from "$lib/yproxy";
 import { Record } from "immutable";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import type { Koso } from "./koso.svelte";
 
-export type Reason =
+export type Reason = { score: number } & (
   | {
       name: "Actionable";
     }
   | {
       name: "ParentOwner";
       parents: YTaskProxy[];
-    };
+    }
+  | {
+      name: "NeedsEstimate";
+      iteration: YTaskProxy;
+    }
+);
 
 export class ActionItem {
   task: YTaskProxy;
   reasons: Reason[];
-  priority: number;
+  score: number;
 
   constructor(task: YTaskProxy, reasons: Reason[], priority: number) {
     this.task = task;
     this.reasons = reasons;
-    this.priority = priority;
+    this.score = priority;
   }
 }
 
@@ -108,17 +113,23 @@ export class InboxContext {
   #getActionItems(): ActionItem[] {
     const items: ActionItem[] = [];
     for (const task of this.#koso.tasks) {
-      const reasons = this.#getActionableReasons(task);
+      const reasons = this.#getActionableReasons(task, {
+        currentIterations: this.#koso.getCurrentIterations(),
+      });
       if (reasons.length) {
         items.push(
-          new ActionItem(task, reasons, this.#prioritize(task, reasons)),
+          new ActionItem(
+            task,
+            reasons,
+            reasons.map((reason) => reason.score).reduce((a, b) => a + b),
+          ),
         );
       }
     }
 
     return items.sort((a, b) => {
       // Sort first by priority.
-      const cmp = b.priority - a.priority;
+      const cmp = b.score - a.score;
       if (cmp !== 0) {
         return cmp;
       }
@@ -127,7 +138,17 @@ export class InboxContext {
     });
   }
 
-  #getActionableReasons(task: YTaskProxy): Reason[] {
+  #calculateIterationScore(iteration: Iteration): number {
+    const deadline = iteration.deadline;
+    const daysLeft = (deadline - Date.now()) / (1000 * 60 * 60 * 24);
+    const { max, floor, exp, abs } = Math;
+    return max(0, floor(20 * exp(-0.1 * abs(daysLeft - 14))));
+  }
+
+  #getActionableReasons(
+    task: YTaskProxy,
+    context: { currentIterations: Iteration[] },
+  ): Reason[] {
     const reasons: Reason[] = [];
 
     if (task.id === "root") {
@@ -136,19 +157,27 @@ export class InboxContext {
 
     const progress = this.#koso.getProgress(task.id);
 
-    // A leaf task is unblocked, incomplete and assigned to the user
-    if (
-      task.assignee === this.#auth.user.email &&
-      !task.isRollup() &&
-      !progress.isComplete() &&
-      !progress.isBlocked()
-    ) {
-      reasons.push({ name: "Actionable" });
+    // A task is part of the current iteration and doesn't have an estimate
+    for (const iteration of context.currentIterations) {
+      if (
+        task.assignee === this.#auth.user.email &&
+        task.isTask() &&
+        !progress.isComplete() &&
+        this.#koso.hasDescendant(iteration.id, task.id) &&
+        task.estimate === null
+      ) {
+        reasons.push({
+          name: "NeedsEstimate",
+          score: this.#calculateIterationScore(iteration),
+          iteration,
+        });
+      }
     }
 
     // A task is unassigned and one of its rollup parents is assigned to the user
     if (
       task.assignee === null &&
+      !task.isManaged() &&
       !progress.isComplete() &&
       !progress.isBlocked()
     ) {
@@ -157,34 +186,21 @@ export class InboxContext {
         .filter((parent) => parent.isRollup())
         .filter((parent) => parent.assignee === this.#auth.user.email);
       if (parents.length) {
-        reasons.push({ name: "ParentOwner", parents });
+        reasons.push({ name: "ParentOwner", score: 10, parents });
       }
+    }
+
+    // A leaf task is unblocked, incomplete and assigned to the user
+    if (
+      task.assignee === this.#auth.user.email &&
+      task.isLeaf() &&
+      !progress.isComplete() &&
+      !progress.isBlocked()
+    ) {
+      reasons.push({ name: "Actionable", score: task.estimate ?? 1 });
     }
 
     return reasons;
-  }
-
-  #prioritize(task: YTaskProxy, reasons: Reason[]): number {
-    if (reasons.some((r) => r.name === "ParentOwner")) {
-      return 1000;
-    }
-    if (reasons.some((r) => r.name === "Actionable")) {
-      let priority = 0;
-      // TODO: Recurse upwards and include all ancestors in prioritization.
-      for (const parentId of this.#koso.getParentIds(task.id)) {
-        if (parentId === "root") continue;
-
-        const progress = this.koso.getProgress(parentId);
-        // TODO: Increase priority when this is the last incomplete child task.
-        if (progress.status === "Blocked") {
-          priority += 10;
-        } else if (progress.status !== "Done") {
-          priority += 5;
-        }
-      }
-      return priority;
-    }
-    throw new Error(`Unhandled reasons (${reasons} for task ${task.id}`);
   }
 
   /**

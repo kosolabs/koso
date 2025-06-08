@@ -111,7 +111,7 @@
       {task.id}
     </td>
     <td class={cn("border-t border-l p-2 text-xs lg:text-nowrap")}>
-      {item.priority}
+      {item.score}
     </td>
   {/if}
   <td class={cn("border-t border-l p-2")}>

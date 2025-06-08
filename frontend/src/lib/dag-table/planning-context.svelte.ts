@@ -786,6 +786,7 @@ export class Node extends NodeRecord {
   child(name: string): Node {
     return new Node({ path: this.path.push(name) });
   }
+
   get linkage(): TaskLinkage {
     return new TaskLinkage({ parentId: this.parent.name, id: this.name });
   }
