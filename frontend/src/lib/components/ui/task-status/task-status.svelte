@@ -56,8 +56,10 @@
   }
 
   function handleSelectKindRollup() {
-    task.deadline = null;
-    koso.setKind(task.id, "Rollup");
+    koso.doc.transact(() => {
+      task.deadline = null;
+      koso.setKind(task.id, "Rollup");
+    });
   }
 
   async function handleSelectKindIteration() {
@@ -126,18 +128,20 @@
     }
   }
 
-  function currentKind():
+  function currentMenuSelection():
     | "Iteration"
     | "Rollup"
     | "Task"
-    | "AutoRollup"
-    | "AutoTask"
+    | "Auto"
     | null {
-    if (task.kind === null) {
-      return task.isRollup() ? "AutoRollup" : "AutoTask";
+    if (task.isAuto()) {
+      return "Auto";
+    }
+    if (task.isIteration()) {
+      return "Iteration";
     }
     if (task.isRollup()) {
-      return task.deadline ? "Iteration" : "Rollup";
+      return "Rollup";
     }
     return task.kind === "Task" ? "Task" : null;
   }
@@ -200,7 +204,7 @@
       <MenuDivider />
     {/if}
     {#if canSetKind}
-      {@const kind = currentKind()}
+      {@const selection = currentMenuSelection()}
 
       <MenuItem
         class="flex items-center gap-2 rounded text-sm"
@@ -208,7 +212,7 @@
       >
         <IterationCcw class="text-m3-primary" />
         Iteration...
-        {#if kind === "Iteration"}
+        {#if selection === "Iteration"}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -218,7 +222,7 @@
       >
         <LoaderCircle class="text-m3-primary" />
         Rollup
-        {#if kind === "Rollup"}
+        {#if selection === "Rollup"}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -228,7 +232,7 @@
       >
         <ClipboardCheck class="text-m3-primary" />
         Task
-        {#if kind === "Task"}
+        {#if selection === "Task"}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -238,16 +242,16 @@
         onSelect={() => handleSelectKindAuto()}
       >
         <WandSparkles class="text-m3-primary" />
-        {#if kind === "AutoRollup"}
+        {@const autoType = task.autoType()}
+        {#if autoType === "Rollup"}
           Auto (Rollup)
-          <Check class="text-m3-primary ml-auto" size={20} />
-        {:else if kind === "AutoTask"}
+        {:else if autoType === "Task"}
           Auto (Task)
-          <Check class="text-m3-primary ml-auto" size={20} />
-        {:else if task.children.length > 0}
-          Auto (Rollup)
         {:else}
-          Auto (Task)
+          Auto (Unknown)
+        {/if}
+        {#if selection === "Auto"}
+          <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
     {/if}

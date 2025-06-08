@@ -925,7 +925,11 @@ export class Koso {
       const task = this.getTask(taskId);
       if (task.kind === kind) return false;
 
-      if (kind === "Task" || (kind === null && task.children.length === 0)) {
+      if (
+        kind === "Task" ||
+        // Handle the transition to auto-task as well.
+        (kind === null && task.autoType() === "Task")
+      ) {
         const progress = this.getProgress(taskId);
         task.kind = kind;
         if (progress.status !== task.yStatus) {
@@ -935,7 +939,8 @@ export class Koso {
         return true;
       } else if (
         kind === "Rollup" ||
-        (kind === null && task.children.length > 0)
+        // Handle the transition to auto-rollup as well.
+        (kind === null && task.autoType() === "Rollup")
       ) {
         task.kind = kind;
         task.yStatus = null;
