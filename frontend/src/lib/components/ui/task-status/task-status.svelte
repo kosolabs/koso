@@ -79,6 +79,7 @@
 
   async function handleSelectKindAuto() {
     koso.doc.transact(() => {
+      task.deadline = null;
       koso.setKind(task.id, null);
     });
   }
