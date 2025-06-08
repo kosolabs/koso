@@ -82,9 +82,7 @@
   }
 
   function getNextIterationDashboard() {
-    const plannedTasks = ctx.koso.tasks
-      .filter((yTask) => yTask.deadline !== null && yTask.deadline > Date.now())
-      .sort((yTaskA, yTaskB) => yTaskA.deadline! - yTaskB.deadline!);
+    const plannedTasks = ctx.koso.getCurrentIterations();
     if (plannedTasks.length > 0) {
       return `/projects/${ctx.id}/dash/${plannedTasks[0].id}`;
     }

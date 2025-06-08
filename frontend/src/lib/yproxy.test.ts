@@ -81,7 +81,7 @@ describe("YTaskProxy", () => {
         expect(task.isIteration()).toBeFalsy();
         task.deadline = 100;
         expect(task.isRollup()).toBeTruthy();
-        expect(task.isIteration()).toBeFalsy();
+        expect(task.isIteration()).toBeTruthy();
       });
 
       it("Task", () => {

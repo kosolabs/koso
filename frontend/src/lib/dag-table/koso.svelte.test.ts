@@ -1104,8 +1104,8 @@ describe("Koso tests", () => {
       expect(koso.getParentIds("4")).toEqual(["3", "2"]);
     });
 
-    it("parents of root throws", () => {
-      expect(() => koso.getParentIds("root")).toThrow();
+    it("parents of root is empty", () => {
+      expect(koso.getParentIds("root")).toEqual([]);
     });
   });
 
@@ -1801,6 +1801,68 @@ describe("Koso tests", () => {
         status: "Done",
         childrenStatus: null,
       });
+    });
+  });
+
+  describe("hasDescendant", () => {
+    it("returns true when ancestor has descendant", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2"] },
+        { id: "2", name: "Task 2", children: ["3"] },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      expect(koso.hasDescendant("1", "3")).toBe(true);
+      expect(koso.hasDescendant("root", "3")).toBe(true);
+      expect(koso.hasDescendant("1", "2")).toBe(true);
+    });
+
+    it("returns false when ancestor does not have descendant", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["3"] },
+        { id: "2", name: "Task 2", children: ["4"] },
+        { id: "3", name: "Task 3" },
+        { id: "4", name: "Task 4" },
+      ]);
+
+      expect(koso.hasDescendant("1", "4")).toBe(false);
+      expect(koso.hasDescendant("2", "3")).toBe(false);
+      expect(koso.hasDescendant("3", "1")).toBe(false);
+    });
+
+    it("returns true when node is descendant of itself", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      expect(koso.hasDescendant("1", "1")).toBe(true);
+      expect(koso.hasDescendant("root", "root")).toBe(true);
+    });
+
+    it("handles multiple paths to same descendant", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1", children: ["3"] },
+        { id: "2", name: "Task 2", children: ["3"] },
+        { id: "3", name: "Task 3" },
+      ]);
+
+      expect(koso.hasDescendant("root", "3")).toBe(true);
+      expect(koso.hasDescendant("1", "3")).toBe(true);
+      expect(koso.hasDescendant("2", "3")).toBe(true);
+    });
+
+    it("returns false for non-existent nodes", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      expect(koso.hasDescendant("1", "non-existent")).toBe(false);
+      expect(koso.hasDescendant("non-existent", "1")).toBe(false);
     });
   });
 
