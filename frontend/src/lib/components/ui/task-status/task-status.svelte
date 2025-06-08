@@ -20,6 +20,7 @@
     ClipboardCheck,
     IterationCcw,
     LoaderCircle,
+    WandSparkles,
   } from "lucide-svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../../../kosui/progress";
@@ -55,8 +56,10 @@
   }
 
   function handleSelectKindRollup() {
-    task.deadline = null;
-    koso.setKind(task.id, "Rollup");
+    koso.doc.transact(() => {
+      task.deadline = null;
+      koso.setKind(task.id, "Rollup");
+    });
   }
 
   async function handleSelectKindIteration() {
@@ -72,6 +75,13 @@
         koso.setKind(task.id, "Rollup");
       });
     }
+  }
+
+  async function handleSelectKindAuto() {
+    koso.doc.transact(() => {
+      task.deadline = null;
+      koso.setKind(task.id, null);
+    });
   }
 
   function handleOnSelectStatus(status: Status) {
@@ -117,6 +127,24 @@
       statusElement?.blur();
       event.stopImmediatePropagation();
     }
+  }
+
+  function currentMenuSelection():
+    | "Iteration"
+    | "Rollup"
+    | "Task"
+    | "Auto"
+    | null {
+    if (task.isAuto()) {
+      return "Auto";
+    }
+    if (task.isIteration()) {
+      return "Iteration";
+    }
+    if (task.isRollup()) {
+      return "Rollup";
+    }
+    return task.kind === "Task" ? "Task" : null;
   }
 </script>
 
@@ -177,13 +205,15 @@
       <MenuDivider />
     {/if}
     {#if canSetKind}
+      {@const selection = currentMenuSelection()}
+
       <MenuItem
         class="flex items-center gap-2 rounded text-sm"
         onSelect={() => handleSelectKindIteration()}
       >
         <IterationCcw class="text-m3-primary" />
         Iteration...
-        {#if task.isRollup() && deadline}
+        {#if selection === "Iteration"}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -193,7 +223,7 @@
       >
         <LoaderCircle class="text-m3-primary" />
         Rollup
-        {#if task.isRollup() && !deadline}
+        {#if selection === "Rollup"}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>
@@ -203,7 +233,25 @@
       >
         <ClipboardCheck class="text-m3-primary" />
         Task
-        {#if !task.isRollup()}
+        {#if selection === "Task"}
+          <Check class="text-m3-primary ml-auto" size={20} />
+        {/if}
+      </MenuItem>
+
+      <MenuItem
+        class="flex items-center gap-2 rounded text-sm"
+        onSelect={() => handleSelectKindAuto()}
+      >
+        <WandSparkles class="text-m3-primary" />
+        {@const autoType = task.autoType()}
+        {#if autoType === "Rollup"}
+          Auto (Rollup)
+        {:else if autoType === "Task"}
+          Auto (Task)
+        {:else}
+          Auto (Unknown)
+        {/if}
+        {#if selection === "Auto"}
           <Check class="text-m3-primary ml-auto" size={20} />
         {/if}
       </MenuItem>

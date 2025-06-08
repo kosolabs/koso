@@ -69,6 +69,85 @@ describe("YTaskProxy", () => {
     expect(task.deadline).toStrictEqual(now);
   });
 
+  describe("Kind operations", () => {
+    describe("Auto", () => {
+      it("Rollup", () => {
+        task.kind = null;
+        task.children.replace(["child-1"]);
+        task.deadline = null;
+        expect(task.autoType()).toStrictEqual("Rollup");
+        expect(task.isAuto()).toBeTruthy();
+        expect(task.isRollup()).toBeTruthy();
+        expect(task.isIteration()).toBeFalsy();
+        task.deadline = 100;
+        expect(task.isRollup()).toBeTruthy();
+        expect(task.isIteration()).toBeFalsy();
+      });
+
+      it("Task", () => {
+        task.kind = null;
+        task.children.replace([]);
+        task.deadline = null;
+        expect(task.autoType()).toStrictEqual("Task");
+        expect(task.isAuto()).toBeTruthy();
+        expect(task.isRollup()).toBeFalsy();
+        expect(task.isIteration()).toBeFalsy();
+        task.deadline = 100;
+        expect(task.isIteration()).toBeFalsy();
+      });
+    });
+
+    describe("Non-Auto", () => {
+      it("Rollup with children", () => {
+        task.kind = "Rollup";
+        task.children.replace(["child-1"]);
+        task.deadline = null;
+        expect(task.autoType()).toStrictEqual("Rollup");
+        expect(task.isAuto()).toBeFalsy();
+        expect(task.isRollup()).toBeTruthy();
+        expect(task.isIteration()).toBeFalsy();
+      });
+
+      it("Rollup without children", () => {
+        task.kind = "Rollup";
+        task.children.replace([]);
+        task.deadline = null;
+        expect(task.autoType()).toStrictEqual("Task");
+        expect(task.isAuto()).toBeFalsy();
+        expect(task.isRollup()).toBeTruthy();
+        expect(task.isIteration()).toBeFalsy();
+      });
+
+      it("Task with children", () => {
+        task.kind = "Task";
+        task.children.replace(["child-1"]);
+        expect(task.autoType()).toStrictEqual("Rollup");
+        expect(task.isAuto()).toBeFalsy();
+        expect(task.isRollup()).toBeFalsy();
+        expect(task.isIteration()).toBeFalsy();
+      });
+
+      it("Task without children", () => {
+        task.kind = "Task";
+        task.children.replace([]);
+        expect(task.autoType()).toStrictEqual("Task");
+        expect(task.isAuto()).toBeFalsy();
+        expect(task.isRollup()).toBeFalsy();
+        expect(task.isIteration()).toBeFalsy();
+      });
+
+      it("Iteration", () => {
+        task.kind = "Rollup";
+        task.children.replace(["child-1"]);
+        task.deadline = 100;
+        expect(task.autoType()).toStrictEqual("Rollup");
+        expect(task.isAuto()).toBeFalsy();
+        expect(task.isRollup()).toBeTruthy();
+        expect(task.isIteration()).toBeTruthy();
+      });
+    });
+  });
+
   it("should handle subscribe/unsubscribe functionality", () => {
     const changes: string[] = [];
     const unsubscribe = task.subscribe((value) => {

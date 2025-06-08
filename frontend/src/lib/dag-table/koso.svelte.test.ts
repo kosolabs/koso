@@ -1783,6 +1783,25 @@ describe("Koso tests", () => {
         remainingEstimate: null,
       });
     });
+
+    it("rollup task with no children is Done", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        {
+          id: "1",
+          children: [],
+          kind: "Rollup",
+          estimate: 5,
+        },
+      ]);
+
+      expect(koso.getProgress("1")).toMatchObject({
+        estimate: null,
+        remainingEstimate: null,
+        status: "Done",
+        childrenStatus: null,
+      });
+    });
   });
 
   describe("toJSON", () => {
@@ -2175,6 +2194,54 @@ describe("Koso tests", () => {
           status: "Done",
           children: ["1"],
           assignee: null,
+        },
+      });
+    });
+
+    it("set existing explicit rollup task to auto changes kind", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Task 1" },
+        {
+          id: "2",
+          name: "Task 2",
+          kind: "Rollup",
+          status: "Done",
+          children: ["1"],
+        },
+      ]);
+
+      expect(koso.setKind("2", null)).toBe(true);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1", "2"], assignee: null },
+        ["1"]: { status: null, children: [], assignee: null },
+        ["2"]: {
+          kind: null,
+          status: null,
+          children: ["1"],
+        },
+      });
+    });
+
+    it("set existing explicit task to auto changes kind and leaves status", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        {
+          id: "1",
+          name: "Task 1",
+          kind: "Task",
+          status: "Done",
+        },
+      ]);
+
+      expect(koso.setKind("1", null)).toBe(true);
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { status: null, children: ["1"], assignee: null },
+        ["1"]: {
+          kind: null,
+          status: "Done",
         },
       });
     });

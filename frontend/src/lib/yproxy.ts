@@ -231,9 +231,32 @@ export class YTaskProxy {
     this.#yTask.set("deadline", value);
   }
 
+  /**
+   * Use in conjuction with {@link isAuto()} to identify auto tasks and their
+   * type.
+   */
+  autoType(): "Rollup" | "Task" {
+    return this.children.length > 0 ? "Rollup" : "Task";
+  }
+
+  /** Determins if this task is an auto task. */
+  isAuto(): boolean {
+    return this.kind === null;
+  }
+
+  /**
+   * Determines whether this task is a Rollup type task.
+   *
+   * Note: iteration tasks are also rollups, but not all rollups are iterations.
+   */
   isRollup(): boolean {
-    const kind = this.kind;
-    return kind === "Rollup" || (kind === null && this.children.length > 0);
+    return (
+      this.kind === "Rollup" || (this.isAuto() && this.autoType() === "Rollup")
+    );
+  }
+
+  isIteration(): boolean {
+    return this.kind === "Rollup" && !!this.deadline;
   }
 
   observe(f: (arg0: Y.YMapEvent<YTaskProps>, arg1: Y.Transaction) => void) {
