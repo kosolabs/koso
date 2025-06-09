@@ -3,23 +3,20 @@
   import { getRegistryContext } from "$lib/components/ui/command-palette";
   import { toast } from "$lib/components/ui/sonner";
   import type { Koso } from "$lib/dag-table/koso.svelte";
+  import { Action } from "$lib/kosui/command";
   import { getDialoguerContext } from "$lib/kosui/dialog";
-  import {
-    Menu,
-    MenuContent,
-    MenuDivider,
-    MenuItem,
-    MenuTrigger,
-  } from "$lib/kosui/menu";
+  import { Menu, MenuActions, MenuContent, MenuTrigger } from "$lib/kosui/menu";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { YTaskProxy, type Status } from "$lib/yproxy";
   import {
     CalendarDays,
-    Check,
+    Circle,
     CircleCheck,
+    CircleFadingArrowUp,
     ClipboardCheck,
     IterationCcw,
     LoaderCircle,
+    PauseOctagon,
     WandSparkles,
   } from "lucide-svelte";
   import { TaskStatusIcon } from ".";
@@ -42,13 +39,96 @@
   let statusElement: HTMLElement | undefined = $state();
 
   let progress = $derived(koso.getProgress(task.id));
-  let canSetStatus = $derived(koso.isEditable(task.id) && !task.isRollup());
-  let canSetKind = $derived(koso.isEditable(task.id));
-  let statuses: Status[] = ["Not Started", "In Progress", "Done", "Blocked"];
   let deadline = $derived(
     task.deadline
       ? new Date(task.deadline).toISOString().split("T")[0]
       : undefined,
+  );
+
+  let actions: Action[] = $derived(
+    [
+      new Action({
+        id: "Status.NotStarted",
+        callback: () => handleOnSelectStatus("Not Started"),
+        category: "Status",
+        name: "Not Started",
+        description: "Set status of task to Not Started",
+        icon: Circle,
+        enabled: () => task.isTask(),
+        selected: () => progress.status === "Not Started",
+      }),
+      new Action({
+        id: "Status.InProgress",
+        callback: () => handleOnSelectStatus("In Progress"),
+        category: "Status",
+        name: "In Progress",
+        description: "Set status of task to In Progress",
+        icon: CircleFadingArrowUp,
+        enabled: () => task.isTask(),
+        selected: () => progress.status === "In Progress",
+      }),
+      new Action({
+        id: "Status.Done",
+        callback: () => handleOnSelectStatus("Done"),
+        category: "Status",
+        name: "Done",
+        description: "Set status of task to Done",
+        icon: CircleCheck,
+        enabled: () => task.isTask(),
+        selected: () => progress.status === "Done",
+      }),
+      new Action({
+        id: "Status.Blocked",
+        callback: () => handleOnSelectStatus("Blocked"),
+        category: "Status",
+        name: "Blocked",
+        description: "Set status of task to Blocked",
+        icon: PauseOctagon,
+        enabled: () => task.isTask(),
+        selected: () => progress.status === "Blocked",
+      }),
+
+      new Action({
+        id: "Kind.Auto",
+        callback: () => handleSelectKindAuto(),
+        category: "Kind",
+        name: `Auto (${task.autoType()})`,
+        description: "Set kind of task to Auto",
+        icon: WandSparkles,
+        enabled: () => !task.isManaged(),
+        selected: () => currentMenuSelection() === "Auto",
+      }),
+      new Action({
+        id: "Kind.Task",
+        callback: () => handleSelectKindTask(),
+        category: "Kind",
+        name: "Task",
+        description: "Set kind of task to Task",
+        icon: ClipboardCheck,
+        enabled: () => !task.isManaged(),
+        selected: () => currentMenuSelection() === "Task",
+      }),
+      new Action({
+        id: "Kind.Rollup",
+        callback: () => handleSelectKindRollup(),
+        category: "Kind",
+        name: "Rollup",
+        description: "Set kind of task to Rollup",
+        icon: LoaderCircle,
+        enabled: () => !task.isManaged(),
+        selected: () => currentMenuSelection() === "Rollup",
+      }),
+      new Action({
+        id: "Kind.Iteration",
+        callback: () => handleSelectKindIteration(),
+        category: "Kind",
+        name: "Iteration...",
+        description: "Set kind of task to Iteration",
+        icon: IterationCcw,
+        enabled: () => !task.isManaged(),
+        selected: () => currentMenuSelection() === "Iteration",
+      }),
+    ].filter((action) => action.enabled()),
   );
 
   function handleSelectKindTask() {
@@ -162,7 +242,7 @@
     class="focus:ring-m3-primary flex w-full items-center gap-2 focus-visible:ring-1 focus-visible:outline-hidden"
     title={triggerTitle()}
     aria-label="task-status"
-    disabled={!canSetStatus && !canSetKind}
+    disabled={task.isManaged()}
     onkeydown={handleKeyDown}
   >
     {#if task.isRollup()}
@@ -187,74 +267,6 @@
     {/if}
   </MenuTrigger>
   <MenuContent>
-    {#if canSetStatus}
-      {#each statuses as status (status)}
-        <MenuItem
-          class="flex items-center gap-2 rounded text-sm"
-          onSelect={() => handleOnSelectStatus(status)}
-        >
-          <TaskStatusIcon {status} />
-          {status}
-          {#if progress.status === status}
-            <Check class="text-m3-primary ml-auto" size={20} />
-          {/if}
-        </MenuItem>
-      {/each}
-    {/if}
-    {#if canSetStatus && canSetKind}
-      <MenuDivider />
-    {/if}
-    {#if canSetKind}
-      {@const selection = currentMenuSelection()}
-
-      <MenuItem
-        class="flex items-center gap-2 rounded text-sm"
-        onSelect={() => handleSelectKindIteration()}
-      >
-        <IterationCcw class="text-m3-primary" />
-        Iteration...
-        {#if selection === "Iteration"}
-          <Check class="text-m3-primary ml-auto" size={20} />
-        {/if}
-      </MenuItem>
-      <MenuItem
-        class="flex items-center gap-2 rounded text-sm"
-        onSelect={() => handleSelectKindRollup()}
-      >
-        <LoaderCircle class="text-m3-primary" />
-        Rollup
-        {#if selection === "Rollup"}
-          <Check class="text-m3-primary ml-auto" size={20} />
-        {/if}
-      </MenuItem>
-      <MenuItem
-        class="flex items-center gap-2 rounded text-sm"
-        onSelect={() => handleSelectKindTask()}
-      >
-        <ClipboardCheck class="text-m3-primary" />
-        Task
-        {#if selection === "Task"}
-          <Check class="text-m3-primary ml-auto" size={20} />
-        {/if}
-      </MenuItem>
-
-      <MenuItem
-        class="flex items-center gap-2 rounded text-sm"
-        onSelect={() => handleSelectKindAuto()}
-      >
-        <WandSparkles class="text-m3-primary" />
-        {@const autoType = task.autoType()}
-        {#if autoType === "Rollup"}
-          Auto (Rollup)
-        {:else if autoType === "Task"}
-          Auto (Task)
-        {:else}
-          Auto (Unknown)
-        {/if}
-        {#if selection === "Auto"}
-          <Check class="text-m3-primary ml-auto" size={20} />
-        {/if}
-      </MenuItem>
-    {/if}
+    <MenuActions {actions} />
   </MenuContent>
 </Menu>
