@@ -22,7 +22,7 @@
           " " +
           toTitleCase(shape)}
         <div>
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap items-start gap-2">
             <Button {variant} {color} {shape} onclick={() => (clicked = true)}>
               {title} Button
             </Button>
