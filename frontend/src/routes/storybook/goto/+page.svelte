@@ -42,7 +42,7 @@
             " " +
             toTitleCase(underline)}
           <div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap items-start gap-2">
               <Goto
                 href="/storybook/goto"
                 {variant}

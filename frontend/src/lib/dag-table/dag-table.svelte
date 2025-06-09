@@ -772,7 +772,7 @@
 {#await koso.synced then}
   {#if planningCtx.nodes.size > 1}
     <div class="relative h-full">
-      <div class="flex h-full flex-col">
+      <div class="flex h-full flex-col gap-1.5">
         <!-- Add a z-0 to fix a bug in Safari where rows disappear when collapsing
                  and expanding tasks -->
         <table
@@ -822,12 +822,7 @@
         </table>
 
         {#if !hideFab}
-          <Fab
-            class="mt-3 py-6"
-            size={20}
-            icon={Plus}
-            onclick={insertAction.callback}
-          >
+          <Fab icon={Plus} onclick={insertAction.callback}>
             {insertAction.name}
             {#snippet tooltip()}
               <div class="flex items-center gap-2">
