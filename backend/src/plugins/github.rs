@@ -143,6 +143,7 @@ fn create_container(
             kind: Some(kind.id.to_string()),
             estimate: None,
             deadline: None,
+            archived: None,
         },
     );
     container_parent.set_children(txn, &plugin_children);
@@ -195,6 +196,7 @@ fn new_task(external_task: &ExternalTask, num: u64, kind: &Kind) -> Result<Task>
         kind: Some(kind.id.to_string()),
         estimate: None,
         deadline: None,
+        archived: None,
     })
 }
 

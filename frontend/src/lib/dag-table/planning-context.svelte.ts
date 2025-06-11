@@ -23,7 +23,7 @@ export class PlanningContext {
     if (this.koso.graph.size === 0) {
       return List();
     }
-    return this.#defaultFlatten(this.root, this.expanded, this.showDone);
+    return this.#defaultFlatten(this.root, this.expanded, this.showArchived);
   });
 
   #selectedRaw: Selected = $state(Selected.default());
@@ -36,7 +36,7 @@ export class PlanningContext {
   });
 
   #expanded: Storable<Set<Node>>;
-  #showDone: Storable<boolean>;
+  #showArchived: Storable<boolean>;
   #highlighted: string | null = $state(null);
   #dragged: Node | null = $state(null);
   #dropEffect: "copy" | "move" | "none" = $state("none");
@@ -66,7 +66,7 @@ export class PlanningContext {
       }
     });
 
-    this.#showDone = useLocalStorage<boolean>(
+    this.#showArchived = useLocalStorage<boolean>(
       `show-done-${this.koso.projectId}`,
       false,
     );
@@ -105,12 +105,12 @@ export class PlanningContext {
     this.#expanded.value = value;
   }
 
-  get showDone(): boolean {
-    return this.#showDone.value;
+  get showArchived(): boolean {
+    return this.#showArchived.value;
   }
 
-  set showDone(value: boolean) {
-    this.#showDone.value = value;
+  set showArchived(value: boolean) {
+    this.#showArchived.value = value;
   }
 
   get focus(): boolean {
@@ -674,7 +674,7 @@ export class PlanningContext {
   #defaultFlatten(
     node: Node,
     expanded: Set<Node>,
-    showDone: boolean,
+    showArchived: boolean,
     nodes: List<Node> = List(),
   ): List<Node> {
     const task = this.koso.getTask(node.name);
@@ -684,24 +684,24 @@ export class PlanningContext {
         const childNode = node.child(name);
         // Apply visibility filtering here instead of at the start of #flatten
         // to ensure that the root node is always present.
-        if (this.isVisible(childNode.name, showDone)) {
-          nodes = this.#defaultFlatten(childNode, expanded, showDone, nodes);
+        if (this.isVisible(childNode.name, showArchived)) {
+          nodes = this.#defaultFlatten(
+            childNode,
+            expanded,
+            showArchived,
+            nodes,
+          );
         }
       });
     }
     return nodes;
   }
 
-  isVisible(taskId: string, showDone: boolean) {
-    if (!showDone) {
-      const progress = this.koso.getProgress(taskId);
-      if (progress.isComplete()) {
-        const doneTime = progress.lastStatusTime;
-        const threeDays = 3 * 24 * 60 * 60 * 1000;
-        return Date.now() - doneTime < threeDays;
-      }
+  isVisible(taskId: string, showArchived: boolean) {
+    if (showArchived) {
+      return true;
     }
-    return true;
+    return !this.#koso.getTask(taskId).archived;
   }
 
   undo() {

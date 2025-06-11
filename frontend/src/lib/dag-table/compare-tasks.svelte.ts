@@ -22,6 +22,11 @@ export function compareTasks(
     }
   }
 
+  // Order non-archived tasks ahead of archived ones.
+  if (!!t1.archived !== !!t2.archived) {
+    return t1.archived ? 1 : -1;
+  }
+
   const status1 = mapStatus(koso.getStatus(t1.id));
   const status2 = mapStatus(koso.getStatus(t2.id));
   if (status1 !== status2) {

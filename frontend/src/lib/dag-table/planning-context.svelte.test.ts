@@ -34,6 +34,7 @@ describe("PlanningContext tests", () => {
           url: task.url ?? null,
           estimate: task.estimate ?? null,
           deadline: task.deadline ?? null,
+          archived: task.archived ?? null,
         });
       }
       for (const taskId of remainingTaskIds) {
@@ -51,6 +52,7 @@ describe("PlanningContext tests", () => {
           url: null,
           estimate: null,
           deadline: null,
+          archived: null,
         });
       }
     });
@@ -440,7 +442,7 @@ describe("PlanningContext tests", () => {
     it("doc with non-visible tasks returns root", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
-        { id: "1", name: "Task 1", status: "Done" },
+        { id: "1", name: "Task 1", status: "Done", archived: true },
       ]);
       expect(planningCtx.nodes).toStrictEqual(List([root]));
     });

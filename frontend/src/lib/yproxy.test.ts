@@ -24,6 +24,7 @@ describe("YTaskProxy", () => {
       url: null,
       estimate: null,
       deadline: null,
+      archived: null,
     });
   });
 

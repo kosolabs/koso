@@ -212,12 +212,12 @@
     planningCtx.collapse(planningCtx.selected);
   }
 
-  function showDoneTasks() {
-    planningCtx.showDone = true;
+  function showArchivedTasks() {
+    planningCtx.showArchived = true;
   }
 
-  function hideDoneTasks() {
-    planningCtx.showDone = false;
+  function hideArchivedTasks() {
+    planningCtx.showArchived = false;
   }
 
   function selectNext() {
@@ -529,22 +529,22 @@
       icon: ChevronsDownUp,
     }),
     new Action({
-      id: ActionIds.HideDoneTasks,
-      callback: hideDoneTasks,
+      id: ActionIds.HideArchivedTasks,
+      callback: hideArchivedTasks,
       category: Categories.View,
-      name: "Hide Done Tasks",
-      description: "Hide tasks that have been marked done",
+      name: "Hide Archived Tasks",
+      description: "Hide tasks that have been marked archived",
       icon: EyeOff,
-      enabled: () => planningCtx.showDone,
+      enabled: () => planningCtx.showArchived,
     }),
     new Action({
-      id: ActionIds.ShowDoneTasks,
-      callback: showDoneTasks,
+      id: ActionIds.ShowArchivedTasks,
+      callback: showArchivedTasks,
       category: Categories.View,
-      name: "Show Done Tasks",
-      description: "Show tasks that have been marked done",
+      name: "Show Archived Tasks",
+      description: "Show tasks that have been archived",
       icon: Eye,
-      enabled: () => !planningCtx.showDone,
+      enabled: () => !planningCtx.showArchived,
     }),
 
     new Action({

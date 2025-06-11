@@ -60,6 +60,7 @@ impl YDocProxy {
         y_task.set_kind(txn, task.kind.as_deref());
         y_task.set_estimate(txn, task.estimate);
         y_task.set_deadline(txn, task.deadline);
+        y_task.set_archived(txn, task.archived);
         y_task
     }
 
@@ -162,6 +163,7 @@ impl YTaskProxy {
             kind: self.get_kind(txn)?,
             estimate: self.get_estimate(txn)?,
             deadline: self.get_deadline(txn)?,
+            archived: self.get_archived(txn)?,
         })
     }
 
@@ -192,6 +194,17 @@ impl YTaskProxy {
             return Err(anyhow!("field is missing: {field}"));
         };
         Ok(result)
+    }
+
+    fn get_optional_bool<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<bool>> {
+        let Some(result) = self.y_task.get(txn, field) else {
+            return Ok(None);
+        };
+        match result {
+            Out::Any(Any::Bool(result)) => Ok(Some(result)),
+            Out::Any(Any::Null) | Out::Any(Any::Undefined) => Ok(None),
+            _ => Err(anyhow!("invalid field: {field}: {result:?}")),
+        }
     }
 
     pub fn get_id<T: ReadTxn>(&self, txn: &T) -> Result<String> {
@@ -395,6 +408,13 @@ impl YTaskProxy {
     pub fn set_deadline(&self, txn: &mut TransactionMut, status_time: Option<i64>) {
         self.y_task.try_update(txn, "deadline", status_time);
     }
+    pub fn get_archived<T: ReadTxn>(&self, txn: &T) -> Result<Option<bool>> {
+        self.get_optional_bool(txn, "archived")
+    }
+
+    pub fn set_archived(&self, txn: &mut TransactionMut, status_time: Option<bool>) {
+        self.y_task.try_update(txn, "archived", status_time);
+    }
 
     pub fn is_rollup<T: ReadTxn>(&self, txn: &T) -> Result<bool> {
         Ok(match self.get_kind(txn)? {
@@ -446,6 +466,7 @@ mod tests {
                     kind: Some("Kind1".to_string()),
                     estimate: Some(0),
                     deadline: Some(152),
+                    archived: Some(false),
                 },
             );
 
@@ -465,6 +486,7 @@ mod tests {
                     kind: Some("Kind1".to_string()),
                     estimate: Some(0),
                     deadline: Some(152),
+                    archived: Some(false),
                 }
             )
         }
@@ -487,6 +509,7 @@ mod tests {
                     kind: Some("Kind1".to_string()),
                     estimate: Some(8),
                     deadline: Some(152),
+                    archived: Some(true),
                 },
             );
         }
@@ -509,6 +532,7 @@ mod tests {
                 kind: Some("Kind1".to_string()),
                 estimate: Some(8),
                 deadline: Some(152),
+                archived: Some(true),
             }
         )
     }

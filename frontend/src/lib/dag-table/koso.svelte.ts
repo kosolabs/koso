@@ -529,6 +529,7 @@ export class Koso {
         url: null,
         estimate: null,
         deadline: null,
+        archived: null,
       });
     }, "koso.upsertRoot");
   }
@@ -891,6 +892,7 @@ export class Koso {
         url: null,
         estimate: null,
         deadline: null,
+        archived: null,
       });
       this.link(new TaskLinkage({ parentId: parent, id: taskId }), offset);
     });
@@ -1084,8 +1086,13 @@ export class Koso {
       .map((taskId) => ({
         taskId,
         progress: this.getProgress(taskId),
+        archived: this.getTask(taskId).archived,
       }))
       .sort((c1, c2) => {
+        // Order non-archived tasks ahead of archived ones.
+        if (!!c1.archived !== !!c2.archived) {
+          return c1.archived ? 1 : -1;
+        }
         const status1 = mapStatus(c1.progress.status);
         const status2 = mapStatus(c2.progress.status);
         return status1 - status2;
