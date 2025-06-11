@@ -206,6 +206,17 @@ impl EventProcessor {
                                 self.unblock_and_notify_actionable_tasks(&event).await?;
                             }
                         }
+                        (
+                            "archived",
+                            KosoEntryChange(EntryChange::Updated(
+                                _,
+                                yrs::Out::Any(yrs::Any::Bool(archived)),
+                            )),
+                        ) => {
+                            if *archived {
+                                self.unblock_and_notify_actionable_tasks(&event).await?;
+                            }
+                        }
                         _ => continue,
                     }
                 }
@@ -313,6 +324,13 @@ impl EventProcessor {
 
                     // Next, check if this task or all of its descendants are complete.
                     let descendent = doc.get(&txn, &descendent_id)?;
+
+                    // Archived tasks are simply omitted from the calculation,
+                    // being effectively complete.
+                    if descendent.get_archived(&txn)?.unwrap_or(false) {
+                        continue;
+                    }
+
                     if !descendent.is_rollup(&txn)? {
                         if descendent.get_status(&txn)?.unwrap_or_default() != "Done" {
                             complete = false;

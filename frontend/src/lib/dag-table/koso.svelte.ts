@@ -385,17 +385,15 @@ export class Koso {
    * @throws Will throw an error if the task status is invalid.
    */
   getProgress(taskId: string): Progress {
-    return this.#recursivelyGetProgress(taskId, {});
+    return this.#recursivelyGetProgress(this.getTask(taskId), {});
   }
 
   /** Helper for getProgress. Don't use directly. */
   #recursivelyGetProgress(
-    taskId: string,
+    task: YTaskProxy,
     visited: { [taskId: string]: boolean },
   ): Progress {
-    visited[taskId] = true;
-
-    const task = this.getTask(taskId);
+    visited[task.id] = true;
 
     let childInProgress = 0;
     let childDone = 0;
@@ -408,28 +406,49 @@ export class Koso {
       if (visited[taskId]) {
         return;
       }
+      const task = this.getTask(taskId);
 
       // If performance is ever an issue for large, nested graphs,
       // we can memoize the recursive call and trade memory for time.
       const childProgress = this.#recursivelyGetProgress(
-        taskId,
+        task,
         // We only need to dedupe for rollups.
         // Child estimates and counts are NOT carried forward for other types.
         task.isRollup() ? visited : {},
       );
-      childInProgress += childProgress.inProgress;
-      childDone += childProgress.done;
-      childTotal += childProgress.total;
+
       childLastStatusTime = Math.max(
         childLastStatusTime,
         childProgress.lastStatusTime,
       );
-      if (childProgress.estimate !== null) {
-        childrenEstimate = (childrenEstimate ?? 0) + childProgress.estimate;
-      }
-      if (childProgress.remainingEstimate !== null) {
-        childrenRemainingEstimate =
-          (childrenRemainingEstimate ?? 0) + childProgress.remainingEstimate;
+
+      // When a task is archived, include only the Done progress.
+      // The incomplete bits are effectively trash.
+      if (!!task.archived && childProgress.status !== "Done") {
+        childDone += childProgress.done;
+        childTotal += childProgress.done;
+        if (
+          childProgress.estimate !== null &&
+          childProgress.remainingEstimate !== null &&
+          childProgress.estimate !== childProgress.remainingEstimate
+        ) {
+          const completeEstimate =
+            childProgress.estimate - childProgress.remainingEstimate;
+          childrenEstimate = (childrenEstimate ?? 0) + completeEstimate;
+          childrenRemainingEstimate =
+            (childrenRemainingEstimate ?? 0) + completeEstimate;
+        }
+      } else {
+        childInProgress += childProgress.inProgress;
+        childDone += childProgress.done;
+        childTotal += childProgress.total;
+        if (childProgress.estimate !== null) {
+          childrenEstimate = (childrenEstimate ?? 0) + childProgress.estimate;
+        }
+        if (childProgress.remainingEstimate !== null) {
+          childrenRemainingEstimate =
+            (childrenRemainingEstimate ?? 0) + childProgress.remainingEstimate;
+        }
       }
     });
 

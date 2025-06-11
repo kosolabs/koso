@@ -419,6 +419,7 @@ impl YTaskProxy {
     pub fn is_rollup<T: ReadTxn>(&self, txn: &T) -> Result<bool> {
         Ok(match self.get_kind(txn)? {
             Some(kind) => kind == "Rollup",
+            // TODO: Rework to filter by archived.
             None => !self.get_children(txn)?.is_empty(),
         })
     }
