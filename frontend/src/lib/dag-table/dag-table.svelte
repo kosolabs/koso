@@ -16,6 +16,8 @@
   import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
   import type { User } from "$lib/users";
   import {
+    Archive,
+    ArchiveRestore,
     Cable,
     Check,
     ChevronsDownUp,
@@ -163,6 +165,14 @@
     }
   }
 
+  function archive() {
+    if (!planningCtx.selected) return;
+    koso.setTaskArchived(planningCtx.selected.name, true);
+  }
+  function unarchive() {
+    if (!planningCtx.selected) return;
+    koso.setTaskArchived(planningCtx.selected.name, false);
+  }
   function edit() {
     if (!planningCtx.selected) return;
     getRow(planningCtx.selected).edit(true);
@@ -614,6 +624,28 @@
       icon: Share,
       shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
       enabled: () => !!planningCtx.selected,
+    }),
+    new Action({
+      id: ActionIds.Archive,
+      callback: archive,
+      category: Categories.Edit,
+      name: "Archive Task",
+      description: "Archive the current task",
+      icon: Archive,
+      enabled: () =>
+        !!planningCtx.selected &&
+        !koso.getTask(planningCtx.selected.name).archived,
+    }),
+    new Action({
+      id: ActionIds.Unarchive,
+      callback: unarchive,
+      category: Categories.Edit,
+      name: "Unarchive Task",
+      description: "Unarchive the current task",
+      icon: ArchiveRestore,
+      enabled: () =>
+        !!planningCtx.selected &&
+        !!koso.getTask(planningCtx.selected.name).archived,
     }),
 
     new Action({

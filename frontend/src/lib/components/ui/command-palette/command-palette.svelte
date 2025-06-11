@@ -23,6 +23,7 @@
   };
 
   export const ActionIds = {
+    Archive: "Archive",
     Block: "Block",
     Clear: "Clear",
     Collapse: "Collapse",
@@ -73,6 +74,7 @@
     Storybook: "Storybook",
     SystemTheme: "SystemTheme",
     ToggleTaskStatus: "ToggleTaskStatus",
+    Unarchive: "Unarchive",
     Undent: "Undent",
     Undo: "Undo",
   };

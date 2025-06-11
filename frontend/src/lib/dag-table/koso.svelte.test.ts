@@ -2340,6 +2340,78 @@ describe("Koso tests", () => {
       });
     });
 
+    it("sorts peer tasks by archived", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8"],
+        },
+        { id: "t1", status: "Not Started", archived: true },
+        { id: "t2", status: "Not Started", archived: false },
+        { id: "t3", status: "Done", archived: true },
+        { id: "t4", status: "Done", statusTime: Date.now() },
+        { id: "t5", status: "Blocked", archived: false },
+        { id: "t6", status: "Blocked" },
+        { id: "t7", status: "In Progress", archived: true },
+        { id: "t8", status: "In Progress" },
+      ]);
+
+      koso.organizeTasks("root");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["t8", "t2", "t5", "t6", "t4", "t7", "t1", "t3"] },
+      });
+    });
+
+    it("archives and sorts by archived state", () => {
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000;
+      const ancient = now - 15 * oneDay;
+      const recent = now - 2 * oneDay;
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t10", "t13"],
+        },
+        { id: "t1", status: "In Progress", statusTime: ancient },
+        { id: "t2", status: "In Progress", statusTime: recent },
+        { id: "t3", status: "Done", statusTime: ancient },
+        { id: "t4", status: "Done", statusTime: ancient },
+        { id: "t5", status: "Done", statusTime: recent },
+        { id: "t6", status: "Done", statusTime: null },
+        // Done, recent rollup
+        { id: "t7", statusTime: null, children: ["t8", "t9"] },
+        { id: "t8", status: "Done", statusTime: ancient },
+        { id: "t9", status: "Done", statusTime: recent },
+        // Done, ancient rollup
+        { id: "t10", statusTime: null, children: ["t11", "t12"] },
+        { id: "t11", status: "Done", statusTime: ancient },
+        { id: "t12", status: "Done", statusTime: ancient },
+        // In Progress, recent rollup
+        { id: "t13", statusTime: null, children: ["t14"] },
+        { id: "t14", status: "In Progress", statusTime: ancient },
+      ]);
+
+      koso.organizeTasks("root");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: {
+          children: ["t1", "t2", "t13", "t5", "t7", "t3", "t4", "t6", "t10"],
+        },
+        t1: { archived: null },
+        t2: { archived: null },
+        t3: { archived: true },
+        t4: { archived: true },
+        t5: { archived: null },
+        t6: { archived: true },
+        t7: { archived: null },
+        t10: { archived: true },
+        t13: { archived: null },
+      });
+    });
+
     it("sort is stable", () => {
       init([
         {
