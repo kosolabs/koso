@@ -167,7 +167,7 @@ export class InboxContext {
   ): Reason[] {
     const reasons: Reason[] = [];
 
-    if (task.id === "root") {
+    if (task.id === "root" || task.archived) {
       return reasons;
     }
 

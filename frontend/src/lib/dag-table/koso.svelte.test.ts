@@ -43,6 +43,7 @@ describe("Koso tests", () => {
           url: task.url ?? null,
           estimate: task.estimate ?? null,
           deadline: task.deadline ?? null,
+          archived: task.archived ?? null,
         });
       }
       for (const taskId of remainingTaskIds) {
@@ -60,6 +61,7 @@ describe("Koso tests", () => {
           url: null,
           estimate: null,
           deadline: null,
+          archived: null,
         });
       }
     });
@@ -382,6 +384,7 @@ describe("Koso tests", () => {
           url: null,
           estimate: null,
           deadline: null,
+          archived: null,
         },
         [id1]: {
           id: id1,
@@ -397,6 +400,7 @@ describe("Koso tests", () => {
           url: null,
           estimate: null,
           deadline: null,
+          archived: null,
         },
       });
     });
@@ -1038,6 +1042,7 @@ describe("Koso tests", () => {
           url: "http://example.com/foo/bar",
           estimate: 1,
           deadline: 123,
+          archived: false,
         },
       ]);
 
@@ -1055,6 +1060,7 @@ describe("Koso tests", () => {
         url: "http://example.com/foo/bar",
         estimate: 1,
         deadline: 123,
+        archived: false,
       });
     });
 

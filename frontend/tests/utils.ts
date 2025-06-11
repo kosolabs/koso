@@ -18,6 +18,7 @@ export type TaskBuilder = {
   kind?: Kind | null;
   estimate?: Estimate | null;
   deadline?: number | null;
+  archived?: boolean | null;
 };
 
 export async function getKosoGraph(page: Page): Promise<Graph> {
@@ -169,6 +170,7 @@ export async function init(
             url: task.url ?? null,
             estimate: task.estimate ?? null,
             deadline: task.deadline ?? null,
+            archived: task.archived ?? null,
           });
         }
         for (const taskId of remainingTaskIds) {
@@ -186,6 +188,7 @@ export async function init(
             url: null,
             estimate: null,
             deadline: null,
+            archived: null,
           });
         }
       });

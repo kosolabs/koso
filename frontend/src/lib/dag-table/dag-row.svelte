@@ -126,7 +126,7 @@
             if (
               n.name === node.name &&
               n.parent.name === parent.id &&
-              planningCtx.isVisible(n.name, planningCtx.showDone)
+              planningCtx.isVisible(n.name, planningCtx.showArchived)
             ) {
               planningCtx.selected = n;
               // Expand all parents of the selected node to ensure it's visible.

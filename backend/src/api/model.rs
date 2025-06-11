@@ -88,4 +88,5 @@ pub(crate) struct Task {
     pub(crate) kind: Option<String>,
     pub(crate) estimate: Option<i64>,
     pub(crate) deadline: Option<i64>,
+    pub(crate) archived: Option<bool>,
 }

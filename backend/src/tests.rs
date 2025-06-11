@@ -490,6 +490,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
                 kind: None,
                 estimate: None,
                 deadline: None,
+                archived: None,
             },
         );
         ydoc_2.set(
@@ -508,6 +509,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
                 kind: None,
                 estimate: None,
                 deadline: None,
+                archived: None,
             },
         );
     }
@@ -641,6 +643,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
                 kind: None,
                 estimate: None,
                 deadline: None,
+                archived: None,
             },
         );
         let update = txn.encode_update_v2();
@@ -815,6 +818,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
                 kind: None,
                 estimate: None,
                 deadline: None,
+                archived: None,
             },
         );
         socket
