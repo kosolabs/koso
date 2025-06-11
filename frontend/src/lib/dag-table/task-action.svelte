@@ -30,6 +30,8 @@
       ActionIds.Delete,
       ActionIds.CopyTaskInfo,
       ActionIds.CopyTaskLink,
+      ActionIds.Archive,
+      ActionIds.Unarchive,
 
       ActionIds.Link,
       ActionIds.Block,

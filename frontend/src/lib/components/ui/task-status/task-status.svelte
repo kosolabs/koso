@@ -9,7 +9,6 @@
   import { Shortcut } from "$lib/kosui/shortcut";
   import { YTaskProxy, type Status } from "$lib/yproxy";
   import {
-    Archive,
     CalendarDays,
     Circle,
     CircleCheck,
@@ -257,10 +256,7 @@
     disabled={task.isManaged()}
     onkeydown={handleKeyDown}
   >
-    {#if task.archived}
-      <Archive class="text-m3-primary" />
-      <ResponsiveText>Archived</ResponsiveText>
-    {:else if task.isRollup()}
+    {#if task.isRollup()}
       {#if progress.status === "Done"}
         <CircleCheck class="text-m3-primary" />
         {@render responsiveTextWithDeadline("Done")}
