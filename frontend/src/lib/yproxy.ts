@@ -33,7 +33,12 @@ export type Task = {
   // When this task is targetted for completion.
   deadline: number | null;
 };
-export type Status = "Not Started" | "In Progress" | "Done" | "Blocked";
+export type Status =
+  | "Not Started"
+  | "Ready"
+  | "In Progress"
+  | "Done"
+  | "Blocked";
 export type Kind = "Rollup" | "Task" | "github" | "github_pr";
 export const unmanagedKinds: ImmutableSet<Kind> = ImmutableSet.of(
   "Rollup",

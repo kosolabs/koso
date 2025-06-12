@@ -142,35 +142,7 @@
 
   function toggleStatus() {
     if (!planningCtx.selected) return;
-
-    const task = koso.getTask(planningCtx.selected.name);
-    if (task.isRollup()) {
-      toast.warning(
-        "Cannot change the status of a Rollup task. Change the status of the task's children instead.",
-      );
-      return;
-    }
-
-    let progress = koso.getProgress(task.id);
-    switch (progress.status) {
-      case "Done":
-        return;
-      case "Blocked":
-        koso.setTaskStatus(planningCtx.selected.name, "Not Started", auth.user);
-        return;
-      case "In Progress": {
-        const node = planningCtx.selected;
-
-        getRow(node).showDoneConfetti();
-        koso.setTaskStatus(node.name, "Done", auth.user);
-        break;
-      }
-      case "Not Started":
-        koso.setTaskStatus(planningCtx.selected.name, "In Progress", auth.user);
-        break;
-      default:
-        throw new Error(`Unhandled status ${task.yStatus}`);
-    }
+    koso.toggleStatus(planningCtx.selected.name, auth.user);
   }
 
   function remove() {
