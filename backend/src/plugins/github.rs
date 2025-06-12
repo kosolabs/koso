@@ -238,7 +238,7 @@ fn add_referenced_task_links(
     for link_task in doc.get_by_nums(txn, &find_referenced_task_nums(github_task))? {
         // Disallow linking to managed links this, additionally, prevents circular links
         // because the given task is itself always managed.
-        if link_task.is_managed_task(txn)? {
+        if link_task.is_managed(txn)? {
             continue;
         }
 

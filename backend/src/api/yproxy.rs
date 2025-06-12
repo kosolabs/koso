@@ -403,7 +403,7 @@ impl YTaskProxy {
         })
     }
 
-    pub fn is_managed_task<T: ReadTxn>(&self, txn: &T) -> Result<bool> {
+    pub fn is_managed<T: ReadTxn>(&self, txn: &T) -> Result<bool> {
         Ok(self
             .get_kind(txn)?
             .map(|kind| MANAGED_KINDS.contains(&kind.as_str()))
