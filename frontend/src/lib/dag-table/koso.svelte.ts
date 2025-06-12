@@ -14,7 +14,6 @@ import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
-  unmanagedKinds,
   YChildrenProxy,
   YGraphProxy,
   YTaskProxy,
@@ -790,8 +789,7 @@ export class Koso {
    * property.
    */
   isManagedTask(taskId: string): boolean {
-    const kind = this.getTask(taskId).kind;
-    return !!kind && !unmanagedKinds.includes(kind);
+    return this.getTask(taskId).isManaged();
   }
 
   /**
@@ -814,14 +812,15 @@ export class Koso {
    * would return false. `root -> github_pr` or `root -> [some pr task]`, for
    * example.
    */
-  isCanonicalManagedLink(task: string, parent: string): boolean {
-    if (task === "root") {
+  isCanonicalManagedLink(taskId: string, parent: string): boolean {
+    if (taskId === "root") {
       return true;
     }
-    const kind = this.getTask(task).kind;
-    if (!kind || unmanagedKinds.includes(kind)) {
+    const task = this.getTask(taskId);
+    if (!task.isManaged()) {
       return false;
     }
+    const kind = task.kind;
     // Is an immediate child of a plugin container OR is a plugin container.
     if (kind === parent) {
       return true;

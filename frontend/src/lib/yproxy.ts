@@ -40,10 +40,6 @@ export type Status =
   | "Done"
   | "Blocked";
 export type Kind = "Rollup" | "Task" | "github" | "github_pr";
-export const unmanagedKinds: ImmutableSet<Kind> = ImmutableSet.of(
-  "Rollup",
-  "Task",
-);
 export const MANAGED_KINDS: ImmutableSet<Kind> = ImmutableSet.of(
   "github",
   "github_pr",
@@ -133,6 +129,7 @@ export class YGraphProxy {
 }
 
 export type Iteration = YTaskProxy & { deadline: number };
+export type Managed = YTaskProxy & { kind: Kind };
 
 export class YTaskProxy {
   #yTask: YTask;
@@ -276,7 +273,7 @@ export class YTaskProxy {
     return this.isRollup() && !!this.deadline;
   }
 
-  isManaged(): boolean {
+  isManaged(): this is Managed {
     return this.kind !== null && MANAGED_KINDS.contains(this.kind);
   }
 
