@@ -3,6 +3,7 @@
   import { Editable } from "$lib/components/ui/editable";
   import Estimate from "$lib/components/ui/estimate/estimate.svelte";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
+  import { getPrefsContext } from "$lib/components/ui/prefs";
   import { toast } from "$lib/components/ui/sonner";
   import { TaskStatus } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
@@ -31,6 +32,7 @@
   const { index, node, users }: Props = $props();
 
   const planningCtx = getPlanningContext();
+  const prefs = getPrefsContext();
   const { koso } = planningCtx;
 
   let rowElement: HTMLTableRowElement | undefined = $state();
@@ -376,7 +378,7 @@
       <button
         class={cn(
           "absolute z-50 -translate-y-1/2 cursor-default transition-all",
-          koso.debug && "bg-m3-primary/20",
+          prefs.debug && "bg-m3-primary/20",
         )}
         style:width={`${rowWidth}px`}
         style:height={planningCtx.dragged ? `${rowHeight / 2}px` : 0}
@@ -402,7 +404,7 @@
       <button
         class={cn(
           "absolute z-50 -translate-y-1/2 cursor-default transition-all",
-          koso.debug && "bg-m3-tertiary/20",
+          prefs.debug && "bg-m3-tertiary/20",
         )}
         style:width={`${rowWidth}px`}
         style:height={planningCtx.dragged ? `${rowHeight / 2}px` : 0}
@@ -455,7 +457,7 @@
       </button>
     </div>
   </td>
-  {#if koso.debug}
+  {#if prefs.debug}
     <td class={cn("border-t border-l p-2 text-xs lg:text-nowrap")}>
       {task.id}
     </td>
