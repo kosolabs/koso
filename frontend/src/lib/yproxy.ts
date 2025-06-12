@@ -129,7 +129,7 @@ export class YGraphProxy {
 }
 
 export type Iteration = YTaskProxy & { deadline: number };
-export type ManagedTask = YTaskProxy & { kind: Kind };
+export type Managed = YTaskProxy & { kind: Kind };
 
 export class YTaskProxy {
   #yTask: YTask;
@@ -273,7 +273,7 @@ export class YTaskProxy {
     return this.isRollup() && !!this.deadline;
   }
 
-  isManaged(): this is ManagedTask {
+  isManaged(): this is Managed {
     return this.kind !== null && MANAGED_KINDS.contains(this.kind);
   }
 
