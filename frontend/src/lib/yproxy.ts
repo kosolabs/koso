@@ -40,6 +40,8 @@ export type Status =
   | "Done"
   | "Blocked";
 export type Kind = "Rollup" | "Task" | "github" | "github_pr";
+// Keep this in sync with the corresponding list in
+// backend/yproxy.rs
 export const MANAGED_KINDS: ImmutableSet<Kind> = ImmutableSet.of(
   "github",
   "github_pr",

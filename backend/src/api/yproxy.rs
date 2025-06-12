@@ -9,6 +9,8 @@ use yrs::{
     types::{Events, map::MapEvent},
 };
 
+// Keep this in sync with the corresponding list in
+// frontend/yproxy.ts
 const MANAGED_KINDS: &[&str] = &["github", "github_pr"];
 
 pub(crate) struct YDocProxy {
