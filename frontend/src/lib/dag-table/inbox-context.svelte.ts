@@ -5,29 +5,39 @@ import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import type { Koso } from "./koso.svelte";
 
-export type Reason = { score: number } & (
+export type Reason =
   | {
       name: "Actionable";
+      actions: {
+        done: number;
+        block: number;
+        unassign: number;
+      };
     }
   | {
       name: "ParentOwner";
+      actions: {
+        assign: number;
+        ready: number;
+      };
       parents: YTaskProxy[];
     }
   | {
       name: "NeedsEstimate";
+      actions: {
+        estimate: number;
+        assign: number;
+      };
       iteration: YTaskProxy;
-    }
-);
+    };
 
 export class ActionItem {
   task: YTaskProxy;
   reasons: Reason[];
-  score: number;
 
-  constructor(task: YTaskProxy, reasons: Reason[], priority: number) {
+  constructor(task: YTaskProxy, reasons: Reason[]) {
     this.task = task;
     this.reasons = reasons;
-    this.score = priority;
   }
 }
 
@@ -117,25 +127,31 @@ export class InboxContext {
         currentIterations: this.#koso.getCurrentIterations(),
       });
       if (reasons.length) {
-        items.push(
-          new ActionItem(
-            task,
-            reasons,
-            reasons.map((reason) => reason.score).reduce((a, b) => a + b),
-          ),
-        );
+        items.push(new ActionItem(task, reasons));
       }
     }
 
-    return items.sort((a, b) => {
-      // Sort first by priority.
-      const cmp = b.score - a.score;
-      if (cmp !== 0) {
-        return cmp;
-      }
-      // If priorities were equal, sort by number to ensure a stable order.
-      return a.task.num.localeCompare(b.task.num);
-    });
+    return items
+      .map((item) => ({
+        item,
+        reason: item.reasons[0].name === "Actionable" ? 0 : 1,
+        score: item.reasons
+          .map((reason) =>
+            Object.values(reason.actions).reduce((a, b) => Math.max(a, b)),
+          )
+          .reduce((a, b) => a + b),
+        num: Number(item.task.num) || 0,
+      }))
+      .sort(
+        (a, b) =>
+          // Non-actionable items first
+          b.reason - a.reason ||
+          // Scores, descending
+          b.score - a.score ||
+          // Stable sort by task number, ascending
+          a.num - b.num,
+      )
+      .map(({ item }) => item);
   }
 
   #calculateIterationScore(iteration: Iteration): number {
@@ -160,7 +176,7 @@ export class InboxContext {
     // A task is part of the current iteration and doesn't have an estimate
     for (const iteration of context.currentIterations) {
       if (
-        task.assignee === this.#auth.user.email &&
+        (task.assignee === null || task.assignee === this.#auth.user.email) &&
         task.isTask() &&
         !progress.isComplete() &&
         this.#koso.hasDescendant(iteration.id, task.id) &&
@@ -168,7 +184,10 @@ export class InboxContext {
       ) {
         reasons.push({
           name: "NeedsEstimate",
-          score: this.#calculateIterationScore(iteration),
+          actions: {
+            estimate: this.#calculateIterationScore(iteration),
+            assign: 1,
+          },
           iteration,
         });
       }
@@ -186,7 +205,14 @@ export class InboxContext {
         .filter((parent) => parent.isRollup())
         .filter((parent) => parent.assignee === this.#auth.user.email);
       if (parents.length) {
-        reasons.push({ name: "ParentOwner", score: 10, parents });
+        reasons.push({
+          name: "ParentOwner",
+          actions: {
+            ready: 3,
+            assign: 1,
+          },
+          parents,
+        });
       }
     }
 
@@ -194,10 +220,18 @@ export class InboxContext {
     if (
       task.assignee === this.#auth.user.email &&
       task.isLeaf() &&
+      task.estimate !== null &&
       !progress.isComplete() &&
       !progress.isBlocked()
     ) {
-      reasons.push({ name: "Actionable", score: task.estimate ?? 1 });
+      reasons.push({
+        name: "Actionable",
+        actions: {
+          done: task.estimate,
+          block: 3,
+          unassign: 1,
+        },
+      });
     }
 
     return reasons;

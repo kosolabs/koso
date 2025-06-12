@@ -13,7 +13,7 @@
   import { cn } from "$lib/utils";
   import { Grip } from "lucide-svelte";
   import { tick } from "svelte";
-  import ActionItemTooltip from "./action-item-tooltip.svelte";
+  import { ActionItemTooltip } from "./action-item-tooltip";
   import DescAction from "./desc-action.svelte";
   import { ActionItem, getInboxContext } from "./inbox-context.svelte";
   import LinkTaskPanel, { type Mode } from "./link-task-panel.svelte";
@@ -109,9 +109,6 @@
   {#if koso.debug}
     <td class={cn("border-t border-l p-2 text-xs lg:text-nowrap")}>
       {task.id}
-    </td>
-    <td class={cn("border-t border-l p-2 text-xs lg:text-nowrap")}>
-      {item.score}
     </td>
   {/if}
   <td class={cn("border-t border-l p-2")}>
