@@ -18,7 +18,7 @@ use sqlx::PgPool;
 use std::{cell::LazyCell, collections::HashSet, time::SystemTime};
 use tokio::task::JoinHandle;
 use webhook::Webhook;
-use yrs::{ReadTxn, TransactionMut};
+use yrs::TransactionMut;
 
 mod app;
 mod auth;
@@ -238,7 +238,7 @@ fn add_referenced_task_links(
     for link_task in doc.get_by_nums(txn, &find_referenced_task_nums(github_task))? {
         // Disallow linking to managed links this, additionally, prevents circular links
         // because the given task is itself always managed.
-        if is_managed_task(txn, &link_task)? {
+        if link_task.is_managed(txn)? {
             continue;
         }
 
@@ -260,13 +260,6 @@ fn find_referenced_task_nums(github_task: &ExternalTask) -> HashSet<String> {
             .map(|g| g[1].to_owned())
             .collect()
     })
-}
-
-fn is_managed_task<T: ReadTxn>(txn: &T, link: &YTaskProxy) -> Result<bool> {
-    Ok(link
-        .get_kind(txn)?
-        .map(|kind| kind != "Task" || kind != "Rollup")
-        .unwrap_or(false))
 }
 
 fn now() -> Result<i64> {

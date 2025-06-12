@@ -9,6 +9,10 @@ use yrs::{
     types::{Events, map::MapEvent},
 };
 
+// Keep this in sync with the corresponding list in
+// frontend/yproxy.ts
+const MANAGED_KINDS: &[&str] = &["github", "github_pr"];
+
 pub(crate) struct YDocProxy {
     doc: Doc,
     graph: MapRef,
@@ -397,6 +401,13 @@ impl YTaskProxy {
             Some(kind) => kind == "Rollup",
             None => !self.get_children(txn)?.is_empty(),
         })
+    }
+
+    pub fn is_managed<T: ReadTxn>(&self, txn: &T) -> Result<bool> {
+        Ok(self
+            .get_kind(txn)?
+            .map(|kind| MANAGED_KINDS.contains(&kind.as_str()))
+            .unwrap_or(false))
     }
 }
 
