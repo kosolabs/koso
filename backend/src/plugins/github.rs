@@ -156,6 +156,7 @@ struct ExternalTask {
     description: String,
     user_id: Option<String>,
     koso_user_email: Option<String>,
+    status: String,
 }
 
 impl ExternalTask {
@@ -168,12 +169,20 @@ impl ExternalTask {
         let description = pr.body.unwrap_or_default();
         let user_id = pr.user.as_ref().map(|u| u.id.to_string());
         let koso_user_email = pr.user.and_then(|u| u.email);
+        let status = match pr.state {
+            Some(octocrab::models::IssueState::Open) => "In Progress".to_string(),
+            Some(octocrab::models::IssueState::Closed) => "Done".to_string(),
+            v => {
+                return Err(anyhow!("Invalid issue state {v:?} for PR {}", pr.number));
+            }
+        };
         Ok(ExternalTask {
             url,
             name,
             description,
             user_id,
             koso_user_email,
+            status,
         })
     }
 }
@@ -189,7 +198,7 @@ fn new_task(external_task: &ExternalTask, num: u64, kind: &Kind) -> Result<Task>
         children: Vec::with_capacity(0),
         assignee: external_task.koso_user_email.clone(),
         reporter: external_task.koso_user_email.clone(),
-        status: Some("In Progress".to_string()),
+        status: Some(external_task.status.clone()),
         status_time: Some(now()?),
         url: Some(external_task.url.clone()),
         kind: Some(kind.id.to_string()),
@@ -205,8 +214,11 @@ fn update_task(
 ) -> Result<()> {
     tracing::trace!("Updating task {}: {}", task.get_id(txn)?, external_task.url);
     task.set_name(txn, &external_task.name);
-    if task.get_status(txn)?.is_none_or(|s| s != "In Progress") {
-        task.set_status(txn, Some("In Progress"));
+    if task
+        .get_status(txn)?
+        .is_none_or(|s| s != external_task.status)
+    {
+        task.set_status(txn, Some(&external_task.status));
         task.set_status_time(txn, Some(now()?));
     }
     if task.get_assignee(txn)?.is_none() && external_task.koso_user_email.is_some() {
@@ -360,7 +372,8 @@ mod tests {
                 name: "koso-15: Something else".into(),
                 description: "Something something".into(),
                 user_id: Some("123".to_string()),
-                koso_user_email: Some("foo@example.com".to_string())
+                koso_user_email: Some("foo@example.com".to_string()),
+                status: "In Progress".to_string(),
             }),
             HashSet::from_iter(vec!["15".to_string()].into_iter())
         );
@@ -374,7 +387,8 @@ mod tests {
                 name: "Something else".into(),
                 description: "Something something koso#17, koso#19".into(),
                 user_id: Some("123".to_string()),
-                koso_user_email: Some("foo@example.com".to_string())
+                koso_user_email: Some("foo@example.com".to_string()),
+                status: "In Progress".to_string(),
             }),
             HashSet::from_iter(vec!["17".to_string(), "19".to_string()].into_iter())
         );
@@ -388,7 +402,8 @@ mod tests {
                 name: "Something else KoSo_18".into(),
                 description: "Somethingkoso#14 something KOSO-17, koso#19".into(),
                 user_id: Some("123".to_string()),
-                koso_user_email: Some("foo@example.com".to_string())
+                koso_user_email: Some("foo@example.com".to_string()),
+                status: "In Progress".to_string(),
             }),
             HashSet::from_iter(
                 vec!["17".to_string(), "18".to_string(), "19".to_string()].into_iter()
