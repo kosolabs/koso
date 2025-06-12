@@ -18,7 +18,7 @@ use sqlx::PgPool;
 use std::{cell::LazyCell, collections::HashSet, time::SystemTime};
 use tokio::task::JoinHandle;
 use webhook::Webhook;
-use yrs::{ReadTxn, TransactionMut};
+use yrs::TransactionMut;
 
 mod app;
 mod auth;
