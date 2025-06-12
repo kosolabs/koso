@@ -62,33 +62,7 @@
 
   function toggleStatus() {
     if (!inbox.selected) return;
-
-    const task = koso.getTask(inbox.selected.id);
-    if (task.isRollup()) {
-      toast.warning(
-        "Cannot change the status of a Rollup task. Change the status of the task's children instead.",
-      );
-      return;
-    }
-
-    let progress = koso.getProgress(task.id);
-    switch (progress.status) {
-      case "Done":
-        return;
-      case "Blocked":
-        koso.setTaskStatus(task.id, "Not Started", auth.user);
-        return;
-      case "In Progress": {
-        koso.setTaskStatus(task.id, "Done", auth.user);
-        toast.success("🚀 Great work! Task complete!");
-        break;
-      }
-      case "Not Started":
-        koso.setTaskStatus(task.id, "In Progress", auth.user);
-        break;
-      default:
-        throw new Error(`Unhandled status ${task.yStatus}`);
-    }
+    koso.toggleStatus(inbox.selected.id, auth.user);
   }
 
   function edit() {

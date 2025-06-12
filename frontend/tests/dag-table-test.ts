@@ -1350,18 +1350,33 @@ test.describe("dag table tests", () => {
         .getByRole("row", { name: "Task 3" })
         .getByRole("button", { name: "task-status" });
       await expect(statusButton).toBeVisible();
-      await expect(statusButton).toHaveText("In Progress");
+      await expect(statusButton).toHaveText("Ready");
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2", "3", "4"] },
         ["1"]: { children: [] },
         ["2"]: { children: [] },
-        ["3"]: { children: [], status: "In Progress" },
+        ["3"]: { children: [], status: "Ready" },
         ["4"]: { children: [] },
       });
 
       await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
       await page.keyboard.press("Space");
       await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1", "2", "3", "4"] },
+        ["1"]: { children: [], status: "Ready" },
+        ["2"]: { children: [], status: "Ready" },
+        ["3"]: { children: [], status: "Ready" },
+        ["4"]: { children: [] },
+      });
+
+      await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+      await page.getByRole("button", { name: "Task 2 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+      await page.getByRole("button", { name: "Task 3 Drag Handle" }).click();
       await page.keyboard.press("Space");
 
       expect(await getKosoGraph(page)).toMatchObject({
@@ -1432,6 +1447,17 @@ test.describe("dag table tests", () => {
       expect(await getKosoGraph(page)).toMatchObject({
         root: { children: ["1", "2", "3", "4"] },
         ["1"]: { children: ["2"], status: "Not Started" },
+        ["2"]: { children: [] },
+        ["3"]: { children: [] },
+        ["4"]: { children: [] },
+      });
+
+      await page.getByRole("button", { name: "Task 1 Drag Handle" }).click();
+      await page.keyboard.press("Space");
+
+      expect(await getKosoGraph(page)).toMatchObject({
+        root: { children: ["1", "2", "3", "4"] },
+        ["1"]: { children: ["2"], status: "Ready" },
         ["2"]: { children: [] },
         ["3"]: { children: [] },
         ["4"]: { children: [] },

@@ -1016,6 +1016,38 @@ export class Koso {
     });
   }
 
+  toggleStatus(taskId: string, user: User) {
+    const task = this.getTask(taskId);
+    if (task.isRollup()) {
+      toast.warning(
+        "Cannot change the status of a Rollup task. Change the status of the task's children instead.",
+      );
+      return;
+    }
+
+    const progress = this.getProgress(task.id);
+    switch (progress.status) {
+      case "Done":
+        return;
+      case "Blocked":
+        this.setTaskStatus(task.id, "Not Started", user);
+        return;
+      case "In Progress": {
+        this.setTaskStatus(task.id, "Done", user);
+        toast.success("🚀 Great work! Task complete!");
+        break;
+      }
+      case "Ready":
+        this.setTaskStatus(task.id, "In Progress", user);
+        break;
+      case "Not Started":
+        this.setTaskStatus(task.id, "Ready", user);
+        break;
+      default:
+        throw new Error(`Unhandled status ${task.yStatus}`);
+    }
+  }
+
   getTaskPermalink(taskId: string) {
     const curr = page.url;
     curr.pathname = `/projects/${this.projectId}`;
