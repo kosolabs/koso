@@ -4,6 +4,7 @@
   import { Editable } from "$lib/components/ui/editable";
   import { Estimate } from "$lib/components/ui/estimate";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
+  import { getPrefsContext } from "$lib/components/ui/prefs";
   import { TaskStatus } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
   import { Chip } from "$lib/kosui/chip";
@@ -29,6 +30,7 @@
 
   const inbox = getInboxContext();
   const { koso } = inbox;
+  const prefs = getPrefsContext();
 
   let rowElement: HTMLTableRowElement | undefined = $state();
   let taskStatus = $state<TaskStatus | undefined>();
@@ -106,7 +108,7 @@
       </Goto>
     </div>
   </td>
-  {#if koso.debug}
+  {#if prefs.debug}
     <td class={cn("border-t border-l p-2 text-xs lg:text-nowrap")}>
       {task.id}
     </td>

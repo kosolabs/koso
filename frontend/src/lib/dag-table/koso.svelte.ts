@@ -5,7 +5,6 @@ import {
   type Awareness,
   type AwarenessUpdate,
 } from "$lib/dag-table/awareness.svelte";
-import { useLocalStorage, type Storable } from "$lib/stores.svelte";
 import type { User } from "$lib/users";
 import { findEntryIndex } from "$lib/utils";
 import { Map, Record, Set } from "immutable";
@@ -104,7 +103,6 @@ export class Koso {
   #awareness: Awareness[] = $state([]);
   #awarenessSequence: number = 0;
 
-  #debug: Storable<boolean>;
   events: YEvent[] = $state.raw([]);
   #tasks: YTaskProxy[] = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -149,8 +147,6 @@ export class Koso {
         }
       },
     );
-
-    this.#debug = useLocalStorage("debug", false);
 
     this.#yIndexedDb.whenSynced.then(() => {
       this.#resolveIndexedDbSync();
@@ -291,14 +287,6 @@ export class Koso {
 
   get awareness(): Awareness[] {
     return this.#awareness;
-  }
-
-  get debug(): boolean {
-    return this.#debug.value;
-  }
-
-  set debug(value: boolean) {
-    this.#debug.value = value;
   }
 
   get parents(): Map<string, string[]> {

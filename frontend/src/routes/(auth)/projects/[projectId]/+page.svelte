@@ -15,11 +15,11 @@
   } from "$lib/dag-table";
   import { updateProject } from "$lib/projects";
 
+  const prefs = getPrefsContext();
   const auth = getAuthContext();
   const project = getProjectContext();
   const { koso } = project;
-  const planningCtx = newPlanningContext(koso);
-  const prefs = getPrefsContext();
+  const planningCtx = newPlanningContext(koso, prefs);
 
   async function saveEditedProjectName(name: string) {
     let updatedProject;

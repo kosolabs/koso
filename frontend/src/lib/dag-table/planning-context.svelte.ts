@@ -1,3 +1,4 @@
+import type { PrefsContext } from "$lib/components/ui/prefs";
 import { toast } from "$lib/components/ui/sonner";
 import { Koso, TaskLinkage } from "$lib/dag-table/koso.svelte";
 import { useLocalStorage, type Storable } from "$lib/stores.svelte";
@@ -7,6 +8,7 @@ import * as Y from "yjs";
 
 export class PlanningContext {
   #koso: Koso;
+  #prefs: PrefsContext;
   #root: Node;
 
   #yUndoManager: Y.UndoManager;
@@ -40,8 +42,9 @@ export class PlanningContext {
   #dropEffect: "copy" | "move" | "none" = $state("none");
   #focus: boolean = $state(false);
 
-  constructor(koso: Koso, root?: string) {
+  constructor(koso: Koso, prefs: PrefsContext, root?: string) {
     this.#koso = koso;
+    this.#prefs = prefs;
     this.#root = root ? Node.parse(root) : new Node();
 
     this.#yUndoManager = new Y.UndoManager(this.koso.graph.yGraph, {
@@ -397,7 +400,7 @@ export class PlanningContext {
 
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      if (this.koso.debug) {
+      if (this.#prefs.debug) {
         console.debug(
           `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
@@ -489,7 +492,7 @@ export class PlanningContext {
 
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      if (this.koso.debug) {
+      if (this.#prefs.debug) {
         console.debug(
           `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
         );
@@ -710,8 +713,12 @@ export class PlanningContext {
   }
 }
 
-export function newPlanningContext(koso: Koso, root?: string): PlanningContext {
-  const ctx = new PlanningContext(koso, root);
+export function newPlanningContext(
+  koso: Koso,
+  prefs: PrefsContext,
+  root?: string,
+): PlanningContext {
+  const ctx = new PlanningContext(koso, prefs, root);
   window.planningCtx = ctx;
   return setPlanningContext(ctx);
 }

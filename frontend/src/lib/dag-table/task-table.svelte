@@ -7,6 +7,7 @@
     Categories,
   } from "$lib/components/ui/command-palette/command-palette.svelte";
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
+  import { getPrefsContext } from "$lib/components/ui/prefs";
   import { toast } from "$lib/components/ui/sonner";
   import { Action } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
@@ -42,6 +43,7 @@
   };
   const { users }: Props = $props();
 
+  const prefs = getPrefsContext();
   const auth = getAuthContext();
   const projectCtx = getProjectContext();
   const command = getRegistryContext();
@@ -394,7 +396,7 @@
                 <div class="max-md:hidden">ID</div>
               </div>
             </th>
-            {#if koso.debug}
+            {#if prefs.debug}
               <th class="border-l p-2">UUID</th>
             {/if}
             <th class="border-l p-2">

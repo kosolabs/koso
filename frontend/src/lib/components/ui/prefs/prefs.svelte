@@ -1,16 +1,27 @@
 <script module lang="ts">
+  import { getRegistryContext } from "$lib/components/ui/command-palette";
   import type { DetailPanelState } from "$lib/components/ui/detail-panel";
+  import { Action } from "$lib/kosui/command";
   import { useLocalStorage, type Storable } from "$lib/stores.svelte";
-  import { getContext, setContext } from "svelte";
+  import { Bug, BugOff } from "lucide-svelte";
+  import type { Snippet } from "svelte";
+  import { getContext, onMount, setContext } from "svelte";
 
   export class PrefsContext {
+    #debug: Storable<boolean>;
     #detailPanel: Storable<DetailPanelState>;
 
     constructor() {
-      this.#detailPanel = useLocalStorage<DetailPanelState>(
-        "detail-panel",
-        "none",
-      );
+      this.#debug = useLocalStorage("debug", false);
+      this.#detailPanel = useLocalStorage("detail-panel", "none");
+    }
+
+    get debug() {
+      return this.#debug.value;
+    }
+
+    set debug(value: boolean) {
+      this.#debug.value = value;
     }
 
     get detailPanel() {
@@ -34,8 +45,6 @@
 </script>
 
 <script lang="ts">
-  import type { Snippet } from "svelte";
-
   type Props = {
     children: Snippet;
   };
@@ -43,6 +52,35 @@
 
   const ctx = new PrefsContext();
   setPrefsContext(ctx);
+
+  const command = getRegistryContext();
+
+  const actions: Action[] = [
+    new Action({
+      id: "EnableDebug",
+      callback: () => (ctx.debug = true),
+      category: "Dev",
+      name: "Enable Debug",
+      description: "Turn on Debug mode (for developers)",
+      icon: Bug,
+      enabled: () => localStorage.getItem("dev") === "true",
+      selected: () => ctx.debug,
+    }),
+    new Action({
+      id: "DisableDebug",
+      callback: () => (ctx.debug = false),
+      category: "Dev",
+      name: "Disable Debug",
+      description: "Turn off Debug mode (for developers)",
+      icon: BugOff,
+      enabled: () => localStorage.getItem("dev") === "true",
+      selected: () => !ctx.debug,
+    }),
+  ];
+
+  onMount(() => {
+    return command.register(...actions);
+  });
 </script>
 
 {@render children()}

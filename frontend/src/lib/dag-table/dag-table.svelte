@@ -7,6 +7,7 @@
     Categories,
   } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
+  import { getPrefsContext } from "$lib/components/ui/prefs";
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
   import { Action } from "$lib/kosui/command";
@@ -66,6 +67,7 @@
   const rows: { [key: string]: DagRow } = {};
 
   const command = getRegistryContext();
+  const prefs = getPrefsContext();
   const projectCtx = getProjectContext();
   const planningCtx = getPlanningContext();
   const { koso } = planningCtx;
@@ -787,7 +789,7 @@
                   <div class="max-md:hidden">ID</div>
                 </div>
               </th>
-              {#if koso.debug}
+              {#if prefs.debug}
                 <th class="border-l p-2">UUID</th>
               {/if}
               <th class="border-l p-2">
