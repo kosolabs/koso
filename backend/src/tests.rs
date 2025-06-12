@@ -484,13 +484,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
                 children: vec!["id2".to_string()],
                 assignee: Some("a@koso.app".to_string()),
                 reporter: Some("r@koso.app".to_string()),
-                status: None,
-                status_time: None,
-                url: None,
-                kind: None,
-                estimate: None,
-                deadline: None,
-                archived: None,
+                ..Task::default()
             },
         );
         ydoc_2.set(
@@ -503,13 +497,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
                 children: vec![],
                 assignee: Some("a@koso.app".to_string()),
                 reporter: Some("r@koso.app".to_string()),
-                status: None,
-                status_time: None,
-                url: None,
-                kind: None,
-                estimate: None,
-                deadline: None,
-                archived: None,
+                ..Task::default()
             },
         );
     }
@@ -633,17 +621,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
                 id: format!("id{i}"),
                 num: format!("{i}"),
                 name: format!("Task {i}"),
-                desc: None,
-                children: vec![],
-                assignee: None,
-                reporter: None,
-                status: None,
-                status_time: None,
-                url: None,
-                kind: None,
-                estimate: None,
-                deadline: None,
-                archived: None,
+                ..Task::default()
             },
         );
         let update = txn.encode_update_v2();
@@ -808,17 +786,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
                 id: "root".to_string(),
                 num: "0".to_string(),
                 name: "root".to_string(),
-                desc: None,
-                children: Vec::with_capacity(0),
-                assignee: None,
-                reporter: None,
-                status: None,
-                status_time: None,
-                url: None,
-                kind: None,
-                estimate: None,
-                deadline: None,
-                archived: None,
+                ..Task::default()
             },
         );
         socket

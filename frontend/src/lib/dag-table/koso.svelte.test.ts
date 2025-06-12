@@ -1,10 +1,15 @@
 import type { User } from "$lib/users";
-import type { Kind, Task } from "$lib/yproxy";
+import { defaultTask, type Task } from "$lib/yproxy";
 import { Set } from "immutable";
 import { uuidv4 } from "lib0/random.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { EMPTY_SYNC_RESPONSE, type TaskBuilder } from "../../../tests/utils";
+import {
+  buildTask,
+  EMPTY_SYNC_RESPONSE,
+  fullyPopulatedTask,
+  type TaskBuilder,
+} from "../../../tests/utils";
 import { Koso, TaskLinkage } from "./koso.svelte";
 import { Node } from "./planning-context.svelte";
 
@@ -29,39 +34,14 @@ describe("Koso tests", () => {
     const remainingTaskIds = childTaskIds.subtract(upsertedTaskIds);
     koso.doc.transact(() => {
       for (const task of tasks) {
-        koso.upsert({
-          id: task.id,
-          num: task.num ?? task.id,
-          name: task.name ?? `Task ${task.id}`,
-          desc: task.desc ?? null,
-          children: task.children ?? [],
-          assignee: task.assignee ?? null,
-          reporter: task.reporter ?? null,
-          status: task.status ?? null,
-          statusTime: task.statusTime ?? null,
-          kind: (task.kind as Kind) ?? null,
-          url: task.url ?? null,
-          estimate: task.estimate ?? null,
-          deadline: task.deadline ?? null,
-          archived: task.archived ?? null,
-        });
+        koso.upsert(buildTask(task));
       }
       for (const taskId of remainingTaskIds) {
         koso.upsert({
+          ...defaultTask(),
           id: taskId,
           num: taskId,
           name: `Task ${taskId}`,
-          desc: null,
-          children: [],
-          assignee: null,
-          reporter: null,
-          status: null,
-          statusTime: null,
-          kind: null,
-          url: null,
-          estimate: null,
-          deadline: null,
-          archived: null,
         });
       }
     });
@@ -371,36 +351,18 @@ describe("Koso tests", () => {
       });
       expect(koso.toJSON()).toEqual<{ [id: string]: Task }>({
         root: {
+          ...defaultTask(),
           id: "root",
           num: "0",
           name: "Root",
-          desc: null,
           children: [id1],
-          assignee: null,
-          reporter: null,
-          status: null,
-          statusTime: null,
-          kind: null,
-          url: null,
-          estimate: null,
-          deadline: null,
-          archived: null,
         },
         [id1]: {
+          ...defaultTask(),
           id: id1,
           num: "1",
           name: "Task 1",
-          desc: null,
-          children: [],
-          assignee: null,
           reporter: "t@koso.app",
-          status: null,
-          statusTime: null,
-          kind: null,
-          url: null,
-          estimate: null,
-          deadline: null,
-          archived: null,
         },
       });
     });
@@ -1026,42 +988,10 @@ describe("Koso tests", () => {
 
   describe("getTask", () => {
     it("retrieves task 1", () => {
-      init([
-        { id: "root", name: "Root", children: ["1"] },
-        {
-          id: "1",
-          num: "num",
-          name: "Task 1",
-          desc: "Task 1 description",
-          children: ["2"],
-          reporter: "r@koso.app",
-          assignee: "a@koso.app",
-          status: "In Progress",
-          statusTime: 123,
-          kind: "github",
-          url: "http://example.com/foo/bar",
-          estimate: 1,
-          deadline: 123,
-          archived: false,
-        },
-      ]);
+      const task: Task = fullyPopulatedTask();
+      init([{ id: "root", name: "Root", children: ["1"] }, task]);
 
-      expect(koso.getTask("1").toJSON()).toStrictEqual<Task>({
-        id: "1",
-        num: "num",
-        name: "Task 1",
-        desc: "Task 1 description",
-        children: ["2"],
-        reporter: "r@koso.app",
-        assignee: "a@koso.app",
-        status: "In Progress",
-        statusTime: 123,
-        kind: "github",
-        url: "http://example.com/foo/bar",
-        estimate: 1,
-        deadline: 123,
-        archived: false,
-      });
+      expect(koso.getTask("1").toJSON()).toStrictEqual<Task>(task);
     });
 
     it("invalid task id throws an exception", () => {

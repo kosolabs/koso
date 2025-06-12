@@ -1,25 +1,49 @@
 import type { Koso } from "$lib/dag-table/koso.svelte";
-import type { Estimate, Graph, Kind, Status } from "$lib/yproxy";
+import { defaultTask, type Graph, type Kind, type Task } from "$lib/yproxy";
 import { expect, request, type Page } from "@playwright/test";
 import * as encoding from "lib0/encoding";
 import * as Y from "yjs";
 
-export type TaskBuilder = {
-  id: string;
-  num?: string;
-  name?: string;
-  desc?: string;
-  children?: string[];
-  assignee?: string | null;
-  reporter?: string | null;
-  status?: Status | null;
-  statusTime?: number | null;
-  url?: string | null;
-  kind?: Kind | null;
-  estimate?: Estimate | null;
-  deadline?: number | null;
-  archived?: boolean | null;
-};
+export type TaskBuilder = Required<Pick<Task, "id">> & Partial<Task>;
+
+export function buildTask(task: TaskBuilder): Task {
+  return {
+    id: task.id,
+    num: task.num ?? task.id,
+    name: task.name ?? `Task ${task.id}`,
+    desc: task.desc ?? null,
+    children: task.children ?? [],
+    assignee: task.assignee ?? null,
+    reporter: task.reporter ?? null,
+    status: task.status ?? null,
+    statusTime: task.statusTime ?? null,
+    kind: (task.kind as Kind) ?? null,
+    url: task.url ?? null,
+    estimate: task.estimate ?? null,
+    deadline: task.deadline ?? null,
+    archived: task.archived ?? null,
+  };
+}
+
+export function fullyPopulatedTask(): Task {
+  // Populate all fields with non-null, non-empty values for testing.
+  return {
+    id: "1",
+    num: "num",
+    name: "Task 1",
+    desc: "Task 1 description",
+    children: ["2"],
+    reporter: "r@koso.app",
+    assignee: "a@koso.app",
+    status: "In Progress",
+    statusTime: 123,
+    kind: "github",
+    url: "http://example.com/foo/bar",
+    estimate: 1,
+    deadline: 123,
+    archived: false,
+  };
+}
 
 export async function getKosoGraph(page: Page): Promise<Graph> {
   return page.evaluate("koso.toJSON()");
@@ -156,39 +180,14 @@ export async function init(
 
       koso.doc.transact(() => {
         for (const task of tasks) {
-          koso.upsert({
-            id: task.id,
-            num: task.num ?? task.id,
-            name: task.name ?? "",
-            desc: task.desc ?? null,
-            children: task.children ?? [],
-            assignee: task.assignee ?? null,
-            reporter: task.reporter ?? null,
-            status: task.status ?? null,
-            statusTime: task.statusTime ?? null,
-            kind: task.kind ?? null,
-            url: task.url ?? null,
-            estimate: task.estimate ?? null,
-            deadline: task.deadline ?? null,
-            archived: task.archived ?? null,
-          });
+          koso.upsert(buildTask(task));
         }
         for (const taskId of remainingTaskIds) {
           koso.upsert({
+            ...defaultTask(),
             id: taskId,
             num: taskId,
             name: "",
-            desc: null,
-            children: [],
-            assignee: null,
-            reporter: null,
-            status: null,
-            statusTime: null,
-            kind: null,
-            url: null,
-            estimate: null,
-            deadline: null,
-            archived: null,
           });
         }
       });

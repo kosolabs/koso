@@ -56,6 +56,22 @@ export type Slice = {
   step?: number;
 };
 
+export function defaultTask(): Omit<Task, "id" | "num" | "name"> {
+  return {
+    desc: null,
+    children: [],
+    assignee: null,
+    reporter: null,
+    status: null,
+    statusTime: null,
+    kind: null,
+    url: null,
+    estimate: null,
+    deadline: null,
+    archived: null,
+  };
+}
+
 export class YGraphProxy {
   #yGraph: YGraph;
 

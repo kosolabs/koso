@@ -133,17 +133,8 @@ fn create_container(
             id: kind.id.to_string(),
             num: doc.next_num(txn)?.to_string(),
             name: kind.name.to_string(),
-            desc: None,
-            children: Vec::with_capacity(0),
-            assignee: None,
-            reporter: None,
-            status: None,
-            status_time: None,
-            url: None,
             kind: Some(kind.id.to_string()),
-            estimate: None,
-            deadline: None,
-            archived: None,
+            ..Task::default()
         },
     );
     container_parent.set_children(txn, &plugin_children);
@@ -186,17 +177,13 @@ fn new_task(external_task: &ExternalTask, num: u64, kind: &Kind) -> Result<Task>
         id,
         num: num.to_string(),
         name: external_task.name.clone(),
-        desc: None,
-        children: Vec::with_capacity(0),
         assignee: external_task.koso_user_email.clone(),
         reporter: external_task.koso_user_email.clone(),
         status: Some("In Progress".to_string()),
         status_time: Some(now()?),
         url: Some(external_task.url.clone()),
         kind: Some(kind.id.to_string()),
-        estimate: None,
-        deadline: None,
-        archived: None,
+        ..Task::default()
     })
 }
 

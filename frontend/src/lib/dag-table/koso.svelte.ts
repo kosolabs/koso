@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
+  defaultTask,
   YChildrenProxy,
   YGraphProxy,
   YTaskProxy,
@@ -516,20 +517,10 @@ export class Koso {
   upsertRoot() {
     this.doc.transact(() => {
       this.upsert({
+        ...defaultTask(),
         id: "root",
         num: "0",
         name: "Root",
-        desc: null,
-        children: [],
-        reporter: null,
-        assignee: null,
-        status: null,
-        statusTime: null,
-        kind: null,
-        url: null,
-        estimate: null,
-        deadline: null,
-        archived: null,
       });
     }, "koso.upsertRoot");
   }
@@ -879,20 +870,12 @@ export class Koso {
     const taskId = this.newId();
     this.doc.transact(() => {
       this.upsert({
+        ...defaultTask(),
         id: taskId,
         num: this.newNum(),
         name,
-        desc: null,
-        children: [],
         reporter,
         assignee,
-        status: null,
-        statusTime: null,
-        kind: null,
-        url: null,
-        estimate: null,
-        deadline: null,
-        archived: null,
       });
       this.link(new TaskLinkage({ parentId: parent, id: taskId }), offset);
     });

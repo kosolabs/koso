@@ -72,7 +72,7 @@ pub(crate) struct ProjectExport {
 
 pub(crate) type Graph = HashMap<String, Task>;
 
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Task {
     pub(crate) id: String,
@@ -89,4 +89,28 @@ pub(crate) struct Task {
     pub(crate) estimate: Option<i64>,
     pub(crate) deadline: Option<i64>,
     pub(crate) archived: Option<bool>,
+}
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+    use crate::api::model::Task;
+
+    pub(crate) fn new_with_fields_populated() -> Task {
+        Task {
+            id: "id1".to_string(),
+            num: "1".to_string(),
+            name: "Task 1".to_string(),
+            desc: Some("Task 1 description".to_string()),
+            children: vec!["2".to_string()],
+            assignee: Some("a@gmail.com".to_string()),
+            reporter: Some("r@gmail.com".to_string()),
+            status: Some("Done".to_string()),
+            status_time: Some(1),
+            url: Some("https://example.com/1".to_string()),
+            kind: Some("Kind1".to_string()),
+            estimate: Some(0),
+            deadline: Some(152),
+            archived: Some(false),
+        }
+    }
 }
