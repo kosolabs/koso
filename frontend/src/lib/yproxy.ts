@@ -260,7 +260,8 @@ export class YTaskProxy {
   }
 
   get archived(): boolean | null {
-    return (this.#yTask.get("archived") as boolean) || null;
+    const archived = this.#yTask.get("archived") as boolean;
+    return archived ?? null;
   }
 
   set archived(value: boolean | null) {

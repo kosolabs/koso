@@ -96,6 +96,7 @@ pub(crate) mod test_utils {
     use crate::api::model::Task;
 
     pub(crate) fn new_with_fields_populated() -> Task {
+        // Populate all fields with non-null, non-empty values for testing.
         Task {
             id: "id1".to_string(),
             num: "1".to_string(),
