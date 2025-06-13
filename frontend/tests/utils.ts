@@ -1,5 +1,5 @@
 import type { Koso } from "$lib/dag-table/koso.svelte";
-import { defaultTask, type Graph, type Kind, type Task } from "$lib/yproxy";
+import { type Graph, type Kind, type Task } from "$lib/yproxy";
 import { expect, request, type Page } from "@playwright/test";
 import * as encoding from "lib0/encoding";
 import * as Y from "yjs";
@@ -175,12 +175,11 @@ export async function init(
   const remainingTaskIds = childTaskIds.difference(upsertedTaskIds);
   tasks.push(
     ...remainingTaskIds.keys().map((taskId) => {
-      return {
-        ...defaultTask(),
+      return buildTask({
         id: taskId,
         num: taskId,
         name: "",
-      };
+      });
     }),
   );
 
