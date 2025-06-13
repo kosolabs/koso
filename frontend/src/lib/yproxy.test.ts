@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
+import { fullyPopulatedTask } from "../../tests/utils";
 import { defaultTask, YChildrenProxy, YGraphProxy, YTaskProxy } from "./yproxy";
 
 describe("YTaskProxy", () => {
@@ -17,6 +18,12 @@ describe("YTaskProxy", () => {
       name: "Task",
       children: ["child-1"],
     });
+  });
+
+  it("should handle set and get operations", () => {
+    const task = fullyPopulatedTask();
+    graph.set(task);
+    expect(graph.get(task.id)).toStrictEqual(task);
   });
 
   it("should handle description text operations", () => {
@@ -138,6 +145,16 @@ describe("YTaskProxy", () => {
         expect(task.isIteration()).toBeTruthy();
       });
     });
+  });
+
+  it("should handle archived operations", () => {
+    expect(task.archived).toBeNull();
+    task.archived = true;
+    expect(task.archived).toStrictEqual(true);
+    task.archived = false;
+    expect(task.archived).toStrictEqual(false);
+    task.archived = null;
+    expect(task.archived).toBeNull();
   });
 
   it("should handle subscribe/unsubscribe functionality", () => {
