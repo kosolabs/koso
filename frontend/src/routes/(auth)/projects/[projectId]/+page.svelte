@@ -19,7 +19,7 @@
   const auth = getAuthContext();
   const project = getProjectContext();
   const { koso } = project;
-  const planningCtx = newPlanningContext(koso, prefs);
+  const planningCtx = newPlanningContext(koso);
 
   async function saveEditedProjectName(name: string) {
     let updatedProject;

@@ -1,4 +1,3 @@
-import { PrefsContext } from "$lib/components/ui/prefs";
 import { defaultTask } from "$lib/yproxy";
 import { List, Set } from "immutable";
 import { uuidv4 } from "lib0/random.js";
@@ -15,7 +14,6 @@ import { Node, PlanningContext } from "./planning-context.svelte";
 describe("PlanningContext tests", () => {
   let root: Node;
   let koso: Koso;
-  let prefsCtx: PrefsContext;
   let planningCtx: PlanningContext;
 
   const init = (tasks: TaskBuilder[]) => {
@@ -40,8 +38,7 @@ describe("PlanningContext tests", () => {
   beforeEach((context) => {
     const cleanup = $effect.root(() => {
       koso = new Koso("project-id-" + uuidv4(), new Y.Doc());
-      prefsCtx = new PrefsContext();
-      planningCtx = new PlanningContext(koso, prefsCtx);
+      planningCtx = new PlanningContext(koso);
       root = planningCtx.root;
       koso.setSendAndSync(() => {});
       koso.receive(EMPTY_SYNC_RESPONSE);
