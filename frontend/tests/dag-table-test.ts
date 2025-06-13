@@ -2581,5 +2581,32 @@ test.describe("dag table tests", () => {
         1: { archived: false },
       });
     });
+
+    test("parents with only archived children hides toggle expand", async ({
+      page,
+    }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2", "3"] },
+        { id: "2", name: "Task 2", archived: true },
+        { id: "3", name: "Task 3", archived: true },
+      ]);
+
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeHidden();
+      await expect(page.getByRole("row", { name: "Task 3" })).toBeHidden();
+      await expect(
+        page.getByRole("button", { name: "Task 1 Toggle Expand" }),
+      ).toBeHidden();
+
+      await page.getByRole("button", { name: "Command Palette" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.keyboard.type("Show Archived");
+      await page.keyboard.press("Enter");
+
+      await page.getByRole("button", { name: "Task 1 Toggle Expand" }).click();
+
+      await expect(page.getByRole("row", { name: "Task 2" })).toBeVisible();
+      await expect(page.getByRole("row", { name: "Task 3" })).toBeVisible();
+    });
   });
 });

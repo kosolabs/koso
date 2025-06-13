@@ -347,6 +347,15 @@
     event.preventDefault();
     planningCtx.selected = node;
   }
+
+  function hasVisibleChildren(): boolean {
+    for (const child of task.children) {
+      if (planningCtx.isVisible(child, planningCtx.showArchived)) {
+        return true;
+      }
+    }
+    return false;
+  }
 </script>
 
 <tr
@@ -431,7 +440,7 @@
   <td class={cn("border-t px-2")} bind:this={idCellElement}>
     <div class="flex items-center">
       <div style="width: {(node.length - (isFullGraph ? 1 : 2)) * 20}px"></div>
-      {#if task.children.length > 0}
+      {#if hasVisibleChildren()}
         <button
           class={cn("w-4 transition-transform", open ? "rotate-90" : "")}
           title={open ? "Collapse" : "Expand"}
