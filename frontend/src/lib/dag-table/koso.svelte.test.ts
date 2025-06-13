@@ -2426,10 +2426,10 @@ describe("Koso tests", () => {
       { id: "1", name: "Task 1", archived: true },
     ]);
 
-    koso.setTaskArchived("2", false);
+    koso.setTaskArchived("1", false);
 
     expect(koso.toJSON()).toMatchObject({
-      ["2"]: {
+      ["1"]: {
         archived: false,
       },
     });
