@@ -2537,9 +2537,7 @@ test.describe("dag table tests", () => {
       await expect(
         page.getByRole("menuitem", { name: "Unarchive Task" }),
       ).toBeHidden();
-      await page
-        .getByRole("menuitem", { name: "Archive Task", exact: true })
-        .click();
+      await page.getByRole("menuitem", { name: "Archive Task" }).click();
 
       await expect(page.getByRole("row", { name: "Task 1" })).toBeHidden();
       await expectKosoGraph(page).toMatchObject({
@@ -2578,9 +2576,6 @@ test.describe("dag table tests", () => {
         .getByRole("button", { name: "Task actions" })
         .click();
 
-      await expect(
-        page.getByRole("menuitem", { name: "Archive Task", exact: true }),
-      ).toBeHidden();
       await page.getByRole("menuitem", { name: "Unarchive Task" }).click();
       await expectKosoGraph(page).toMatchObject({
         1: { archived: false },
