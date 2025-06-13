@@ -56,8 +56,8 @@
           assigned to you.
         </TooltipReason>
         <TooltipAction title="Complete the Task" score={reason.actions.done}>
-          {#if reason.task.isManaged()}
-            {#if reason.task.kind === "github_pr"}
+          {#if item.task.isManaged()}
+            {#if item.task.kind === "github_pr"}
               Merge the GitHub PR.
             {:else}
               Resolve the task in the external system.

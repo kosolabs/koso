@@ -15,7 +15,7 @@
   const project = getProjectContext();
   const { koso } = project;
   const prefs = getPrefsContext();
-  const inbox = setInboxContext(new InboxContext(auth, koso));
+  const inbox = setInboxContext(new InboxContext(auth.user, koso));
 
   let detailPanel: DetailPanel | undefined = $state();
 </script>
