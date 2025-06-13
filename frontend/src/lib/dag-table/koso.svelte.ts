@@ -83,6 +83,10 @@ export class Progress {
     return this.status === "Blocked";
   }
 
+  isReady(): boolean {
+    return this.status === "Ready";
+  }
+
   isChildrenIncomplete(): boolean {
     return this.childrenStatus !== null && this.childrenStatus !== "Done";
   }
@@ -988,8 +992,9 @@ export class Koso {
           );
           return true;
         } else {
-          toast.info(
-            "Task is immediately unblocked. Add a not done child first and then set the task to Blocked.",
+          toast.error(
+            "Cannot set task to blocked because the task has no incomplete children. Add an incomplete child first, or use the Block Task panel.",
+            { duration: 10000 },
           );
           return false;
         }

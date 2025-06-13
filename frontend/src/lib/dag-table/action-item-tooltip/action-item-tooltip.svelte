@@ -56,7 +56,15 @@
           assigned to you.
         </TooltipReason>
         <TooltipAction title="Complete the Task" score={reason.actions.done}>
-          Complete the task and set it's status to Done.
+          {#if reason.task.isManaged()}
+            {#if reason.task.kind === "github_pr"}
+              Merge the GitHub PR.
+            {:else}
+              Resolve the task in the external system.
+            {/if}
+          {:else}
+            Complete the task and set it's status to Done.
+          {/if}
         </TooltipAction>
         <TooltipAction title="Block the Task" score={reason.actions.block}>
           If the task is not currently actionable, block this task on another
