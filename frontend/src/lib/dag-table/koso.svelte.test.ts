@@ -2402,4 +2402,36 @@ describe("Koso tests", () => {
       });
     });
   });
+
+  describe("setTaskArchived", () => {
+    it("set task 1 as archived", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      koso.setTaskArchived("1", true);
+
+      expect(koso.toJSON()).toMatchObject({
+        ["1"]: {
+          archived: true,
+        },
+      });
+    });
+  });
+
+  it("set task 1 as unarchived", () => {
+    init([
+      { id: "root", name: "Root", children: ["1"] },
+      { id: "1", name: "Task 1", archived: true },
+    ]);
+
+    koso.setTaskArchived("2", false);
+
+    expect(koso.toJSON()).toMatchObject({
+      ["2"]: {
+        archived: false,
+      },
+    });
+  });
 });

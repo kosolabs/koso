@@ -2521,4 +2521,70 @@ test.describe("dag table tests", () => {
       );
     });
   });
+
+  test.describe("archiving tasks", () => {
+    test("archive task 1 by clicking action menu", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      await page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "Task actions" })
+        .click();
+
+      await expect(
+        page.getByRole("menuitem", { name: "Unarchive Task" }),
+      ).toBeHidden();
+      await page
+        .getByRole("menuitem", { name: "Archive Task", exact: true })
+        .click();
+
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeHidden();
+      await expectKosoGraph(page).toMatchObject({
+        1: { archived: true },
+      });
+
+      await page.getByRole("button", { name: "Command Palette" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.keyboard.type("Show Archived");
+      await page.keyboard.press("Enter");
+
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeVisible();
+
+      await page.getByRole("button", { name: "Command Palette" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.keyboard.type("Hide Archived");
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeHidden();
+    });
+
+    test("unarchive task 1 by clicking action menu", async ({ page }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", archived: true },
+      ]);
+
+      await expect(page.getByRole("row", { name: "Task 1" })).toBeHidden();
+
+      await page.getByRole("button", { name: "Command Palette" }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.keyboard.type("Show Archived");
+      await page.keyboard.press("Enter");
+
+      await page
+        .getByRole("row", { name: "Task 1" })
+        .getByRole("button", { name: "Task actions" })
+        .click();
+
+      await expect(
+        page.getByRole("menuitem", { name: "Archive Task", exact: true }),
+      ).toBeHidden();
+      await page.getByRole("menuitem", { name: "Unarchive Task" }).click();
+      await expectKosoGraph(page).toMatchObject({
+        1: { archived: false },
+      });
+    });
+  });
 });
