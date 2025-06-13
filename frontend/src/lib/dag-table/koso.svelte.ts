@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import {
+  defaultTask,
   YChildrenProxy,
   YGraphProxy,
   YTaskProxy,
@@ -516,19 +517,10 @@ export class Koso {
   upsertRoot() {
     this.doc.transact(() => {
       this.upsert({
+        ...defaultTask(),
         id: "root",
         num: "0",
         name: "Root",
-        desc: null,
-        children: [],
-        reporter: null,
-        assignee: null,
-        status: null,
-        statusTime: null,
-        kind: null,
-        url: null,
-        estimate: null,
-        deadline: null,
       });
     }, "koso.upsertRoot");
   }
@@ -878,19 +870,12 @@ export class Koso {
     const taskId = this.newId();
     this.doc.transact(() => {
       this.upsert({
+        ...defaultTask(),
         id: taskId,
         num: this.newNum(),
         name,
-        desc: null,
-        children: [],
         reporter,
         assignee,
-        status: null,
-        statusTime: null,
-        kind: null,
-        url: null,
-        estimate: null,
-        deadline: null,
       });
       this.link(new TaskLinkage({ parentId: parent, id: taskId }), offset);
     });
@@ -963,6 +948,7 @@ export class Koso {
   setTaskStatus(taskId: string, status: Status, user: User): boolean {
     return this.doc.transact(() => {
       const task = this.getTask(taskId);
+
       if (task.yStatus === status) return false;
 
       // When a task is marked done, make it the last child
@@ -1047,6 +1033,13 @@ export class Koso {
     }
   }
 
+  setTaskArchived(taskId: string, archived: boolean) {
+    const task = this.getTask(taskId);
+    if (!!task.archived !== archived) {
+      task.archived = archived;
+    }
+  }
+
   getTaskPermalink(taskId: string) {
     const curr = page.url;
     curr.pathname = `/projects/${this.projectId}`;
@@ -1079,21 +1072,49 @@ export class Koso {
     const parent = this.getTask(parentTaskId);
     // Sort tasks by status, otherwise
     // leaving the ordering unchanged thanks to sort() being stable.
-    const children = parent.children
-      .toArray()
-      .map((taskId) => ({
-        taskId,
-        progress: this.getProgress(taskId),
-      }))
-      .sort((c1, c2) => {
-        const status1 = mapStatus(c1.progress.status);
-        const status2 = mapStatus(c2.progress.status);
-        return status1 - status2;
-      })
-      .map((c) => c.taskId);
+    const children = parent.children.toArray().map((taskId) => ({
+      taskId,
+      progress: this.getProgress(taskId),
+    }));
 
     this.doc.transact(() => {
-      parent.children.replace(children);
+      // Archive any tasks that have been Done for awhile.
+      const now = Date.now();
+      children.forEach(({ taskId, progress }) => {
+        if (progress.status === "Done") {
+          const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+          const stale = now - progress.lastStatusTime > fourteenDays;
+          if (stale) {
+            const task = this.getTask(taskId);
+            if (!task.archived) {
+              console.log("Archiving");
+              task.archived = true;
+            }
+          }
+        }
+      });
+
+      // It's important to sort after archiving because sorting
+      // depends on a tasks' archived state.
+      const sortedChildren = children
+        .map(({ taskId, progress }) => {
+          return {
+            taskId,
+            progress,
+            archived: this.getTask(taskId).archived,
+          };
+        })
+        .sort((c1, c2) => {
+          // Order non-archived tasks ahead of archived ones.
+          if (!!c1.archived !== !!c2.archived) {
+            return c1.archived ? 1 : -1;
+          }
+          const status1 = mapStatus(c1.progress.status);
+          const status2 = mapStatus(c2.progress.status);
+          return status1 - status2;
+        })
+        .map(({ taskId }) => taskId);
+      parent.children.replace(sortedChildren);
     });
   }
 }

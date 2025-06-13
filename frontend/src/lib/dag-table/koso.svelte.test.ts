@@ -1,10 +1,15 @@
 import type { User } from "$lib/users";
-import type { Kind, Task } from "$lib/yproxy";
+import { defaultTask, type Task } from "$lib/yproxy";
 import { Set } from "immutable";
 import { uuidv4 } from "lib0/random.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { EMPTY_SYNC_RESPONSE, type TaskBuilder } from "../../../tests/utils";
+import {
+  buildTask,
+  EMPTY_SYNC_RESPONSE,
+  fullyPopulatedTask,
+  type TaskBuilder,
+} from "../../../tests/utils";
 import { Koso, TaskLinkage } from "./koso.svelte";
 import { Node } from "./planning-context.svelte";
 
@@ -29,37 +34,14 @@ describe("Koso tests", () => {
     const remainingTaskIds = childTaskIds.subtract(upsertedTaskIds);
     koso.doc.transact(() => {
       for (const task of tasks) {
-        koso.upsert({
-          id: task.id,
-          num: task.num ?? task.id,
-          name: task.name ?? `Task ${task.id}`,
-          desc: task.desc ?? null,
-          children: task.children ?? [],
-          assignee: task.assignee ?? null,
-          reporter: task.reporter ?? null,
-          status: task.status ?? null,
-          statusTime: task.statusTime ?? null,
-          kind: (task.kind as Kind) ?? null,
-          url: task.url ?? null,
-          estimate: task.estimate ?? null,
-          deadline: task.deadline ?? null,
-        });
+        koso.upsert(buildTask(task));
       }
       for (const taskId of remainingTaskIds) {
         koso.upsert({
+          ...defaultTask(),
           id: taskId,
           num: taskId,
           name: `Task ${taskId}`,
-          desc: null,
-          children: [],
-          assignee: null,
-          reporter: null,
-          status: null,
-          statusTime: null,
-          kind: null,
-          url: null,
-          estimate: null,
-          deadline: null,
         });
       }
     });
@@ -369,34 +351,18 @@ describe("Koso tests", () => {
       });
       expect(koso.toJSON()).toEqual<{ [id: string]: Task }>({
         root: {
+          ...defaultTask(),
           id: "root",
           num: "0",
           name: "Root",
-          desc: null,
           children: [id1],
-          assignee: null,
-          reporter: null,
-          status: null,
-          statusTime: null,
-          kind: null,
-          url: null,
-          estimate: null,
-          deadline: null,
         },
         [id1]: {
+          ...defaultTask(),
           id: id1,
           num: "1",
           name: "Task 1",
-          desc: null,
-          children: [],
-          assignee: null,
           reporter: "t@koso.app",
-          status: null,
-          statusTime: null,
-          kind: null,
-          url: null,
-          estimate: null,
-          deadline: null,
         },
       });
     });
@@ -1022,40 +988,10 @@ describe("Koso tests", () => {
 
   describe("getTask", () => {
     it("retrieves task 1", () => {
-      init([
-        { id: "root", name: "Root", children: ["1"] },
-        {
-          id: "1",
-          num: "num",
-          name: "Task 1",
-          desc: "Task 1 description",
-          children: ["2"],
-          reporter: "r@koso.app",
-          assignee: "a@koso.app",
-          status: "In Progress",
-          statusTime: 123,
-          kind: "github",
-          url: "http://example.com/foo/bar",
-          estimate: 1,
-          deadline: 123,
-        },
-      ]);
+      const task: Task = fullyPopulatedTask();
+      init([{ id: "root", name: "Root", children: ["1"] }, task]);
 
-      expect(koso.getTask("1").toJSON()).toStrictEqual<Task>({
-        id: "1",
-        num: "num",
-        name: "Task 1",
-        desc: "Task 1 description",
-        children: ["2"],
-        reporter: "r@koso.app",
-        assignee: "a@koso.app",
-        status: "In Progress",
-        statusTime: 123,
-        kind: "github",
-        url: "http://example.com/foo/bar",
-        estimate: 1,
-        deadline: 123,
-      });
+      expect(koso.getTask("1").toJSON()).toStrictEqual<Task>(task);
     });
 
     it("invalid task id throws an exception", () => {
@@ -2334,6 +2270,78 @@ describe("Koso tests", () => {
       });
     });
 
+    it("sorts peer tasks by archived", () => {
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8"],
+        },
+        { id: "t1", status: "Not Started", archived: true },
+        { id: "t2", status: "Not Started", archived: false },
+        { id: "t3", status: "Done", archived: true },
+        { id: "t4", status: "Done", statusTime: Date.now() },
+        { id: "t5", status: "Blocked", archived: false },
+        { id: "t6", status: "Blocked" },
+        { id: "t7", status: "In Progress", archived: true },
+        { id: "t8", status: "In Progress" },
+      ]);
+
+      koso.organizeTasks("root");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: { children: ["t8", "t2", "t5", "t6", "t4", "t7", "t1", "t3"] },
+      });
+    });
+
+    it("archives and sorts by archived state", () => {
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000;
+      const ancient = now - 15 * oneDay;
+      const recent = now - 2 * oneDay;
+      init([
+        {
+          id: "root",
+          name: "Root",
+          children: ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t10", "t13"],
+        },
+        { id: "t1", status: "In Progress", statusTime: ancient },
+        { id: "t2", status: "In Progress", statusTime: recent },
+        { id: "t3", status: "Done", statusTime: ancient },
+        { id: "t4", status: "Done", statusTime: ancient },
+        { id: "t5", status: "Done", statusTime: recent },
+        { id: "t6", status: "Done", statusTime: null },
+        // Done, recent rollup
+        { id: "t7", statusTime: null, children: ["t8", "t9"] },
+        { id: "t8", status: "Done", statusTime: ancient },
+        { id: "t9", status: "Done", statusTime: recent },
+        // Done, ancient rollup
+        { id: "t10", statusTime: null, children: ["t11", "t12"] },
+        { id: "t11", status: "Done", statusTime: ancient },
+        { id: "t12", status: "Done", statusTime: ancient },
+        // In Progress, recent rollup
+        { id: "t13", statusTime: null, children: ["t14"] },
+        { id: "t14", status: "In Progress", statusTime: ancient },
+      ]);
+
+      koso.organizeTasks("root");
+
+      expect(koso.toJSON()).toMatchObject({
+        root: {
+          children: ["t1", "t2", "t13", "t5", "t7", "t3", "t4", "t6", "t10"],
+        },
+        t1: { archived: null },
+        t2: { archived: null },
+        t3: { archived: true },
+        t4: { archived: true },
+        t5: { archived: null },
+        t6: { archived: true },
+        t7: { archived: null },
+        t10: { archived: true },
+        t13: { archived: null },
+      });
+    });
+
     it("sort is stable", () => {
       init([
         {
@@ -2392,6 +2400,38 @@ describe("Koso tests", () => {
           children: ["t1", "t2", "t3", "t4"],
         },
       });
+    });
+  });
+
+  describe("setTaskArchived", () => {
+    it("set task 1 as archived", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1" },
+      ]);
+
+      koso.setTaskArchived("1", true);
+
+      expect(koso.toJSON()).toMatchObject({
+        ["1"]: {
+          archived: true,
+        },
+      });
+    });
+  });
+
+  it("set task 1 as unarchived", () => {
+    init([
+      { id: "root", name: "Root", children: ["1"] },
+      { id: "1", name: "Task 1", archived: true },
+    ]);
+
+    koso.setTaskArchived("1", false);
+
+    expect(koso.toJSON()).toMatchObject({
+      ["1"]: {
+        archived: false,
+      },
     });
   });
 });

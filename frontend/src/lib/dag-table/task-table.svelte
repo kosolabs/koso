@@ -14,6 +14,8 @@
   import { CANCEL } from "$lib/shortcuts";
   import type { User } from "$lib/users";
   import {
+    Archive,
+    ArchiveRestore,
     Cable,
     Check,
     CircleGauge,
@@ -73,6 +75,16 @@
   function remove() {
     if (!inbox.selected) return;
     koso.deleteTask(inbox.selected.id);
+  }
+
+  function archive() {
+    if (!inbox.selected) return;
+    koso.setTaskArchived(inbox.selected.id, true);
+  }
+
+  function unarchive() {
+    if (!inbox.selected) return;
+    koso.setTaskArchived(inbox.selected.id, false);
   }
 
   function unselect() {
@@ -242,6 +254,28 @@
       icon: Share,
       shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
       enabled: () => !!inbox.selected,
+    }),
+    new Action({
+      id: ActionIds.Archive,
+      callback: archive,
+      category: Categories.Edit,
+      name: "Archive Task",
+      description: "Archive the current task",
+      icon: Archive,
+      shortcut: new Shortcut({ key: "e" }),
+      enabled: () =>
+        !!inbox.selected && !koso.getTask(inbox.selected.id).archived,
+    }),
+    new Action({
+      id: ActionIds.Unarchive,
+      callback: unarchive,
+      category: Categories.Edit,
+      name: "Unarchive Task",
+      description: "Unarchive the current task",
+      icon: ArchiveRestore,
+      shortcut: new Shortcut({ key: "e", meta: true }),
+      enabled: () =>
+        !!inbox.selected && !!koso.getTask(inbox.selected.id).archived,
     }),
 
     new Action({

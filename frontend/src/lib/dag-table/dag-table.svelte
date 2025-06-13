@@ -16,6 +16,8 @@
   import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
   import type { User } from "$lib/users";
   import {
+    Archive,
+    ArchiveRestore,
     Cable,
     Check,
     ChevronsDownUp,
@@ -163,6 +165,14 @@
     }
   }
 
+  function archive() {
+    if (!planningCtx.selected) return;
+    koso.setTaskArchived(planningCtx.selected.name, true);
+  }
+  function unarchive() {
+    if (!planningCtx.selected) return;
+    koso.setTaskArchived(planningCtx.selected.name, false);
+  }
   function edit() {
     if (!planningCtx.selected) return;
     getRow(planningCtx.selected).edit(true);
@@ -212,12 +222,12 @@
     planningCtx.collapse(planningCtx.selected);
   }
 
-  function showDoneTasks() {
-    planningCtx.showDone = true;
+  function showArchivedTasks() {
+    planningCtx.showArchived = true;
   }
 
-  function hideDoneTasks() {
-    planningCtx.showDone = false;
+  function hideArchivedTasks() {
+    planningCtx.showArchived = false;
   }
 
   function selectNext() {
@@ -529,22 +539,22 @@
       icon: ChevronsDownUp,
     }),
     new Action({
-      id: ActionIds.HideDoneTasks,
-      callback: hideDoneTasks,
+      id: ActionIds.HideArchivedTasks,
+      callback: hideArchivedTasks,
       category: Categories.View,
-      name: "Hide Done Tasks",
-      description: "Hide tasks that have been marked done",
+      name: "Hide Archived Tasks",
+      description: "Hide tasks that have been marked archived",
       icon: EyeOff,
-      enabled: () => planningCtx.showDone,
+      enabled: () => planningCtx.showArchived,
     }),
     new Action({
-      id: ActionIds.ShowDoneTasks,
-      callback: showDoneTasks,
+      id: ActionIds.ShowArchivedTasks,
+      callback: showArchivedTasks,
       category: Categories.View,
-      name: "Show Done Tasks",
-      description: "Show tasks that have been marked done",
+      name: "Show Archived Tasks",
+      description: "Show tasks that have been archived",
       icon: Eye,
-      enabled: () => !planningCtx.showDone,
+      enabled: () => !planningCtx.showArchived,
     }),
 
     new Action({
@@ -614,6 +624,30 @@
       icon: Share,
       shortcut: new Shortcut({ key: "c", meta: true, shift: true }),
       enabled: () => !!planningCtx.selected,
+    }),
+    new Action({
+      id: ActionIds.Archive,
+      callback: archive,
+      category: Categories.Edit,
+      name: "Archive Task",
+      description: "Archive the current task",
+      icon: Archive,
+      shortcut: new Shortcut({ key: "e" }),
+      enabled: () =>
+        !!planningCtx.selected &&
+        !koso.getTask(planningCtx.selected.name).archived,
+    }),
+    new Action({
+      id: ActionIds.Unarchive,
+      callback: unarchive,
+      category: Categories.Edit,
+      name: "Unarchive Task",
+      description: "Unarchive the current task",
+      icon: ArchiveRestore,
+      shortcut: new Shortcut({ key: "e", meta: true }),
+      enabled: () =>
+        !!planningCtx.selected &&
+        !!koso.getTask(planningCtx.selected.name).archived,
     }),
 
     new Action({

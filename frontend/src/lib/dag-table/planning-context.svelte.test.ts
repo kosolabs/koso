@@ -1,10 +1,14 @@
 import { PrefsContext } from "$lib/components/ui/prefs";
-import type { Kind } from "$lib/yproxy";
+import { defaultTask } from "$lib/yproxy";
 import { List, Set } from "immutable";
 import { uuidv4 } from "lib0/random.js";
 import { beforeEach, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { EMPTY_SYNC_RESPONSE, type TaskBuilder } from "../../../tests/utils";
+import {
+  buildTask,
+  EMPTY_SYNC_RESPONSE,
+  type TaskBuilder,
+} from "../../../tests/utils";
 import { Koso } from "./koso.svelte";
 import { Node, PlanningContext } from "./planning-context.svelte";
 
@@ -20,37 +24,14 @@ describe("PlanningContext tests", () => {
     const remainingTaskIds = childTaskIds.subtract(upsertedTaskIds);
     koso.doc.transact(() => {
       for (const task of tasks) {
-        koso.upsert({
-          id: task.id,
-          num: task.num ?? task.id,
-          name: task.name ?? `Task ${task.id}`,
-          desc: null,
-          children: task.children ?? [],
-          assignee: task.assignee ?? null,
-          reporter: task.reporter ?? null,
-          status: task.status ?? null,
-          statusTime: task.statusTime ?? null,
-          kind: (task.kind as Kind) ?? null,
-          url: task.url ?? null,
-          estimate: task.estimate ?? null,
-          deadline: task.deadline ?? null,
-        });
+        koso.upsert(buildTask(task));
       }
       for (const taskId of remainingTaskIds) {
         koso.upsert({
+          ...defaultTask(),
           id: taskId,
           num: taskId,
           name: `Task ${taskId}`,
-          desc: null,
-          children: [],
-          assignee: null,
-          reporter: null,
-          status: null,
-          statusTime: null,
-          kind: null,
-          url: null,
-          estimate: null,
-          deadline: null,
         });
       }
     });
@@ -440,7 +421,7 @@ describe("PlanningContext tests", () => {
     it("doc with non-visible tasks returns root", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
-        { id: "1", name: "Task 1", status: "Done" },
+        { id: "1", name: "Task 1", status: "Done", archived: true },
       ]);
       expect(planningCtx.nodes).toStrictEqual(List([root]));
     });

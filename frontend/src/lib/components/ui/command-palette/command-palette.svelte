@@ -23,6 +23,7 @@
   };
 
   export const ActionIds = {
+    Archive: "Archive",
     Block: "Block",
     Clear: "Clear",
     Collapse: "Collapse",
@@ -42,7 +43,7 @@
     Expand: "Expand",
     ExpandAll: "ExpandAll",
     ExportProject: "ExportProject",
-    HideDoneTasks: "HideDoneTasks",
+    HideArchivedTasks: "HideArchivedTasks",
     Home: "Home",
     InboxView: "InboxView",
     Indent: "Indent",
@@ -69,10 +70,11 @@
     Redo: "Redo",
     Search: "Search",
     ShareProject: "ShareProject",
-    ShowDoneTasks: "ShowDoneTasks",
+    ShowArchivedTasks: "ShowArchivedTasks",
     Storybook: "Storybook",
     SystemTheme: "SystemTheme",
     ToggleTaskStatus: "ToggleTaskStatus",
+    Unarchive: "Unarchive",
     Undent: "Undent",
     Undo: "Undo",
   };

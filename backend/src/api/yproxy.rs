@@ -60,6 +60,7 @@ impl YDocProxy {
         y_task.set_kind(txn, task.kind.as_deref());
         y_task.set_estimate(txn, task.estimate);
         y_task.set_deadline(txn, task.deadline);
+        y_task.set_archived(txn, task.archived);
         y_task
     }
 
@@ -162,6 +163,7 @@ impl YTaskProxy {
             kind: self.get_kind(txn)?,
             estimate: self.get_estimate(txn)?,
             deadline: self.get_deadline(txn)?,
+            archived: self.get_archived(txn)?,
         })
     }
 
@@ -192,6 +194,17 @@ impl YTaskProxy {
             return Err(anyhow!("field is missing: {field}"));
         };
         Ok(result)
+    }
+
+    fn get_optional_bool<T: ReadTxn>(&self, txn: &T, field: &str) -> Result<Option<bool>> {
+        let Some(result) = self.y_task.get(txn, field) else {
+            return Ok(None);
+        };
+        match result {
+            Out::Any(Any::Bool(result)) => Ok(Some(result)),
+            Out::Any(Any::Null) | Out::Any(Any::Undefined) => Ok(None),
+            _ => Err(anyhow!("invalid field: {field}: {result:?}")),
+        }
     }
 
     pub fn get_id<T: ReadTxn>(&self, txn: &T) -> Result<String> {
@@ -395,6 +408,13 @@ impl YTaskProxy {
     pub fn set_deadline(&self, txn: &mut TransactionMut, status_time: Option<i64>) {
         self.y_task.try_update(txn, "deadline", status_time);
     }
+    pub fn get_archived<T: ReadTxn>(&self, txn: &T) -> Result<Option<bool>> {
+        self.get_optional_bool(txn, "archived")
+    }
+
+    pub fn set_archived(&self, txn: &mut TransactionMut, status_time: Option<bool>) {
+        self.y_task.try_update(txn, "archived", status_time);
+    }
 
     pub fn is_rollup<T: ReadTxn>(&self, txn: &T) -> Result<bool> {
         Ok(match self.get_kind(txn)? {
@@ -413,103 +433,68 @@ impl YTaskProxy {
 
 #[cfg(test)]
 mod tests {
-    use crate::api::collab::txn_origin::{self, YOrigin};
+    use crate::api::{
+        collab::txn_origin::{self, YOrigin},
+        model::test_utils::new_with_fields_populated,
+    };
 
     use super::*;
 
     #[test]
     fn set_and_get_task_succeeds() {
         let ydoc = YDocProxy::new();
-        let origin = YOrigin {
+
+        let task = new_with_fields_populated();
+        {
+            let mut txn = ydoc.transact_mut_with(origin());
+            ydoc.set(&mut txn, &task);
+
+            assert_eq!(ydoc.get(&txn, "id1").unwrap().to_task(&txn).unwrap(), task)
+        }
+
+        // Mutate a few fields.
+        let task = Task {
+            name: "Task 1-edited".to_string(),
+            children: vec!["2".to_string(), "3".to_string()],
+            estimate: Some(8),
+            archived: Some(true),
+            ..task
+        };
+        {
+            let mut txn = ydoc.transact_mut_with(origin());
+            ydoc.set(&mut txn, &task);
+        }
+
+        let txn = ydoc.transact();
+        let y_task = ydoc.get(&txn, "id1").unwrap();
+        assert_eq!(y_task.to_task(&txn).unwrap(), task)
+    }
+
+    #[test]
+    fn set_and_get_only_required_fields_succeeds() {
+        let ydoc = YDocProxy::new();
+
+        let task = Task {
+            id: "id1".to_string(),
+            num: "1".to_string(),
+            name: "Task 1".to_string(),
+            ..Task::default()
+        };
+        {
+            let mut txn = ydoc.transact_mut_with(origin());
+            ydoc.set(&mut txn, &task);
+
+            assert_eq!(ydoc.get(&txn, "id1").unwrap().to_task(&txn).unwrap(), task)
+        }
+    }
+
+    fn origin() -> Origin {
+        YOrigin {
             who: "set_and_get_task_succeeds".to_string(),
             id: "test".to_string(),
             actor: txn_origin::Actor::Server,
         }
         .as_origin()
-        .unwrap();
-
-        {
-            let mut txn = ydoc.transact_mut_with(origin.clone());
-            ydoc.set(
-                &mut txn,
-                &Task {
-                    id: "id1".to_string(),
-                    num: "1".to_string(),
-                    name: "Task 1".to_string(),
-                    desc: Some("Task 1 description".to_string()),
-                    children: vec!["2".to_string()],
-                    assignee: Some("a@gmail.com".to_string()),
-                    reporter: Some("r@gmail.com".to_string()),
-                    status: Some("Done".to_string()),
-                    status_time: Some(1),
-                    url: Some("https://example.com/1".to_string()),
-                    kind: Some("Kind1".to_string()),
-                    estimate: Some(0),
-                    deadline: Some(152),
-                },
-            );
-
-            assert_eq!(
-                ydoc.get(&txn, "id1").unwrap().to_task(&txn).unwrap(),
-                Task {
-                    id: "id1".to_string(),
-                    num: "1".to_string(),
-                    name: "Task 1".to_string(),
-                    desc: Some("Task 1 description".to_string()),
-                    children: vec!["2".to_string()],
-                    assignee: Some("a@gmail.com".to_string()),
-                    reporter: Some("r@gmail.com".to_string()),
-                    status: Some("Done".to_string()),
-                    status_time: Some(1),
-                    url: Some("https://example.com/1".to_string()),
-                    kind: Some("Kind1".to_string()),
-                    estimate: Some(0),
-                    deadline: Some(152),
-                }
-            )
-        }
-
-        {
-            let mut txn = ydoc.transact_mut_with(origin.clone());
-            ydoc.set(
-                &mut txn,
-                &Task {
-                    id: "id1".to_string(),
-                    num: "1".to_string(),
-                    name: "Task 1-edited".to_string(),
-                    desc: Some("Task 1 description".to_string()),
-                    children: vec!["2".to_string(), "3".to_string()],
-                    assignee: Some("a@gmail.com".to_string()),
-                    reporter: Some("r@gmail.com".to_string()),
-                    status: Some("Done".to_string()),
-                    status_time: Some(1),
-                    url: Some("https://example.com/1".to_string()),
-                    kind: Some("Kind1".to_string()),
-                    estimate: Some(8),
-                    deadline: Some(152),
-                },
-            );
-        }
-
-        let txn = ydoc.transact();
-        let y_task = ydoc.get(&txn, "id1").unwrap();
-        assert_eq!(
-            y_task.to_task(&txn).unwrap(),
-            Task {
-                id: "id1".to_string(),
-                num: "1".to_string(),
-                name: "Task 1-edited".to_string(),
-                desc: Some("Task 1 description".to_string()),
-                children: vec!["2".to_string(), "3".to_string()],
-                assignee: Some("a@gmail.com".to_string()),
-                reporter: Some("r@gmail.com".to_string()),
-                status: Some("Done".to_string()),
-                status_time: Some(1),
-                url: Some("https://example.com/1".to_string()),
-                kind: Some("Kind1".to_string()),
-                estimate: Some(8),
-                deadline: Some(152),
-            }
-        )
+        .unwrap()
     }
 }

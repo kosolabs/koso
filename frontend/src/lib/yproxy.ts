@@ -5,7 +5,7 @@ import * as Y from "yjs";
 export type YEvent = Y.YEvent<any>;
 export type YGraph = Y.Map<YTask>;
 export type YTask = Y.Map<YTaskProps>;
-export type YTaskProps = YChildren | Y.Text | string | number | null;
+export type YTaskProps = YChildren | Y.Text | string | number | boolean | null;
 export type YChildren = Y.Array<string>;
 
 export type Graph = { [id: string]: Task };
@@ -32,6 +32,7 @@ export type Task = {
   estimate: Estimate | null;
   // When this task is targetted for completion.
   deadline: number | null;
+  archived: boolean | null;
 };
 export type Status =
   | "Not Started"
@@ -54,6 +55,22 @@ export type Slice = {
   end?: number;
   step?: number;
 };
+
+export function defaultTask(): Omit<Task, "id" | "num" | "name"> {
+  return {
+    desc: null,
+    children: [],
+    assignee: null,
+    reporter: null,
+    status: null,
+    statusTime: null,
+    kind: null,
+    url: null,
+    estimate: null,
+    deadline: null,
+    archived: null,
+  };
+}
 
 export class YGraphProxy {
   #yGraph: YGraph;
@@ -102,6 +119,7 @@ export class YGraphProxy {
       ["url", task.url],
       ["estimate", task.estimate],
       ["deadline", task.deadline],
+      ["archived", task.archived],
     ]);
     this.#yGraph.set(task.id, value);
     return new YTaskProxy(value);
@@ -239,6 +257,14 @@ export class YTaskProxy {
 
   set deadline(value: number | null) {
     this.#yTask.set("deadline", value);
+  }
+
+  get archived(): boolean | null {
+    return (this.#yTask.get("archived") as boolean) || null;
+  }
+
+  set archived(value: boolean | null) {
+    this.#yTask.set("archived", value);
   }
 
   isLeaf(): boolean {

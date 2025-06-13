@@ -236,31 +236,13 @@ mod tests {
             id: "id1".into(),
             num: "1".into(),
             name: "name1".into(),
-            desc: None,
-            children: vec![],
-            assignee: None,
-            reporter: None,
-            status: None,
-            status_time: None,
-            url: None,
-            kind: None,
-            estimate: None,
-            deadline: None,
+            ..Task::default()
         };
         let mut task2 = Task {
             id: "id2".into(),
             num: "1".into(),
             name: "name2".into(),
-            desc: None,
-            children: vec![],
-            assignee: None,
-            reporter: None,
-            status: None,
-            status_time: None,
-            url: None,
-            kind: None,
-            estimate: None,
-            deadline: None,
+            ..Task::default()
         };
         let origin = YOrigin {
             who: "graph_observer_test".into(),

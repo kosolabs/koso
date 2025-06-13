@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
-import { YChildrenProxy, YGraphProxy, YTaskProxy } from "./yproxy";
+import { defaultTask, YChildrenProxy, YGraphProxy, YTaskProxy } from "./yproxy";
 
 describe("YTaskProxy", () => {
   let doc: Y.Doc;
@@ -11,19 +11,11 @@ describe("YTaskProxy", () => {
     doc = new Y.Doc();
     graph = new YGraphProxy(doc.getMap("graph"));
     task = graph.set({
+      ...defaultTask(),
       id: "task-1",
       num: "1",
       name: "Task",
-      desc: null,
       children: ["child-1"],
-      assignee: null,
-      reporter: null,
-      status: null,
-      statusTime: null,
-      kind: null,
-      url: null,
-      estimate: null,
-      deadline: null,
     });
   });
 
