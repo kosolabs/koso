@@ -203,16 +203,10 @@ fn update_task(
 ) -> Result<()> {
     tracing::trace!("Updating task {}: {}", task.get_id(txn)?, external_task.url);
     task.set_name(txn, &external_task.name);
-    if task
-        .get_status(txn)?
-        .is_none_or(|s| s != external_task.status)
-    {
-        task.set_status(txn, Some(&external_task.status));
+    if task.set_status(txn, Some(&external_task.status)) {
         task.set_status_time(txn, Some(now()?));
     }
-    if task.get_assignee(txn)?.is_none() && external_task.koso_user_email.is_some() {
-        task.set_assignee(txn, external_task.koso_user_email.as_deref());
-    }
+    task.set_assignee(txn, external_task.koso_user_email.as_deref());
     Ok(())
 }
 
@@ -222,8 +216,7 @@ fn resolve_task(txn: &mut TransactionMut, task: &YTaskProxy) -> Result<()> {
         task.get_id(txn)?,
         task.get_url(txn)?.unwrap_or_default()
     );
-    if task.get_status(txn)?.is_none_or(|s| s != "Done") {
-        task.set_status(txn, Some("Done"));
+    if task.set_status(txn, Some("Done")) {
         task.set_status_time(txn, Some(now()?));
     }
     Ok(())

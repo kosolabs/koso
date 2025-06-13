@@ -12,9 +12,8 @@ use crate::{
     plugins::{
         config::{Config, ConfigStorage},
         github::{
-            ExternalTask, Kind, PLUGIN_KIND, PR_KIND, add_referenced_task_links,
-            get_or_create_kind_parent, lookup_by_github_user_id, new_task, resolve_task,
-            update_task,
+            self, ExternalTask, Kind, PLUGIN_KIND, PR_KIND, add_referenced_task_links,
+            get_or_create_kind_parent, lookup_by_github_user_id, new_task,
         },
     },
     secrets::{Secret, read_secret},
@@ -56,15 +55,7 @@ struct WebhookHeaders<'a> {
 struct KosoGithubEvent {
     request_id: String,
     installation_id: u64,
-    action: KosoGithubEventAction,
     task: ExternalTask,
-}
-
-#[derive(Clone, Debug)]
-enum KosoGithubEventAction {
-    Opened,
-    Closed,
-    Edited,
 }
 
 #[derive(Clone)]
@@ -219,11 +210,11 @@ impl Webhook {
                     ) => *installation_id.id,
                 };
                 let task = ExternalTask::new(pr_event.pull_request)?;
-                let action = match pr_event.action {
+                match pr_event.action {
                     PullRequestWebhookEventAction::Opened
-                    | PullRequestWebhookEventAction::Reopened => KosoGithubEventAction::Opened,
-                    PullRequestWebhookEventAction::Closed => KosoGithubEventAction::Closed,
-                    PullRequestWebhookEventAction::Edited => KosoGithubEventAction::Edited,
+                    | PullRequestWebhookEventAction::Reopened
+                    | PullRequestWebhookEventAction::Closed
+                    | PullRequestWebhookEventAction::Edited => {}
                     _ => {
                         tracing::trace!(
                             "Discarding unhandled PR action type: {:?}",
@@ -231,13 +222,12 @@ impl Webhook {
                         );
                         return Ok(());
                     }
-                };
+                }
                 tracing::Span::current().record("target", &task.url);
 
                 let event = KosoGithubEvent {
                     request_id,
                     installation_id,
-                    action,
                     task,
                 };
 
@@ -314,28 +304,11 @@ impl Webhook {
     // Note: This function should remain synchronous to avoid blocking the doc_box lock.
     fn apply_task_changes(&self, event: &KosoGithubEvent, doc: &YDocProxy) -> Result<()> {
         let mut txn = doc.transact_mut_with(origin(event)?);
-        match (
-            get_doc_task(&txn, doc, &event.task.url, PR_KIND)?,
-            &event.action,
-        ) {
-            (Some(task), KosoGithubEventAction::Opened | KosoGithubEventAction::Edited) => {
-                update_task(&mut txn, &task, &event.task)?;
-
-                let task_id = task.get_id(&txn)?;
-                add_referenced_task_links(&mut txn, doc, &task_id, &event.task)?;
-            }
-            (None, KosoGithubEventAction::Opened | KosoGithubEventAction::Edited) => {
+        match get_doc_task(&txn, doc, &event.task.url, PR_KIND)? {
+            None => {
                 create_task(&mut txn, doc, &event.task)?;
             }
-            (Some(task), KosoGithubEventAction::Closed) => {
-                let task_id = task.get_id(&txn)?;
-                add_referenced_task_links(&mut txn, doc, &task_id, &event.task)?;
-
-                resolve_task(&mut txn, &task)?;
-            }
-            (None, KosoGithubEventAction::Closed) => {
-                tracing::trace!("Discarding close event without associated task");
-            }
+            Some(task) => update_task(&mut txn, doc, &task, &event.task)?,
         }
         Ok(())
     }
@@ -379,6 +352,17 @@ fn create_task(
 
     add_referenced_task_links(txn, doc, &task.id, external_task)?;
 
+    Ok(())
+}
+
+fn update_task(
+    txn: &mut TransactionMut,
+    doc: &YDocProxy,
+    task: &YTaskProxy,
+    external_task: &ExternalTask,
+) -> Result<()> {
+    add_referenced_task_links(txn, doc, &task.get_id(txn)?, external_task)?;
+    github::update_task(txn, task, external_task)?;
     Ok(())
 }
 

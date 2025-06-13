@@ -365,8 +365,8 @@ impl YTaskProxy {
         self.get_optional_string(txn, "status")
     }
 
-    pub fn set_status(&self, txn: &mut TransactionMut, status: Option<&str>) {
-        self.y_task.try_update(txn, "status", status);
+    pub fn set_status(&self, txn: &mut TransactionMut, status: Option<&str>) -> bool {
+        self.y_task.try_update(txn, "status", status)
     }
 
     pub fn get_status_time<T: ReadTxn>(&self, txn: &T) -> Result<Option<i64>> {
