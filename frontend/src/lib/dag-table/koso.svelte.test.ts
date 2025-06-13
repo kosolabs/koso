@@ -2251,7 +2251,18 @@ describe("Koso tests", () => {
         {
           id: "root",
           name: "Root",
-          children: ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8"],
+          children: [
+            "t1",
+            "t2",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7",
+            "t8",
+            "t9",
+            "t10",
+          ],
         },
         { id: "t1", status: "Not Started" },
         { id: "t2", status: "Not Started" },
@@ -2261,12 +2272,27 @@ describe("Koso tests", () => {
         { id: "t6", status: "Blocked" },
         { id: "t7", status: "In Progress" },
         { id: "t8", status: "In Progress" },
+        { id: "t9", status: "Ready" },
+        { id: "t10", status: "Ready" },
       ]);
 
       koso.organizeTasks("root");
 
       expect(koso.toJSON()).toMatchObject({
-        root: { children: ["t7", "t8", "t1", "t2", "t5", "t6", "t3", "t4"] },
+        root: {
+          children: [
+            "t7",
+            "t8",
+            "t9",
+            "t10",
+            "t1",
+            "t2",
+            "t5",
+            "t6",
+            "t3",
+            "t4",
+          ],
+        },
       });
     });
 
@@ -2275,7 +2301,18 @@ describe("Koso tests", () => {
         {
           id: "root",
           name: "Root",
-          children: ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8"],
+          children: [
+            "t1",
+            "t2",
+            "t3",
+            "t4",
+            "t5",
+            "t6",
+            "t7",
+            "t8",
+            "t9",
+            "t10",
+          ],
         },
         { id: "t1", status: "Not Started", archived: true },
         { id: "t2", status: "Not Started", archived: false },
@@ -2285,12 +2322,27 @@ describe("Koso tests", () => {
         { id: "t6", status: "Blocked" },
         { id: "t7", status: "In Progress", archived: true },
         { id: "t8", status: "In Progress" },
+        { id: "t9", status: "Ready", archived: true },
+        { id: "t10", status: "Ready" },
       ]);
 
       koso.organizeTasks("root");
 
       expect(koso.toJSON()).toMatchObject({
-        root: { children: ["t8", "t2", "t5", "t6", "t4", "t7", "t1", "t3"] },
+        root: {
+          children: [
+            "t8",
+            "t10",
+            "t2",
+            "t5",
+            "t6",
+            "t4",
+            "t7",
+            "t9",
+            "t1",
+            "t3",
+          ],
+        },
       });
     });
 
