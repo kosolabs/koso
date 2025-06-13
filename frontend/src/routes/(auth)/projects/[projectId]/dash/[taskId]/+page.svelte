@@ -6,7 +6,6 @@
   import { page } from "$app/state";
   import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";
   import { Navbar } from "$lib/components/ui/navbar";
-  import { getPrefsContext } from "$lib/components/ui/prefs";
   import { DagTable, newPlanningContext } from "$lib/dag-table";
   import type { Progress } from "$lib/dag-table/koso.svelte";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
@@ -20,9 +19,8 @@
 
   const taskId = page.params.taskId;
 
-  const prefs = getPrefsContext();
   const { koso, socket, name, users } = getProjectContext();
-  const planningCtx = newPlanningContext(koso, prefs, taskId);
+  const planningCtx = newPlanningContext(koso, taskId);
 
   function getStatusColor(status: Status): (typeof colors)[number] {
     if (status === "On Track") {
