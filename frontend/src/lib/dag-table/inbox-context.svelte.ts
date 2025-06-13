@@ -5,7 +5,7 @@ import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import type { Koso } from "./koso.svelte";
 
-export type Reason =
+export type Reason = { task: YTaskProxy } & (
   | {
       name: "Actionable";
       actions: {
@@ -29,7 +29,8 @@ export type Reason =
         assign: number;
       };
       iteration: YTaskProxy;
-    };
+    }
+);
 
 export class ActionItem {
   task: YTaskProxy;
@@ -184,6 +185,7 @@ export class InboxContext {
       ) {
         reasons.push({
           name: "NeedsEstimate",
+          task,
           actions: {
             estimate: this.#calculateIterationScore(iteration),
             assign: 1,
@@ -197,6 +199,7 @@ export class InboxContext {
     if (
       task.assignee === null &&
       !task.isManaged() &&
+      !progress.isReady() &&
       !progress.isComplete() &&
       !progress.isBlocked()
     ) {
@@ -207,6 +210,7 @@ export class InboxContext {
       if (parents.length) {
         reasons.push({
           name: "ParentOwner",
+          task,
           actions: {
             ready: 3,
             assign: 1,
@@ -216,19 +220,19 @@ export class InboxContext {
       }
     }
 
-    // A leaf task is unblocked, incomplete and assigned to the user
+    // A task is unblocked, incomplete and assigned to the user
     if (
       task.assignee === this.#auth.user.email &&
-      task.isLeaf() &&
-      task.estimate !== null &&
+      ((task.isTask() && task.estimate !== null) || task.isManaged()) &&
       !progress.isComplete() &&
       !progress.isBlocked()
     ) {
       reasons.push({
         name: "Actionable",
+        task,
         actions: {
-          done: task.estimate,
-          block: 3,
+          done: task.estimate ?? 1,
+          block: Math.min(3, task.estimate ?? 1),
           unassign: 1,
         },
       });
