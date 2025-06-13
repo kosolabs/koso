@@ -21,7 +21,7 @@
 {#each confetti.rects as [id, rect] (id)}
   {@const left = rect.x + rect.width / 2}
   {@const top = rect.y + rect.height / 2}
-  <div class="fixed" style="left:{left}px;top:{top}px;">
+  <div class="fixed z-50" style="left:{left}px;top:{top}px;">
     <Confetti duration={DURATION_MS} x={[-0.65, 0.65]} y={[0.1, 1]} />
   </div>
 {/each}
