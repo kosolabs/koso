@@ -23,7 +23,7 @@ describe("YTaskProxy", () => {
   it("should handle set and get operations", () => {
     const task = fullyPopulatedTask();
     graph.set(task);
-    expect(graph.get(task.id)).toStrictEqual(task);
+    expect(graph.get(task.id).toJSON()).toStrictEqual(task);
   });
 
   it("should handle description text operations", () => {
