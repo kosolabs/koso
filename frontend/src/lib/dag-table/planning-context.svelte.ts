@@ -698,10 +698,7 @@ export class PlanningContext {
   }
 
   isVisible(taskId: string, showArchived: boolean) {
-    if (showArchived) {
-      return true;
-    }
-    return !this.#koso.getTask(taskId).archived;
+    return showArchived || !this.#koso.getTask(taskId).archived;
   }
 
   undo() {
