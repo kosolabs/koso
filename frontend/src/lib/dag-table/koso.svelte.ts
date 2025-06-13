@@ -1057,25 +1057,25 @@ export class Koso {
     return `koso-${task.num}`;
   }
 
+  getStatusOrder(status: Status) {
+    switch (status) {
+      case "In Progress":
+        return 0;
+      case "Ready":
+        return 1;
+      case "Not Started":
+        return 2;
+      case "Blocked":
+        return 3;
+      case "Done":
+        return 4;
+      default:
+        throw new Error(`Invalid status ${status}`);
+    }
+  }
+
   /** Organizes the given task's children by status, etc. */
   organizeTasks(parentTaskId: string) {
-    function mapStatus(status: Status) {
-      switch (status) {
-        case "In Progress":
-          return 0;
-        case "Ready":
-          return 1;
-        case "Not Started":
-          return 2;
-        case "Blocked":
-          return 3;
-        case "Done":
-          return 4;
-        default:
-          throw new Error(`Invalid status ${status}`);
-      }
-    }
-
     const parent = this.getTask(parentTaskId);
     // Sort tasks by status, otherwise
     // leaving the ordering unchanged thanks to sort() being stable.
@@ -1116,8 +1116,8 @@ export class Koso {
           if (!!c1.archived !== !!c2.archived) {
             return c1.archived ? 1 : -1;
           }
-          const status1 = mapStatus(c1.progress.status);
-          const status2 = mapStatus(c2.progress.status);
+          const status1 = this.getStatusOrder(c1.progress.status);
+          const status2 = this.getStatusOrder(c2.progress.status);
           return status1 - status2;
         })
         .map(({ taskId }) => taskId);

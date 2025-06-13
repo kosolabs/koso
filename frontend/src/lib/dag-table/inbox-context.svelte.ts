@@ -3,7 +3,7 @@ import { YTaskProxy, type Iteration } from "$lib/yproxy";
 import { Record } from "immutable";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
-import type { Koso } from "./koso.svelte";
+import type { Koso, Progress } from "./koso.svelte";
 
 export type Reason = { task: YTaskProxy } & (
   | {
@@ -34,10 +34,12 @@ export type Reason = { task: YTaskProxy } & (
 
 export class ActionItem {
   task: YTaskProxy;
+  progress: Progress;
   reasons: Reason[];
 
-  constructor(task: YTaskProxy, reasons: Reason[]) {
+  constructor(task: YTaskProxy, progress: Progress, reasons: Reason[]) {
     this.task = task;
+    this.progress = progress;
     this.reasons = reasons;
   }
 }
@@ -124,11 +126,13 @@ export class InboxContext {
   #getActionItems(): ActionItem[] {
     const items: ActionItem[] = [];
     for (const task of this.#koso.tasks) {
+      const progress = this.#koso.getProgress(task.id);
       const reasons = this.#getActionableReasons(task, {
+        progress,
         currentIterations: this.#koso.getCurrentIterations(),
       });
       if (reasons.length) {
-        items.push(new ActionItem(task, reasons));
+        items.push(new ActionItem(task, progress, reasons));
       }
     }
 
@@ -136,6 +140,7 @@ export class InboxContext {
       .map((item) => ({
         item,
         reason: item.reasons[0].name === "Actionable" ? 0 : 1,
+        status: this.#koso.getStatusOrder(item.progress.status),
         score: item.reasons
           .map((reason) =>
             Object.values(reason.actions).reduce((a, b) => Math.max(a, b)),
@@ -147,6 +152,8 @@ export class InboxContext {
         (a, b) =>
           // Non-actionable items first
           b.reason - a.reason ||
+          // Status
+          a.status - b.status ||
           // Scores, descending
           b.score - a.score ||
           // Stable sort by task number, ascending
@@ -164,7 +171,7 @@ export class InboxContext {
 
   #getActionableReasons(
     task: YTaskProxy,
-    context: { currentIterations: Iteration[] },
+    context: { progress: Progress; currentIterations: Iteration[] },
   ): Reason[] {
     const reasons: Reason[] = [];
 
@@ -172,14 +179,12 @@ export class InboxContext {
       return reasons;
     }
 
-    const progress = this.#koso.getProgress(task.id);
-
     // A task is part of the current iteration and doesn't have an estimate
     for (const iteration of context.currentIterations) {
       if (
         (task.assignee === null || task.assignee === this.#auth.user.email) &&
         task.isTask() &&
-        !progress.isComplete() &&
+        !context.progress.isComplete() &&
         this.#koso.hasDescendant(iteration.id, task.id) &&
         task.estimate === null
       ) {
@@ -199,9 +204,9 @@ export class InboxContext {
     if (
       task.assignee === null &&
       !task.isManaged() &&
-      !progress.isReady() &&
-      !progress.isComplete() &&
-      !progress.isBlocked()
+      !context.progress.isReady() &&
+      !context.progress.isComplete() &&
+      !context.progress.isBlocked()
     ) {
       const parents = this.#koso
         .getParents(task.id)
@@ -224,8 +229,8 @@ export class InboxContext {
     if (
       task.assignee === this.#auth.user.email &&
       ((task.isTask() && task.estimate !== null) || task.isManaged()) &&
-      !progress.isComplete() &&
-      !progress.isBlocked()
+      !context.progress.isComplete() &&
+      !context.progress.isBlocked()
     ) {
       reasons.push({
         name: "Actionable",
