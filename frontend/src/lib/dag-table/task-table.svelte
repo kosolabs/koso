@@ -262,6 +262,7 @@
       name: "Archive Task",
       description: "Archive the current task",
       icon: Archive,
+      shortcut: new Shortcut({ key: "e" }),
       enabled: () =>
         !!inbox.selected && !koso.getTask(inbox.selected.id).archived,
     }),
@@ -272,6 +273,7 @@
       name: "Unarchive Task",
       description: "Unarchive the current task",
       icon: ArchiveRestore,
+      shortcut: new Shortcut({ key: "e", meta: true }),
       enabled: () =>
         !!inbox.selected && !!koso.getTask(inbox.selected.id).archived,
     }),
