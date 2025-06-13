@@ -165,30 +165,31 @@ export async function tearDown() {
 
 export async function init(
   page: Page,
-  tasks: TaskBuilder[],
+  taskBuilders: TaskBuilder[],
   expandAll: boolean = false,
 ) {
+  const tasks = taskBuilders.map((t) => buildTask(t));
+  // Insert any children that weren't created.
+  const upsertedTaskIds = new Set<string>(tasks.map((task) => task.id));
+  const childTaskIds = new Set<string>(tasks.flatMap((task) => task.children));
+  const remainingTaskIds = childTaskIds.difference(upsertedTaskIds);
+  tasks.push(
+    ...remainingTaskIds.keys().map((taskId) => {
+      return {
+        ...defaultTask(),
+        id: taskId,
+        num: taskId,
+        name: "",
+      };
+    }),
+  );
+
   await page.evaluate(
     ({ tasks, expandAll }) => {
       const koso: Koso = window.koso;
-
-      const upsertedTaskIds = new Set<string>(tasks.map((task) => task.id));
-      const childTaskIds = new Set<string>(
-        tasks.flatMap((task) => task.children ?? []),
-      );
-      const remainingTaskIds = childTaskIds.difference(upsertedTaskIds);
-
       koso.doc.transact(() => {
         for (const task of tasks) {
-          koso.upsert(buildTask(task));
-        }
-        for (const taskId of remainingTaskIds) {
-          koso.upsert({
-            ...defaultTask(),
-            id: taskId,
-            num: taskId,
-            name: "",
-          });
+          koso.upsert(task);
         }
       });
       const planningCtx = window.planningCtx;
