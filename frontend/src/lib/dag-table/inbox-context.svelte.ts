@@ -1,11 +1,11 @@
-import type { AuthContext } from "$lib/auth.svelte";
+import type { User } from "$lib/users";
 import { YTaskProxy, type Iteration } from "$lib/yproxy";
 import { Record } from "immutable";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import type { Koso, Progress } from "./koso.svelte";
 
-export type Reason = { task: YTaskProxy } & (
+export type Reason =
   | {
       name: "Actionable";
       actions: {
@@ -28,9 +28,8 @@ export type Reason = { task: YTaskProxy } & (
         estimate: number;
         assign: number;
       };
-      iteration: YTaskProxy;
-    }
-);
+      iteration: Iteration;
+    };
 
 export class ActionItem {
   task: YTaskProxy;
@@ -45,7 +44,7 @@ export class ActionItem {
 }
 
 export class InboxContext {
-  #auth: AuthContext;
+  #me: User;
   #koso: Koso;
   #yUndoManager: Y.UndoManager;
 
@@ -57,8 +56,8 @@ export class InboxContext {
     return taskId ? this.#koso.getTask(taskId) : undefined;
   });
 
-  constructor(auth: AuthContext, koso: Koso) {
-    this.#auth = auth;
+  constructor(me: User, koso: Koso) {
+    this.#me = me;
     this.#koso = koso;
 
     this.#yUndoManager = new Y.UndoManager(this.#koso.graph.yGraph, {
@@ -129,7 +128,7 @@ export class InboxContext {
       const progress = this.#koso.getProgress(task.id);
       const reasons = this.#getActionableReasons(task, {
         progress,
-        currentIterations: this.#koso.getCurrentIterations(),
+        iterations: this.#koso.getCurrentIterations(),
       });
       if (reasons.length) {
         items.push(new ActionItem(task, progress, reasons));
@@ -171,7 +170,10 @@ export class InboxContext {
 
   #getActionableReasons(
     task: YTaskProxy,
-    context: { progress: Progress; currentIterations: Iteration[] },
+    context: {
+      progress: Progress;
+      iterations: Iteration[];
+    },
   ): Reason[] {
     const reasons: Reason[] = [];
 
@@ -180,9 +182,9 @@ export class InboxContext {
     }
 
     // A task is part of the current iteration and doesn't have an estimate
-    for (const iteration of context.currentIterations) {
+    for (const iteration of context.iterations) {
       if (
-        (task.assignee === null || task.assignee === this.#auth.user.email) &&
+        (task.assignee === null || task.assignee === this.#me.email) &&
         task.isTask() &&
         !context.progress.isComplete() &&
         this.#koso.hasDescendant(iteration.id, task.id) &&
@@ -190,7 +192,6 @@ export class InboxContext {
       ) {
         reasons.push({
           name: "NeedsEstimate",
-          task,
           actions: {
             estimate: this.#calculateIterationScore(iteration),
             assign: 1,
@@ -211,11 +212,10 @@ export class InboxContext {
       const parents = this.#koso
         .getParents(task.id)
         .filter((parent) => parent.isRollup())
-        .filter((parent) => parent.assignee === this.#auth.user.email);
+        .filter((parent) => parent.assignee === this.#me.email);
       if (parents.length) {
         reasons.push({
           name: "ParentOwner",
-          task,
           actions: {
             ready: 3,
             assign: 1,
@@ -227,14 +227,13 @@ export class InboxContext {
 
     // A task is unblocked, incomplete and assigned to the user
     if (
-      task.assignee === this.#auth.user.email &&
-      ((task.isTask() && task.estimate !== null) || task.isManaged()) &&
+      task.assignee === this.#me.email &&
+      (task.isTask() || task.isManaged()) &&
       !context.progress.isComplete() &&
       !context.progress.isBlocked()
     ) {
       reasons.push({
         name: "Actionable",
-        task,
         actions: {
           done: task.estimate ?? 1,
           block: Math.min(3, task.estimate ?? 1),

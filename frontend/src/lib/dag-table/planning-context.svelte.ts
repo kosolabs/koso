@@ -397,7 +397,7 @@ export class PlanningContext {
 
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      console.trace(
+      console.debug(
         `Trying to move up: newParent: ${newParent.id}, offset: ${newOffset}`,
       );
       if (!this.canMoveNode(node, newParent)) {
@@ -487,7 +487,7 @@ export class PlanningContext {
 
     let attempts = 0;
     const maybeMove = (newParent: Node, newOffset: number) => {
-      console.trace(
+      console.debug(
         `Trying to move down: newParent: ${newParent.id}, offset: ${newOffset}`,
       );
       if (!this.canMoveNode(node, newParent)) {
