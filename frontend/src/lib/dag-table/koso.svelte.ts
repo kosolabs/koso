@@ -1063,12 +1063,14 @@ export class Koso {
       switch (status) {
         case "In Progress":
           return 0;
-        case "Not Started":
+        case "Ready":
           return 1;
-        case "Blocked":
+        case "Not Started":
           return 2;
-        case "Done":
+        case "Blocked":
           return 3;
+        case "Done":
+          return 4;
         default:
           throw new Error(`Invalid status ${status}`);
       }
