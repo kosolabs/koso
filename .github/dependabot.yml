@@ -7,6 +7,8 @@ version: 2
 multi-ecosystem-groups:
   all-deps:
     interval: monthly
+    patterns:
+      - "*"
 updates:
   - package-ecosystem: "cargo"
     directories:
