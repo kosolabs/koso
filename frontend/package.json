@@ -45,6 +45,7 @@
     "google-oauth-gsi": "4.0.1",
     "highlight.js": "11.11.1",
     "immutable": "5.1.2",
+    "js-base64": "3.7.7",
     "jsdom": "26.1.0",
     "jwt-decode": "4.0.0",
     "lib0": "0.2.108",
@@ -90,6 +91,5 @@
       "@tailwindcss/oxide",
       "esbuild"
     ]
-  },
-  "dependencies": {}
+  }
 }

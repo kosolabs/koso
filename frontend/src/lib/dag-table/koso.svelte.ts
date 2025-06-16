@@ -8,6 +8,7 @@ import {
 import type { User } from "$lib/users";
 import { findEntryIndex } from "$lib/utils";
 import { Map, Record, Set } from "immutable";
+import { Base64 } from "js-base64";
 import * as decoding from "lib0/decoding";
 import * as encoding from "lib0/encoding";
 import { v4 as uuidv4 } from "uuid";
@@ -836,7 +837,7 @@ export class Koso {
   }
 
   newId(): string {
-    return uuidv4();
+    return Base64.fromUint8Array(uuidv4({}, new Uint8Array(16)), true);
   }
 
   newNum(): string {
