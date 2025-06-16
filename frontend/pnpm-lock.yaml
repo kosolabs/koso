@@ -84,7 +84,7 @@ importers:
         specifier: 5.1.2
         version: 5.1.2
       js-base64:
-        specifier: ^3.7.7
+        specifier: 3.7.7
         version: 3.7.7
       jsdom:
         specifier: 26.1.0
