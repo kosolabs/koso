@@ -93,6 +93,7 @@ test.describe("Menu Component Tests", () => {
   test("menu items should be selectable by enter/space", async ({ page }) => {
     const trigger = page.getByRole("button", { name: "Open Menu" });
     await trigger.click();
+    await await new Promise((resolve) => setTimeout(resolve, 200));
 
     await page.getByRole("menuitem").first().press("Enter");
     await expect(page.getByRole("menu")).not.toBeVisible();
@@ -100,6 +101,7 @@ test.describe("Menu Component Tests", () => {
 
     // Repeat with Space
     await trigger.click();
+    await await new Promise((resolve) => setTimeout(resolve, 200));
     await page.getByRole("menuitem").first().press(" ");
     await expect(page.getByRole("menu")).not.toBeVisible();
     await expect(trigger).toBeFocused();
