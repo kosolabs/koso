@@ -26,11 +26,11 @@ use tokio_tungstenite::{
     MaybeTlsStream, WebSocketStream,
     tungstenite::{
         Message,
+        client::IntoClientRequest,
         protocol::{CloseFrame, frame::coding::CloseCode},
     },
 };
 use tokio_util::sync::CancellationToken;
-use tungstenite::client::IntoClientRequest;
 use yrs::{
     Origin, ReadTxn, StateVector, Update,
     encoding::read::Read as _,
