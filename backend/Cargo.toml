@@ -19,7 +19,7 @@ uuid = { version = "1.17.0", features = [
     "v4",       # Lets you generate random UUIDs
     "fast-rng", # Use a faster (but still sufficiently random) RNG
 ] }
-tower-http = { version = "0.6.4", features = [
+tower-http = { version = "0.6.6", features = [
     "fs",
     "trace",
     "timeout",
@@ -35,7 +35,7 @@ futures = "0.3.31"
 yrs = { version = "0.23.4", features = ["sync"] }
 tokio-util = { version = "0.7.15", features = ["rt"] }
 jsonwebtoken = "9.3.1"
-reqwest = { version = "0.12.15", features = ["json"] }
+reqwest = { version = "0.12.20", features = ["json"] }
 base64 = "0.22.1"
 anyhow = "1.0.98"
 rand = "0.9.1"
@@ -53,6 +53,5 @@ regex = "1.11.1"
 
 [dev-dependencies]
 test-log = { version = "0.2.17", features = ["trace", "color"] }
-tokio-tungstenite = { version = "0.26.2", features = ["url"] }
-tungstenite = "0.26.2"
+tokio-tungstenite = { version = "0.27.0", features = ["url"] }
 rsa = "0.9.8"
