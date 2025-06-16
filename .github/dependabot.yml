@@ -15,14 +15,22 @@ updates:
       - "/backend"
       - "/healthz"
       - "/"
+    patterns:
+      - "*"
     multi-ecosystem-group: "all-deps"
   - package-ecosystem: "npm"
     directories:
       - "/frontend"
+    patterns:
+      - "*"
     multi-ecosystem-group: "all-deps"
   - package-ecosystem: "github-actions"
     directory: "/"
+    patterns:
+      - "*"
     multi-ecosystem-group: "all-deps"
   - package-ecosystem: "docker"
     directory: "/"
+    patterns:
+      - "*"
     multi-ecosystem-group: "all-deps"
