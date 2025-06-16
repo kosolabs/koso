@@ -83,6 +83,9 @@ importers:
       immutable:
         specifier: 5.1.2
         version: 5.1.2
+      js-base64:
+        specifier: ^3.7.7
+        version: 3.7.7
       jsdom:
         specifier: 26.1.0
         version: 26.1.0
@@ -1672,6 +1675,9 @@ packages:
   jiti@2.4.2:
     resolution: {integrity: sha512-rg9zJN+G4n2nfJl5MW3BMygZX56zKPNVEYYqq7adpmMh4Jn2QNEwhvQlFy6jPVdcod7txZtKHWnyZiA3a0zP7A==}
     hasBin: true
+
+  js-base64@3.7.7:
+    resolution: {integrity: sha512-7rCnleh0z2CkXhH67J8K1Ytz0b2Y+yxTPL+/KOJoa20hfnVQ/3/T6W/KflYI4bRHRagNeXeU2bkNGI3v1oS/lw==}
 
   js-yaml@4.1.0:
     resolution: {integrity: sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==}
@@ -4188,6 +4194,8 @@ snapshots:
   isomorphic.js@0.2.5: {}
 
   jiti@2.4.2: {}
+
+  js-base64@3.7.7: {}
 
   js-yaml@4.1.0:
     dependencies:

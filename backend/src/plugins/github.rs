@@ -10,6 +10,7 @@ use crate::{
 use anyhow::{Context, Result, anyhow};
 use auth::Auth;
 use axum::{Router, middleware};
+use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use connect::ConnectHandler;
 use octocrab::models::pulls::PullRequest;
 use poller::Poller;
@@ -180,7 +181,7 @@ impl ExternalTask {
 }
 
 fn new_task(external_task: &ExternalTask, num: u64, kind: &Kind) -> Result<Task> {
-    let id = uuid::Uuid::new_v4().to_string();
+    let id = BASE64_URL_SAFE_NO_PAD.encode(uuid::Uuid::new_v4());
     tracing::trace!("Creating new task {} ({num}): {}", id, external_task.url);
     Ok(Task {
         id,
