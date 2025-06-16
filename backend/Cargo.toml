@@ -53,6 +53,6 @@ regex = "1.11.1"
 
 [dev-dependencies]
 test-log = { version = "0.2.17", features = ["trace", "color"] }
-tokio-tungstenite = { version = "0.26.2", features = ["url"] }
-tungstenite = "0.26.2"
+tokio-tungstenite = { version = "0.27.0", features = ["url"] }
+tungstenite = "0.27.0"
 rsa = "0.9.8"
