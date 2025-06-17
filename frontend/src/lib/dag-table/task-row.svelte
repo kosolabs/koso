@@ -16,7 +16,7 @@
   import { tick } from "svelte";
   import { ActionItemTooltip } from "./action-item-tooltip";
   import DescAction from "./desc-action.svelte";
-  import { ActionItem, getInboxContext } from "./inbox-context.svelte";
+  import { getInboxContext, type ActionItem } from "./inbox-context.svelte";
   import LinkTaskPanel, { type Mode } from "./link-task-panel.svelte";
   import TaskAction from "./task-action.svelte";
 

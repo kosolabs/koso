@@ -243,4 +243,75 @@ describe("InboxContext tests", () => {
       ]);
     });
   });
+
+  describe("triage, actionable, and ready states", () => {
+    const TWO_WEEKS = Date.now() + 14 * 24 * 60 * 60 * 1000;
+
+    it("hasTriage returns true when there are ParentOwner items", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Parent", assignee: YOU, children: ["2"] },
+        { id: "2", name: "Child", assignee: null },
+      ]);
+
+      expect(inboxCtx.hasTriage()).toBe(true);
+      expect(inboxCtx.hasActionable()).toBe(false);
+      expect(inboxCtx.hasReady()).toBe(false);
+    });
+
+    it("hasActionable returns true when there are actionable items", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", assignee: YOU },
+      ]);
+
+      expect(inboxCtx.hasTriage()).toBe(false);
+      expect(inboxCtx.hasActionable()).toBe(true);
+      expect(inboxCtx.hasReady()).toBe(false);
+    });
+
+    it("hasReady returns true when there are ready items", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Iter 1", children: ["2"], deadline: TWO_WEEKS },
+        {
+          id: "2",
+          name: "Task 2",
+          estimate: 1,
+          assignee: null,
+          status: "Ready",
+        },
+      ]);
+
+      expect(inboxCtx.hasTriage()).toBe(false);
+      expect(inboxCtx.hasActionable()).toBe(false);
+      expect(inboxCtx.hasReady()).toBe(true);
+    });
+
+    it("returns false for all when there are no action items", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", assignee: OTHER },
+      ]);
+
+      expect(inboxCtx.hasTriage()).toBe(false);
+      expect(inboxCtx.hasActionable()).toBe(false);
+      expect(inboxCtx.hasReady()).toBe(false);
+    });
+
+    it("actionItems returns triage and actionable when both exist", () => {
+      init([
+        { id: "root", name: "Root", children: ["1", "2"] },
+        { id: "1", name: "Parent", assignee: YOU, children: ["3"] },
+        { id: "2", name: "Task 2", assignee: YOU },
+        { id: "3", name: "Child", assignee: null },
+      ]);
+
+      expect(inboxCtx.hasTriage()).toBe(true);
+      expect(inboxCtx.hasActionable()).toBe(true);
+      expect(inboxCtx.actionItems).toHaveLength(2);
+      expect(inboxCtx.actionItems[0].reasons[0].name).toBe("ParentOwner");
+      expect(inboxCtx.actionItems[1].reasons[0].name).toBe("Actionable");
+    });
+  });
 });
