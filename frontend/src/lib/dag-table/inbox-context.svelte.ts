@@ -15,6 +15,12 @@ export type Reason =
       };
     }
   | {
+      name: "Ready";
+      actions: {
+        assign: number;
+      };
+    }
+  | {
       name: "ParentOwner";
       actions: {
         assign: number;
@@ -31,15 +37,20 @@ export type Reason =
       iteration: Iteration;
     };
 
-export class ActionItem {
+export type ActionItem = {
   task: YTaskProxy;
   progress: Progress;
   reasons: Reason[];
+};
 
-  constructor(task: YTaskProxy, progress: Progress, reasons: Reason[]) {
-    this.task = task;
-    this.progress = progress;
-    this.reasons = reasons;
+function reasonOrder(reason: Reason): number {
+  switch (reason.name) {
+    case "Actionable":
+      return 1;
+    case "Ready":
+      return 2;
+    default:
+      return 0;
   }
 }
 
@@ -49,6 +60,19 @@ export class InboxContext {
   #yUndoManager: Y.UndoManager;
 
   #tasks: ActionItem[] = $derived(this.#getActionItems());
+  #triage: ActionItem[] = $derived(
+    this.#tasks.filter(
+      (item) =>
+        item.reasons[0].name !== "Actionable" &&
+        item.reasons[0].name !== "Ready",
+    ),
+  );
+  #actionable: ActionItem[] = $derived(
+    this.#tasks.filter((item) => item.reasons[0].name === "Actionable"),
+  );
+  #ready: ActionItem[] = $derived(
+    this.#tasks.filter((item) => item.reasons[0].name === "Ready"),
+  );
 
   #selectedRaw: Selected = $state(Selected.default());
   #selected: YTaskProxy | undefined = $derived.by(() => {
@@ -85,7 +109,23 @@ export class InboxContext {
   }
 
   get actionItems(): ActionItem[] {
-    return this.#tasks;
+    if (this.#triage.length > 0 || this.#actionable.length > 0) {
+      return [...this.#triage, ...this.#actionable];
+    } else {
+      return this.#ready;
+    }
+  }
+
+  hasTriage(): boolean {
+    return this.#triage.length > 0;
+  }
+
+  hasActionable(): boolean {
+    return this.#actionable.length > 0;
+  }
+
+  hasReady(): boolean {
+    return this.#ready.length > 0;
   }
 
   /**
@@ -131,14 +171,14 @@ export class InboxContext {
         iterations: this.#koso.getCurrentIterations(),
       });
       if (reasons.length) {
-        items.push(new ActionItem(task, progress, reasons));
+        items.push({ task, progress, reasons });
       }
     }
 
     return items
       .map((item) => ({
         item,
-        reason: item.reasons[0].name === "Actionable" ? 0 : 1,
+        reason: reasonOrder(item.reasons[0]),
         status: this.#koso.getStatusOrder(item.progress.status),
         score: item.reasons
           .map((reason) =>
@@ -149,9 +189,9 @@ export class InboxContext {
       }))
       .sort(
         (a, b) =>
-          // Non-actionable items first
-          b.reason - a.reason ||
-          // Status
+          // Triage items first, followed by action and ready items
+          a.reason - b.reason ||
+          // Status next
           a.status - b.status ||
           // Scores, descending
           b.score - a.score ||
@@ -183,11 +223,15 @@ export class InboxContext {
 
     // A task is part of the current iteration and doesn't have an estimate
     for (const iteration of context.iterations) {
+      //  If the task is not part of the iteration, skip it
+      if (!this.#koso.hasDescendant(iteration.id, task.id)) {
+        continue;
+      }
+
       if (
         (task.assignee === null || task.assignee === this.#me.email) &&
         task.isTask() &&
         !context.progress.isComplete() &&
-        this.#koso.hasDescendant(iteration.id, task.id) &&
         task.estimate === null
       ) {
         reasons.push({
@@ -197,6 +241,20 @@ export class InboxContext {
             assign: 1,
           },
           iteration,
+        });
+      }
+
+      // A task is in an iteration, is ready, and is not assigned to anyone
+      if (
+        task.assignee === null &&
+        (task.isTask() || task.isManaged()) &&
+        context.progress.isReady()
+      ) {
+        reasons.push({
+          name: "Ready",
+          actions: {
+            assign: 1,
+          },
         });
       }
     }

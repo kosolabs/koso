@@ -4,7 +4,7 @@
   import { Tooltip } from "$lib/kosui/tooltip";
   import { Blocks, CalendarCheck2, CirclePlay, Icon } from "lucide-svelte";
   import {
-    ActionItem,
+    type ActionItem,
     getInboxContext,
     type Reason,
   } from "../inbox-context.svelte";
@@ -15,9 +15,20 @@
     item: ActionItem;
   };
 
+  function getColor(reasons: Reason[]): "primary" | "secondary" | "tertiary" {
+    if (reasons[0].name === "Actionable") {
+      return "secondary";
+    } else if (reasons[0].name === "Ready") {
+      return "tertiary";
+    } else {
+      return "primary";
+    }
+  }
+
   type IconMap = { [key in Reason["name"]]: typeof Icon };
   const icons: IconMap = {
     Actionable: CirclePlay,
+    Ready: CirclePlay,
     ParentOwner: Blocks,
     NeedsEstimate: CalendarCheck2,
   };
@@ -34,10 +45,7 @@
     <div class="flex items-center text-sm">
       <Button
         variant="plain"
-        color={item.reasons.length === 1 &&
-        item.reasons[0].name === "Actionable"
-          ? "secondary"
-          : "primary"}
+        color={getColor(item.reasons)}
         shape="circle"
         aria-label="Show reasons why task is actionable"
         icon={icons[item.reasons[0].name]}

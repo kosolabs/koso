@@ -9,6 +9,7 @@
   import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { toast } from "$lib/components/ui/sonner";
+  import { Alert } from "$lib/kosui/alert";
   import { Action } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL } from "$lib/shortcuts";
@@ -34,6 +35,7 @@
     UserRoundPlus,
   } from "lucide-svelte";
   import { onMount, tick } from "svelte";
+  import Confetti from "svelte-confetti";
   import { flip } from "svelte/animate";
   import { getInboxContext } from "./inbox-context.svelte";
   import { getProjectContext } from "./project-context.svelte";
@@ -393,6 +395,29 @@
 {#await koso.synced then}
   {#if inbox.actionItems.length > 0}
     <div class="flex flex-col gap-2">
+      {#if !inbox.hasTriage()}
+        <Alert
+          variant={inbox.hasActionable() ? "elevated" : "filled"}
+          color="tertiary"
+          class="relative flex flex-col items-center"
+        >
+          <div class="fixed top-20 left-1/2">
+            <Confetti x={[-2, 2]} y={[-0.5, 0.1]} />
+          </div>
+          <div>🎉 Contratulations! You've achieved Inbox Zero! 🎉</div>
+          {#if inbox.hasActionable()}
+            <div>
+              All triage tasks complete. Here are your current action items.
+            </div>
+          {:else if inbox.hasReady()}
+            <div>
+              All triage tasks and action items complete. Consider working on
+              one of the following tasks.
+            </div>
+          {/if}
+        </Alert>
+      {/if}
+
       <table
         class="task-table w-full border-separate border-spacing-0 rounded-md border"
       >
