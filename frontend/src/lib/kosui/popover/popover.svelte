@@ -84,7 +84,7 @@
     event.stopImmediatePropagation();
   }
 
-  function ontoggle(event: ToggleEventWithTarget<HTMLDivElement>) {
+  function onbeforetoggle(event: ToggleEventWithTarget<HTMLDivElement>) {
     if (event.newState === "closed") {
       open = false;
     } else {
@@ -169,7 +169,7 @@
     popover="manual"
     class={twMerge(className)}
     transition:scale={{ duration: 150, start: 0.95 }}
-    {...mergeProps(restProps, { ontoggle, onclick: handleClickInside })}
+    {...mergeProps(restProps, { onbeforetoggle, onclick: handleClickInside })}
   >
     {@render children()}
     <div
