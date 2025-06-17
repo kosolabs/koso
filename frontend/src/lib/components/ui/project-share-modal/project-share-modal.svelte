@@ -143,6 +143,8 @@
       <AutocompleteContent
         open={showCompletions}
         ontoggle={(event) => {
+          // TODO: We changed popover to use onbefore toggle to control popover state.
+          // Should we here?
           if (event.newState === "closed") {
             wantCompletions = false;
           }

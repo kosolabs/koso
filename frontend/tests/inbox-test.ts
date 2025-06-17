@@ -7,6 +7,7 @@ test.describe("inbox tests", () => {
   test.beforeEach(async ({ page }) => {
     await setupNewProject(page);
     await page.getByTitle("Zero Inbox").click();
+    await page.waitForURL("**/inbox");
   });
 
   test.afterAll(async () => {

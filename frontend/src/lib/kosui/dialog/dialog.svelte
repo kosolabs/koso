@@ -44,7 +44,7 @@
   class={twMerge("w-[min(calc(100%-1em),36em)]", className)}
   {...mergeComponentProps(
     Modal,
-    { role: "dialog", "aria-modal": "true", ontoggle, onCancel: handleCancel },
+    { role: "dialog", "aria-modal": "true", onCancel: handleCancel },
     restProps,
   )}
 >
