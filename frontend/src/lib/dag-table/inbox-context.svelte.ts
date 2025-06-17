@@ -164,11 +164,12 @@ export class InboxContext {
 
   #getActionItems(): ActionItem[] {
     const items: ActionItem[] = [];
+    const iterations = this.#koso.getCurrentIterations();
     for (const task of this.#koso.tasks) {
       const progress = this.#koso.getProgress(task.id);
       const reasons = this.#getActionableReasons(task, {
         progress,
-        iterations: this.#koso.getCurrentIterations(),
+        iterations,
       });
       if (reasons.length) {
         items.push({ task, progress, reasons });
