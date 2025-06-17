@@ -6,7 +6,8 @@
 version: 2
 multi-ecosystem-groups:
   all-deps:
-    interval: monthly
+    schedule:
+      interval: monthly
 updates:
   - package-ecosystem: "cargo"
     directories:
