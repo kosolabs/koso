@@ -2609,9 +2609,12 @@ test.describe("dag table tests", () => {
       await expect(page.getByRole("row", { name: "Task 3" })).toBeVisible();
     });
   });
+
   test.describe("horizontal scrollbar", () => {
-    test("detect the presence of a horizontal scrollbar", async ({page})) => {
-      
-    }
-  })
+    test("detect the presence of a horizontal scrollbar", async ({ page }) => {
+      const hasHorizontalScrollbar = await page.evaluate(() => {
+        return document.body.scrollWidth > document.body.clientWidth;
+      });
+    });
+  });
 });
