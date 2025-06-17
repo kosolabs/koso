@@ -5,7 +5,8 @@ import globals from "globals";
 import ts from "typescript-eslint";
 import svelteConfig from "./svelte.config.js";
 
-const restrictedGlobals = ["parent"];
+// TODO: Make this restriction opt in instead of opt out.
+const restrictedGlobals = ["parent", "ontoggle"];
 
 export default ts.config(
   js.configs.recommended,
