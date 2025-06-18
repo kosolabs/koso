@@ -60,15 +60,8 @@ export class InboxContext {
   #yUndoManager: Y.UndoManager;
 
   #tasks: ActionItem[] = $derived(this.#getActionItems());
-  #triage: ActionItem[] = $derived(
-    this.#tasks.filter(
-      (item) =>
-        item.reasons[0].name !== "Actionable" &&
-        item.reasons[0].name !== "Ready",
-    ),
-  );
-  #actionable: ActionItem[] = $derived(
-    this.#tasks.filter((item) => item.reasons[0].name === "Actionable"),
+  #action: ActionItem[] = $derived(
+    this.#tasks.filter((item) => item.reasons[0].name !== "Ready"),
   );
   #ready: ActionItem[] = $derived(
     this.#tasks.filter((item) => item.reasons[0].name === "Ready"),
@@ -109,23 +102,15 @@ export class InboxContext {
   }
 
   get actionItems(): ActionItem[] {
-    if (this.#triage.length > 0 || this.#actionable.length > 0) {
-      return [...this.#triage, ...this.#actionable];
+    if (this.#action.length > 0) {
+      return this.#action;
     } else {
       return this.#ready;
     }
   }
 
-  hasTriage(): boolean {
-    return this.#triage.length > 0;
-  }
-
-  hasActionable(): boolean {
-    return this.#actionable.length > 0;
-  }
-
-  hasReady(): boolean {
-    return this.#ready.length > 0;
+  isZero(): boolean {
+    return this.#action.length === 0;
   }
 
   /**

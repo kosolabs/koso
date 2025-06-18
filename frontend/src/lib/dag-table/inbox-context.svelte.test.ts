@@ -244,33 +244,24 @@ describe("InboxContext tests", () => {
     });
   });
 
-  describe("triage, actionable, and ready states", () => {
-    const TWO_WEEKS = Date.now() + 14 * 24 * 60 * 60 * 1000;
+  describe("isZero", () => {
+    it("returns true when there are no items", () => {
+      init([{ id: "root", name: "Root", children: ["1"] }]);
 
-    it("hasTriage returns true when there are ParentOwner items", () => {
-      init([
-        { id: "root", name: "Root", children: ["1"] },
-        { id: "1", name: "Parent", assignee: YOU, children: ["2"] },
-        { id: "2", name: "Child", assignee: null },
-      ]);
-
-      expect(inboxCtx.hasTriage()).toBe(true);
-      expect(inboxCtx.hasActionable()).toBe(false);
-      expect(inboxCtx.hasReady()).toBe(false);
+      expect(inboxCtx.isZero()).toBe(true);
     });
 
-    it("hasActionable returns true when there are actionable items", () => {
+    it("returns true when there are no triage or action items", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
-        { id: "1", name: "Task 1", assignee: YOU },
+        { id: "1", name: "Task 1", assignee: OTHER },
       ]);
 
-      expect(inboxCtx.hasTriage()).toBe(false);
-      expect(inboxCtx.hasActionable()).toBe(true);
-      expect(inboxCtx.hasReady()).toBe(false);
+      expect(inboxCtx.isZero()).toBe(true);
     });
 
-    it("hasReady returns true when there are ready items", () => {
+    it("returns true when there are only ready items", () => {
+      const TWO_WEEKS = Date.now() + 14 * 24 * 60 * 60 * 1000;
       init([
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", name: "Iter 1", children: ["2"], deadline: TWO_WEEKS },
@@ -283,23 +274,29 @@ describe("InboxContext tests", () => {
         },
       ]);
 
-      expect(inboxCtx.hasTriage()).toBe(false);
-      expect(inboxCtx.hasActionable()).toBe(false);
-      expect(inboxCtx.hasReady()).toBe(true);
+      expect(inboxCtx.isZero()).toBe(true);
     });
 
-    it("returns false for all when there are no action items", () => {
+    it("returns false when there are triage items", () => {
       init([
         { id: "root", name: "Root", children: ["1"] },
-        { id: "1", name: "Task 1", assignee: OTHER },
+        { id: "1", name: "Parent", assignee: YOU, children: ["2"] },
+        { id: "2", name: "Child", assignee: null },
       ]);
 
-      expect(inboxCtx.hasTriage()).toBe(false);
-      expect(inboxCtx.hasActionable()).toBe(false);
-      expect(inboxCtx.hasReady()).toBe(false);
+      expect(inboxCtx.isZero()).toBe(false);
     });
 
-    it("actionItems returns triage and actionable when both exist", () => {
+    it("returns false when there are actionable items", () => {
+      init([
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", assignee: YOU },
+      ]);
+
+      expect(inboxCtx.isZero()).toBe(false);
+    });
+
+    it("returns false when there are both triage and actionable items", () => {
       init([
         { id: "root", name: "Root", children: ["1", "2"] },
         { id: "1", name: "Parent", assignee: YOU, children: ["3"] },
@@ -307,11 +304,7 @@ describe("InboxContext tests", () => {
         { id: "3", name: "Child", assignee: null },
       ]);
 
-      expect(inboxCtx.hasTriage()).toBe(true);
-      expect(inboxCtx.hasActionable()).toBe(true);
-      expect(inboxCtx.actionItems).toHaveLength(2);
-      expect(inboxCtx.actionItems[0].reasons[0].name).toBe("ParentOwner");
-      expect(inboxCtx.actionItems[1].reasons[0].name).toBe("Actionable");
+      expect(inboxCtx.isZero()).toBe(false);
     });
   });
 });
