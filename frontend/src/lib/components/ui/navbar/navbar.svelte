@@ -16,7 +16,7 @@
     MenuDivider,
     MenuTrigger,
   } from "$lib/kosui/menu";
-  import { MenuIcon, UserRound } from "lucide-svelte";
+  import { MenuIcon, UserRound } from "@lucide/svelte";
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
   import { StorybookNavigationActionIds } from "../../../../routes/storybook/+layout.svelte";

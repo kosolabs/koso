@@ -3,7 +3,7 @@
   import type { DetailPanelState } from "$lib/components/ui/detail-panel";
   import { Action } from "$lib/kosui/command";
   import { useLocalStorage, type Storable } from "$lib/stores.svelte";
-  import { Bug, BugOff } from "lucide-svelte";
+  import { Bug, BugOff } from "@lucide/svelte";
   import type { Snippet } from "svelte";
   import { getContext, onMount, setContext } from "svelte";
 

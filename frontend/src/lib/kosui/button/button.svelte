@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import type { Icon } from "lucide-svelte";
+  import type { Icon } from "@lucide/svelte";
   import type { Snippet } from "svelte";
   import type { HTMLButtonAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";

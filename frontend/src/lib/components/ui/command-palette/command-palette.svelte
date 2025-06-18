@@ -2,7 +2,7 @@
   import { Action, Commander, Registry } from "$lib/kosui/command";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { NavigationAction } from "$lib/navigation-action";
-  import { Book, House, Moon, Sun, SunMoon, Terminal } from "lucide-svelte";
+  import { Book, House, Moon, Sun, SunMoon, Terminal } from "@lucide/svelte";
   import { userPrefersMode as mode, resetMode, setMode } from "mode-watcher";
   import type { Snippet } from "svelte";
   import { getContext, onMount, setContext } from "svelte";

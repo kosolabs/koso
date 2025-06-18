@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Avatar } from "$lib/kosui/avatar";
   import { colors, variants } from "$lib/kosui/base";
-  import { UserRound } from "lucide-svelte";
+  import { UserRound } from "@lucide/svelte";
 </script>
 
 <div class="flex gap-4 rounded-lg border p-4">

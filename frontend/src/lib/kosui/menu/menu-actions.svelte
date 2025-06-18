@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Check } from "lucide-svelte";
+  import { Check } from "@lucide/svelte";
   import { MenuDivider, MenuHeader, MenuItem } from ".";
   import type { Action } from "../command";
 

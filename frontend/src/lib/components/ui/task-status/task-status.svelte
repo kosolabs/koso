@@ -19,7 +19,7 @@
     LoaderCircle,
     PauseOctagon,
     WandSparkles,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { TaskStatusIcon } from ".";
   import { CircularProgress } from "../../../kosui/progress";
   import { confetti } from "../confetti";

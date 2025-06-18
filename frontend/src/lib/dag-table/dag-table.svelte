@@ -51,7 +51,7 @@
     Undo,
     UserRoundPlus,
     Wrench,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
   import DagRow from "./dag-row.svelte";

@@ -2,7 +2,7 @@
   import { colors, shapes, underlines, variants } from "$lib/kosui/base";
   import { Goto } from "$lib/kosui/goto";
   import { toTitleCase } from "$lib/kosui/utils";
-  import { Link } from "lucide-svelte";
+  import { Link } from "@lucide/svelte";
 
   let clicked = $state(false);
 </script>

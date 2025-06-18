@@ -12,7 +12,7 @@
   import { Link } from "$lib/kosui/link";
   import type { User } from "$lib/users";
   import { cn } from "$lib/utils";
-  import { Grip } from "lucide-svelte";
+  import { Grip } from "@lucide/svelte";
   import { tick } from "svelte";
   import { ActionItemTooltip } from "./action-item-tooltip";
   import DescAction from "./desc-action.svelte";

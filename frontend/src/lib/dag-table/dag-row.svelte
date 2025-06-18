@@ -12,7 +12,7 @@
   import type { User } from "$lib/users";
   import { cn } from "$lib/utils";
   import type { Map } from "immutable";
-  import { ChevronRight, Grip } from "lucide-svelte";
+  import { ChevronRight, Grip } from "@lucide/svelte";
   import Awareness, {
     getAwarenessOutline,
     getUniqueUsers,

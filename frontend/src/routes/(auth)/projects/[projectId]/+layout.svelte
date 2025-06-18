@@ -30,7 +30,7 @@
     PanelTopOpen,
     Pencil,
     UserPlus,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { onMount, type Snippet } from "svelte";
   import { newProjectContext } from "../../../../lib/dag-table/project-context.svelte";
 

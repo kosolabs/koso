@@ -2,7 +2,7 @@
   import { Avatar } from "$lib/kosui/avatar";
   import { Menu, MenuContent, MenuItem, MenuTrigger } from "$lib/kosui/menu";
   import type { User } from "$lib/users";
-  import { UserRound } from "lucide-svelte";
+  import { UserRound } from "@lucide/svelte";
   import { UserAvatar } from ".";
   import ResponsiveText from "../responsive-text/responsive-text.svelte";
 

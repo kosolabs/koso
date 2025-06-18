@@ -10,7 +10,7 @@
     MenuTriggerButton,
     type MenuTriggerButtonProps,
   } from "$lib/kosui/menu";
-  import { MoreVertical } from "lucide-svelte";
+  import { MoreVertical } from "@lucide/svelte";
 
   type Props = {} & MenuTriggerButtonProps;
   let { ...restProps }: Props = $props();

@@ -6,7 +6,7 @@
     CircleDotDashed,
     CircleFadingArrowUp,
     OctagonPause,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
 
   type Props = {
     status: Status | null;
