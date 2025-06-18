@@ -2615,6 +2615,8 @@ test.describe("dag table tests", () => {
       const hasHorizontalScrollbar = await page.evaluate(() => {
         return document.body.scrollWidth > document.body.clientWidth;
       });
+
+      expect(hasHorizontalScrollbar).toBe(false);
     });
   });
 });
