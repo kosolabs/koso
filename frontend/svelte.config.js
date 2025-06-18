@@ -19,6 +19,17 @@ const config = {
       pollInterval: 60 * 1000,
     },
   },
+  // Force rune mode on all project svelte files to avoid any issues
+  // arising from accidentally running in legacy mode.
+  // See https://svelte.dev/docs/svelte/svelte-compiler#CompileOptions
+  // `runes` field for details.
+  vitePlugin: {
+    dynamicCompileOptions({ filename, compileOptions }) {
+      if (!filename.includes("node_modules") && !compileOptions.runes) {
+        return { runes: true };
+      }
+    },
+  },
 };
 
 export default config;
