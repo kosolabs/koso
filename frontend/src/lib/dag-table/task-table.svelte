@@ -6,7 +6,6 @@
     ActionIds,
     Categories,
   } from "$lib/components/ui/command-palette/command-palette.svelte";
-  import KosoLogo from "$lib/components/ui/koso-logo/koso-logo.svelte";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { toast } from "$lib/components/ui/sonner";
   import { Alert } from "$lib/kosui/alert";
@@ -393,31 +392,23 @@
 </script>
 
 {#await koso.synced then}
-  {#if inbox.actionItems.length > 0}
-    <div class="flex flex-col gap-2">
-      {#if !inbox.hasTriage()}
-        <Alert
-          variant={inbox.hasActionable() ? "elevated" : "filled"}
-          color="tertiary"
-          class="relative flex flex-col items-center"
-        >
-          <div class="fixed top-20 left-1/2">
-            <Confetti x={[-2, 2]} y={[-0.5, 0.1]} />
+  <div class="flex flex-col gap-2">
+    {#if inbox.isZero()}
+      <Alert color="tertiary" class="relative flex flex-col items-center">
+        <div class="fixed top-20 left-1/2">
+          <Confetti x={[-2, 2]} y={[-0.5, 0.1]} />
+        </div>
+        <div>🎉 Contratulations! You've achieved Inbox Zero! 🎉</div>
+        {#if inbox.actionItems.length > 0}
+          <div>
+            All action items complete. Consider working on one of the following
+            tasks.
           </div>
-          <div>🎉 Contratulations! You've achieved Inbox Zero! 🎉</div>
-          {#if inbox.hasActionable()}
-            <div>
-              All triage tasks complete. Here are your current action items.
-            </div>
-          {:else if inbox.hasReady()}
-            <div>
-              All triage tasks and action items complete. Consider working on
-              one of the following tasks.
-            </div>
-          {/if}
-        </Alert>
-      {/if}
+        {/if}
+      </Alert>
+    {/if}
 
+    {#if inbox.actionItems.length > 0}
       <table
         class="task-table w-full border-separate border-spacing-0 rounded-md border"
       >
@@ -466,22 +457,8 @@
           </tbody>
         {/each}
       </table>
-    </div>
-  {:else}
-    <div class="flex items-center justify-center pt-8">
-      <div
-        class="bg-m3-surface-container flex w-9/12 max-w-[425px] rounded-md border p-4"
-      >
-        <div class="min-w-16">
-          <KosoLogo class="size-16" />
-        </div>
-        <div class="ml-4">
-          <div class="text-md">Inbox zero!</div>
-          <div class="mt-2 text-sm">You've achieved inbox zero. Great job!</div>
-        </div>
-      </div>
-    </div>
-  {/if}
+    {/if}
+  </div>
 {/await}
 
 <!-- Round the bottom left and right of the table -->
