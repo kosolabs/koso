@@ -31,7 +31,7 @@ importers:
         version: 1.7.1
       '@lucide/svelte':
         specifier: 0.517.0
-        version: 0.517.0(svelte@5.34.2)
+        version: 0.517.0(svelte@5.34.5)
       '@playwright/test':
         specifier: 1.53.0
         version: 1.53.0
@@ -3057,9 +3057,9 @@ snapshots:
       '@lezer/common': 1.2.3
       '@lezer/highlight': 1.2.1
 
-  '@lucide/svelte@0.517.0(svelte@5.34.2)':
+  '@lucide/svelte@0.517.0(svelte@5.34.5)':
     dependencies:
-      svelte: 5.34.2
+      svelte: 5.34.5
 
   '@marijn/find-cluster-break@1.0.2': {}
 
