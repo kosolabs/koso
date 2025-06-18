@@ -22,6 +22,7 @@
   const planningCtx = newPlanningContext(koso);
 
   let detailPanel: DetailPanel | undefined = $state();
+  let offline: boolean = $derived(project.socket.offline);
 
   async function saveEditedProjectName(name: string) {
     let updatedProject;
@@ -62,7 +63,7 @@
       {/snippet}
     </Navbar>
 
-    <OfflineAlert offline={project.socket.offline} />
+    <OfflineAlert {offline} />
   </div>
 
   <div class="grow overflow-hidden p-1">

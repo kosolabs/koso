@@ -18,6 +18,7 @@
   const inbox = setInboxContext(new InboxContext(auth.user, koso));
 
   let detailPanel: DetailPanel | undefined = $state();
+  let offline: boolean = $derived(project.socket.offline);
 </script>
 
 <div class="flex h-dvh flex-col">
@@ -32,7 +33,7 @@
       {/snippet}
     </Navbar>
 
-    <OfflineAlert offline={project.socket.offline} />
+    <OfflineAlert {offline} />
   </div>
 
   <div class="grow overflow-y-hidden p-1">

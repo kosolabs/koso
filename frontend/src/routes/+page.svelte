@@ -6,6 +6,7 @@
   import Landing from "./landing.svelte";
 
   const auth = getAuthContext();
+  let authOk: boolean = $derived(auth.ok());
 
   if (auth.ok()) {
     redirectOnLogin();
@@ -49,6 +50,6 @@
   }
 </script>
 
-{#if !auth.ok()}
+{#if !authOk}
   <Landing {onsuccess} />
 {/if}

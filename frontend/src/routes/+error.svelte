@@ -1,7 +1,7 @@
 <script>
   import { page } from "$app/state";
 
-  let message = page.error?.message;
+  let message = $state(page.error?.message);
 </script>
 
 <div class="text-center">

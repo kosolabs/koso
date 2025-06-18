@@ -4,8 +4,9 @@
   import { getProjectContext } from "$lib/dag-table/project-context.svelte";
 
   const project = getProjectContext();
+  let offline: boolean = $derived(project.socket.offline);
 </script>
 
 <Navbar />
 
-<OfflineAlert offline={project.socket.offline} />
+<OfflineAlert {offline} />

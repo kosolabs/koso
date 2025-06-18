@@ -14,7 +14,7 @@
   const auth = getAuthContext();
 
   let deflicker: Promise<Project[]> = new Promise((r) => setTimeout(r, 50));
-  let projects: Promise<Project[]> = rest.fetchProjects(auth);
+  let projects: Promise<Project[]> = $state(rest.fetchProjects(auth));
 
   async function createProject(projectExport: ProjectExport | null = null) {
     const toastId = toast.loading(
