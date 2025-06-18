@@ -22,6 +22,8 @@
   const { koso, socket, name, users } = getProjectContext();
   const planningCtx = newPlanningContext(koso, taskId);
 
+  let offline: boolean = $derived(socket.offline);
+
   function getStatusColor(status: Status): (typeof colors)[number] {
     if (status === "On Track") {
       return "primary";
@@ -89,7 +91,7 @@
   {/snippet}
 </Navbar>
 
-<OfflineAlert offline={socket.offline} />
+<OfflineAlert {offline} />
 
 <div class="flex flex-col gap-2 p-2">
   <h1 class="text-3xl font-extralight">{task.name}</h1>
