@@ -7,7 +7,7 @@
   import { Alert } from "$lib/kosui/alert";
   import { getDialoguerContext } from "$lib/kosui/dialog";
   import { CircularProgress } from "$lib/kosui/progress";
-  import { CircleCheck, CircleSlash, CircleX } from "lucide-svelte";
+  import { CircleCheck, CircleSlash, CircleX } from "@lucide/svelte";
   import { onMount } from "svelte";
 
   const dialog = getDialoguerContext();

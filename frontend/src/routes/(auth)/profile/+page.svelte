@@ -18,7 +18,7 @@
     Sun,
     SunMoon,
     Trash2,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
   import SubSection from "./sub-section.svelte";

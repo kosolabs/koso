@@ -1,6 +1,6 @@
 <script>
   import { Fab } from "$lib/kosui/fab";
-  import { Plus } from "lucide-svelte";
+  import { Plus } from "@lucide/svelte";
 </script>
 
 <div class="flex flex-wrap gap-2">

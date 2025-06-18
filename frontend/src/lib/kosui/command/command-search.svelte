@@ -1,5 +1,5 @@
 <script module lang="ts">
-  import { SearchIcon } from "lucide-svelte";
+  import { SearchIcon } from "@lucide/svelte";
   import { CommandInput } from ".";
   import type { CommandInputProps } from "./command-input.svelte";
 

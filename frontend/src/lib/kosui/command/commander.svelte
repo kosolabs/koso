@@ -1,6 +1,6 @@
 <script module lang="ts">
   import { match } from "$lib/utils";
-  import { Check, ChevronRight } from "lucide-svelte";
+  import { Check, ChevronRight } from "@lucide/svelte";
   import {
     Action,
     Command,

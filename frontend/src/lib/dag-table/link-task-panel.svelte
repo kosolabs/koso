@@ -16,7 +16,12 @@
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
   import { match } from "$lib/utils";
   import type { YTaskProxy } from "$lib/yproxy";
-  import { Clipboard, ClipboardPlus, Network, SquarePlus } from "lucide-svelte";
+  import {
+    Clipboard,
+    ClipboardPlus,
+    Network,
+    SquarePlus,
+  } from "@lucide/svelte";
   import { compareTasks } from "./compare-tasks.svelte";
   import type { Koso } from "./koso.svelte";
   import { TaskLinkage } from "./koso.svelte";

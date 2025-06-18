@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CircularProgress } from "$lib/kosui/progress";
-  import { CircleCheck, CircleFadingArrowUp } from "lucide-svelte";
+  import { CircleCheck, CircleFadingArrowUp } from "@lucide/svelte";
 </script>
 
 <div class="flex flex-wrap gap-2 rounded-lg border p-4">

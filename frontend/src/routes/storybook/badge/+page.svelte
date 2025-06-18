@@ -1,7 +1,7 @@
 <script>
   import { Badge } from "$lib/kosui/badge";
   import { Button } from "$lib/kosui/button";
-  import { Menu } from "lucide-svelte";
+  import { Menu } from "@lucide/svelte";
 </script>
 
 <div class="flex gap-5">

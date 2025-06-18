@@ -2,7 +2,7 @@
   import { Button } from "$lib/kosui/button";
   import { Goto } from "$lib/kosui/goto";
   import { Tooltip } from "$lib/kosui/tooltip";
-  import { Blocks, CalendarCheck2, CirclePlay, Icon } from "lucide-svelte";
+  import { Blocks, CalendarCheck2, CirclePlay, Icon } from "@lucide/svelte";
   import {
     type ActionItem,
     getInboxContext,

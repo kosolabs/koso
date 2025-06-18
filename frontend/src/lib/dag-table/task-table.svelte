@@ -33,7 +33,7 @@
     Trash,
     Undo,
     UserRoundPlus,
-  } from "lucide-svelte";
+  } from "@lucide/svelte";
   import { onMount, tick } from "svelte";
   import Confetti from "svelte-confetti";
   import { flip } from "svelte/animate";

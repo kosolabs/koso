@@ -2,7 +2,7 @@
   import { colors, shapes, variants } from "$lib/kosui/base";
   import { Button } from "$lib/kosui/button";
   import { toTitleCase } from "$lib/kosui/utils";
-  import { Link2 } from "lucide-svelte";
+  import { Link2 } from "@lucide/svelte";
 
   let clicked = $state(false);
 </script>

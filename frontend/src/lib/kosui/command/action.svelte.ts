@@ -1,4 +1,4 @@
-import { CircleSlash, type Icon } from "lucide-svelte";
+import { CircleSlash, type Icon } from "@lucide/svelte";
 import { untrack } from "svelte";
 import type { Shortcut } from "../shortcut";
 

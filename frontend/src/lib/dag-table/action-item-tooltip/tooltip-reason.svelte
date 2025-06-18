@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Header } from "$lib/kosui/common";
-  import type { Icon } from "lucide-svelte";
+  import type { Icon } from "@lucide/svelte";
   import type { Snippet } from "svelte";
 
   export type ReasonProps = {

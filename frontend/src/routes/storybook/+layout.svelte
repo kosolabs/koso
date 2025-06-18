@@ -7,7 +7,7 @@
   import { Breadcrumbs } from "$lib/kosui/breadcrumbs";
   import { toTitleCase } from "$lib/kosui/utils";
   import { NavigationAction } from "$lib/navigation-action";
-  import { Book } from "lucide-svelte";
+  import { Book } from "@lucide/svelte";
   import { onMount, type Snippet } from "svelte";
 
   export const StorybookNavigationActionIds = {

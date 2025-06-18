@@ -19,7 +19,7 @@
   } from "$lib/projects";
   import type { User } from "$lib/users";
   import { cn, match } from "$lib/utils";
-  import { CircleMinus, TriangleAlert, X } from "lucide-svelte";
+  import { CircleMinus, TriangleAlert, X } from "@lucide/svelte";
   import { flip } from "svelte/animate";
 
   type Props = {

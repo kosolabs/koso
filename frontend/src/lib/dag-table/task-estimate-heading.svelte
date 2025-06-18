@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/kosui/button";
   import { Tooltip } from "$lib/kosui/tooltip";
-  import { CalendarDays } from "lucide-svelte";
+  import { CalendarDays } from "@lucide/svelte";
 </script>
 
 <Tooltip class="flex max-h-2/5 max-w-3/5" click arrow>

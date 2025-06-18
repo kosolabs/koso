@@ -2,7 +2,7 @@
   import { toast } from "$lib/components/ui/sonner";
   import { Button } from "$lib/kosui/button";
   import { Dialog, DialogButton, getDialoguerContext } from "$lib/kosui/dialog";
-  import { CalendarDays, TriangleAlert } from "lucide-svelte";
+  import { CalendarDays, TriangleAlert } from "@lucide/svelte";
 
   const dialog = getDialoguerContext();
 

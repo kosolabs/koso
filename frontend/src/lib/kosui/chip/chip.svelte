@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import { X } from "lucide-svelte";
+  import { X } from "@lucide/svelte";
   import type { Snippet } from "svelte";
   import { twMerge } from "tailwind-merge";
 

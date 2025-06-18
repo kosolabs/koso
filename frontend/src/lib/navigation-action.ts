@@ -1,5 +1,5 @@
 import { goto } from "$app/navigation";
-import type { Icon } from "lucide-svelte";
+import type { Icon } from "@lucide/svelte";
 import { Action } from "./kosui/command";
 import type { Shortcut } from "./kosui/shortcut";
 

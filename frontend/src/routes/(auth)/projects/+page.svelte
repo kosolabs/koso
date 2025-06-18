@@ -9,7 +9,7 @@
   import { Goto } from "$lib/kosui/goto";
   import * as rest from "$lib/projects";
   import { type Project, type ProjectExport } from "$lib/projects";
-  import { HardDriveUpload, Layers, PackagePlus, Trash2 } from "lucide-svelte";
+  import { HardDriveUpload, Layers, PackagePlus, Trash2 } from "@lucide/svelte";
 
   const auth = getAuthContext();
 

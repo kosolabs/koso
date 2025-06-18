@@ -10,7 +10,7 @@
   } from "$lib/kosui/command";
   import { Modal } from "$lib/kosui/modal";
   import { match } from "$lib/utils";
-  import { Clipboard, Network } from "lucide-svelte";
+  import { Clipboard, Network } from "@lucide/svelte";
   import { compareTasks } from "./compare-tasks.svelte";
   import { getPlanningContext } from "./planning-context.svelte";
 

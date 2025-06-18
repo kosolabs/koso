@@ -1,4 +1,4 @@
-import type { Icon } from "lucide-svelte";
+import type { Icon } from "@lucide/svelte";
 import { getContext, setContext, type Snippet } from "svelte";
 import type { Variants } from "../base";
 import type { InputProps } from "../input";
