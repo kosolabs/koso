@@ -21,6 +21,8 @@
   const { koso } = project;
   const planningCtx = newPlanningContext(koso);
 
+  let detailPanel: DetailPanel | undefined = $state();
+
   async function saveEditedProjectName(name: string) {
     let updatedProject;
     try {
@@ -67,7 +69,10 @@
     <div class="flex h-full flex-row-reverse max-2xl:flex-col">
       {#if prefs.detailPanel !== "none"}
         <div class="flex-1 overflow-y-scroll p-1">
-          <DetailPanel taskId={planningCtx.selected?.name} />
+          <DetailPanel
+            bind:this={detailPanel}
+            taskId={planningCtx.selected?.name}
+          />
         </div>
       {/if}
       <div class="flex-2 overflow-y-scroll p-1">
