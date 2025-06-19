@@ -6,6 +6,7 @@ import {
   init,
   setupNewProject,
   tearDown,
+  hasHorizontalScrollbar,
 } from "./utils";
 
 test.describe.configure({ mode: "parallel" });
@@ -2612,11 +2613,10 @@ test.describe("dag table tests", () => {
 
   test.describe("horizontal scrollbar", () => {
     test("detect the presence of a horizontal scrollbar", async ({ page }) => {
-      const hasHorizontalScrollbar = await page.evaluate(() => {
-        return document.body.scrollWidth > document.body.clientWidth;
-      });
-
-      expect(hasHorizontalScrollbar).toBe(false);
+      await expect(hasHorizontalScrollbar(page)).toBe(false);
+      // const hasHorizontalScrollbar = await page.evaluate(() => {
+      //   return document.body.scrollWidth > document.body.clientWidth;
+      // });
     });
   });
 });
