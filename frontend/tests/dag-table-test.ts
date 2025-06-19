@@ -2613,10 +2613,7 @@ test.describe("dag table tests", () => {
 
   test.describe("horizontal scrollbar", () => {
     test("detect the presence of a horizontal scrollbar", async ({ page }) => {
-      await expect(hasHorizontalScrollbar(page)).toBe(false);
-      // const hasHorizontalScrollbar = await page.evaluate(() => {
-      //   return document.body.scrollWidth > document.body.clientWidth;
-      // });
+      expect(await hasHorizontalScrollbar(page)).toBe(false);
     });
   });
 });
