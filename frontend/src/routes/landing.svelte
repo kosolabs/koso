@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { page } from "$app/state";
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import collabDemo from "$lib/components/ui/landing/collab-demo.png";
   import editDemo from "$lib/components/ui/landing/edit-demo.png";
@@ -19,10 +18,6 @@
     const t = Math.max(Math.min((window.scrollY - 50) / 250, 1), 0);
     heroTextEl.style.opacity = `${1 - t}`;
     heroTextEl.style.scale = `${1 - 0.2 * t}`;
-  }
-  // TODO: Remove this when all videos are ready
-  function showVideo() {
-    return page.url.searchParams.get("showVideo") === "true";
   }
 
   $effect(() => {
@@ -63,23 +58,16 @@
     <h2 class="text-2xl lg:text-4xl">Plan at the Speed of Thought</h2>
     <p>Create and edit tasks as if you were typing in a doc.</p>
 
-    {#if showVideo()}
-      <video
-        class="flat-gradient rounded-lg border"
-        autoplay
-        loop
-        muted
-        playsinline
-        src="https://storage.cloud.google.com/koso-assets/plan-being-made-dark.mp4"
-        title="Create and edit tasks"
-      ></video>
-    {:else}
-      <img
-        src={editDemo}
-        alt="Create and edit tasks"
-        class="placeholder flex w-full items-center justify-center rounded-lg border"
-      />
-    {/if}
+    <video
+      class="placeholder flex w-full items-center justify-center border"
+      autoplay
+      loop
+      muted
+      playsinline
+      src="https://storage.cloud.google.com/koso-assets/plan-being-made-dark.mp4"
+      poster={editDemo}
+      title="Create and edit tasks"
+    ></video>
 
     <div>
       <h3 class="pb-4 text-xl lg:text-2xl">Quick Edits</h3>
@@ -109,7 +97,7 @@
     <img
       src={collabDemo}
       alt="Multiple people collaborating on tasks"
-      class="placeholder flex w-full items-center justify-center rounded-lg border"
+      class="placeholder flex w-full items-center justify-center border"
     />
   </div>
 </div>
@@ -124,20 +112,15 @@
       dependency of another. Or link by searching.
     </p>
 
-    {#if showVideo()}<video
-        class="flat-gradient rounded-lg border"
-        autoplay
-        loop
-        muted
-        playsinline
-        src="https://storage.cloud.google.com/koso-assets/drag-and-drop-dark.mp4"
-      ></video>
-    {:else}<img
-        src={linkDemo}
-        alt="Link tasks by searching"
-        class="placeholder flex w-full items-center justify-center rounded-lg border"
-      />
-    {/if}
+    <video
+      class="placeholder flex w-full items-center justify-center border"
+      autoplay
+      loop
+      muted
+      playsinline
+      src="https://storage.cloud.google.com/koso-assets/drag-and-drop-dark.mp4"
+      poster={linkDemo}
+    ></video>
   </div>
 </div>
 
@@ -155,7 +138,7 @@
     <img
       src={githubDemo}
       alt="External Github PR task"
-      class="placeholder flex w-full items-center justify-center rounded-lg border"
+      class="placeholder flex w-full items-center justify-center border"
     />
   </div>
 </div>
@@ -164,17 +147,34 @@
   <div
     class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
   >
-    <h2 class="text-2xl lg:text-4xl">Self Organizing Zero Inbox</h2>
+    <h2 class="text-2xl lg:text-4xl">Crystal Clear Prioritization</h2>
+    <p>
+      The zero inbox always surfaces the most impactful tasks based on
+      prioritization and effort.
+    </p>
+    <img
+      src="https://storage.cloud.google.com/koso-assets/zero-inbox-prioritization.png"
+      alt="Crystal Clear Prioritization"
+      class="placeholder flex w-full items-center justify-center border"
+    />
+  </div>
+</div>
+
+<div class="flat-gradient px-4 pt-40 pb-20">
+  <div
+    class="mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-8 text-center"
+  >
+    <h2 class="text-2xl lg:text-4xl">Self Organizing Plan</h2>
     <p>
       Only see tasks that are actionable. If an unactionable task appears in
       your inbox, add a blocker by linking the dependent task. Koso will notify
       you when your task becomes actionable.
     </p>
-    <div
-      class="placeholder flex aspect-video w-full items-center justify-center rounded-lg border"
-    >
-      Coming soon!
-    </div>
+    <img
+      src="https://storage.cloud.google.com/koso-assets/block-tasks.png"
+      alt="Self Organizing Plan"
+      class="placeholder flex w-full items-center justify-center border"
+    />
   </div>
 </div>
 
@@ -216,7 +216,7 @@
     box-shadow: 0 0 100px 20px hsl(250deg, 50%, 70%);
     border-width: 1px;
     border-color: white;
-    border-radius: 1em;
+    border-radius: 0.5em;
     z-index: 1;
   }
 
@@ -229,7 +229,7 @@
     box-shadow: 0 0 100px 20px hsl(250deg, 50%, 70%);
     border-width: 1px;
     border-color: white;
-    border-radius: 1em;
+    border-radius: 0.5em;
   }
 
   .hero-text {
