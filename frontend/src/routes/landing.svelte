@@ -64,7 +64,7 @@
       loop
       muted
       playsinline
-      src="https://storage.cloud.google.com/koso-assets/plan-being-made-dark.mp4"
+      src="https://storage.googleapis.com/koso-assets/plan-being-made-dark.mp4"
       poster={editDemo}
       title="Create and edit tasks"
     ></video>
@@ -118,7 +118,7 @@
       loop
       muted
       playsinline
-      src="https://storage.cloud.google.com/koso-assets/drag-and-drop-dark.mp4"
+      src="https://storage.googleapis.com/koso-assets/drag-and-drop-dark.mp4"
       poster={linkDemo}
     ></video>
   </div>
@@ -153,7 +153,7 @@
       prioritization and effort.
     </p>
     <img
-      src="https://storage.cloud.google.com/koso-assets/zero-inbox-prioritization.png"
+      src="https://storage.googleapis.com/koso-assets/zero-inbox-prioritization.png"
       alt="Crystal Clear Prioritization"
       class="placeholder flex w-full items-center justify-center border"
     />
@@ -171,7 +171,7 @@
       you when your task becomes actionable.
     </p>
     <img
-      src="https://storage.cloud.google.com/koso-assets/block-tasks.png"
+      src="https://storage.googleapis.com/koso-assets/block-tasks.png"
       alt="Self Organizing Plan"
       class="placeholder flex w-full items-center justify-center border"
     />
