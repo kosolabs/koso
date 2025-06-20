@@ -2615,5 +2615,18 @@ test.describe("dag table tests", () => {
     test("detect the presence of a horizontal scrollbar", async ({ page }) => {
       expect(await hasHorizontalScrollbar(page)).toBe(false);
     });
+
+    test("detect the presence of a horizontal scrollbar when there are tasks", async ({
+      page,
+    }) => {
+      await init(page, [
+        { id: "root", name: "Root", children: ["1"] },
+        { id: "1", name: "Task 1", children: ["2", "3"] },
+        { id: "2", name: "Task 2", archived: true },
+        { id: "3", name: "Task 3", archived: true },
+      ]);
+
+      expect(await hasHorizontalScrollbar(page)).toBe(false);
+    });
   });
 });
