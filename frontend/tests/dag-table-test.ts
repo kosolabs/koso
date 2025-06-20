@@ -2622,8 +2622,8 @@ test.describe("dag table tests", () => {
       await init(page, [
         { id: "root", name: "Root", children: ["1"] },
         { id: "1", name: "Task 1", children: ["2", "3"] },
-        { id: "2", name: "Task 2", archived: true },
-        { id: "3", name: "Task 3", archived: true },
+        { id: "2", name: "Task 2" },
+        { id: "3", name: "Task 3" },
       ]);
 
       expect(await hasHorizontalScrollbar(page)).toBe(false);
