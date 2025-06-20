@@ -214,8 +214,7 @@ export const EMPTY_SYNC_RESPONSE = (() => {
 })();
 
 export async function hasHorizontalScrollbar(page: Page) {
-  const hasHorizontalScrollbar = await page.evaluate(() => {
+  return await page.evaluate(() => {
     return document.body.scrollWidth > document.body.clientWidth;
   });
-  return hasHorizontalScrollbar;
 }
