@@ -212,3 +212,9 @@ export const EMPTY_SYNC_RESPONSE = (() => {
   encoding.writeVarUint8Array(encoder, Y.encodeStateAsUpdateV2(new Y.Doc()));
   return encoding.toUint8Array(encoder);
 })();
+
+export async function hasHorizontalScrollbar(page: Page) {
+  return await page.evaluate(() => {
+    return document.body.scrollWidth > document.body.clientWidth;
+  });
+}
