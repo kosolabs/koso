@@ -14,7 +14,7 @@ use axum::body::{Body, Bytes};
 use axum::http::request::Parts;
 use axum::middleware;
 use axum::{Extension, Json, Router, routing::post};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use hmac::{Hmac, Mac};
 use reqwest::IntoUrl;
 use serde::de::DeserializeOwned;
@@ -402,7 +402,11 @@ async fn handle_webhook(
         }
 
         // TODO: Do we need this in addition to the invoice events below?
-        "customer.subscription.updated" => {
+        "customer.subscription.created"
+        | "customer.subscription.updated"
+        | "customer.subscription.deleted"
+        | "customer.subscription.paused"
+        | "customer.subscription.resumed" => {
             let subscription: SubscriptionObject = serde_json::from_str(event.data.get())?;
             let subscription = subscription.object;
             tracing::info!("Processing subscription event: {subscription:?}");
@@ -436,7 +440,14 @@ async fn apply_subscription(pool: &PgPool, subscription: &Subscription) -> Resul
         .data
         .first()
         .context("Unexpectedly got no subscription items")?;
-    let premium_subscription_end = DateTime::from_timestamp(item.current_period_end, 0);
+    // https://docs.stripe.com/billing/subscriptions/webhooks#state-changes
+    let premium_subscription_end = if subscription.status == "canceled"
+        || subscription.status == "unpaid"
+    {
+        Some(Utc::now().checked_sub_signed(TimeDelta::minutes(5))).context("could not sub delta")?
+    } else {
+        DateTime::from_timestamp(item.current_period_end, 0)
+    };
     let premium_subscription_seats = item.quantity;
     let email = subscription
         .metadata
@@ -444,7 +455,6 @@ async fn apply_subscription(pool: &PgPool, subscription: &Subscription) -> Resul
         .as_deref()
         .context("Subscription metadata email absent")?;
 
-    // TODO: Check status of subscription?
     let res = sqlx::query(
         "
         UPDATE users

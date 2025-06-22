@@ -445,7 +445,7 @@ After starting your local server:
    stripe listen \
       --forward-to localhost:3000/api/billing/stripe/webhook \
       --api-key=$(cat koso/.secrets/stripe/secret_key) \
-      --events=checkout.session.completed,invoice.paid,customer.subscription.updated
+      --events=checkout.session.completed,invoice.paid,customer.subscription.created,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,customer.subscription.updated
    ```
 
 With this in place and your local servers running, you can:
