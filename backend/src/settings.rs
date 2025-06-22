@@ -10,6 +10,7 @@ pub(crate) struct Settings {
     pub(crate) database_url: String,
     pub(crate) secrets_dir: String,
     pub(crate) plugins: Plugins,
+    pub(crate) stripe: Stripe,
 }
 
 #[derive(Debug, Deserialize)]
@@ -24,6 +25,12 @@ pub(crate) struct Github {
     pub(crate) client_id: String,
     pub(crate) app_id: u64,
     pub(crate) app_name: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct Stripe {
+    pub(crate) price_id: String,
 }
 
 pub fn settings() -> &'static Settings {

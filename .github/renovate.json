@@ -44,6 +44,17 @@
         "cargo install\\s+(?<depName>\\S+)@(?<currentValue>\\S+)"
       ],
       "datasourceTemplate": "crate"
+    },
+    {
+      "description": "Update Stripe CLI version in ci.yml",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)ci\\.yml$/"],
+      "matchStrings": [
+        "STRIPE_CLI_VERSION=\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
+      ],
+      "depNameTemplate": "stripe-cli",
+      "packageNameTemplate": "stripe/stripe-cli",
+      "datasourceTemplate": "github-releases"
     }
   ],
   "lockFileMaintenance": {

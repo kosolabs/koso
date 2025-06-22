@@ -56,6 +56,13 @@
    brew install node pnpm
    ```
 
+1. Install the [Stripe CLI](https://docs.stripe.com/stripe-cli)
+
+   ```sh
+   brew install stripe/stripe-cli/stripe
+   stripe login
+   ```
+
 ### Once A Day / After Every Pull
 
 1. Run the most recent DB migrations.
@@ -407,3 +414,41 @@ After starting your local server:
 1. Start a new Smee channel: https://smee.io/
 1. Start smee locally with the new channel `smee -u $CHANNEL_URL --port 3000 --path /plugins/github/app/webhook`
 1. Trigger or [redeliver](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/redelivering-webhooks#redelivering-github-app-webhooks) some events
+
+## Stripe
+
+### One-time setup
+
+1. Install the [CLI](https://docs.stripe.com/stripe-cli#install):
+
+   ```bash
+   brew install stripe/stripe-cli/stripe
+   stripe login
+   ```
+
+### Testing locally
+
+We use the **Koso Labs Sandbox** Stripe sandbox for testing. Login to Stripe and switch to the Sandbox to find API keys and webhook details. Feel free to create a new sandbox if needed.
+
+After starting your local server:
+
+1. Configure your sandbox secret API key in `koso/.secrets/stripe/secret_key`
+1. Configure your sandbox webhook secret
+
+   ```bash
+   stripe listen --api-key $(cat koso/.secrets/stripe/secret_key) --print-secret > koso/.secrets/stripe/webhook_secret
+   ```
+
+1. Start a local listener with [stripe listen](https://docs.stripe.com/cli/listen). Add events as needed. Omit the API key to use an empemeral test environment.
+
+   ```bash
+   stripe listen \
+      --forward-to localhost:3000/api/billing/stripe/webhook \
+      --api-key=$(cat koso/.secrets/stripe/secret_key) \
+      --events=checkout.session.completed,invoice.paid,customer.subscription.created,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,customer.subscription.updated
+   ```
+
+With this in place and your local servers running, you can:
+
+- Trigger events on demand with `stripe trigger`. For example: `stripe trigger checkout.session.completed`
+- Test interactively using the `4242 4242 4242 4242` card number: https://docs.stripe.com/testing#testing-interactively

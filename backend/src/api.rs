@@ -2,6 +2,7 @@ use anyhow::{Context, Error, Result, anyhow};
 use axum::{
     Router,
     http::{HeaderName, HeaderValue, StatusCode},
+    middleware,
     response::{IntoResponse, Response},
 };
 use axum_extra::headers;
@@ -13,6 +14,7 @@ use std::backtrace::{Backtrace, BacktraceStatus};
 use crate::notifiers;
 
 pub(crate) mod auth;
+pub(crate) mod billing;
 pub(crate) mod collab;
 pub(crate) mod dev;
 pub(crate) mod google;
@@ -25,8 +27,8 @@ pub(crate) mod yproxy;
 
 pub(crate) type ApiResult<T> = Result<T, ErrorResponse>;
 
-pub(crate) fn router() -> Router {
-    Router::new()
+pub(crate) fn router() -> Result<Router> {
+    Ok(Router::new()
         .nest("/projects", projects::router())
         .nest("/profile", profile::router())
         .nest("/notifiers", notifiers::router())
@@ -34,10 +36,13 @@ pub(crate) fn router() -> Router {
         .nest("/ws", ws::router())
         .nest("/users", users::router())
         .nest("/dev", dev::router())
+        .layer((middleware::from_fn(google::authenticate),))
+        .nest("/billing", billing::router()?))
 }
 
 /// Verify that the user is premium.
 pub(crate) async fn verify_premium(pool: &PgPool, user: &User) -> Result<(), ErrorResponse> {
+    // TODO: check premium_subscription_end instead
     match sqlx::query_as(
         "
         SELECT premium

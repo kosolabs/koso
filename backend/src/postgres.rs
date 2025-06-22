@@ -91,6 +91,7 @@ pub(crate) async fn list_project_users(
 ) -> Result<Vec<ProjectUser>> {
     let mut txn = pool.begin().await?;
 
+    // TODO: check premium_subscription_end instead
     let users: Vec<ProjectUser> = sqlx::query_as(
         "
         SELECT project_id, email, name, picture, premium

@@ -17,6 +17,7 @@ async fn list_users_handler(
 ) -> ApiResult<Json<Vec<User>>> {
     verify_premium(pool, &user).await?;
 
+    // TODO: check premium_subscription_end instead
     let mut users: Vec<User> =
         sqlx::query_as("SELECT email, name, picture, premium FROM users WHERE premium;")
             .fetch_all(pool)
@@ -34,6 +35,7 @@ async fn get_user_handler(
 ) -> ApiResult<Json<User>> {
     verify_user_access(&user, &email)?;
 
+    // TODO: check premium_subscription_end instead
     let user: Option<User> =
         sqlx::query_as("SELECT email, name, picture, premium FROM users WHERE email=$1;")
             .bind(&email)

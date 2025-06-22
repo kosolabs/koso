@@ -105,6 +105,11 @@ touch /root/.secrets/github/client_secret
 touch /root/.secrets/telegram/token
 # The pem encoded RSA key used to sign telegram auth tokens
 touch /root/.secrets/koso/hmac
+mkdir -p /root/.secrets/stripe
+# The Stripe API key.
+touch /root/.secrets/stripe/secret_key
+# The Stripe webhook secret: https://dashboard.stripe.com/webhooks.
+touch /root/.secrets/stripe/webhook_secret
 # MANUAL - place secrets in those files
 
 # Finally, run the Deploy action to start the backend.

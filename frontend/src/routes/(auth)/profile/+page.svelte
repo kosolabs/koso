@@ -12,6 +12,7 @@
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
   import {
     CircleX,
+    Crown,
     Github,
     Moon,
     Send,
@@ -46,9 +47,14 @@
     githubUserId?: string;
   };
 
+  type Subscriptions = {
+    status: "None" | "Premium" | "PremiumEternal" | "Expired";
+  };
+
   type Profile = {
     notificationConfigs: NotificationConfig[];
     pluginConnections: PluginConnections;
+    subscriptions: Subscriptions;
   };
 
   async function load(): Promise<Profile> {
@@ -134,6 +140,46 @@
     } catch {
       toast.error("Failed to delete Github connection.", { id: toastId });
     }
+  }
+
+  async function createCheckoutSession() {
+    const req: { cancelUrl: string; successUrl: string } = {
+      successUrl: `${location.origin}/profile`,
+      cancelUrl: `${location.origin}/profile`,
+    };
+
+    const response = await fetch(
+      `/api/billing/stripe/create-checkout-session`,
+      {
+        method: "POST",
+        headers: {
+          ...headers(auth),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(req),
+      },
+    );
+    let res: { redirectUrl: string } = await parseResponse(auth, response);
+    console.log("Redirecting to stripe checkout", res);
+    window.location.assign(res.redirectUrl);
+  }
+
+  async function createPortalSession() {
+    const req: { returnUrl: string } = {
+      returnUrl: `${location.origin}/profile`,
+    };
+
+    const response = await fetch(`/api/billing/stripe/create-portal-session`, {
+      method: "POST",
+      headers: {
+        ...headers(auth),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(req),
+    });
+    let res: { redirectUrl: string } = await parseResponse(auth, response);
+    console.log("Redirecting to stripe portal", res);
+    window.location.assign(res.redirectUrl);
   }
 </script>
 
@@ -250,5 +296,57 @@
         {/if}
       </SubSection>
     {/await}
+  </Section>
+
+  <Section title="Subscriptions">
+    <SubSection title="Subscription">
+      {#await profile}
+        <div class="flex place-content-center items-center gap-2">
+          <CircularProgress />
+          <div>Loading...</div>
+        </div>
+      {:then profile}
+        {#if profile.subscriptions.status === "None" || profile.subscriptions.status === "Expired"}
+          <div class="flex flex-col gap-2">
+            <div>
+              {#if profile.subscriptions.status === "None"}
+                You do not have an active subscription.
+              {:else}
+                Your subscription is expired.
+              {/if}
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                icon={Crown}
+                onclick={async () => await createCheckoutSession()}
+              >
+                Subscribe
+              </Button>
+            </div>
+            <div></div>
+          </div>
+        {:else if profile.subscriptions.status === "Premium"}
+          <div class="flex flex-col gap-2">
+            <div>You have a premium subscription.</div>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                icon={Crown}
+                onclick={async () => await createPortalSession()}
+              >
+                Manage
+              </Button>
+            </div>
+            <div></div>
+          </div>
+        {:else}
+          <div class="flex flex-col gap-2">
+            <div>
+              Something went wrong. Invalid subscription status:
+              {profile.subscriptions.status}. Let us know!
+            </div>
+          </div>
+        {/if}
+      {/await}
+    </SubSection>
   </Section>
 </div>
