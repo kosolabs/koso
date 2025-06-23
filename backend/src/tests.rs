@@ -831,7 +831,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         )
         .header(
             "X-Hub-Signature-256",
-            // cat src/testdata/opened_pr.json| openssl sha256 -hex -mac HMAC -macopt key:$(cat ../.secrets/github/webhook_secret
+            // cat src/testdata/opened_pr.json| openssl sha256 -binary -mac HMAC -macopt key:$(cat ../.secrets/github/webhook_secret)|xxd -ps -c0
             "sha256=1fe256ded787e371d4b545f71a2071421c3e8102639862893a6a84ff17f49fa2",
         )
         .body(include_str!("testdata/opened_pr.json"))
@@ -879,7 +879,7 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
         )
         .header(
             "X-Hub-Signature-256",
-            // cat src/testdata/closed_pr.json| openssl sha256 -hex -mac HMAC -macopt key:$(cat ../.secrets/github/webhook_secret)
+            // cat src/testdata/closed_pr.json| openssl sha256 -binary -mac HMAC -macopt key:$(cat ../.secrets/github/webhook_secret)|xxd -ps -c0
             "sha256=f984a8917c361675d373dd07dcd346c4ea6397b1fa5978f7257fd1d460c3a872",
         )
         .body(include_str!("testdata/closed_pr.json"))
