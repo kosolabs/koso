@@ -31,6 +31,7 @@ pub(crate) struct Github {
 #[serde(deny_unknown_fields)]
 pub(crate) struct Stripe {
     pub(crate) price_id: String,
+    pub(crate) enable_unathenticated_webhook: bool,
 }
 
 pub fn settings() -> &'static Settings {

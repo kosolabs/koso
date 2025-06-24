@@ -205,7 +205,7 @@ async fn get_stripe_customer_id(user: &User, pool: &PgPool) -> Result<Option<Str
     match sqlx::query_as(
         "
         SELECT stripe_customer_id
-        FROM users
+        FROM subscriptions
         WHERE email = $1;
         ",
     )
@@ -370,18 +370,17 @@ async fn handle_webhook(
     parts: Parts,
     body: Body,
 ) -> ApiResult<()> {
-    let signature = if let Some(signature) = parts.headers.get("stripe-signature") {
-        signature.to_str()?
-    } else {
+    let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
+        .await
+        .map_err(|_| bad_request_error("INVALID_BODY", "Invalid body"))?;
+    if let Some(signature) = parts.headers.get("stripe-signature") {
+        validate_signature(signature.to_str()?, &body, &webhook_secret)?;
+    } else if !settings().stripe.enable_unathenticated_webhook {
         return Err(bad_request_error(
             "MISSING_HEADER",
             "Missing stripe-signature header",
         ));
     };
-    let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
-        .await
-        .map_err(|_| bad_request_error("INVALID_BODY", "Invalid body"))?;
-    validate_signature(signature, &body, &webhook_secret)?;
 
     let event: Event = serde_json::from_slice(&body)
         .map_err(|e| bad_request_error("INVALID_REQUEST", &format!("Invalid request: {e}")))?;
@@ -435,44 +434,72 @@ async fn handle_webhook(
 
 async fn apply_subscription(pool: &PgPool, subscription: &Subscription) -> Result<()> {
     tracing::info!("Applying subscription {subscription:?}");
+
     let item = subscription
         .items
         .data
         .first()
         .context("Unexpectedly got no subscription items")?;
     // https://docs.stripe.com/billing/subscriptions/webhooks#state-changes
-    let premium_subscription_end = if subscription.status == "canceled"
+    let end_time: Option<DateTime<Utc>> = if subscription.status == "canceled"
         || subscription.status == "unpaid"
     {
         Some(Utc::now().checked_sub_signed(TimeDelta::minutes(5))).context("could not sub delta")?
     } else {
         DateTime::from_timestamp(item.current_period_end, 0)
     };
-    let premium_subscription_seats = item.quantity;
+    let seats = item.quantity;
     let email = subscription
         .metadata
         .email
         .as_deref()
         .context("Subscription metadata email absent")?;
 
-    let res = sqlx::query(
+    let mut txn = pool.begin().await?;
+    // First, insert (or update) the subscription
+    sqlx::query(
         "
-        UPDATE users
-        SET stripe_customer_id = $2,
-            premium_subscription_end = $3,
-            premium_subscription_seats = $4
-        WHERE email = $1",
+        INSERT INTO subscriptions (email, stripe_customer_id, seats, end_time, member_emails)
+        VALUES ($1, $2, $3, $4, ARRAY[$1])
+        ON CONFLICT (email)
+        DO UPDATE
+        SET seats = EXCLUDED.seats, end_time = EXCLUDED.end_time
+        WHERE subscriptions.seats!=EXCLUDED.seats OR subscriptions.end_time!=EXCLUDED.end_time",
     )
     .bind(email)
     .bind(&subscription.customer)
-    .bind(premium_subscription_end)
-    .bind(premium_subscription_seats)
-    .execute(pool)
+    .bind(seats)
+    .bind(end_time)
+    .execute(&mut *txn)
     .await
-    .context("Failed to update user subscription")?;
-    if res.rows_affected() == 0 {
-        return Err(anyhow!("User {email} does not exist."));
-    }
+    .context("Failed to upsert subscription")?;
+
+    // For each member of the target subscription, set the latest end time of all their subscriptions.
+    sqlx::query(
+        "
+        UPDATE users u1
+        SET subscription_end_time=subquery.end_time
+        FROM (
+            SELECT email, MAX(end_time) AS end_time
+            FROM (
+                SELECT UNNEST(member_emails) AS email
+                FROM subscriptions
+                WHERE email=$1
+            ) JOIN(
+                SELECT UNNEST(member_emails) AS email, end_time
+                FROM subscriptions
+            ) USING(email)
+            GROUP BY email
+        ) subquery
+        WHERE u1.email=subquery.email AND (u1.subscription_end_time IS NULL OR u1.subscription_end_time!=subquery.end_time)",
+    )
+    .bind(email)
+    .execute(&mut *txn)
+    .await
+    .context("Failed to update member end times")?;
+
+    txn.commit().await?;
+
     Ok(())
 }
 

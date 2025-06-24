@@ -98,7 +98,7 @@ async fn fetch_plugin_connections(email: &str, pool: &PgPool) -> Result<Option<P
 async fn fetch_subscriptions(email: &str, pool: &PgPool) -> Result<Option<Subscriptions>> {
     let res: Option<(Option<DateTime<Utc>>,)> = sqlx::query_as(
         "
-        SELECT premium_subscription_end
+        SELECT subscription_end_time
         FROM users
         WHERE email = $1",
     )
@@ -107,11 +107,11 @@ async fn fetch_subscriptions(email: &str, pool: &PgPool) -> Result<Option<Subscr
     .await
     .context("Failed to query user subscriptions")?;
     match res {
-        Some((premium_subscription_end,)) => {
-            let status = match premium_subscription_end {
+        Some((subscription_end_time,)) => {
+            let status = match subscription_end_time {
                 None => SubscriptionStatus::None,
-                Some(premium_subscription_end) => {
-                    if premium_subscription_end.timestamp() <= chrono::Utc::now().timestamp() {
+                Some(subscription_end_time) => {
+                    if subscription_end_time.timestamp() <= chrono::Utc::now().timestamp() {
                         SubscriptionStatus::Expired
                     } else {
                         SubscriptionStatus::Premium
