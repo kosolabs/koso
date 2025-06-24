@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { init, setupNewProject, tearDown } from "./utils";
+import {
+  hasHorizontalScrollbar,
+  init,
+  setupNewProject,
+  tearDown,
+} from "./utils";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -20,5 +25,10 @@ test.describe("inbox tests", () => {
 
       await expect(page.getByText("Inbox zero!")).toBeVisible();
     });
+  });
+
+  test.describe("horizontal scrollbar", () => {
+    test("detect the presence of a horizontal scrollbar", async ({ page }) =>
+      expect(await hasHorizontalScrollbar(page)).toBe(false));
   });
 });
