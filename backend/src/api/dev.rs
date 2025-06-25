@@ -41,8 +41,8 @@ async fn invite_test_user_handler(
     sqlx::query(
         "
         UPDATE users
-        SET subscription_end_date=TIMESTAMP '2100-01-20 13:00:00'
-        WHERE email = $1 and subscription_end_date IS NULL",
+        SET subscription_end_time=TIMESTAMP '2100-01-20 13:00:00'
+        WHERE email = $1 and subscription_end_time IS NULL",
     )
     .bind(user.email)
     .execute(pool)
