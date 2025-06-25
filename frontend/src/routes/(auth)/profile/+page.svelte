@@ -222,7 +222,7 @@
 
     const toastId = toast.loading("Updating subscription members...");
 
-    const response = await fetch(`/api/billing/stripe/subscription`, {
+    const response = await fetch(`/api/billing/subscriptions`, {
       method: "PUT",
       headers: {
         ...headers(auth),

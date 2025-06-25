@@ -34,10 +34,13 @@ pub(super) fn router() -> Result<Router> {
     Ok(Router::new()
         .route(
             "/stripe/create-checkout-session",
-            post(create_checkout_session),
+            post(handle_create_checkout_session),
         )
-        .route("/stripe/create-portal-session", post(create_portal_session))
-        .route("/stripe/subscription", put(update_subscription))
+        .route(
+            "/stripe/create-portal-session",
+            post(handle_create_portal_session),
+        )
+        .route("/subscriptions", put(handle_update_subscription))
         .layer((middleware::from_fn(google::authenticate),))
         // The webhook endpoint is invoked by Stripe and not users. Don't authenticate using Google.
         .route("/stripe/webhook", post(webhook::handle_webhook))
@@ -46,7 +49,7 @@ pub(super) fn router() -> Result<Router> {
 }
 
 #[tracing::instrument(skip(user, pool, client))]
-async fn create_checkout_session(
+async fn handle_create_checkout_session(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Extension(client): Extension<StripeClient>,
@@ -96,7 +99,7 @@ async fn create_checkout_session(
 }
 
 #[tracing::instrument(skip(user, pool, client))]
-async fn create_portal_session(
+async fn handle_create_portal_session(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Extension(client): Extension<StripeClient>,
@@ -144,7 +147,7 @@ async fn get_stripe_customer_id(user: &User, pool: &PgPool) -> Result<Option<Str
 }
 
 #[tracing::instrument(skip(user, pool))]
-async fn update_subscription(
+async fn handle_update_subscription(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Json(request): Json<UpdateSubscriptionRequest>,
