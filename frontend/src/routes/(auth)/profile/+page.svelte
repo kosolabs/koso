@@ -48,8 +48,18 @@
   };
 
   type Subscriptions = {
-    status: "None" | "Premium" | "PremiumEternal" | "Expired";
+    ownedSubscription?: Subscription;
+    status: SubscriptionStatus;
   };
+
+  type Subscription = {
+    status: SubscriptionStatus;
+    seats: number;
+    endTime: string;
+    memberEmails: string[];
+  };
+
+  type SubscriptionStatus = "None" | "Active" | "Expired";
 
   type Profile = {
     notificationConfigs: NotificationConfig[];
@@ -306,15 +316,36 @@
           <div>Loading...</div>
         </div>
       {:then profile}
-        {#if profile.subscriptions.status === "None" || profile.subscriptions.status === "Expired"}
-          <div class="flex flex-col gap-2">
-            <div>
-              {#if profile.subscriptions.status === "None"}
-                You do not have an active subscription.
-              {:else}
-                Your subscription is expired.
-              {/if}
+        {@const subs = profile.subscriptions}
+        {@const sub = subs.ownedSubscription}
+
+        <div class="flex flex-col gap-2">
+          <div>
+            {#if subs.status === "None"}
+              You do not have an active subscription.
+            {:else if subs.status === "Expired"}
+              Your subscription expired.
+            {:else if subs.status === "Active"}
+              You have a premium subscription.
+            {:else}
+              Something went wrong. Invalid subscription status "{subs.status}".
+              Let us know!
+            {/if}
+          </div>
+
+          {#if sub && sub.status === "Active"}
+            <div class="flex flex-wrap gap-2">
+              <div class="ml-auto">
+                <Button
+                  icon={Crown}
+                  variant="filled"
+                  onclick={async () => await createPortalSession()}
+                >
+                  Manage
+                </Button>
+              </div>
             </div>
+          {:else if sub || (!sub && subs.status !== "Active")}
             <div class="flex flex-wrap gap-2">
               <Button
                 icon={Crown}
@@ -323,29 +354,15 @@
                 Subscribe
               </Button>
             </div>
-            <div></div>
-          </div>
-        {:else if profile.subscriptions.status === "Premium"}
-          <div class="flex flex-col gap-2">
-            <div>You have a premium subscription.</div>
-            <div class="flex flex-wrap gap-2">
-              <Button
-                icon={Crown}
-                onclick={async () => await createPortalSession()}
-              >
-                Manage
-              </Button>
-            </div>
-            <div></div>
-          </div>
-        {:else}
-          <div class="flex flex-col gap-2">
-            <div>
-              Something went wrong. Invalid subscription status:
-              {profile.subscriptions.status}. Let us know!
-            </div>
-          </div>
-        {/if}
+          {/if}
+
+          {#if sub}
+            {#each sub.memberEmails as memberEmail (memberEmail)}
+              <div>{memberEmail}</div>
+            {/each}
+          {/if}
+          <div></div>
+        </div>
       {/await}
     </SubSection>
   </Section>

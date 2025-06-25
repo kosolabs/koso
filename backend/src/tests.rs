@@ -755,8 +755,8 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
     .await?;
     sqlx::query(
         "
-    INSERT INTO users (email, name, picture, premium, github_user_id)
-    VALUES ('foo@koso.test', 'Foo Bar', 'foopic@koso.test', True, '4945355')",
+    INSERT INTO users (email, name, picture, subscription_end_time, github_user_id)
+    VALUES ('foo@koso.test', 'Foo Bar', 'foopic@koso.test', TIMESTAMP '2100-01-20 13:00:00', '4945355')",
     )
     .execute(&pool)
     .await?;
@@ -1119,10 +1119,15 @@ async fn login(client: &Client, addr: &SocketAddr, pool: &PgPool) -> Result<Stri
 }
 
 async fn set_user_premium(email: &str, pool: &PgPool) -> Result<()> {
-    sqlx::query("UPDATE users SET premium=TRUE WHERE email=$1")
-        .bind(email)
-        .execute(pool)
-        .await?;
+    sqlx::query(
+        "
+        UPDATE users
+        SET subscription_end_time=TIMESTAMP '2100-01-20 13:00:00'
+        WHERE email=$1",
+    )
+    .bind(email)
+    .execute(pool)
+    .await?;
     Ok(())
 }
 

@@ -42,10 +42,9 @@ pub(crate) fn router() -> Result<Router> {
 
 /// Verify that the user is premium.
 pub(crate) async fn verify_premium(pool: &PgPool, user: &User) -> Result<(), ErrorResponse> {
-    // TODO: check premium_subscription_end instead
     match sqlx::query_as(
         "
-        SELECT premium
+        SELECT subscription_end_time IS NOT NULL AND subscription_end_time > now() AS premium
         FROM users
         WHERE email = $1;
         ",

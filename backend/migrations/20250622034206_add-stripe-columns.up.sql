@@ -9,3 +9,9 @@ CREATE TABLE subscriptions (
 
 ALTER TABLE users
 ADD COLUMN subscription_end_time timestamptz;
+
+UPDATE users
+SET subscription_end_time=TIMESTAMP '2100-01-20 13:00:00';
+
+ALTER TABLE users
+DROP COLUMN premium;

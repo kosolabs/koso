@@ -310,7 +310,7 @@ pub struct SubscriptionObject {
 pub struct Subscription {
     id: String,
     customer: String,
-    quantity: i64,
+    quantity: i32,
     status: String,
     metadata: KosoMetadata,
     items: SubscriptionItems,
@@ -325,7 +325,7 @@ pub struct SubscriptionItems {
 pub struct SubscriptionItem {
     id: String,
     current_period_end: i64,
-    quantity: i64,
+    quantity: i32,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -441,12 +441,13 @@ async fn apply_subscription(pool: &PgPool, subscription: &Subscription) -> Resul
         .first()
         .context("Unexpectedly got no subscription items")?;
     // https://docs.stripe.com/billing/subscriptions/webhooks#state-changes
-    let end_time: Option<DateTime<Utc>> = if subscription.status == "canceled"
-        || subscription.status == "unpaid"
-    {
-        Some(Utc::now().checked_sub_signed(TimeDelta::minutes(5))).context("could not sub delta")?
+    let end_time = if subscription.status == "canceled" || subscription.status == "unpaid" {
+        Utc::now()
+            .checked_sub_signed(TimeDelta::minutes(5))
+            .context("could not sub delta")?
     } else {
         DateTime::from_timestamp(item.current_period_end, 0)
+            .context("could not convert to timesetamp")?
     };
     let seats = item.quantity;
     let email = subscription
