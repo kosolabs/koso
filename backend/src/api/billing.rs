@@ -1,18 +1,21 @@
-use std::collections::HashMap;
-
-use crate::api::billing::model::{
-    CreateCheckoutSessionRequest, CreateCheckoutSessionResponse, CreatePortalSessionRequest,
-    CreatePortalSessionResponse,
+use crate::{
+    api::{
+        ApiResult, bad_request_error,
+        billing::model::{
+            CreateCheckoutSessionRequest, CreateCheckoutSessionResponse,
+            CreatePortalSessionRequest, CreatePortalSessionResponse,
+        },
+        google::{self, User},
+        not_found_error, unauthorized_error,
+    },
+    secrets::{self, Secret},
+    settings::settings,
 };
-use crate::api::{ApiResult, google::User};
-use crate::api::{bad_request_error, google, unauthorized_error};
-use crate::notifiers::UserNotificationConfig;
-use crate::secrets::{self, Secret};
-use crate::settings::settings;
 use anyhow::{Context, Result, anyhow};
 use axum::body::{Body, Bytes};
 use axum::http::request::Parts;
 use axum::middleware;
+use axum::routing::put;
 use axum::{Extension, Json, Router, routing::post};
 use chrono::{DateTime, TimeDelta, Utc};
 use hmac::{Hmac, Mac};
@@ -21,7 +24,8 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use sha2::Sha256;
-use sqlx::{FromRow, PgPool};
+use sqlx::PgPool;
+use std::collections::HashMap;
 
 #[derive(Clone)]
 struct WebhookSecret(Secret<Vec<u8>>);
@@ -46,24 +50,12 @@ pub(crate) fn router() -> Result<Router> {
             post(create_checkout_session),
         )
         .route("/stripe/create-portal-session", post(create_portal_session))
+        .route("/stripe/subscription", put(update_subscription))
         .layer((middleware::from_fn(google::authenticate),))
         // The webhook endpoint is invoked by Stripe and not users. Don't authenticate using Google.
         .route("/stripe/webhook", post(handle_webhook))
         .layer((Extension(client),))
         .layer((Extension(webhook_secret),)))
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Profile {
-    notification_configs: Vec<UserNotificationConfig>,
-    plugin_connections: PluginConnections,
-}
-
-#[derive(Serialize, Deserialize, FromRow, Debug)]
-#[serde(rename_all = "camelCase")]
-struct PluginConnections {
-    github_user_id: Option<String>,
 }
 
 #[derive(Serialize, Debug)]
@@ -103,6 +95,13 @@ struct CheckoutSessionResponse {
     id: String,
     url: String,
 }
+
+#[derive(Deserialize, Debug)]
+struct UpdateSubscriptionRequest {
+    members: Vec<String>,
+}
+#[derive(Serialize, Debug)]
+struct UpdateSubscriptionResponse {}
 
 #[tracing::instrument(skip(user, pool, client))]
 async fn create_checkout_session(
@@ -217,6 +216,60 @@ async fn get_stripe_customer_id(user: &User, pool: &PgPool) -> Result<Option<Str
         Some((Some(customer_id),)) => Ok(Some(customer_id)),
         None | Some((None,)) => Ok(None),
     }
+}
+
+#[tracing::instrument(skip(user, pool))]
+async fn update_subscription(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+    Json(request): Json<UpdateSubscriptionRequest>,
+) -> ApiResult<Json<UpdateSubscriptionResponse>> {
+    if !request.members.contains(&user.email) {
+        return Err(bad_request_error(
+            "MISSING_SELF",
+            "Members must include owner",
+        ));
+    }
+
+    let mut txn = pool.begin().await?;
+    let res: Option<(i32,)> = sqlx::query_as(
+        "
+        SELECT seats
+        FROM subscriptions
+        WHERE email=$1",
+    )
+    .bind(&user.email)
+    .bind(&request.members)
+    .fetch_optional(&mut *txn)
+    .await
+    .context("Failed to fetch seats")?;
+    let Some((seats,)) = res else {
+        return Err(not_found_error("NOT_FOUND", "Subscription not found"));
+    };
+    if request.members.len() > usize::try_from(seats)? {
+        return Err(bad_request_error(
+            "TOO_MANY_MEMBERS",
+            &format!(
+                "Tried to put {} members in {seats} seats",
+                request.members.len()
+            ),
+        ));
+    }
+
+    sqlx::query(
+        "
+        UPDATE subscriptions
+        SET members=$2
+        WHERE email=$1",
+    )
+    .bind(&user.email)
+    .bind(request.members)
+    .execute(&mut *txn)
+    .await
+    .context("Failed to upsert subscription")?;
+
+    txn.commit().await?;
+    Ok(Json(UpdateSubscriptionResponse {}))
 }
 
 impl StripeClient {
