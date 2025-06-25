@@ -7,6 +7,7 @@
   import { deleteUserConnection, redirectToConnectUserFlow } from "$lib/github";
   import { Button } from "$lib/kosui/button";
   import { getDialoguerContext } from "$lib/kosui/dialog";
+  import { Input } from "$lib/kosui/input";
   import { Link } from "$lib/kosui/link";
   import { CircularProgress } from "$lib/kosui/progress";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
@@ -19,6 +20,7 @@
     Sun,
     SunMoon,
     Trash2,
+    X,
   } from "@lucide/svelte";
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
@@ -191,6 +193,62 @@
     console.log("Redirecting to stripe portal", res);
     window.location.assign(res.redirectUrl);
   }
+
+  let memberInput: string = $state("");
+
+  async function addMember(member: string) {
+    const loadedProfile = await profile;
+    const subscription = loadedProfile.subscriptions.ownedSubscription;
+    if (!subscription) {
+      toast.error("No subscription found. Reload the page and try again");
+      return;
+    }
+    await setMembers([...subscription.memberEmails, member]);
+  }
+
+  async function removeMember(member: string) {
+    const loadedProfile = await profile;
+    const subscription = loadedProfile.subscriptions.ownedSubscription;
+    if (!subscription) {
+      toast.error("No subscription found. Reload the page and try again");
+      return;
+    }
+
+    await setMembers(subscription.memberEmails.filter((m) => m != member));
+  }
+
+  async function setMembers(members: string[]) {
+    const req: { members: string[] } = { members };
+
+    const toastId = toast.loading("Updating subscription members...");
+
+    const response = await fetch(`/api/billing/stripe/subscription`, {
+      method: "PUT",
+      headers: {
+        ...headers(auth),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(req),
+    });
+    try {
+      await parseResponse(auth, response);
+
+      toast.success("Subscription members updated.", { id: toastId });
+      profile = load();
+    } catch (e) {
+      toast.error("Failed to update subscription members.", { id: toastId });
+      throw e;
+    }
+  }
+
+  async function addAndClear() {
+    if (memberInput === "") {
+      return;
+    }
+    const member = memberInput.trim();
+    memberInput = "";
+    await addMember(member);
+  }
 </script>
 
 {#snippet message()}
@@ -357,9 +415,48 @@
           {/if}
 
           {#if sub}
-            {#each sub.memberEmails as memberEmail (memberEmail)}
-              <div>{memberEmail}</div>
-            {/each}
+            {@const remainingSeats = sub.seats - sub.memberEmails.length}
+            {#if remainingSeats <= 0}
+              All seats {sub.seats} are in use. Click "Manage" and add more seats
+              to add more members.
+            {:else}
+              You have {remainingSeats} seats remainingSeats. Add more members here.
+              <Input
+                class="border-muted text-foreground border-2 text-base focus:ring-0 focus-visible:ring-0"
+                placeholder="List of members"
+                bind:value={memberInput}
+                onblur={async () => {
+                  await addAndClear();
+                }}
+                onkeydown={async (e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    await addAndClear();
+                  }
+                }}
+              />
+            {/if}
+
+            {#if sub.memberEmails.length > 0}
+              <div class="flex flex-wrap pt-2">
+                {#each sub.memberEmails as memberEmail (memberEmail)}
+                  <div class="space-x-1 text-sm">
+                    <span>{memberEmail}</span>
+                    {#if memberEmail != auth.user.email}
+                      <Button
+                        class="m-0 h-4 w-4 p-0 "
+                        variant="outlined"
+                        onclick={async () => await removeMember(memberEmail)}
+                      >
+                        <X
+                          class="cursor-pointer text-gray-400 hover:text-gray-500"
+                        />
+                      </Button>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            {/if}
           {/if}
           <div></div>
         </div>

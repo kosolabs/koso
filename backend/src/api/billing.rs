@@ -224,7 +224,15 @@ async fn update_subscription(
     Extension(pool): Extension<&'static PgPool>,
     Json(request): Json<UpdateSubscriptionRequest>,
 ) -> ApiResult<Json<UpdateSubscriptionResponse>> {
-    if !request.members.contains(&user.email) {
+    let mut members = request
+        .members
+        .into_iter()
+        .map(|e| (e.to_lowercase(), true))
+        .collect::<HashMap<String, bool>>()
+        .into_keys()
+        .collect::<Vec<String>>();
+    members.sort();
+    if !members.contains(&user.email) {
         return Err(bad_request_error(
             "MISSING_SELF",
             "Members must include owner",
@@ -239,31 +247,28 @@ async fn update_subscription(
         WHERE email=$1",
     )
     .bind(&user.email)
-    .bind(&request.members)
+    .bind(&members)
     .fetch_optional(&mut *txn)
     .await
     .context("Failed to fetch seats")?;
     let Some((seats,)) = res else {
         return Err(not_found_error("NOT_FOUND", "Subscription not found"));
     };
-    if request.members.len() > usize::try_from(seats)? {
+    if members.len() > usize::try_from(seats)? {
         return Err(bad_request_error(
             "TOO_MANY_MEMBERS",
-            &format!(
-                "Tried to put {} members in {seats} seats",
-                request.members.len()
-            ),
+            &format!("Tried to put {} members in {seats} seats", members.len()),
         ));
     }
 
     sqlx::query(
         "
         UPDATE subscriptions
-        SET members=$2
+        SET member_emails=$2
         WHERE email=$1",
     )
     .bind(&user.email)
-    .bind(request.members)
+    .bind(members)
     .execute(&mut *txn)
     .await
     .context("Failed to upsert subscription")?;
