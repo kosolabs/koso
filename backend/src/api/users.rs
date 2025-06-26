@@ -17,10 +17,16 @@ async fn list_users_handler(
 ) -> ApiResult<Json<Vec<User>>> {
     verify_premium(pool, &user).await?;
 
-    let mut users: Vec<User> =
-        sqlx::query_as("SELECT email, name, picture, premium FROM users WHERE premium;")
-            .fetch_all(pool)
-            .await?;
+    let mut users: Vec<User> = sqlx::query_as(
+        "
+        SELECT email, name, picture, premium
+        FROM (
+            SELECT email, name, picture, (subscription_end_time IS NOT NULL AND subscription_end_time > now()) AS premium
+            FROM users
+        ) WHERE premium;",
+    )
+    .fetch_all(pool)
+    .await?;
     users.sort_by(|a, b| a.name.cmp(&b.name).then(a.email.cmp(&b.email)));
 
     Ok(Json(users))
@@ -34,11 +40,15 @@ async fn get_user_handler(
 ) -> ApiResult<Json<User>> {
     verify_user_access(&user, &email)?;
 
-    let user: Option<User> =
-        sqlx::query_as("SELECT email, name, picture, premium FROM users WHERE email=$1;")
-            .bind(&email)
-            .fetch_optional(pool)
-            .await?;
+    let user: Option<User> = sqlx::query_as(
+        "
+        SELECT email, name, picture, (subscription_end_time IS NOT NULL AND subscription_end_time > now()) AS premium
+        FROM users
+        WHERE email=$1;",
+    )
+    .bind(&email)
+    .fetch_optional(pool)
+    .await?;
     match user {
         Some(user) => Ok(Json(user)),
         None => Err(not_found_error(

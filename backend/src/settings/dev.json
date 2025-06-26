@@ -9,5 +9,9 @@
       "app_name": "development-koso",
       "client_id": "Iv23lif5pPjNjiQVtgPH"
     }
+  },
+  "stripe": {
+    "price_id": "price_1Rc9cw4SIh2Zcj7xDhQRQBiT",
+    "enable_unathenticated_webhook": true
   }
 }

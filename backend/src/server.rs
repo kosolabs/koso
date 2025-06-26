@@ -92,11 +92,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
     let github_poll_handle = github_plugin.start_polling();
 
     let app = Router::new()
-        .nest("/api", api::router().fallback(api::handler_404))
-        // Apply these layers only to /api routes.
-        .layer((middleware::from_fn(google::authenticate),))
-        // NOTE: the following routes are not subject to the
-        // google authentication middleware above.
+        .nest("/api", api::router()?.fallback(api::handler_404))
         .nest("/healthz", healthz::router())
         .nest("/plugins/github", github_plugin.router()?)
         // Apply these layers to all non-static routes.

@@ -6,8 +6,12 @@
   "plugins": {
     "github": {
       "app_id": 1053272,
-      "app_name":  "koso-github",
+      "app_name": "koso-github",
       "client_id": "Iv23lioB8K1C62NP3UbV"
     }
+  },
+  "stripe": {
+    "price_id": "price_1Rc9cw4SIh2Zcj7xDhQRQBiT",
+    "enable_unathenticated_webhook": false
   }
 }

@@ -51,6 +51,13 @@ jobs:
         with:
           workspaces: "./ -> target"
           shared-key: "backend-build"
+      - name: Setup Stripe CLI
+        run: |
+          STRIPE_CLI_VERSION="1.27.0"
+          curl -L https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_x86_64.tar.gz --output stripe.tar.gz
+          tar -xvf stripe.tar.gz
+          mv stripe /usr/local/bin
+          stripe -v
       - name: Run cargo test
         run: |
           echo "::group::Add Secrets"
@@ -61,6 +68,12 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
+          mkdir -p ~/.secrets/stripe
+          echo "::add-mask::${{ secrets.STRIPE_SECRET_KEY }}"
+          echo "${{ secrets.STRIPE_SECRET_KEY }}" > ~/.secrets/stripe/secret_key
+          STRIPE_WEBHOOK_SECRET=$(stripe listen --api-key ${{ secrets.STRIPE_SECRET_KEY }} --print-secret)
+          echo "::add-mask::$STRIPE_WEBHOOK_SECRET"
+          echo -n "$STRIPE_WEBHOOK_SECRET" > ~/.secrets/stripe/webhook_secret
           echo "::endgroup::"
 
           KOSO_SETTING_SECRETS_DIR=$(realpath ~/.secrets) \
@@ -134,6 +147,13 @@ jobs:
       - name: Setup playwright
         run: pnpm exec playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - name: Setup Stripe CLI
+        run: |
+          STRIPE_CLI_VERSION="1.27.0"
+          curl -L https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_x86_64.tar.gz --output stripe.tar.gz
+          tar -xvf stripe.tar.gz
+          mv stripe /usr/local/bin
+          stripe -v
 
       # Find PR number
       - name: Find docker image cache
@@ -197,7 +217,18 @@ jobs:
           echo -n "${{ secrets.GH_WEBHOOK_SECRET }}" > ~/.secrets/github/webhook_secret
           echo "::add-mask::${{ secrets.GH_CLIENT_SECRET }}"
           echo "${{ secrets.GH_CLIENT_SECRET }}" > ~/.secrets/github/client_secret
+          mkdir -p ~/.secrets/stripe
+          echo "::add-mask::${{ secrets.STRIPE_SECRET_KEY }}"
+          echo "${{ secrets.STRIPE_SECRET_KEY }}" > ~/.secrets/stripe/secret_key
+          STRIPE_WEBHOOK_SECRET=$(stripe listen --api-key ${{ secrets.STRIPE_SECRET_KEY }} --print-secret)
+          echo "::add-mask::$STRIPE_WEBHOOK_SECRET"
+          echo -n "$STRIPE_WEBHOOK_SECRET" > ~/.secrets/stripe/webhook_secret
           echo "::endgroup::"
+
+          stripe listen \
+            --forward-to localhost:3000/api/billing/stripe/webhook \
+            --api-key=${{ secrets.STRIPE_SECRET_KEY }} \
+            --events=checkout.session.completed,invoice.paid,customer.subscription.created,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,customer.subscription.updated &
 
           CI=true \
             KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} \

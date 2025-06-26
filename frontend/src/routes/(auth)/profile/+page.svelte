@@ -6,12 +6,15 @@
   import { toast } from "$lib/components/ui/sonner";
   import { deleteUserConnection, redirectToConnectUserFlow } from "$lib/github";
   import { Button } from "$lib/kosui/button";
+  import Chip from "$lib/kosui/chip/chip.svelte";
   import { getDialoguerContext } from "$lib/kosui/dialog";
+  import { Input } from "$lib/kosui/input";
   import { Link } from "$lib/kosui/link";
   import { CircularProgress } from "$lib/kosui/progress";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
   import {
     CircleX,
+    Crown,
     Github,
     Moon,
     Send,
@@ -46,9 +49,24 @@
     githubUserId?: string;
   };
 
+  type Subscriptions = {
+    ownedSubscription?: Subscription;
+    status: SubscriptionStatus;
+  };
+
+  type Subscription = {
+    status: SubscriptionStatus;
+    seats: number;
+    endTime: string;
+    memberEmails: string[];
+  };
+
+  type SubscriptionStatus = "None" | "Active" | "Expired";
+
   type Profile = {
     notificationConfigs: NotificationConfig[];
     pluginConnections: PluginConnections;
+    subscriptions: Subscriptions;
   };
 
   async function load(): Promise<Profile> {
@@ -134,6 +152,102 @@
     } catch {
       toast.error("Failed to delete Github connection.", { id: toastId });
     }
+  }
+
+  async function createCheckoutSession() {
+    const req: { cancelUrl: string; successUrl: string } = {
+      successUrl: `${location.origin}/profile`,
+      cancelUrl: `${location.origin}/profile`,
+    };
+
+    const response = await fetch(
+      `/api/billing/stripe/create-checkout-session`,
+      {
+        method: "POST",
+        headers: {
+          ...headers(auth),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(req),
+      },
+    );
+    let res: { redirectUrl: string } = await parseResponse(auth, response);
+    console.log("Redirecting to stripe checkout", res);
+    window.location.assign(res.redirectUrl);
+  }
+
+  async function createPortalSession() {
+    const req: { returnUrl: string } = {
+      returnUrl: `${location.origin}/profile`,
+    };
+
+    const response = await fetch(`/api/billing/stripe/create-portal-session`, {
+      method: "POST",
+      headers: {
+        ...headers(auth),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(req),
+    });
+    let res: { redirectUrl: string } = await parseResponse(auth, response);
+    console.log("Redirecting to stripe portal", res);
+    window.location.assign(res.redirectUrl);
+  }
+
+  let memberInput: string = $state("");
+
+  async function addMember(member: string) {
+    const loadedProfile = await profile;
+    const subscription = loadedProfile.subscriptions.ownedSubscription;
+    if (!subscription) {
+      toast.error("No subscription found. Reload the page and try again");
+      return;
+    }
+    await setMembers([...subscription.memberEmails, member]);
+  }
+
+  async function removeMember(member: string) {
+    const loadedProfile = await profile;
+    const subscription = loadedProfile.subscriptions.ownedSubscription;
+    if (!subscription) {
+      toast.error("No subscription found. Reload the page and try again");
+      return;
+    }
+
+    await setMembers(subscription.memberEmails.filter((m) => m != member));
+  }
+
+  async function setMembers(members: string[]) {
+    const req: { members: string[] } = { members };
+
+    const toastId = toast.loading("Updating subscription members...");
+
+    const response = await fetch(`/api/billing/subscriptions`, {
+      method: "PUT",
+      headers: {
+        ...headers(auth),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(req),
+    });
+    try {
+      await parseResponse(auth, response);
+
+      toast.success("Subscription members updated.", { id: toastId });
+      profile = load();
+    } catch (e) {
+      toast.error("Failed to update subscription members.", { id: toastId });
+      throw e;
+    }
+  }
+
+  async function addAndClear() {
+    if (memberInput === "") {
+      return;
+    }
+    const member = memberInput.trim();
+    memberInput = "";
+    await addMember(member);
   }
 </script>
 
@@ -250,5 +364,136 @@
         {/if}
       </SubSection>
     {/await}
+  </Section>
+
+  <Section title="Billing and licensing">
+    <SubSection title="Overview">
+      {#await profile}
+        <div class="flex place-content-center items-center gap-2">
+          <CircularProgress />
+          <div>Loading...</div>
+        </div>
+      {:then profile}
+        {@const subs = profile.subscriptions}
+
+        <div class="flex flex-col gap-2">
+          <div>
+            {#if subs.status === "None"}
+              You're a Koso for Individuals user.
+            {:else if subs.status === "Expired"}
+              You're a Koso for Individuals user. Your premium subscription
+              exired.
+            {:else if subs.status === "Active"}
+              You're a premium user. Thanks for supporting us!
+            {:else}
+              Something went wrong. Invalid subscription status "{subs.status}".
+              Let us know!
+            {/if}
+          </div>
+          <div></div>
+        </div>
+      {/await}
+    </SubSection>
+
+    <SubSection title="Subscription">
+      {#await profile}
+        <div class="flex place-content-center items-center gap-2">
+          <CircularProgress />
+          <div>Loading...</div>
+        </div>
+      {:then profile}
+        {@const sub = profile.subscriptions.ownedSubscription}
+
+        <div class="flex flex-col gap-2">
+          <div>
+            {#if !sub || sub.status === "None"}
+              You do not have an active subscription.
+            {:else if sub.status === "Expired"}
+              Your subscription is expired.
+            {:else if sub.status === "Active"}
+              You have a premium subscription.
+            {:else}
+              Something went wrong. Invalid subscription status "{sub.status}".
+              Let us know!
+            {/if}
+          </div>
+
+          <div>
+            {#if sub && sub.status === "Active"}
+              <Button
+                icon={Crown}
+                onclick={async () => await createPortalSession()}
+              >
+                Manage
+              </Button>
+            {:else}
+              <Button
+                icon={Crown}
+                onclick={async () => await createCheckoutSession()}
+              >
+                Subscribe
+              </Button>
+            {/if}
+          </div>
+
+          {#if sub}
+            {@const remainingSeats = sub.seats - sub.memberEmails.length}
+            <SubSection title="Members">
+              <div class="flex flex-col gap-2">
+                {#if remainingSeats <= 0}
+                  <div>
+                    All seats {sub.seats} are in use. Need more seats? Click "Manage"
+                    to add more seats.
+                  </div>
+                {:else}
+                  <div>
+                    You have {remainingSeats}
+                    remaining seat{remainingSeats === 1 ? "" : "s"}. Add new
+                    setMembers. Press Enter after each entry
+                  </div>
+                {/if}
+                <div>
+                  <Input
+                    class="border-muted text-foreground border-2 text-base focus:ring-0 focus-visible:ring-0"
+                    placeholder="List of members"
+                    type="email"
+                    disabled={remainingSeats <= 0}
+                    bind:value={memberInput}
+                    onblur={async () => {
+                      await addAndClear();
+                    }}
+                    onkeydown={async (e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        await addAndClear();
+                      }
+                    }}
+                  />
+                </div>
+
+                {#if sub.memberEmails.length > 0}
+                  <div class="flex flex-wrap items-center gap-2 pt-2">
+                    {#each sub.memberEmails as memberEmail (memberEmail)}
+                      <Chip
+                        class="px-3 py-1 text-sm"
+                        variant="elevated"
+                        shape="circle"
+                        onDelete={memberEmail === auth.user.email
+                          ? undefined
+                          : async () => await removeMember(memberEmail)}
+                      >
+                        {memberEmail}
+                      </Chip>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            </SubSection>
+          {/if}
+
+          <div></div>
+        </div>
+      {/await}
+    </SubSection>
   </Section>
 </div>
