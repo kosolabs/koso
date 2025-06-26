@@ -186,9 +186,9 @@ impl std::fmt::Debug for ErrorRender<'_> {
                     write!(f, "[{msg}]: ")?;
                 }
 
-                write!(f, "{}", err)?;
+                write!(f, "{err}")?;
                 for cause in err.chain().skip(1) {
-                    write!(f, ": {}", cause)?;
+                    write!(f, ": {cause}")?;
                 }
 
                 Self::fmt_backtrace(err.backtrace(), f)

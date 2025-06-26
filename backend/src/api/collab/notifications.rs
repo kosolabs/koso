@@ -39,9 +39,9 @@ pub(super) struct KosoEntryChange(EntryChange);
 impl fmt::Debug for KosoEntryChange {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.0 {
-            EntryChange::Inserted(out) => write!(f, "Inserted({})", out),
-            EntryChange::Updated(out1, out2) => write!(f, "Updated({}, {})", out1, out2),
-            EntryChange::Removed(out) => write!(f, "Removed({})", out),
+            EntryChange::Inserted(out) => write!(f, "Inserted({out})"),
+            EntryChange::Updated(out1, out2) => write!(f, "Updated({out1}, {out2})"),
+            EntryChange::Removed(out) => write!(f, "Removed({out})"),
         }
     }
 }
