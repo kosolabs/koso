@@ -58,10 +58,10 @@ async fn get_profile_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Profile>> {
-    let (notification_configs, plugin_connections, subscription, subscription_end_time) = try_join!(
+    let (notification_configs, plugin_connections, owned_subscription, subscription_end_time) = try_join!(
         fetch_notification_configs(&user.email, pool),
         fetch_plugin_connections(&user.email, pool),
-        fetch_subscription(&user.email, pool),
+        fetch_owned_subscription(&user.email, pool),
         fetch_subscription_end_time(&user.email, pool),
     )?;
     let Some(plugin_connections) = plugin_connections else {
@@ -72,7 +72,7 @@ async fn get_profile_handler(
         notification_configs,
         plugin_connections,
         subscriptions: Subscriptions {
-            owned_subscription: subscription,
+            owned_subscription,
             end_time: subscription_end_time,
             status: match subscription_end_time {
                 Some(end_time) => {
@@ -117,7 +117,7 @@ async fn fetch_plugin_connections(email: &str, pool: &PgPool) -> Result<Option<P
     .context("Failed to query user plugin connections")
 }
 
-async fn fetch_subscription(email: &str, pool: &PgPool) -> Result<Option<Subscription>> {
+async fn fetch_owned_subscription(email: &str, pool: &PgPool) -> Result<Option<Subscription>> {
     Ok(sqlx::query_as(
         "
         SELECT seats, end_time, member_emails
@@ -141,6 +141,7 @@ async fn fetch_subscription(email: &str, pool: &PgPool) -> Result<Option<Subscri
         },
     ))
 }
+
 async fn fetch_subscription_end_time(email: &str, pool: &PgPool) -> Result<Option<DateTime<Utc>>> {
     let (end_time,): (Option<DateTime<Utc>>,) = sqlx::query_as(
         "
