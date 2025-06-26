@@ -11,7 +11,7 @@
     }
   },
   "stripe": {
-    "price_id": "price_1Rc9cw4SIh2Zcj7xDhQRQBiT",
+    "price_id": "price_1RcqqgGKAqJkUL60vjmjJpUK",
     "enable_unathenticated_webhook": false
   }
 }
