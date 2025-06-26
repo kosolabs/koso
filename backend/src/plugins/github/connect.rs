@@ -142,8 +142,7 @@ impl ConnectHandler {
             .any(|installation| installation.id.0.to_string() == installation_id);
         if !installation_authorized {
             return Err(unauthorized_error(&format!(
-                "Not authorized to access installation {}",
-                installation_id
+                "Not authorized to access installation {installation_id}"
             )));
         }
         Ok(())

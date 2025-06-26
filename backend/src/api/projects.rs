@@ -81,7 +81,7 @@ async fn create_project_handler(
     if projects.len() >= MAX_PROJECTS {
         return Err(bad_request_error(
             "TOO_MANY_PROJECTS",
-            &format!("Cannot create more than {} projects", MAX_PROJECTS),
+            &format!("Cannot create more than {MAX_PROJECTS} projects"),
         ));
     }
     validate_project_name(&project.name)?;
@@ -331,10 +331,7 @@ fn validate_project_name(name: &str) -> ApiResult<()> {
     if name.len() > MAX_NAME_LEN {
         return Err(bad_request_error(
             "LONG_NAME",
-            &format!(
-                "Project name cannot be longer than {} characters ",
-                MAX_NAME_LEN
-            ),
+            &format!("Project name cannot be longer than {MAX_NAME_LEN} characters"),
         ));
     }
     Ok(())

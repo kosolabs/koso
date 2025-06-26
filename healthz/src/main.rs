@@ -124,7 +124,7 @@ async fn main() {
     let _ = Bot::from_env();
     let app = Router::new().route("/", get(handle));
     let port = env::var("PORT").unwrap_or("8000".into());
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
         .await
         .unwrap();
     tracing::info!("Listening on {:?}", listener.local_addr().unwrap());

@@ -403,7 +403,7 @@ mod stripe {
         }
 
         pub(super) async fn get_subscription(&self, id: &str) -> Result<Subscription> {
-            self.get(format!("https://api.stripe.com/v1/subscriptions/{}", id))
+            self.get(format!("https://api.stripe.com/v1/subscriptions/{id}"))
                 .await
                 .context("Failed to get subscription")
         }
@@ -676,8 +676,7 @@ mod webhook {
             Ok(v) => v,
             Err(err) => {
                 return Err(unauthorized_error(&format!(
-                    "Invalid signature header {}: {err}",
-                    signature_header
+                    "Invalid signature header {signature_header}: {err}"
                 )));
             }
         };
