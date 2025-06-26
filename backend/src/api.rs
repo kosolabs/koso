@@ -254,6 +254,7 @@ impl ErrorRender<'_> {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct ErrorResponse {
     status: StatusCode,
     details: Vec<ErrorDetail>,

@@ -20,7 +20,8 @@ use anyhow::{Context, Result};
 use axum::middleware;
 use axum::routing::put;
 use axum::{Extension, Json, Router, routing::post};
-use sqlx::PgPool;
+use chrono::{DateTime, Utc};
+use sqlx::{PgConnection, PgPool, Postgres};
 use std::collections::HashMap;
 
 pub(super) fn router() -> Result<Router> {
@@ -51,7 +52,7 @@ pub(super) fn router() -> Result<Router> {
 #[tracing::instrument(skip(user, pool, client))]
 async fn handle_create_checkout_session(
     Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
+    Extension(pool): Extension<&PgPool>,
     Extension(client): Extension<StripeClient>,
     Json(request): Json<CreateCheckoutSessionRequest>,
 ) -> ApiResult<Json<CreateCheckoutSessionResponse>> {
@@ -101,7 +102,7 @@ async fn handle_create_checkout_session(
 #[tracing::instrument(skip(user, pool, client))]
 async fn handle_create_portal_session(
     Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
+    Extension(pool): Extension<&PgPool>,
     Extension(client): Extension<StripeClient>,
     Json(request): Json<CreatePortalSessionRequest>,
 ) -> ApiResult<Json<CreatePortalSessionResponse>> {
@@ -149,18 +150,18 @@ async fn get_stripe_customer_id(user: &User, pool: &PgPool) -> Result<Option<Str
 #[tracing::instrument(skip(user, pool))]
 async fn handle_update_subscription(
     Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
+    Extension(pool): Extension<&PgPool>,
     Json(request): Json<UpdateSubscriptionRequest>,
 ) -> ApiResult<Json<UpdateSubscriptionResponse>> {
-    let mut members = request
+    let mut desired_members = request
         .members
         .into_iter()
         .map(|e| (e.to_lowercase(), true))
         .collect::<HashMap<String, bool>>()
         .into_keys()
         .collect::<Vec<String>>();
-    members.sort();
-    if !members.contains(&user.email) {
+    desired_members.sort();
+    if !desired_members.contains(&user.email) {
         return Err(bad_request_error(
             "MISSING_SELF",
             "Members must include owner",
@@ -168,27 +169,62 @@ async fn handle_update_subscription(
     }
 
     let mut txn = pool.begin().await?;
-    let res: Option<(i32,)> = sqlx::query_as(
+    let Some((seats, existing_members, _)) = get_subscription_details(&user, &mut txn).await?
+    else {
+        return Err(not_found_error("NOT_FOUND", "Subscription not found"));
+    };
+
+    let added_members = desired_members
+        .iter()
+        .filter(|m| !existing_members.contains(m))
+        .collect::<Vec<_>>();
+    let removed_members = existing_members
+        .iter()
+        .filter(|m| !desired_members.contains(m))
+        .collect::<Vec<_>>();
+    // Nothing has changed, return immediately.
+    if added_members.is_empty() && removed_members.is_empty() {
+        return Ok(Json(UpdateSubscriptionResponse {}));
+    }
+
+    // Don't allow more members to be added than there are seats available.
+    if !added_members.is_empty() && desired_members.len() > usize::try_from(seats)? {
+        return Err(bad_request_error(
+            "TOO_MANY_MEMBERS",
+            &format!(
+                "Tried to put {} members in {seats} seats",
+                desired_members.len()
+            ),
+        ));
+    }
+
+    set_members(&user, &desired_members, &mut txn).await?;
+    for member in added_members.into_iter().chain(removed_members) {
+        update_user_subscription_end_time(member, &mut *txn).await?;
+    }
+
+    txn.commit().await?;
+
+    Ok(Json(UpdateSubscriptionResponse {}))
+}
+
+async fn get_subscription_details(
+    user: &User,
+    txn: &mut PgConnection,
+) -> Result<Option<(i32, Vec<String>, DateTime<Utc>)>> {
+    sqlx::query_as(
         "
-        SELECT seats
+        SELECT seats, member_emails, end_time
         FROM subscriptions
         WHERE email=$1",
     )
     .bind(&user.email)
-    .bind(&members)
-    .fetch_optional(&mut *txn)
+    .fetch_optional(txn)
     .await
-    .context("Failed to fetch seats")?;
-    let Some((seats,)) = res else {
-        return Err(not_found_error("NOT_FOUND", "Subscription not found"));
-    };
-    if members.len() > usize::try_from(seats)? {
-        return Err(bad_request_error(
-            "TOO_MANY_MEMBERS",
-            &format!("Tried to put {} members in {seats} seats", members.len()),
-        ));
-    }
+    .context("Failed to fetch seats")
+}
 
+async fn set_members(user: &User, members: &Vec<String>, txn: &mut PgConnection) -> Result<()> {
     sqlx::query(
         "
         UPDATE subscriptions
@@ -197,16 +233,20 @@ async fn handle_update_subscription(
     )
     .bind(&user.email)
     .bind(members)
-    .execute(&mut *txn)
+    .execute(txn)
     .await
     .context("Failed to upsert subscription")?;
-
-    txn.commit().await?;
-    Ok(Json(UpdateSubscriptionResponse {}))
+    Ok(())
 }
 
 /// Updates the given users subscription_end_time to match their current subscriptions.
-pub(crate) async fn update_user_subscription_end_time(email: &str, pool: &PgPool) -> Result<()> {
+pub(crate) async fn update_user_subscription_end_time<
+    'a,
+    E: sqlx::Executor<'a, Database = Postgres>,
+>(
+    email: &str,
+    txn: E,
+) -> Result<()> {
     sqlx::query(
         "
                 UPDATE users u1
@@ -218,7 +258,7 @@ pub(crate) async fn update_user_subscription_end_time(email: &str, pool: &PgPool
                 WHERE u1.email=$1",
     )
     .bind(email)
-    .execute(pool)
+    .execute(txn)
     .await
     .context("Failed to update member end times")?;
 
@@ -227,7 +267,7 @@ pub(crate) async fn update_user_subscription_end_time(email: &str, pool: &PgPool
 mod stripe {
     use crate::secrets::Secret;
     use anyhow::{Context, Result, anyhow};
-    use reqwest::IntoUrl;
+    use reqwest::{IntoUrl, Response};
     use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
     #[derive(Clone)]
@@ -313,6 +353,9 @@ mod stripe {
         pub(crate) email: Option<String>,
     }
 
+    const API_VERSION: &str = "2025-05-28.basil";
+    const USER_AGENT: &str = "koso-backend";
+
     impl StripeClient {
         async fn post<U: IntoUrl, T: Serialize, R: DeserializeOwned>(
             &self,
@@ -322,36 +365,32 @@ mod stripe {
             let res = self
                 .client
                 .post(url)
-                .header("Stripe-Version", "2025-05-28.basil")
-                .header("User-Agent", "koso-backend")
+                .header("Stripe-Version", API_VERSION)
+                .header("User-Agent", USER_AGENT)
                 .header("content-type", "application/x-www-form-urlencoded")
                 .bearer_auth(&self.secret_key.data)
                 .body(serde_qs::to_string(&params).context("Failed to serialize params")?)
                 .send()
                 .await
                 .context("Failed to send post")?;
-            if !res.status().is_success() {
-                return Err(anyhow!(
-                    "Post failed with status {}: {:?}>>{:?}",
-                    res.status(),
-                    format!("{:?}", res.headers()),
-                    res.text().await,
-                ));
-            }
-            res.json().await.context("Failed to deserialize response")
+            Self::parse_response(res).await
         }
 
         async fn get<U: IntoUrl, R: DeserializeOwned>(&self, url: U) -> Result<R> {
             let res = self
                 .client
                 .get(url)
-                .header("Stripe-Version", "2025-05-28.basil")
-                .header("User-Agent", "koso-backend")
+                .header("Stripe-Version", API_VERSION)
+                .header("User-Agent", USER_AGENT)
                 .header("content-type", "application/x-www-form-urlencoded")
                 .bearer_auth(&self.secret_key.data)
                 .send()
                 .await
                 .context("Failed to send post")?;
+            Self::parse_response(res).await
+        }
+
+        async fn parse_response<R: DeserializeOwned>(res: Response) -> Result<R> {
             if !res.status().is_success() {
                 return Err(anyhow!(
                     "Get failed with status {}: {:?}>>{:?}",
@@ -403,7 +442,7 @@ mod webhook {
     use axum::{
         Extension,
         body::{Body, Bytes},
-        http::request::Parts,
+        http::HeaderMap,
     };
     use chrono::{DateTime, TimeDelta, Utc};
     use hmac::{Hmac, Mac};
@@ -473,20 +512,22 @@ mod webhook {
     const BODY_LIMIT: usize = 10 * 1024 * 1024;
 
     #[tracing::instrument(
-        skip(webhook_secret, pool, client, parts, body),
+        skip(webhook_secret, pool, client, headers, body),
         fields(stripe_event, stripe_event_id)
     )]
     pub(super) async fn handle_webhook(
         Extension(webhook_secret): Extension<WebhookSecret>,
-        Extension(pool): Extension<&'static PgPool>,
+        Extension(pool): Extension<&PgPool>,
         Extension(client): Extension<StripeClient>,
-        parts: Parts,
+        headers: HeaderMap,
         body: Body,
     ) -> ApiResult<()> {
         let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
             .await
             .map_err(|_| bad_request_error("INVALID_BODY", "Invalid body"))?;
-        if let Some(signature) = parts.headers.get("stripe-signature") {
+
+        // First, authenticate the event by validating the signature.
+        if let Some(signature) = headers.get("stripe-signature") {
             validate_signature(signature.to_str()?, &body, &webhook_secret)?;
         } else if !settings().stripe.enable_unathenticated_webhook {
             return Err(bad_request_error(
@@ -495,11 +536,13 @@ mod webhook {
             ));
         };
 
+        // Parse the event.
         let event: Event = serde_json::from_slice(&body)
             .map_err(|e| bad_request_error("INVALID_REQUEST", &format!("Invalid request: {e}")))?;
         tracing::Span::current().record("stripe_event", event.type_.to_string());
         tracing::Span::current().record("stripe_event_id", event.id.to_string());
 
+        // Process the event.
         // https://docs.stripe.com/billing/subscriptions/build-subscriptions?platform=web&ui=stripe-hosted&lang=node
         // https://docs.stripe.com/billing/subscriptions/webhooks#active-subscriptions
         match event.type_.as_str() {
@@ -539,7 +582,7 @@ mod webhook {
                 apply_subscription(pool, &subscription).await?;
             }
 
-            _ => tracing::trace!("Unknown event encountered in webhook: {:?}", event.type_),
+            _ => tracing::debug!("Unknown event encountered in webhook: {:?}", event.type_),
         }
 
         Ok(())
@@ -548,6 +591,7 @@ mod webhook {
     async fn apply_subscription(pool: &PgPool, subscription: &Subscription) -> Result<()> {
         tracing::info!("Applying subscription {subscription:?}");
 
+        // Grab details from the subscription.
         let item = subscription
             .items
             .data
@@ -578,8 +622,11 @@ mod webhook {
             VALUES ($1, $2, $3, $4, ARRAY[$1])
             ON CONFLICT (email)
             DO UPDATE
-            SET seats = EXCLUDED.seats, end_time = EXCLUDED.end_time
-            WHERE subscriptions.seats!=EXCLUDED.seats OR subscriptions.end_time!=EXCLUDED.end_time",
+            SET stripe_customer_id = EXCLUDED.stripe_customer_id, seats = EXCLUDED.seats, end_time = EXCLUDED.end_time
+            WHERE
+                subscriptions.stripe_customer_id!=EXCLUDED.stripe_customer_id
+                OR subscriptions.seats!=EXCLUDED.seats
+                OR subscriptions.end_time!=EXCLUDED.end_time",
         )
         .bind(email)
         .bind(&subscription.customer)
@@ -716,4 +763,257 @@ pub(crate) mod model {
     }
     #[derive(Serialize, Debug)]
     pub(crate) struct UpdateSubscriptionResponse {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{api::billing::webhook::handle_webhook, secrets::Secret};
+    use axum::{body::Body, http::HeaderMap};
+    use chrono::{DateTime, Utc};
+    use sqlx::PgPool;
+
+    #[test_log::test(sqlx::test)]
+    async fn create_checkout_session(pool: PgPool) {
+        let user = User {
+            email: "stripe-test@test.koso.app".to_string(),
+            name: "IntegTesting DoNotDelete".to_string(),
+            picture: "".to_string(),
+            exp: 5,
+        };
+        let client = StripeClient {
+            client: reqwest::Client::new(),
+            secret_key: secrets::read_secret("stripe/secret_key").unwrap(),
+        };
+        let request = CreateCheckoutSessionRequest {
+            success_url: "http://localhost/success".to_string(),
+            cancel_url: "http://localhost/success".to_string(),
+        };
+        let Json(res) = handle_create_checkout_session(
+            Extension(user),
+            Extension(&pool),
+            Extension(client),
+            Json(request),
+        )
+        .await
+        .unwrap();
+        assert!(!res.redirect_url.is_empty());
+    }
+
+    #[test_log::test(sqlx::test)]
+    async fn create_portal_session(pool: PgPool) {
+        sqlx::query(
+            "
+            INSERT INTO users (email, name, picture, subscription_end_time, github_user_id)
+            VALUES ('stripe-test@test.koso.app', 'IntegTesting DoNotDelete', '', null, null)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "
+            INSERT INTO subscriptions (email, stripe_customer_id, seats, end_time, member_emails)
+            VALUES ('stripe-test@test.koso.app', 'cus_SZSSBiHc9f8eQ6', 5, TIMESTAMP '2100-01-20 13:00:00', ARRAY['stripe-test@test.koso.app'])",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let user = User {
+            email: "stripe-test@test.koso.app".to_string(),
+            name: "IntegTesting DoNotDelete".to_string(),
+            picture: "".to_string(),
+            exp: 5,
+        };
+        let client = StripeClient {
+            client: reqwest::Client::new(),
+            secret_key: secrets::read_secret("stripe/secret_key").unwrap(),
+        };
+        let request = CreatePortalSessionRequest {
+            return_url: "http://localhost/success".to_string(),
+        };
+        let Json(res) = handle_create_portal_session(
+            Extension(user),
+            Extension(&pool),
+            Extension(client),
+            Json(request),
+        )
+        .await
+        .unwrap();
+        assert!(!res.redirect_url.is_empty());
+    }
+
+    #[test_log::test(sqlx::test)]
+    async fn update_subscription(pool: PgPool) {
+        sqlx::query(
+            "
+            INSERT INTO users (email, name, picture, subscription_end_time, github_user_id)
+            VALUES
+                ('stripe-test@test.koso.app', 'IntegTesting DoNotDelete', '', null, null),
+                ('user-1@test.koso.app', 'User One', '', TIMESTAMP '2040-01-20 13:00:00', null),
+                ('user-2@test.koso.app', 'User Two', '', TIMESTAMP '2035-01-20 13:00:00', null),
+                ('user-4@test.koso.app', 'User Four', '', TIMESTAMP '2040-01-20 13:00:00', null)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "
+            INSERT INTO subscriptions (email, stripe_customer_id, seats, end_time, member_emails)
+            VALUES
+                ('stripe-test@test.koso.app', 'cus_SZSSBiHc9f8eQ6', 5, TIMESTAMP '2040-01-20 13:00:00', ARRAY['stripe-test@test.koso.app', 'user-1@test.koso.app','user-4@test.koso.app']),
+                ('other-sub@test.koso.app', 'cus_foo', 5, TIMESTAMP '2035-01-20 13:00:00', ARRAY['user-2@test.koso.app','user-4@test.koso.app'])",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let user = User {
+            email: "stripe-test@test.koso.app".to_string(),
+            name: "IntegTesting DoNotDelete".to_string(),
+            picture: "".to_string(),
+            exp: 5,
+        };
+
+        // Remove user-1@test.koso.app
+        // Add user-2@test.koso.app and user-3@test.koso.app
+        let request = UpdateSubscriptionRequest {
+            members: vec![
+                "stripe-test@test.koso.app".to_string(),
+                "stripe-test@test.koso.app".to_string(),
+                "user-3@test.koso.app".to_string(),
+                "user-2@test.koso.app".to_string(),
+            ],
+        };
+        let Json(_) =
+            handle_update_subscription(Extension(user.clone()), Extension(&pool), Json(request))
+                .await
+                .unwrap();
+
+        let (_, members, _) = get_subscription_details(&user, &mut pool.begin().await.unwrap())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            members,
+            vec![
+                "stripe-test@test.koso.app".to_string(),
+                "user-2@test.koso.app".to_string(),
+                "user-3@test.koso.app".to_string(),
+            ]
+        );
+
+        assert_eq!(
+            fetch_subscription_end_time("stripe-test@test.koso.app", &pool)
+                .await
+                .unwrap(),
+            None
+        );
+        assert_eq!(
+            fetch_subscription_end_time("user-1@test.koso.app", &pool)
+                .await
+                .unwrap(),
+            None
+        );
+        assert_eq!(
+            fetch_subscription_end_time("user-2@test.koso.app", &pool)
+                .await
+                .unwrap(),
+            Some(
+                DateTime::parse_from_rfc3339("2040-01-20 13:00:00z")
+                    .unwrap()
+                    .to_utc()
+            )
+        );
+        assert_eq!(
+            fetch_subscription_end_time("user-4@test.koso.app", &pool)
+                .await
+                .unwrap(),
+            Some(
+                DateTime::parse_from_rfc3339("2035-01-20 13:00:00z")
+                    .unwrap()
+                    .to_utc()
+            )
+        );
+    }
+
+    #[test_log::test(sqlx::test)]
+    async fn test_handle_webhook(pool: PgPool) {
+        sqlx::query(
+            "
+            INSERT INTO users (email, name, picture, subscription_end_time, github_user_id)
+            VALUES ('stripe-test@test.koso.app', 'IntegTesting DoNotDelete', '', TIMESTAMP '2100-01-20 13:00:00', null)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "
+            INSERT INTO subscriptions (email, stripe_customer_id, seats, end_time, member_emails)
+            VALUES ('stripe-test@test.koso.app', 'cus_SZSSBiHc9f8eQ6', 5, TIMESTAMP '2100-01-20 13:00:00', ARRAY['stripe-test@test.koso.app']),
+            ('other@test.koso.app', 'cus_SZSSBiHc9f8eQ6', 5, TIMESTAMP '2025-06-20 13:00:00', ARRAY['stripe-test@test.koso.app'])",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let user = User {
+            email: "stripe-test@test.koso.app".to_string(),
+            name: "IntegTesting DoNotDelete".to_string(),
+            picture: "".to_string(),
+            exp: 5,
+        };
+        let webhook_secret = WebhookSecret(Secret {
+            data: "something".as_bytes().to_vec(),
+        });
+        let client = StripeClient {
+            client: reqwest::Client::new(),
+            secret_key: secrets::read_secret("stripe/secret_key").unwrap(),
+        };
+        let headers = HeaderMap::new();
+        let body = Body::from(include_str!("../testdata/checkout.session.completed.json"));
+        handle_webhook(
+            Extension(webhook_secret),
+            Extension(&pool),
+            Extension(client),
+            headers,
+            body,
+        )
+        .await
+        .unwrap();
+
+        let (seats, members, end_time) =
+            get_subscription_details(&user, &mut pool.begin().await.unwrap())
+                .await
+                .unwrap()
+                .unwrap();
+        assert_eq!(seats, 3);
+        assert_eq!(members, vec!["stripe-test@test.koso.app".to_string(),]);
+        assert!(end_time.timestamp() > 1750994651);
+        assert!(end_time.timestamp() < 3486684251);
+
+        let user_end_time = fetch_subscription_end_time("stripe-test@test.koso.app", &pool)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(user_end_time, end_time);
+    }
+
+    async fn fetch_subscription_end_time(
+        email: &str,
+        pool: &PgPool,
+    ) -> Result<Option<DateTime<Utc>>> {
+        let (end_time,): (Option<DateTime<Utc>>,) = sqlx::query_as(
+            "
+            SELECT subscription_end_time
+            FROM users
+            WHERE email = $1",
+        )
+        .bind(email)
+        .fetch_optional(pool)
+        .await
+        .context("Failed to query user subscription")?
+        .context("User not found")?;
+        Ok(end_time)
+    }
 }
