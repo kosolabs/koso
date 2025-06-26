@@ -442,8 +442,8 @@
               <div class="flex flex-col gap-2">
                 {#if remainingSeats <= 0}
                   <div>
-                    All seats {sub.seats} are in use. Need more seats? Click "Manage"
-                    to add more seats.
+                    All seats ({sub.seats}) are in use. Need more seats? Click
+                    "Manage" to add more seats.
                   </div>
                 {:else}
                   <div>
