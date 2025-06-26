@@ -1,0 +1,166 @@
+{
+  "id": "evt_1ReJaH4SIh2Zcj7x4gnhNzhR",
+  "object": "event",
+  "api_version": "2025-05-28.basil",
+  "created": 1750958856,
+  "data": {
+    "object": {
+      "id": "in_1ReJaE4SIh2Zcj7xxEdNsgmJ",
+      "object": "invoice",
+      "account_country": "US",
+      "account_name": "Koso Labs sandbox",
+      "account_tax_ids": null,
+      "amount_due": 900,
+      "amount_overpaid": 0,
+      "amount_paid": 900,
+      "amount_remaining": 0,
+      "amount_shipping": 0,
+      "application": null,
+      "attempt_count": 1,
+      "attempted": true,
+      "auto_advance": false,
+      "automatic_tax": {
+        "disabled_reason": null,
+        "enabled": false,
+        "liability": null,
+        "provider": null,
+        "status": null
+      },
+      "automatically_finalizes_at": null,
+      "billing_reason": "subscription_create",
+      "collection_method": "charge_automatically",
+      "created": 1750958854,
+      "currency": "usd",
+      "custom_fields": null,
+      "customer": "cus_SZSSBiHc9f8eQ6",
+      "customer_address": null,
+      "customer_email": "stripe-test@test.koso.app",
+      "customer_name": "IntegTesting DoNotDelete",
+      "customer_phone": null,
+      "customer_shipping": null,
+      "customer_tax_exempt": "none",
+      "customer_tax_ids": [],
+      "default_payment_method": null,
+      "default_source": null,
+      "default_tax_rates": [],
+      "description": null,
+      "discounts": [],
+      "due_date": null,
+      "effective_at": 1750958854,
+      "ending_balance": 0,
+      "footer": null,
+      "from_invoice": null,
+      "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1Rc9YO4SIh2Zcj7x/test_YWNjdF8xUmM5WU80U0loMlpjajd4LF9TWlNWOUZmak9Pa1BkSlpCWGxFUWZ4enZnd2ZjbEZwLDE0MTQ5OTY1Nw0200WA6EgDd2?s=ap",
+      "invoice_pdf": "https://pay.stripe.com/invoice/acct_1Rc9YO4SIh2Zcj7x/test_YWNjdF8xUmM5WU80U0loMlpjajd4LF9TWlNWOUZmak9Pa1BkSlpCWGxFUWZ4enZnd2ZjbEZwLDE0MTQ5OTY1Nw0200WA6EgDd2/pdf?s=ap",
+      "issuer": {
+        "type": "self"
+      },
+      "last_finalization_error": null,
+      "latest_revision": null,
+      "lines": {
+        "object": "list",
+        "data": [
+          {
+            "id": "il_1ReJaE4SIh2Zcj7xPsp8Im7Z",
+            "object": "line_item",
+            "amount": 900,
+            "currency": "usd",
+            "description": "1 × Koso (at $9.00 / month)",
+            "discount_amounts": [],
+            "discountable": true,
+            "discounts": [],
+            "invoice": "in_1ReJaE4SIh2Zcj7xxEdNsgmJ",
+            "livemode": false,
+            "metadata": {
+              "email": "stripe-test@test.koso.app"
+            },
+            "parent": {
+              "invoice_item_details": null,
+              "subscription_item_details": {
+                "invoice_item": null,
+                "proration": false,
+                "proration_details": {
+                  "credited_items": null
+                },
+                "subscription": "sub_1ReJaE4SIh2Zcj7xRT7S74Hu",
+                "subscription_item": "si_SZSVBm64KDjBsd"
+              },
+              "type": "subscription_item_details"
+            },
+            "period": {
+              "end": 1753550854,
+              "start": 1750958854
+            },
+            "pretax_credit_amounts": [],
+            "pricing": {
+              "price_details": {
+                "price": "price_1Rc9cw4SIh2Zcj7xDhQRQBiT",
+                "product": "prod_SXE56fptCqfo8z"
+              },
+              "type": "price_details",
+              "unit_amount_decimal": "900"
+            },
+            "quantity": 1,
+            "taxes": []
+          }
+        ],
+        "has_more": false,
+        "total_count": 1,
+        "url": "/v1/invoices/in_1ReJaE4SIh2Zcj7xxEdNsgmJ/lines"
+      },
+      "livemode": false,
+      "metadata": {},
+      "next_payment_attempt": null,
+      "number": "XWLOUEUV-0001",
+      "on_behalf_of": null,
+      "parent": {
+        "quote_details": null,
+        "subscription_details": {
+          "metadata": {
+            "email": "stripe-test@test.koso.app"
+          },
+          "subscription": "sub_1ReJaE4SIh2Zcj7xRT7S74Hu"
+        },
+        "type": "subscription_details"
+      },
+      "payment_settings": {
+        "default_mandate": null,
+        "payment_method_options": null,
+        "payment_method_types": null
+      },
+      "period_end": 1750958854,
+      "period_start": 1750958854,
+      "post_payment_credit_notes_amount": 0,
+      "pre_payment_credit_notes_amount": 0,
+      "receipt_number": null,
+      "rendering": null,
+      "shipping_cost": null,
+      "shipping_details": null,
+      "starting_balance": 0,
+      "statement_descriptor": null,
+      "status": "paid",
+      "status_transitions": {
+        "finalized_at": 1750958854,
+        "marked_uncollectible_at": null,
+        "paid_at": 1750958854,
+        "voided_at": null
+      },
+      "subtotal": 900,
+      "subtotal_excluding_tax": 900,
+      "test_clock": null,
+      "total": 900,
+      "total_discount_amounts": [],
+      "total_excluding_tax": 900,
+      "total_pretax_credit_amounts": [],
+      "total_taxes": [],
+      "webhooks_delivered_at": null
+    }
+  },
+  "livemode": false,
+  "pending_webhooks": 2,
+  "request": {
+    "id": "req_Ywh7holDXvxfIf",
+    "idempotency_key": "725137a9-90be-4fe3-8a04-efc685b81314"
+  },
+  "type": "invoice.paid"
+}

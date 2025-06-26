@@ -129,15 +129,19 @@ async fn fetch_owned_subscription(email: &str, pool: &PgPool) -> Result<Option<S
     .await
     .context("Failed to query user subscriptions")?
     .map(
-        |(seats, end_time, member_emails): (i32, DateTime<Utc>, Vec<String>)| Subscription {
-            seats,
-            end_time,
-            member_emails,
-            status: if end_time.timestamp() <= chrono::Utc::now().timestamp() {
-                SubscriptionStatus::Expired
-            } else {
-                SubscriptionStatus::Active
-            },
+        |(seats, end_time, mut member_emails): (i32, DateTime<Utc>, Vec<String>)| {
+            // Sort for consistent ordering in the UI.
+            member_emails.sort();
+            Subscription {
+                seats,
+                end_time,
+                member_emails,
+                status: if end_time.timestamp() <= chrono::Utc::now().timestamp() {
+                    SubscriptionStatus::Expired
+                } else {
+                    SubscriptionStatus::Active
+                },
+            }
         },
     ))
 }
