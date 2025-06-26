@@ -6,6 +6,7 @@
   import { toast } from "$lib/components/ui/sonner";
   import { deleteUserConnection, redirectToConnectUserFlow } from "$lib/github";
   import { Button } from "$lib/kosui/button";
+  import Chip from "$lib/kosui/chip/chip.svelte";
   import { getDialoguerContext } from "$lib/kosui/dialog";
   import { Input } from "$lib/kosui/input";
   import { Link } from "$lib/kosui/link";
@@ -20,7 +21,6 @@
     Sun,
     SunMoon,
     Trash2,
-    X,
   } from "@lucide/svelte";
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
@@ -366,8 +366,8 @@
     {/await}
   </Section>
 
-  <Section title="Subscriptions">
-    <SubSection title="Subscription">
+  <Section title="Billing and licensing">
+    <SubSection title="Overview">
       {#await profile}
         <div class="flex place-content-center items-center gap-2">
           <CircularProgress />
@@ -375,89 +375,122 @@
         </div>
       {:then profile}
         {@const subs = profile.subscriptions}
-        {@const sub = subs.ownedSubscription}
 
         <div class="flex flex-col gap-2">
           <div>
             {#if subs.status === "None"}
-              You do not have an active subscription.
+              You're a Koso for Individuals user.
             {:else if subs.status === "Expired"}
-              Your subscription expired.
+              You're a Koso for Individuals user. Your premium subscription
+              exired.
             {:else if subs.status === "Active"}
-              You have a premium subscription.
+              You're a premium user. Thanks for supporting us!
             {:else}
               Something went wrong. Invalid subscription status "{subs.status}".
               Let us know!
             {/if}
           </div>
+          <div></div>
+        </div>
+      {/await}
+    </SubSection>
 
-          {#if sub && sub.status === "Active"}
-            <div class="flex flex-wrap gap-2">
-              <div class="ml-auto">
-                <Button
-                  icon={Crown}
-                  variant="filled"
-                  onclick={async () => await createPortalSession()}
-                >
-                  Manage
-                </Button>
-              </div>
-            </div>
-          {:else if sub || (!sub && subs.status !== "Active")}
-            <div class="flex flex-wrap gap-2">
+    <SubSection title="Subscription">
+      {#await profile}
+        <div class="flex place-content-center items-center gap-2">
+          <CircularProgress />
+          <div>Loading...</div>
+        </div>
+      {:then profile}
+        {@const sub = profile.subscriptions.ownedSubscription}
+
+        <div class="flex flex-col gap-2">
+          <div>
+            {#if !sub || sub.status === "None"}
+              You do not have an active subscription.
+            {:else if sub.status === "Expired"}
+              Your subscription is expired.
+            {:else if sub.status === "Active"}
+              You have a premium subscription.
+            {:else}
+              Something went wrong. Invalid subscription status "{sub.status}".
+              Let us know!
+            {/if}
+          </div>
+
+          <div>
+            {#if sub && sub.status === "Active"}
+              <Button
+                icon={Crown}
+                onclick={async () => await createPortalSession()}
+              >
+                Manage
+              </Button>
+            {:else}
               <Button
                 icon={Crown}
                 onclick={async () => await createCheckoutSession()}
               >
                 Subscribe
               </Button>
-            </div>
-          {/if}
+            {/if}
+          </div>
 
           {#if sub}
             {@const remainingSeats = sub.seats - sub.memberEmails.length}
-            {#if remainingSeats <= 0}
-              All seats {sub.seats} are in use. Click "Manage" and add more seats
-              to add more members.
-            {:else}
-              You have {remainingSeats} seats remainingSeats. Add more members here.
-              <Input
-                class="border-muted text-foreground border-2 text-base focus:ring-0 focus-visible:ring-0"
-                placeholder="List of members"
-                bind:value={memberInput}
-                onblur={async () => {
-                  await addAndClear();
-                }}
-                onkeydown={async (e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    await addAndClear();
-                  }
-                }}
-              />
-            {/if}
-
-            {#if sub.memberEmails.length > 0}
-              <div class="flex flex-wrap pt-2">
-                {#each sub.memberEmails as memberEmail (memberEmail)}
-                  <div class="space-x-1 text-sm">
-                    <span>{memberEmail}</span>
-                    {#if memberEmail != auth.user.email}
-                      <Button
-                        class="m-0 h-4 w-4 p-0 "
-                        variant="outlined"
-                        onclick={async () => await removeMember(memberEmail)}
-                      >
-                        <X
-                          class="cursor-pointer text-gray-400 hover:text-gray-500"
-                        />
-                      </Button>
-                    {/if}
+            <SubSection title="Members">
+              <div class="flex flex-col gap-2">
+                {#if remainingSeats <= 0}
+                  <div>
+                    All seats {sub.seats} are in use. Need more seats? Click "Manage"
+                    to add more seats.
                   </div>
-                {/each}
+                {:else}
+                  <div>
+                    You have {remainingSeats}
+                    remaining seat{remainingSeats === 1 ? "" : "s"}. Add new
+                    setMembers. Press Enter after each entry
+                  </div>
+                {/if}
+                <div>
+                  <Input
+                    class="border-muted text-foreground border-2 text-base focus:ring-0 focus-visible:ring-0"
+                    placeholder="List of members"
+                    type="email"
+                    disabled={remainingSeats <= 0}
+                    bind:value={memberInput}
+                    onblur={async () => {
+                      await addAndClear();
+                    }}
+                    onkeydown={async (e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        await addAndClear();
+                      }
+                    }}
+                  />
+                </div>
+
+                {#if sub.memberEmails.length > 0}
+                  <div class="flex flex-wrap items-center gap-2 pt-2">
+                    {#each sub.memberEmails as memberEmail (memberEmail)}
+                      <Chip
+                        class="px-3 py-1 text-sm"
+                        variant="elevated"
+                        shape="circle"
+                        onDelete={memberEmail === auth.user.email
+                          ? undefined
+                          : async () => await removeMember(memberEmail)}
+                      >
+                        {memberEmail}
+                      </Chip>
+                    {/each}
+                  </div>
+                {/if}
               </div>
-            {/if}
+            </SubSection>
           {/if}
+
           <div></div>
         </div>
       {/await}
