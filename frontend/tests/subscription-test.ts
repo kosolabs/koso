@@ -35,8 +35,8 @@ test.describe("subscription tests", () => {
     await expect(page.getByText(email)).toBeVisible();
 
     // Fill the form
-    await page.getByRole("radio").first().focus();
-    await page.keyboard.press("Enter");
+    await page.getByTestId("card-accordion-item").click();
+
     await page
       .getByRole("textbox", { name: "Card number" })
       .fill("4242424242424242");
@@ -105,7 +105,7 @@ test.describe("subscription tests", () => {
       .getByRole("textbox", { name: "List of members" })
       .fill("other-3");
     await page.keyboard.press("Enter");
-    await expect(page.getByText("All 5 seats are in use")).toBeVisible();
+    await expect(page.getByText("All seats (5) are in use")).toBeVisible();
     await expect(
       page.getByRole("textbox", { name: "List of members" }),
     ).toBeDisabled();
@@ -132,23 +132,24 @@ test.describe("subscription tests", () => {
       timeout: 30 * 1000,
     });
     await expect(page.getByText(email)).toBeVisible();
+    await expect(page.getByText("(×5)")).toBeVisible();
 
-    await page.getByRole("button", { name: "Manage subscription" }).click();
-
-    await expect(page.getByText("(x5)")).toBeVisible();
+    await page.locator('[data-test="update-subscription"]').click();
     await page.getByTestId("portal-quantity-editor").fill("4");
-
     await page.getByRole("button", { name: "Continue" }).click();
     await page.getByRole("button", { name: "Confirm" }).click();
 
-    await expect(page.getByText("(x4)")).toBeVisible({ timeout: 30 * 1000 });
+    await expect(
+      page.locator('[data-test="update-subscription"]'),
+    ).toBeVisible();
+    await expect(page.getByText("(×4)")).toBeVisible({ timeout: 30 * 1000 });
 
     await page.getByTestId("return-to-business-link").click();
 
     await expect(
       page.getByText("Profile Settings for Pointy-Haired Boss"),
     ).toBeVisible({ timeout: 30 * 1000 });
-    await expect(page.getByText("All 4 seats are in use")).toBeVisible();
+    await expect(page.getByText("All seats (4) are in use")).toBeVisible();
     await expect(
       page.getByRole("textbox", { name: "List of members" }),
     ).toBeDisabled();
