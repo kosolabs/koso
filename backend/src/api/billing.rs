@@ -205,6 +205,25 @@ async fn handle_update_subscription(
     Ok(Json(UpdateSubscriptionResponse {}))
 }
 
+/// Updates the given users subscription_end_time to match their current subscriptions.
+pub(crate) async fn update_user_subscription_end_time(email: &str, pool: &PgPool) -> Result<()> {
+    sqlx::query(
+        "
+                UPDATE users u1
+                SET subscription_end_time=(
+                    SELECT MAX(end_time) AS end_time
+                    FROM subscriptions
+                    WHERE u1.email=ANY(member_emails)
+                )
+                WHERE u1.email=$1",
+    )
+    .bind(email)
+    .execute(pool)
+    .await
+    .context("Failed to update member end times")?;
+
+    Ok(())
+}
 mod stripe {
     use crate::secrets::Secret;
     use anyhow::{Context, Result, anyhow};
@@ -551,15 +570,16 @@ mod webhook {
             .context("Subscription metadata email absent")?;
 
         let mut txn = pool.begin().await?;
+
         // First, insert (or update) the subscription
         sqlx::query(
             "
-        INSERT INTO subscriptions (email, stripe_customer_id, seats, end_time, member_emails)
-        VALUES ($1, $2, $3, $4, ARRAY[$1])
-        ON CONFLICT (email)
-        DO UPDATE
-        SET seats = EXCLUDED.seats, end_time = EXCLUDED.end_time
-        WHERE subscriptions.seats!=EXCLUDED.seats OR subscriptions.end_time!=EXCLUDED.end_time",
+            INSERT INTO subscriptions (email, stripe_customer_id, seats, end_time, member_emails)
+            VALUES ($1, $2, $3, $4, ARRAY[$1])
+            ON CONFLICT (email)
+            DO UPDATE
+            SET seats = EXCLUDED.seats, end_time = EXCLUDED.end_time
+            WHERE subscriptions.seats!=EXCLUDED.seats OR subscriptions.end_time!=EXCLUDED.end_time",
         )
         .bind(email)
         .bind(&subscription.customer)
@@ -572,26 +592,26 @@ mod webhook {
         // For each member of the target subscription, set the latest end time of all their subscriptions.
         sqlx::query(
         "
-        UPDATE users u1
-        SET subscription_end_time=subquery.end_time
-        FROM (
-            SELECT email, MAX(end_time) AS end_time
+            UPDATE users u1
+            SET subscription_end_time=subquery.end_time
             FROM (
-                SELECT UNNEST(member_emails) AS email
-                FROM subscriptions
-                WHERE email=$1
-            ) JOIN(
-                SELECT UNNEST(member_emails) AS email, end_time
-                FROM subscriptions
-            ) USING(email)
-            GROUP BY email
-        ) subquery
-        WHERE u1.email=subquery.email AND (u1.subscription_end_time IS NULL OR u1.subscription_end_time!=subquery.end_time)",
-    )
-    .bind(email)
-    .execute(&mut *txn)
-    .await
-    .context("Failed to update member end times")?;
+                SELECT email, MAX(end_time) AS end_time
+                FROM (
+                    SELECT UNNEST(member_emails) AS email
+                    FROM subscriptions
+                    WHERE email=$1
+                ) JOIN(
+                    SELECT UNNEST(member_emails) AS email, end_time
+                    FROM subscriptions
+                ) USING(email)
+                GROUP BY email
+            ) subquery
+            WHERE u1.email=subquery.email AND (u1.subscription_end_time IS NULL OR u1.subscription_end_time!=subquery.end_time)",
+        )
+        .bind(email)
+        .execute(&mut *txn)
+        .await
+        .context("Failed to update member end times")?;
 
         txn.commit().await?;
 
