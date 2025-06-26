@@ -19,9 +19,11 @@ async fn list_users_handler(
 
     let mut users: Vec<User> = sqlx::query_as(
         "
-        SELECT email, name, picture, (subscription_end_time IS NOT NULL AND subscription_end_time > now()) AS premium
-        FROM users
-        WHERE subscription_end_time IS NOT NULL AND subscription_end_time > now();",
+        SELECT email, name, picture, premium
+        FROM (
+            SELECT email, name, picture, (subscription_end_time IS NOT NULL AND subscription_end_time > now()) AS premium
+            FROM users
+        ) WHERE premium;",
     )
     .fetch_all(pool)
     .await?;
