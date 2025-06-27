@@ -37,6 +37,11 @@ test.describe("subscription tests", () => {
     });
     await expect(page.getByText(email)).toBeVisible();
 
+    // Set the quantity to 5.
+    await page.getByTestId("line-item-adjustable-qty").click();
+    await page.getByRole("textbox", { name: "quantity" }).fill("5");
+    await page.getByRole("button", { name: "Update" }).click();
+
     // Fill the form
     await page.getByTestId("card-accordion-item").click();
     await page
@@ -74,7 +79,7 @@ test.describe("subscription tests", () => {
     ).toBeVisible();
   });
 
-  test("add members", async () => {
+  test("add a new member", async () => {
     // Add a new member
     await page
       .getByRole("textbox", { name: "List of members" })
@@ -89,7 +94,9 @@ test.describe("subscription tests", () => {
       }),
     ).toBeVisible();
     await expect(page.getByText("You have 3 remaining seats.")).toBeVisible();
+  });
 
+  test("add members and fill all seats", async () => {
     // Add 3 additional members to fill all seats.
     // other-1
     await page
@@ -131,7 +138,7 @@ test.describe("subscription tests", () => {
     await expect(page.getByText("You have 1 remaining seat.")).toBeVisible();
   });
 
-  test("manage the existing subscription", async () => {
+  test("manage the existing subscription and decrease quantity by 1", async () => {
     // Navigate back to the stripe portal
     await page.getByRole("button", { name: "Manage" }).click();
     await expect(page.getByText("Koso Labs sandbox").first()).toBeVisible({
