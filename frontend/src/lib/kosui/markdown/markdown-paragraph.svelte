@@ -5,6 +5,7 @@
 
   let {
     children,
+    token: _token,
     ...restProps
   }: MarkdownComponentProps<Tokens.Paragraph> &
     HTMLAttributes<HTMLParagraphElement> = $props();
