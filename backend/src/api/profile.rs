@@ -1,5 +1,5 @@
 use crate::api::{ApiResult, google::User};
-use crate::notifiers::UserNotificationConfig;
+use crate::notifiers::{UserNotificationConfig, fetch_notification_configs};
 use anyhow::{Context, Result};
 use axum::{Extension, Json, Router, routing::get};
 use chrono::{DateTime, Utc};
@@ -86,22 +86,6 @@ async fn get_profile_handler(
             },
         },
     }))
-}
-
-async fn fetch_notification_configs(
-    email: &str,
-    pool: &PgPool,
-) -> Result<Vec<UserNotificationConfig>> {
-    sqlx::query_as(
-        "
-        SELECT email, notifier, enabled, settings
-        FROM user_notification_configs
-        WHERE email = $1",
-    )
-    .bind(email)
-    .fetch_all(pool)
-    .await
-    .context("Failed to query notification configs")
 }
 
 async fn fetch_plugin_connections(email: &str, pool: &PgPool) -> Result<Option<PluginConnections>> {
