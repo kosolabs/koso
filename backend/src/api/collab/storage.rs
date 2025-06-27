@@ -1,6 +1,6 @@
 use crate::api::model::ProjectId;
 use anyhow::{Context as _, Result};
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres};
 use yrs::{Update, updates::decoder::Decode as _};
 
 use super::{
@@ -8,10 +8,10 @@ use super::{
     txn_origin::{self, YOrigin},
 };
 
-pub(super) async fn persist_update(
+pub(in crate::api) async fn persist_update<'a, E: sqlx::Executor<'a, Database = Postgres>>(
     project_id: &ProjectId,
     data: &Vec<u8>,
-    pool: &PgPool,
+    pool: E,
 ) -> Result<()> {
     sqlx::query(
         "

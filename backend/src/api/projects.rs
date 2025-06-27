@@ -1,7 +1,8 @@
 use crate::api::{
     ApiResult, bad_request_error,
     collab::{
-        Collab, storage,
+        Collab,
+        storage::{self, persist_update},
         txn_origin::{self, YOrigin},
     },
     google::User,
@@ -119,11 +120,7 @@ async fn create_project_handler(
         .execute(&mut *txn)
         .await?;
     if let Some(import_update) = import_update {
-        sqlx::query("INSERT INTO yupdates (project_id, seq, update_v2) VALUES ($1, DEFAULT, $2)")
-            .bind(&project.project_id)
-            .bind(import_update)
-            .execute(&mut *txn)
-            .await?;
+        persist_update(&project.project_id, &import_update, &mut *txn).await?;
     }
     txn.commit().await?;
 
