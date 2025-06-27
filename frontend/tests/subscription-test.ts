@@ -109,7 +109,7 @@ test.describe("subscription tests", () => {
 
       await page
         .getByRole("textbox", { name: "List of members" })
-        .fill(`other-user-${i}`);
+        .fill(generateEmail());
       await page.keyboard.press("Enter");
     }
 
