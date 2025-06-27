@@ -4,6 +4,8 @@ import { generateEmail, login, tearDown } from "./utils";
 test.describe("subscription tests", () => {
   test.describe.configure({ mode: "serial" });
 
+  const INIT_QUANTITY = 5;
+
   let page: Page;
   let email: string;
   let otherEmail: string;
@@ -39,7 +41,9 @@ test.describe("subscription tests", () => {
 
     // Set the quantity to 5.
     await page.getByTestId("line-item-adjustable-qty").click();
-    await page.getByRole("textbox", { name: "quantity" }).fill("5");
+    await page
+      .getByRole("textbox", { name: "quantity" })
+      .fill(`${INIT_QUANTITY}`);
     await page.getByRole("button", { name: "Update" }).click();
 
     // Fill the form
@@ -97,27 +101,22 @@ test.describe("subscription tests", () => {
   });
 
   test("add members and fill all seats", async () => {
-    // Add 3 additional members to fill all seats.
-    // other-1
-    await page
-      .getByRole("textbox", { name: "List of members" })
-      .fill("other-1");
-    await page.keyboard.press("Enter");
-    await expect(page.getByText("You have 2 remaining seats.")).toBeVisible();
-    // other-2
-    await page
-      .getByRole("textbox", { name: "List of members" })
-      .fill("other-2");
-    await page.keyboard.press("Enter");
-    await expect(page.getByText("You have 1 remaining seat.")).toBeVisible();
-    // other-3
-    await page
-      .getByRole("textbox", { name: "List of members" })
-      .fill("other-3");
-    await page.keyboard.press("Enter");
+    // Add N additional members to fill all seats.
+    for (let i = INIT_QUANTITY - 2; i > 0; i--) {
+      await expect(
+        page.getByText(`You have ${i} remaining seat`),
+      ).toBeVisible();
+
+      await page
+        .getByRole("textbox", { name: "List of members" })
+        .fill(`other-user-${i}`);
+      await page.keyboard.press("Enter");
+    }
 
     // Verify that all seats are filled.
-    await expect(page.getByText("All seats (5) are in use")).toBeVisible();
+    await expect(
+      page.getByText(`All seats (${INIT_QUANTITY}) are in use`),
+    ).toBeVisible();
     await expect(
       page.getByRole("textbox", { name: "List of members" }),
     ).toBeDisabled();
@@ -146,8 +145,7 @@ test.describe("subscription tests", () => {
     });
     await expect(page.getByText(email)).toBeVisible();
 
-    // Update the quantity of seats from 5 to 4.
-    // There should already be 4 members, leaving all seats filled.
+    // Decrement the quantity of seats leaving all seats filled.
     await page.locator('[data-test="update-subscription"]').click();
     await page.getByTestId("portal-quantity-editor").fill("4");
     await page.getByTestId("continue-button").click();
@@ -163,7 +161,9 @@ test.describe("subscription tests", () => {
     await expect(
       page.getByText("Profile Settings for Pointy-Haired Boss"),
     ).toBeVisible({ timeout: 30 * 1000 });
-    await expect(page.getByText("All seats (4) are in use")).toBeVisible();
+    await expect(
+      page.getByText(`All seats (${INIT_QUANTITY - 1}) are in use`),
+    ).toBeVisible();
     await expect(
       page.getByRole("textbox", { name: "List of members" }),
     ).toBeDisabled();
