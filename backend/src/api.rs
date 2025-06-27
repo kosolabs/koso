@@ -75,22 +75,16 @@ pub(crate) async fn verify_project_access(
         ));
     }
 
-    let mut txn = pool
-        .begin()
-        .await
-        .context("Failed to check user permission")?;
-
     let permission: Option<ProjectPermission> = sqlx::query_as(
         "
         SELECT project_id, email
         FROM project_permissions
         WHERE project_id = $1
-          AND email = $2;
-        ",
+          AND email = $2;",
     )
     .bind(project_id)
     .bind(&user.email)
-    .fetch_optional(&mut *txn)
+    .fetch_optional(pool)
     .await
     .context("Failed to check user permission")?;
 
