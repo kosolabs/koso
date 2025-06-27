@@ -1,21 +1,18 @@
-use crate::{
-    api::{
-        ApiResult, bad_request_error,
-        collab::{
-            Collab, storage,
-            txn_origin::{self, YOrigin},
-        },
-        google::User,
-        model::{
-            CreateProject, Project, ProjectExport, ProjectUser, UpdateProjectUsers,
-            UpdateProjectUsersResponse,
-        },
-        verify_premium, verify_project_access,
-        yproxy::YDocProxy,
+use crate::api::{
+    ApiResult, bad_request_error,
+    collab::{
+        Collab, storage,
+        txn_origin::{self, YOrigin},
     },
-    postgres::list_project_users,
+    google::User,
+    model::{
+        CreateProject, Project, ProjectExport, ProjectId, ProjectUser, UpdateProjectUsers,
+        UpdateProjectUsersResponse,
+    },
+    verify_premium, verify_project_access,
+    yproxy::YDocProxy,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::{
     Extension, Json, Router,
     extract::Path,
@@ -335,4 +332,21 @@ fn validate_project_name(name: &str) -> ApiResult<()> {
         ));
     }
     Ok(())
+}
+
+pub(crate) async fn list_project_users(
+    pool: &PgPool,
+    project_id: &ProjectId,
+) -> Result<Vec<ProjectUser>> {
+    sqlx::query_as(
+        "
+        SELECT project_id, email, name, picture, (subscription_end_time IS NOT NULL AND subscription_end_time > now()) AS premium
+        FROM project_permissions
+        JOIN users USING (email)
+        WHERE project_id = $1;",
+    )
+    .bind(project_id)
+    .fetch_all(pool)
+    .await
+    .context("Failed to list project users")
 }

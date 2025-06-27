@@ -1,4 +1,4 @@
-use crate::api::model::{ProjectId, ProjectUser};
+use crate::api::model::ProjectId;
 use anyhow::Result;
 use anyhow::anyhow;
 use sqlx::PgPool;
@@ -83,25 +83,4 @@ async fn _compact(pool: &PgPool, project_id: ProjectId) -> Result<()> {
 
     tracing::debug!("Compacted {} updates", consumed_sequences.len());
     Ok(())
-}
-
-pub(crate) async fn list_project_users(
-    pool: &PgPool,
-    project_id: &ProjectId,
-) -> Result<Vec<ProjectUser>> {
-    let mut txn = pool.begin().await?;
-
-    let users: Vec<ProjectUser> = sqlx::query_as(
-        "
-        SELECT project_id, email, name, picture, (subscription_end_time IS NOT NULL AND subscription_end_time > now()) AS premium
-        FROM project_permissions
-        JOIN users USING (email)
-        WHERE project_id = $1;
-        ",
-    )
-    .bind(project_id)
-    .fetch_all(&mut *txn)
-    .await?;
-
-    Ok(users)
 }
