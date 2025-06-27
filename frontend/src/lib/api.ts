@@ -89,7 +89,7 @@ function handleAuthErrors(
   const AUTHENTICATION_ERROR = 401;
   if (response.status === AUTHENTICATION_ERROR) {
     console.debug(
-      "Response failed with an unathentication error (401). Logging user out.",
+      "Response failed with an unauthentication error (401). Logging user out.",
       response,
       err,
     );

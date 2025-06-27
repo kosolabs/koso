@@ -58,7 +58,8 @@ jobs:
           tar -xvf stripe.tar.gz
           mv stripe /usr/local/bin
           stripe -v
-      - name: Run cargo test
+
+      - name: Setup secrets
         run: |
           echo "::group::Add Secrets"
           mkdir -p ~/.secrets/github
@@ -76,6 +77,8 @@ jobs:
           echo -n "$STRIPE_WEBHOOK_SECRET" > ~/.secrets/stripe/webhook_secret
           echo "::endgroup::"
 
+      - name: Run cargo test
+        run: |
           KOSO_SETTING_SECRETS_DIR=$(realpath ~/.secrets) \
             KOSO_SETTING_DATABASE_URL=${{ env.DATABASE_URL }} \
             cargo test --package koso
@@ -206,8 +209,7 @@ jobs:
         run: |
           KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} ../backend/scripts/init_db.sh
 
-      # Run the playwright tests. They'll start a backend leveraging the DB setup above.
-      - name: Run Playwright tests
+      - name: Setup secrets
         run: |
           echo "::group::Add Secrets"
           mkdir -p ~/.secrets/github
@@ -225,11 +227,18 @@ jobs:
           echo -n "$STRIPE_WEBHOOK_SECRET" > ~/.secrets/stripe/webhook_secret
           echo "::endgroup::"
 
+      # Start a listener that will forward events to the local server for subscription testing.
+      # This will continue to run in the background after this step completes.
+      - name: Start Stripe webhook listener
+        run: |
           stripe listen \
             --forward-to localhost:3000/api/billing/stripe/webhook \
             --api-key=${{ secrets.STRIPE_SECRET_KEY }} \
             --events=checkout.session.completed,invoice.paid,customer.subscription.created,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,customer.subscription.updated &
 
+      # Run the playwright tests. They'll start a backend leveraging the DB setup above.
+      - name: Run Playwright tests
+        run: |
           CI=true \
             KOSO_IMAGE=${{ steps.build-backend.outputs.imageid }} \
             KOSO_SETTING_DATABASE_URL=${{ env.DATABASE_URL }} \

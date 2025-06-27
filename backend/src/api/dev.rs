@@ -159,7 +159,7 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
     )
     .execute(pool)
     .await
-    .context("Failed to delete test yupdates")?;
+    .context("Failed to delete test subscriptions")?;
 
     Ok(())
 }

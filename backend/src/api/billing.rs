@@ -529,7 +529,7 @@ mod webhook {
         // First, authenticate the event by validating the signature.
         if let Some(signature) = headers.get("stripe-signature") {
             validate_signature(signature.to_str()?, &body, &webhook_secret)?;
-        } else if !settings().stripe.enable_unathenticated_webhook {
+        } else if !settings().stripe.enable_unauthenticated_webhook {
             return Err(bad_request_error(
                 "MISSING_HEADER",
                 "Missing stripe-signature header",
@@ -604,7 +604,7 @@ mod webhook {
                 .context("could not sub delta")?
         } else {
             DateTime::from_timestamp(item.current_period_end, 0)
-                .context("could not convert to timesetamp")?
+                .context("could not convert to timestamp")?
         };
         let seats = item.quantity;
         let email = subscription
