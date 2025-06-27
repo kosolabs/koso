@@ -1,38 +1,53 @@
-<script module lang="ts">
-  type Status = "On Track" | "At Risk";
-</script>
-
 <script lang="ts">
   import { page } from "$app/state";
+  import { headers } from "$lib/api";
+  import { getAuthContext } from "$lib/auth.svelte";
   import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";
   import { Navbar } from "$lib/components/ui/navbar";
   import { DagTable, newPlanningContext } from "$lib/dag-table";
-  import type { Progress } from "$lib/dag-table/koso.svelte";
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import type { Node } from "$lib/dag-table/planning-context.svelte";
   import { getProjectContext } from "$lib/dag-table/project-context.svelte";
-  import { Alert } from "$lib/kosui/alert";
-  import type { colors } from "$lib/kosui/base";
-  import CircularProgress from "$lib/kosui/progress/circular-progress.svelte";
+  import {
+    Markdown,
+    MarkdownBlockquote,
+    MarkdownCode,
+    MarkdownHeading,
+    MarkdownLink,
+    MarkdownList,
+    MarkdownTable,
+    MarkdownTableCell,
+  } from "$lib/kosui/markdown";
+  import { CircularProgress } from "$lib/kosui/progress";
   import { Tooltip } from "$lib/kosui/tooltip";
   import { List } from "immutable";
+  import { twMerge } from "tailwind-merge";
 
+  const projectId = page.params.projectId;
   const taskId = page.params.taskId;
 
   const { koso, socket, name, users } = getProjectContext();
+  const auth = getAuthContext();
   const planningCtx = newPlanningContext(koso, taskId);
 
   let offline: boolean = $derived(socket.offline);
 
-  function getStatusColor(status: Status): (typeof colors)[number] {
-    if (status === "On Track") {
-      return "primary";
-    } else if (status === "At Risk") {
-      return "error";
+  let summary = $derived.by(async () => {
+    const model = "claude-sonnet-4-20250514";
+    const resp = await fetch(
+      `/api/anthropic/summarize?projectId=${projectId}&taskId=${taskId}&model=${model}`,
+      {
+        method: "GET",
+        headers: headers(auth),
+      },
+    );
+    const text = await resp.text();
+    if (resp.ok) {
+      return text;
     } else {
-      return "tertiary";
+      throw new Error(text);
     }
-  }
+  });
 
   function getLongestPaths() {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -66,20 +81,12 @@
     return date.toLocaleDateString();
   }
 
-  function getStatus(deadline: number, progress: Progress): Status {
-    const remainingDays = Math.floor((deadline - Date.now()) / 86400000);
-    return progress.remainingEstimate! / 2 < remainingDays
-      ? "On Track"
-      : "At Risk";
-  }
-
   let task = $derived(koso.getTask(taskId));
   let progress = $derived.by(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     koso.events;
     return koso.getProgress(taskId);
   });
-  let status = $derived(getStatus($task.deadline!, progress));
   let paths = $derived(getLongestPaths());
 </script>
 
@@ -118,26 +125,70 @@
         </h2>
       </Tooltip>
       <div class="flex flex-col items-start">
-        <Alert
-          class="py-1 text-xl font-extralight"
-          variant="filled"
-          color={getStatusColor(status)}
-        >
-          {status}
-        </Alert>
-
         <div class="text-xl font-extralight">
           Due Date: {formatDate(task.deadline)} ({Math.floor(
             (task.deadline - Date.now()) / 86400000,
           )} days)
         </div>
         <h2 class="text-xl font-extralight">
-          Remaining Estimate: {progress.remainingEstimate} points ({(progress.remainingEstimate ??
-            0) / 2} days)
+          Remaining Estimate: {progress.remainingEstimate} points
         </h2>
       </div>
     </div>
   {/if}
+  {#await summary}
+    <h2 class="flex items-center gap-2 text-2xl font-extralight">
+      <CircularProgress class="text-m3-primary" />
+      Koso Agent is summarizing the iteration...
+    </h2>
+    <hr />
+    <div class="flex flex-col gap-2 rounded-md border p-2"></div>
+  {:then summary}
+    <h2 class="gap-2 text-2xl font-extralight">Koso Agent Summary</h2>
+    <hr />
+    <div class="flex flex-col gap-2 rounded-md border p-2">
+      <Markdown value={summary} options={{ breaks: true, gfm: true }}>
+        {#snippet blockquote(props)}
+          <MarkdownBlockquote class="border border-l-4 p-2" {...props} />
+        {/snippet}
+        {#snippet code(props)}
+          <MarkdownCode class="rounded border p-2 text-sm" {...props} />
+        {/snippet}
+        {#snippet heading({ token, children })}
+          <MarkdownHeading
+            class={twMerge(
+              token.depth === 1 && "text-2xl font-extralight",
+              token.depth === 2 && "text-xl font-extralight",
+            )}
+            {token}
+            {children}
+          />
+        {/snippet}
+        {#snippet list({ token, children })}
+          <MarkdownList
+            class={twMerge(
+              "ml-4",
+              token.ordered ? "list-decimal" : "list-disc",
+            )}
+            {token}
+            {children}
+          />
+        {/snippet}
+        {#snippet table(props)}
+          <MarkdownTable class="w-min" {...props} />
+        {/snippet}
+        {#snippet tableCell(props)}
+          <MarkdownTableCell class="border p-1 whitespace-nowrap" {...props} />
+        {/snippet}
+        {#snippet link(props)}
+          <MarkdownLink
+            class="text-m3-primary underline hover:opacity-80"
+            {...props}
+          />
+        {/snippet}
+      </Markdown>
+    </div>
+  {/await}
 
   <h2 class="text-2xl font-extralight">Critical Paths</h2>
   <hr />

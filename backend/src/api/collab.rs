@@ -17,8 +17,8 @@ use crate::api::{
     model::{Graph, ProjectId},
     yproxy::YDocProxy,
 };
-use anyhow::Error;
 use anyhow::Result;
+use anyhow::{Error, Ok};
 use axum::extract::ws::WebSocket;
 use notifications::{EventProcessor, KosoEvent};
 use projects_state::ProjectState;
@@ -158,6 +158,11 @@ impl Collab {
         {
             tracing::warn!("Timed out waiting for tasks. {} remain: {e}", tracker.len());
         }
+    }
+
+    pub(super) async fn get_doc(&self, project_id: &ProjectId) -> Result<YDocProxy> {
+        let (ydoc, _) = storage::load_doc(project_id, self.inner.pool).await?;
+        Ok(ydoc)
     }
 
     pub(super) async fn get_graph(&self, project_id: &ProjectId) -> Result<Graph, Error> {

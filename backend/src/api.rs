@@ -13,6 +13,7 @@ use std::backtrace::{Backtrace, BacktraceStatus};
 
 use crate::notifiers;
 
+pub(crate) mod anthropic;
 pub(crate) mod auth;
 pub(crate) mod billing;
 pub(crate) mod collab;
@@ -36,6 +37,7 @@ pub(crate) fn router() -> Result<Router> {
         .nest("/ws", ws::router())
         .nest("/users", users::router())
         .nest("/dev", dev::router())
+        .nest("/anthropic", anthropic::router()?)
         .layer((middleware::from_fn(google::authenticate),))
         .nest("/billing", billing::router()?))
 }
