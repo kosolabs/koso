@@ -1,5 +1,8 @@
 use crate::api::{ApiResult, error_response, google::User};
-use crate::notifiers::{NotifierSettings, TelegramSettings, UserNotificationConfig};
+use crate::notifiers::{
+    NotifierSettings, TelegramSettings, delete_notification_config, fetch_notification_config,
+    insert_notification_config,
+};
 use crate::secrets::{Secret, read_secret};
 use crate::settings::settings;
 use anyhow::Result;
@@ -67,19 +70,7 @@ async fn authorize_telegram(
         chat_id: token.claims.chat_id,
     });
 
-    sqlx::query(
-        "
-        INSERT INTO user_notification_configs (email, notifier, enabled, settings)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (email, notifier)
-        DO UPDATE SET enabled = EXCLUDED.enabled, settings = EXCLUDED.settings",
-    )
-    .bind(user.email)
-    .bind("telegram")
-    .bind(true)
-    .bind(sqlx::types::Json(&settings))
-    .execute(pool)
-    .await?;
+    insert_notification_config(&user.email, &settings, pool).await?;
 
     Ok(Json(settings))
 }
@@ -93,14 +84,7 @@ async fn deauthorize_telegram(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Empty>> {
-    sqlx::query(
-        "
-        DELETE FROM user_notification_configs
-        WHERE email = $1 AND notifier = 'telegram'",
-    )
-    .bind(user.email)
-    .execute(pool)
-    .await?;
+    delete_notification_config(&user.email, "telegram", pool).await?;
 
     Ok(Json(Empty {}))
 }
@@ -110,16 +94,7 @@ async fn send_test_message_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Empty>> {
-    let config: UserNotificationConfig = sqlx::query_as(
-        "
-        SELECT email, notifier, enabled, settings
-        FROM user_notification_configs
-        WHERE email = $1 AND notifier = 'telegram'",
-    )
-    .bind(user.email)
-    .fetch_one(pool)
-    .await?;
-
+    let config = fetch_notification_config(&user.email, "telegram", pool).await?;
     let NotifierSettings::Telegram(settings) = config.settings;
 
     let bot = bot_from_secrets()?;

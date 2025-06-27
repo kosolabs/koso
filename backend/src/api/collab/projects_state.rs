@@ -4,23 +4,20 @@ use super::{
     msg_sync::koso_awareness_state,
     notifications,
 };
-use crate::{
-    api::{
-        collab::{
-            client::{
-                CLOSE_ERROR, CLOSE_RESTART, ClientClosure, ClientReceiver, ClientSender, OVERLOADED,
-            },
-            client_messages::{ClientMessage, ClientMessageReceiver},
-            doc_updates::{DocObserver, DocUpdate, GraphObserver},
-            msg_sync::sync_request,
-            notifications::KosoEvent,
-            storage,
-            txn_origin::YOrigin,
+use crate::api::{
+    collab::{
+        client::{
+            CLOSE_ERROR, CLOSE_RESTART, ClientClosure, ClientReceiver, ClientSender, OVERLOADED,
         },
-        google::User,
-        model::ProjectId,
+        client_messages::{ClientMessage, ClientMessageReceiver},
+        doc_updates::{DocObserver, DocUpdate, GraphObserver},
+        msg_sync::sync_request,
+        notifications::KosoEvent,
+        storage::{self, compact},
+        txn_origin::YOrigin,
     },
-    postgres::compact,
+    google::User,
+    model::ProjectId,
 };
 use anyhow::{Context as _, Result, anyhow};
 use async_trait::async_trait;
