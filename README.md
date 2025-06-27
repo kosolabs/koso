@@ -410,7 +410,7 @@ npm install --global smee-client
 
 After starting your local server:
 
-1. Configure your development webhook secret in: `koso/.secrets/github/webhook_secret`
+1. Configure your development webhook secret in: `.secrets/github/webhook_secret`
 1. Start a new Smee channel: https://smee.io/
 1. Start smee locally with the new channel `smee -u $CHANNEL_URL --port 3000 --path /plugins/github/app/webhook`
 1. Trigger or [redeliver](https://docs.github.com/en/webhooks/testing-and-troubleshooting-webhooks/redelivering-webhooks#redelivering-github-app-webhooks) some events
@@ -432,11 +432,11 @@ We use the **Koso Labs Sandbox** Stripe sandbox for testing. Login to Stripe and
 
 After starting your local server:
 
-1. Configure your sandbox secret API key in `koso/.secrets/stripe/secret_key`
+1. Configure your sandbox secret API key in `.secrets/stripe/secret_key`
 1. Configure your sandbox webhook secret
 
    ```bash
-   stripe listen --api-key $(cat koso/.secrets/stripe/secret_key) --print-secret > koso/.secrets/stripe/webhook_secret
+   stripe listen --api-key $(cat .secrets/stripe/secret_key) --print-secret > .secrets/stripe/webhook_secret
    ```
 
 1. Start a local listener with [stripe listen](https://docs.stripe.com/cli/listen). Add events as needed. Omit the API key to use an empemeral test environment.
@@ -444,7 +444,7 @@ After starting your local server:
    ```bash
    stripe listen \
       --forward-to localhost:3000/api/billing/stripe/webhook \
-      --api-key=$(cat koso/.secrets/stripe/secret_key) \
+      --api-key=$(cat .secrets/stripe/secret_key) \
       --events=checkout.session.completed,invoice.paid,customer.subscription.created,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,customer.subscription.updated
    ```
 
