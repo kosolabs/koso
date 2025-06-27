@@ -1,3 +1,5 @@
+use crate::api::billing::fetch_owned_subscription;
+use crate::api::billing::model::{Subscription, SubscriptionStatus};
 use crate::api::{ApiResult, google::User};
 use crate::notifiers::{UserNotificationConfig, fetch_notification_configs};
 use anyhow::{Context, Result};
@@ -35,22 +37,6 @@ struct Subscriptions {
     owned_subscription: Option<Subscription>,
     end_time: Option<DateTime<Utc>>,
     status: SubscriptionStatus,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Subscription {
-    status: SubscriptionStatus,
-    seats: i32,
-    end_time: DateTime<Utc>,
-    member_emails: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-enum SubscriptionStatus {
-    None,
-    Active,
-    Expired,
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -99,35 +85,6 @@ async fn fetch_plugin_connections(email: &str, pool: &PgPool) -> Result<Option<P
     .fetch_optional(pool)
     .await
     .context("Failed to query user plugin connections")
-}
-
-async fn fetch_owned_subscription(email: &str, pool: &PgPool) -> Result<Option<Subscription>> {
-    Ok(sqlx::query_as(
-        "
-        SELECT seats, end_time, member_emails
-        FROM subscriptions
-        WHERE email = $1",
-    )
-    .bind(email)
-    .fetch_optional(pool)
-    .await
-    .context("Failed to query user subscriptions")?
-    .map(
-        |(seats, end_time, mut member_emails): (i32, DateTime<Utc>, Vec<String>)| {
-            // Sort for consistent ordering in the UI.
-            member_emails.sort();
-            Subscription {
-                seats,
-                end_time,
-                member_emails,
-                status: if end_time.timestamp() <= chrono::Utc::now().timestamp() {
-                    SubscriptionStatus::Expired
-                } else {
-                    SubscriptionStatus::Active
-                },
-            }
-        },
-    ))
 }
 
 async fn fetch_subscription_end_time(email: &str, pool: &PgPool) -> Result<Option<DateTime<Utc>>> {

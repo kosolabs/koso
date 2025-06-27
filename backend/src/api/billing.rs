@@ -4,8 +4,8 @@ use crate::{
         billing::{
             model::{
                 CreateCheckoutSessionRequest, CreateCheckoutSessionResponse,
-                CreatePortalSessionRequest, CreatePortalSessionResponse, UpdateSubscriptionRequest,
-                UpdateSubscriptionResponse,
+                CreatePortalSessionRequest, CreatePortalSessionResponse, Subscription,
+                SubscriptionStatus, UpdateSubscriptionRequest, UpdateSubscriptionResponse,
             },
             stripe::{KosoMetadata, StripeClient},
             webhook::WebhookSecret,
@@ -264,6 +264,39 @@ pub(crate) async fn update_user_subscription_end_time<
 
     Ok(())
 }
+
+pub(crate) async fn fetch_owned_subscription(
+    email: &str,
+    pool: &PgPool,
+) -> Result<Option<Subscription>> {
+    Ok(sqlx::query_as(
+        "
+        SELECT seats, end_time, member_emails
+        FROM subscriptions
+        WHERE email = $1",
+    )
+    .bind(email)
+    .fetch_optional(pool)
+    .await
+    .context("Failed to query user subscriptions")?
+    .map(
+        |(seats, end_time, mut member_emails): (i32, DateTime<Utc>, Vec<String>)| {
+            // Sort for consistent ordering.
+            member_emails.sort();
+            Subscription {
+                seats,
+                end_time,
+                member_emails,
+                status: if end_time.timestamp() <= chrono::Utc::now().timestamp() {
+                    SubscriptionStatus::Expired
+                } else {
+                    SubscriptionStatus::Active
+                },
+            }
+        },
+    ))
+}
+
 mod stripe {
     use crate::secrets::Secret;
     use anyhow::{Context, Result, anyhow};
@@ -729,6 +762,7 @@ mod webhook {
 }
 
 pub(crate) mod model {
+    use chrono::{DateTime, Utc};
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Default)]
@@ -762,6 +796,22 @@ pub(crate) mod model {
     }
     #[derive(Serialize, Debug)]
     pub(crate) struct UpdateSubscriptionResponse {}
+
+    #[derive(Serialize, Deserialize, Debug)]
+    #[serde(rename_all = "camelCase")]
+    pub(crate) struct Subscription {
+        pub(crate) status: SubscriptionStatus,
+        pub(crate) seats: i32,
+        pub(crate) end_time: DateTime<Utc>,
+        pub(crate) member_emails: Vec<String>,
+    }
+
+    #[derive(Serialize, Deserialize, Debug)]
+    pub(crate) enum SubscriptionStatus {
+        None,
+        Active,
+        Expired,
+    }
 }
 
 #[cfg(test)]
