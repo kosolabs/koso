@@ -149,6 +149,17 @@ async fn cleanup_test_data_handler(Extension(pool): Extension<&'static PgPool>) 
     .execute(pool)
     .await
     .context("Failed to delete test users")?;
+    // Delete any orphaned subscriptions.
+    sqlx::query(
+        "
+        DELETE FROM subscriptions
+        WHERE email NOT IN (
+            SELECT email FROM users
+        )",
+    )
+    .execute(pool)
+    .await
+    .context("Failed to delete test yupdates")?;
 
     Ok(())
 }

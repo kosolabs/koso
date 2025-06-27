@@ -6,10 +6,12 @@ test.describe("subscription tests", () => {
 
   let page: Page;
   let email: string;
+  let otherEmail: string;
 
   test.beforeAll(async ({ browser }) => {
     page = await browser.newPage();
     email = generateEmail();
+    otherEmail = generateEmail();
   });
 
   test.afterAll(async () => {
@@ -72,18 +74,16 @@ test.describe("subscription tests", () => {
     ).toBeVisible();
   });
 
-  const OTHER_EMAIL = "user@test.koso.app";
-
   test("add members", async () => {
     await page
       .getByRole("textbox", { name: "List of members" })
-      .fill(OTHER_EMAIL);
+      .fill(otherEmail);
     await page.keyboard.press("Enter");
 
     await expect(page.getByText("Subscription members updated.")).toBeVisible();
     await expect(
       page.getByRole("button", {
-        name: OTHER_EMAIL,
+        name: otherEmail,
         exact: true,
       }),
     ).toBeVisible();
@@ -113,13 +113,13 @@ test.describe("subscription tests", () => {
 
   test("remove a member", async () => {
     await page
-      .getByRole("option", { name: `${OTHER_EMAIL} Delete chip` })
+      .getByRole("option", { name: `${otherEmail} Delete chip` })
       .getByRole("button", { name: "Delete chip" })
       .click();
 
     await expect(
       page.getByRole("button", {
-        name: OTHER_EMAIL,
+        name: otherEmail,
         exact: true,
       }),
     ).toBeHidden();
