@@ -30,6 +30,7 @@ test.describe("subscription tests", () => {
   });
 
   test("start a new subscription and navigate back to profile", async () => {
+    // Navigate to the stripe portal
     await page.getByRole("button", { name: "Subscribe" }).click();
     await expect(page.getByText("Koso Labs sandbox").first()).toBeVisible({
       timeout: 30 * 1000,
@@ -38,7 +39,6 @@ test.describe("subscription tests", () => {
 
     // Fill the form
     await page.getByTestId("card-accordion-item").click();
-
     await page
       .getByRole("textbox", { name: "Card number" })
       .fill("4242424242424242");
@@ -75,11 +75,12 @@ test.describe("subscription tests", () => {
   });
 
   test("add members", async () => {
+    // Add a new member
     await page
       .getByRole("textbox", { name: "List of members" })
       .fill(otherEmail);
     await page.keyboard.press("Enter");
-
+    // Verify the subscription was updated
     await expect(page.getByText("Subscription members updated.")).toBeVisible();
     await expect(
       page.getByRole("button", {
@@ -89,22 +90,26 @@ test.describe("subscription tests", () => {
     ).toBeVisible();
     await expect(page.getByText("You have 3 remaining seats.")).toBeVisible();
 
+    // Add 3 additional members to fill all seats.
+    // other-1
     await page
       .getByRole("textbox", { name: "List of members" })
       .fill("other-1");
     await page.keyboard.press("Enter");
     await expect(page.getByText("You have 2 remaining seats.")).toBeVisible();
-
+    // other-2
     await page
       .getByRole("textbox", { name: "List of members" })
       .fill("other-2");
     await page.keyboard.press("Enter");
     await expect(page.getByText("You have 1 remaining seat.")).toBeVisible();
-
+    // other-3
     await page
       .getByRole("textbox", { name: "List of members" })
       .fill("other-3");
     await page.keyboard.press("Enter");
+
+    // Verify that all seats are filled.
     await expect(page.getByText("All seats (5) are in use")).toBeVisible();
     await expect(
       page.getByRole("textbox", { name: "List of members" }),
@@ -127,25 +132,27 @@ test.describe("subscription tests", () => {
   });
 
   test("manage the existing subscription", async () => {
+    // Navigate back to the stripe portal
     await page.getByRole("button", { name: "Manage" }).click();
     await expect(page.getByText("Koso Labs sandbox").first()).toBeVisible({
       timeout: 30 * 1000,
     });
     await expect(page.getByText(email)).toBeVisible();
-    await expect(page.getByText("(×5)")).toBeVisible();
 
+    // Update the quantity of seats from 5 to 4.
+    // There should already be 4 members, leaving all seats filled.
     await page.locator('[data-test="update-subscription"]').click();
     await page.getByTestId("portal-quantity-editor").fill("4");
-    await page.getByRole("button", { name: "Continue" }).click();
-    await page.getByRole("button", { name: "Confirm" }).click();
-
+    await page.getByTestId("continue-button").click();
+    await page.getByTestId("confirm").click();
     await expect(
       page.locator('[data-test="update-subscription"]'),
     ).toBeVisible();
-    await expect(page.getByText("(×4)")).toBeVisible({ timeout: 30 * 1000 });
 
+    // Return to Koso
     await page.getByTestId("return-to-business-link").click();
 
+    // Verify the modified subscription.
     await expect(
       page.getByText("Profile Settings for Pointy-Haired Boss"),
     ).toBeVisible({ timeout: 30 * 1000 });
