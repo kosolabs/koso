@@ -230,6 +230,7 @@ jobs:
       # Start a listener that will forward events to the local server for subscription testing.
       # This will continue to run in the background after this step completes.
       - name: Start Stripe webhook listener
+        working-directory: ./backend
         run: |
           ../backend/scripts/stripe_listen.sh &
 
