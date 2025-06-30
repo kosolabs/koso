@@ -1,8 +1,8 @@
-#!/usr/bin/env zsh
-#set -x
-#set -eo pipefail
+#!/bin/bash
+set -e
 
-parent_path=$( cd "$(dirname "${(%):-%N}")" ; pwd -P )
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+
 secret_key_path=$parent_path/../../.secrets/stripe/secret_key
 if [ ! -f $secret_key_path ]; then
     echo "secret_key file does not exist. Follow the setup instructions first. Path: $secret_key_path"
