@@ -232,7 +232,7 @@ jobs:
       - name: Start Stripe webhook listener
         working-directory: ./backend
         run: |
-          ../backend/scripts/stripe_listen.sh &
+          SECRET_KEY=$(~/.secrets/stripe/secret_key) ../backend/scripts/stripe_listen.sh &
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
       - name: Run Playwright tests
