@@ -8,16 +8,12 @@
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    ```
 
-1. Install [PostgreSQL](https://www.postgresql.org/).
+1. Install and start [PostgreSQL](https://www.postgresql.org/).
 
    ```sh
-   brew install postgresql@17
-   ```
-
-1. Start PostgreSQL.
-
-   ```sh
-   brew services start postgresql@17
+   POSTGRESQL_VERSION=17
+   brew install postgresql@$POSTGRESQL_VERSION
+   brew services start postgresql@$POSTGRESQL_VERSION
    ```
 
 1. Install [Rust](https://www.rust-lang.org/).
@@ -116,20 +112,6 @@ The following plugins are recommended:
 - [Vitest](https://marketplace.visualstudio.com/items?itemName=vitest.explorer)
 - [Playwright Test for VSCode](https://marketplace.visualstudio.com/items?itemName=ms-playwright.playwright)
 
-### DB Migrations
-
-Add a migration:
-
-```bash
-sqlx migrate add some-meaningful-name
-```
-
-Run migrations
-
-```bash
-sqlx migrate run
-```
-
 ### Backend Interactions
 
 Once a server has been started, you can interact with it at http://localhost:3000. There are example requests in [koso.http](backend/koso.http) which you can run with [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client).
@@ -165,7 +147,7 @@ This setup is similar to how the app will run in production. A single server ser
 1. In the `backend` folder, run the server:
 
    ```bash
-   systemfd --no-pid -s http::3000 -- cargo watch -x run
+   cargo run
    ```
 
 This will create a `frontend/build` folder. The `backend/static` folder is symlinked to that folder and will serve the compiled frontend directly from the backend.
@@ -251,62 +233,27 @@ Build and run the docker image defined in `Dockerfile`.
 
 ## Server setup
 
-1. Install docker:
-
-   ```bash
-   sudo su &&\
-   apt update &&\
-   apt install ca-certificates curl gnupg apt-transport-https gpg
-   curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg
-   apt update
-   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable" |tee /etc/apt/sources.list.d/docker.list > /dev/null
-   apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-compose
-   systemctl is-active docker
-
-   echo $PULL_TOKEN| docker login ghcr.io -u $USER --password-stdin
-   ```
+Commands for setting up a new server are in [setup_server.sh](backend/scripts/setup_server.sh)
 
 ### Environment
 
 We use a [Github Environment](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment) configured on the `Deploy` workflow which exposes a `KOSO_KEY` to access the server.
 
-### Access in bridge mode (old)
+## Postgres
 
-1. Add 172.17.0.1 to /etc/postgresql/17/main/postgresql.conf:
+### Migrations
 
-   ```
-   listen_addresses = 'localhost,172.17.0.1'
-   ```
-
-1. Add entry to /etc/postgresql/17/main/pg_hba.conf:
-
-   ```
-   # Allow docker bridge
-   host    all             all             172.0.0.0/8             scram-sha-256
-   ```
-
-### Configure github ssh keys (old)
-
-https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#set-up-deploy-keys
+Add a migration:
 
 ```bash
-ssh-keygen -t ed25519 -C "koso-github-read-key" -f /root/.ssh/koso_github_read_id_ed25519 -N ''
-eval "$(ssh-agent -s)"
-cat >>/root/.ssh/config <<EOL
-Host github.com
-  AddKeysToAgent yes
-  IdentityFile  ~/.ssh/koso_github_read_id_ed25519
-EOL
-# MANUAL - add a new deploy key with the public key (e.g. ssh-ed25519 KEY) to https://github.com/kosolabs/koso/settings/keys/new
-cat /root/.ssh/koso_github_read_id_ed25519.pub
-ssh -T git@github.com && echo "Github auth works"
+sqlx migrate add some-meaningful-name
 ```
 
-### Server Github access (old)
+Run migrations
 
-Rather than using our personal key and since we only need read access, we use [Github Deploy Keys](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#deploy-keys) to authenticate with Github from our server.
-
-## Postgres
+```bash
+sqlx migrate run
+```
 
 ### Backups
 
@@ -426,29 +373,44 @@ After starting your local server:
    stripe login
    ```
 
-### Testing locally
-
-We use the **Koso Labs Sandbox** Stripe sandbox for testing. Login to Stripe and switch to the Sandbox to find API keys and webhook details. Feel free to create a new sandbox if needed.
-
-After starting your local server:
-
 1. Configure your sandbox secret API key in `.secrets/stripe/secret_key`
+
 1. Configure your sandbox webhook secret
 
    ```bash
    stripe listen --api-key $(cat .secrets/stripe/secret_key) --print-secret > .secrets/stripe/webhook_secret
    ```
 
-1. Start a local listener with [stripe listen](https://docs.stripe.com/cli/listen). Add events as needed. Omit the API key to use an empemeral test environment.
+### Testing locally
 
-   ```bash
-   stripe listen \
-      --forward-to localhost:3000/api/billing/stripe/webhook \
-      --api-key=$(cat .secrets/stripe/secret_key) \
-      --events=checkout.session.completed,invoice.paid,customer.subscription.created,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,customer.subscription.updated
-   ```
+We use the **Koso Labs Sandbox** Stripe sandbox for testing. Login to Stripe and switch to the Sandbox to find API keys and webhook details. Feel free to create a new sandbox if needed.
+
+Start a local listener with [stripe listen](https://docs.stripe.com/cli/listen):
+
+```bash
+./backend/scripts/stripe_listen.sh
+```
 
 With this in place and your local servers running, you can:
 
+- Run playwright subscription tests
 - Trigger events on demand with `stripe trigger`. For example: `stripe trigger checkout.session.completed`
 - Test interactively using the `4242 4242 4242 4242` card number: https://docs.stripe.com/testing#testing-interactively
+
+## Telegram
+
+### One time setup
+
+Create a new bot and configure the secrets.
+
+1. Send a Telegram message to @BotFather: `/newbot`
+1. Name the bot, e.g. UserDevBot
+1. Copy the access token into `.secrets/telegram/token`
+1. Generate an HMAC key for signing tokens: `openssl rand -base64 256 > .secrets/koso/hmac`
+1. Restart your servers and authorize Telegram on your profile page
+
+### Testing locally
+
+With setup complete you can interact with tasks and generate notifications. Note though that
+most self notifications are suppressed. Use [login_test_user.sh](backend/scripts/login_test_user.sh)
+to login as a test user, interact with tasks and trigger notifications.

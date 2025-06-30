@@ -231,10 +231,7 @@ jobs:
       # This will continue to run in the background after this step completes.
       - name: Start Stripe webhook listener
         run: |
-          stripe listen \
-            --forward-to localhost:3000/api/billing/stripe/webhook \
-            --api-key=${{ secrets.STRIPE_SECRET_KEY }} \
-            --events=checkout.session.completed,invoice.paid,customer.subscription.created,customer.subscription.deleted,customer.subscription.paused,customer.subscription.resumed,customer.subscription.updated &
+          ../backend/scripts/stripe_listen.sh &
 
       # Run the playwright tests. They'll start a backend leveraging the DB setup above.
       - name: Run Playwright tests
