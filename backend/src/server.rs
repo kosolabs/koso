@@ -96,6 +96,8 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         .nest("/healthz", healthz::router())
         .nest("/plugins/github", github_plugin.router()?)
         // Apply these layers to all non-static routes.
+        // Layers are ran from top to bottom. In other words,
+        // the first layer wraps all later layers.
         .layer((
             Extension(pool),
             Extension(collab.clone()),
@@ -107,6 +109,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
             TraceLayer::new_for_http()
                 .make_span_with(KosoMakeSpan {})
                 .on_request(KosoOnRequest {}),
+            middleware::from_fn(google::authenticate),
         ))
         .fallback_service(
             ServiceBuilder::new()

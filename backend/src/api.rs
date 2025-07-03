@@ -2,7 +2,6 @@ use anyhow::{Context, Error, Result, anyhow};
 use axum::{
     Router,
     http::{HeaderName, HeaderValue, StatusCode},
-    middleware,
     response::{IntoResponse, Response},
 };
 use axum_extra::headers;
@@ -38,7 +37,6 @@ pub(crate) fn router() -> Result<Router> {
         .nest("/users", users::router())
         .nest("/dev", dev::router())
         .nest("/anthropic", anthropic::router()?)
-        .layer((middleware::from_fn(google::authenticate),))
         .nest("/billing", billing::router()?))
 }
 

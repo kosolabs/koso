@@ -10,14 +10,13 @@ use crate::{
             stripe::{KosoMetadata, StripeClient},
             webhook::WebhookSecret,
         },
-        google::{self, User},
+        google::User,
         not_found_error,
     },
     secrets::{self},
     settings::settings,
 };
 use anyhow::{Context, Result};
-use axum::middleware;
 use axum::routing::put;
 use axum::{Extension, Json, Router, routing::post};
 use chrono::{DateTime, Utc};
@@ -42,8 +41,6 @@ pub(super) fn router() -> Result<Router> {
             post(handle_create_portal_session),
         )
         .route("/subscriptions", put(handle_update_subscription))
-        .layer((middleware::from_fn(google::authenticate),))
-        // The webhook endpoint is invoked by Stripe and not users. Don't authenticate using Google.
         .route("/stripe/webhook", post(webhook::handle_webhook))
         .layer((Extension(client),))
         .layer((Extension(webhook_secret),)))

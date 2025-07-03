@@ -1,7 +1,6 @@
 use crate::{
     api::{
         collab::Collab,
-        google,
         model::Task,
         yproxy::{YDocProxy, YTaskProxy},
     },
@@ -9,7 +8,7 @@ use crate::{
 };
 use anyhow::{Context, Result, anyhow};
 use auth::Auth;
-use axum::{Router, middleware};
+use axum::Router;
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use connect::ConnectHandler;
 use octocrab::models::pulls::PullRequest;
@@ -82,14 +81,12 @@ impl Plugin {
                 )?
                 .router(),
             )
-            .layer((middleware::from_fn(google::authenticate),))
-            // Webhook and poller are unauthenticated, so add it AFTER adding the authentication layers.
             .merge(
                 Webhook::new(self.collab.clone(), self.config_storage.clone(), self.pool)?.router(),
             )
             .merge(self.poller().router()))
     }
-
+    
     fn poller(&self) -> Poller {
         poller::Poller::new(
             self.collab.clone(),

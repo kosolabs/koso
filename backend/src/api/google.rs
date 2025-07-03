@@ -162,8 +162,20 @@ struct RawCerts {
     keys: Vec<RawKey>,
 }
 
+const UNAUTHENTICATED_ROUTES: &[&str] = &[
+    "/healthz",
+    "/plugins/github/app/webhook",
+    "/api/billing/stripe/webhook",
+    "/plugins/github/poll",
+];
+
 #[tracing::instrument(skip(request, next), fields(email))]
 pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<Response<Body>> {
+    if UNAUTHENTICATED_ROUTES.contains(&request.uri().path()) {
+        tracing::Span::current().record("email", "_UNAUTHENTICATED_");
+        return Ok(next.run(request).await);
+    }
+
     let key_set = request.extensions().get::<KeySet>().unwrap();
     let headers = request.headers();
 
