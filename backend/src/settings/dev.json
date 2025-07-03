@@ -1,7 +1,8 @@
 {
+  "env": "dev",
+  "host": "http://localhost:5173",
   "secrets_dir": "/.secrets",
   "database_url": "postgresql://localhost/koso",
-  "env": "dev",
 
   "plugins": {
     "github": {

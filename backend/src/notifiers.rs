@@ -1,13 +1,16 @@
 use anyhow::{Context as _, Result};
-use axum::Router;
+use axum::{Router, middleware};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, prelude::FromRow};
 use teloxide::payloads::SendMessageSetters;
 use teloxide::prelude::Requester;
 use teloxide::types::{ParseMode, UserId};
 
+use crate::api::google;
+use crate::notifiers::slack::SlackClient;
 use crate::settings::settings;
 
+pub(crate) mod slack;
 pub(crate) mod telegram;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -17,9 +20,16 @@ pub(super) struct TelegramSettings {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct SlackSettings {
+    pub(super) user_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", tag = "type")]
 pub(super) enum NotifierSettings {
     Telegram(TelegramSettings),
+    Slack(SlackSettings),
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
@@ -32,26 +42,40 @@ pub(super) struct UserNotificationConfig {
     pub(super) settings: NotifierSettings,
 }
 
-pub(super) fn router() -> Router {
-    Router::new().nest("/telegram", telegram::router())
+pub(super) fn router() -> Result<Router> {
+    Ok(Router::new()
+        .nest("/telegram", telegram::router())
+        .layer((middleware::from_fn(google::authenticate),))
+        .nest("/slack", slack::router()?))
 }
 
 pub(super) struct Notifier {
     pool: &'static PgPool,
-    bot: Option<teloxide::Bot>,
+    telegram: Option<teloxide::Bot>,
+    slack: Option<slack::SlackClient>,
 }
 
 impl Notifier {
     pub(super) fn new(pool: &'static PgPool) -> Result<Self> {
         Ok(Self {
             pool,
-            bot: match telegram::bot_from_secrets() {
+            telegram: match telegram::bot_from_secrets() {
                 Ok(bot) => Some(bot),
                 Err(e) => {
                     if settings().is_dev() {
                         None
                     } else {
                         return Err(e.context("Failed to initialize telegram bot"));
+                    }
+                }
+            },
+            slack: match SlackClient::new() {
+                Ok(client) => Some(client),
+                Err(e) => {
+                    if settings().is_dev() {
+                        None
+                    } else {
+                        return Err(e.context("Failed to initialize slack client"));
                     }
                 }
             },
@@ -72,10 +96,15 @@ impl Notifier {
         for config in configs {
             match config.settings {
                 NotifierSettings::Telegram(settings) => {
-                    if let Some(bot) = &self.bot {
+                    if let Some(bot) = &self.telegram {
                         bot.send_message(UserId(settings.chat_id), message)
                             .parse_mode(ParseMode::Html)
                             .await?;
+                    }
+                }
+                NotifierSettings::Slack(settings) => {
+                    if let Some(slack) = &self.slack {
+                        slack.send_message(&settings.user_id, message).await?;
                     }
                 }
             }
@@ -126,6 +155,7 @@ pub(crate) async fn insert_notification_config(
 ) -> Result<()> {
     let notifier = match settings {
         NotifierSettings::Telegram(_) => "telegram",
+        NotifierSettings::Slack(_) => "slack",
     };
     sqlx::query(
         "

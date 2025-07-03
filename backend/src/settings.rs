@@ -7,6 +7,7 @@ use std::sync::OnceLock;
 #[derive(Debug)]
 pub(crate) struct Settings {
     pub(crate) env: String,
+    pub(crate) host: String,
     pub(crate) database_url: String,
     pub(crate) secrets_dir: String,
     pub(crate) plugins: Plugins,
@@ -17,6 +18,7 @@ pub(crate) struct Settings {
 #[serde(deny_unknown_fields)]
 struct SettingsRaw {
     pub(crate) env: String,
+    pub(crate) host: String,
     pub(crate) database_url: String,
     pub(crate) secrets_dir: String,
     pub(crate) plugins: Plugins,
@@ -83,6 +85,7 @@ fn load_settings(env: &str) -> Result<Settings> {
 
     Ok(Settings {
         env: raw.env,
+        host: raw.host,
         database_url: raw.database_url,
         secrets_dir: raw.secrets_dir,
         plugins: raw.plugins,

@@ -1,9 +1,32 @@
+/*
+# Healthz
+*/
 GET http://localhost:3000/healthz
 Content-Type: application/json
+/*
+# Profile
+*/
 ###
 GET http://localhost:3000/api/profile
 Content-Type: application/json
 Authorization: Bearer {{token}}
+/*
+# Slack
+*/
+###
+POST http://localhost:3000/api/notifiers/slack/test
+Content-Type: application/json
+Authorization: Bearer {{token}}
+/*
+# Telegram
+*/
+###
+POST http://localhost:3000/api/notifiers/telegram/test
+Content-Type: application/json
+Authorization: Bearer {{token}}
+/*
+# Anthropic
+*/
 ###
 GET http://localhost:3000/api/anthropic/summarize?projectId={{projectId}}&taskId={{iterationTaskId}}&model=claude-3-5-haiku-20241022
 Content-Type: application/json
