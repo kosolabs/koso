@@ -129,8 +129,10 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         )
         .fallback_service(
             ServiceBuilder::new()
-                .layer(TimeoutLayer::new(Duration::from_secs(10)))
-                .layer(middleware::from_fn(set_static_cache_control))
+                .layer((
+                    TimeoutLayer::new(Duration::from_secs(10)),
+                    middleware::from_fn(set_static_cache_control),
+                ))
                 .service(
                     ServeDir::new("static")
                         .precompressed_gzip()
