@@ -4,6 +4,7 @@ use tokio_util::sync::CancellationToken;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
+mod debug;
 mod healthz;
 mod metrics_server;
 mod notifiers;

@@ -1,16 +1,27 @@
 use anyhow::{Context, Result, anyhow};
 use config::{Environment, File, FileFormat};
+use regex::Regex;
 use serde::Deserialize;
 use std::sync::OnceLock;
 
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug)]
 pub(crate) struct Settings {
     pub(crate) env: String,
     pub(crate) database_url: String,
     pub(crate) secrets_dir: String,
     pub(crate) plugins: Plugins,
     pub(crate) stripe: Stripe,
+    pub(crate) debug_path: Option<Regex>,
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SettingsRaw {
+    pub(crate) env: String,
+    pub(crate) database_url: String,
+    pub(crate) secrets_dir: String,
+    pub(crate) plugins: Plugins,
+    pub(crate) stripe: Stripe,
+    pub(crate) debug_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -48,7 +59,7 @@ fn load_settings_from_env() -> Result<Settings> {
 }
 
 fn load_settings(env: &str) -> Result<Settings> {
-    config::Config::builder()
+    let raw: SettingsRaw = config::Config::builder()
         .add_source(match env {
             "dev" => File::from_str(include_str!("settings/dev.json"), FileFormat::Json),
             "prod" => File::from_str(include_str!("settings/prod.json"), FileFormat::Json),
@@ -63,7 +74,21 @@ fn load_settings(env: &str) -> Result<Settings> {
         .build()
         .context("Failed to load settings")?
         .try_deserialize()
-        .context("Failed to deserialize settings")
+        .context("Failed to deserialize settings")?;
+
+    let debug_path = raw
+        .debug_path
+        .map(|pattern| Regex::new(&pattern))
+        .transpose()?;
+
+    Ok(Settings {
+        env: raw.env,
+        database_url: raw.database_url,
+        secrets_dir: raw.secrets_dir,
+        plugins: raw.plugins,
+        stripe: raw.stripe,
+        debug_path,
+    })
 }
 
 impl Settings {
