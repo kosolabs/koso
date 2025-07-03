@@ -75,7 +75,7 @@ impl Auth {
     pub(super) fn router(self) -> Router {
         Router::new()
             .route("/auth", post(Self::auth_handler))
-            .layer((Extension(self),))
+            .layer(Extension(self))
     }
 
     #[tracing::instrument(skip(request, user, auth))]

@@ -50,7 +50,7 @@ impl Poller {
         if settings().is_dev() {
             return Router::new()
                 .route("/poll", post(Poller::poll_handler))
-                .layer((Extension(self),));
+                .layer(Extension(self));
         }
         Router::new()
     }

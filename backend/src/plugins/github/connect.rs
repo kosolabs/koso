@@ -80,7 +80,7 @@ impl ConnectHandler {
                 "/userConnections",
                 delete(Self::delete_user_connection_handler),
             )
-            .layer((Extension(self),))
+            .layer(Extension(self))
     }
 
     #[tracing::instrument(skip(handler))]
