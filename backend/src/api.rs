@@ -38,7 +38,7 @@ pub(crate) fn router() -> Result<Router> {
         .nest("/users", users::router())
         .nest("/dev", dev::router())
         .nest("/anthropic", anthropic::router()?)
-        .layer((middleware::from_fn(google::authenticate),))
+        .layer(middleware::from_fn(google::authenticate))
         .nest("/billing", billing::router()?))
 }
 

@@ -90,10 +90,7 @@ impl Webhook {
     }
 
     pub(super) fn router(self) -> Router {
-        Router::new().route(
-            "/app/webhook",
-            post(github_webhook).layer((Extension(self),)),
-        )
+        Router::new().route("/app/webhook", post(github_webhook).layer(Extension(self)))
     }
 }
 

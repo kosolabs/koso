@@ -150,8 +150,7 @@ pub(super) fn router() -> Result<Router> {
 
     Ok(Router::new()
         .route("/summarize", get(generate_task_summary_handler))
-        .layer((Extension(cache),))
-        .layer((Extension(client),)))
+        .layer((Extension(cache), Extension(client))))
 }
 
 #[tracing::instrument(skip(user, pool, collab, cache, client))]

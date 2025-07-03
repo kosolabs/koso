@@ -82,7 +82,7 @@ impl Plugin {
                 )?
                 .router(),
             )
-            .layer((middleware::from_fn(google::authenticate),))
+            .layer(middleware::from_fn(google::authenticate))
             // Webhook and poller are unauthenticated, so add it AFTER adding the authentication layers.
             .merge(
                 Webhook::new(self.collab.clone(), self.config_storage.clone(), self.pool)?.router(),

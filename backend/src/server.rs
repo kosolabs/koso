@@ -19,7 +19,7 @@ use axum::{
     middleware::{self, Next},
     response::{IntoResponse, Response},
 };
-use axum_extra::{headers::HeaderMapExt, middleware::option_layer};
+use axum_extra::headers::HeaderMapExt;
 use listenfd::ListenFd;
 use sqlx::{
     ConnectOptions,
@@ -95,37 +95,51 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         .nest("/api", api::router()?.fallback(api::handler_404))
         .nest("/healthz", healthz::router())
         .nest("/plugins/github", github_plugin.router()?)
-        .layer(option_layer(
-            settings()
-                .is_dev()
-                .then(|| middleware::from_fn(debug::log_request_response)),
-        ))
         // Apply these layers to all non-static routes.
-        .layer((
-            Extension(pool),
-            Extension(collab.clone()),
-            Extension(key_set),
-            middleware::from_fn(emit_request_metrics),
-            SetRequestIdLayer::new(HeaderName::from_static("x-request-id"), MakeRequestUuid),
-            PropagateRequestIdLayer::new(HeaderName::from_static("x-request-id")),
-            // Enable request tracing. Must enable `tower_http=debug`
-            TraceLayer::new_for_http()
-                .make_span_with(KosoMakeSpan {})
-                .on_request(KosoOnRequest {}),
-        ))
+        // Layers that are applied first will be called first.
+        .layer(
+            ServiceBuilder::new()
+                .layer((
+                    Extension(pool),
+                    Extension(collab.clone()),
+                    Extension(key_set),
+                ))
+                .layer(middleware::from_fn(emit_request_metrics))
+                .layer(SetRequestIdLayer::new(
+                    HeaderName::from_static("x-request-id"),
+                    MakeRequestUuid,
+                ))
+                .layer(PropagateRequestIdLayer::new(HeaderName::from_static(
+                    "x-request-id",
+                )))
+                // Enable request tracing. Must enable `tower_http=debug)
+                .layer(
+                    TraceLayer::new_for_http()
+                        .make_span_with(KosoMakeSpan {})
+                        .on_request(KosoOnRequest {}),
+                )
+                .option_layer(
+                    settings()
+                        .is_dev()
+                        .then(|| middleware::from_fn(debug::log_request_response)),
+                )
+                // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
+                // requests don't hang forever.
+                .layer(TimeoutLayer::new(Duration::from_secs(10))),
+        )
         .fallback_service(
             ServiceBuilder::new()
-                .layer(middleware::from_fn(set_static_cache_control))
+                .layer((
+                    TimeoutLayer::new(Duration::from_secs(10)),
+                    middleware::from_fn(set_static_cache_control),
+                ))
                 .service(
                     ServeDir::new("static")
                         .precompressed_gzip()
                         .precompressed_br()
                         .fallback(ServeFile::new("static/index.html")),
                 ),
-        )
-        // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
-        // requests don't hang forever.
-        .layer((TimeoutLayer::new(Duration::from_secs(10)),));
+        );
 
     // We can either use a listener provided by the environment by ListenFd or
     // listen on a local port. The former is convenient when using `cargo watch`
