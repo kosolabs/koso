@@ -4,7 +4,7 @@ use crate::{
         collab::Collab,
         google::{self, KeySet},
     },
-    healthz,
+    debug, healthz,
     plugins::{
         PluginSettings,
         github::{self},
@@ -19,7 +19,7 @@ use axum::{
     middleware::{self, Next},
     response::{IntoResponse, Response},
 };
-use axum_extra::headers::HeaderMapExt;
+use axum_extra::{headers::HeaderMapExt, middleware::option_layer};
 use listenfd::ListenFd;
 use sqlx::{
     ConnectOptions,
@@ -95,6 +95,11 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         .nest("/api", api::router()?.fallback(api::handler_404))
         .nest("/healthz", healthz::router())
         .nest("/plugins/github", github_plugin.router()?)
+        .layer(option_layer(
+            settings()
+                .is_dev()
+                .then(|| middleware::from_fn(debug::log_request_response)),
+        ))
         // Apply these layers to all non-static routes.
         .layer((
             Extension(pool),
