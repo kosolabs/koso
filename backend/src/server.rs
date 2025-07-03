@@ -99,9 +99,11 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         // Layers that are applied first will be called first.
         .layer(
             ServiceBuilder::new()
-                .layer(Extension(pool))
-                .layer(Extension(collab.clone()))
-                .layer(Extension(key_set))
+                .layer((
+                    Extension(pool),
+                    Extension(collab.clone()),
+                    Extension(key_set),
+                ))
                 .layer(middleware::from_fn(emit_request_metrics))
                 .layer(SetRequestIdLayer::new(
                     HeaderName::from_static("x-request-id"),
@@ -120,10 +122,14 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
                     settings()
                         .is_dev()
                         .then(|| middleware::from_fn(debug::log_request_response)),
-                ),
+                )
+                // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
+                // requests don't hang forever.
+                .layer(TimeoutLayer::new(Duration::from_secs(10))),
         )
         .fallback_service(
             ServiceBuilder::new()
+                .layer(TimeoutLayer::new(Duration::from_secs(10)))
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
                     ServeDir::new("static")
@@ -131,10 +137,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
                         .precompressed_br()
                         .fallback(ServeFile::new("static/index.html")),
                 ),
-        )
-        // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
-        // requests don't hang forever.
-        .layer(TimeoutLayer::new(Duration::from_secs(10)));
+        );
 
     // We can either use a listener provided by the environment by ListenFd or
     // listen on a local port. The former is convenient when using `cargo watch`
