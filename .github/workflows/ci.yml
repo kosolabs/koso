@@ -62,6 +62,9 @@ jobs:
       - name: Setup secrets
         run: |
           echo "::group::Add Secrets"
+          mkdir -p ~/.secrets/koso
+          echo "::add-mask::${{ secrets.KOSO_HMAC }}"
+          echo "${{ secrets.KOSO_HMAC }}" > ~/.secrets/koso/hmac
           mkdir -p ~/.secrets/github
           echo "::add-mask::${{ secrets.GH_APP_KEY }}"
           echo "${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem
@@ -212,6 +215,9 @@ jobs:
       - name: Setup secrets
         run: |
           echo "::group::Add Secrets"
+          mkdir -p ~/.secrets/koso
+          echo "::add-mask::${{ secrets.KOSO_HMAC }}"
+          echo "${{ secrets.KOSO_HMAC }}" > ~/.secrets/koso/hmac
           mkdir -p ~/.secrets/github
           echo "::add-mask::${{ secrets.GH_APP_KEY }}"
           echo "${{ secrets.GH_APP_KEY }}" > ~/.secrets/github/key.pem

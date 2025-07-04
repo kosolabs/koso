@@ -59,6 +59,15 @@
    stripe login
    ```
 
+1. Configure secrets.
+
+   In the `koso` root folder, run:
+
+   ```sh
+   mkdir -p .secrets/koso
+   openssl rand -hex 256 > .secrets/koso/hmac
+   ```
+
 ### Once A Day / After Every Pull
 
 1. Run the most recent DB migrations.
@@ -111,10 +120,11 @@ The following plugins are recommended:
 - [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
 - [Vitest](https://marketplace.visualstudio.com/items?itemName=vitest.explorer)
 - [Playwright Test for VSCode](https://marketplace.visualstudio.com/items?itemName=ms-playwright.playwright)
+- [httpBook - Rest Client](https://marketplace.visualstudio.com/items?itemName=anweber.httpbook)
 
 ### Backend Interactions
 
-Once a server has been started, you can interact with it at http://localhost:3000. There are example requests in [koso.http](backend/koso.http) which you can run with [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client).
+Once a server has been started, you can interact with it at http://localhost:3000. There are example requests in [koso.http](backend/koso.http) which you can run with [httpBook](https://marketplace.visualstudio.com/items?itemName=anweber.httpbook).
 
 ### Backend Auto-reload
 
@@ -406,7 +416,6 @@ Create a new bot and configure the secrets.
 1. Send a Telegram message to @BotFather: `/newbot`
 1. Name the bot, e.g. UserDevBot
 1. Copy the access token into `.secrets/telegram/token`
-1. Generate an HMAC key for signing tokens: `openssl rand -base64 256 > .secrets/koso/hmac`
 1. Restart your servers and authorize Telegram on your profile page
 
 ### Testing locally

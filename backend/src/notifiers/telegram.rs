@@ -4,8 +4,9 @@ use crate::notifiers::{
     insert_notification_config,
 };
 use crate::secrets::{Secret, read_secret};
+use crate::server::encoding_key_from_secrets;
 use crate::settings::settings;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use axum::{
     Extension, Json, Router,
     routing::{delete, post},
@@ -47,13 +48,13 @@ struct AuthorizeTelegram {
     token: String,
 }
 
-#[tracing::instrument(skip(user, pool))]
+#[tracing::instrument(skip(user, pool, key))]
 async fn authorize_telegram(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
+    Extension(key): Extension<DecodingKey>,
     Json(req): Json<AuthorizeTelegram>,
 ) -> ApiResult<Json<NotifierSettings>> {
-    let key = decoding_key_from_secrets()?;
     let token = match decode::<Claims>(&req.token, &key, &Validation::default()) {
         Ok(token) => token,
         Err(error) => {
@@ -75,27 +76,26 @@ async fn authorize_telegram(
     Ok(Json(settings))
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Empty {}
-
 #[tracing::instrument(skip(user, pool))]
 async fn deauthorize_telegram(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
-) -> ApiResult<Json<Empty>> {
+) -> ApiResult<Json<()>> {
     delete_notification_config(&user.email, "telegram", pool).await?;
 
-    Ok(Json(Empty {}))
+    Ok(Json(()))
 }
 
 #[tracing::instrument(skip(user, pool))]
 async fn send_test_message_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
-) -> ApiResult<Json<Empty>> {
+) -> ApiResult<Json<()>> {
     let config = fetch_notification_config(&user.email, "telegram", pool).await?;
-    let NotifierSettings::Telegram(settings) = config.settings;
+
+    let NotifierSettings::Telegram(settings) = config.settings else {
+        return Err(anyhow!("Got a setting config that wasn't telegram").into());
+    };
 
     let bot = bot_from_secrets()?;
     bot.send_message(
@@ -105,7 +105,7 @@ async fn send_test_message_handler(
     .parse_mode(ParseMode::Html)
     .await?;
 
-    Ok(Json(Empty {}))
+    Ok(Json(()))
 }
 
 #[derive(BotCommands, Clone)]
@@ -117,16 +117,6 @@ enum Command {
 pub(super) fn bot_from_secrets() -> Result<Bot> {
     let secret: Secret<String> = read_secret("telegram/token")?;
     Ok(Bot::new(secret.data))
-}
-
-fn decoding_key_from_secrets() -> Result<DecodingKey> {
-    let secret: Secret<String> = read_secret("koso/hmac")?;
-    Ok(DecodingKey::from_base64_secret(&secret.data)?)
-}
-
-fn encoding_key_from_secrets() -> Result<EncodingKey> {
-    let secret: Secret<String> = read_secret("koso/hmac")?;
-    Ok(EncodingKey::from_base64_secret(&secret.data)?)
 }
 
 pub(crate) async fn start_telegram_server(cancel_token: CancellationToken) -> Result<()> {

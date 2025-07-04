@@ -12,6 +12,7 @@
   import { Link } from "$lib/kosui/link";
   import { CircularProgress } from "$lib/kosui/progress";
   import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
+  import { toTitleCase } from "$lib/kosui/utils";
   import {
     CircleX,
     Crown,
@@ -31,19 +32,29 @@
   let auth = getAuthContext();
   let profile: Promise<Profile> = $state(load());
 
-  type Base = {
+  type Notifier = "slack" | "telegram";
+
+  type SlackNotificationConfig = {
+    notifier: "slack";
     email: string;
     enabled: boolean;
+    settings: {
+      userId: string;
+    };
   };
 
-  type TelegramNotificationConfig = Base & {
+  type TelegramNotificationConfig = {
     notifier: "telegram";
+    email: string;
+    enabled: boolean;
     settings: {
       chatId: number;
     };
   };
 
-  type NotificationConfig = TelegramNotificationConfig;
+  type NotificationConfig =
+    | SlackNotificationConfig
+    | TelegramNotificationConfig;
 
   type PluginConnections = {
     githubUserId?: string;
@@ -74,11 +85,12 @@
     return await parseResponse(auth, resp);
   }
 
-  async function sendTestTelegramNotification() {
-    const toastId = toast.loading("Sending test notification...");
+  async function sendTestNotification(kind: Notifier) {
+    const name = toTitleCase(kind);
+    const toastId = toast.loading(`Sending test ${name} notification...`);
 
     try {
-      let resp = await fetch("/api/notifiers/telegram/test", {
+      let resp = await fetch(`/api/notifiers/${kind}/test`, {
         method: "POST",
         headers: {
           ...headers(auth),
@@ -86,27 +98,31 @@
         },
       });
       await parseResponse(auth, resp);
-      toast.success("Test notification sent successfully.", { id: toastId });
+      toast.success(`${name} test notification sent successfully.`, {
+        id: toastId,
+      });
     } catch {
-      toast.error("Failed to send test notification.", { id: toastId });
+      toast.error(`Failed to send ${name} test notification.`, { id: toastId });
     }
   }
 
-  async function deleteTelegramConfig() {
+  async function deleteNotificationConfig(kind: Notifier) {
+    const name = toTitleCase(kind);
+
     if (
       !(await dialog.confirm({
         message,
-        title: "Delete Telegram Authorization?",
+        title: `Delete ${name} Authorization?`,
         icon: Trash2,
       }))
     ) {
       return;
     }
 
-    const toastId = toast.loading("Deleting Telegram authorization...");
+    const toastId = toast.loading(`Deleting ${name} authorization...`);
 
     try {
-      let resp = await fetch("/api/notifiers/telegram", {
+      let resp = await fetch(`/api/notifiers/${kind}`, {
         method: "DELETE",
         headers: {
           ...headers(auth),
@@ -114,22 +130,30 @@
         },
       });
       await parseResponse(auth, resp);
-      toast.success("Telegram authorization deleted.", { id: toastId });
+      toast.success(`${name} authorization deleted.`, { id: toastId });
       profile = load();
     } catch {
-      toast.error("Failed to delete Telegram authorization.", { id: toastId });
+      toast.error(`Failed to delete ${name} authorization.`, { id: toastId });
     }
   }
 
-  function getTelegramConfig(
+  function getNotificationConfig(
     profile: Profile,
-  ): TelegramNotificationConfig | null {
-    for (const config of profile.notificationConfigs) {
-      if (config.notifier === "telegram") {
-        return config;
-      }
-    }
-    return null;
+    notifier: "slack",
+  ): SlackNotificationConfig | null;
+  function getNotificationConfig(
+    profile: Profile,
+    notifier: "telegram",
+  ): TelegramNotificationConfig | null;
+  function getNotificationConfig(
+    profile: Profile,
+    notifier: Notifier,
+  ): SlackNotificationConfig | TelegramNotificationConfig | null {
+    return (
+      profile.notificationConfigs.find(
+        (config) => config.notifier === notifier,
+      ) || null
+    );
   }
 
   async function deleteUserGithubConnection() {
@@ -288,22 +312,61 @@
         <div>Loading...</div>
       </div>
     {:then profile}
+      {#if localStorage.getItem("slack-enabled") === "true"}
+        <SubSection title="Slack">
+          {@const slackConfig = getNotificationConfig(profile, "slack")}
+          {#if slackConfig}
+            <div class="flex flex-col gap-2">
+              <div>Koso is authorized to send messages to Slack.</div>
+              <div class="flex flex-wrap gap-2">
+                <Button
+                  icon={Send}
+                  onclick={() => sendTestNotification("slack")}
+                >
+                  Send Test Slack Notification
+                </Button>
+                <div class="ml-auto">
+                  <Button
+                    icon={CircleX}
+                    variant="filled"
+                    onclick={() => deleteNotificationConfig("slack")}
+                  >
+                    Delete Slack Authorization
+                  </Button>
+                </div>
+              </div>
+              <div></div>
+            </div>
+          {:else}
+            Koso is not authorized to send messages to Slack. To authorize Koso,
+            ensure that the Kosobot app is installed in your workspace, then
+            send the <code>/token</code> command to
+            <Link href="https://slack.com/app_redirect?app=A093QC1FW85">
+              @Kosobot
+            </Link>.
+          {/if}
+        </SubSection>
+      {/if}
+
       <SubSection title="Telegram">
-        {@const telegramConfig = getTelegramConfig(profile)}
+        {@const telegramConfig = getNotificationConfig(profile, "telegram")}
         {#if telegramConfig}
           <div class="flex flex-col gap-2">
             <div>Koso is authorized to send messages to Telegram.</div>
             <div class="flex flex-wrap gap-2">
-              <Button icon={Send} onclick={sendTestTelegramNotification}>
-                Send Test Notification
+              <Button
+                icon={Send}
+                onclick={() => sendTestNotification("telegram")}
+              >
+                Send Test Telegram Notification
               </Button>
               <div class="ml-auto">
                 <Button
                   icon={CircleX}
                   variant="filled"
-                  onclick={deleteTelegramConfig}
+                  onclick={() => deleteNotificationConfig("telegram")}
                 >
-                  Delete Authorization
+                  Delete Telegram Authorization
                 </Button>
               </div>
             </div>

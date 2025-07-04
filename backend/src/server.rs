@@ -9,6 +9,7 @@ use crate::{
         PluginSettings,
         github::{self},
     },
+    secrets::{Secret, read_secret},
     settings::settings,
 };
 use anyhow::{Context, Result};
@@ -20,6 +21,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::headers::HeaderMapExt;
+use jsonwebtoken::{DecodingKey, EncodingKey};
 use listenfd::ListenFd;
 use sqlx::{
     ConnectOptions,
@@ -50,6 +52,16 @@ pub struct Config {
     pub shutdown_signal: CancellationToken,
     pub key_set: Option<KeySet>,
     pub plugin_settings: Option<PluginSettings>,
+}
+
+pub fn decoding_key_from_secrets() -> Result<DecodingKey> {
+    let secret: Secret<String> = read_secret("koso/hmac")?;
+    Ok(DecodingKey::from_base64_secret(&secret.data)?)
+}
+
+pub fn encoding_key_from_secrets() -> Result<EncodingKey> {
+    let secret: Secret<String> = read_secret("koso/hmac")?;
+    Ok(EncodingKey::from_base64_secret(&secret.data)?)
 }
 
 #[tracing::instrument(skip(config))]
@@ -103,6 +115,8 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
                     Extension(pool),
                     Extension(collab.clone()),
                     Extension(key_set),
+                    Extension(encoding_key_from_secrets()?),
+                    Extension(decoding_key_from_secrets()?),
                 ))
                 .layer(middleware::from_fn(emit_request_metrics))
                 .layer(SetRequestIdLayer::new(

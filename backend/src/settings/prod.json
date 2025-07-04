@@ -1,7 +1,8 @@
 {
+  "env": "prod",
+  "host": "https://koso.app",
   "secrets_dir": "/.secrets",
   "database_url": "postgresql://koso:koso@localhost/koso",
-  "env": "prod",
 
   "plugins": {
     "github": {

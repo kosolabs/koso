@@ -32,13 +32,13 @@ pub(crate) fn router() -> Result<Router> {
     Ok(Router::new()
         .nest("/projects", projects::router())
         .nest("/profile", profile::router())
-        .nest("/notifiers", notifiers::router())
         .nest("/auth", auth::router())
         .nest("/ws", ws::router())
         .nest("/users", users::router())
         .nest("/dev", dev::router())
         .nest("/anthropic", anthropic::router()?)
         .layer(middleware::from_fn(google::authenticate))
+        .nest("/notifiers", notifiers::router()?)
         .nest("/billing", billing::router()?))
 }
 
