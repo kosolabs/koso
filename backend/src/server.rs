@@ -9,7 +9,7 @@ use crate::{
         PluginSettings,
         github::{self},
     },
-    secrets::{Secret, read_secret},
+    secrets::read_secret,
     settings::settings,
 };
 use anyhow::{Context, Result};
@@ -54,16 +54,6 @@ pub struct Config {
     pub plugin_settings: Option<PluginSettings>,
 }
 
-pub fn decoding_key_from_secrets() -> Result<DecodingKey> {
-    let secret: Secret<String> = read_secret("koso/hmac")?;
-    Ok(DecodingKey::from_base64_secret(&secret.data)?)
-}
-
-pub fn encoding_key_from_secrets() -> Result<EncodingKey> {
-    let secret: Secret<String> = read_secret("koso/hmac")?;
-    Ok(EncodingKey::from_base64_secret(&secret.data)?)
-}
-
 #[tracing::instrument(skip(config))]
 pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle<Result<()>>)> {
     let pool = match config.pool {
@@ -103,6 +93,10 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
     .await?;
     let github_poll_handle = github_plugin.start_polling();
 
+    let hmac = read_secret::<String>("koso/hmac")?;
+    let encoding_key = EncodingKey::from_base64_secret(&hmac.data)?;
+    let decoding_key = DecodingKey::from_base64_secret(&hmac.data)?;
+
     let app = Router::new()
         .nest("/api", api::router()?.fallback(api::handler_404))
         .nest("/healthz", healthz::router())
@@ -115,8 +109,8 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
                     Extension(pool),
                     Extension(collab.clone()),
                     Extension(key_set),
-                    Extension(encoding_key_from_secrets()?),
-                    Extension(decoding_key_from_secrets()?),
+                    Extension(encoding_key),
+                    Extension(decoding_key),
                 ))
                 .layer(middleware::from_fn(emit_request_metrics))
                 .layer(SetRequestIdLayer::new(

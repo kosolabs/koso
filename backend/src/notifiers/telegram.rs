@@ -1,38 +1,80 @@
+use crate::api::google;
 use crate::api::{ApiResult, error_response, google::User};
 use crate::notifiers::{
     NotifierSettings, TelegramSettings, delete_notification_config, fetch_notification_config,
     insert_notification_config,
 };
 use crate::secrets::{Secret, read_secret};
-use crate::server::encoding_key_from_secrets;
 use crate::settings::settings;
 use anyhow::{Result, anyhow};
+use axum::middleware;
 use axum::{
     Extension, Json, Router,
     routing::{delete, post},
 };
-use dptree::case;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::postgres::PgPool;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use teloxide::{
-    Bot,
-    dispatching::UpdateFilterExt,
-    dptree,
-    macros::BotCommands,
-    payloads::SendMessageSetters,
-    prelude::{Dispatcher, Requester},
-    types::{ParseMode, Update, UserId},
-};
-use tokio_util::sync::CancellationToken;
+
+#[derive(Clone)]
+pub(super) struct TelegramClient {
+    client: reqwest::Client,
+    token: Secret<String>,
+}
+
+impl TelegramClient {
+    pub fn new() -> Result<Self> {
+        Ok(Self {
+            client: reqwest::Client::new(),
+            token: read_secret("telegram/token")?,
+        })
+    }
+
+    pub async fn send_message(&self, chat_id: u64, html: &str) -> Result<()> {
+        let url = format!(
+            "https://api.telegram.org/bot{}/sendMessage",
+            self.token.data
+        );
+
+        tracing::debug!("{:?}", url);
+
+        let req = self
+            .client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .json(&json!( {
+                "chat_id": chat_id,
+                "text": html,
+                "parse_mode": "HTML",
+            }));
+
+        tracing::debug!("{:?}", req);
+
+        let response = req.send().await?;
+
+        tracing::debug!("{:?}", response);
+
+        if !response.status().is_success() {
+            return Err(anyhow::anyhow!(
+                "Failed to send message: {}",
+                response.status()
+            ));
+        }
+
+        Ok(())
+    }
+}
 
 pub(super) fn router() -> Router {
     Router::new()
         .route("/", post(authorize_telegram))
         .route("/", delete(deauthorize_telegram))
         .route("/test", post(send_test_message_handler))
+        .layer(middleware::from_fn(google::authenticate))
+        .route("/webhook", post(handle_webhook))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -97,104 +139,77 @@ async fn send_test_message_handler(
         return Err(anyhow!("Got a setting config that wasn't telegram").into());
     };
 
-    let bot = bot_from_secrets()?;
-    bot.send_message(
-        UserId(settings.chat_id),
+    let client = TelegramClient::new()?;
+    client.send_message(
+        settings.chat_id,
         "Hello from Koso! This is a test notification. Change your setting <a href=\"https://koso.app/profile\">here</a>.",
     )
-    .parse_mode(ParseMode::Html)
     .await?;
 
     Ok(Json(()))
 }
 
-#[derive(BotCommands, Clone)]
-#[command(rename_rule = "lowercase")]
-enum Command {
-    Token,
+#[derive(Serialize, Deserialize, Debug)]
+struct TelegramUpdate {
+    update_id: u64,
+    message: TelegramMessage,
 }
 
-pub(super) fn bot_from_secrets() -> Result<Bot> {
-    let secret: Secret<String> = read_secret("telegram/token")?;
-    Ok(Bot::new(secret.data))
+#[derive(Serialize, Deserialize, Debug)]
+struct TelegramMessage {
+    message_id: u64,
+    from: TelegramUser,
+    text: String,
 }
 
-pub(crate) async fn start_telegram_server(cancel_token: CancellationToken) -> Result<()> {
-    let bot = match bot_from_secrets() {
-        Ok(bot) => bot,
-        Err(error) => {
-            if settings().is_dev() {
-                tracing::warn!("Telegram bot not started because token is not set.");
-                return Ok(());
-            } else {
-                return Err(error);
-            }
-        }
-    };
-    let key = encoding_key_from_secrets()?;
-    let schema = Update::filter_message()
-        .filter_map(|update: Update| update.from().cloned())
-        .branch(
-            teloxide::filter_command::<Command, _>()
-                .branch(case![Command::Token].endpoint(send_token)),
-        )
-        .branch(dptree::endpoint(send_usage));
-    let mut dis = Dispatcher::builder(bot, schema)
-        .dependencies(dptree::deps![key])
-        .build();
+#[derive(Serialize, Deserialize, Debug)]
+struct TelegramUser {
+    id: u64,
+}
 
-    let token = dis.shutdown_token();
-    let abort_token = tokio::spawn(async move { dis.dispatch().await });
+async fn handle_webhook(
+    Extension(key): Extension<jsonwebtoken::EncodingKey>,
+    Json(req): Json<TelegramUpdate>,
+) -> ApiResult<Json<()>> {
+    let client = TelegramClient::new()?;
 
-    cancel_token.cancelled().await;
-    match token.shutdown() {
-        Err(error) => {
-            tracing::warn!("Error while shutting down Teloxide: {error}");
-        }
-        Ok(f) => {
-            if tokio::time::timeout(Duration::from_secs(2), f)
-                .await
-                .is_err()
-            {}
-        }
+    match req.message.text.as_str() {
+        "/token" => send_token(&client, key, req.message.from.id).await?,
+        _ => send_usage(&client, req.message.from.id).await?,
     }
-    // Finally, in case we weren't able to cleanly shut down the dispatcher,
-    // abort the dispatcher task. This can happen when shutdown races with
-    // startup and the call to shutdown() above returns an error, or when
-    // waiting for the shutdown future to complete times out.
-    abort_token.abort();
+    tracing::debug!("{:?}", req);
+    Ok(Json(()))
+}
 
-    tracing::info!("Telegram bot shutdown.");
-
+async fn send_usage(client: &TelegramClient, user_id: u64) -> Result<()> {
+    tracing::debug!("Sending usage to {user_id}");
+    client
+        .send_message(
+            user_id,
+            concat!(
+                "I can help you authorize Koso to send notifications.\n\n",
+                "/token - start the authorization flow"
+            ),
+        )
+        .await?;
     Ok(())
 }
 
-async fn send_usage(bot: Bot, user: teloxide::types::User) -> Result<()> {
-    tracing::debug!("Sending usage to {user:?}");
-    bot.send_message(
-        user.id,
-        concat!(
-            "I can help you authorize Koso to send notifications.\n\n",
-            "/token - start the authorization flow"
-        ),
-    )
-    .await?;
+async fn send_token(client: &TelegramClient, key: EncodingKey, chat_id: u64) -> Result<()> {
+    let url = get_auth_url(key, chat_id)?;
+    let message = format!("Follow this link to authorize Koso: <a href=\"{url}\">{url}</a>");
+    client.send_message(chat_id, &message).await?;
     Ok(())
 }
 
-async fn send_token(bot: Bot, key: EncodingKey, user: teloxide::types::User) -> Result<()> {
+fn get_auth_url(key: EncodingKey, chat_id: u64) -> Result<String> {
+    let host = &settings().host;
     let timer = SystemTime::now() + Duration::from_secs(60 * 60);
     let claims = Claims {
         exp: timer.duration_since(UNIX_EPOCH)?.as_secs(),
-        chat_id: user.id.0,
+        chat_id,
     };
     let token = encode(&Header::default(), &claims, &key)?;
-    let url = format!("https://koso.app/connections/telegram?token={token}");
-
-    tracing::debug!("Sending auth token {token} to {user:?}");
-    let message = format!("Follow this link to authorize Koso: <a href=\"{url}\">{url}</a>");
-    bot.send_message(user.id, message)
-        .parse_mode(ParseMode::Html)
-        .await?;
-    Ok(())
+    tracing::debug!("Generated auth token {token} for {chat_id}");
+    Ok(format!("{host}/connections/telegram?token={token}"))
 }

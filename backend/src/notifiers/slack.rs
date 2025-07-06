@@ -64,14 +64,14 @@ impl SlackClient {
     }
 }
 
-pub(super) fn router() -> Result<Router> {
-    Ok(Router::new()
+pub(super) fn router() -> Router {
+    Router::new()
         .route("/", post(authorize_slack))
         .route("/", delete(deauthorize_slack))
         .route("/test", post(send_test_message_handler))
         .layer(middleware::from_fn(google::authenticate))
-        .route("/command", post(handle_slash_command))
-        .route("/interact", post(handle_interactivity)))
+        .route("/command", post(handle_command))
+        .route("/interact", post(handle_interactivity))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -159,7 +159,7 @@ struct SlashCommandResponse {
     blocks: serde_json::Value,
 }
 
-async fn handle_slash_command(
+async fn handle_command(
     Extension(key): Extension<jsonwebtoken::EncodingKey>,
     Form(req): Form<SlashCommandRequest>,
 ) -> ApiResult<Json<SlashCommandResponse>> {
@@ -192,7 +192,6 @@ async fn handle_slash_command(
     }))
 }
 
-// get_auth_url(key, &req.user_id)?,
 fn get_auth_url(key: EncodingKey, user: &str) -> Result<String> {
     let host = &settings().host;
     let timer = SystemTime::now() + Duration::from_secs(60 * 60);
@@ -201,6 +200,7 @@ fn get_auth_url(key: EncodingKey, user: &str) -> Result<String> {
         user: user.into(),
     };
     let token = encode(&Header::default(), &claims, &key)?;
+    tracing::debug!("Generated auth token {token} for {user}");
     Ok(format!("{host}/connections/slack?token={token}"))
 }
 

@@ -1,13 +1,10 @@
 use anyhow::{Context as _, Result};
-use axum::{Router, middleware};
+use axum::Router;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, prelude::FromRow};
-use teloxide::payloads::SendMessageSetters;
-use teloxide::prelude::Requester;
-use teloxide::types::{ParseMode, UserId};
 
-use crate::api::google;
 use crate::notifiers::slack::SlackClient;
+use crate::notifiers::telegram::TelegramClient;
 use crate::settings::settings;
 
 pub(crate) mod slack;
@@ -45,13 +42,12 @@ pub(super) struct UserNotificationConfig {
 pub(super) fn router() -> Result<Router> {
     Ok(Router::new()
         .nest("/telegram", telegram::router())
-        .layer((middleware::from_fn(google::authenticate),))
-        .nest("/slack", slack::router()?))
+        .nest("/slack", slack::router()))
 }
 
 pub(super) struct Notifier {
     pool: &'static PgPool,
-    telegram: Option<teloxide::Bot>,
+    telegram: Option<telegram::TelegramClient>,
     slack: Option<slack::SlackClient>,
 }
 
@@ -59,8 +55,8 @@ impl Notifier {
     pub(super) fn new(pool: &'static PgPool) -> Result<Self> {
         Ok(Self {
             pool,
-            telegram: match telegram::bot_from_secrets() {
-                Ok(bot) => Some(bot),
+            telegram: match TelegramClient::new() {
+                Ok(client) => Some(client),
                 Err(e) => {
                     if settings().is_dev() {
                         None
@@ -96,10 +92,8 @@ impl Notifier {
         for config in configs {
             match config.settings {
                 NotifierSettings::Telegram(settings) => {
-                    if let Some(bot) = &self.telegram {
-                        bot.send_message(UserId(settings.chat_id), message)
-                            .parse_mode(ParseMode::Html)
-                            .await?;
+                    if let Some(client) = &self.telegram {
+                        client.send_message(settings.chat_id, message).await?;
                     }
                 }
                 NotifierSettings::Slack(settings) => {
