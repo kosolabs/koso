@@ -842,8 +842,8 @@ mod tests {
             secret_key: secrets::read_secret("stripe/secret_key").unwrap(),
         };
         let request = CreateCheckoutSessionRequest {
-            success_url: "http://localhost/success".to_string(),
-            cancel_url: "http://localhost/success".to_string(),
+            success_url: "http://localhost:5173/success".to_string(),
+            cancel_url: "http://localhost:5173/success".to_string(),
         };
         let Json(res) = handle_create_checkout_session(
             Extension(user),
@@ -886,7 +886,7 @@ mod tests {
             secret_key: secrets::read_secret("stripe/secret_key").unwrap(),
         };
         let request = CreatePortalSessionRequest {
-            return_url: "http://localhost/success".to_string(),
+            return_url: "http://localhost:5173/success".to_string(),
         };
         let Json(res) = handle_create_portal_session(
             Extension(user),
