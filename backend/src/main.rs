@@ -30,7 +30,6 @@ async fn main() {
     tokio::join!(
         async { run_server(shutdown_signal.clone()).await.unwrap() },
         async { run_metrics_server(shutdown_signal.clone()).await.unwrap() },
-        async { run_mcp_server(shutdown_signal.clone()).await.unwrap() },
         async { signal_shutdown(shutdown_signal.clone()).await.unwrap() },
     );
 }
@@ -56,14 +55,6 @@ async fn run_metrics_server(shutdown_signal: CancellationToken) -> Result<()> {
         })
         .await?;
         serve.await??;
-        Ok::<(), anyhow::Error>(())
-    })
-    .await?
-}
-
-async fn run_mcp_server(shutdown_signal: CancellationToken) -> Result<()> {
-    tokio::spawn(async move {
-        mcp::start_server(shutdown_signal.clone()).await?;
         Ok::<(), anyhow::Error>(())
     })
     .await?
