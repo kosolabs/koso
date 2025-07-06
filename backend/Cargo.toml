@@ -50,7 +50,7 @@ async-trait = "0.1.88"
 config = { version = "0.15.11", default-features = false, features = ["json"] }
 regex = "1.11.1"
 serde_qs = "1.0.0-rc.3"
-rmcp = { version = "0.2.0", features = ["server", "transport-io"] }
+rmcp = { version = "0.2.0", features = ["server", "transport-io", "transport-streamable-http-server",     "transport-sse-server"] }
 
 [dev-dependencies]
 test-log = { version = "0.2.17", features = ["trace", "color"] }

@@ -1,11 +1,16 @@
-use anyhow::{Context as _, Result};
+use anyhow::Result;
+use axum::Router;
 use rmcp::{
-    Error as McpError, ServiceExt, handler::server::router::tool::ToolRouter, model::*, tool,
-    tool_handler, tool_router, transport::stdio,
+    Error as McpError,
+    handler::server::router::tool::ToolRouter,
+    model::*,
+    tool, tool_handler, tool_router,
+    transport::{
+        StreamableHttpService, streamable_http_server::session::local::LocalSessionManager,
+    },
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tokio_util::sync::CancellationToken;
 
 #[derive(Clone)]
 pub struct Counter {
@@ -52,12 +57,21 @@ impl rmcp::ServerHandler for Counter {
     }
 }
 
-pub(crate) async fn start_server(cancel_token: CancellationToken) -> Result<()> {
-    // Create and run the server with STDIO transport
-    let service = Counter::new()
-        .serve_with_ct(stdio(), cancel_token.child_token())
-        .await
-        .context("Error starting MCP server")?;
-    service.waiting().await?;
-    Ok(())
+// pub(crate) async fn start_server(cancel_token: CancellationToken) -> Result<()> {
+//     // Create and run the server with STDIO transport
+//     let service = Counter::new()
+//         .serve_with_ct(stdio(), cancel_token.child_token())
+//         .await
+//         .context("Error starting MCP server")?;
+//     service.waiting().await?;
+//     Ok(())
+// }
+
+pub(super) fn router() -> Result<Router> {
+    let service = StreamableHttpService::new(
+        move || Ok(Counter::new()),
+        LocalSessionManager::default().into(),
+        Default::default(),
+    );
+    Ok(Router::new().nest_service("/server", service))
 }
