@@ -29,7 +29,6 @@ async fn main() {
     tokio::join!(
         async { run_server(shutdown_signal.clone()).await.unwrap() },
         async { run_metrics_server(shutdown_signal.clone()).await.unwrap() },
-        async { run_telegram_server(shutdown_signal.clone()).await.unwrap() },
         async { signal_shutdown(shutdown_signal.clone()).await.unwrap() },
     );
 }
@@ -55,14 +54,6 @@ async fn run_metrics_server(shutdown_signal: CancellationToken) -> Result<()> {
         })
         .await?;
         serve.await??;
-        Ok::<(), anyhow::Error>(())
-    })
-    .await?
-}
-
-async fn run_telegram_server(shutdown_signal: CancellationToken) -> Result<()> {
-    tokio::spawn(async move {
-        notifiers::telegram::start_telegram_server(shutdown_signal.clone()).await?;
         Ok::<(), anyhow::Error>(())
     })
     .await?

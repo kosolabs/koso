@@ -47,7 +47,6 @@ hmac = "0.12.1"
 hex = "0.4.3"
 sha2 = "0.10.9"
 async-trait = "0.1.88"
-teloxide = { version = "0.16.0", features = ["macros"] }
 config = { version = "0.15.11", default-features = false, features = ["json"] }
 regex = "1.11.1"
 serde_qs = "1.0.0-rc.3"
