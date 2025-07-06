@@ -55,8 +55,9 @@ async fn handle_create_checkout_session(
     Extension(client): Extension<StripeClient>,
     Json(request): Json<CreateCheckoutSessionRequest>,
 ) -> ApiResult<Json<CreateCheckoutSessionResponse>> {
-    // TODO: Validate request
-    // TODO: verify the URL's hostname is ours.
+    validate_redirect_url(&request.cancel_url)?;
+    validate_redirect_url(&request.success_url)?;
+
     let session = {
         let customer_id = get_stripe_customer_id(&user, pool).await?;
 
@@ -105,8 +106,8 @@ async fn handle_create_portal_session(
     Extension(client): Extension<StripeClient>,
     Json(request): Json<CreatePortalSessionRequest>,
 ) -> ApiResult<Json<CreatePortalSessionResponse>> {
-    // TODO: Validate request
-    // TODO: verify the URL's hostname is ours.
+    validate_redirect_url(&request.return_url)?;
+
     let session = {
         let Some(customer_id) = get_stripe_customer_id(&user, pool).await? else {
             return Err(bad_request_error(
@@ -294,6 +295,13 @@ pub(crate) async fn fetch_owned_subscription(
             }
         },
     ))
+}
+
+fn validate_redirect_url(url: &str) -> ApiResult<()> {
+    if url.is_empty() || !url.starts_with(&format!("{}/", &settings().host)) {
+        return Err(bad_request_error("INVALID_URL", "Redirect URL is invalid"));
+    }
+    Ok(())
 }
 
 mod stripe {
@@ -834,8 +842,8 @@ mod tests {
             secret_key: secrets::read_secret("stripe/secret_key").unwrap(),
         };
         let request = CreateCheckoutSessionRequest {
-            success_url: "http://localhost/success".to_string(),
-            cancel_url: "http://localhost/success".to_string(),
+            success_url: "http://localhost:5173/success".to_string(),
+            cancel_url: "http://localhost:5173/success".to_string(),
         };
         let Json(res) = handle_create_checkout_session(
             Extension(user),
@@ -878,7 +886,7 @@ mod tests {
             secret_key: secrets::read_secret("stripe/secret_key").unwrap(),
         };
         let request = CreatePortalSessionRequest {
-            return_url: "http://localhost/success".to_string(),
+            return_url: "http://localhost:5173/success".to_string(),
         };
         let Json(res) = handle_create_portal_session(
             Extension(user),
