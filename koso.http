@@ -11,14 +11,24 @@ GET http://localhost:3000/api/profile
 Content-Type: application/json
 Authorization: Bearer {{token}}
 /*
-# Slack
+# Notifiers
+*/
+/*
+## Discord
+*/
+###
+POST http://localhost:3000/api/notifiers/discord/test
+Content-Type: application/json
+Authorization: Bearer {{token}}
+/*
+## Slack
 */
 ###
 POST http://localhost:3000/api/notifiers/slack/test
 Content-Type: application/json
 Authorization: Bearer {{token}}
 /*
-# Telegram
+## Telegram
 */
 ###
 POST http://localhost:3000/api/notifiers/telegram/test

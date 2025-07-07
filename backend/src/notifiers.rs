@@ -7,13 +7,14 @@ use crate::notifiers::slack::SlackClient;
 use crate::notifiers::telegram::TelegramClient;
 use crate::settings::settings;
 
+pub(crate) mod discord;
 pub(crate) mod slack;
 pub(crate) mod telegram;
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct TelegramSettings {
-    pub(super) chat_id: u64,
+pub(super) struct DiscordSettings {
+    pub(super) user_id: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -23,10 +24,17 @@ pub(super) struct SlackSettings {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct TelegramSettings {
+    pub(super) chat_id: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", tag = "type")]
 pub(super) enum NotifierSettings {
-    Telegram(TelegramSettings),
+    Discord(DiscordSettings),
     Slack(SlackSettings),
+    Telegram(TelegramSettings),
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
@@ -41,27 +49,29 @@ pub(super) struct UserNotificationConfig {
 
 pub(super) fn router() -> Result<Router> {
     Ok(Router::new()
-        .nest("/telegram", telegram::router())
-        .nest("/slack", slack::router()))
+        .nest("/discord", discord::router())
+        .nest("/slack", slack::router())
+        .nest("/telegram", telegram::router()))
 }
 
 pub(super) struct Notifier {
     pool: &'static PgPool,
-    telegram: Option<telegram::TelegramClient>,
+    discord: Option<discord::DiscordClient>,
     slack: Option<slack::SlackClient>,
+    telegram: Option<telegram::TelegramClient>,
 }
 
 impl Notifier {
     pub(super) fn new(pool: &'static PgPool) -> Result<Self> {
         Ok(Self {
             pool,
-            telegram: match TelegramClient::new() {
+            discord: match discord::DiscordClient::new() {
                 Ok(client) => Some(client),
                 Err(e) => {
                     if settings().is_dev() {
                         None
                     } else {
-                        return Err(e.context("Failed to initialize telegram bot"));
+                        return Err(e.context("Failed to initialize Discord client"));
                     }
                 }
             },
@@ -71,7 +81,17 @@ impl Notifier {
                     if settings().is_dev() {
                         None
                     } else {
-                        return Err(e.context("Failed to initialize slack client"));
+                        return Err(e.context("Failed to initialize Slack client"));
+                    }
+                }
+            },
+            telegram: match TelegramClient::new() {
+                Ok(client) => Some(client),
+                Err(e) => {
+                    if settings().is_dev() {
+                        None
+                    } else {
+                        return Err(e.context("Failed to initialize Telegram bot"));
                     }
                 }
             },
@@ -91,14 +111,19 @@ impl Notifier {
 
         for config in configs {
             match config.settings {
-                NotifierSettings::Telegram(settings) => {
-                    if let Some(client) = &self.telegram {
-                        client.send_message(settings.chat_id, message).await?;
+                NotifierSettings::Discord(settings) => {
+                    if let Some(discord) = &self.discord {
+                        discord.send_message(&settings.user_id, message).await?;
                     }
                 }
                 NotifierSettings::Slack(settings) => {
                     if let Some(slack) = &self.slack {
                         slack.send_message(&settings.user_id, message).await?;
+                    }
+                }
+                NotifierSettings::Telegram(settings) => {
+                    if let Some(client) = &self.telegram {
+                        client.send_message(settings.chat_id, message).await?;
                     }
                 }
             }
@@ -148,8 +173,9 @@ pub(crate) async fn insert_notification_config(
     pool: &PgPool,
 ) -> Result<()> {
     let notifier = match settings {
-        NotifierSettings::Telegram(_) => "telegram",
+        NotifierSettings::Discord(_) => "discord",
         NotifierSettings::Slack(_) => "slack",
+        NotifierSettings::Telegram(_) => "telegram",
     };
     sqlx::query(
         "
