@@ -2,7 +2,9 @@
   import { page } from "$app/state";
   import { headers, parseResponse } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
+  import { Discord, Telegram } from "$lib/components/ui/custom-icons";
   import { Navbar } from "$lib/components/ui/navbar";
+  import type { Notifier } from "$lib/components/ui/notifier";
   import { toast } from "$lib/components/ui/sonner";
   import { deleteUserConnection, redirectToConnectUserFlow } from "$lib/github";
   import { Button } from "$lib/kosui/button";
@@ -19,6 +21,7 @@
     Github,
     Moon,
     Send,
+    Slack,
     Sun,
     SunMoon,
     Trash2,
@@ -32,7 +35,14 @@
   let auth = getAuthContext();
   let profile: Promise<Profile> = $state(load());
 
-  type Notifier = "slack" | "telegram";
+  type DiscordNotificationConfig = {
+    notifier: "discord";
+    email: string;
+    enabled: boolean;
+    settings: {
+      userId: string;
+    };
+  };
 
   type SlackNotificationConfig = {
     notifier: "slack";
@@ -53,6 +63,7 @@
   };
 
   type NotificationConfig =
+    | DiscordNotificationConfig
     | SlackNotificationConfig
     | TelegramNotificationConfig;
 
@@ -139,6 +150,10 @@
 
   function getNotificationConfig(
     profile: Profile,
+    notifier: "discord",
+  ): DiscordNotificationConfig | null;
+  function getNotificationConfig(
+    profile: Profile,
     notifier: "slack",
   ): SlackNotificationConfig | null;
   function getNotificationConfig(
@@ -148,7 +163,11 @@
   function getNotificationConfig(
     profile: Profile,
     notifier: Notifier,
-  ): SlackNotificationConfig | TelegramNotificationConfig | null {
+  ):
+    | DiscordNotificationConfig
+    | SlackNotificationConfig
+    | TelegramNotificationConfig
+    | null {
     return (
       profile.notificationConfigs.find(
         (config) => config.notifier === notifier,
@@ -312,8 +331,41 @@
         <div>Loading...</div>
       </div>
     {:then profile}
+      <SubSection title="Discord" icon={Discord}>
+        {@const discordConfig = getNotificationConfig(profile, "discord")}
+        {#if discordConfig}
+          <div class="flex flex-col gap-2">
+            <div>Koso is authorized to send messages to Discord.</div>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                icon={Send}
+                onclick={() => sendTestNotification("discord")}
+              >
+                Send Test Discord Notification
+              </Button>
+              <div class="ml-auto">
+                <Button
+                  icon={CircleX}
+                  variant="filled"
+                  onclick={() => deleteNotificationConfig("discord")}
+                >
+                  Delete Discord Authorization
+                </Button>
+              </div>
+            </div>
+            <div></div>
+          </div>
+        {:else}
+          Koso is not authorized to send messages to Discord. To authorize Koso,
+          install the <Link
+            href="https://discord.com/oauth2/authorize?client_id=1391826747296846015&permissions=2048&integration_type=0&scope=bot"
+            >Koso app</Link
+          > then send the <code>/token</code> command to @Kosobot.
+        {/if}
+      </SubSection>
+
       {#if localStorage.getItem("slack-enabled") === "true"}
-        <SubSection title="Slack">
+        <SubSection title="Slack" icon={Slack}>
           {@const slackConfig = getNotificationConfig(profile, "slack")}
           {#if slackConfig}
             <div class="flex flex-col gap-2">
@@ -348,7 +400,7 @@
         </SubSection>
       {/if}
 
-      <SubSection title="Telegram">
+      <SubSection title="Telegram" icon={Telegram}>
         {@const telegramConfig = getNotificationConfig(profile, "telegram")}
         {#if telegramConfig}
           <div class="flex flex-col gap-2">

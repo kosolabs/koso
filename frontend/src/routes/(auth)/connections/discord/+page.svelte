@@ -2,4 +2,4 @@
   import { NotifierAuth } from "$lib/components/ui/notifier";
 </script>
 
-<NotifierAuth notifier="telegram" />
+<NotifierAuth notifier="discord" />
