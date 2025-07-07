@@ -6,3 +6,6 @@ DATABASE_URL = "postgresql://localhost/koso"
 KOSO_SETTING_SECRETS_DIR = "../.secrets"
 RUST_BACKTRACE = "1"
 RUST_LOG = "koso=trace,tower_http=trace,sqlx=trace,sqlx_postgres::options::pgpass=info,axum=trace,info"
+
+[build]
+rustflags = ["-C", "force-unwind-tables"] # Needed for backtraces: https://github.com/rust-lang/rust/issues/94815
