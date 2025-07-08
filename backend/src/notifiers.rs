@@ -1,8 +1,11 @@
 use anyhow::{Context as _, Result};
-use axum::Router;
+use axum::routing::post;
+use axum::{Extension, Json, Router, middleware};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, prelude::FromRow};
 
+use crate::api::google::User;
+use crate::api::{ApiResult, google};
 use crate::notifiers::slack::SlackClient;
 use crate::notifiers::telegram::TelegramClient;
 use crate::settings::settings;
@@ -49,9 +52,30 @@ pub(super) struct UserNotificationConfig {
 
 pub(super) fn router() -> Result<Router> {
     Ok(Router::new()
+        .route("/", post(send))
+        .layer(middleware::from_fn(google::authenticate))
         .nest("/discord", discord::router())
         .nest("/slack", slack::router())
         .nest("/telegram", telegram::router()))
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct SendMessageRequest {
+    message: String,
+    notifiers: Option<Vec<String>>,
+}
+
+#[tracing::instrument(skip(user, pool))]
+async fn send(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+    Json(req): Json<SendMessageRequest>,
+) -> ApiResult<Json<()>> {
+    let notifier = Notifier::new(pool)?;
+    notifier
+        .notify(&user.email, &req.message, req.notifiers)
+        .await?;
+    Ok(Json(()))
 }
 
 pub(super) struct Notifier {
@@ -98,14 +122,27 @@ impl Notifier {
         })
     }
 
-    pub(super) async fn notify(&self, recipient: &str, message: &str) -> Result<()> {
+    pub(super) async fn notify(
+        &self,
+        recipient: &str,
+        message: &str,
+        notifiers: Option<Vec<String>>,
+    ) -> Result<()> {
+        let notifiers = notifiers.unwrap_or(
+            vec!["discord", "slack", "telegram"]
+                .into_iter()
+                .map(|s| s.to_string())
+                .collect(),
+        );
         let configs: Vec<UserNotificationConfig> = sqlx::query_as(
             "
             SELECT email, notifier, enabled, settings
             FROM user_notification_configs
-            WHERE email = $1",
+            WHERE email = $1
+            AND notifier = ANY($2)",
         )
         .bind(recipient)
+        .bind(notifiers)
         .fetch_all(self.pool)
         .await?;
 
@@ -147,24 +184,6 @@ pub(crate) async fn fetch_notification_configs(
     .fetch_all(pool)
     .await
     .context("Failed to query notification configs")
-}
-
-pub(crate) async fn fetch_notification_config(
-    email: &str,
-    notifier: &str,
-    pool: &PgPool,
-) -> Result<UserNotificationConfig> {
-    sqlx::query_as(
-        "
-        SELECT email, notifier, enabled, settings
-        FROM user_notification_configs
-        WHERE email = $1 AND notifier = $2",
-    )
-    .bind(email)
-    .bind(notifier)
-    .fetch_one(pool)
-    .await
-    .context("Failed to query notification config")
 }
 
 pub(crate) async fn insert_notification_config(

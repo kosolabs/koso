@@ -226,13 +226,13 @@ impl EventProcessor {
         };
 
         let msg = format!(
-            "🎁 <i>{}</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
+            "🎁 *{}* assigned to you:\n[{}](https://koso.app/projects/{}?taskId={})",
             Sender::from_actor(&event.origin.actor).format(),
+            task_display_name(&event.task),
             event.project.project_id,
             event.task.id,
-            task_display_name(&event.task)
         );
-        self.notifier.notify(assignee, &msg).await
+        self.notifier.notify(assignee, &msg, None).await
     }
 
     async fn unblock_and_notify_actionable_tasks(&self, event: &KosoEvent) -> Result<()> {
@@ -271,10 +271,10 @@ impl EventProcessor {
             }
 
             let msg = format!(
-                "🎁 <i>Koso</i> assigned to you:\n<a href=\"https://koso.app/projects/{}?taskId={}\"><b>{}</b></a>",
-                event.project.project_id, task_id, name
+                "🎁 *Koso* assigned to you:\n[{}](https://koso.app/projects/{}?taskId={})",
+                name, event.project.project_id, task_id
             );
-            self.notifier.notify(&assignee, &msg).await?;
+            self.notifier.notify(&assignee, &msg, None).await?;
         }
         Ok(())
     }
