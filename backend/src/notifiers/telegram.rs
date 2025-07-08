@@ -1,12 +1,11 @@
 use crate::api::google;
 use crate::api::{ApiResult, error_response, google::User};
 use crate::notifiers::{
-    NotifierSettings, TelegramSettings, delete_notification_config, fetch_notification_config,
-    insert_notification_config,
+    NotifierSettings, TelegramSettings, delete_notification_config, insert_notification_config,
 };
 use crate::secrets::{Secret, read_secret};
 use crate::settings::settings;
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use axum::middleware;
 use axum::{
     Extension, Json, Router,
@@ -33,7 +32,7 @@ impl TelegramClient {
         })
     }
 
-    pub async fn send_message(&self, chat_id: u64, html: &str) -> Result<()> {
+    pub async fn send_message(&self, chat_id: u64, markdown: &str) -> Result<()> {
         let url = format!(
             "https://api.telegram.org/bot{}/sendMessage",
             self.token.data
@@ -47,8 +46,8 @@ impl TelegramClient {
             .header("Content-Type", "application/json")
             .json(&json!( {
                 "chat_id": chat_id,
-                "text": html,
-                "parse_mode": "HTML",
+                "text": markdown,
+                "parse_mode": "Markdown",
             }));
 
         tracing::debug!("{:?}", req);
@@ -72,7 +71,6 @@ pub(super) fn router() -> Router {
     Router::new()
         .route("/", post(authorize_telegram))
         .route("/", delete(deauthorize_telegram))
-        .route("/test", post(send_test_message_handler))
         .layer(middleware::from_fn(google::authenticate))
         .route("/webhook", post(handle_webhook))
 }
@@ -124,28 +122,6 @@ async fn deauthorize_telegram(
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<()>> {
     delete_notification_config(&user.email, "telegram", pool).await?;
-
-    Ok(Json(()))
-}
-
-#[tracing::instrument(skip(user, pool))]
-async fn send_test_message_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-) -> ApiResult<Json<()>> {
-    let config = fetch_notification_config(&user.email, "telegram", pool).await?;
-
-    let NotifierSettings::Telegram(settings) = config.settings else {
-        return Err(anyhow!("Got a setting config that wasn't telegram").into());
-    };
-
-    let client = TelegramClient::new()?;
-    client.send_message(
-        settings.chat_id,
-        "Hello from Koso! This is a test notification. Change your setting <a href=\"https://koso.app/profile\">here</a>.",
-    )
-    .await?;
-
     Ok(Json(()))
 }
 

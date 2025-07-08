@@ -5,8 +5,7 @@ use crate::{
         unauthorized_error,
     },
     notifiers::{
-        DiscordSettings, NotifierSettings, delete_notification_config, fetch_notification_config,
-        insert_notification_config,
+        DiscordSettings, NotifierSettings, delete_notification_config, insert_notification_config,
     },
     secrets::{Secret, read_secret},
     settings::settings,
@@ -73,7 +72,6 @@ pub(super) fn router() -> Router {
     let routes = Router::new()
         .route("/", post(authorize_discord))
         .route("/", delete(deauthorize_discord))
-        .route("/test", post(send_test_message_handler))
         .layer(middleware::from_fn(google::authenticate));
 
     let webhooks = Router::new()
@@ -135,28 +133,6 @@ async fn deauthorize_discord(
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<()>> {
     delete_notification_config(&user.email, "discord", pool).await?;
-    Ok(Json(()))
-}
-
-#[tracing::instrument(skip(user, pool))]
-async fn send_test_message_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-) -> ApiResult<Json<()>> {
-    let config = fetch_notification_config(&user.email, "discord", pool).await?;
-
-    let NotifierSettings::Discord(settings) = config.settings else {
-        return Err(anyhow!("Got a setting config that wasn't Discord").into());
-    };
-
-    let client = DiscordClient::new()?;
-    client
-        .send_message(
-            &settings.channel_id,
-            "Hello from Koso! This is a test notification.",
-        )
-        .await?;
-
     Ok(Json(()))
 }
 

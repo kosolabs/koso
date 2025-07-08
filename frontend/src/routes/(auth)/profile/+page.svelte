@@ -101,12 +101,17 @@
     const toastId = toast.loading(`Sending test ${name} notification...`);
 
     try {
-      let resp = await fetch(`/api/notifiers/${kind}/test`, {
+      let resp = await fetch(`/api/notifiers`, {
         method: "POST",
         headers: {
           ...headers(auth),
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          message:
+            "Hello from Koso! This is a test notification.\nUpdate your setting at https://koso.app/profile",
+          notifiers: [kind],
+        }),
       });
       await parseResponse(auth, resp);
       toast.success(`${name} test notification sent successfully.`, {

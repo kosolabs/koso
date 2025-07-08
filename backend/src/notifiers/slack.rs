@@ -4,13 +4,12 @@ use crate::{
         google::{self, User},
     },
     notifiers::{
-        NotifierSettings, SlackSettings, delete_notification_config, fetch_notification_config,
-        insert_notification_config,
+        NotifierSettings, SlackSettings, delete_notification_config, insert_notification_config,
     },
     secrets::{Secret, read_secret},
     settings::settings,
 };
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use axum::{
     Extension, Form, Json, Router, middleware,
     routing::{delete, post},
@@ -68,7 +67,6 @@ pub(super) fn router() -> Router {
     Router::new()
         .route("/", post(authorize_slack))
         .route("/", delete(deauthorize_slack))
-        .route("/test", post(send_test_message_handler))
         .layer(middleware::from_fn(google::authenticate))
         .route("/command", post(handle_command))
         .route("/interact", post(handle_interactivity))
@@ -121,28 +119,6 @@ async fn deauthorize_slack(
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<()>> {
     delete_notification_config(&user.email, "slack", pool).await?;
-    Ok(Json(()))
-}
-
-#[tracing::instrument(skip(user, pool))]
-async fn send_test_message_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-) -> ApiResult<Json<()>> {
-    let config = fetch_notification_config(&user.email, "slack", pool).await?;
-
-    let NotifierSettings::Slack(settings) = config.settings else {
-        return Err(anyhow!("Got a setting config that wasn't Slack").into());
-    };
-
-    let client = SlackClient::new()?;
-    client
-        .send_message(
-            &settings.user_id,
-            "Hello from Koso! This is a test notification.",
-        )
-        .await?;
-
     Ok(Json(()))
 }
 

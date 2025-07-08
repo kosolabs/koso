@@ -13,27 +13,50 @@ Authorization: Bearer {{token}}
 /*
 # Notifiers
 */
+###
+POST http://localhost:3000/api/notifiers
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "message": "🎁 Some *italicized* text with a link:\n[Koso profile](https://koso.app/profile)"
+}
 /*
 ## Discord
 */
 ###
-POST http://localhost:3000/api/notifiers/discord/test
+POST http://localhost:3000/api/notifiers
 Content-Type: application/json
 Authorization: Bearer {{token}}
+
+{
+  "message": "🎁 Some *italicized* text with a link:\n[Koso profile](https://koso.app/profile)",
+  "notifiers": ["discord"]
+}
 /*
 ## Slack
 */
 ###
-POST http://localhost:3000/api/notifiers/slack/test
+POST http://localhost:3000/api/notifiers
 Content-Type: application/json
 Authorization: Bearer {{token}}
+
+{
+  "message": "🎁 Some *italicized* text with a link:\n[Koso profile](https://koso.app/profile)",
+  "notifiers": ["slack"]
+}
 /*
 ## Telegram
 */
 ###
-POST http://localhost:3000/api/notifiers/telegram/test
+POST http://localhost:3000/api/notifiers
 Content-Type: application/json
 Authorization: Bearer {{token}}
+
+{
+  "message": "🎁 Some *italicized* text with a link:\n[Koso profile](https://koso.app/profile)",
+  "notifiers": ["telegram"]
+}
 /*
 # Anthropic
 */
