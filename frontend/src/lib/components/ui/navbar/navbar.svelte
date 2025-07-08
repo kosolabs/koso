@@ -25,8 +25,9 @@
 
   type Props = {
     left?: Snippet;
+    title?: string;
   };
-  const { left }: Props = $props();
+  const { left, title }: Props = $props();
 
   const auth = getAuthContext();
   const command = getRegistryContext();
