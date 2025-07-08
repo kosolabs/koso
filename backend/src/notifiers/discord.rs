@@ -1,7 +1,8 @@
 use crate::{
     api::{
-        ApiResult, error_response,
+        ApiResult, bad_request_error, error_response,
         google::{self, User},
+        unauthorized_error,
     },
     notifiers::{
         DiscordSettings, NotifierSettings, delete_notification_config, fetch_notification_config,
@@ -10,7 +11,7 @@ use crate::{
     secrets::{Secret, read_secret},
     settings::settings,
 };
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use axum::{
     Extension, Json, Router,
     body::Body,
@@ -66,41 +67,6 @@ impl DiscordClient {
 
         Ok(())
     }
-
-    pub async fn send_dm(&self, user_id: &str, content: &str) -> Result<()> {
-        // First create a DM channel
-        let dm_channel = self.create_dm_channel(user_id).await?;
-
-        // Then send message to that channel
-        self.send_message(&dm_channel.id, content).await
-    }
-
-    async fn create_dm_channel(&self, user_id: &str) -> Result<DiscordChannel> {
-        let url = "https://discord.com/api/v10/users/@me/channels";
-
-        let payload = json!({
-            "recipient_id": user_id
-        });
-
-        let response = self
-            .client
-            .post(url)
-            .header("Authorization", format!("Bot {}", self.token.data))
-            .header("Content-Type", "application/json")
-            .json(&payload)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(anyhow::anyhow!(
-                "Failed to create DM channel: {}",
-                response.status(),
-            ));
-        }
-
-        let channel: DiscordChannel = response.json().await?;
-        Ok(channel)
-    }
 }
 
 pub(super) fn router() -> Router {
@@ -121,7 +87,7 @@ pub(super) fn router() -> Router {
 #[serde(rename_all = "camelCase")]
 struct Claims {
     exp: u64,
-    user_id: String,
+    channel_id: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -155,7 +121,7 @@ async fn authorize_discord(
     };
 
     let settings = NotifierSettings::Discord(DiscordSettings {
-        user_id: token.claims.user_id,
+        channel_id: token.claims.channel_id,
     });
 
     insert_notification_config(&user.email, &settings, pool).await?;
@@ -185,8 +151,8 @@ async fn send_test_message_handler(
 
     let client = DiscordClient::new()?;
     client
-        .send_dm(
-            &settings.user_id,
+        .send_message(
+            &settings.channel_id,
             "Hello from Koso! This is a test notification.",
         )
         .await?;
@@ -197,26 +163,13 @@ async fn send_test_message_handler(
 #[derive(Serialize, Deserialize, Debug)]
 struct InteractionRequest {
     r#type: u8,
+    channel_id: Option<String>,
     data: Option<InteractionRequestData>,
-    user: Option<InteractionRequestUser>,
-    member: Option<InteractionRequestMember>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct InteractionRequestData {
-    custom_id: Option<String>,
     name: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct InteractionRequestUser {
-    id: String,
-    username: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct InteractionRequestMember {
-    user: InteractionRequestUser,
 }
 
 #[axum::debug_handler]
@@ -234,14 +187,16 @@ async fn handle_interaction(
         }
         2 => {
             // Application Command
-            let user = req
-                .user
-                .or_else(|| req.member.map(|m| m.user))
-                .ok_or_else(|| anyhow!("No user in interaction"))?;
+            let channel_id = req.channel_id.context("No channel in interaction")?;
+            let command = req
+                .data
+                .context("No data in interaction")?
+                .name
+                .context("No command in interaction")?;
 
-            if let Some(data) = req.data {
-                if data.name.as_deref() == Some("token") {
-                    let auth_url = get_auth_url(key, &user.id)?;
+            match command.as_str() {
+                "token" => {
+                    let auth_url = get_auth_url(key, &channel_id)?;
 
                     return Ok(Json(json!({
                         "type": 4, // CHANNEL_MESSAGE_WITH_SOURCE
@@ -250,6 +205,12 @@ async fn handle_interaction(
                             "flags": 64 // EPHEMERAL
                         }
                     })));
+                }
+                _ => {
+                    return Err(bad_request_error(
+                        "UNKNOWN_DISCORD_COMMAND",
+                        &format!("Unknown Discord command: {command}"),
+                    ));
                 }
             }
         }
@@ -266,78 +227,73 @@ async fn handle_interaction(
     })))
 }
 
-fn get_auth_url(key: EncodingKey, user_id: &str) -> Result<String> {
+fn get_auth_url(key: EncodingKey, channel_id: &str) -> Result<String> {
     let host = &settings().host;
     let timer = SystemTime::now() + Duration::from_secs(60 * 60);
     let claims = Claims {
         exp: timer.duration_since(UNIX_EPOCH)?.as_secs(),
-        user_id: user_id.into(),
+        channel_id: channel_id.into(),
     };
     let token = encode(&Header::default(), &claims, &key)?;
-    tracing::debug!("Generated auth token {token} for {user_id}");
+    tracing::debug!("Generated auth token {token} for {channel_id}");
     Ok(format!("{host}/connections/discord?token={token}"))
 }
 
 const BODY_LIMIT: usize = 10 * 1024 * 1024;
 
-async fn verify_discord_signature(request: Request, next: Next) -> Result<Response, StatusCode> {
+async fn verify_discord_signature(request: Request, next: Next) -> ApiResult<Response> {
     let Ok(verifying_key) = get_verifying_key() else {
-        return Err(StatusCode::UNAUTHORIZED);
+        return Err(unauthorized_error("Failed to get verifying key"));
     };
 
-    let (parts, body) = request.into_parts();
-
-    let body_bytes = match axum::body::to_bytes(body, BODY_LIMIT).await {
-        Ok(bytes) => bytes,
-        Err(_) => return Err(StatusCode::BAD_REQUEST),
+    let Ok(request) = verify_signature(request, &verifying_key).await else {
+        return Err(unauthorized_error("Failed to verify signature"));
     };
-
-    if verify_signature(&parts.headers, &body_bytes, &verifying_key).is_err() {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
-
-    let request = Request::from_parts(parts, Body::from(body_bytes));
 
     Ok(next.run(request).await)
 }
 
-fn verify_signature(
-    headers: &axum::http::HeaderMap,
-    body: &[u8],
-    verifying_key: &VerifyingKey,
-) -> ApiResult<()> {
-    let signature = headers
+async fn verify_signature(request: Request, verifying_key: &VerifyingKey) -> Result<Request> {
+    let (parts, body) = request.into_parts();
+
+    let signature = &parts
+        .headers
         .get("x-signature-ed25519")
         .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| anyhow!("Missing x-signature-ed25519 header"))?;
+        .context("Missing x-signature-ed25519 header")?;
 
-    let timestamp = headers
+    let timestamp = &parts
+        .headers
         .get("x-signature-timestamp")
         .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| anyhow!("Missing x-signature-timestamp header"))?;
+        .context("Missing x-signature-timestamp header")?;
 
     let signature_array: [u8; 64] = hex::decode(signature)
-        .map_err(|e| anyhow!("Invalid signature hex: {e}"))?
+        .context("Invalid hex signature")?
         .try_into()
         .map_err(|_| anyhow!("Signature must be 64 bytes"))?;
 
     let signature = Signature::from_bytes(&signature_array);
 
-    let message = format!("{timestamp}{}", std::str::from_utf8(body)?);
+    let body_bytes = axum::body::to_bytes(body, BODY_LIMIT)
+        .await
+        .context("Invalid body")?;
+
+    let message = format!("{timestamp}{}", std::str::from_utf8(&body_bytes)?);
 
     verifying_key
         .verify(message.as_bytes(), &signature)
-        .map_err(|e| anyhow!("Signature verification failed: {e}"))?;
+        .context("Signature verification failed")?;
 
-    Ok(())
+    Ok(Request::from_parts(parts, Body::from(body_bytes)))
 }
 
 fn get_verifying_key() -> Result<VerifyingKey> {
     let public_key_hex = read_secret::<String>("discord/public_key")?;
     let public_key_array: [u8; 32] = hex::decode(public_key_hex.data)
-        .map_err(|e| anyhow!("Invalid public key hex: {e}"))?
+        .context("Invalid hex public key")?
         .try_into()
         .map_err(|_| anyhow!("Public key must be 32 bytes"))?;
 
-    VerifyingKey::from_bytes(&public_key_array).map_err(|e| anyhow!("Invalid public key: {e}"))
+    VerifyingKey::from_bytes(&public_key_array).context("Invalid public key")
 }

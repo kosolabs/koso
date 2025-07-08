@@ -14,7 +14,7 @@ pub(crate) mod telegram;
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct DiscordSettings {
-    pub(super) user_id: String,
+    pub(super) channel_id: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -113,7 +113,7 @@ impl Notifier {
             match config.settings {
                 NotifierSettings::Discord(settings) => {
                     if let Some(discord) = &self.discord {
-                        discord.send_message(&settings.user_id, message).await?;
+                        discord.send_message(&settings.channel_id, message).await?;
                     }
                 }
                 NotifierSettings::Slack(settings) => {
