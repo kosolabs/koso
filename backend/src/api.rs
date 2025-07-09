@@ -283,12 +283,7 @@ where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        error_response(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "INTERNAL",
-            "Internal error, something went wrong",
-            Some(err.into()),
-        )
+        err.internal_context("Internal error, something went wrong")
     }
 }
 
@@ -317,37 +312,85 @@ impl headers::Header for XForwardedFor {
     }
 }
 
-pub(crate) trait ResponseContext<T, E> {
-    /// Wrap the error value with additional context.
-    fn error_response(self, status: StatusCode, reason: &'static str, msg: &str) -> ApiResult<T>;
-
-    fn unauthenticated_error(self, msg: &str) -> ApiResult<T>;
-
-    fn unauthorized_error(self, msg: &str) -> ApiResult<T>;
-
-    fn bad_request_error(self, reason: &'static str, msg: &str) -> ApiResult<T>;
+pub(crate) trait ErrorResponseResult<T, E> {
+    #[allow(dead_code)]
+    fn error_context(self, status: StatusCode, reason: &'static str, msg: &str) -> ApiResult<T>;
+    #[allow(dead_code)]
+    fn internal_context(self, msg: &str) -> ApiResult<T>;
+    fn unauthenticated_context(self, msg: &str) -> ApiResult<T>;
+    fn unauthorized_context(self, msg: &str) -> ApiResult<T>;
+    fn bad_request_context(self, reason: &'static str, msg: &str) -> ApiResult<T>;
 }
 
-impl<T, E> ResponseContext<T, E> for Result<T, E>
+impl<T, E> ErrorResponseResult<T, E> for Result<T, E>
 where
-    E: Into<anyhow::Error>,
+    E: ErrorResponseError<E>,
 {
-    fn error_response(self, status: StatusCode, reason: &'static str, msg: &str) -> ApiResult<T> {
+    fn error_context(self, status: StatusCode, reason: &'static str, msg: &str) -> ApiResult<T> {
         match self {
             Ok(ok) => Ok(ok),
-            Err(error) => Err(error_response(status, reason, msg, Some(error.into()))),
+            Err(error) => Err(error.error_context(status, reason, msg)),
         }
     }
 
-    fn unauthenticated_error(self, msg: &str) -> ApiResult<T> {
-        self.error_response(StatusCode::UNAUTHORIZED, "UNAUTHENTICATED", msg)
+    fn internal_context(self, msg: &str) -> ApiResult<T> {
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(error.internal_context(msg)),
+        }
     }
 
-    fn unauthorized_error(self, msg: &str) -> ApiResult<T> {
-        self.error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", msg)
+    fn unauthenticated_context(self, msg: &str) -> ApiResult<T> {
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(error.unauthenticated_context(msg)),
+        }
     }
 
-    fn bad_request_error(self, reason: &'static str, msg: &str) -> ApiResult<T> {
-        self.error_response(StatusCode::BAD_REQUEST, reason, msg)
+    fn unauthorized_context(self, msg: &str) -> ApiResult<T> {
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(error.unauthorized_context(msg)),
+        }
+    }
+
+    fn bad_request_context(self, reason: &'static str, msg: &str) -> ApiResult<T> {
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(error.bad_request_context(reason, msg)),
+        }
+    }
+}
+
+pub(crate) trait ErrorResponseError<E> {
+    fn error_context(self, status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse;
+    fn internal_context(self, msg: &str) -> ErrorResponse;
+    fn unauthenticated_context(self, msg: &str) -> ErrorResponse;
+    fn unauthorized_context(self, msg: &str) -> ErrorResponse;
+    fn bad_request_context(self, reason: &'static str, msg: &str) -> ErrorResponse;
+}
+
+impl<E> ErrorResponseError<E> for E
+where
+    E: Into<anyhow::Error>,
+{
+    fn error_context(self, status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse {
+        error_response(status, reason, msg, Some(self.into()))
+    }
+
+    fn internal_context(self, msg: &str) -> ErrorResponse {
+        self.error_context(StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL", msg)
+    }
+
+    fn unauthenticated_context(self, msg: &str) -> ErrorResponse {
+        self.error_context(StatusCode::UNAUTHORIZED, "UNAUTHENTICATED", msg)
+    }
+
+    fn unauthorized_context(self, msg: &str) -> ErrorResponse {
+        self.error_context(StatusCode::FORBIDDEN, "UNAUTHORIZED", msg)
+    }
+
+    fn bad_request_context(self, reason: &'static str, msg: &str) -> ErrorResponse {
+        self.error_context(StatusCode::BAD_REQUEST, reason, msg)
     }
 }

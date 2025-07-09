@@ -471,7 +471,7 @@ mod stripe {
 mod webhook {
     use crate::{
         api::{
-            ApiResult, ResponseContext as _, bad_request_error,
+            ApiResult, ErrorResponseResult as _, bad_request_error,
             billing::stripe::{KosoMetadata, StripeClient, Subscription},
             unauthorized_error,
         },
@@ -564,7 +564,7 @@ mod webhook {
     ) -> ApiResult<()> {
         let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
             .await
-            .bad_request_error("INVALID_BODY", "Invalid body")?;
+            .bad_request_context("INVALID_BODY", "Invalid body")?;
 
         // First, authenticate the event by validating the signature.
         if let Some(signature) = headers.get("stripe-signature") {
@@ -579,7 +579,7 @@ mod webhook {
         // Parse the event.
         let event: Event = serde_json::from_slice(&body)
             .context("Failed to parse body as Event")
-            .bad_request_error("INVALID_REQUEST", "Invalid request body")?;
+            .bad_request_context("INVALID_REQUEST", "Invalid request body")?;
         tracing::Span::current().record("stripe_event", event.type_.to_string());
         tracing::Span::current().record("stripe_event_id", event.id.to_string());
 
@@ -714,7 +714,7 @@ mod webhook {
         secret: &WebhookSecret,
     ) -> ApiResult<()> {
         let (timestamp, signature) =
-            parse_signature(signature_header).unauthorized_error("Invalid signature header")?;
+            parse_signature(signature_header).unauthorized_context("Invalid signature header")?;
 
         let mut mac = Hmac::<Sha256>::new_from_slice(&secret.0.data)?;
         mac.update(timestamp.to_string().as_bytes());
@@ -722,7 +722,7 @@ mod webhook {
         mac.update(payload);
 
         mac.verify_slice(&signature)
-            .unauthorized_error("Invalid signature")?;
+            .unauthorized_context("Invalid signature")?;
 
         // Get current timestamp to compare to signature timestamp
         if (Utc::now().timestamp() - timestamp).abs() > 300 {

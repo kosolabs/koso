@@ -1,6 +1,6 @@
 use crate::{
     api::{
-        ApiResult, ResponseContext as _, bad_request_error,
+        ApiResult, ErrorResponseResult as _, bad_request_error,
         collab::{
             Collab,
             projects_state::DocBox,
@@ -107,7 +107,7 @@ async fn github_webhook(
     let headers = parse_headers(&parts.headers)?;
     let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
         .await
-        .bad_request_error("INVALID_BODY", "Invalid body")?;
+        .bad_request_context("INVALID_BODY", "Invalid body")?;
     validate_signature(headers.signature, &body, &webhook.secret)?;
 
     tracing::Span::current().record("gh_delivery_id", headers.delivery_id);
@@ -189,7 +189,7 @@ fn validate_signature(
     let mut mac = HmacSha256::new_from_slice(&secret.data)?;
     mac.update(body);
     mac.verify_slice(&signature)
-        .unauthorized_error("Invalid signature")
+        .unauthorized_context("Invalid signature")
 }
 
 impl Webhook {

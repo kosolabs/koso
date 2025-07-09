@@ -1,6 +1,6 @@
 use crate::{
     api::{
-        ApiResult, error_response,
+        ApiResult, ErrorResponseResult as _,
         google::{self, User},
         unauthorized_error,
     },
@@ -105,19 +105,11 @@ async fn authorize_slack(
     Extension(key): Extension<DecodingKey>,
     Json(req): Json<AuthorizeSlack>,
 ) -> ApiResult<Json<NotifierSettings>> {
-    let token = match decode::<Claims>(&req.token, &key, &Validation::default())
-        .context("Failed to decode token")
-    {
-        Ok(token) => token,
-        Err(error) => {
-            return Err(error_response(
-                StatusCode::PRECONDITION_FAILED,
-                "VALIDATION_FAILED",
-                "Invalid token",
-                Some(error),
-            ));
-        }
-    };
+    let token = decode::<Claims>(&req.token, &key, &Validation::default()).error_context(
+        StatusCode::PRECONDITION_FAILED,
+        "VALIDATION_FAILED",
+        "Invalid token",
+    )?;
 
     let settings = NotifierSettings::Slack(SlackSettings {
         user_id: token.claims.user,
