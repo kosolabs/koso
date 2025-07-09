@@ -5,7 +5,7 @@ use crate::notifiers::{
 };
 use crate::secrets::{Secret, read_secret};
 use crate::settings::settings;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use axum::middleware;
 use axum::{
     Extension, Json, Router,
@@ -95,14 +95,16 @@ async fn authorize_telegram(
     Extension(key): Extension<DecodingKey>,
     Json(req): Json<AuthorizeTelegram>,
 ) -> ApiResult<Json<NotifierSettings>> {
-    let token = match decode::<Claims>(&req.token, &key, &Validation::default()) {
+    let token = match decode::<Claims>(&req.token, &key, &Validation::default())
+        .context("Failed to decode token")
+    {
         Ok(token) => token,
         Err(error) => {
             return Err(error_response(
                 StatusCode::PRECONDITION_FAILED,
                 "VALIDATION_FAILED",
-                Some(&format!("{error}")),
-                None,
+                "Invalid token",
+                Some(error),
             ));
         }
     };

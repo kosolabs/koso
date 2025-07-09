@@ -222,7 +222,7 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
     let key = match key_set.get(&kid).await {
         Ok(key) => key,
         Err(e) => {
-            return Err(unauthenticated_error(&format!(
+            return Err(unauthenticated_error(&format!( 
                 "certs is absent for {kid:?}: {e:#}"
             )));
         }

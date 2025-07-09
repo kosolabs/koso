@@ -10,7 +10,7 @@ use crate::{
     secrets::{Secret, read_secret},
     settings::settings,
 };
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context as _, Result, anyhow};
 use axum::{
     Extension, Form, Json, Router,
     body::Body,
@@ -105,14 +105,16 @@ async fn authorize_slack(
     Extension(key): Extension<DecodingKey>,
     Json(req): Json<AuthorizeSlack>,
 ) -> ApiResult<Json<NotifierSettings>> {
-    let token = match decode::<Claims>(&req.token, &key, &Validation::default()) {
+    let token = match decode::<Claims>(&req.token, &key, &Validation::default())
+        .context("Failed to decode token")
+    {
         Ok(token) => token,
         Err(error) => {
             return Err(error_response(
                 StatusCode::PRECONDITION_FAILED,
                 "VALIDATION_FAILED",
-                Some(&format!("{error}")),
-                None,
+                "Invalid token",
+                Some(error),
             ));
         }
     };

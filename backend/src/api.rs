@@ -103,7 +103,7 @@ pub(crate) async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
 
-pub(crate) fn internal_error(err: Error, msg_for_user: Option<&str>) -> ErrorResponse {
+pub(crate) fn internal_error(err: Error, msg_for_user: &str) -> ErrorResponse {
     error_response(
         StatusCode::INTERNAL_SERVER_ERROR,
         "INTERNAL",
@@ -113,29 +113,29 @@ pub(crate) fn internal_error(err: Error, msg_for_user: Option<&str>) -> ErrorRes
 }
 
 pub(crate) fn unauthenticated_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::UNAUTHORIZED, "UNAUTHENTICATED", Some(msg), None)
+    error_response(StatusCode::UNAUTHORIZED, "UNAUTHENTICATED", msg, None)
 }
 
 pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", Some(msg), None)
+    error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", msg, None)
 }
 
 pub(crate) fn not_premium_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::FORBIDDEN, "NOT_PREMIUM", Some(msg), None)
+    error_response(StatusCode::FORBIDDEN, "NOT_PREMIUM", msg, None)
 }
 
 pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorResponse {
-    error_response(StatusCode::BAD_REQUEST, reason, Some(msg), None)
+    error_response(StatusCode::BAD_REQUEST, reason, msg, None)
 }
 
 pub(crate) fn not_found_error(reason: &'static str, msg: &str) -> ErrorResponse {
-    error_response(StatusCode::NOT_FOUND, reason, Some(msg), None)
+    error_response(StatusCode::NOT_FOUND, reason, msg, None)
 }
 
 pub(crate) fn error_response(
     status: StatusCode,
     reason: &'static str,
-    msg: Option<&str>,
+    msg: &str,
     err: Option<Error>,
 ) -> ErrorResponse {
     let err = ErrorRender { err, msg };
@@ -157,31 +157,21 @@ pub(crate) fn error_response(
 
 struct ErrorRender<'a> {
     err: Option<Error>,
-    msg: Option<&'a str>,
+    msg: &'a str,
 }
 
 impl std::fmt::Display for ErrorRender<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match (self.msg, &self.err) {
-            (Some(msg), _) => f.write_str(msg),
-            (None, Some(err)) => write!(f, "{err:#}"),
-            (None, None) => f.write_str("Something really unexpected went wrong"),
-        }
+        f.write_str(self.msg)
     }
 }
 
 impl std::fmt::Debug for ErrorRender<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match (self.msg, &self.err) {
-            (Some(msg), None) => f.write_str(msg),
-            (None, None) => {
-                f.write_str("Something really unexpected went wrong [Neither msg or err was set]")
-            }
-            (msg, Some(err)) => {
-                if let Some(msg) = msg {
-                    write!(f, "[{msg}]: ")?;
-                }
-
+        match &self.err {
+            None => f.write_str(self.msg),
+            Some(err) => {
+                write!(f, "[{}]: ", self.msg)?;
                 write!(f, "{err}")?;
                 for cause in err.chain().skip(1) {
                     write!(f, ": {cause}")?;
@@ -302,7 +292,7 @@ where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        internal_error(err.into(), None)
+        internal_error(err.into(), "Internal error, something went wrong")
     }
 }
 
