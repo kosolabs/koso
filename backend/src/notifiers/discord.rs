@@ -219,9 +219,7 @@ fn get_auth_url(key: EncodingKey, channel_id: &str) -> Result<String> {
 const BODY_LIMIT: usize = 10 * 1024 * 1024;
 
 async fn verify_discord_signature(request: Request, next: Next) -> ApiResult<Response> {
-    let Ok(verifying_key) = get_verifying_key() else {
-        return Err(unauthorized_error("Failed to get verifying key"));
-    };
+    let verifying_key = get_verifying_key()?;
 
     let Ok(request) = verify_signature(request, &verifying_key).await else {
         return Err(unauthorized_error("Failed to verify signature"));
