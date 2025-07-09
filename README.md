@@ -566,10 +566,29 @@ Create a new bot and configure the secrets.
    - `${title}`, e.g. `ShadDev`
    - `${namespace}`, e.g. `shad-dev`
 
-1. Send a Telegram message to @BotFather: `/newbot`
-1. Name the bot `${title}Kosobot`
-1. Copy the access token into `.secrets/telegram/token`
-1. Restart your servers and authorize Telegram on your profile page
+1. Send a Telegram message to @BotFather: `/newbot`.
+
+1. Name the bot `${title}Kosobot`.
+
+1. Copy the access token into `.secrets/telegram/token`.
+
+1. Generate a secret token that will authorize Telegram to call the webhook and save it into `.secrets/telegram/secret_token`.
+
+   ```sh
+   openssl rand -base64 256 | tr -dc 'A-Za-z0-9' | head -c 256 > .secrets/telegram/secret_token
+   ```
+
+1. Configure your Telegram bot to use the secret_token with your webhook.
+
+   ```sh
+   curl -X POST "https://api.telegram.org/bot$(cat .secrets/telegram/token)/setWebhook" \
+     -d "url=https://${namespace}.koso.app/api/notifiers/telegram/webhook" \
+     -d "secret_token=$(cat .secrets/telegram/secret_token)"
+   ```
+
+1. Send a `/token` message to your bot: [${title}Kosobot](https://t.me/${title}Kosobot).
+
+1. Follow the link to authorize your local Koso to send notifications via Telegram.
 
 ### Testing locally
 
