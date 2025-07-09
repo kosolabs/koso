@@ -1,6 +1,6 @@
 use crate::{
     api::{
-        ApiResult, ErrorResponseResult as _, bad_request_error,
+        ApiResult, IntoApiResult as _, bad_request_error,
         collab::{
             Collab,
             projects_state::DocBox,
@@ -104,10 +104,11 @@ async fn github_webhook(
     parts: Parts,
     body: Body,
 ) -> ApiResult<String> {
+    foobar(true).context_bad_request("BAD_FOOBAR", "Invalid due to foobar")?;
     let headers = parse_headers(&parts.headers)?;
     let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
         .await
-        .bad_request_context("INVALID_BODY", "Invalid body")?;
+        .context_bad_request("INVALID_BODY", "Invalid body")?;
     validate_signature(headers.signature, &body, &webhook.secret)?;
 
     tracing::Span::current().record("gh_delivery_id", headers.delivery_id);
@@ -126,6 +127,13 @@ async fn github_webhook(
         .await?;
 
     Ok("OK".to_string())
+}
+
+fn foobar(error: bool) -> Result<String> {
+    if error {
+        return Err(anyhow!("Foobar failed badly"));
+    }
+    Ok("foo".to_string())
 }
 
 // See https://docs.github.com/en/webhooks/webhook-events-and-payloads#delivery-headers.
@@ -189,7 +197,7 @@ fn validate_signature(
     let mut mac = HmacSha256::new_from_slice(&secret.data)?;
     mac.update(body);
     mac.verify_slice(&signature)
-        .unauthorized_context("Invalid signature")
+        .context_unauthorized("Invalid signature")
 }
 
 impl Webhook {

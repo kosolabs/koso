@@ -1,5 +1,5 @@
 use crate::{
-    api::{ApiResult, ErrorResponseResult as _, unauthenticated_error},
+    api::{ApiResult, IntoApiResult as _, unauthenticated_error},
     settings::settings,
 };
 use anyhow::{Result, anyhow};
@@ -222,7 +222,7 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
     let key = key_set
         .get(&kid)
         .await
-        .unauthenticated_context("certs is absent")?;
+        .context_unauthenticated("certs is absent")?;
 
     let mut user = if kid == KeySet::INTEG_TEST_KID {
         decode_and_validate_test_token(bearer, &key)?
@@ -251,7 +251,7 @@ fn decode_and_validate_token(token: &str, key: &DecodingKey) -> ApiResult<User> 
     ]);
     validation.set_issuer(&["https://accounts.google.com"]);
     let token = jsonwebtoken::decode::<User>(token, key, &validation)
-        .unauthenticated_context("Failed validation")?;
+        .context_unauthenticated("Failed validation")?;
     if token.claims.email.is_empty() {
         return Err(unauthenticated_error(&format!(
             "Claims email is empty: {token:?}"
@@ -266,7 +266,7 @@ fn decode_and_validate_test_token(token: &str, key: &DecodingKey) -> ApiResult<U
     let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
     validation.insecure_disable_signature_validation();
     let token = jsonwebtoken::decode::<User>(token, key, &validation)
-        .unauthenticated_context("Failed to decode test cred token")?;
+        .context_unauthenticated("Failed to decode test cred token")?;
 
     let user = token.claims;
     if !user.email.ends_with(TEST_USER_SUFFIX) {

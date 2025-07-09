@@ -1,6 +1,6 @@
 use crate::{
     api::{
-        ApiResult, ErrorResponseResult as _, bad_request_error,
+        ApiResult, IntoApiResult as _, bad_request_error,
         google::{self, User},
     },
     notifiers::{
@@ -106,7 +106,7 @@ async fn authorize_discord(
     Extension(key): Extension<DecodingKey>,
     Json(req): Json<AuthorizeDiscord>,
 ) -> ApiResult<Json<NotifierSettings>> {
-    let token = decode::<Claims>(&req.token, &key, &Validation::default()).error_context(
+    let token = decode::<Claims>(&req.token, &key, &Validation::default()).context_status(
         StatusCode::PRECONDITION_FAILED,
         "VALIDATION_FAILED",
         "Invalid token",
@@ -215,7 +215,7 @@ async fn verify_discord_signature(request: Request, next: Next) -> ApiResult<Res
     let verifying_key = get_verifying_key()?;
     let request = verify_signature(request, &verifying_key)
         .await
-        .unauthorized_context("Failed to verify signature")?;
+        .context_unauthorized("Failed to verify signature")?;
 
     Ok(next.run(request).await)
 }
