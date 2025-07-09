@@ -2,7 +2,6 @@ use crate::{
     api::{
         ApiResult, IntoApiResult as _,
         google::{self, User},
-        unauthorized_error,
     },
     notifiers::{
         NotifierSettings, SlackSettings, delete_notification_config, insert_notification_config,
@@ -196,9 +195,9 @@ const BODY_LIMIT: usize = 10 * 1024 * 1024;
 async fn verify_slack_signature(request: Request, next: Next) -> ApiResult<Response> {
     let signing_secret = read_secret::<String>("slack/signing_secret")?;
 
-    let Ok(request) = verify_signature(request, &signing_secret).await else {
-        return Err(unauthorized_error("Failed to verify signature"));
-    };
+    let request = verify_signature(request, &signing_secret)
+        .await
+        .context_unauthorized("Failed to verify signature")?;
 
     Ok(next.run(request).await)
 }
