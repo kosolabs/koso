@@ -1,8 +1,7 @@
 use crate::{
     api::{
-        ApiResult, bad_request_error, error_response,
+        ApiResult, ResponseContext as _, bad_request_error, error_response,
         google::{self, User},
-        unauthorized_error,
     },
     notifiers::{
         DiscordSettings, NotifierSettings, delete_notification_config, insert_notification_config,
@@ -222,10 +221,9 @@ const BODY_LIMIT: usize = 10 * 1024 * 1024;
 
 async fn verify_discord_signature(request: Request, next: Next) -> ApiResult<Response> {
     let verifying_key = get_verifying_key()?;
-
-    let Ok(request) = verify_signature(request, &verifying_key).await else {
-        return Err(unauthorized_error("Failed to verify signature"));
-    };
+    let request = verify_signature(request, &verifying_key)
+        .await
+        .unauthorized_error("Failed to verify signature")?;
 
     Ok(next.run(request).await)
 }
