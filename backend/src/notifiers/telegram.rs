@@ -5,8 +5,10 @@ use crate::notifiers::{
 };
 use crate::secrets::{Secret, read_secret};
 use crate::settings::settings;
-use anyhow::Result;
-use axum::middleware;
+use anyhow::{Context, Result, anyhow};
+use axum::extract::Request;
+use axum::middleware::{self, Next};
+use axum::response::Response;
 use axum::{
     Extension, Json, Router,
     routing::{delete, post},
@@ -68,11 +70,16 @@ impl TelegramClient {
 }
 
 pub(super) fn router() -> Router {
-    Router::new()
+    let routes = Router::new()
         .route("/", post(authorize_telegram))
         .route("/", delete(deauthorize_telegram))
-        .layer(middleware::from_fn(google::authenticate))
+        .layer(middleware::from_fn(google::authenticate));
+
+    let webhooks = Router::new()
         .route("/webhook", post(handle_webhook))
+        .layer(middleware::from_fn(verify_telegram_signature));
+
+    Router::new().merge(routes).merge(webhooks)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -167,7 +174,7 @@ async fn send_usage(client: &TelegramClient, user_id: u64) -> Result<()> {
 
 async fn send_token(client: &TelegramClient, key: EncodingKey, chat_id: u64) -> Result<()> {
     let url = get_auth_url(key, chat_id)?;
-    let message = format!("Follow this link to authorize Koso: <a href=\"{url}\">{url}</a>");
+    let message = format!("Follow this link to authorize Koso: [{url}]({url})");
     client.send_message(chat_id, &message).await?;
     Ok(())
 }
@@ -182,4 +189,28 @@ fn get_auth_url(key: EncodingKey, chat_id: u64) -> Result<String> {
     let token = encode(&Header::default(), &claims, &key)?;
     tracing::debug!("Generated auth token {token} for {chat_id}");
     Ok(format!("{host}/connections/telegram?token={token}"))
+}
+
+async fn verify_telegram_signature(request: Request, next: Next) -> ApiResult<Response> {
+    let secret_token = read_secret::<String>("telegram/secret_token")?;
+
+    verify_signature(&request, &secret_token).context_unauthorized("Failed to verify signature")?;
+
+    Ok(next.run(request).await)
+}
+
+fn verify_signature(request: &Request, secret_token: &Secret<String>) -> Result<()> {
+    let expected_secret_token = &secret_token.data;
+
+    let actual_secret_token = request
+        .headers()
+        .get("X-Telegram-Bot-Api-Secret-Token")
+        .and_then(|v| v.to_str().ok())
+        .context("Failed to verify secret token")?;
+
+    if actual_secret_token != expected_secret_token {
+        return Err(anyhow!("Signature verification failed"));
+    }
+
+    Ok(())
 }
