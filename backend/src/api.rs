@@ -160,7 +160,10 @@ impl std::fmt::Display for ErrorRender<'_> {
 impl std::fmt::Debug for ErrorRender<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.err {
-            None => f.write_str(self.msg),
+            None => {
+                f.write_str(self.msg)?;
+                Self::fmt_backtrace(&Backtrace::capture(), f)
+            }
             Some(err) => {
                 write!(f, "[{}]: ", self.msg)?;
                 write!(f, "{err}")?;
