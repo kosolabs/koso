@@ -1,5 +1,5 @@
 use crate::{
-    api::{ApiResult, unauthenticated_error},
+    api::{ApiResult, IntoApiResult as _, unauthenticated_error},
     settings::settings,
 };
 use anyhow::{Result, anyhow};
@@ -72,7 +72,7 @@ impl KeySet {
         // but this works well enough in practice.
         match self.load_keys(Some(kid)).await? {
             Some(key) => Ok(key),
-            None => Err(anyhow!("Key not found")),
+            None => Err(anyhow!("Key not found: {kid}")),
         }
     }
 
@@ -219,14 +219,10 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
             "header.kid is absent: {header:?}"
         )));
     };
-    let key = match key_set.get(&kid).await {
-        Ok(key) => key,
-        Err(e) => {
-            return Err(unauthenticated_error(&format!(
-                "certs is absent for {kid:?}: {e:#}"
-            )));
-        }
-    };
+    let key = key_set
+        .get(&kid)
+        .await
+        .context_unauthenticated("certs is absent")?;
 
     let mut user = if kid == KeySet::INTEG_TEST_KID {
         decode_and_validate_test_token(bearer, &key)?
@@ -254,12 +250,8 @@ fn decode_and_validate_token(token: &str, key: &DecodingKey) -> ApiResult<User> 
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
     ]);
     validation.set_issuer(&["https://accounts.google.com"]);
-    let token = match jsonwebtoken::decode::<User>(token, key, &validation) {
-        Ok(token) => token,
-        Err(e) => {
-            return Err(unauthenticated_error(&format!("Failed validation: {e}")));
-        }
-    };
+    let token = jsonwebtoken::decode::<User>(token, key, &validation)
+        .context_unauthenticated("Failed validation")?;
     if token.claims.email.is_empty() {
         return Err(unauthenticated_error(&format!(
             "Claims email is empty: {token:?}"
@@ -273,14 +265,9 @@ fn decode_and_validate_test_token(token: &str, key: &DecodingKey) -> ApiResult<U
     //   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imtvc28taW50ZWdyYXRpb24tdGVzdCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5rb3NvLmFwcCIsIm5hbWUiOiJQb2ludHktSGFpcmVkIEJvc3MiLCJwaWN0dXJlIjoiaHR0cHM6Ly9zdGF0aWMud2lraWEubm9jb29raWUubmV0L2RpbGJlcnQvaW1hZ2VzLzYvNjAvQm9zcy5QTkciLCJleHAiOjIwMjQ3ODgwMTR9.3btheBY5h0nQRpWNODfYWQ_mMc26551178jrSDmpv_c
     let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
     validation.insecure_disable_signature_validation();
-    let token = match jsonwebtoken::decode::<User>(token, key, &validation) {
-        Ok(t) => t,
-        Err(e) => {
-            return Err(unauthenticated_error(&format!(
-                "Failed to decode test cred token: {e}"
-            )));
-        }
-    };
+    let token = jsonwebtoken::decode::<User>(token, key, &validation)
+        .context_unauthenticated("Failed to decode test cred token")?;
+
     let user = token.claims;
     if !user.email.ends_with(TEST_USER_SUFFIX) {
         return Err(unauthenticated_error(&format!(

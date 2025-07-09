@@ -471,7 +471,7 @@ mod stripe {
 mod webhook {
     use crate::{
         api::{
-            ApiResult, bad_request_error,
+            ApiResult, IntoApiResult as _, bad_request_error,
             billing::stripe::{KosoMetadata, StripeClient, Subscription},
             unauthorized_error,
         },
@@ -564,7 +564,7 @@ mod webhook {
     ) -> ApiResult<()> {
         let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
             .await
-            .map_err(|_| bad_request_error("INVALID_BODY", "Invalid body"))?;
+            .context_bad_request("INVALID_BODY", "Invalid body")?;
 
         // First, authenticate the event by validating the signature.
         if let Some(signature) = headers.get("stripe-signature") {
@@ -578,7 +578,7 @@ mod webhook {
 
         // Parse the event.
         let event: Event = serde_json::from_slice(&body)
-            .map_err(|e| bad_request_error("INVALID_REQUEST", &format!("Invalid request: {e}")))?;
+            .context_bad_request("INVALID_REQUEST", "Invalid request")?;
         tracing::Span::current().record("stripe_event", event.type_.to_string());
         tracing::Span::current().record("stripe_event_id", event.id.to_string());
 
@@ -712,27 +712,16 @@ mod webhook {
         payload: &[u8],
         secret: &WebhookSecret,
     ) -> ApiResult<()> {
-        let (timestamp, signature) = match parse_signature(signature_header) {
-            Ok(v) => v,
-            Err(err) => {
-                return Err(unauthorized_error(&format!(
-                    "Invalid signature header {signature_header}: {err}"
-                )));
-            }
-        };
+        let (timestamp, signature) =
+            parse_signature(signature_header).context_unauthorized("Invalid signature header")?;
 
         let mut mac = Hmac::<Sha256>::new_from_slice(&secret.0.data)?;
         mac.update(timestamp.to_string().as_bytes());
         mac.update(".".as_bytes());
         mac.update(payload);
 
-        if let Err(err) = mac.verify_slice(&signature) {
-            tracing::warn!("Received webhook event with invalid signature: {err:?}");
-            return Err(unauthorized_error(&format!(
-                "Invalid signature: {}",
-                hex::encode(signature)
-            )));
-        }
+        mac.verify_slice(&signature)
+            .context_unauthorized("Invalid signature")?;
 
         // Get current timestamp to compare to signature timestamp
         if (Utc::now().timestamp() - timestamp).abs() > 300 {

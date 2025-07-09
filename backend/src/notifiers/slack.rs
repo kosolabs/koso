@@ -1,8 +1,7 @@
 use crate::{
     api::{
-        ApiResult, error_response,
+        ApiResult, IntoApiResult as _,
         google::{self, User},
-        unauthorized_error,
     },
     notifiers::{
         NotifierSettings, SlackSettings, delete_notification_config, insert_notification_config,
@@ -10,7 +9,7 @@ use crate::{
     secrets::{Secret, read_secret},
     settings::settings,
 };
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context as _, Result, anyhow};
 use axum::{
     Extension, Form, Json, Router,
     body::Body,
@@ -105,17 +104,11 @@ async fn authorize_slack(
     Extension(key): Extension<DecodingKey>,
     Json(req): Json<AuthorizeSlack>,
 ) -> ApiResult<Json<NotifierSettings>> {
-    let token = match decode::<Claims>(&req.token, &key, &Validation::default()) {
-        Ok(token) => token,
-        Err(error) => {
-            return Err(error_response(
-                StatusCode::PRECONDITION_FAILED,
-                "VALIDATION_FAILED",
-                Some(&format!("{error}")),
-                None,
-            ));
-        }
-    };
+    let token = decode::<Claims>(&req.token, &key, &Validation::default()).context_status(
+        StatusCode::PRECONDITION_FAILED,
+        "VALIDATION_FAILED",
+        "Invalid token",
+    )?;
 
     let settings = NotifierSettings::Slack(SlackSettings {
         user_id: token.claims.user,
@@ -202,9 +195,9 @@ const BODY_LIMIT: usize = 10 * 1024 * 1024;
 async fn verify_slack_signature(request: Request, next: Next) -> ApiResult<Response> {
     let signing_secret = read_secret::<String>("slack/signing_secret")?;
 
-    let Ok(request) = verify_signature(request, &signing_secret).await else {
-        return Err(unauthorized_error("Failed to verify signature"));
-    };
+    let request = verify_signature(request, &signing_secret)
+        .await
+        .context_unauthorized("Failed to verify signature")?;
 
     Ok(next.run(request).await)
 }

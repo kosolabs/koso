@@ -1,5 +1,5 @@
-use crate::api::google;
-use crate::api::{ApiResult, error_response, google::User};
+use crate::api::{ApiResult, google::User};
+use crate::api::{IntoApiResult, google};
 use crate::notifiers::{
     NotifierSettings, TelegramSettings, delete_notification_config, insert_notification_config,
 };
@@ -95,17 +95,11 @@ async fn authorize_telegram(
     Extension(key): Extension<DecodingKey>,
     Json(req): Json<AuthorizeTelegram>,
 ) -> ApiResult<Json<NotifierSettings>> {
-    let token = match decode::<Claims>(&req.token, &key, &Validation::default()) {
-        Ok(token) => token,
-        Err(error) => {
-            return Err(error_response(
-                StatusCode::PRECONDITION_FAILED,
-                "VALIDATION_FAILED",
-                Some(&format!("{error}")),
-                None,
-            ));
-        }
-    };
+    let token = decode::<Claims>(&req.token, &key, &Validation::default()).context_status(
+        StatusCode::PRECONDITION_FAILED,
+        "VALIDATION_FAILED",
+        "Invalid token",
+    )?;
 
     let settings = NotifierSettings::Telegram(TelegramSettings {
         chat_id: token.claims.chat_id,
