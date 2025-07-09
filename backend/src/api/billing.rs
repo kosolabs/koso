@@ -578,8 +578,7 @@ mod webhook {
 
         // Parse the event.
         let event: Event = serde_json::from_slice(&body)
-            .context("Failed to parse body as Event")
-            .context_bad_request("INVALID_REQUEST", "Invalid request body")?;
+            .context_bad_request("INVALID_REQUEST", "Invalid request")?;
         tracing::Span::current().record("stripe_event", event.type_.to_string());
         tracing::Span::current().record("stripe_event_id", event.id.to_string());
 
