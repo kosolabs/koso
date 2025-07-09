@@ -538,6 +538,7 @@ With this in place and your local servers running, you can:
    }
    ```
 
+1. Copy the **Signing Secret** into `.secrets/slack/signing_secret`.
 1. Click **Install App**.
 1. Click **Install to Koso Labs**.
 1. Click **Allow**.

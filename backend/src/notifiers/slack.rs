@@ -2,6 +2,7 @@ use crate::{
     api::{
         ApiResult, error_response,
         google::{self, User},
+        unauthorized_error,
     },
     notifiers::{
         NotifierSettings, SlackSettings, delete_notification_config, insert_notification_config,
@@ -9,15 +10,22 @@ use crate::{
     secrets::{Secret, read_secret},
     settings::settings,
 };
-use anyhow::Result;
+use anyhow::{Context, Result, anyhow};
 use axum::{
-    Extension, Form, Json, Router, middleware,
+    Extension, Form, Json, Router,
+    body::Body,
+    extract::Request,
+    middleware::{self, Next},
+    response::Response,
     routing::{delete, post},
 };
+use chrono::Utc;
+use hmac::{Hmac, Mac};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sha2::Sha256;
 use sqlx::postgres::PgPool;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -64,12 +72,17 @@ impl SlackClient {
 }
 
 pub(super) fn router() -> Router {
-    Router::new()
+    let routes = Router::new()
         .route("/", post(authorize_slack))
         .route("/", delete(deauthorize_slack))
-        .layer(middleware::from_fn(google::authenticate))
+        .layer(middleware::from_fn(google::authenticate));
+
+    let webhooks = Router::new()
         .route("/command", post(handle_command))
         .route("/interact", post(handle_interactivity))
+        .layer(middleware::from_fn(verify_slack_signature));
+
+    Router::new().merge(routes).merge(webhooks)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -182,4 +195,60 @@ fn get_auth_url(key: EncodingKey, user: &str) -> Result<String> {
 
 async fn handle_interactivity() -> ApiResult<()> {
     Ok(())
+}
+
+const BODY_LIMIT: usize = 10 * 1024 * 1024;
+
+async fn verify_slack_signature(request: Request, next: Next) -> ApiResult<Response> {
+    let signing_secret = read_secret::<String>("slack/signing_secret")?;
+
+    let Ok(request) = verify_signature(request, &signing_secret).await else {
+        return Err(unauthorized_error("Failed to verify signature"));
+    };
+
+    Ok(next.run(request).await)
+}
+
+async fn verify_signature(request: Request, signing_secret: &Secret<String>) -> Result<Request> {
+    let (parts, body) = request.into_parts();
+
+    let expected_signature = parts
+        .headers
+        .get("x-slack-signature")
+        .and_then(|v| v.to_str().ok())
+        .context("Missing x-slack-signature header")?;
+
+    let timestamp = parts
+        .headers
+        .get("x-slack-request-timestamp")
+        .and_then(|v| v.to_str().ok())
+        .context("Missing x-slack-request-timestamp header")?
+        .parse::<i64>()
+        .context("Failed to parse timestamp")?;
+
+    if (Utc::now().timestamp() - timestamp).abs() > 300 {
+        return Err(anyhow!("Timestamp is stale: {timestamp}"));
+    }
+
+    let body_bytes = axum::body::to_bytes(body, BODY_LIMIT)
+        .await
+        .context("Invalid body")?;
+
+    let message = format!("v0:{timestamp}:{}", std::str::from_utf8(&body_bytes)?);
+
+    let actual_signature = format!(
+        "v0={}",
+        hex::encode(
+            Hmac::<Sha256>::new_from_slice(signing_secret.data.as_bytes())?
+                .chain_update(message.as_bytes())
+                .finalize()
+                .into_bytes()
+        )
+    );
+
+    if actual_signature != expected_signature {
+        return Err(anyhow!("Signature verification failed"));
+    }
+
+    Ok(Request::from_parts(parts, Body::from(body_bytes)))
 }
