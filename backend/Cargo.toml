@@ -51,6 +51,7 @@ config = { version = "0.15.11", default-features = false, features = ["json"] }
 regex = "1.11.1"
 serde_qs = "1.0.0-rc.3"
 ed25519-dalek = "2.1.1"
+tokio-tungstenite = { version = "0.27.0" }
 
 [dev-dependencies]
 test-log = { version = "0.2.17", features = ["trace", "color"] }
