@@ -26,6 +26,7 @@
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
   import SubSection from "./sub-section.svelte";
+  import Divider from "$lib/kosui/common/divider.svelte";
 
   const dialog = getDialoguerContext();
 
@@ -280,7 +281,7 @@
   notifications to Telegram.
 {/snippet}
 
-<Navbar>
+<Navbar title="Profile">
   {#snippet left()}
     <div>
       <h1 class="ml-2 text-lg">Profile Settings for {auth.user.name}</h1>
