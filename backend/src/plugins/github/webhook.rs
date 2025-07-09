@@ -104,7 +104,6 @@ async fn github_webhook(
     parts: Parts,
     body: Body,
 ) -> ApiResult<String> {
-    foobar(true).context_bad_request("BAD_FOOBAR", "Invalid due to foobar")?;
     let headers = parse_headers(&parts.headers)?;
     let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
         .await
@@ -127,13 +126,6 @@ async fn github_webhook(
         .await?;
 
     Ok("OK".to_string())
-}
-
-fn foobar(error: bool) -> Result<String> {
-    if error {
-        return Err(anyhow!("Foobar failed badly"));
-    }
-    Ok("foo".to_string())
 }
 
 // See https://docs.github.com/en/webhooks/webhook-events-and-payloads#delivery-headers.
