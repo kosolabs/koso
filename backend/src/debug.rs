@@ -19,24 +19,44 @@ pub(super) async fn log_request_response(
         return Ok(next.run(request).await);
     }
 
-    let request = log_request_body(request).await?;
+    let request = log_request(request).await?;
     let response = next.run(request).await;
-    let response = log_response_body(response).await?;
+    let response = log_response(response).await?;
 
     Ok(response)
 }
 
-async fn log_request_body(request: Request) -> Result<Request> {
+async fn log_request(request: Request) -> Result<Request> {
     let (parts, body) = request.into_parts();
+    let headers = parts
+        .headers
+        .iter()
+        .map(|(name, value)| format!("{}: {}", name, String::from_utf8_lossy(value.as_bytes())))
+        .collect::<Vec<String>>();
     let bytes = axum::body::to_bytes(body, BODY_LIMIT).await?;
-    tracing::debug!("Request: {}", String::from_utf8_lossy(&bytes));
+    tracing::debug!(
+        "Request: \n{} {}\n{}\n\n{}",
+        parts.method,
+        parts.uri,
+        headers.join("\n"),
+        String::from_utf8_lossy(&bytes),
+    );
     Ok(Request::from_parts(parts, Body::from(bytes)))
 }
 
-async fn log_response_body(response: Response) -> Result<Response> {
+async fn log_response(response: Response) -> Result<Response> {
     let (parts, body) = response.into_parts();
+    let headers = parts
+        .headers
+        .iter()
+        .map(|(name, value)| format!("{}: {}", name, String::from_utf8_lossy(value.as_bytes())))
+        .collect::<Vec<String>>();
     let bytes = axum::body::to_bytes(body, BODY_LIMIT).await?;
-    tracing::debug!("Response: {}", String::from_utf8_lossy(&bytes));
+    tracing::debug!(
+        "Response: \n{}\n\n{}",
+        headers.join("\n"),
+        String::from_utf8_lossy(&bytes),
+    );
     Ok(Response::from_parts(parts, Body::from(bytes)))
 }
 

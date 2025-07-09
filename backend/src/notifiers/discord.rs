@@ -19,6 +19,7 @@ use axum::{
     response::Response,
     routing::{delete, post},
 };
+use chrono::Utc;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use reqwest::StatusCode;
@@ -232,17 +233,23 @@ async fn verify_discord_signature(request: Request, next: Next) -> ApiResult<Res
 async fn verify_signature(request: Request, verifying_key: &VerifyingKey) -> Result<Request> {
     let (parts, body) = request.into_parts();
 
-    let signature = &parts
+    let signature = parts
         .headers
         .get("x-signature-ed25519")
         .and_then(|v| v.to_str().ok())
         .context("Missing x-signature-ed25519 header")?;
 
-    let timestamp = &parts
+    let timestamp = parts
         .headers
         .get("x-signature-timestamp")
         .and_then(|v| v.to_str().ok())
-        .context("Missing x-signature-timestamp header")?;
+        .context("Missing x-signature-timestamp header")?
+        .parse::<i64>()
+        .context("Failed to parse timestamp")?;
+
+    if (Utc::now().timestamp() - timestamp).abs() > 300 {
+        return Err(anyhow!("Timestamp is stale: {timestamp}"));
+    }
 
     let signature_array: [u8; 64] = hex::decode(signature)
         .context("Invalid hex signature")?
