@@ -211,13 +211,6 @@ impl Poller {
 
         let parent = get_or_create_kind_parent(&mut txn, doc, PR_KIND)?;
         let doc_tasks_by_url = self.list_doc_tasks(&txn, doc, &parent, PR_KIND)?;
-        tracing::trace!(
-            "Found existing tasks in doc: {:?}",
-            doc_tasks_by_url
-                .iter()
-                .map(|(k, v)| Ok(format!("{}:{k}", v.get_id(&txn)?)))
-                .collect::<Result<Vec<_>>>()
-        );
 
         // Resolve or update tasks that already exist in the doc.
         for (url, task) in doc_tasks_by_url.iter() {
