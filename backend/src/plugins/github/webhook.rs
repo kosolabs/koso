@@ -32,7 +32,6 @@ use octocrab::models::webhook_events::{
 use sha2::Sha256;
 use sqlx::PgPool;
 use tower_http::request_id::RequestId;
-use tracing::Instrument as _;
 use yrs::{Origin, ReadTxn, TransactionMut};
 
 /// Maximum size of request body in bytes.
@@ -189,7 +188,11 @@ fn validate_signature(signature_header: &[u8], body: &[u8], secret: &WebhookSecr
 
 impl Webhook {
     #[tracing::instrument(skip(self, event, request_id), fields(target))]
-    async fn process_webhook_event(self, event: WebhookEvent, request_id: String) -> ApiResult<()> {
+    async fn process_webhook_event(
+        &self,
+        event: WebhookEvent,
+        request_id: String,
+    ) -> ApiResult<()> {
         match event.specific {
             WebhookEventPayload::PullRequest(pr_event) => {
                 let installation_id: u64 = match event
@@ -226,14 +229,9 @@ impl Webhook {
                     task,
                 };
 
-                tokio::spawn(
-                    async move {
-                        if let Err(e) = self.process_koso_event(event).await {
-                            tracing::warn!("Failed to process koso event: {e:?}")
-                        }
-                    }
-                    .in_current_span(),
-                );
+                if let Err(e) = self.process_koso_event(event).await {
+                    tracing::warn!("Failed to process koso event: {e:?}")
+                }
             }
             _ => tracing::trace!("Discarding unhandled event."),
         };
