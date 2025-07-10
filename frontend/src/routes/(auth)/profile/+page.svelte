@@ -26,7 +26,6 @@
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
   import SubSection from "./sub-section.svelte";
-  import Divider from "$lib/kosui/common/divider.svelte";
 
   const dialog = getDialoguerContext();
 
