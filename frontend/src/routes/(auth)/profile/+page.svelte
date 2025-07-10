@@ -108,8 +108,7 @@
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message:
-            "Hello from Koso! This is a test notification.\nUpdate your setting at https://koso.app/profile",
+          message: `Hello from Koso! This is a test notification.\nUpdate your settings at ${location.origin}/profile`,
           notifiers: [kind],
         }),
       });
