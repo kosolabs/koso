@@ -9,10 +9,6 @@ export type InitResponse = {
   appName: string;
 };
 
-export type AuthResult = {
-  expiresIn: number;
-};
-
 /**
  * Craft an install link that will redirect back to this project after install.
  * See
@@ -142,17 +138,18 @@ export async function connectProject(
   installationId: string,
   code: string,
 ): Promise<void> {
+  const req: { projectId: string; installationId: string; code: string } = {
+    projectId,
+    installationId,
+    code,
+  };
   const response = await fetch(`/plugins/github/connect`, {
     method: "POST",
     headers: {
       ...headers(auth),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      projectId,
-      installationId,
-      code,
-    }),
+    body: JSON.stringify(req),
   });
   await parseResponse(auth, response);
   return;
@@ -162,13 +159,14 @@ export async function connectUser(
   auth: AuthContext,
   code: string,
 ): Promise<void> {
+  const req: { code: string } = { code };
   const response = await fetch(`/plugins/github/userConnections`, {
     method: "POST",
     headers: {
       ...headers(auth),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ code }),
+    body: JSON.stringify(req),
   });
   await parseResponse(auth, response);
   return;

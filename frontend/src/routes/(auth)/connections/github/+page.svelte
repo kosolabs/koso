@@ -19,6 +19,9 @@
       return;
     }
 
+    // When we initially land on this page, the code parameter will be absent.
+    // Send the user to Github to authenticate. When that's done, Github
+    // will redirect back here with the code parameter set.
     const code = urlParams.get("code");
     if (!code) {
       toast.info("Redirecting to Github for authorization");

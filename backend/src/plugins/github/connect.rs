@@ -120,7 +120,10 @@ impl ConnectHandler {
         }))
     }
 
-    #[tracing::instrument(skip(user, handler))]
+    #[tracing::instrument(
+        skip(user, handler, request),
+        fields(project_id=request.project_id, installation_id=request.installation_id)
+    )]
     async fn connect_project_handler(
         Extension(user): Extension<User>,
         Extension(handler): Extension<ConnectHandler>,
@@ -192,7 +195,7 @@ impl ConnectHandler {
         Ok(installations.items)
     }
 
-    #[tracing::instrument(skip(user, handler))]
+    #[tracing::instrument(skip(user, handler, request))]
     async fn connect_user_handler(
         Extension(user): Extension<User>,
         Extension(handler): Extension<ConnectHandler>,
