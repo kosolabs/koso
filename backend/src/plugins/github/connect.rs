@@ -261,6 +261,9 @@ impl ConnectHandler {
         Ok(())
     }
 
+    /// Exchange the Github OAuth code for a user access token.
+    ///
+    /// https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#generating-a-user-access-token-when-a-user-installs-your-app
     async fn generate_access_token(&self, code: &str) -> ApiResult<OAuth> {
         let res = self
             .client
