@@ -205,11 +205,16 @@ async fn verify_slack_signature(request: Request, next: Next) -> ApiResult<Respo
 async fn verify_signature(request: Request, signing_secret: &Secret<String>) -> Result<Request> {
     let (parts, body) = request.into_parts();
 
-    let expected_signature = parts
-        .headers
-        .get("x-slack-signature")
-        .and_then(|v| v.to_str().ok())
-        .context("Missing x-slack-signature header")?;
+    let expected_signature = hex::decode(
+        parts
+            .headers
+            .get("x-slack-signature")
+            .context("Missing x-slack-signature header")?
+            .as_bytes()
+            .strip_prefix(b"v0=")
+            .context("Invalid signature prefix")?,
+    )
+    .context("Invalid hex in signature")?;
 
     let timestamp = parts
         .headers
@@ -229,19 +234,10 @@ async fn verify_signature(request: Request, signing_secret: &Secret<String>) -> 
 
     let message = format!("v0:{timestamp}:{}", std::str::from_utf8(&body_bytes)?);
 
-    let actual_signature = format!(
-        "v0={}",
-        hex::encode(
-            Hmac::<Sha256>::new_from_slice(signing_secret.data.as_bytes())?
-                .chain_update(message.as_bytes())
-                .finalize()
-                .into_bytes()
-        )
-    );
-
-    if actual_signature != expected_signature {
-        return Err(anyhow!("Signature verification failed"));
-    }
+    Hmac::<Sha256>::new_from_slice(signing_secret.data.as_bytes())?
+        .chain_update(message.as_bytes())
+        .verify_slice(&expected_signature)
+        .context("Signature verification failed")?;
 
     Ok(Request::from_parts(parts, Body::from(body_bytes)))
 }

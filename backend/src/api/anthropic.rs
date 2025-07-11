@@ -2,7 +2,7 @@ use crate::{
     api::{ApiResult, collab::Collab, google::User, verify_premium, verify_project_access},
     secrets::{Secret, read_secret},
 };
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result};
 use axum::{Extension, Router, extract::Query, routing::get};
 use serde_json::to_string;
 use sqlx::postgres::PgPool;
@@ -44,16 +44,6 @@ struct AnthropicMessage {
     role: String,
     content: Vec<AnthropicContent>,
 }
-
-const SYSTEM: &str = r#"Attached is a JSON document that represents an iteration in a project plan. The plan is represented as a graph of tasks.
-
-Render a one or two sentence summary in Markdown for each of the following sections:
-
-  - Goal
-  - Completed Work
-  - Remaining Work
-  - Key Risks
-  - Next Step"#;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct AnthropicMessageRequest {
@@ -142,6 +132,50 @@ impl AnthropicClient {
             .json::<AnthropicMessageResponse>()
             .await?)
     }
+
+    async fn summarize(&self, model: &str, tasks: &Vec<Task>) -> Result<String> {
+        let resp = self
+            .message(&AnthropicMessageRequest {
+                model: model.into(),
+                max_tokens: 8192,
+                system: vec![AnthropicContent {
+                    r#type: "text".into(),
+                    text: "Attached is a JSON document that represents an iteration in a project plan. The plan is represented as a graph of tasks where relationships between tasks are expressed using the children field.".into(),
+                    cache_control: Some({
+                        AnthropicCacheControl {
+                            r#type: "ephemeral".into(),
+                        }
+                    }),
+                }],
+                messages: vec![AnthropicMessage {
+                    role: "user".into(),
+                    content: vec![
+                        AnthropicContent {
+                            r#type: "text".into(),
+                            text: to_string(tasks)?,
+                            cache_control: None,
+                        },
+                        AnthropicContent {
+                            r#type: "text".into(),
+                            text: "Render a one or two sentence summary in Markdown for each of the following sections: Goal, Completed Work, Remaining Work, Key Risks, Next Step".into(),
+                            cache_control: Some({
+                                AnthropicCacheControl {
+                                    r#type: "ephemeral".into(),
+                                }
+                            }),
+                        },
+                    ],
+                }],
+            })
+            .await?;
+
+        Ok(resp
+            .content
+            .into_iter()
+            .next()
+            .context("No content in Anthropic response")?
+            .text)
+    }
 }
 
 pub(super) fn router() -> Result<Router> {
@@ -217,38 +251,9 @@ pub(super) async fn generate_task_summary_handler(
         tracing::trace!("Cache miss!");
     }
 
-    let resp = client
-        .message(&AnthropicMessageRequest {
-            model: req.model.clone(),
-            max_tokens: 8192,
-            system: vec![AnthropicContent {
-                r#type: "text".into(),
-                text: SYSTEM.into(),
-                cache_control: Some({
-                    AnthropicCacheControl {
-                        r#type: "ephemeral".into(),
-                    }
-                }),
-            }],
-            messages: vec![AnthropicMessage {
-                role: "user".into(),
-                content: vec![AnthropicContent {
-                    r#type: "text".into(),
-                    text: to_string(&tasks)?,
-                    cache_control: None,
-                }],
-            }],
-        })
-        .await?;
+    let response = client.summarize(&req.model, &tasks).await?;
 
-    tracing::info!("{:?}", resp);
+    cache.insert(key, &response).await;
 
-    let content = match resp.content.into_iter().next() {
-        Some(content) => Ok(content),
-        None => Err(anyhow!("No content in Anthropic response")),
-    }?;
-
-    cache.insert(key, &content.text).await;
-
-    Ok(content.text)
+    Ok(response)
 }
