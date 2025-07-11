@@ -715,12 +715,11 @@ mod webhook {
         let (timestamp, signature) =
             parse_signature(signature_header).context_unauthorized("Invalid signature header")?;
 
-        let mut mac = Hmac::<Sha256>::new_from_slice(&secret.0.data)?;
-        mac.update(timestamp.to_string().as_bytes());
-        mac.update(".".as_bytes());
-        mac.update(payload);
-
-        mac.verify_slice(&signature)
+        Hmac::<Sha256>::new_from_slice(&secret.0.data)?
+            .chain_update(timestamp.to_string().as_bytes())
+            .chain_update(".".as_bytes())
+            .chain_update(payload)
+            .verify_slice(&signature)
             .context_unauthorized("Invalid signature")?;
 
         // Get current timestamp to compare to signature timestamp

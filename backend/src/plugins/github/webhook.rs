@@ -6,7 +6,6 @@ use crate::{
             projects_state::DocBox,
             txn_origin::{Actor, YOrigin},
         },
-        unauthorized_error,
         yproxy::{YDocProxy, YTaskProxy},
     },
     plugins::{
@@ -19,7 +18,7 @@ use crate::{
     },
     secrets::{Secret, read_secret},
 };
-use anyhow::{Result, anyhow};
+use anyhow::{Context as _, Result, anyhow};
 use axum::{
     Extension, Router,
     body::{Body, Bytes},
@@ -108,7 +107,8 @@ async fn github_webhook(
     let body: Bytes = axum::body::to_bytes(body, BODY_LIMIT)
         .await
         .context_bad_request("INVALID_BODY", "Invalid body")?;
-    validate_signature(headers.signature, &body, &webhook.secret)?;
+    validate_signature(headers.signature, &body, &webhook.secret)
+        .context_unauthorized("Invalid signature")?;
 
     tracing::Span::current().record("gh_delivery_id", headers.delivery_id);
     tracing::Span::current().record("gh_event", headers.event);
@@ -174,22 +174,17 @@ type HmacSha256 = Hmac<Sha256>;
 
 /// Validate the authenticity of the event.
 /// See https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries#validating-webhook-deliveries
-fn validate_signature(
-    signature_header: &[u8],
-    body: &[u8],
-    secret: &WebhookSecret,
-) -> ApiResult<()> {
-    let Some(signature) = signature_header
-        .get(b"sha256=".len()..)
-        .and_then(|v| hex::decode(v).ok())
-    else {
-        return Err(unauthorized_error("Invalid signature."));
-    };
+fn validate_signature(signature_header: &[u8], body: &[u8], secret: &WebhookSecret) -> Result<()> {
+    let signature = signature_header
+        .strip_prefix(b"sha256=")
+        .context("Invalid signature prefix")
+        .map(hex::decode)
+        .context("Invalid hex in signature")??;
 
-    let mut mac = HmacSha256::new_from_slice(&secret.data)?;
-    mac.update(body);
-    mac.verify_slice(&signature)
-        .context_unauthorized("Invalid signature")
+    HmacSha256::new_from_slice(&secret.data)?
+        .chain_update(body)
+        .verify_slice(&signature)
+        .context("Signature verification failed")
 }
 
 impl Webhook {
