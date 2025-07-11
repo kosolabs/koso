@@ -47,6 +47,13 @@ struct InitResponse {
     client_id: String,
 }
 
+#[derive(Serialize)]
+struct GithubOAuthRequest<'a> {
+    client_id: &'a str,
+    client_secret: &'a str,
+    code: &'a str,
+}
+
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum GithubOAuthResponse {
@@ -54,9 +61,9 @@ enum GithubOAuthResponse {
     Error(OAuthError),
 }
 
-#[derive(Deserialize, Clone)]
-pub(super) struct OAuth {
-    pub(super) access_token: String,
+#[derive(Deserialize)]
+struct OAuth {
+    access_token: String,
 }
 
 #[derive(Deserialize)]
@@ -64,6 +71,9 @@ struct OAuthError {
     error: String,
     error_description: String,
 }
+
+/// Contains the Github app's client secret.
+type ClientSecret = Secret<String>;
 
 #[derive(Clone)]
 pub(super) struct ConnectHandler {
@@ -76,9 +86,6 @@ pub(super) struct ConnectHandler {
     app_name: String,
     client: Client,
 }
-
-/// Contains the Github app's client secret.
-type ClientSecret = Secret<String>;
 
 impl ConnectHandler {
     pub(super) fn new(
@@ -270,11 +277,11 @@ impl ConnectHandler {
             .post("https://github.com/login/oauth/access_token")
             .header("ACCEPT", "application/json")
             .header("Content-Type", "application/json")
-            .query(&[
-                ("client_id", self.client_id.as_str()),
-                ("client_secret", self.client_secret.data.as_str()),
-                ("code", code),
-            ])
+            .json(&GithubOAuthRequest {
+                client_id: self.client_id.as_str(),
+                client_secret: self.client_secret.data.as_str(),
+                code,
+            })
             .send()
             .await?;
         let status = res.status();
