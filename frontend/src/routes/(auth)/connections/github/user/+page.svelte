@@ -4,7 +4,6 @@
   import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
-  import type { BaseState } from "$lib/github";
   import * as github from "$lib/github";
   import { onMount } from "svelte";
 
@@ -20,6 +19,9 @@
       return;
     }
 
+    // When we initially land on this page, the code parameter will be absent.
+    // Send the user to Github to authenticate. When that's done, Github
+    // will redirect back here with the code parameter set.
     const code = urlParams.get("code");
     if (!code) {
       toast.info("Redirecting to Github for authorization");
@@ -28,11 +30,8 @@
       return;
     }
 
-    console.log("Logging user in with Github");
-    await authWithCode(state, code);
-
     console.log(`Connecting user`);
-    await connectUser(state);
+    await connectUser(state, code);
     toast.success("User connected to Github!");
 
     await goto(state.redirectUrl);
@@ -76,25 +75,21 @@
     };
   }
 
-  async function authWithCode(state: BaseState, code: string): Promise<void> {
+  async function connectUser(
+    state: github.ConnectUserState,
+    code: string,
+  ): Promise<void> {
     try {
-      await github.authWithCode(auth, code);
+      return github.connectUser(auth, code);
     } catch (e) {
-      if (e instanceof KosoError && e.hasReason("GITHUB_AUTH_REJECTED")) {
-        toast.error("Failed to authenticate with Github. Please try again");
-        await goto(state.redirectUrl);
-      }
-      throw e;
-    }
-  }
-
-  async function connectUser(state: github.ConnectUserState): Promise<void> {
-    try {
-      return github.connectUser(auth);
-    } catch (e) {
-      if (e instanceof KosoError && e.hasReason("GITHUB_UNAUTHENTICATED")) {
-        toast.error("Github authentication expired. Please try again");
-        await goto(state.redirectUrl);
+      if (e instanceof KosoError) {
+        if (e instanceof KosoError && e.hasReason("GITHUB_UNAUTHENTICATED")) {
+          toast.error("Github authentication expired. Please try again");
+          await goto(state.redirectUrl);
+        } else if (e.hasReason("GITHUB_AUTH_REJECTED")) {
+          toast.error("Failed to authenticate with Github. Please try again");
+          await goto(state.redirectUrl);
+        }
       }
       throw e;
     }

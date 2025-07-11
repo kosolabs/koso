@@ -3,15 +3,10 @@ import { headers, parseResponse } from "./api";
 import type { AuthContext } from "./auth.svelte";
 
 const stateSessionKey = "github_csrf_state";
-const loginExpirationSessionKey = "github_login_expires_at";
 
 export type InitResponse = {
   clientId: string;
   appName: string;
-};
-
-export type AuthResult = {
-  expiresIn: number;
 };
 
 /**
@@ -137,60 +132,41 @@ export function validateStateForCsrf(state: string): boolean {
   return true;
 }
 
-/**
- * Call the Koso backend to exchange the Github OAuth code for a user access
- * token.
- *
- * See
- * https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#generating-a-user-access-token-when-a-user-installs-your-app
- */
-export async function authWithCode(
-  auth: AuthContext,
-  code: string,
-): Promise<void> {
-  const response = await fetch(`/plugins/github/auth`, {
-    method: "POST",
-    headers: {
-      ...headers(auth),
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      code: code,
-    }),
-  });
-  const result: AuthResult = await parseResponse(auth, response);
-  const expiresAt = Math.floor(Date.now()) + (result.expiresIn - 60) * 1000;
-  sessionStorage.setItem(loginExpirationSessionKey, expiresAt.toString());
-}
-
 export async function connectProject(
   auth: AuthContext,
   projectId: string,
   installationId: string,
+  code: string,
 ): Promise<void> {
+  const req: { projectId: string; installationId: string; code: string } = {
+    projectId,
+    installationId,
+    code,
+  };
   const response = await fetch(`/plugins/github/connect`, {
     method: "POST",
     headers: {
       ...headers(auth),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      projectId,
-      installationId,
-    }),
+    body: JSON.stringify(req),
   });
   await parseResponse(auth, response);
   return;
 }
 
-export async function connectUser(auth: AuthContext): Promise<void> {
+export async function connectUser(
+  auth: AuthContext,
+  code: string,
+): Promise<void> {
+  const req: { code: string } = { code };
   const response = await fetch(`/plugins/github/userConnections`, {
     method: "POST",
     headers: {
       ...headers(auth),
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({}),
+    body: JSON.stringify(req),
   });
   await parseResponse(auth, response);
   return;
