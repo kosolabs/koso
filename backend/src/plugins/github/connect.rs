@@ -1,17 +1,19 @@
 use crate::{
-    api::{self, ApiResult, google::User, not_found_error, unauthorized_error},
+    api::{self, ApiResult, bad_request_error, google::User, not_found_error, unauthorized_error},
     plugins::{
         config::{Config, ConfigStorage, GithubSettings, Settings},
-        github::{self, Poller, auth::Auth},
+        github::{self, Poller},
     },
+    secrets::{Secret, read_secret},
     settings::settings,
 };
-use anyhow::Result;
+use anyhow::{Context as _, Result, anyhow};
 use axum::{
     Extension, Json, Router,
     routing::{delete, get, post},
 };
 use octocrab::{Octocrab, OctocrabBuilder, models::Installation};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::Instrument;
@@ -21,6 +23,7 @@ use tracing::Instrument;
 struct ConnectRequest {
     project_id: String,
     installation_id: String,
+    code: String,
 }
 
 #[derive(Serialize)]
@@ -29,7 +32,9 @@ struct ConnectResponse {}
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct ConnectUserRequest {}
+struct ConnectUserRequest {
+    code: String,
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -42,32 +47,54 @@ struct InitResponse {
     client_id: String,
 }
 
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum GithubOAuthResponse {
+    Success(OAuth),
+    Error(OAuthError),
+}
+
+#[derive(Deserialize, Clone)]
+pub(super) struct OAuth {
+    pub(super) access_token: String,
+}
+
+#[derive(Deserialize)]
+struct OAuthError {
+    error: String,
+    error_description: String,
+}
+
 #[derive(Clone)]
 pub(super) struct ConnectHandler {
-    auth: Auth,
     pool: &'static PgPool,
     storage: ConfigStorage,
     poller: Poller,
     crab: Octocrab,
     client_id: String,
+    client_secret: ClientSecret,
     app_name: String,
+    client: Client,
 }
+
+/// Contains the Github app's client secret.
+type ClientSecret = Secret<String>;
 
 impl ConnectHandler {
     pub(super) fn new(
-        auth: Auth,
         pool: &'static PgPool,
         storage: ConfigStorage,
         poller: Poller,
     ) -> Result<ConnectHandler> {
         Ok(ConnectHandler {
-            auth,
             pool,
             storage,
             poller,
             crab: OctocrabBuilder::new().build()?,
             client_id: settings().plugins.github.client_id.clone(),
+            client_secret: read_secret("github/client_secret")?,
             app_name: settings().plugins.github.app_name.clone(),
+            client: Client::default(),
         })
     }
 
@@ -108,8 +135,7 @@ impl ConnectHandler {
         user: User,
     ) -> ApiResult<Json<ConnectResponse>> {
         api::verify_project_access(self.pool, &user, &request.project_id).await?;
-        self.verify_installation_access(&user, &request.installation_id)
-            .await?;
+        self.verify_installation_access(&request).await?;
 
         tracing::info!(
             "Connecting project {} to installation {}",
@@ -131,25 +157,26 @@ impl ConnectHandler {
         Ok(Json(ConnectResponse {}))
     }
 
-    async fn verify_installation_access(
-        &self,
-        user: &User,
-        installation_id: &str,
-    ) -> ApiResult<()> {
-        let installations = self.fetch_installations(user).await?;
+    async fn verify_installation_access(&self, request: &ConnectRequest) -> ApiResult<()> {
+        if request.code.is_empty() {
+            return Err(bad_request_error("EMPTY_CODE", "Code is blank"));
+        }
+
+        let installations = self.fetch_installations(&request.code).await?;
         let installation_authorized = installations
             .into_iter()
-            .any(|installation| installation.id.0.to_string() == installation_id);
+            .any(|installation| installation.id.0.to_string() == request.installation_id);
         if !installation_authorized {
             return Err(unauthorized_error(&format!(
-                "Not authorized to access installation {installation_id}"
+                "Not authorized to access installation {}",
+                request.installation_id
             )));
         }
         Ok(())
     }
 
-    async fn fetch_installations(&self, user: &User) -> ApiResult<Vec<Installation>> {
-        let token = self.auth.user_access_token(user).await?;
+    async fn fetch_installations(&self, code: &str) -> ApiResult<Vec<Installation>> {
+        let token = self.generate_access_token(code).await?;
         let crab = self.crab.user_access_token(token.access_token.as_str())?;
 
         let installations = crab
@@ -169,13 +196,17 @@ impl ConnectHandler {
     async fn connect_user_handler(
         Extension(user): Extension<User>,
         Extension(handler): Extension<ConnectHandler>,
-        Json(_): Json<ConnectUserRequest>,
+        Json(request): Json<ConnectUserRequest>,
     ) -> ApiResult<Json<ConnectUserResponse>> {
-        handler.connect_user(user).await
+        handler.connect_user(request, user).await
     }
 
-    async fn connect_user(&self, user: User) -> ApiResult<Json<ConnectUserResponse>> {
-        let octocrab::models::Author { url, id, .. } = self.fetch_user(&user).await?;
+    async fn connect_user(
+        &self,
+        request: ConnectUserRequest,
+        user: User,
+    ) -> ApiResult<Json<ConnectUserResponse>> {
+        let octocrab::models::Author { url, id, .. } = self.fetch_user(&request).await?;
 
         tracing::info!("Connecting user {} to github user {id} ({url})", user.email);
         self.update_user_connection(&user, Some(&id.to_string()))
@@ -184,8 +215,15 @@ impl ConnectHandler {
         Ok(Json(ConnectUserResponse {}))
     }
 
-    async fn fetch_user(&self, user: &User) -> ApiResult<octocrab::models::Author> {
-        let token = self.auth.user_access_token(user).await?;
+    async fn fetch_user(
+        &self,
+        request: &ConnectUserRequest,
+    ) -> ApiResult<octocrab::models::Author> {
+        if request.code.is_empty() {
+            return Err(bad_request_error("EMPTY_CODE", "Code is blank"));
+        }
+
+        let token = self.generate_access_token(&request.code).await?;
         let crab = self.crab.user_access_token(token.access_token.as_str())?;
         Ok(crab.current().user().await?)
     }
@@ -218,5 +256,39 @@ impl ConnectHandler {
             return Err(not_found_error("NOT_FOUND", "User does not exist."));
         }
         Ok(())
+    }
+
+    async fn generate_access_token(&self, code: &str) -> ApiResult<OAuth> {
+        let res = self
+            .client
+            .post("https://github.com/login/oauth/access_token")
+            .header("ACCEPT", "application/json")
+            .header("Content-Type", "application/json")
+            .query(&[
+                ("client_id", self.client_id.as_str()),
+                ("client_secret", self.client_secret.data.as_str()),
+                ("code", code),
+            ])
+            .send()
+            .await?;
+        let status = res.status();
+        if !status.is_success() {
+            return Err(anyhow!("Access token post failed: {}", res.status()).into());
+        }
+        let res: GithubOAuthResponse = res
+            .json()
+            .await
+            .with_context(|| "Failed to decode login response")?;
+        let oauth = match res {
+            GithubOAuthResponse::Success(oauth) => oauth,
+            GithubOAuthResponse::Error(e) => {
+                return Err(bad_request_error(
+                    "GITHUB_AUTH_REJECTED",
+                    &format!("Login rejected: '{}' - '{}'", e.error, e.error_description),
+                ));
+            }
+        };
+
+        Ok(oauth)
     }
 }

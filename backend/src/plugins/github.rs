@@ -8,7 +8,6 @@ use crate::{
     plugins::{PluginSettings, config::ConfigStorage, github::app::AppGithub},
 };
 use anyhow::{Context, Result, anyhow};
-use auth::Auth;
 use axum::{Router, middleware};
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use connect::ConnectHandler;
@@ -22,7 +21,6 @@ use webhook::Webhook;
 use yrs::TransactionMut;
 
 mod app;
-mod auth;
 mod connect;
 mod poller;
 mod webhook;
@@ -70,12 +68,9 @@ impl Plugin {
 
     /// Returns a router that binds webhook (push) and poll endpoints.
     pub(crate) fn router(&self) -> Result<Router> {
-        let auth = Auth::new()?;
         Ok(Router::new()
-            .merge(auth.clone().router())
             .merge(
                 ConnectHandler::new(
-                    auth.clone(),
                     self.pool,
                     self.config_storage.clone(),
                     self.poller().clone(),
