@@ -35,7 +35,7 @@ futures = "0.3.31"
 yrs = { version = "0.23.5", features = ["sync"] }
 tokio-util = { version = "0.7.15", features = ["rt"] }
 jsonwebtoken = "9.3.1"
-reqwest = { version = "0.12.20", features = ["json"] }
+reqwest = { version = "0.12.20", features = ["json", "stream"] }
 base64 = "0.22.1"
 anyhow = "1.0.98"
 rand = "0.9.1"

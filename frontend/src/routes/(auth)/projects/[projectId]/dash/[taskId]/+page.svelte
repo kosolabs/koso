@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
+  import { AnthropicStream } from "$lib/anthropic-stream.svelte";
   import { headers } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
   import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";
@@ -25,6 +26,7 @@
 
   const projectId = page.params.projectId;
   const taskId = page.params.taskId;
+  const simulate = page.url.searchParams.get("simulate") === "true";
 
   const { koso, socket, name, users } = getProjectContext();
   const auth = getAuthContext();
@@ -32,22 +34,13 @@
 
   let offline: boolean = $derived(socket.offline);
 
-  let summary = $derived.by(async () => {
-    const model = "claude-sonnet-4-20250514";
-    const resp = await fetch(
-      `/api/anthropic/summarize?projectId=${projectId}&taskId=${taskId}&model=${model}`,
-      {
-        method: "GET",
-        headers: headers(auth),
-      },
-    );
-    const text = await resp.text();
-    if (resp.ok) {
-      return text;
-    } else {
-      throw new Error(text);
-    }
-  });
+  let summary = new AnthropicStream(
+    `/api/anthropic/summarize?projectId=${projectId}&taskId=${taskId}&simulate=${simulate}&model=claude-sonnet-4-20250514`,
+    {
+      method: "GET",
+      headers: headers(auth),
+    },
+  );
 
   function getLongestPaths() {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -136,59 +129,54 @@
       </div>
     </div>
   {/if}
-  {#await summary}
-    <h2 class="flex items-center gap-2 text-2xl font-extralight">
+  <h2 class="flex items-center gap-2 text-2xl font-extralight">
+    {#if summary.running}
       <CircularProgress class="text-m3-primary" />
       Koso Agent is summarizing the iteration...
-    </h2>
-    <hr />
-    <div class="flex flex-col gap-2 rounded-md border p-2"></div>
-  {:then summary}
-    <h2 class="gap-2 text-2xl font-extralight">Koso Agent Summary</h2>
-    <hr />
-    <div class="flex flex-col gap-2 rounded-md border p-2">
-      <Markdown value={summary} options={{ breaks: true, gfm: true }}>
-        {#snippet blockquote(props)}
-          <MarkdownBlockquote class="border border-l-4 p-2" {...props} />
-        {/snippet}
-        {#snippet code(props)}
-          <MarkdownCode class="rounded border p-2 text-sm" {...props} />
-        {/snippet}
-        {#snippet heading({ token, children })}
-          <MarkdownHeading
-            class={twMerge(
-              token.depth === 1 && "text-2xl font-extralight",
-              token.depth === 2 && "text-xl font-extralight",
-            )}
-            {token}
-            {children}
-          />
-        {/snippet}
-        {#snippet list({ token, children })}
-          <MarkdownList
-            class={twMerge(
-              "ml-4",
-              token.ordered ? "list-decimal" : "list-disc",
-            )}
-            {token}
-            {children}
-          />
-        {/snippet}
-        {#snippet table(props)}
-          <MarkdownTable class="w-min" {...props} />
-        {/snippet}
-        {#snippet tableCell(props)}
-          <MarkdownTableCell class="border p-1 whitespace-nowrap" {...props} />
-        {/snippet}
-        {#snippet link(props)}
-          <MarkdownLink
-            class="text-m3-primary underline hover:opacity-80"
-            {...props}
-          />
-        {/snippet}
-      </Markdown>
-    </div>
-  {/await}
+    {:else}
+      Koso Agent Summary
+    {/if}
+  </h2>
+  <hr />
+  <div class="flex flex-col gap-2 rounded-md border p-2">
+    <Markdown value={summary.stream} options={{ breaks: true, gfm: true }}>
+      {#snippet blockquote(props)}
+        <MarkdownBlockquote class="border border-l-4 p-2" {...props} />
+      {/snippet}
+      {#snippet code(props)}
+        <MarkdownCode class="rounded border p-2 text-sm" {...props} />
+      {/snippet}
+      {#snippet heading({ token, children })}
+        <MarkdownHeading
+          class={twMerge(
+            token.depth === 1 && "text-2xl font-extralight",
+            token.depth === 2 && "text-xl font-extralight",
+          )}
+          {token}
+          {children}
+        />
+      {/snippet}
+      {#snippet list({ token, children })}
+        <MarkdownList
+          class={twMerge("ml-4", token.ordered ? "list-decimal" : "list-disc")}
+          {token}
+          {children}
+        />
+      {/snippet}
+      {#snippet table(props)}
+        <MarkdownTable class="w-min" {...props} />
+      {/snippet}
+      {#snippet tableCell(props)}
+        <MarkdownTableCell class="border p-1 whitespace-nowrap" {...props} />
+      {/snippet}
+      {#snippet link(props)}
+        <MarkdownLink
+          class="text-m3-primary underline hover:opacity-80"
+          {...props}
+        />
+      {/snippet}
+    </Markdown>
+  </div>
 
   <h2 class="text-2xl font-extralight">Critical Paths</h2>
   <hr />
