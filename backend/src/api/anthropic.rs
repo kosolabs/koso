@@ -2,18 +2,13 @@ use crate::{
     api::{ApiResult, collab::Collab, google::User, verify_premium, verify_project_access},
     secrets::{Secret, read_secret},
 };
-use anyhow::{Context, Result};
-use axum::{Extension, Router, extract::Query, routing::get};
+use anyhow::{Context, Result, anyhow};
+use axum::{Extension, Router, body::Body, extract::Query, response::Response, routing::get};
+use futures::{StreamExt, stream};
+use reqwest::RequestBuilder;
 use serde_json::to_string;
 use sqlx::postgres::PgPool;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::Hasher;
-use std::{
-    collections::{BTreeSet, HashMap},
-    hash::Hash,
-    sync::Arc,
-};
-use tokio::sync::RwLock;
+use std::{collections::BTreeSet, hash::Hash};
 
 #[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Default, Hash)]
 struct Task {
@@ -51,6 +46,7 @@ struct AnthropicMessageRequest {
     max_tokens: u32,
     system: Vec<AnthropicContent>,
     messages: Vec<AnthropicMessage>,
+    stream: Option<bool>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -78,126 +74,64 @@ pub(super) struct SummarizeTaskRequest {
     project_id: String,
     task_id: String,
     model: String,
-}
-
-#[derive(Clone)]
-pub(super) struct SummaryCache(Arc<RwLock<HashMap<u64, String>>>);
-
-impl SummaryCache {
-    pub(super) fn new() -> Self {
-        Self(Arc::new(RwLock::new(HashMap::new())))
-    }
-
-    fn hash(model: &str, tasks: &Vec<Task>) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        model.hash(&mut hasher);
-        tasks.hash(&mut hasher);
-        hasher.finish()
-    }
-
-    async fn get(&self, key: &u64) -> Option<String> {
-        let map = self.0.read().await;
-        map.get(key).cloned()
-    }
-
-    async fn insert(&self, key: u64, value: &str) {
-        let mut map = self.0.write().await;
-        map.insert(key, value.into());
-    }
+    simulate: Option<bool>,
 }
 
 #[derive(Clone)]
 pub(super) struct AnthropicClient {
-    pub(super) client: reqwest::Client,
+    client: reqwest::Client,
+    token: Option<Secret<String>>,
 }
 
 impl AnthropicClient {
     pub(super) fn new() -> Self {
         Self {
             client: reqwest::Client::new(),
+            token: read_secret("anthropic/token").ok(),
         }
     }
 
-    async fn message(&self, message: &AnthropicMessageRequest) -> Result<AnthropicMessageResponse> {
-        let token: Secret<String> = read_secret("anthropic/token")?;
+    fn token(&self) -> Result<String> {
+        Ok(self
+            .token
+            .clone()
+            .context("anthropic/token is not set")?
+            .data)
+    }
+
+    fn message_builder(&self) -> Result<RequestBuilder> {
         Ok(self
             .client
             .post("https://api.anthropic.com/v1/messages")
-            .header("x-api-key", token.data)
-            .header("anthropic-version", "2023-06-01")
-            .json(message)
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<AnthropicMessageResponse>()
-            .await?)
+            .header("x-api-key", self.token()?)
+            .header("anthropic-version", "2023-06-01"))
     }
 
-    async fn summarize(&self, model: &str, tasks: &Vec<Task>) -> Result<String> {
-        let resp = self
-            .message(&AnthropicMessageRequest {
-                model: model.into(),
-                max_tokens: 8192,
-                system: vec![AnthropicContent {
-                    r#type: "text".into(),
-                    text: "Attached is a JSON document that represents an iteration in a project plan. The plan is represented as a graph of tasks where relationships between tasks are expressed using the children field.".into(),
-                    cache_control: Some({
-                        AnthropicCacheControl {
-                            r#type: "ephemeral".into(),
-                        }
-                    }),
-                }],
-                messages: vec![AnthropicMessage {
-                    role: "user".into(),
-                    content: vec![
-                        AnthropicContent {
-                            r#type: "text".into(),
-                            text: to_string(tasks)?,
-                            cache_control: None,
-                        },
-                        AnthropicContent {
-                            r#type: "text".into(),
-                            text: "Render a one or two sentence summary in Markdown for each of the following sections: Goal, Completed Work, Remaining Work, Key Risks, Next Step".into(),
-                            cache_control: Some({
-                                AnthropicCacheControl {
-                                    r#type: "ephemeral".into(),
-                                }
-                            }),
-                        },
-                    ],
-                }],
-            })
-            .await?;
-
-        Ok(resp
-            .content
-            .into_iter()
-            .next()
-            .context("No content in Anthropic response")?
-            .text)
-    }
+    // async fn breakdown(&self, model: &str, context: &str, task: &Task) -> Result<String> {
 }
 
 pub(super) fn router() -> Result<Router> {
-    let cache = SummaryCache::new();
     let client = AnthropicClient::new();
 
     Ok(Router::new()
-        .route("/summarize", get(generate_task_summary_handler))
-        .layer((Extension(cache), Extension(client))))
+        .route("/summarize", get(summarize_handler))
+        .layer(Extension(client)))
 }
 
-#[tracing::instrument(skip(user, pool, collab, cache, client))]
-pub(super) async fn generate_task_summary_handler(
+#[tracing::instrument(skip(user, pool, collab, client))]
+pub(super) async fn summarize_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Extension(collab): Extension<Collab>,
-    Extension(cache): Extension<SummaryCache>,
     Extension(client): Extension<AnthropicClient>,
     req: Query<SummarizeTaskRequest>,
-) -> ApiResult<String> {
+) -> ApiResult<Response> {
     verify_project_access(pool, &user, &req.project_id).await?;
     verify_premium(pool, &user).await?;
+
+    if req.simulate.unwrap_or(false) {
+        return simulate("summarize").await;
+    }
 
     let ydoc = collab.get_doc(&req.project_id).await?;
     let txn = ydoc.transact();
@@ -243,17 +177,67 @@ pub(super) async fn generate_task_summary_handler(
     })
     .collect::<Result<Vec<Task>>>()?;
 
-    let key = SummaryCache::hash(&req.model, &tasks);
-    if let Some(result) = cache.get(&key).await {
-        tracing::trace!("Cache hit!");
-        return Ok(result);
+    let response = client
+        .message_builder()?
+        .json(&AnthropicMessageRequest {
+            model: req.model.clone(),
+            max_tokens: 8192,
+            stream: Some(true),
+            system: vec![AnthropicContent {
+                r#type: "text".into(),
+                text: "Attached is a JSON document that represents an iteration in a project plan. The plan is represented as a graph of tasks where relationships between tasks are expressed using the children field.".into(),
+                cache_control: Some({
+                    AnthropicCacheControl {
+                        r#type: "ephemeral".into(),
+                    }
+                }),
+            }],
+            messages: vec![AnthropicMessage {
+                role: "user".into(),
+                content: vec![
+                    AnthropicContent {
+                        r#type: "text".into(),
+                        text: to_string(&tasks)?,
+                        cache_control: None,
+                    },
+                    AnthropicContent {
+                        r#type: "text".into(),
+                        text: "Render a one or two sentence summary in Markdown for each of the following sections: Goal, Completed Work, Remaining Work, Key Risks, Next Step".into(),
+                        cache_control: Some({
+                            AnthropicCacheControl {
+                                r#type: "ephemeral".into(),
+                            }
+                        }),
+                    },
+                ],
+            }],
+        })
+        .send()
+        .await?
+        .error_for_status()?;
+
+    Ok(Response::builder()
+        .status(200)
+        .body(Body::from_stream(response.bytes_stream()))?)
+}
+
+async fn simulate(method: &str) -> ApiResult<Response> {
+    let data = if method == "summarize" {
+        include_str!("summarize.txt")
     } else {
-        tracing::trace!("Cache miss!");
-    }
+        return Err(anyhow!("Invalid method").into());
+    };
+    let chunks = data
+        .split_inclusive("\n\n")
+        .map(|chunk| chunk.as_bytes().to_vec())
+        .collect::<Vec<Vec<u8>>>();
 
-    let response = client.summarize(&req.model, &tasks).await?;
+    let test_stream = stream::iter(chunks).then(move |chunk| async move {
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        Ok::<_, std::io::Error>(chunk)
+    });
 
-    cache.insert(key, &response).await;
-
-    Ok(response)
+    Ok(Response::builder()
+        .status(200)
+        .body(Body::from_stream(test_stream))?)
 }
