@@ -1,5 +1,7 @@
 <script lang="ts">
   import { goto, replaceState } from "$app/navigation";
+  import { AnthropicStream } from "$lib/anthropic-stream.svelte";
+  import { headers } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
   import {
@@ -44,6 +46,7 @@
     Share,
     SkipBack,
     SkipForward,
+    Sparkles,
     SquarePen,
     StepBack,
     StepForward,
@@ -317,6 +320,38 @@
     navigator.clipboard.writeText(
       koso.getTaskPermalink(planningCtx.selected.name).toString(),
     );
+  }
+
+  async function breakDownTask() {
+    if (!planningCtx.selected) return;
+    planningCtx.expand(planningCtx.selected);
+    const projectId = koso.projectId;
+    const taskId = planningCtx.selected.name;
+
+    const summary = new AnthropicStream().onLine((line) => {
+      koso.insertTask({
+        name: line,
+        parent: taskId,
+        offset: koso.getChildCount(taskId),
+        reporter: auth.user.email,
+      });
+    });
+
+    const response = summary.fetch(
+      `/api/anthropic/breakdown?projectId=${projectId}&taskId=${taskId}&model=claude-sonnet-4-20250514`,
+      {
+        method: "GET",
+        headers: headers(auth),
+      },
+    );
+
+    toast.promise(response, {
+      loading: "Koso Agent is breaking down the task...",
+      success: "Task break down complete!",
+      error: "Koso Agent encountered an error while breaking down the task.",
+    });
+
+    return await response;
   }
 
   const insertAction: Action = new Action({
@@ -691,6 +726,20 @@
         !!planningCtx.selected &&
         koso.getTask(planningCtx.selected.name).isRollup() &&
         koso.getTask(planningCtx.selected.name).deadline !== null,
+    }),
+
+    new Action({
+      id: ActionIds.BreakDown,
+      callback: breakDownTask,
+      category: Categories.Agent,
+      name: "Break Down Subtasks",
+      description: "Break down the current task using Koso Agent",
+      icon: Sparkles,
+      enabled: () =>
+        !!planningCtx.selected &&
+        koso.getTask(planningCtx.selected.name).isTask() &&
+        koso.getStatus(planningCtx.selected.name) !== "Done" &&
+        koso.getChildCount(planningCtx.selected.name) === 0,
     }),
   ];
 

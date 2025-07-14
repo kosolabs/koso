@@ -34,7 +34,8 @@
 
   let offline: boolean = $derived(socket.offline);
 
-  let summary = new AnthropicStream(
+  let summary = new AnthropicStream();
+  summary.fetch(
     `/api/anthropic/summarize?projectId=${projectId}&taskId=${taskId}&simulate=${simulate}&model=claude-sonnet-4-20250514`,
     {
       method: "GET",
@@ -139,7 +140,10 @@
   </h2>
   <hr />
   <div class="flex flex-col gap-2 rounded-md border p-2">
-    <Markdown value={summary.stream} options={{ breaks: true, gfm: true }}>
+    <Markdown
+      value={summary.stream.join("")}
+      options={{ breaks: true, gfm: true }}
+    >
       {#snippet blockquote(props)}
         <MarkdownBlockquote class="border border-l-4 p-2" {...props} />
       {/snippet}

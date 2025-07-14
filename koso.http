@@ -11,6 +11,13 @@ GET http://localhost:3000/api/profile
 Content-Type: application/json
 Authorization: Bearer {{token}}
 /*
+# Projects
+*/
+###
+GET http://localhost:3000/api/projects
+Content-Type: application/json
+Authorization: Bearer {{token}}
+/*
 # Notifiers
 */
 ###
@@ -60,11 +67,25 @@ Authorization: Bearer {{token}}
 /*
 # Anthropic
 */
+/*
+## Summarize Task
+*/
 ###
-GET http://localhost:3000/api/anthropic/summarize?projectId={{projectId}}&taskId={{iterationTaskId}}&model=claude-3-5-haiku-20241022
+GET http://localhost:3000/api/anthropic/summarize?simulate=true&projectId={{projectId}}&taskId={{iterationTaskId}}&model=claude-sonnet-4-20250514
 Content-Type: application/json
 Authorization: Bearer {{token}}
 ###
 GET http://localhost:3000/api/anthropic/summarize?projectId={{projectId}}&taskId={{iterationTaskId}}&model=claude-sonnet-4-20250514
+Content-Type: application/json
+Authorization: Bearer {{token}}
+/*
+## Breakdown Task
+*/
+###
+GET http://localhost:3000/api/anthropic/breakdown?simulate=true&projectId={{projectId}}&taskId={{iterationTaskId}}&model=claude-sonnet-4-20250514
+Content-Type: application/json
+Authorization: Bearer {{token}}
+###
+GET http://localhost:3000/api/anthropic/breakdown?projectId={{projectId}}&taskId={{iterationTaskId}}&model=claude-sonnet-4-20250514
 Content-Type: application/json
 Authorization: Bearer {{token}}

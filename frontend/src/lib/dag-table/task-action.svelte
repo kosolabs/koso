@@ -37,6 +37,7 @@
       ActionIds.Block,
 
       ActionIds.DashView,
+      ActionIds.BreakDown,
     ]
       .map((id) => command.get(id))
       .filter((action) => action !== undefined)

@@ -9,6 +9,7 @@
 
   export const Categories = {
     Account: "Account",
+    Agent: "Agent",
     Edit: "Edit",
     Graph: "Graph",
     Navigation: "Navigation",
@@ -25,6 +26,7 @@
   export const ActionIds = {
     Archive: "Archive",
     Block: "Block",
+    BreakDown: "BreakDown",
     Clear: "Clear",
     Collapse: "Collapse",
     CollapseAll: "CollapseAll",
