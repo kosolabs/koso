@@ -5,7 +5,6 @@ use crate::{
 use anyhow::{Context, Result, anyhow};
 use axum::{Extension, Router, body::Body, extract::Query, response::Response, routing::get};
 use futures::{StreamExt, stream};
-use reqwest::RequestBuilder;
 use serde_json::to_string;
 use sqlx::postgres::PgPool;
 use std::{collections::BTreeSet, hash::Hash};
@@ -34,6 +33,14 @@ struct AnthropicContent {
     cache_control: Option<AnthropicCacheControl>,
 }
 
+fn text(text: impl Into<String>) -> AnthropicContent {
+    AnthropicContent {
+        r#type: "text".into(),
+        text: text.into(),
+        cache_control: None,
+    }
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct AnthropicMessage {
     role: String,
@@ -44,9 +51,9 @@ struct AnthropicMessage {
 struct AnthropicMessageRequest {
     model: String,
     max_tokens: u32,
+    stream: Option<bool>,
     system: Vec<AnthropicContent>,
     messages: Vec<AnthropicMessage>,
-    stream: Option<bool>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -66,15 +73,6 @@ struct AnthropicMessageResponse {
     stop_reason: Option<String>,
     stop_sequence: Option<String>,
     usage: AnthropicUsage,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub(super) struct SummarizeTaskRequest {
-    project_id: String,
-    task_id: String,
-    model: String,
-    simulate: Option<bool>,
 }
 
 #[derive(Clone)]
@@ -99,12 +97,16 @@ impl AnthropicClient {
             .data)
     }
 
-    fn message_builder(&self) -> Result<RequestBuilder> {
+    async fn message(&self, message: &AnthropicMessageRequest) -> Result<reqwest::Response> {
         Ok(self
             .client
             .post("https://api.anthropic.com/v1/messages")
             .header("x-api-key", self.token()?)
-            .header("anthropic-version", "2023-06-01"))
+            .header("anthropic-version", "2023-06-01")
+            .json(message)
+            .send()
+            .await?
+            .error_for_status()?)
     }
 
     // async fn breakdown(&self, model: &str, context: &str, task: &Task) -> Result<String> {
@@ -115,7 +117,17 @@ pub(super) fn router() -> Result<Router> {
 
     Ok(Router::new()
         .route("/summarize", get(summarize_handler))
+        .route("/breakdown", get(breakdown_handler))
         .layer(Extension(client)))
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct SummarizeTaskRequest {
+    project_id: String,
+    task_id: String,
+    model: String,
+    simulate: Option<bool>,
 }
 
 #[tracing::instrument(skip(user, pool, collab, client))]
@@ -178,43 +190,103 @@ pub(super) async fn summarize_handler(
     .collect::<Result<Vec<Task>>>()?;
 
     let response = client
-        .message_builder()?
-        .json(&AnthropicMessageRequest {
+        .message(&AnthropicMessageRequest {
             model: req.model.clone(),
             max_tokens: 8192,
             stream: Some(true),
-            system: vec![AnthropicContent {
-                r#type: "text".into(),
-                text: "Attached is a JSON document that represents an iteration in a project plan. The plan is represented as a graph of tasks where relationships between tasks are expressed using the children field.".into(),
-                cache_control: Some({
-                    AnthropicCacheControl {
-                        r#type: "ephemeral".into(),
-                    }
-                }),
-            }],
+            system: vec![
+                text("Render a one or two sentence summary in Markdown for each of the following sections: Goal, Completed Work, Remaining Work, Key Risks, Next Step")
+            ],
             messages: vec![AnthropicMessage {
                 role: "user".into(),
                 content: vec![
-                    AnthropicContent {
-                        r#type: "text".into(),
-                        text: to_string(&tasks)?,
-                        cache_control: None,
-                    },
-                    AnthropicContent {
-                        r#type: "text".into(),
-                        text: "Render a one or two sentence summary in Markdown for each of the following sections: Goal, Completed Work, Remaining Work, Key Risks, Next Step".into(),
-                        cache_control: Some({
-                            AnthropicCacheControl {
-                                r#type: "ephemeral".into(),
-                            }
-                        }),
-                    },
+                    text("Attached is a JSON document that represents an iteration in a project plan. The plan is represented as a graph of tasks where relationships between tasks are expressed using the children field."),
+                    text(to_string(&tasks)?),
                 ],
             }],
+        }).await?;
+
+    Ok(Response::builder()
+        .status(200)
+        .body(Body::from_stream(response.bytes_stream()))?)
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct BreakdownTaskRequest {
+    project_id: String,
+    task_id: String,
+    model: String,
+    simulate: Option<bool>,
+}
+
+#[tracing::instrument(skip(user, pool, collab, client))]
+pub(super) async fn breakdown_handler(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+    Extension(collab): Extension<Collab>,
+    Extension(client): Extension<AnthropicClient>,
+    req: Query<BreakdownTaskRequest>,
+) -> ApiResult<Response> {
+    verify_project_access(pool, &user, &req.project_id).await?;
+    verify_premium(pool, &user).await?;
+
+    if req.simulate.unwrap_or(false) {
+        return simulate("breakdown").await;
+    }
+
+    let llm_context = sqlx::query_as::<_, (String,)>(
+        "
+        SELECT llm_context
+        FROM projects
+        WHERE project_id = $1
+        ",
+    )
+    .bind(&req.project_id)
+    .fetch_optional(pool)
+    .await?
+    .map(|f| f.0);
+
+    let ydoc = collab.get_doc(&req.project_id).await?;
+    let txn = ydoc.transact();
+
+    let ytask = ydoc.get(&txn, &req.task_id)?;
+    let task_name = ytask.get_name(&txn)?;
+    let task_desc = ytask.get_desc(&txn)?;
+
+    tracing::info!(llm_context);
+
+    let content = {
+        let mut content = Vec::<AnthropicContent>::new();
+
+        if let Some(llm_context) = llm_context {
+            content.push(text("Task break down project description context:"));
+            content.push(text(llm_context));
+        }
+
+        content.push(text("Task:"));
+        content.push(text(task_name));
+        if let Some(task_desc) = task_desc {
+            content.push(text(task_desc));
+        }
+
+        content
+    };
+
+    let response = client
+        .message(&AnthropicMessageRequest {
+            model: req.model.clone(),
+            max_tokens: 8192,
+            stream: Some(true),
+            system: vec![text(
+                "Break down the task into its first order tasks, one per line, without any preamble.",
+            )],
+            messages: vec![AnthropicMessage {
+                role: "user".into(),
+                content,
+            }],
         })
-        .send()
-        .await?
-        .error_for_status()?;
+        .await?;
 
     Ok(Response::builder()
         .status(200)
@@ -223,7 +295,9 @@ pub(super) async fn summarize_handler(
 
 async fn simulate(method: &str) -> ApiResult<Response> {
     let data = if method == "summarize" {
-        include_str!("summarize.txt")
+        include_str!("anthropic/summarize.txt")
+    } else if method == "breakdown" {
+        include_str!("anthropic/breakdown.txt")
     } else {
         return Err(anyhow!("Invalid method").into());
     };

@@ -31,15 +31,24 @@ function isAnthropicContentBlockDelta(
 }
 
 export class AnthropicStream {
-  running = $state(true);
-  stream = $state("");
-  response: Promise<Response>;
+  running: boolean = $state(true);
+  stream: string[] = $state([]);
+  response: Promise<Response> | undefined;
+  #lineSubscribers: ((line: string) => void)[] = [];
+  #lineBuffer: LineBuffer = new LineBuffer((line) => {
+    this.#lineSubscribers.forEach((subscriber) => subscriber(line));
+  });
 
-  constructor(input: RequestInfo | URL, init?: RequestInit) {
-    this.response = this.fetch(input, init);
+  onLine(subscriber: (line: string) => void): AnthropicStream {
+    this.#lineSubscribers.push(subscriber);
+    return this;
   }
 
-  private async fetch(
+  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    return this.#fetch(input, init);
+  }
+
+  async #fetch(
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> {
@@ -59,17 +68,51 @@ export class AnthropicStream {
           if (line.startsWith("data:")) {
             const data = JSON.parse(line.slice(5));
             if (isAnthropicContentBlockStart(data)) {
-              this.stream = "";
+              this.stream = [];
             } else if (isAnthropicContentBlockDelta(data)) {
-              this.stream += data.delta.text;
+              this.#lineBuffer?.addToken(data.delta.text);
+              this.stream.push(data.delta.text);
             }
           }
         }
       }
     } finally {
+      this.#lineBuffer?.flush();
       reader.releaseLock();
     }
     this.running = false;
     return response;
+  }
+}
+
+class LineBuffer {
+  private buffer: string = "";
+  private onLine: (line: string) => void;
+
+  constructor(onLine: (line: string) => void) {
+    this.onLine = onLine;
+  }
+
+  addToken(token: string): void {
+    this.buffer += token;
+
+    // Check for complete lines
+    const lines = this.buffer.split("\n");
+
+    // Keep the last incomplete line in the buffer
+    this.buffer = lines.pop() || "";
+
+    // Emit all complete lines
+    for (const line of lines) {
+      this.onLine(line);
+    }
+  }
+
+  flush(): void {
+    // Emit any remaining content as a final line
+    if (this.buffer.length > 0) {
+      this.onLine(this.buffer);
+      this.buffer = "";
+    }
   }
 }
