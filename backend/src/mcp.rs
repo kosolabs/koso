@@ -73,5 +73,5 @@ pub(super) fn router() -> Result<Router> {
         LocalSessionManager::default().into(),
         Default::default(),
     );
-    Ok(Router::new().nest_service("/server", service))
+    Ok(Router::new().route_service("/sse", service))
 }
