@@ -17,7 +17,7 @@ use rand::random;
 use std::{fmt, ops::ControlFlow, sync::Arc, time::Duration};
 use tokio::sync::mpsc::Receiver;
 use tokio::{sync::mpsc::Sender, time::timeout};
-use tokio_tungstenite::tungstenite::error::ProtocolError;
+use tokio_tungstenite::tungstenite::{self, error::ProtocolError};
 use uuid::Uuid;
 use yrs::{
     StateVector, Update,
@@ -140,16 +140,16 @@ impl ClientMessageReceiver {
             Err(e) => {
                 let e = e.into_inner();
                 match e.downcast_ref() {
-                    Some(ProtocolError::ResetWithoutClosingHandshake) => {
-                        ControlFlow::Break(ClientClosure {
-                            code: CLOSE_ERROR,
-                            reason: "Client reset connection without closing handshake.",
-                            details: format!(
-                                "Client reset connection without closing handshake: {e:#}"
-                            ),
-                            client_initiated: true,
-                        })
-                    }
+                    Some(tungstenite::Error::Protocol(
+                        ProtocolError::ResetWithoutClosingHandshake,
+                    )) => ControlFlow::Break(ClientClosure {
+                        code: CLOSE_ERROR,
+                        reason: "Client reset connection without closing handshake.",
+                        details: format!(
+                            "Client reset connection without closing handshake: {e:#}"
+                        ),
+                        client_initiated: true,
+                    }),
                     _ => {
                         tracing::warn!(
                             "Got error reading from client socket. Will close socket. {e:?}"
