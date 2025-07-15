@@ -315,14 +315,14 @@ impl headers::Header for XForwardedFor {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) trait IntoApiResult<T, E> {
-    #[allow(dead_code)]
     fn context_status(self, status: StatusCode, reason: &'static str, msg: &str) -> ApiResult<T>;
-    #[allow(dead_code)]
-    fn context_internal(self, msg: &str) -> ApiResult<T>;
+    fn context_bad_request(self, reason: &'static str, msg: &str) -> ApiResult<T>;
     fn context_unauthenticated(self, msg: &str) -> ApiResult<T>;
     fn context_unauthorized(self, msg: &str) -> ApiResult<T>;
-    fn context_bad_request(self, reason: &'static str, msg: &str) -> ApiResult<T>;
+    fn context_not_found(self, msg: &str) -> ApiResult<T>;
+    fn context_internal(self, msg: &str) -> ApiResult<T>;
 }
 
 impl<T, E> IntoApiResult<T, E> for Result<T, E>
@@ -336,10 +336,10 @@ where
         }
     }
 
-    fn context_internal(self, msg: &str) -> ApiResult<T> {
+    fn context_bad_request(self, reason: &'static str, msg: &str) -> ApiResult<T> {
         match self {
             Ok(ok) => Ok(ok),
-            Err(error) => Err(error.context_internal(msg)),
+            Err(error) => Err(error.context_bad_request(reason, msg)),
         }
     }
 
@@ -357,20 +357,28 @@ where
         }
     }
 
-    fn context_bad_request(self, reason: &'static str, msg: &str) -> ApiResult<T> {
+    fn context_not_found(self, msg: &str) -> ApiResult<T> {
         match self {
             Ok(ok) => Ok(ok),
-            Err(error) => Err(error.context_bad_request(reason, msg)),
+            Err(error) => Err(error.context_not_found(msg)),
+        }
+    }
+
+    fn context_internal(self, msg: &str) -> ApiResult<T> {
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(error) => Err(error.context_internal(msg)),
         }
     }
 }
 
 trait IntoErrorResponse<E> {
     fn context_status(self, status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse;
-    fn context_internal(self, msg: &str) -> ErrorResponse;
+    fn context_bad_request(self, reason: &'static str, msg: &str) -> ErrorResponse;
     fn context_unauthenticated(self, msg: &str) -> ErrorResponse;
     fn context_unauthorized(self, msg: &str) -> ErrorResponse;
-    fn context_bad_request(self, reason: &'static str, msg: &str) -> ErrorResponse;
+    fn context_not_found(self, msg: &str) -> ErrorResponse;
+    fn context_internal(self, msg: &str) -> ErrorResponse;
 }
 
 impl<E> IntoErrorResponse<E> for E
@@ -381,8 +389,8 @@ where
         error_response(status, reason, msg, Some(self.into()))
     }
 
-    fn context_internal(self, msg: &str) -> ErrorResponse {
-        self.context_status(StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL", msg)
+    fn context_bad_request(self, reason: &'static str, msg: &str) -> ErrorResponse {
+        self.context_status(StatusCode::BAD_REQUEST, reason, msg)
     }
 
     fn context_unauthenticated(self, msg: &str) -> ErrorResponse {
@@ -393,7 +401,11 @@ where
         self.context_status(StatusCode::FORBIDDEN, "UNAUTHORIZED", msg)
     }
 
-    fn context_bad_request(self, reason: &'static str, msg: &str) -> ErrorResponse {
-        self.context_status(StatusCode::BAD_REQUEST, reason, msg)
+    fn context_not_found(self, msg: &str) -> ErrorResponse {
+        self.context_status(StatusCode::NOT_FOUND, "NOT_FOUND", msg)
+    }
+
+    fn context_internal(self, msg: &str) -> ErrorResponse {
+        self.context_status(StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL", msg)
     }
 }
