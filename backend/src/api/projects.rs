@@ -10,7 +10,7 @@ use crate::api::{
         CreateProject, Project, ProjectExport, ProjectId, ProjectUser, UpdateProjectUsers,
         UpdateProjectUsersResponse,
     },
-    verify_premium, verify_project_access,
+    not_found_error, verify_premium, verify_project_access,
     yproxy::YDocProxy,
 };
 use anyhow::{Context, Result};
@@ -154,11 +154,10 @@ async fn get_project_handler(
 ) -> ApiResult<Json<Project>> {
     verify_project_access(pool, &user, &project_id).await?;
 
-    Ok(Json(
-        fetch_project(pool, &project_id)
-            .await?
-            .context("Missing project")?,
-    ))
+    let Some(project) = fetch_project(pool, &project_id).await? else {
+        return Err(not_found_error("NOT_FOUND", "Project not found"));
+    };
+    Ok(Json(project))
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -208,11 +207,10 @@ async fn delete_project_handler(
     .execute(pool)
     .await?;
 
-    Ok(Json(
-        fetch_project(pool, &project_id)
-            .await?
-            .context("Missing project")?,
-    ))
+    let Some(project) = fetch_project(pool, &project_id).await? else {
+        return Err(not_found_error("NOT_FOUND", "Project not found"));
+    };
+    Ok(Json(project))
 }
 
 #[tracing::instrument(skip(user, pool))]
