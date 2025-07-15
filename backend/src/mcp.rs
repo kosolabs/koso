@@ -4,10 +4,12 @@ use crate::api::{
         projects_state::DocBox,
         txn_origin::{Actor, YOrigin},
     },
+    google::User,
     model::{Project, Task},
     projects::{fetch_project, list_projects},
+    verify_project_access,
 };
-use anyhow::{Context as _, Result};
+use anyhow::{Context as _, Result, anyhow};
 use axum::Router;
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use regex::Regex;
@@ -27,6 +29,7 @@ use serde_json::Value;
 use sqlx::PgPool;
 use std::{cell::LazyCell, sync::Arc};
 use tokio_util::sync::CancellationToken;
+use uuid::Uuid;
 
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
@@ -57,28 +60,43 @@ impl KosoTools {
         }
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, context), fields(request_id, session_id=context.id.to_string()))]
     #[tool(
         name = "create_task",
         description = "Create a new task in a Koso project"
     )]
     async fn create_task(
         &self,
-        Parameters(params): Parameters<CreateTaskParam>,
+        Parameters(request): Parameters<CreateTaskParam>,
+        context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, McpError> {
+        let request_id = Uuid::new_v4().to_string();
+        tracing::Span::current().record("request_id", &request_id);
+
+        let user = userr();
         let task = self
-            ._create_task(params)
+            ._create_task(request, context, user, request_id)
             .await
             .map_err(|e| McpError::internal_error("Failed to create task", Some(Value::Null)))?;
 
         Ok(CallToolResult::success(vec![task]))
     }
 
-    async fn _create_task(&self, params: CreateTaskParam) -> Result<Content> {
+    async fn _create_task(
+        &self,
+        request: CreateTaskParam,
+        context: RequestContext<RoleServer>,
+        user: User,
+        request_id: String,
+    ) -> Result<Content> {
+        verify_project_access(self.inner.pool, &user, &request.project_id)
+            .await
+            .map_err(|e| anyhow!("No access"))?;
+
         let client = self
             .inner
             .collab
-            .register_local_client(&params.project_id)
+            .register_local_client(&request.project_id)
             .await?;
 
         let doc = client.project.doc_box.lock().await;
@@ -86,9 +104,9 @@ impl KosoTools {
         let doc = &doc.ydoc;
         let mut txn = doc.transact_mut_with(
             YOrigin {
-                who: "mcptodo".to_string(),
-                id: "mcptodo".to_string(),
-                actor: Actor::Server,
+                who: format!("mcp-session-{}", context.id),
+                id: request_id,
+                actor: Actor::User(user),
             }
             .as_origin()?,
         );
@@ -104,7 +122,7 @@ impl KosoTools {
             &Task {
                 id: id.clone(),
                 num,
-                name: params.name,
+                name: request.name,
                 kind: None,
                 ..Task::default()
             },
@@ -115,20 +133,26 @@ impl KosoTools {
         let task = task.to_task(&txn)?;
 
         Ok(Content::resource(ResourceContents::TextResourceContents {
-            uri: format!("task://projects/{}/tasks/{}", params.project_id, task.id),
+            uri: format!("task://projects/{}/tasks/{}", request.project_id, task.id),
             mime_type: Some("application/json".to_string()),
             text: serde_json::to_string(&task)?,
         }))
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, context), fields(request_id, session_id=context.id.to_string()))]
     #[tool(
         name = "list_projects",
         description = "List my Koso projects",
         annotations(read_only_hint = true)
     )]
-    async fn list_projects(&self) -> Result<CallToolResult, McpError> {
-        let projects: Vec<Project> = list_projects("leonhard.kyle@gmail.com", self.inner.pool)
+    async fn list_projects(
+        &self,
+        context: RequestContext<RoleServer>,
+    ) -> Result<CallToolResult, McpError> {
+        tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
+
+        let user = userr();
+        let projects: Vec<Project> = list_projects(&user.email, self.inner.pool)
             .await
             .map_err(|e| McpError::internal_error("Failed to list projects", Some(Value::Null)))?;
         let projects = projects
@@ -162,24 +186,27 @@ impl rmcp::ServerHandler for KosoTools {
         ServerInfo {
             instructions: Some("This server provides access to Koso projects and tasks".into()),
             capabilities: ServerCapabilities::builder()
-                .enable_completions()
+                // .enable_completions()
                 .enable_logging()
-                .enable_prompts()
+                //.enable_prompts()
                 .enable_tools()
                 .enable_resources()
-                .enable_tool_list_changed()
+                // .enable_tool_list_changed()
                 .build(),
             ..Default::default()
         }
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, context), fields(request_id, session_id=context.id.to_string()))]
     async fn list_resources(
         &self,
         _request: Option<PaginatedRequestParam>,
-        _: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, McpError> {
-        let projects: Vec<Project> = list_projects("leonhard.kyle@gmail.com", self.inner.pool)
+        tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
+
+        let user = userr();
+        let projects: Vec<Project> = list_projects(&user.email, self.inner.pool)
             .await
             .map_err(|e| McpError::internal_error("Failed to list projects", Some(Value::Null)))?;
         let projects = projects
@@ -198,12 +225,14 @@ impl rmcp::ServerHandler for KosoTools {
         })
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, context), fields(request_id, session_id=context.id.to_string()))]
     async fn list_resource_templates(
         &self,
         request: Option<PaginatedRequestParam>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourceTemplatesResult, McpError> {
+        tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
+
         let resource_templates = vec![
             ResourceTemplate::new(
                 RawResourceTemplate {
@@ -237,13 +266,15 @@ impl rmcp::ServerHandler for KosoTools {
         })
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, context), fields(request_id, session_id=context.id.to_string()))]
     async fn read_resource(
         &self,
         ReadResourceRequestParam { uri }: ReadResourceRequestParam,
-        _: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, McpError> {
-        match self._read_resource(&uri).await {
+        tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
+
+        match self._read_resource(&uri, userr()).await {
             Ok(None) => Err(McpError::resource_not_found("resource_not_found", None)),
             Ok(Some(resource)) => Ok(resource),
             Err(e) => {
@@ -263,7 +294,7 @@ thread_local! {
 }
 
 impl KosoTools {
-    async fn _read_resource(&self, uri: &str) -> Result<Option<ReadResourceResult>> {
+    async fn _read_resource(&self, uri: &str, user: User) -> Result<Option<ReadResourceResult>> {
         let uri = url::Url::parse(uri)?;
         match uri.scheme() {
             "projects" => {
@@ -275,6 +306,9 @@ impl KosoTools {
                 let Some(project_id) = project_id else {
                     return Ok(None);
                 };
+                verify_project_access(self.inner.pool, &user, &project_id.to_string())
+                    .await
+                    .map_err(|e| anyhow!("No access"))?;
 
                 match fetch_project(self.inner.pool, project_id).await {
                     Ok(None) => Ok(None),
@@ -304,6 +338,10 @@ impl KosoTools {
                 }) else {
                     return Ok(None);
                 };
+
+                verify_project_access(self.inner.pool, &user, &project_id.to_string())
+                    .await
+                    .map_err(|e| anyhow!("No access"))?;
 
                 let task = {
                     let client = self
@@ -379,3 +417,13 @@ async fn close_session(session: LocalSessionHandle) -> Result<()> {
 
 // TODO: Completions
 // TODO: Prompts
+
+// TODO
+fn userr() -> User {
+    User {
+        email: "leonhard.kyle@gmail.com".to_string(),
+        name: "Kyle".to_string(),
+        picture: "".to_string(),
+        exp: 1,
+    }
+}
