@@ -68,6 +68,13 @@ Authorization: Bearer {{token}}
 # Anthropic
 */
 /*
+## Context
+*/
+###
+GET http://localhost:3000/api/anthropic/context?projectId={{projectId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+/*
 ## Summarize Task
 */
 ###

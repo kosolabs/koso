@@ -1,15 +1,18 @@
 use crate::{
-    api::{ApiResult, collab::Collab, google::User, verify_premium, verify_project_access},
+    api::{
+        ApiResult, IntoApiResult, collab::Collab, google::User, verify_premium,
+        verify_project_access,
+    },
     secrets::{Secret, read_secret},
 };
 use anyhow::{Context, Result, anyhow};
-use axum::{Extension, Router, body::Body, extract::Query, response::Response, routing::get};
+use axum::{Extension, Json, Router, body::Body, extract::Query, response::Response, routing::get};
 use futures::{StreamExt, stream};
 use serde_json::to_string;
-use sqlx::postgres::PgPool;
-use std::{collections::BTreeSet, hash::Hash};
+use sqlx::{Pool, Postgres, postgres::PgPool};
+use std::collections::BTreeSet;
 
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Default, Hash)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct Task {
     id: String,
     num: String,
@@ -22,22 +25,15 @@ struct Task {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
-struct AnthropicCacheControl {
-    r#type: String,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct AnthropicContent {
     r#type: String,
     text: String,
-    cache_control: Option<AnthropicCacheControl>,
 }
 
-fn text(text: impl Into<String>) -> AnthropicContent {
+fn text(text: &str) -> AnthropicContent {
     AnthropicContent {
         r#type: "text".into(),
         text: text.into(),
-        cache_control: None,
     }
 }
 
@@ -56,27 +52,8 @@ struct AnthropicMessageRequest {
     messages: Vec<AnthropicMessage>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-struct AnthropicUsage {
-    cache_creation_input_tokens: u32,
-    cache_read_input_tokens: u32,
-    output_tokens: Option<u32>,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-struct AnthropicMessageResponse {
-    id: String,
-    r#type: String,
-    role: String,
-    model: String,
-    content: Vec<AnthropicContent>,
-    stop_reason: Option<String>,
-    stop_sequence: Option<String>,
-    usage: AnthropicUsage,
-}
-
 #[derive(Clone)]
-pub(super) struct AnthropicClient {
+struct AnthropicClient {
     client: reqwest::Client,
     token: Option<Secret<String>>,
 }
@@ -112,18 +89,41 @@ impl AnthropicClient {
     // async fn breakdown(&self, model: &str, context: &str, task: &Task) -> Result<String> {
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
+#[serde(rename_all = "camelCase")]
+struct ProjectContext {
+    project_id: String,
+    llm_context: Option<String>,
+}
+
+impl ProjectContext {
+    async fn fetch(pool: &Pool<Postgres>, project_id: &str) -> Result<ProjectContext> {
+        Ok(sqlx::query_as(
+            "
+            SELECT project_id, llm_context
+            FROM projects
+            WHERE project_id = $1
+            ",
+        )
+        .bind(project_id)
+        .fetch_one(pool)
+        .await?)
+    }
+}
+
 pub(super) fn router() -> Result<Router> {
     let client = AnthropicClient::new();
 
     Ok(Router::new()
         .route("/summarize", get(summarize_handler))
         .route("/breakdown", get(breakdown_handler))
-        .layer(Extension(client)))
+        .layer(Extension(client))
+        .route("/context", get(get_context_handler)))
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct SummarizeTaskRequest {
+struct SummarizeTaskRequest {
     project_id: String,
     task_id: String,
     model: String,
@@ -131,7 +131,7 @@ pub(super) struct SummarizeTaskRequest {
 }
 
 #[tracing::instrument(skip(user, pool, collab, client))]
-pub(super) async fn summarize_handler(
+async fn summarize_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Extension(collab): Extension<Collab>,
@@ -201,7 +201,7 @@ pub(super) async fn summarize_handler(
                 role: "user".into(),
                 content: vec![
                     text("Attached is a JSON document that represents an iteration in a project plan. The plan is represented as a graph of tasks where relationships between tasks are expressed using the children field."),
-                    text(to_string(&tasks)?),
+                    text(&to_string(&tasks)?),
                 ],
             }],
         }).await?;
@@ -213,7 +213,7 @@ pub(super) async fn summarize_handler(
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct BreakdownTaskRequest {
+struct BreakdownTaskRequest {
     project_id: String,
     task_id: String,
     model: String,
@@ -221,7 +221,7 @@ pub(super) struct BreakdownTaskRequest {
 }
 
 #[tracing::instrument(skip(user, pool, collab, client))]
-pub(super) async fn breakdown_handler(
+async fn breakdown_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
     Extension(collab): Extension<Collab>,
@@ -235,17 +235,16 @@ pub(super) async fn breakdown_handler(
         return simulate("breakdown").await;
     }
 
-    let llm_context = sqlx::query_as::<_, (Option<String>,)>(
+    let project: ProjectContext = sqlx::query_as(
         "
-        SELECT llm_context
+        SELECT project_id, llm_context
         FROM projects
         WHERE project_id = $1
         ",
     )
     .bind(&req.project_id)
     .fetch_one(pool)
-    .await?
-    .0;
+    .await?;
 
     let ydoc = collab.get_doc(&req.project_id).await?;
     let txn = ydoc.transact();
@@ -254,20 +253,20 @@ pub(super) async fn breakdown_handler(
     let task_name = ytask.get_name(&txn)?;
     let task_desc = ytask.get_desc(&txn)?;
 
-    tracing::info!(llm_context);
+    tracing::info!(project.llm_context);
 
     let content = {
         let mut content = Vec::<AnthropicContent>::new();
 
-        if let Some(llm_context) = llm_context {
+        if let Some(llm_context) = project.llm_context {
             content.push(text("Task break down project description context:"));
-            content.push(text(llm_context));
+            content.push(text(&llm_context));
         }
 
         content.push(text("Task:"));
-        content.push(text(task_name));
+        content.push(text(&task_name));
         if let Some(task_desc) = task_desc {
-            content.push(text(task_desc));
+            content.push(text(&task_desc));
         }
 
         content
@@ -316,4 +315,24 @@ async fn simulate(method: &str) -> ApiResult<Response> {
     Ok(Response::builder()
         .status(200)
         .body(Body::from_stream(test_stream))?)
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct ProjectContextRequest {
+    project_id: String,
+}
+
+#[tracing::instrument(skip(user, pool))]
+async fn get_context_handler(
+    Extension(user): Extension<User>,
+    Extension(pool): Extension<&'static PgPool>,
+    req: Query<ProjectContextRequest>,
+) -> ApiResult<Json<ProjectContext>> {
+    verify_project_access(pool, &user, &req.project_id).await?;
+    Ok(Json(
+        ProjectContext::fetch(pool, &req.project_id)
+            .await
+            .context_not_found(&format!("Project ID {} not found", req.project_id))?,
+    ))
 }
