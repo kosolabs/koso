@@ -1,13 +1,16 @@
-use crate::api::{
-    collab::{
-        Collab,
-        projects_state::DocBox,
-        txn_origin::{Actor, YOrigin},
+use crate::{
+    api::{
+        collab::{
+            Collab,
+            projects_state::DocBox,
+            txn_origin::{Actor, YOrigin},
+        },
+        google::User,
+        model::{Project, Task},
+        projects::{fetch_project, list_projects},
+        verify_project_access,
     },
-    google::User,
-    model::{Project, Task},
-    projects::{fetch_project, list_projects},
-    verify_project_access,
+    settings,
 };
 use anyhow::{Context as _, Result, anyhow};
 use axum::Router;
@@ -387,6 +390,11 @@ pub(super) fn router(
     pool: &'static PgPool,
     cancel: CancellationToken,
 ) -> Result<Router> {
+    // TODO: Enable this outside of dev when complete.
+    if !settings::settings().is_dev() {
+        return Ok(Router::new());
+    }
+
     let session_manager = Arc::new(LocalSessionManager::default());
     let service = StreamableHttpService::new(
         move || Ok(KosoTools::new(collab.clone(), pool)),
