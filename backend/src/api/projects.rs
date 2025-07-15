@@ -45,13 +45,12 @@ async fn list_projects_handler(
     Extension(user): Extension<User>,
     Extension(pool): Extension<&'static PgPool>,
 ) -> ApiResult<Json<Vec<Project>>> {
-    let mut projects = list_projects(&user.email, pool).await?;
-    projects.sort_by(|a, b| a.name.cmp(&b.name).then(a.project_id.cmp(&b.project_id)));
+    let projects: Vec<Project> = list_projects(&user.email, pool).await?;
     Ok(Json(projects))
 }
 
-async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>> {
-    let projects: Vec<Project> = sqlx::query_as(
+pub(crate) async fn list_projects(email: &str, pool: &PgPool) -> Result<Vec<Project>> {
+    let mut projects: Vec<Project> = sqlx::query_as(
         "
         SELECT
           project_id,
@@ -64,6 +63,7 @@ async fn list_projects(email: &String, pool: &PgPool) -> Result<Vec<Project>> {
     .bind(email)
     .fetch_all(pool)
     .await?;
+    projects.sort_by(|a, b| a.name.cmp(&b.name).then(a.project_id.cmp(&b.project_id)));
 
     Ok(projects)
 }
@@ -154,7 +154,11 @@ async fn get_project_handler(
 ) -> ApiResult<Json<Project>> {
     verify_project_access(pool, &user, &project_id).await?;
 
-    Ok(Json(fetch_project(pool, &project_id).await?))
+    Ok(Json(
+        fetch_project(pool, &project_id)
+            .await?
+            .context("Missing project")?,
+    ))
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -204,7 +208,11 @@ async fn delete_project_handler(
     .execute(pool)
     .await?;
 
-    Ok(Json(fetch_project(pool, &project_id).await?))
+    Ok(Json(
+        fetch_project(pool, &project_id)
+            .await?
+            .context("Missing project")?,
+    ))
 }
 
 #[tracing::instrument(skip(user, pool))]
@@ -289,7 +297,7 @@ async fn get_project_doc_updates_handler(
     Ok(Json(updates))
 }
 
-async fn fetch_project(pool: &PgPool, project_id: &str) -> Result<Project> {
+pub(crate) async fn fetch_project(pool: &PgPool, project_id: &str) -> Result<Option<Project>> {
     Ok(sqlx::query_as(
         "
         SELECT
@@ -300,7 +308,7 @@ async fn fetch_project(pool: &PgPool, project_id: &str) -> Result<Project> {
         WHERE project_id = $1",
     )
     .bind(project_id)
-    .fetch_one(pool)
+    .fetch_optional(pool)
     .await?)
 }
 
