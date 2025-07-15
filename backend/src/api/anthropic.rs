@@ -235,7 +235,7 @@ pub(super) async fn breakdown_handler(
         return simulate("breakdown").await;
     }
 
-    let llm_context = sqlx::query_as::<_, (String,)>(
+    let llm_context = sqlx::query_as::<_, (Option<String>,)>(
         "
         SELECT llm_context
         FROM projects
@@ -243,9 +243,9 @@ pub(super) async fn breakdown_handler(
         ",
     )
     .bind(&req.project_id)
-    .fetch_optional(pool)
+    .fetch_one(pool)
     .await?
-    .map(|f| f.0);
+    .0;
 
     let ydoc = collab.get_doc(&req.project_id).await?;
     let txn = ydoc.transact();
@@ -273,20 +273,22 @@ pub(super) async fn breakdown_handler(
         content
     };
 
-    let response = client
-        .message(&AnthropicMessageRequest {
-            model: req.model.clone(),
-            max_tokens: 8192,
-            stream: Some(true),
-            system: vec![text(
-                "Break down the task into its first order tasks, one per line, without any preamble.",
-            )],
-            messages: vec![AnthropicMessage {
-                role: "user".into(),
-                content,
-            }],
-        })
-        .await?;
+    let message = AnthropicMessageRequest {
+        model: req.model.clone(),
+        max_tokens: 8192,
+        stream: Some(true),
+        system: vec![text(
+            "Break down the task into its first order tasks, one per line, without any preamble.",
+        )],
+        messages: vec![AnthropicMessage {
+            role: "user".into(),
+            content,
+        }],
+    };
+
+    tracing::debug!("AnthropicMessageRequest: {:?}", message);
+
+    let response = client.message(&message).await?;
 
     Ok(Response::builder()
         .status(200)
