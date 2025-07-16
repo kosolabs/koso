@@ -160,23 +160,23 @@ impl KosoTools {
         let projects: Vec<Project> = list_projects(&user.email, self.inner.pool).await?;
         let projects = projects
             .into_iter()
-            .map(to_resource_contents)
+            .map(Self::project_to_resource_content)
             .collect::<Result<Vec<_>>>()
             .context("Failed to serialize projects")?;
         Ok(CallToolResult::success(projects))
     }
-}
 
-fn to_resource_contents(project: Project) -> Result<Content> {
-    Ok(Content::resource(ResourceContents::TextResourceContents {
-        uri: format!("projects:///projects/{}", project.project_id),
-        mime_type: Some(
-            "application/json
+    fn project_to_resource_content(project: Project) -> Result<Content> {
+        Ok(Content::resource(ResourceContents::TextResourceContents {
+            uri: format!("projects:///projects/{}", project.project_id),
+            mime_type: Some(
+                "application/json
 "
-            .to_string(),
-        ),
-        text: serde_json::to_string(&project)?,
-    }))
+                .to_string(),
+            ),
+            text: serde_json::to_string(&project)?,
+        }))
+    }
 }
 
 // Implement the server handler
@@ -204,6 +204,16 @@ impl rmcp::ServerHandler for KosoTools {
     ) -> Result<ListResourcesResult, McpError> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
         Ok(self._list_resources(context).await?)
+    }
+
+    #[tracing::instrument(skip(self, context), fields(request_id, session_id=context.id.to_string()))]
+    async fn read_resource(
+        &self,
+        ReadResourceRequestParam { uri }: ReadResourceRequestParam,
+        context: RequestContext<RoleServer>,
+    ) -> Result<ReadResourceResult, McpError> {
+        tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
+        Ok(self._read_resource(&uri, context).await?)
     }
 
     #[tracing::instrument(skip(self, context), fields(request_id, session_id=context.id.to_string()))]
@@ -245,16 +255,6 @@ impl rmcp::ServerHandler for KosoTools {
             resource_templates,
             next_cursor: None,
         })
-    }
-
-    #[tracing::instrument(skip(self, context), fields(request_id, session_id=context.id.to_string()))]
-    async fn read_resource(
-        &self,
-        ReadResourceRequestParam { uri }: ReadResourceRequestParam,
-        context: RequestContext<RoleServer>,
-    ) -> Result<ReadResourceResult, McpError> {
-        tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
-        Ok(self._read_resource(&uri, context).await?)
     }
 }
 
@@ -358,7 +358,8 @@ impl KosoTools {
             let doc = DocBox::doc_or_error(doc.as_ref())?;
             let doc = &doc.ydoc;
             let txn = doc.transact();
-            doc.get(&txn, task_id).map(|task| task.to_task(&txn))??
+            let task = doc.get(&txn, task_id).context_not_found("Task not found")?;
+            task.to_task(&txn)?
         };
 
         Ok(ReadResourceResult {
@@ -376,11 +377,6 @@ pub(super) fn router(
     pool: &'static PgPool,
     cancel: CancellationToken,
 ) -> Result<Router> {
-    // TODO: Enable this outside of dev when complete.
-    if !settings::settings().is_dev() {
-        return Ok(Router::new());
-    }
-
     let session_manager = Arc::new(LocalSessionManager::default());
     let service = StreamableHttpService::new(
         move || Ok(KosoTools::new(collab.clone(), pool)),
