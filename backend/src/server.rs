@@ -100,13 +100,17 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
     let shutdown_signal = config.shutdown_signal;
 
     let app = Router::new()
-        .nest("/api", api::router()?.fallback(api::handler_404))
+        .nest(
+            "/api",
+            api::router()?
+                .nest(
+                    "/mcp",
+                    mcp::router(collab.clone(), pool, shutdown_signal.clone())?,
+                )
+                .fallback(api::handler_404),
+        )
         .nest("/healthz", healthz::router())
         .nest("/plugins/github", github_plugin.router()?)
-        .nest(
-            "/mcp",
-            mcp::router(collab.clone(), pool, shutdown_signal.clone())?,
-        )
         // Apply these layers to all non-static routes.
         // Layers that are applied first will be called first.
         .layer(

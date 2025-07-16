@@ -595,3 +595,30 @@ Create a new bot and configure the secrets.
 With setup complete you can interact with tasks and generate notifications. Note though that
 most self notifications are suppressed. Use [login_test_user.sh](backend/scripts/login_test_user.sh)
 to login as a test user, interact with tasks and trigger notifications.
+
+## MCP
+
+### One-time setup
+
+#### VS Code
+
+1. Open the command palette (`cmd+shift+p`) and run `MCP: Open User Configuration`
+1. Insert the Koso server
+   ```json
+   {
+     "servers": {
+       "koso-mcp": {
+         "url": "http://localhost:3000/api/mcp/sse",
+         "type": "http"
+       }
+     },
+     "inputs": []
+   }
+   ```
+1. Open a Copilot chat, click on `Configure tools` and enable Koso
+
+#### Claude Code
+
+1. Install Claude Code: `npm install -g @anthropic-ai/claude-code`
+1. Run the setup flow: `claude`
+1. Add Koso: `claude mcp add --transport http koso-mcp http://localhost:3000/api/mcp/sse`

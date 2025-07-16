@@ -46,15 +46,6 @@
       ["Variants.* \\=([^;]*);", "'([^']*)'"],
       ["Variants.* \\=([^;]*);", "\"([^\"]*)\""],
       ["Variants.* \\=([^;]*);", "\\`([^\\`]*)\\`"]
-    ],
-    "mcp": {
-      "servers": {
-        "koso-mcp": {
-          "url": "http://localhost:3000/mcp/sse",
-          "type": "http"
-        }
-      },
-      "inputs": []
-    }
+    ]
   }
 }
