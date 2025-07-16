@@ -15,7 +15,7 @@ use crate::{
     settings,
 };
 use anyhow::{Context as _, Result};
-use axum::Router;
+use axum::{Extension, Router, extract::FromRequestParts};
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use regex::Regex;
 use rmcp::{
@@ -78,10 +78,7 @@ impl KosoTools {
         let request_id = Uuid::new_v4().to_string();
         tracing::Span::current().record("request_id", &request_id);
 
-        let user = userr();
-        let task = self
-            ._create_task(request, context, user, request_id)
-            .await?;
+        let task = self._create_task(request, context, request_id).await?;
 
         Ok(CallToolResult::success(vec![task]))
     }
@@ -89,10 +86,10 @@ impl KosoTools {
     async fn _create_task(
         &self,
         request: CreateTaskParam,
-        context: RequestContext<RoleServer>,
-        user: User,
+        mut context: RequestContext<RoleServer>,
         request_id: String,
     ) -> ApiResult<Content> {
+        let user = user_extension(&mut context).await?;
         verify_project_access(self.inner.pool, &user, &request.project_id).await?;
 
         let client = self
@@ -152,11 +149,14 @@ impl KosoTools {
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, McpError> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
-        let user = userr();
-        Ok(self._list_projects(user).await?)
+        Ok(self._list_projects(context).await?)
     }
 
-    async fn _list_projects(&self, user: User) -> ApiResult<CallToolResult> {
+    async fn _list_projects(
+        &self,
+        mut context: RequestContext<RoleServer>,
+    ) -> ApiResult<CallToolResult> {
+        let user = user_extension(&mut context).await?;
         let projects: Vec<Project> = list_projects(&user.email, self.inner.pool).await?;
         let projects = projects
             .into_iter()
@@ -187,12 +187,10 @@ impl rmcp::ServerHandler for KosoTools {
         ServerInfo {
             instructions: Some("This server provides access to Koso projects and tasks".into()),
             capabilities: ServerCapabilities::builder()
-                // .enable_completions()
                 .enable_logging()
-                //.enable_prompts()
+                .enable_prompts()
                 .enable_tools()
                 .enable_resources()
-                // .enable_tool_list_changed()
                 .build(),
             ..Default::default()
         }
@@ -205,8 +203,7 @@ impl rmcp::ServerHandler for KosoTools {
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, McpError> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
-        let user = userr();
-        Ok(self._list_resources(user).await?)
+        Ok(self._list_resources(context).await?)
     }
 
     #[tracing::instrument(skip(self, context), fields(request_id, session_id=context.id.to_string()))]
@@ -257,7 +254,7 @@ impl rmcp::ServerHandler for KosoTools {
         context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, McpError> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
-        Ok(self._read_resource(&uri, userr()).await?)
+        Ok(self._read_resource(&uri, context).await?)
     }
 }
 
@@ -267,7 +264,11 @@ thread_local! {
 }
 
 impl KosoTools {
-    async fn _list_resources(&self, user: User) -> ApiResult<ListResourcesResult> {
+    async fn _list_resources(
+        &self,
+        mut context: RequestContext<RoleServer>,
+    ) -> ApiResult<ListResourcesResult> {
+        let user = user_extension(&mut context).await?;
         let projects: Vec<Project> = list_projects(&user.email, self.inner.pool)
             .await
             .context_internal("Failed to list projects")?;
@@ -287,7 +288,12 @@ impl KosoTools {
         })
     }
 
-    async fn _read_resource(&self, uri: &str, user: User) -> ApiResult<ReadResourceResult> {
+    async fn _read_resource(
+        &self,
+        uri: &str,
+        mut context: RequestContext<RoleServer>,
+    ) -> ApiResult<ReadResourceResult> {
+        let user = user_extension(&mut context).await?;
         let uri = url::Url::parse(uri).context_bad_request("invalid_uri", "Invalid URI")?;
         match uri.scheme() {
             "projects" => self.read_project(uri, user).await,
@@ -388,7 +394,15 @@ pub(super) fn router(
             tracing::warn!("Failed to shutdown MCP server: {e:#}")
         }
     });
-    Ok(Router::new().route_service("/sse", service))
+    Ok(Router::new()
+        .route_service("/sse", service)
+        // TODO: Implement auth
+        .layer(Extension(User {
+            email: "leonhard.kyle@gmail.com".to_string(),
+            name: "Kyle".to_string(),
+            picture: "".to_string(),
+            exp: 1,
+        })))
 }
 
 async fn shutdown_mcp_server(session_manager: Arc<LocalSessionManager>) -> Result<()> {
@@ -403,15 +417,13 @@ async fn close_session(session: LocalSessionHandle) -> Result<()> {
     session.close().await.context("Failed to close session")
 }
 
-// TODO: Completions
-// TODO: Prompts
-
-// TODO
-fn userr() -> User {
-    User {
-        email: "leonhard.kyle@gmail.com".to_string(),
-        name: "Kyle".to_string(),
-        picture: "".to_string(),
-        exp: 1,
-    }
+async fn user_extension(context: &mut RequestContext<RoleServer>) -> Result<User> {
+    let parts = context
+        .extensions
+        .get_mut::<axum::http::request::Parts>()
+        .context("Missing axum extension")?;
+    let Extension(user): Extension<User> = Extension::from_request_parts(parts, &())
+        .await
+        .context("Missing user extension")?;
+    Ok(user)
 }
