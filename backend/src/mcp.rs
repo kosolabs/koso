@@ -1,18 +1,15 @@
-use crate::{
-    api::{
-        ApiResult, IntoApiResult,
-        collab::{
-            Collab,
-            projects_state::DocBox,
-            txn_origin::{Actor, YOrigin},
-        },
-        google::{self, User},
-        model::{Project, Task},
-        not_found_error,
-        projects::{fetch_project, list_projects},
-        verify_project_access,
+use crate::api::{
+    ApiResult, IntoApiResult,
+    collab::{
+        Collab,
+        projects_state::DocBox,
+        txn_origin::{Actor, YOrigin},
     },
-    settings,
+    google::{self, User},
+    model::{Project, Task},
+    not_found_error,
+    projects::{fetch_project, list_projects},
+    verify_project_access,
 };
 use anyhow::{Context as _, Result};
 use axum::{Extension, Router, extract::FromRequestParts, middleware};
