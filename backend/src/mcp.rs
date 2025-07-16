@@ -6,7 +6,7 @@ use crate::{
             projects_state::DocBox,
             txn_origin::{Actor, YOrigin},
         },
-        google::User,
+        google::{self, User},
         model::{Project, Task},
         not_found_error,
         projects::{fetch_project, list_projects},
@@ -15,7 +15,7 @@ use crate::{
     settings,
 };
 use anyhow::{Context as _, Result};
-use axum::{Extension, Router, extract::FromRequestParts};
+use axum::{Extension, Router, extract::FromRequestParts, middleware};
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use regex::Regex;
 use rmcp::{
@@ -396,13 +396,7 @@ pub(super) fn router(
     });
     Ok(Router::new()
         .route_service("/sse", service)
-        // TODO: Implement auth
-        .layer(Extension(User {
-            email: "leonhard.kyle@gmail.com".to_string(),
-            name: "Kyle".to_string(),
-            picture: "".to_string(),
-            exp: 1,
-        })))
+        .layer(middleware::from_fn(google::authenticate)))
 }
 
 async fn shutdown_mcp_server(session_manager: Arc<LocalSessionManager>) -> Result<()> {
