@@ -1,5 +1,6 @@
 use crate::{
     api::{
+        ApiResult, IntoApiResult,
         collab::{
             Collab,
             projects_state::DocBox,
@@ -7,12 +8,13 @@ use crate::{
         },
         google::User,
         model::{Project, Task},
+        not_found_error,
         projects::{fetch_project, list_projects},
         verify_project_access,
     },
     settings,
 };
-use anyhow::{Context as _, Result, anyhow};
+use anyhow::{Context as _, Result};
 use axum::Router;
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use regex::Regex;
@@ -28,10 +30,10 @@ use rmcp::{
         streamable_http_server::session::local::{LocalSessionHandle, LocalSessionManager},
     },
 };
-use serde_json::Value;
 use sqlx::PgPool;
 use std::{cell::LazyCell, sync::Arc};
 use tokio_util::sync::CancellationToken;
+use url::Url;
 use uuid::Uuid;
 
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
@@ -79,8 +81,7 @@ impl KosoTools {
         let user = userr();
         let task = self
             ._create_task(request, context, user, request_id)
-            .await
-            .map_err(|e| McpError::internal_error("Failed to create task", Some(Value::Null)))?;
+            .await?;
 
         Ok(CallToolResult::success(vec![task]))
     }
@@ -91,10 +92,8 @@ impl KosoTools {
         context: RequestContext<RoleServer>,
         user: User,
         request_id: String,
-    ) -> Result<Content> {
-        verify_project_access(self.inner.pool, &user, &request.project_id)
-            .await
-            .map_err(|e| anyhow!("No access"))?;
+    ) -> ApiResult<Content> {
+        verify_project_access(self.inner.pool, &user, &request.project_id).await?;
 
         let client = self
             .inner
@@ -153,18 +152,17 @@ impl KosoTools {
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, McpError> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
-
         let user = userr();
-        let projects: Vec<Project> = list_projects(&user.email, self.inner.pool)
-            .await
-            .map_err(|e| McpError::internal_error("Failed to list projects", Some(Value::Null)))?;
+        Ok(self._list_projects(user).await?)
+    }
+
+    async fn _list_projects(&self, user: User) -> ApiResult<CallToolResult> {
+        let projects: Vec<Project> = list_projects(&user.email, self.inner.pool).await?;
         let projects = projects
             .into_iter()
             .map(to_resource_contents)
             .collect::<Result<Vec<_>>>()
-            .map_err(|e| {
-                McpError::internal_error("Failed to serialize projects", Some(Value::Null))
-            })?;
+            .context("Failed to serialize projects")?;
         Ok(CallToolResult::success(projects))
     }
 }
@@ -207,25 +205,8 @@ impl rmcp::ServerHandler for KosoTools {
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, McpError> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
-
         let user = userr();
-        let projects: Vec<Project> = list_projects(&user.email, self.inner.pool)
-            .await
-            .map_err(|e| McpError::internal_error("Failed to list projects", Some(Value::Null)))?;
-        let projects = projects
-            .into_iter()
-            .map(|p| {
-                Resource::new(
-                    RawResource::new(format!("projects:///projects/{}", p.project_id), p.name),
-                    None,
-                )
-            })
-            .collect::<Vec<_>>();
-
-        Ok(ListResourcesResult {
-            resources: projects,
-            next_cursor: None,
-        })
+        Ok(self._list_resources(user).await?)
     }
 
     #[tracing::instrument(skip(self, context), fields(request_id, session_id=context.id.to_string()))]
@@ -276,18 +257,7 @@ impl rmcp::ServerHandler for KosoTools {
         context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, McpError> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
-
-        match self._read_resource(&uri, userr()).await {
-            Ok(None) => Err(McpError::resource_not_found("resource_not_found", None)),
-            Ok(Some(resource)) => Ok(resource),
-            Err(e) => {
-                tracing::warn!("Failed to read resource: {e:#}");
-                Err(McpError::internal_error(
-                    "Failed to read resource",
-                    Some(Value::Null),
-                ))
-            }
-        }
+        Ok(self._read_resource(&uri, userr()).await?)
     }
 }
 
@@ -297,93 +267,103 @@ thread_local! {
 }
 
 impl KosoTools {
-    async fn _read_resource(&self, uri: &str, user: User) -> Result<Option<ReadResourceResult>> {
-        let uri = url::Url::parse(uri)?;
+    async fn _list_resources(&self, user: User) -> ApiResult<ListResourcesResult> {
+        let projects: Vec<Project> = list_projects(&user.email, self.inner.pool)
+            .await
+            .context_internal("Failed to list projects")?;
+        let projects = projects
+            .into_iter()
+            .map(|p| {
+                Resource::new(
+                    RawResource::new(format!("projects:///projects/{}", p.project_id), p.name),
+                    None,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        Ok(ListResourcesResult {
+            resources: projects,
+            next_cursor: None,
+        })
+    }
+
+    async fn _read_resource(&self, uri: &str, user: User) -> ApiResult<ReadResourceResult> {
+        let uri = url::Url::parse(uri).context_bad_request("invalid_uri", "Invalid URI")?;
         match uri.scheme() {
-            "projects" => {
-                let project_id = PROJECT_RE.with(|re| {
-                    re.captures(uri.path())
-                        .and_then(|c| c.get(1))
-                        .map(|m| m.as_str())
-                });
-                let Some(project_id) = project_id else {
-                    return Ok(None);
-                };
-                verify_project_access(self.inner.pool, &user, &project_id.to_string())
-                    .await
-                    .map_err(|e| anyhow!("No access"))?;
-
-                match fetch_project(self.inner.pool, project_id).await {
-                    Ok(None) => Ok(None),
-                    Ok(Some(project)) => Ok(Some(ReadResourceResult {
-                        contents: vec![ResourceContents::TextResourceContents {
-                            uri: format!("projects:///projects/{}", project.project_id),
-                            mime_type: Some("application/json".to_string()),
-                            text: serde_json::to_string(&project)?,
-                        }],
-                    })),
-                    Err(e) => Err(e),
-                }
-            }
-            "tasks" => {
-                let Some((project_id, task_id)) = TASK_RE.with(|re| {
-                    re.captures(uri.path())
-                        .map(|c| (c.get(1).map(|m| m.as_str()), c.get(2).map(|m| m.as_str())))
-                        .and_then(|(project_id, task_id)| {
-                            if let Some(project_id) = project_id
-                                && let Some(task_id) = task_id
-                            {
-                                Some((project_id, task_id))
-                            } else {
-                                None
-                            }
-                        })
-                }) else {
-                    return Ok(None);
-                };
-
-                verify_project_access(self.inner.pool, &user, &project_id.to_string())
-                    .await
-                    .map_err(|e| anyhow!("No access"))?;
-
-                let task = {
-                    let client = self
-                        .inner
-                        .collab
-                        .register_local_client(&project_id.to_string())
-                        .await?;
-                    let doc = client.project.doc_box.lock().await;
-                    let doc = DocBox::doc_or_error(doc.as_ref())?;
-                    let doc = &doc.ydoc;
-                    let txn = doc.transact();
-                    doc.get(&txn, task_id).map(|task| task.to_task(&txn))
-                };
-
-                match task {
-                    Ok(Ok(task)) => Ok(Some(ReadResourceResult {
-                        contents: vec![ResourceContents::TextResourceContents {
-                            uri: format!("projects:///projects/{}/tasks/{}", project_id, task.id),
-                            mime_type: Some("application/json".to_string()),
-                            text: serde_json::to_string(&task)?,
-                        }],
-                    })),
-                    Err(e) | Ok(Err(e)) => Ok(None),
-                }
-            }
-            _ => Ok(None),
+            "projects" => self.read_project(uri, user).await,
+            "tasks" => self.read_task(uri, user).await,
+            scheme => Err(not_found_error(
+                "resource_not_found",
+                &format!("Invalid scheme: {scheme}"),
+            )),
         }
     }
-}
 
-// pub(crate) async fn start_server(cancel_token: CancellationToken) -> Result<()> {
-//     // Create and run the server with STDIO transport
-//     let service = Counter::new()
-//         .serve_with_ct(stdio(), cancel_token.child_token())
-//         .await
-//         .context("Error starting MCP server")?;
-//     service.waiting().await?;
-//     Ok(())
-// }
+    async fn read_project(&self, uri: Url, user: User) -> ApiResult<ReadResourceResult> {
+        let project_id = PROJECT_RE
+            .with(|re| {
+                re.captures(uri.path())
+                    .and_then(|c| c.get(1))
+                    .map(|m| m.as_str())
+            })
+            .context("Invalid project path")
+            .context_bad_request("invalid_uri", "Invalid project path")?;
+
+        verify_project_access(self.inner.pool, &user, &project_id.to_string()).await?;
+
+        match fetch_project(self.inner.pool, project_id).await {
+            Ok(None) => Err(not_found_error(
+                "resource_not_found",
+                &format!("Project {project_id} not found"),
+            )),
+            Ok(Some(project)) => Ok(ReadResourceResult {
+                contents: vec![ResourceContents::TextResourceContents {
+                    uri: format!("projects:///projects/{}", project.project_id),
+                    mime_type: Some("application/json".to_string()),
+                    text: serde_json::to_string(&project)?,
+                }],
+            }),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    async fn read_task(&self, uri: Url, user: User) -> ApiResult<ReadResourceResult> {
+        let (project_id, task_id) = TASK_RE
+            .with(|re| {
+                re.captures(uri.path())
+                    .map(|c| (c.get(1).map(|m| m.as_str()), c.get(2).map(|m| m.as_str())))
+                    .and_then(|res| match res {
+                        (Some(project_id), Some(task_id)) => Some((project_id, task_id)),
+                        _ => None,
+                    })
+            })
+            .context("Invalid task path")
+            .context_bad_request("invalid_uri", "Invalid task path")?;
+
+        verify_project_access(self.inner.pool, &user, &project_id.to_string()).await?;
+
+        let task = {
+            let client = self
+                .inner
+                .collab
+                .register_local_client(&project_id.to_string())
+                .await?;
+            let doc = client.project.doc_box.lock().await;
+            let doc = DocBox::doc_or_error(doc.as_ref())?;
+            let doc = &doc.ydoc;
+            let txn = doc.transact();
+            doc.get(&txn, task_id).map(|task| task.to_task(&txn))??
+        };
+
+        Ok(ReadResourceResult {
+            contents: vec![ResourceContents::TextResourceContents {
+                uri: format!("projects:///projects/{}/tasks/{}", project_id, task.id),
+                mime_type: Some("application/json".to_string()),
+                text: serde_json::to_string(&task)?,
+            }],
+        })
+    }
+}
 
 pub(super) fn router(
     collab: Collab,
