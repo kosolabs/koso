@@ -396,6 +396,7 @@ pub(super) fn router(
     });
     Ok(Router::new()
         .route_service("/sse", service)
+        // TODO: Replace this with an oauth flow
         .layer(middleware::from_fn(google::authenticate)))
 }
 
