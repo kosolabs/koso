@@ -62,6 +62,9 @@
         </div>
       {/snippet}
     </Navbar>
+    <div>
+      <h1 class="text-small ml-3" title="Inbox">Home > {project.name}</h1>
+    </div>
 
     <OfflineAlert {offline} />
   </div>
