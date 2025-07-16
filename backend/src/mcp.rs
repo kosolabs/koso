@@ -132,7 +132,7 @@ impl KosoTools {
         let task = task.to_task(&txn)?;
 
         Ok(Content::resource(ResourceContents::TextResourceContents {
-            uri: format!("task://projects/{}/tasks/{}", request.project_id, task.id),
+            uri: format!("tasks://projects/{}/tasks/{}", request.project_id, task.id),
             mime_type: Some("application/json".to_string()),
             text: serde_json::to_string(&task)?,
         }))
