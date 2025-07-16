@@ -6,6 +6,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod api;
 mod debug;
 mod healthz;
+mod mcp;
 mod metrics_server;
 mod notifiers;
 mod plugins;

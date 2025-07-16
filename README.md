@@ -595,3 +595,52 @@ Create a new bot and configure the secrets.
 With setup complete you can interact with tasks and generate notifications. Note though that
 most self notifications are suppressed. Use [login_test_user.sh](backend/scripts/login_test_user.sh)
 to login as a test user, interact with tasks and trigger notifications.
+
+## MCP
+
+[docs](https://modelcontextprotocol.io)
+
+### One-time setup
+
+#### Auth
+
+1. Log in to your local server and open the developer console
+1. Run `localStorage.credential`
+1. Copy the credential for usage below.
+
+#### VS Code
+
+[docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers)
+
+1. Open the command palette (`cmd+shift+p`) and run `MCP: Open User Configuration`
+1. Insert the Koso server
+   ```json
+   {
+     "servers": {
+       "koso-mcp": {
+         "url": "http://localhost:3000/api/mcp/sse",
+         "type": "http"
+       }
+     },
+     "inputs": []
+   }
+   ```
+1. Open a Copilot chat, click on `Configure tools` and enable Koso
+
+#### Claude Code
+
+[Claud docs](https://docs.anthropic.com/en/docs/claude-code/mcp#add-mcp-servers-from-json-configuration)
+
+1. Install Claude Code: `npm install -g @anthropic-ai/claude-code`
+1. Run the setup flow: `claude`
+1. Add Koso: `claude mcp add --transport http koso-mcp http://localhost:3000/api/mcp/sse`
+
+#### MCP Inspector
+
+Use the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to test the server without a model.
+
+Setup:
+
+1. Run the inspector: `npx @modelcontextprotocol/inspector`
+1. Enter the server URL ()`http://localhost:3000/api/mcp/sse`) and click Connect
+1. In the authentication section, paste the auth token from above in the Bearer Token field

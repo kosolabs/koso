@@ -4,7 +4,7 @@ use crate::{
         collab::Collab,
         google::{self, KeySet},
     },
-    debug, healthz,
+    debug, healthz, mcp,
     plugins::{
         PluginSettings,
         github::{self},
@@ -97,8 +97,18 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
     let encoding_key = EncodingKey::from_base64_secret(&hmac.data)?;
     let decoding_key = DecodingKey::from_base64_secret(&hmac.data)?;
 
+    let shutdown_signal = config.shutdown_signal;
+
     let app = Router::new()
-        .nest("/api", api::router()?.fallback(api::handler_404))
+        .nest(
+            "/api",
+            api::router()?
+                .nest(
+                    "/mcp",
+                    mcp::router(collab.clone(), pool, shutdown_signal.clone())?,
+                )
+                .fallback(api::handler_404),
+        )
         .nest("/healthz", healthz::router())
         .nest("/plugins/github", github_plugin.router()?)
         // Apply these layers to all non-static routes.
@@ -167,7 +177,6 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         }
     };
 
-    let shutdown_signal = config.shutdown_signal;
     let addr = listener.local_addr()?;
     let serve = tokio::spawn(async move {
         tracing::info!("server listening on {}", addr);

@@ -8,6 +8,7 @@ use axum::{
 use axum_extra::headers;
 use google::User;
 use model::{ProjectId, ProjectPermission};
+use rmcp::model::ErrorCode;
 use sqlx::postgres::PgPool;
 use std::backtrace::{Backtrace, BacktraceStatus};
 
@@ -287,6 +288,34 @@ where
 {
     fn from(err: E) -> Self {
         err.context_internal("Internal error, something went wrong")
+    }
+}
+
+/// Converts from ErrorResponse to rmcp::Error.
+impl From<ErrorResponse> for rmcp::Error {
+    fn from(err: ErrorResponse) -> Self {
+        let code = match err.status {
+            StatusCode::INTERNAL_SERVER_ERROR => ErrorCode::INTERNAL_ERROR,
+            StatusCode::NOT_FOUND => ErrorCode::RESOURCE_NOT_FOUND,
+            StatusCode::BAD_REQUEST => ErrorCode::INVALID_REQUEST,
+            StatusCode::UNAUTHORIZED => ErrorCode::INVALID_REQUEST,
+            StatusCode::FORBIDDEN => ErrorCode::INVALID_REQUEST,
+            _ => ErrorCode::INTERNAL_ERROR,
+        };
+
+        let msg = err
+            .details
+            .first()
+            .map(|details| details.reason)
+            .unwrap_or("[missing]");
+        let data = match serde_json::to_value(&err.details) {
+            Ok(value) => Some(value),
+            Err(e) => {
+                tracing::error!("Failed to serialize error details: {e:#}: {:?}", err);
+                None
+            }
+        };
+        rmcp::Error::new(code, msg, data)
     }
 }
 
