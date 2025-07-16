@@ -30,6 +30,9 @@
             Inbox - {project.name}
           </h1>
         </div>
+        <div>
+          <h2 class="text-small ml-7" title="Inbox">{project.name} > Inbox</h2>
+        </div>
       {/snippet}
     </Navbar>
 
