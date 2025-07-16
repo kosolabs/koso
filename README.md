@@ -598,9 +598,13 @@ to login as a test user, interact with tasks and trigger notifications.
 
 ## MCP
 
+[docs](https://modelcontextprotocol.io)
+
 ### One-time setup
 
 #### VS Code
+
+[docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers)
 
 1. Open the command palette (`cmd+shift+p`) and run `MCP: Open User Configuration`
 1. Insert the Koso server
@@ -619,6 +623,17 @@ to login as a test user, interact with tasks and trigger notifications.
 
 #### Claude Code
 
+[Claud docs](https://docs.anthropic.com/en/docs/claude-code/mcp#add-mcp-servers-from-json-configuration)
+
 1. Install Claude Code: `npm install -g @anthropic-ai/claude-code`
 1. Run the setup flow: `claude`
 1. Add Koso: `claude mcp add --transport http koso-mcp http://localhost:3000/api/mcp/sse`
+
+#### MCP Inspector
+
+Use the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to test the server without a model.
+
+Setup:
+
+1. Run the inspector: `npx @modelcontextprotocol/inspector`
+1. Enter the server URL ()`http://localhost:3000/api/mcp/sse`) and click Connect
