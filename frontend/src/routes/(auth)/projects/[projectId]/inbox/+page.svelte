@@ -26,17 +26,21 @@
     <Navbar>
       {#snippet left()}
         <div>
-          <h1 class="ml-2 text-lg">
-            Inbox - {project.name}
-          </h1>
+          <div>
+            <h1 class="ml-2 text-lg">
+              Inbox - {project.name}
+            </h1>
+          </div>
+          <div>
+            <h1 class="text-small ml-2" title="Inbox">
+              Home > {project.name} > Inbox
+            </h1>
+          </div>
         </div>
       {/snippet}
     </Navbar>
 
     <OfflineAlert {offline} />
-  </div>
-  <div>
-    <h1 class="text-small ml-3" title="Inbox">Home > {project.name} > Inbox</h1>
   </div>
 
   <div class="grow overflow-y-hidden p-1">

@@ -283,12 +283,13 @@
 <Navbar>
   {#snippet left()}
     <div>
-      <h1 class="ml-2 text-lg">Profile Settings for {auth.user.name}</h1>
+      <div>
+        <h1 class="ml-2 text-lg">Profile Settings for {auth.user.name}</h1>
+      </div>
+      <div class="text-small ml-2" title="Profile">Account > User Profile</div>
     </div>
   {/snippet}
 </Navbar>
-
-<div class="text-small ml-2" title="Profile">Account > User Profile</div>
 
 <div class="flex flex-col gap-4 p-2">
   <Section title="Theme">
