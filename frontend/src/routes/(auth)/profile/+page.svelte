@@ -280,7 +280,7 @@
   notifications to Telegram.
 {/snippet}
 
-<Navbar>
+<Navbar title="Profile">
   {#snippet left()}
     <div>
       <div>
