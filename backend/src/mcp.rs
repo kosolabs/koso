@@ -16,7 +16,7 @@ use axum::{Extension, Router, extract::FromRequestParts, middleware};
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use regex::Regex;
 use rmcp::{
-    Error as McpError, RoleServer,
+    ErrorData, RoleServer,
     handler::server::{router::tool::ToolRouter, tool::Parameters},
     model::*,
     schemars::{self},
@@ -71,7 +71,7 @@ impl KosoTools {
         &self,
         Parameters(request): Parameters<CreateTaskParam>,
         context: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, McpError> {
+    ) -> Result<CallToolResult, ErrorData> {
         let request_id = Uuid::new_v4().to_string();
         tracing::Span::current().record("request_id", &request_id);
 
@@ -144,7 +144,7 @@ impl KosoTools {
     async fn list_projects(
         &self,
         context: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, McpError> {
+    ) -> Result<CallToolResult, ErrorData> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
         Ok(self._list_projects(context).await?)
     }
@@ -198,7 +198,7 @@ impl rmcp::ServerHandler for KosoTools {
         &self,
         _request: Option<PaginatedRequestParam>,
         context: RequestContext<RoleServer>,
-    ) -> Result<ListResourcesResult, McpError> {
+    ) -> Result<ListResourcesResult, ErrorData> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
         Ok(self._list_resources(context).await?)
     }
@@ -208,7 +208,7 @@ impl rmcp::ServerHandler for KosoTools {
         &self,
         ReadResourceRequestParam { uri }: ReadResourceRequestParam,
         context: RequestContext<RoleServer>,
-    ) -> Result<ReadResourceResult, McpError> {
+    ) -> Result<ReadResourceResult, ErrorData> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
         Ok(self._read_resource(&uri, context).await?)
     }
@@ -218,7 +218,7 @@ impl rmcp::ServerHandler for KosoTools {
         &self,
         request: Option<PaginatedRequestParam>,
         context: RequestContext<RoleServer>,
-    ) -> Result<ListResourceTemplatesResult, McpError> {
+    ) -> Result<ListResourceTemplatesResult, ErrorData> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
 
         let resource_templates = vec![
