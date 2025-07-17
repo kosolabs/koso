@@ -52,7 +52,7 @@ regex = "1.11.1"
 serde_qs = "1.0.0-rc.3"
 ed25519-dalek = "2.1.1"
 tokio-tungstenite = { version = "0.27.0" }
-rmcp = { version = "0.2.0", features = ["server", "transport-io", "transport-streamable-http-server",     "transport-sse-server", "auth"] }
+rmcp = { version = "0.3.0", features = ["server", "transport-io", "transport-streamable-http-server", "transport-sse-server", "auth"] }
 url = "2.5.4"
 
 [dev-dependencies]

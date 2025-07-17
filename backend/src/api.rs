@@ -292,7 +292,7 @@ where
 }
 
 /// Converts from ErrorResponse to rmcp::Error.
-impl From<ErrorResponse> for rmcp::Error {
+impl From<ErrorResponse> for rmcp::ErrorData {
     fn from(err: ErrorResponse) -> Self {
         let code = match err.status {
             StatusCode::INTERNAL_SERVER_ERROR => ErrorCode::INTERNAL_ERROR,
@@ -315,7 +315,7 @@ impl From<ErrorResponse> for rmcp::Error {
                 None
             }
         };
-        rmcp::Error::new(code, msg, data)
+        rmcp::ErrorData::new(code, msg, data)
     }
 }
 
