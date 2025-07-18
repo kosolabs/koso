@@ -50,17 +50,15 @@
     <Navbar title="Home > {project.name}">
       {#snippet left()}
         <div>
-          <div>
-            <Editable
-              class="ml-2 text-lg"
-              value={project.name}
-              aria-label="Set project name"
-              onsave={async (name) => {
-                await saveEditedProjectName(name);
-              }}
-              onkeydown={(e) => e.stopPropagation()}
-            />
-          </div>
+          <Editable
+            class="ml-2 text-lg"
+            value={project.name}
+            aria-label="Set project name"
+            onsave={async (name) => {
+              await saveEditedProjectName(name);
+            }}
+            onkeydown={(e) => e.stopPropagation()}
+          />
         </div>
       {/snippet}
     </Navbar>

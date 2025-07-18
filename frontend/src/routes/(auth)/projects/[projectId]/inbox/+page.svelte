@@ -26,11 +26,9 @@
     <Navbar title="Home > {project.name} > Inbox">
       {#snippet left()}
         <div>
-          <div>
-            <h1 class="ml-2 text-lg">
-              Inbox - {project.name}
-            </h1>
-          </div>
+          <h1 class="ml-2 text-lg">
+            Inbox - {project.name}
+          </h1>
         </div>
       {/snippet}
     </Navbar>

@@ -283,9 +283,7 @@
 <Navbar title="Account > User Profile">
   {#snippet left()}
     <div>
-      <div>
-        <h1 class="ml-2 text-lg">Profile Settings for {auth.user.name}</h1>
-      </div>
+      <h1 class="ml-2 text-lg">Profile Settings for {auth.user.name}</h1>
     </div>
   {/snippet}
 </Navbar>
