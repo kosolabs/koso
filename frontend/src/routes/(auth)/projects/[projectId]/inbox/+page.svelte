@@ -23,17 +23,12 @@
 
 <div class="flex h-dvh flex-col">
   <div class="grow-0">
-    <Navbar>
+    <Navbar title="Home > {project.name} > Inbox">
       {#snippet left()}
         <div>
           <div>
             <h1 class="ml-2 text-lg">
               Inbox - {project.name}
-            </h1>
-          </div>
-          <div>
-            <h1 class="text-small ml-2" title="Inbox">
-              Home > {project.name} > Inbox
             </h1>
           </div>
         </div>

@@ -280,13 +280,12 @@
   notifications to Telegram.
 {/snippet}
 
-<Navbar title="Profile">
+<Navbar title="Account > User Profile">
   {#snippet left()}
     <div>
       <div>
         <h1 class="ml-2 text-lg">Profile Settings for {auth.user.name}</h1>
       </div>
-      <div class="text-small ml-2" title="Profile">Account > User Profile</div>
     </div>
   {/snippet}
 </Navbar>

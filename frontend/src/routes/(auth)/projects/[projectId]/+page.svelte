@@ -47,7 +47,7 @@
 
 <div class="flex h-dvh flex-col">
   <div class="grow-0">
-    <Navbar>
+    <Navbar title="Home > {project.name}">
       {#snippet left()}
         <div>
           <div>
@@ -60,9 +60,6 @@
               }}
               onkeydown={(e) => e.stopPropagation()}
             />
-          </div>
-          <div>
-            <h1 class="text-small ml-2" title="Inbox">Home > {project.name}</h1>
           </div>
         </div>
       {/snippet}
