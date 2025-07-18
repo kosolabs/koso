@@ -25,8 +25,9 @@
 
   type Props = {
     left?: Snippet;
+    title?: string;
   };
-  const { left }: Props = $props();
+  const { left, title }: Props = $props();
 
   const auth = getAuthContext();
   const command = getRegistryContext();
@@ -88,6 +89,7 @@
 <nav
   class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center overflow-hidden border-b p-2 shadow"
 >
+  <div class="flex flex-col gap-2"></div>
   <div class="flex items-center">
     {#if navActions.length > 0}
       <Menu>
@@ -116,6 +118,7 @@
     </a>
     {@render left?.()}
   </div>
+  <h1 class="text-2xl font-thin">{title}</h1>
 
   <div class="ml-auto flex items-center gap-2">
     <CommandButton name="Undo" desktop />
