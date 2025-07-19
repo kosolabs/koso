@@ -237,17 +237,17 @@ impl ErrorRender<'_> {
 
 #[derive(Debug)]
 pub(crate) struct ErrorResponse {
-    status: StatusCode,
-    details: Vec<ErrorDetail>,
+    pub(crate) status: StatusCode,
+    pub(crate) details: Vec<ErrorDetail>,
 }
 
 #[derive(serde::Serialize, Debug)]
 pub(crate) struct ErrorDetail {
     // Terse, stable, machine readable error reason.
     // e.g. NO_STOCK
-    reason: &'static str,
+    pub(crate) reason: &'static str,
     // Debug message for developers. Not intended for end users.
-    msg: String,
+    pub(crate) msg: String,
     // Need more details about an error? Consider adding
     // a map of key/values for use in the client.
 }

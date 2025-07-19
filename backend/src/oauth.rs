@@ -1,25 +1,24 @@
 use crate::{
     api::{
-        ApiResult, IntoApiResult as _, IntoErrorResponse as _, bad_request_error,
+        ApiResult, ErrorResponse, IntoApiResult, bad_request_error,
         google::{self, User},
-        unauthenticated_error,
     },
     settings::settings,
 };
-use anyhow::{Result, anyhow};
+use anyhow::{Context as _, Result, anyhow};
 use axum::{
     Extension, Json, Router,
     body::Body,
     extract::{self, Form},
-    http::HeaderValue,
+    http::{HeaderValue, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
 };
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
-use rmcp::transport::auth::{ClientRegistrationRequest, ClientRegistrationResponse};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
     collections::{HashMap, HashSet},
@@ -63,29 +62,9 @@ pub(crate) async fn authenticate(
     Extension(decoding_key): Extension<DecodingKey>,
     mut request: extract::Request,
     next: Next,
-) -> ApiResult<Response<Body>> {
-    // Parse the access token out of the Authorization header.
-    let access_token = {
-        let headers = request.headers();
-        let Some(auth_header) = headers.get("Authorization") else {
-            return Ok(unauthenticated("Authorization header is absent.")?);
-        };
-
-        let Ok(auth) = auth_header.to_str() else {
-            return Ok(unauthenticated(&format!(
-                "Could not convert auth header to string: {auth_header:?}"
-            ))?);
-        };
-        let parts: Vec<&str> = auth.split(' ').collect();
-        if parts.len() != 2 || parts[0] != "Bearer" {
-            return Ok(unauthenticated(&format!(
-                "Could not split bearer parts: {parts:?}"
-            ))?);
-        }
-        parts[1]
-    };
-    // Decode the access token.
-    let access_token_claims = decode_access_token(&decoding_key, access_token)?;
+) -> OauthResult<Response<Body>> {
+    let access_token_claims: AccessTokenClaims =
+        _authenticate(&decoding_key, &mut request).context_unauthenticated("invalid_client")?;
 
     let mut user = access_token_claims.access_token.user;
     user.email = user.email.to_lowercase();
@@ -94,6 +73,33 @@ pub(crate) async fn authenticate(
     assert!(request.extensions_mut().insert(user).is_none());
 
     Ok(next.run(request).await)
+}
+
+fn _authenticate(
+    decoding_key: &DecodingKey,
+    request: &mut extract::Request,
+) -> Result<AccessTokenClaims> {
+    // Parse the access token out of the Authorization header.
+    let access_token = {
+        let headers = request.headers();
+        let Some(auth_header) = headers.get("Authorization") else {
+            return Err(anyhow!("Authorization header is absent"));
+        };
+
+        let Ok(auth) = auth_header.to_str() else {
+            return Err(anyhow!(
+                "Could not convert auth header to string: {auth_header:?}"
+            ));
+        };
+        let parts: Vec<&str> = auth.split(' ').collect();
+        if parts.len() != 2 || parts[0] != "Bearer" {
+            return Err(anyhow!("Could not split bearer parts: {parts:?}"));
+        }
+        parts[1]
+    };
+
+    // Decode the access token.
+    decode_access_token(decoding_key, access_token)
 }
 
 /// oauth2 resource server metadata
@@ -106,7 +112,7 @@ struct ResourceServerMetadata {
 }
 
 #[tracing::instrument()]
-async fn get_resource_server_metadata() -> ApiResult<Json<ResourceServerMetadata>> {
+async fn get_resource_server_metadata() -> OauthResult<Json<ResourceServerMetadata>> {
     let host = &settings().host;
     let metadata = ResourceServerMetadata {
         resource: format!("{host}/api/mcp/sse"),
@@ -132,7 +138,7 @@ struct AuthorizationServerMetadata {
 }
 
 #[tracing::instrument()]
-async fn get_authorization_server_metadata() -> ApiResult<Json<AuthorizationServerMetadata>> {
+async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationServerMetadata>> {
     let host = &settings().host;
     let metadata = AuthorizationServerMetadata {
         authorization_endpoint: format!("{host}/connections/mcp/oauth/authorize"),
@@ -148,30 +154,102 @@ async fn get_authorization_server_metadata() -> ApiResult<Json<AuthorizationServ
     Ok(Json(metadata))
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ClientRegistrationRequest {
+    client_name: String,
+    redirect_uris: Vec<String>,
+    grant_types: Vec<String>,
+    // token_endpoint_auth_method: String,
+    response_types: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ClientRegistrationResponse {
+    client_id: String,
+    client_secret: Option<String>,
+    client_secret_expires_at: u64,
+    client_name: String,
+    redirect_uris: Vec<String>,
+    grant_types: Vec<String>,
+    response_types: Vec<String>,
+}
+
 // Handle dynamic client registration
+// https://datatracker.ietf.org/doc/html/rfc7591#section-3.1
 #[tracing::instrument(skip(key))]
 async fn oauth_register(
     Extension(key): Extension<EncodingKey>,
     Json(req): Json<ClientRegistrationRequest>,
-) -> ApiResult<Json<ClientRegistrationResponse>> {
+) -> OauthResult<Json<ClientRegistrationResponse>> {
     tracing::debug!("Registering client: {req:?}");
 
-    if req.redirect_uris.is_empty() {
+    // Validate the request
+    let redirect_uris = req.redirect_uris;
+    if redirect_uris.is_empty() {
         return Err(bad_request_error(
-            "invalid_request",
-            "at least one redirect uri is required",
-        ));
+            "invalid_redirect_uri",
+            "At least one redirect uri is required",
+        )
+        .into());
     }
-    // TODO: validate more fields.
-    // example: ClientRegistrationRequest { client_name: "MCP Inspector", redirect_uris: ["http://localhost:6274/oauth/callback"], grant_types: ["authorization_code", "refresh_token"], token_endpoint_auth_method: "none", response_types: ["code"] }
+    let response_types = {
+        if !req.response_types.is_empty() {
+            req.response_types
+        } else {
+            vec!["code".to_string()]
+        }
+    };
+    if !response_types.contains(&"code".to_string()) {
+        return Err(bad_request_error(
+            "invalid_client_metadata",
+            "Only the 'code' response_type is supported",
+        )
+        .into());
+    }
+    let grant_types = {
+        if !req.grant_types.is_empty() {
+            req.grant_types
+        } else {
+            vec!["authorization_code".to_string()]
+        }
+    };
+    if !grant_types.contains(&"authorization_code".to_string()) {
+        return Err(bad_request_error(
+            "invalid_client_metadata",
+            "grant_types must contain 'authorization_code'",
+        )
+        .into());
+    }
 
-    let (client_secret, claims) = encode_client_secret(&key)?;
+    // Generate the client secret.
+    let client_id = format!("client-{}", Uuid::new_v4());
+    let client_name = if req.client_name.is_empty() {
+        client_id.clone()
+    } else {
+        req.client_name
+    };
+    let (client_secret, claims) = encode_client_secret(
+        &key,
+        Client {
+            client_id,
+            client_name,
+            expires_in: 30 * 24 * 60 * 60,
+            redirect_uris,
+            grant_types,
+            response_types,
+        },
+    )
+    .context_internal("Internal error")?;
+
+    // Create the response.
     let response = ClientRegistrationResponse {
-        client_id: claims.client_id,
+        client_id: claims.client.client_id,
         client_secret: Some(client_secret),
-        client_name: req.client_name,
-        redirect_uris: req.redirect_uris,
-        additional_fields: HashMap::new(),
+        client_secret_expires_at: claims.exp,
+        client_name: claims.client.client_name,
+        redirect_uris: claims.client.redirect_uris,
+        response_types: claims.client.response_types,
+        grant_types: claims.client.grant_types,
     };
     tracing::debug!("Registered client: {response:?}");
 
@@ -289,10 +367,11 @@ async fn oauth_token(
     Extension(decoding_key): Extension<DecodingKey>,
     Extension(encoding_key): Extension<EncodingKey>,
     Form(req): Form<TokenRequest>,
-) -> ApiResult<Json<TokenResponse>> {
+) -> OauthResult<Json<TokenResponse>> {
     let auth_token = if req.grant_type == "refresh_token" {
         tracing::info!("Handling refresh token request: {req:?}");
-        let refresh_token_claims = decode_refresh_token(&decoding_key, &req.refresh_token)?;
+        let refresh_token_claims = decode_refresh_token(&decoding_key, &req.refresh_token)
+            .context_bad_request("invalid_grant", "Invalid refresh token")?;
 
         refresh_token_claims.refresh_token.auth_token
     } else {
@@ -300,20 +379,21 @@ async fn oauth_token(
 
         // Validate the request.
         if req.grant_type != "authorization_code" {
-            return Err(
-                anyhow!("Unsupported grant type: {}", req.grant_type).context_bad_request(
-                    "unsupported_grant_type",
-                    "only authorization_code is supported",
-                ),
-            );
+            return Err(bad_request_error(
+                "unsupported_grant_type",
+                "only authorization_code is supported",
+            )
+            .into());
         }
-        let client_secret_claims = decode_client_secret(&decoding_key, &req.client_secret)?;
-        if !req.client_id.is_empty() && client_secret_claims.client_id != req.client_id {
-            return Err(bad_request_error("invalid_grant", "invalid client id"));
+        let client_secret_claims = decode_client_secret(&decoding_key, &req.client_secret)
+            .context_bad_request("invalid_grant", "Invalid client secret")?;
+        if !req.client_id.is_empty() && client_secret_claims.client.client_id != req.client_id {
+            return Err(bad_request_error("invalid_grant", "invalid client id").into());
         }
-        let auth_token_claims = decode_auth_token(&decoding_key, &req.code)?;
-        if client_secret_claims.client_id != auth_token_claims.auth_token.client_id {
-            return Err(bad_request_error("invalid_grant", "invalid client id"));
+        let auth_token_claims = decode_auth_token(&decoding_key, &req.code)
+            .context_bad_request("invalid_grant", "Invalid auth token")?;
+        if client_secret_claims.client.client_id != auth_token_claims.auth_token.client_id {
+            return Err(bad_request_error("invalid_grant", "invalid client id").into());
         }
         // if req.redirect_uri
         //     != auth_token_claims
@@ -336,7 +416,8 @@ async fn oauth_token(
                     return Err(bad_request_error(
                         "unsupported_grant_type",
                         "Only S256 is supported",
-                    ));
+                    )
+                    .into());
                 }
                 let actual_challenge =
                     BASE64_URL_SAFE_NO_PAD.encode(Sha256::new().chain_update(verifier).finalize());
@@ -344,7 +425,8 @@ async fn oauth_token(
                     return Err(bad_request_error(
                         "invalid_grant",
                         "Challenge does not match verifier",
-                    ));
+                    )
+                    .into());
                 }
             }
             (None, None, verifier) if verifier.is_empty() => {}
@@ -352,7 +434,8 @@ async fn oauth_token(
                 return Err(bad_request_error(
                     "invalid_grant",
                     "Method, challenge and verifier must all be set or unset",
-                ));
+                )
+                .into());
             }
         }
 
@@ -369,7 +452,8 @@ async fn oauth_token(
             user: auth_token.user.clone(),
             auth_token: auth_token.clone(),
         },
-    )?;
+    )
+    .context_internal("Internal error")?;
     let (refresh_token, refresh_claims) = encode_refresh_token(
         &encoding_key,
         RefreshToken {
@@ -379,7 +463,8 @@ async fn oauth_token(
             user: auth_token.user.clone(),
             auth_token: auth_token.clone(),
         },
-    )?;
+    )
+    .context_internal("Internal error")?;
 
     tracing::info!("Created access token: {access_claims:?}, refresh token: {refresh_claims:?}");
 
@@ -393,37 +478,42 @@ async fn oauth_token(
 
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Client {
+    client_id: String,
+    client_name: String,
+    expires_in: u64,
+    redirect_uris: Vec<String>,
+    grant_types: Vec<String>,
+    response_types: Vec<String>,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct ClientSecretClaims {
     exp: u64,
     iss: String,
-    client_id: String,
-    expires_in: u64,
+    client: Client,
 }
 
-fn encode_client_secret(key: &EncodingKey) -> ApiResult<(String, ClientSecretClaims)> {
-    let client_id = format!("client-{}", Uuid::new_v4());
-
-    let expires_in = 60 * 60;
-    let timer = SystemTime::now() + Duration::from_secs(expires_in);
+fn encode_client_secret(key: &EncodingKey, client: Client) -> Result<(String, ClientSecretClaims)> {
+    let timer = SystemTime::now() + Duration::from_secs(client.expires_in);
     let claims = ClientSecretClaims {
         exp: timer.duration_since(UNIX_EPOCH)?.as_secs(),
         iss: CLIENT_SECRET_ISS.to_string(),
-        client_id: client_id.clone(),
-        expires_in,
+        client,
     };
     let client_secret = encode(&Header::default(), &claims, key)?;
 
     Ok((client_secret, claims))
 }
 
-fn decode_client_secret(key: &DecodingKey, client_secret: &str) -> ApiResult<ClientSecretClaims> {
+fn decode_client_secret(key: &DecodingKey, client_secret: &str) -> Result<ClientSecretClaims> {
     let mut validation = Validation::default();
     let mut iss = HashSet::new();
     iss.insert(CLIENT_SECRET_ISS.to_string());
     validation.iss = Some(iss);
     let client_secret = decode::<ClientSecretClaims>(client_secret, key, &validation)
-        .context_unauthorized("Invalid client secret token")?;
+        .context("Invalid client secret token")?;
 
     Ok(client_secret.claims)
 }
@@ -440,7 +530,7 @@ struct AuthTokenClaims {
 fn encode_auth_token(
     key: &EncodingKey,
     auth_token: AuthToken,
-) -> ApiResult<(String, AuthTokenClaims)> {
+) -> Result<(String, AuthTokenClaims)> {
     let timer = SystemTime::now() + Duration::from_secs(auth_token.expires_in);
     let claims = AuthTokenClaims {
         auth_token,
@@ -452,13 +542,13 @@ fn encode_auth_token(
     Ok((token, claims))
 }
 
-fn decode_auth_token(key: &DecodingKey, auth_token: &str) -> ApiResult<AuthTokenClaims> {
+fn decode_auth_token(key: &DecodingKey, auth_token: &str) -> Result<AuthTokenClaims> {
     let mut validation = Validation::default();
     let mut iss = HashSet::new();
     iss.insert(AUTH_TOKEN_ISS.to_string());
     validation.iss = Some(iss);
-    let auth_token = decode::<AuthTokenClaims>(auth_token, key, &validation)
-        .context_unauthorized("Invalid auth token")?;
+    let auth_token =
+        decode::<AuthTokenClaims>(auth_token, key, &validation).context("Invalid auth token")?;
 
     Ok(auth_token.claims)
 }
@@ -484,7 +574,7 @@ struct AccessToken {
 fn encode_access_token(
     key: &EncodingKey,
     access_token: AccessToken,
-) -> ApiResult<(String, AccessTokenClaims)> {
+) -> Result<(String, AccessTokenClaims)> {
     let timer = SystemTime::now() + Duration::from_secs(access_token.expires_in);
     let claims = AccessTokenClaims {
         access_token,
@@ -496,14 +586,13 @@ fn encode_access_token(
     Ok((token, claims))
 }
 
-fn decode_access_token(key: &DecodingKey, token: &str) -> ApiResult<AccessTokenClaims> {
+fn decode_access_token(key: &DecodingKey, token: &str) -> Result<AccessTokenClaims> {
     let mut validation = Validation::default();
     let mut iss = HashSet::new();
     iss.insert(ACCESS_TOKEN_ISS.to_string());
     validation.iss = Some(iss);
     let token: jsonwebtoken::TokenData<AccessTokenClaims> =
-        decode::<AccessTokenClaims>(token, key, &validation)
-            .context_unauthorized("Invalid access token")?;
+        decode::<AccessTokenClaims>(token, key, &validation).context("Invalid access token")?;
 
     Ok(token.claims)
 }
@@ -529,7 +618,7 @@ struct RefreshToken {
 fn encode_refresh_token(
     key: &EncodingKey,
     refresh_token: RefreshToken,
-) -> ApiResult<(String, RefreshTokenClaims)> {
+) -> Result<(String, RefreshTokenClaims)> {
     let timer = SystemTime::now() + Duration::from_secs(refresh_token.expires_in);
     let claims = RefreshTokenClaims {
         refresh_token,
@@ -541,28 +630,73 @@ fn encode_refresh_token(
     Ok((token, claims))
 }
 
-fn decode_refresh_token(key: &DecodingKey, token: &str) -> ApiResult<RefreshTokenClaims> {
+fn decode_refresh_token(key: &DecodingKey, token: &str) -> Result<RefreshTokenClaims> {
     let mut validation = Validation::default();
     let mut iss = HashSet::new();
     iss.insert(REFRESH_TOKEN_ISS.to_string());
     validation.iss = Some(iss);
     let token: jsonwebtoken::TokenData<RefreshTokenClaims> =
-        decode::<RefreshTokenClaims>(token, key, &validation)
-            .context_unauthorized("Invalid refresh token")?;
+        decode::<RefreshTokenClaims>(token, key, &validation).context("Invalid refresh token")?;
 
     Ok(token.claims)
 }
 
-fn unauthenticated(msg: &str) -> Result<Response<Body>> {
-    let mut res = unauthenticated_error(msg).into_response();
-    res.headers_mut().insert(
-        "WWW-Authenticate",
-        HeaderValue::from_str(&format!(
+pub(crate) type OauthResult<T> = Result<T, OauthErrorResponse>;
+
+#[derive(Debug)]
+pub(crate) struct OauthErrorResponse {
+    status: StatusCode,
+    /// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
+    /// invalid_request, invalid_client, invalid_grant, unauthorized_client, unsupported_grant_type, invalid_scope
+    error: String,
+    error_description: String,
+}
+
+#[derive(serde::Serialize)]
+struct OauthErrorResponseBody {
+    error: String,
+    error_description: String,
+}
+
+/// Converts from OauthErrorResponse to Response.
+impl IntoResponse for OauthErrorResponse {
+    fn into_response(self) -> Response {
+        let body = axum::Json(OauthErrorResponseBody {
+            error: self.error,
+            error_description: self.error_description,
+        });
+
+        let mut res = (self.status, body).into_response();
+        match HeaderValue::from_str(&format!(
             "Bearer resource_metadata={}/.well-known/oauth-protected-resource",
             settings().host
-        ))?,
-    );
-    Ok(res)
+        )) {
+            Ok(header_value) => {
+                res.headers_mut().insert("WWW-Authenticate", header_value);
+            }
+            Err(err) => {
+                tracing::error!("Failed to crate authenticate header value: ${err:#}");
+            }
+        };
+        res
+    }
+}
+
+impl From<ErrorResponse> for OauthErrorResponse {
+    fn from(err: ErrorResponse) -> Self {
+        let detail = err.details.first();
+        OauthErrorResponse {
+            status: err.status,
+            error: detail
+                .map(|d| d.reason)
+                .unwrap_or("internal_error")
+                .to_string(),
+            error_description: detail
+                .map(|d| d.msg.as_str())
+                .unwrap_or("Internal error, something went wrong")
+                .to_string(),
+        }
+    }
 }
 
 // TODO Error bodies: https://www.rfc-editor.org/rfc/rfc6749#section-5.2
