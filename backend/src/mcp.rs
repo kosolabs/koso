@@ -1,15 +1,18 @@
-use crate::api::{
-    ApiResult, IntoApiResult,
-    collab::{
-        Collab,
-        projects_state::DocBox,
-        txn_origin::{Actor, YOrigin},
+use crate::{
+    api::{
+        ApiResult, IntoApiResult,
+        collab::{
+            Collab,
+            projects_state::DocBox,
+            txn_origin::{Actor, YOrigin},
+        },
+        google::User,
+        model::{Project, Task},
+        not_found_error,
+        projects::{fetch_project, list_projects},
+        verify_project_access,
     },
-    google::{self, User},
-    model::{Project, Task},
-    not_found_error,
-    projects::{fetch_project, list_projects},
-    verify_project_access,
+    oauth,
 };
 use anyhow::{Context as _, Result};
 use axum::{Extension, Router, extract::FromRequestParts, middleware};
@@ -389,8 +392,7 @@ pub(super) fn router(
     });
     Ok(Router::new()
         .route_service("/sse", service)
-        // TODO: Replace this with an oauth flow
-        .layer(middleware::from_fn(google::authenticate)))
+        .layer(middleware::from_fn(oauth::authenticate)))
 }
 
 async fn shutdown_mcp_server(session_manager: Arc<LocalSessionManager>) -> Result<()> {

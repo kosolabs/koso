@@ -9,6 +9,7 @@ mod healthz;
 mod mcp;
 mod metrics_server;
 mod notifiers;
+mod oauth;
 mod plugins;
 mod secrets;
 mod server;

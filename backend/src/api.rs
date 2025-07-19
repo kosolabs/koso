@@ -253,7 +253,7 @@ pub(crate) struct ErrorDetail {
 }
 
 impl ErrorResponse {
-    fn as_err(&self) -> Error {
+    pub(crate) fn as_err(&self) -> Error {
         if self.details.is_empty() {
             anyhow!("({}) <MISSING_ERROR_DETAILS>", self.status)
         } else {
@@ -401,7 +401,7 @@ where
     }
 }
 
-trait IntoErrorResponse<E> {
+pub(crate) trait IntoErrorResponse<E> {
     fn context_status(self, status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse;
     fn context_bad_request(self, reason: &'static str, msg: &str) -> ErrorResponse;
     fn context_unauthenticated(self, msg: &str) -> ErrorResponse;
