@@ -62,8 +62,12 @@ pub(crate) async fn authenticate(
     mut request: extract::Request,
     next: Next,
 ) -> OauthResult<Response<Body>> {
-    let access_token_claims: AccessTokenClaims =
-        _authenticate(&decoding_key, &mut request).context_unauthenticated("invalid_client")?;
+    let access_token_claims: AccessTokenClaims = _authenticate(&decoding_key, &mut request)
+        .context_status(
+            StatusCode::UNAUTHORIZED,
+            "invalid_client",
+            "Unauthenticated client",
+        )?;
 
     let mut user = access_token_claims.access_token.user;
     user.email = user.email.to_lowercase();
@@ -307,6 +311,8 @@ async fn oauth_approve(
             "Redirect uri required",
         ));
     }
+    // TODO: validate redirect_uri against the registered client.
+    // TODO: validate the token hasn't already been used.
     let scope = validate_scope(req.scope)?;
 
     match (&req.code_challenge_method, &req.code_challenge) {
@@ -333,7 +339,7 @@ async fn oauth_approve(
         AuthToken {
             client_id: req.client_id,
             expires_in: 10 * 60,
-            access_token: format!("tp-token-{}", Uuid::new_v4()),
+            access_token: format!("token-{}", Uuid::new_v4()),
             scope,
             code_challenge: req.code_challenge,
             code_challenge_method: req.code_challenge_method,
@@ -359,8 +365,6 @@ struct TokenRequest {
     client_id: String,
     #[serde(default)]
     client_secret: String,
-    // #[serde(default)]
-    // redirect_uri: String,
     #[serde(default)]
     code_verifier: String,
 
@@ -374,6 +378,7 @@ struct TokenResponse {
     access_token: String,
     refresh_token: String,
     token_type: String,
+    scope: String,
     expires_in: u64,
 }
 
@@ -385,9 +390,19 @@ async fn oauth_token(
 ) -> OauthResult<Json<TokenResponse>> {
     let auth_token = if req.grant_type == "refresh_token" {
         tracing::info!("Handling refresh token request: {req:?}");
+
+        // Validate the request.
+        if req.refresh_token.is_empty() {
+            return Err(bad_request_error(
+                "invalid_request",
+                "refresh_token required for refresh_token grant type",
+            )
+            .into());
+        }
+
+        // Decode the refresh token and grab the auth token.
         let refresh_token_claims = decode_refresh_token(&decoding_key, &req.refresh_token)
             .context_bad_request("invalid_grant", "Invalid refresh token")?;
-
         refresh_token_claims.refresh_token.auth_token
     } else {
         tracing::info!("Handling access token request: {req:?}");
@@ -400,16 +415,17 @@ async fn oauth_token(
             )
             .into());
         }
-        let client_secret_claims = decode_client_secret(&decoding_key, &req.client_secret)
-            .context_bad_request("invalid_grant", "Invalid client secret")?;
-        if !req.client_id.is_empty() && client_secret_claims.client.client_id != req.client_id {
-            return Err(bad_request_error("invalid_grant", "Invalid client id").into());
+        if req.code.is_empty() {
+            return Err(bad_request_error(
+                "invalid_request",
+                "code required for authorization_code grant type",
+            )
+            .into());
         }
+
+        // Decode the auth token.
         let auth_token_claims = decode_auth_token(&decoding_key, &req.code)
             .context_bad_request("invalid_grant", "Invalid auth token")?;
-        if client_secret_claims.client.client_id != auth_token_claims.auth_token.client_id {
-            return Err(bad_request_error("invalid_grant", "Invalid client id").into());
-        }
 
         // PKCE: Verify the challenge against the verifier.
         match (
@@ -448,6 +464,22 @@ async fn oauth_token(
         auth_token_claims.auth_token
     };
 
+    if req.client_secret.is_empty() {
+        return Err(bad_request_error(
+            "invalid_request",
+            "client_secret required for authorization_code grant type",
+        )
+        .into());
+    }
+    let client_secret_claims = decode_client_secret(&decoding_key, &req.client_secret)
+        .context_bad_request("invalid_grant", "Invalid client secret")?;
+    if client_secret_claims.client.client_id != auth_token.client_id {
+        return Err(bad_request_error("invalid_grant", "Invalid token or secret").into());
+    }
+    if auth_token.client_id != req.client_id {
+        return Err(bad_request_error("invalid_grant", "Invalid client id").into());
+    }
+
     // Encode the access token and refresh token.
     let (access_token, access_claims) = encode_access_token(
         &encoding_key,
@@ -479,6 +511,7 @@ async fn oauth_token(
         refresh_token,
         token_type: "Bearer".to_string(),
         expires_in: access_claims.access_token.expires_in,
+        scope: access_claims.access_token.scope,
     }))
 }
 
@@ -669,6 +702,7 @@ fn validate_scope(scope: Option<String>) -> ApiResult<String> {
     }
     Ok(scope)
 }
+
 pub(crate) type OauthResult<T> = Result<T, OauthErrorResponse>;
 
 #[derive(Debug)]
