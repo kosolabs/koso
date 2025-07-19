@@ -130,6 +130,7 @@ pub(crate) fn error_response(
     msg: &str,
     err: Option<Error>,
 ) -> ErrorResponse {
+    let err = err.unwrap_or_else(|| anyhow!(format!("{msg}")));
     let err = ErrorRender { err, msg };
 
     match status {
@@ -144,11 +145,12 @@ pub(crate) fn error_response(
             reason,
             msg: format!("{err}"),
         }],
+        err: err.err,
     }
 }
 
 struct ErrorRender<'a> {
-    err: Option<Error>,
+    err: Error,
     msg: &'a str,
 }
 
@@ -160,21 +162,13 @@ impl std::fmt::Display for ErrorRender<'_> {
 
 impl std::fmt::Debug for ErrorRender<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.err {
-            None => {
-                f.write_str(self.msg)?;
-                Self::fmt_backtrace(&Backtrace::capture(), f)
-            }
-            Some(err) => {
-                write!(f, "[{}]: ", self.msg)?;
-                write!(f, "{err}")?;
-                for cause in err.chain().skip(1) {
-                    write!(f, ": {cause}")?;
-                }
-
-                Self::fmt_backtrace(err.backtrace(), f)
-            }
+        write!(f, "[{}]: ", self.msg)?;
+        write!(f, "{}", self.err)?;
+        for cause in self.err.chain().skip(1) {
+            write!(f, ": {cause}")?;
         }
+
+        Self::fmt_backtrace(self.err.backtrace(), f)
     }
 }
 
@@ -237,6 +231,7 @@ impl ErrorRender<'_> {
 
 #[derive(Debug)]
 pub(crate) struct ErrorResponse {
+    err: Error,
     status: StatusCode,
     details: Vec<ErrorDetail>,
 }
@@ -253,12 +248,8 @@ pub(crate) struct ErrorDetail {
 }
 
 impl ErrorResponse {
-    fn as_err(&self) -> Error {
-        if self.details.is_empty() {
-            anyhow!("({}) <MISSING_ERROR_DETAILS>", self.status)
-        } else {
-            anyhow!("({}) {:?}", self.status, self.details)
-        }
+    fn into_err(self) -> Error {
+        self.err
     }
 }
 
