@@ -18,10 +18,9 @@ use axum::{
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tower_http::cors::{self, CorsLayer};
@@ -161,17 +160,19 @@ struct ClientRegistrationRequest {
     grant_types: Vec<String>,
     // token_endpoint_auth_method: String,
     response_types: Vec<String>,
+    scope: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ClientRegistrationResponse {
     client_id: String,
-    client_secret: Option<String>,
+    client_secret: String,
     client_secret_expires_at: u64,
     client_name: String,
     redirect_uris: Vec<String>,
     grant_types: Vec<String>,
     response_types: Vec<String>,
+    scope: String,
 }
 
 // Handle dynamic client registration
@@ -210,7 +211,10 @@ async fn oauth_register(
         if !req.grant_types.is_empty() {
             req.grant_types
         } else {
-            vec!["authorization_code".to_string()]
+            vec![
+                "authorization_code".to_string(),
+                "refresh_token".to_string(),
+            ]
         }
     };
     if !grant_types.contains(&"authorization_code".to_string()) {
@@ -220,6 +224,7 @@ async fn oauth_register(
         )
         .into());
     }
+    let scope = validate_scope(req.scope)?;
 
     // Generate the client secret.
     let client_id = format!("client-{}", Uuid::new_v4());
@@ -237,6 +242,7 @@ async fn oauth_register(
             redirect_uris,
             grant_types,
             response_types,
+            scope,
         },
     )
     .context_internal("Internal error")?;
@@ -244,12 +250,13 @@ async fn oauth_register(
     // Create the response.
     let response = ClientRegistrationResponse {
         client_id: claims.client.client_id,
-        client_secret: Some(client_secret),
+        client_secret,
         client_secret_expires_at: claims.exp,
         client_name: claims.client.client_name,
         redirect_uris: claims.client.redirect_uris,
         response_types: claims.client.response_types,
         grant_types: claims.client.grant_types,
+        scope: claims.client.scope,
     };
     tracing::debug!("Registered client: {response:?}");
 
@@ -262,7 +269,7 @@ struct ApprovalRequest {
     scope: Option<String>,
     code_challenge_method: Option<String>,
     code_challenge: Option<String>,
-    redirect_uri: Option<String>,
+    redirect_uri: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -275,10 +282,10 @@ struct AuthToken {
     client_id: String,
     access_token: String,
     expires_in: u64,
-    scope: Option<String>,
+    scope: String,
     code_challenge_method: Option<String>,
     code_challenge: Option<String>,
-    redirect_uri: Option<String>,
+    redirect_uri: String,
     user: User,
 }
 
@@ -294,6 +301,14 @@ async fn oauth_approve(
     if req.client_id.is_empty() {
         return Err(bad_request_error("invalid_request", "Client id required"));
     }
+    if req.redirect_uri.is_empty() {
+        return Err(bad_request_error(
+            "invalid_request",
+            "Redirect uri required",
+        ));
+    }
+    let scope = validate_scope(req.scope)?;
+
     match (&req.code_challenge_method, &req.code_challenge) {
         (Some(method), Some(challenge)) => {
             if method.is_empty() || challenge.is_empty() {
@@ -319,7 +334,7 @@ async fn oauth_approve(
             client_id: req.client_id,
             expires_in: 10 * 60,
             access_token: format!("tp-token-{}", Uuid::new_v4()),
-            scope: req.scope,
+            scope,
             code_challenge: req.code_challenge,
             code_challenge_method: req.code_challenge_method,
             redirect_uri: req.redirect_uri,
@@ -388,22 +403,13 @@ async fn oauth_token(
         let client_secret_claims = decode_client_secret(&decoding_key, &req.client_secret)
             .context_bad_request("invalid_grant", "Invalid client secret")?;
         if !req.client_id.is_empty() && client_secret_claims.client.client_id != req.client_id {
-            return Err(bad_request_error("invalid_grant", "invalid client id").into());
+            return Err(bad_request_error("invalid_grant", "Invalid client id").into());
         }
         let auth_token_claims = decode_auth_token(&decoding_key, &req.code)
             .context_bad_request("invalid_grant", "Invalid auth token")?;
         if client_secret_claims.client.client_id != auth_token_claims.auth_token.client_id {
-            return Err(bad_request_error("invalid_grant", "invalid client id").into());
+            return Err(bad_request_error("invalid_grant", "Invalid client id").into());
         }
-        // if req.redirect_uri
-        //     != auth_token_claims
-        //         .auth_token
-        //         .redirect_uri
-        //         .as_deref()
-        //         .unwrap_or_default()
-        // {
-        //     return Err(bad_request_error("invalid_grant", "invalid redirect uri"));
-        // }
 
         // PKCE: Verify the challenge against the verifier.
         match (
@@ -482,6 +488,7 @@ const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
 struct Client {
     client_id: String,
     client_name: String,
+    scope: String,
     expires_in: u64,
     redirect_uris: Vec<String>,
     grant_types: Vec<String>,
@@ -567,7 +574,7 @@ struct AccessToken {
     client_id: String,
     user: User,
     expires_in: u64,
-    scope: Option<String>,
+    scope: String,
     auth_token: AuthToken,
 }
 
@@ -611,7 +618,7 @@ struct RefreshToken {
     client_id: String,
     user: User,
     expires_in: u64,
-    scope: Option<String>,
+    scope: String,
     auth_token: AuthToken,
 }
 
@@ -641,6 +648,27 @@ fn decode_refresh_token(key: &DecodingKey, token: &str) -> Result<RefreshTokenCl
     Ok(token.claims)
 }
 
+fn validate_scope(scope: Option<String>) -> ApiResult<String> {
+    let scope = scope
+        .and_then(|s| {
+            let s = s.trim();
+            if s.is_empty() {
+                None
+            } else {
+                Some(s.to_string())
+            }
+        })
+        .unwrap_or("email profile".to_string());
+    for scope in scope.split_ascii_whitespace() {
+        if scope != "profile" && scope != "email" {
+            return Err(bad_request_error(
+                "invalid_client_metadata",
+                "Only profile or email scope is supported",
+            ));
+        }
+    }
+    Ok(scope)
+}
 pub(crate) type OauthResult<T> = Result<T, OauthErrorResponse>;
 
 #[derive(Debug)]
