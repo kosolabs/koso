@@ -17,7 +17,7 @@ use axum::{
 };
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 use std::{
     collections::HashSet,
@@ -585,14 +585,7 @@ fn encode_client_secret(key: &EncodingKey, client: Client) -> Result<(String, Cl
 }
 
 fn decode_client_secret(key: &DecodingKey, client_secret: &str) -> Result<ClientSecretClaims> {
-    let mut validation = Validation::default();
-    let mut iss = HashSet::new();
-    iss.insert(CLIENT_SECRET_ISS.to_string());
-    validation.iss = Some(iss);
-    let client_secret = decode::<ClientSecretClaims>(client_secret, key, &validation)
-        .context("Invalid client secret token")?;
-
-    Ok(client_secret.claims)
+    decode_token(key, client_secret)
 }
 
 const AUTH_TOKEN_ISS: &str = "koso-mcp-oauth-auth";
@@ -620,14 +613,7 @@ fn encode_auth_token(
 }
 
 fn decode_auth_token(key: &DecodingKey, auth_token: &str) -> Result<AuthTokenClaims> {
-    let mut validation = Validation::default();
-    let mut iss = HashSet::new();
-    iss.insert(AUTH_TOKEN_ISS.to_string());
-    validation.iss = Some(iss);
-    let auth_token =
-        decode::<AuthTokenClaims>(auth_token, key, &validation).context("Invalid auth token")?;
-
-    Ok(auth_token.claims)
+    decode_token(key, auth_token)
 }
 
 const ACCESS_TOKEN_ISS: &str = "koso-mcp-oauth-access";
@@ -664,15 +650,8 @@ fn encode_access_token(
     Ok((token, claims))
 }
 
-fn decode_access_token(key: &DecodingKey, token: &str) -> Result<AccessTokenClaims> {
-    let mut validation = Validation::default();
-    let mut iss = HashSet::new();
-    iss.insert(ACCESS_TOKEN_ISS.to_string());
-    validation.iss = Some(iss);
-    let token: jsonwebtoken::TokenData<AccessTokenClaims> =
-        decode::<AccessTokenClaims>(token, key, &validation).context("Invalid access token")?;
-
-    Ok(token.claims)
+fn decode_access_token(key: &DecodingKey, access_token: &str) -> Result<AccessTokenClaims> {
+    decode_token(key, access_token)
 }
 
 const REFRESH_TOKEN_ISS: &str = "koso-mcp-oauth-refresh";
@@ -700,22 +679,26 @@ fn encode_refresh_token(
 ) -> Result<(String, RefreshTokenClaims)> {
     let timer = SystemTime::now() + Duration::from_secs(refresh_token.expires_in);
     let claims = RefreshTokenClaims {
-        refresh_token,
         exp: timer.duration_since(UNIX_EPOCH)?.as_secs(),
         iss: REFRESH_TOKEN_ISS.to_string(),
+        refresh_token,
     };
     let token = encode(&Header::default(), &claims, key)?;
 
     Ok((token, claims))
 }
 
-fn decode_refresh_token(key: &DecodingKey, token: &str) -> Result<RefreshTokenClaims> {
+fn decode_refresh_token(key: &DecodingKey, refresh_token: &str) -> Result<RefreshTokenClaims> {
+    decode_token(key, refresh_token)
+}
+
+fn decode_token<T: DeserializeOwned>(key: &DecodingKey, token: &str) -> Result<T> {
     let mut validation = Validation::default();
     let mut iss = HashSet::new();
     iss.insert(REFRESH_TOKEN_ISS.to_string());
     validation.iss = Some(iss);
-    let token: jsonwebtoken::TokenData<RefreshTokenClaims> =
-        decode::<RefreshTokenClaims>(token, key, &validation).context("Invalid refresh token")?;
+    let token: jsonwebtoken::TokenData<T> =
+        decode::<T>(token, key, &validation).context("Invalid token")?;
 
     Ok(token.claims)
 }
