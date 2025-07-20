@@ -50,6 +50,7 @@
   }
   async function handleAuthorizeClick() {
     let redirectUri = await authorize();
+    console.log(`Redirecting back to client: ${redirectUri}`);
     window.location.assign(redirectUri);
   }
 
@@ -72,12 +73,12 @@
     });
     let approval: { code: string } = await parseResponse(auth, response);
 
-    return `${params.redirectUri}?code=${approval.code}${params.state ? `&state=${params.state}` : ``}`;
+    return `${params.redirectUri}?code=${encodeURIComponent(approval.code)}${params.state ? `&state=${encodeURIComponent(params.state)}` : ``}`;
   }
 
   onMount(() => {
     const params = parseParams();
-    console.log(`Got params`, params);
+    console.log(`Parased authorization parameters`, params);
   });
 </script>
 
