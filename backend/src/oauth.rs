@@ -123,6 +123,7 @@ fn _authenticate(
 const READ_WRITE_SCOPE: &str = "read_write";
 
 /// oauth2 resource server metadata
+/// https://datatracker.ietf.org/doc/rfc9728/
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct ResourceServerMetadata {
     resource: String,
@@ -146,6 +147,7 @@ async fn get_resource_server_metadata() -> OauthResult<Json<ResourceServerMetada
 }
 
 /// oauth2 authorization server metadata
+/// https://datatracker.ietf.org/doc/html/rfc8414
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct AuthorizationServerMetadata {
     authorization_endpoint: String,
@@ -308,6 +310,8 @@ struct ApprovalResponse {
     code: String,
 }
 
+/// Handle approval requests sent from a client browser.
+/// https://datatracker.ietf.org/doc/html/rfc6749#section-3.1
 #[tracing::instrument(skip(user, encoding_key))]
 async fn oauth_approve(
     Extension(user): Extension<User>,
@@ -410,7 +414,8 @@ struct TokenResponse {
     refresh_token: String,
 }
 
-// Handle token request from the MCP client
+/// Handle token request from the MCP client
+/// https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
 async fn oauth_token(
     Extension(decoding_key): Extension<DecodingKey>,
     Extension(encoding_key): Extension<EncodingKey>,
