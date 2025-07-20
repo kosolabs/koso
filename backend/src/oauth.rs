@@ -84,7 +84,7 @@ pub(crate) async fn authenticate(
             "Unauthenticated client",
         )?;
 
-    let mut user = access_token_claims.access_token.user;
+    let mut user = access_token_claims.data.user;
     user.email = user.email.to_lowercase();
 
     tracing::Span::current().record("email", user.email.clone());
@@ -177,11 +177,10 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ClientRegistrationRequest {
     client_name: String,
+    scope: Option<String>,
     redirect_uris: Vec<String>,
     grant_types: Vec<String>,
-    // token_endpoint_auth_method: String,
     response_types: Vec<String>,
-    scope: Option<String>,
     #[allow(dead_code)]
     #[serde(flatten)]
     other: serde_json::Value,
@@ -259,28 +258,28 @@ async fn oauth_register(
     };
     let (client_secret, claims) = encode_client_secret(
         &key,
-        Client {
+        ClientSecret {
             client_id,
             client_name,
             expires_in: CLIENT_SECRET_EXPIRY_SECS,
+            scope,
             redirect_uris,
             grant_types,
             response_types,
-            scope,
         },
     )
     .context_internal("Internal error")?;
 
     // Create the response.
     let response = ClientRegistrationResponse {
-        client_id: claims.client.client_id,
-        client_secret,
+        client_id: claims.data.client_id,
+        client_name: claims.data.client_name,
+        scope: claims.data.scope,
+        redirect_uris: claims.data.redirect_uris,
+        grant_types: claims.data.grant_types,
+        response_types: claims.data.response_types,
         client_secret_expires_at: claims.exp,
-        client_name: claims.client.client_name,
-        redirect_uris: claims.client.redirect_uris,
-        response_types: claims.client.response_types,
-        grant_types: claims.client.grant_types,
-        scope: claims.client.scope,
+        client_secret,
     };
     tracing::debug!("Registered client: {response:?}");
 
@@ -304,18 +303,6 @@ struct ApprovalRequest {
 #[derive(Debug, Serialize)]
 struct ApprovalResponse {
     code: String,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct AuthToken {
-    client_id: String,
-    access_token: String,
-    expires_in: u64,
-    scope: String,
-    code_challenge_method: Option<String>,
-    code_challenge: Option<String>,
-    redirect_uri: String,
-    user: User,
 }
 
 #[tracing::instrument(skip(user, encoding_key))]
@@ -364,11 +351,11 @@ async fn oauth_approve(
         AuthToken {
             client_id: req.client_id,
             expires_in: 10 * 60,
-            access_token: format!("token-{}", Uuid::new_v4()),
             scope,
+            redirect_uri: req.redirect_uri,
             code_challenge: req.code_challenge,
             code_challenge_method: req.code_challenge_method,
-            redirect_uri: req.redirect_uri,
+            access_token: format!("token-{}", Uuid::new_v4()),
             user,
         },
     )?;
@@ -382,8 +369,10 @@ async fn oauth_approve(
 struct TokenRequest {
     /// refresh_token or authorization_code
     grant_type: String,
+
     #[serde(default)]
     client_id: String,
+
     #[serde(default)]
     client_secret: String,
 
@@ -412,8 +401,8 @@ struct TokenRequest {
 #[derive(Debug, Serialize)]
 struct TokenResponse {
     token_type: String,
-    scope: String,
     expires_in: u64,
+    scope: String,
     access_token: String,
     refresh_token: String,
 }
@@ -424,7 +413,7 @@ async fn oauth_token(
     Extension(encoding_key): Extension<EncodingKey>,
     Form(req): Form<TokenRequest>,
 ) -> OauthResult<Json<TokenResponse>> {
-    let auth_token = if req.grant_type == "refresh_token" {
+    let auth_token_claims = if req.grant_type == "refresh_token" {
         tracing::info!("Handling refresh token request");
 
         // Validate the request.
@@ -439,7 +428,7 @@ async fn oauth_token(
         // Decode the refresh token and grab the auth token.
         let refresh_token_claims = decode_refresh_token(&decoding_key, &req.refresh_token)
             .context_bad_request("invalid_grant", "Invalid refresh token")?;
-        refresh_token_claims.refresh_token.auth_token
+        refresh_token_claims.data.auth_token_claims
     } else {
         tracing::info!("Handling access token request");
 
@@ -465,8 +454,8 @@ async fn oauth_token(
 
         // PKCE: Verify the challenge against the verifier.
         match (
-            &auth_token_claims.auth_token.code_challenge_method,
-            &auth_token_claims.auth_token.code_challenge,
+            &auth_token_claims.data.code_challenge_method,
+            &auth_token_claims.data.code_challenge,
             req.code_verifier,
         ) {
             (Some(method), Some(challenge), verifier) if !verifier.is_empty() => {
@@ -497,7 +486,7 @@ async fn oauth_token(
             }
         }
 
-        auth_token_claims.auth_token
+        auth_token_claims
     };
 
     if req.client_secret.is_empty() {
@@ -509,10 +498,10 @@ async fn oauth_token(
     }
     let client_secret_claims = decode_client_secret(&decoding_key, &req.client_secret)
         .context_bad_request("invalid_grant", "Invalid client secret")?;
-    if client_secret_claims.client.client_id != auth_token.client_id {
+    if client_secret_claims.data.client_id != auth_token_claims.data.client_id {
         return Err(bad_request_error("invalid_grant", "Invalid token or secret").into());
     }
-    if auth_token.client_id != req.client_id {
+    if auth_token_claims.data.client_id != req.client_id {
         return Err(bad_request_error("invalid_grant", "Invalid client id").into());
     }
 
@@ -520,22 +509,22 @@ async fn oauth_token(
     let (access_token, access_claims) = encode_access_token(
         &encoding_key,
         AccessToken {
+            client_id: auth_token_claims.data.client_id.clone(),
             expires_in: ACCESS_TOKEN_EXPIRY_SECS,
-            client_id: auth_token.client_id.clone(),
-            scope: auth_token.scope.clone(),
-            user: auth_token.user.clone(),
-            auth_token: auth_token.clone(),
+            scope: auth_token_claims.data.scope.clone(),
+            user: auth_token_claims.data.user.clone(),
+            auth_token_claims: auth_token_claims.clone(),
         },
     )
     .context_internal("Internal error")?;
     let (refresh_token, refresh_claims) = encode_refresh_token(
         &encoding_key,
         RefreshToken {
+            client_id: auth_token_claims.data.client_id.clone(),
             expires_in: REFRESH_TOKEN_EXPIRY_SECS,
-            client_id: auth_token.client_id.clone(),
-            scope: auth_token.scope.clone(),
-            user: auth_token.user.clone(),
-            auth_token: auth_token.clone(),
+            scope: auth_token_claims.data.scope.clone(),
+            user: auth_token_claims.data.user.clone(),
+            auth_token_claims: auth_token_claims.clone(),
         },
     )
     .context_internal("Internal error")?;
@@ -543,160 +532,138 @@ async fn oauth_token(
     tracing::info!("Created access token: {access_claims:?}, refresh token: {refresh_claims:?}");
 
     Ok(Json(TokenResponse {
+        token_type: "Bearer".to_string(),
+        expires_in: access_claims.data.expires_in,
+        scope: access_claims.data.scope,
         access_token,
         refresh_token,
-        token_type: "Bearer".to_string(),
-        expires_in: access_claims.access_token.expires_in,
-        scope: access_claims.access_token.scope,
     }))
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct Claims<T: Serialize> {
+    exp: u64,
+    iss: String,
+    data: T,
 }
 
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
 const CLIENT_SECRET_EXPIRY_SECS: u64 = 30 * 24 * 60 * 60;
-
+type ClientSecretClaims = Claims<ClientSecret>;
 #[derive(Serialize, Deserialize, Debug, Clone)]
-struct Client {
+struct ClientSecret {
     client_id: String,
     client_name: String,
-    scope: String,
     expires_in: u64,
+    scope: String,
     redirect_uris: Vec<String>,
     grant_types: Vec<String>,
     response_types: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct ClientSecretClaims {
-    exp: u64,
-    iss: String,
-    client: Client,
-}
-
-fn encode_client_secret(key: &EncodingKey, client: Client) -> Result<(String, ClientSecretClaims)> {
-    let timer = SystemTime::now() + Duration::from_secs(client.expires_in);
-    let claims = ClientSecretClaims {
-        exp: timer.duration_since(UNIX_EPOCH)?.as_secs(),
-        iss: CLIENT_SECRET_ISS.to_string(),
-        client,
-    };
-    let client_secret = encode(&Header::default(), &claims, key)?;
-
-    Ok((client_secret, claims))
-}
-
-fn decode_client_secret(key: &DecodingKey, client_secret: &str) -> Result<ClientSecretClaims> {
-    decode_token(key, client_secret)
-}
-
 const AUTH_TOKEN_ISS: &str = "koso-mcp-oauth-auth";
+type AuthTokenClaims = Claims<AuthToken>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct AuthTokenClaims {
-    auth_token: AuthToken,
-    exp: u64,
-    iss: String,
-}
-
-fn encode_auth_token(
-    key: &EncodingKey,
-    auth_token: AuthToken,
-) -> Result<(String, AuthTokenClaims)> {
-    let timer = SystemTime::now() + Duration::from_secs(auth_token.expires_in);
-    let claims = AuthTokenClaims {
-        auth_token,
-        exp: timer.duration_since(UNIX_EPOCH)?.as_secs(),
-        iss: AUTH_TOKEN_ISS.to_string(),
-    };
-    let token = encode(&Header::default(), &claims, key)?;
-
-    Ok((token, claims))
-}
-
-fn decode_auth_token(key: &DecodingKey, auth_token: &str) -> Result<AuthTokenClaims> {
-    decode_token(key, auth_token)
+struct AuthToken {
+    client_id: String,
+    expires_in: u64,
+    scope: String,
+    redirect_uri: String,
+    code_challenge_method: Option<String>,
+    code_challenge: Option<String>,
+    access_token: String,
+    user: User,
 }
 
 const ACCESS_TOKEN_ISS: &str = "koso-mcp-oauth-access";
 const ACCESS_TOKEN_EXPIRY_SECS: u64 = 7 * 24 * 60 * 60;
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct AccessTokenClaims {
-    exp: u64,
-    iss: String,
-    access_token: AccessToken,
-}
-
+type AccessTokenClaims = Claims<AccessToken>;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AccessToken {
     client_id: String,
-    user: User,
     expires_in: u64,
     scope: String,
-    auth_token: AuthToken,
-}
-
-fn encode_access_token(
-    key: &EncodingKey,
-    access_token: AccessToken,
-) -> Result<(String, AccessTokenClaims)> {
-    let timer = SystemTime::now() + Duration::from_secs(access_token.expires_in);
-    let claims = AccessTokenClaims {
-        access_token,
-        exp: timer.duration_since(UNIX_EPOCH)?.as_secs(),
-        iss: ACCESS_TOKEN_ISS.to_string(),
-    };
-    let token = encode(&Header::default(), &claims, key)?;
-
-    Ok((token, claims))
-}
-
-fn decode_access_token(key: &DecodingKey, access_token: &str) -> Result<AccessTokenClaims> {
-    decode_token(key, access_token)
+    user: User,
+    auth_token_claims: AuthTokenClaims,
 }
 
 const REFRESH_TOKEN_ISS: &str = "koso-mcp-oauth-refresh";
 const REFRESH_TOKEN_EXPIRY_SECS: u64 = 30 * 24 * 60 * 60;
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct RefreshTokenClaims {
-    exp: u64,
-    iss: String,
-    refresh_token: RefreshToken,
-}
-
+type RefreshTokenClaims = Claims<RefreshToken>;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct RefreshToken {
     client_id: String,
-    user: User,
     expires_in: u64,
     scope: String,
-    auth_token: AuthToken,
+    user: User,
+    auth_token_claims: AuthTokenClaims,
+}
+
+fn encode_client_secret(
+    key: &EncodingKey,
+    data: ClientSecret,
+) -> Result<(String, ClientSecretClaims)> {
+    encode_token(key, data.expires_in, CLIENT_SECRET_ISS, data)
+}
+
+fn decode_client_secret(key: &DecodingKey, client_secret: &str) -> Result<ClientSecretClaims> {
+    decode_token(key, client_secret, CLIENT_SECRET_ISS)
+}
+
+fn encode_auth_token(key: &EncodingKey, data: AuthToken) -> Result<(String, AuthTokenClaims)> {
+    encode_token(key, data.expires_in, AUTH_TOKEN_ISS, data)
+}
+
+fn decode_auth_token(key: &DecodingKey, auth_token: &str) -> Result<AuthTokenClaims> {
+    decode_token(key, auth_token, AUTH_TOKEN_ISS)
+}
+
+fn encode_access_token(
+    key: &EncodingKey,
+    data: AccessToken,
+) -> Result<(String, AccessTokenClaims)> {
+    encode_token(key, data.expires_in, ACCESS_TOKEN_ISS, data)
+}
+
+fn decode_access_token(key: &DecodingKey, access_token: &str) -> Result<AccessTokenClaims> {
+    decode_token(key, access_token, ACCESS_TOKEN_ISS)
 }
 
 fn encode_refresh_token(
     key: &EncodingKey,
-    refresh_token: RefreshToken,
+    data: RefreshToken,
 ) -> Result<(String, RefreshTokenClaims)> {
-    let timer = SystemTime::now() + Duration::from_secs(refresh_token.expires_in);
-    let claims = RefreshTokenClaims {
+    encode_token(key, data.expires_in, REFRESH_TOKEN_ISS, data)
+}
+
+fn decode_refresh_token(key: &DecodingKey, refresh_token: &str) -> Result<RefreshTokenClaims> {
+    decode_token(key, refresh_token, REFRESH_TOKEN_ISS)
+}
+
+fn encode_token<T: Serialize>(
+    key: &EncodingKey,
+    expires_in: u64,
+    iss: &str,
+    data: T,
+) -> Result<(String, Claims<T>)> {
+    let timer = SystemTime::now() + Duration::from_secs(expires_in);
+    let claims = Claims {
         exp: timer.duration_since(UNIX_EPOCH)?.as_secs(),
-        iss: REFRESH_TOKEN_ISS.to_string(),
-        refresh_token,
+        iss: iss.to_string(),
+        data,
     };
     let token = encode(&Header::default(), &claims, key)?;
 
     Ok((token, claims))
 }
 
-fn decode_refresh_token(key: &DecodingKey, refresh_token: &str) -> Result<RefreshTokenClaims> {
-    decode_token(key, refresh_token)
-}
-
-fn decode_token<T: DeserializeOwned>(key: &DecodingKey, token: &str) -> Result<T> {
+fn decode_token<T: DeserializeOwned>(key: &DecodingKey, token: &str, issuer: &str) -> Result<T> {
     let mut validation = Validation::default();
     let mut iss = HashSet::new();
-    iss.insert(REFRESH_TOKEN_ISS.to_string());
+    iss.insert(issuer.to_string());
     validation.iss = Some(iss);
+    validation.required_spec_claims.insert("iss".to_string());
     let token: jsonwebtoken::TokenData<T> =
         decode::<T>(token, key, &validation).context("Invalid token")?;
 
@@ -743,6 +710,7 @@ struct OauthErrorResponseBody {
 }
 
 /// Converts from OauthErrorResponse to Response.
+/// Creates error bodies following: https://www.rfc-editor.org/rfc/rfc6749#section-5.2
 impl IntoResponse for OauthErrorResponse {
     fn into_response(self) -> Response {
         let body = axum::Json(OauthErrorResponseBody {
@@ -782,5 +750,3 @@ impl From<ErrorResponse> for OauthErrorResponse {
         }
     }
 }
-
-// TODO Error bodies: https://www.rfc-editor.org/rfc/rfc6749#section-5.2
