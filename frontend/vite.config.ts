@@ -17,6 +17,24 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      "/oauth": {
+        target: "http://localhost:3000",
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
+      "/.well-known/oauth-protected-resource": {
+        target: "http://localhost:3000",
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
+      "/.well-known/oauth-authorization-server": {
+        target: "http://localhost:3000",
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   test: {

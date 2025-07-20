@@ -1,6 +1,6 @@
 use crate::{
     api::{
-        ApiResult, ErrorResponse, IntoApiResult, bad_request_error,
+        self, ApiResult, ErrorResponse, IntoApiResult, bad_request_error,
         google::{self, User},
     },
     settings::settings,
@@ -33,25 +33,40 @@ pub(crate) fn router() -> Result<Router> {
         .allow_headers(cors::Any);
 
     Ok(Router::new()
-        .route(
+        .nest(
             "/.well-known/oauth-authorization-server",
-            get(get_authorization_server_metadata).options(get_authorization_server_metadata),
+            Router::new()
+                .route(
+                    "/",
+                    get(get_authorization_server_metadata)
+                        .options(get_authorization_server_metadata),
+                )
+                .fallback(api::handler_404)
+                .layer(cors_layer.clone()),
         )
-        .route(
+        .nest(
             "/.well-known/oauth-protected-resource",
-            get(get_resource_server_metadata).options(get_resource_server_metadata),
+            Router::new()
+                .route(
+                    "/",
+                    get(get_resource_server_metadata).options(get_resource_server_metadata),
+                )
+                .fallback(api::handler_404)
+                .layer(cors_layer.clone()),
         )
-        .route(
-            "/oauth/register",
-            post(oauth_register).options(oauth_register),
-        )
-        .route("/oauth/token", post(oauth_token).options(oauth_token))
-        .layer(cors_layer)
-        .route(
-            "/oauth/approve",
-            post(oauth_approve)
-                .options(oauth_approve)
-                .layer(middleware::from_fn(google::authenticate)),
+        .nest(
+            "/oauth",
+            Router::new()
+                .route("/register", post(oauth_register).options(oauth_register))
+                .route("/token", post(oauth_token).options(oauth_token))
+                .layer(cors_layer)
+                .route(
+                    "/approve",
+                    post(oauth_approve)
+                        .options(oauth_approve)
+                        .layer(middleware::from_fn(google::authenticate)),
+                )
+                .fallback(api::handler_404),
         ))
 }
 
@@ -119,7 +134,7 @@ async fn get_resource_server_metadata() -> OauthResult<Json<ResourceServerMetada
     let host = &settings().host;
     let metadata = ResourceServerMetadata {
         resource: format!("{host}/api/mcp/sse"),
-        authorization_servers: vec!["http:localhost:3000/api/foo".to_string()],
+        authorization_servers: vec![host.clone()],
         bearer_methods_supported: vec!["header".to_string()],
         scopes_supported: vec!["profile".to_string(), "email".to_string()],
     };
@@ -170,13 +185,13 @@ struct ClientRegistrationRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ClientRegistrationResponse {
     client_id: String,
-    client_secret: String,
-    client_secret_expires_at: u64,
     client_name: String,
+    scope: String,
     redirect_uris: Vec<String>,
     grant_types: Vec<String>,
     response_types: Vec<String>,
-    scope: String,
+    client_secret_expires_at: u64,
+    client_secret: String,
 }
 
 // Handle dynamic client registration
@@ -242,7 +257,7 @@ async fn oauth_register(
         Client {
             client_id,
             client_name,
-            expires_in: 30 * 24 * 60 * 60,
+            expires_in: CLIENT_SECRET_EXPIRY_SECS,
             redirect_uris,
             grant_types,
             response_types,
@@ -357,29 +372,31 @@ async fn oauth_approve(
 struct TokenRequest {
     /// refresh_token or authorization_code
     grant_type: String,
-
-    // authorization_code fields
-    #[serde(default)]
-    code: String,
     #[serde(default)]
     client_id: String,
     #[serde(default)]
     client_secret: String,
+
+    // authorization_code fields
+    #[serde(default)]
+    code: String,
     #[serde(default)]
     code_verifier: String,
 
     // refresh_token_fields
     #[serde(default)]
     refresh_token: String,
+    // #[serde(default)]
+    // redirect_uri: String,
 }
 
 #[derive(Debug, Serialize)]
 struct TokenResponse {
-    access_token: String,
-    refresh_token: String,
     token_type: String,
     scope: String,
     expires_in: u64,
+    access_token: String,
+    refresh_token: String,
 }
 
 // Handle token request from the MCP client
@@ -484,7 +501,7 @@ async fn oauth_token(
     let (access_token, access_claims) = encode_access_token(
         &encoding_key,
         AccessToken {
-            expires_in: 60 * 2, // TODO: Bump this
+            expires_in: ACCESS_TOKEN_EXPIRY_SECS,
             client_id: auth_token.client_id.clone(),
             scope: auth_token.scope.clone(),
             user: auth_token.user.clone(),
@@ -495,7 +512,7 @@ async fn oauth_token(
     let (refresh_token, refresh_claims) = encode_refresh_token(
         &encoding_key,
         RefreshToken {
-            expires_in: 30 * 24 * 60 * 60, // 30 days
+            expires_in: REFRESH_TOKEN_EXPIRY_SECS,
             client_id: auth_token.client_id.clone(),
             scope: auth_token.scope.clone(),
             user: auth_token.user.clone(),
@@ -516,6 +533,7 @@ async fn oauth_token(
 }
 
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
+const CLIENT_SECRET_EXPIRY_SECS: u64 = 30 * 24 * 60 * 60;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Client {
@@ -594,6 +612,7 @@ fn decode_auth_token(key: &DecodingKey, auth_token: &str) -> Result<AuthTokenCla
 }
 
 const ACCESS_TOKEN_ISS: &str = "koso-mcp-oauth-access";
+const ACCESS_TOKEN_EXPIRY_SECS: u64 = 7 * 24 * 60 * 60;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AccessTokenClaims {
@@ -638,6 +657,7 @@ fn decode_access_token(key: &DecodingKey, token: &str) -> Result<AccessTokenClai
 }
 
 const REFRESH_TOKEN_ISS: &str = "koso-mcp-oauth-refresh";
+const REFRESH_TOKEN_EXPIRY_SECS: u64 = 30 * 24 * 60 * 60;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct RefreshTokenClaims {
