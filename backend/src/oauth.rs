@@ -182,6 +182,9 @@ struct ClientRegistrationRequest {
     // token_endpoint_auth_method: String,
     response_types: Vec<String>,
     scope: Option<String>,
+    #[allow(dead_code)]
+    #[serde(flatten)]
+    other: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -203,7 +206,7 @@ async fn oauth_register(
     Extension(key): Extension<EncodingKey>,
     Json(req): Json<ClientRegistrationRequest>,
 ) -> OauthResult<Json<ClientRegistrationResponse>> {
-    tracing::debug!("Registering client: {req:?}");
+    tracing::debug!("Registering client");
 
     // Validate the request
     let redirect_uris = req.redirect_uris;
@@ -291,6 +294,11 @@ struct ApprovalRequest {
     code_challenge_method: Option<String>,
     code_challenge: Option<String>,
     redirect_uri: String,
+    #[allow(dead_code)]
+    resource: Option<String>,
+    #[allow(dead_code)]
+    #[serde(flatten)]
+    other: serde_json::Value,
 }
 
 #[derive(Debug, Serialize)]
@@ -316,7 +324,7 @@ async fn oauth_approve(
     Extension(encoding_key): Extension<EncodingKey>,
     Json(req): Json<ApprovalRequest>,
 ) -> ApiResult<Json<ApprovalResponse>> {
-    tracing::info!("Approving authorization: {req:?}");
+    tracing::info!("Approving authorization");
 
     // Validate the request.
     if req.client_id.is_empty() {
@@ -388,8 +396,17 @@ struct TokenRequest {
     // refresh_token_fields
     #[serde(default)]
     refresh_token: String,
-    // #[serde(default)]
-    // redirect_uri: String,
+
+    #[allow(dead_code)]
+    #[serde(default)]
+    redirect_uri: String,
+    #[allow(dead_code)]
+    #[serde(default)]
+    resource: String,
+
+    #[allow(dead_code)]
+    #[serde(flatten)]
+    other: serde_json::Value,
 }
 
 #[derive(Debug, Serialize)]
@@ -408,7 +425,7 @@ async fn oauth_token(
     Form(req): Form<TokenRequest>,
 ) -> OauthResult<Json<TokenResponse>> {
     let auth_token = if req.grant_type == "refresh_token" {
-        tracing::info!("Handling refresh token request: {req:?}");
+        tracing::info!("Handling refresh token request");
 
         // Validate the request.
         if req.refresh_token.is_empty() {
@@ -424,7 +441,7 @@ async fn oauth_token(
             .context_bad_request("invalid_grant", "Invalid refresh token")?;
         refresh_token_claims.refresh_token.auth_token
     } else {
-        tracing::info!("Handling access token request: {req:?}");
+        tracing::info!("Handling access token request");
 
         // Validate the request.
         if req.grant_type != "authorization_code" {

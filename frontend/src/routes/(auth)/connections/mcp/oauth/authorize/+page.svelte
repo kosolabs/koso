@@ -67,6 +67,7 @@
         code_challenge: params.codeChallenge,
         code_challenge_method: params.codeChallengeMethod,
         redirect_uri: params.redirectUri,
+        resource: params.resource,
       }),
     });
     let approval: { code: string } = await parseResponse(auth, response);
