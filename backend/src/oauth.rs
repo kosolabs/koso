@@ -120,6 +120,8 @@ fn _authenticate(
     decode_access_token(decoding_key, access_token)
 }
 
+const READ_WRITE_SCOPE: &str = "read_write";
+
 /// oauth2 resource server metadata
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct ResourceServerMetadata {
@@ -136,7 +138,7 @@ async fn get_resource_server_metadata() -> OauthResult<Json<ResourceServerMetada
         resource: format!("{host}/api/mcp/sse"),
         authorization_servers: vec![host.clone()],
         bearer_methods_supported: vec!["header".to_string()],
-        scopes_supported: vec!["profile".to_string(), "email".to_string()],
+        scopes_supported: vec![READ_WRITE_SCOPE.to_string()],
     };
     tracing::debug!("Metadata: {:?}", metadata);
 
@@ -161,8 +163,8 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
     let metadata = AuthorizationServerMetadata {
         authorization_endpoint: format!("{host}/connections/mcp/oauth/authorize"),
         token_endpoint: format!("{host}/oauth/token"),
-        scopes_supported: vec!["profile".to_string(), "email".to_string()],
         registration_endpoint: format!("{host}/oauth/register"),
+        scopes_supported: vec![READ_WRITE_SCOPE.to_string()],
         issuer: host.clone(),
         response_types_supported: vec!["code".to_string()],
         code_challenge_methods_supported: vec!["S256".to_string()],
@@ -711,12 +713,12 @@ fn validate_scope(scope: Option<String>) -> ApiResult<String> {
                 Some(s.to_string())
             }
         })
-        .unwrap_or("email profile".to_string());
+        .unwrap_or(READ_WRITE_SCOPE.to_string());
     for scope in scope.split_ascii_whitespace() {
-        if scope != "profile" && scope != "email" {
+        if scope != READ_WRITE_SCOPE {
             return Err(bad_request_error(
                 "invalid_client_metadata",
-                "Only profile or email scope is supported",
+                "Only read_write scope is supported",
             ));
         }
     }
