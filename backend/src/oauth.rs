@@ -176,6 +176,7 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ClientRegistrationRequest {
+    #[serde(default)]
     client_name: String,
     scope: Option<String>,
     redirect_uris: Vec<String>,
@@ -288,10 +289,12 @@ async fn oauth_register(
 
 #[derive(Debug, Deserialize)]
 struct ApprovalRequest {
+    #[serde(default)]
     client_id: String,
     scope: Option<String>,
     code_challenge_method: Option<String>,
     code_challenge: Option<String>,
+    #[serde(default)]
     redirect_uri: String,
     #[allow(dead_code)]
     resource: Option<String>,
@@ -741,7 +744,7 @@ impl From<ErrorResponse> for OauthErrorResponse {
             status: err.status,
             error: detail
                 .map(|d| d.reason)
-                .unwrap_or("internal_error")
+                .unwrap_or("server_error")
                 .to_string(),
             error_description: detail
                 .map(|d| d.msg.as_str())
