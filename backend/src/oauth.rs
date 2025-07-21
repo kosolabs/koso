@@ -18,6 +18,7 @@ use axum::{
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde_with::{NoneAsEmptyString, serde_as};
 use sha2::{Digest, Sha256};
 use std::{
     collections::HashSet,
@@ -121,6 +122,9 @@ fn _authenticate(
 }
 
 const READ_WRITE_SCOPE: &str = "read_write";
+const CODE_RESPONSE_TYPE: &str = "code";
+const CODE_GRANT_TYPE: &str = "authorization_code";
+const REFRESH_GRANT_TYPE: &str = "refresh_token";
 
 /// oauth2 resource server metadata
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -168,7 +172,7 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
         registration_endpoint: format!("{host}/oauth/register"),
         scopes_supported: vec![READ_WRITE_SCOPE.to_string()],
         issuer: host.clone(),
-        response_types_supported: vec!["code".to_string()],
+        response_types_supported: vec![CODE_RESPONSE_TYPE.to_string()],
         code_challenge_methods_supported: vec!["S256".to_string()],
     };
     tracing::debug!("Metadata: {:?}", metadata);
@@ -176,10 +180,12 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
     Ok(Json(metadata))
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ClientRegistrationRequest {
-    #[serde(default)]
-    client_name: String,
+    #[serde_as(as = "NoneAsEmptyString")]
+    client_name: Option<String>,
+    #[serde_as(as = "NoneAsEmptyString")]
     scope: Option<String>,
     redirect_uris: Vec<String>,
     grant_types: Vec<String>,
@@ -219,8 +225,16 @@ async fn oauth_register(
         )
         .into());
     }
+    if redirect_uris.len() > 5 {
+        return Err(bad_request_error("invalid_redirect_uri", "Too many redirect uris").into());
+    }
+    if redirect_uris.iter().any(|s| s.is_empty()) {
+        return Err(
+            bad_request_error("invalid_redirect_uri", "Redirect uri cannot be empty").into(),
+        );
+    }
     let response_types = req.response_types;
-    if !response_types.is_empty() && !response_types.contains(&"code".to_string()) {
+    if !response_types.is_empty() && !response_types.contains(&CODE_RESPONSE_TYPE.to_string()) {
         return Err(bad_request_error(
             "invalid_client_metadata",
             "Only the 'code' response_type is supported",
@@ -228,17 +242,15 @@ async fn oauth_register(
         .into());
     }
     let grant_types = req.grant_types;
-    if !grant_types.is_empty() && !grant_types.contains(&"authorization_code".to_string()) {
+    if !grant_types.is_empty() && !grant_types.contains(&CODE_GRANT_TYPE.to_string()) {
         return Err(bad_request_error(
             "invalid_client_metadata",
             "grant_types must contain 'authorization_code'",
         )
         .into());
     }
-    if let Some(scope) = req.scope.map(|s| s.trim().to_string())
-        && !scope.is_empty()
-        && scope != READ_WRITE_SCOPE
-    {
+    let scope = req.scope.unwrap_or_else(|| READ_WRITE_SCOPE.to_string());
+    if scope != READ_WRITE_SCOPE {
         return Err(bad_request_error(
             "invalid_client_metadata",
             "Only read_write scope is supported",
@@ -248,24 +260,17 @@ async fn oauth_register(
 
     // Generate the client secret.
     let client_id = format!("client-{}", Uuid::new_v4());
-    let client_name = if req.client_name.is_empty() {
-        client_id.clone()
-    } else {
-        req.client_name
-    };
+    let client_name = req.client_name.unwrap_or_else(|| client_id.clone());
     let (client_secret, claims) = encode_client_secret(
         &key,
         ClientSecret {
             client_id,
             client_name,
             expires_in: CLIENT_SECRET_EXPIRY_SECS,
-            scope: READ_WRITE_SCOPE.to_string(),
+            scope,
             redirect_uris,
-            grant_types: vec![
-                "authorization_code".to_string(),
-                "refresh_token".to_string(),
-            ],
-            response_types: vec!["code".to_string()],
+            grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
+            response_types: vec![CODE_RESPONSE_TYPE.to_string()],
         },
     )?;
 
@@ -285,16 +290,23 @@ async fn oauth_register(
     Ok(Json(response))
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 struct ApprovalRequest {
-    #[serde(default)]
-    client_id: String,
+    #[serde_as(as = "NoneAsEmptyString")]
+    client_id: Option<String>,
+    #[serde_as(as = "NoneAsEmptyString")]
     scope: Option<String>,
+    #[serde_as(as = "NoneAsEmptyString")]
+    response_type: Option<String>,
+    #[serde_as(as = "NoneAsEmptyString")]
     code_challenge_method: Option<String>,
+    #[serde_as(as = "NoneAsEmptyString")]
     code_challenge: Option<String>,
-    #[serde(default)]
-    redirect_uri: String,
+    #[serde_as(as = "NoneAsEmptyString")]
+    redirect_uri: Option<String>,
     #[allow(dead_code)]
+    #[serde_as(as = "NoneAsEmptyString")]
     resource: Option<String>,
     #[allow(dead_code)]
     #[serde(flatten)]
@@ -319,34 +331,34 @@ async fn oauth_approve(
     // Validate the request.
     // TODO: validate redirect_uri against the registered client.
     // TODO: validate the token hasn't already been used.
-    let client_id = req.client_id;
-    if client_id.is_empty() {
+    let Some(client_id) = req.client_id else {
         return Err(bad_request_error("invalid_request", "Client id required"));
-    }
-    let redirect_uri = req.redirect_uri;
-    if redirect_uri.is_empty() {
+    };
+    let Some(redirect_uri) = req.redirect_uri else {
         return Err(bad_request_error(
             "invalid_request",
             "Redirect uri required",
         ));
-    }
-    if let Some(scope) = req.scope
-        && scope != READ_WRITE_SCOPE
-    {
+    };
+    let scope = req.scope.unwrap_or_else(|| READ_WRITE_SCOPE.to_string());
+    if scope != READ_WRITE_SCOPE {
         return Err(bad_request_error(
             "invalid_client_metadata",
             "Only read_write scope is supported",
         ));
     }
+    let response_type = req
+        .response_type
+        .unwrap_or_else(|| CODE_RESPONSE_TYPE.to_string());
+    if response_type != CODE_RESPONSE_TYPE {
+        return Err(bad_request_error(
+            "invalid_client_metadata",
+            "Only the 'code' response_type is supported",
+        ));
+    }
     let (code_challenge_method, code_challenge) = (req.code_challenge_method, req.code_challenge);
     match (&code_challenge_method, &code_challenge) {
-        (Some(method), Some(challenge)) => {
-            if method.is_empty() || challenge.is_empty() {
-                return Err(bad_request_error(
-                    "invalid_request",
-                    "Method and code must both be non-empty or unset",
-                ));
-            }
+        (Some(method), Some(challenge)) if !method.is_empty() && !challenge.is_empty() => {
             if method != "S256" {
                 return Err(bad_request_error(
                     "invalid_request",
@@ -369,7 +381,8 @@ async fn oauth_approve(
         AuthToken {
             client_id,
             expires_in: 10 * 60,
-            scope: READ_WRITE_SCOPE.to_string(),
+            scope,
+            response_type,
             redirect_uri,
             code_challenge,
             code_challenge_method,
@@ -383,33 +396,33 @@ async fn oauth_approve(
     Ok(Json(ApprovalResponse { code: auth_token }))
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize)]
 struct TokenRequest {
     /// refresh_token or authorization_code
-    grant_type: String,
-
-    #[serde(default)]
-    client_id: String,
-
-    #[serde(default)]
-    client_secret: String,
+    #[serde_as(as = "NoneAsEmptyString")]
+    grant_type: Option<String>,
+    #[serde_as(as = "NoneAsEmptyString")]
+    client_id: Option<String>,
+    #[serde_as(as = "NoneAsEmptyString")]
+    client_secret: Option<String>,
 
     // authorization_code fields
-    #[serde(default)]
-    code: String,
-    #[serde(default)]
-    code_verifier: String,
+    #[serde_as(as = "NoneAsEmptyString")]
+    code: Option<String>,
+    #[serde_as(as = "NoneAsEmptyString")]
+    code_verifier: Option<String>,
 
     // refresh_token_fields
-    #[serde(default)]
-    refresh_token: String,
+    #[serde_as(as = "NoneAsEmptyString")]
+    refresh_token: Option<String>,
 
     #[allow(dead_code)]
-    #[serde(default)]
-    redirect_uri: String,
+    #[serde_as(as = "NoneAsEmptyString")]
+    redirect_uri: Option<String>,
     #[allow(dead_code)]
-    #[serde(default)]
-    resource: String,
+    #[serde_as(as = "NoneAsEmptyString")]
+    resource: Option<String>,
 
     #[allow(dead_code)]
     #[serde(flatten)]
@@ -433,107 +446,125 @@ async fn oauth_token(
     Extension(encoding_key): Extension<EncodingKey>,
     Form(req): Form<TokenRequest>,
 ) -> OauthResult<Json<TokenResponse>> {
-    let auth_token_claims = match req.grant_type.as_str() {
-        "refresh_token" => {
+    let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
+        Some(REFRESH_GRANT_TYPE) => {
             tracing::info!("Handling refresh token request");
 
             // Decode the refresh token and grab the auth token.
-            let refresh_token = req.refresh_token;
-            if refresh_token.is_empty() {
+            let Some(refresh_token) = req.refresh_token else {
                 return Err(bad_request_error(
                     "invalid_request",
                     "refresh_token required for refresh_token grant type",
                 )
                 .into());
-            }
-            let refresh_token_claims = decode_refresh_token(&decoding_key, &refresh_token)
-                .context_bad_request("invalid_grant", "Invalid refresh token")?;
-            refresh_token_claims.data.auth_token_claims
+            };
+            let refresh_token = decode_refresh_token(&decoding_key, &refresh_token)
+                .context_bad_request("invalid_grant", "Invalid refresh token")?
+                .data;
+
+            (
+                refresh_token.client_id,
+                refresh_token.scope,
+                refresh_token.user,
+                refresh_token.auth_token_claims,
+            )
         }
-        "authorization_code" => {
+        Some(CODE_GRANT_TYPE) => {
             tracing::info!("Handling access token request");
 
             // Decode the auth token.
-            let code = req.code;
-            if code.is_empty() {
+            let Some(code) = req.code else {
                 return Err(bad_request_error(
                     "invalid_request",
                     "code required for authorization_code grant type",
                 )
                 .into());
+            };
+            let auth_token_claims = decode_auth_token(&decoding_key, &code)
+                .context_bad_request("invalid_grant", "Invalid auth token")?;
+
+            // PKCE: Verify the challenge against the verifier.
+            match (
+                &auth_token_claims.data.code_challenge_method,
+                &auth_token_claims.data.code_challenge,
+                req.code_verifier,
+            ) {
+                (Some(method), Some(challenge), Some(verifier)) => {
+                    if method != "S256" {
+                        return Err(bad_request_error(
+                            "unsupported_grant_type",
+                            "Only S256 is supported",
+                        )
+                        .into());
+                    }
+                    let actual_challenge = BASE64_URL_SAFE_NO_PAD
+                        .encode(Sha256::new().chain_update(verifier).finalize());
+                    if &actual_challenge != challenge {
+                        return Err(bad_request_error(
+                            "invalid_grant",
+                            "Challenge does not match verifier",
+                        )
+                        .into());
+                    }
+                }
+                (None, None, None) => {}
+                _ => {
+                    return Err(bad_request_error(
+                        "invalid_grant",
+                        "Method, challenge and verifier must all be set or unset",
+                    )
+                    .into());
+                }
             }
-            decode_auth_token(&decoding_key, &code)
-                .context_bad_request("invalid_grant", "Invalid auth token")?
+
+            (
+                auth_token_claims.data.client_id.clone(),
+                auth_token_claims.data.scope.clone(),
+                auth_token_claims.data.user.clone(),
+                auth_token_claims,
+            )
         }
-        _ => {
+        Some(_) => {
             return Err(bad_request_error(
                 "unsupported_grant_type",
                 "only authorization_code is supported",
             )
             .into());
         }
+        None => {
+            return Err(bad_request_error("invalid_request", "grant_type required").into());
+        }
     };
 
-    if req.client_id.is_empty() {
+    let Some(req_client_id) = req.client_id else {
         return Err(bad_request_error("invalid_request", "Client id required").into());
-    }
-    if auth_token_claims.data.client_id != req.client_id {
+    };
+    if req_client_id != client_id {
         return Err(bad_request_error("invalid_grant", "Invalid client id").into());
     }
-    if req.client_secret.is_empty() {
+    let Some(client_secret) = req.client_secret else {
         return Err(bad_request_error(
             "invalid_request",
             "client_secret required for authorization_code grant type",
         )
         .into());
-    }
-    let client_secret_claims = decode_client_secret(&decoding_key, &req.client_secret)
+    };
+    let client_secret_claims = decode_client_secret(&decoding_key, &client_secret)
         .context_bad_request("invalid_grant", "Invalid client secret")?;
-    if client_secret_claims.data.client_id != auth_token_claims.data.client_id {
+    if client_secret_claims.data.client_id != client_id {
         return Err(
             bad_request_error("invalid_grant", "Auth token issued to another client").into(),
         );
-    }
-    // PKCE: Verify the challenge against the verifier.
-    match (
-        &auth_token_claims.data.code_challenge_method,
-        &auth_token_claims.data.code_challenge,
-        req.code_verifier,
-    ) {
-        (Some(method), Some(challenge), verifier) if !verifier.is_empty() => {
-            if method != "S256" {
-                return Err(
-                    bad_request_error("unsupported_grant_type", "Only S256 is supported").into(),
-                );
-            }
-            let actual_challenge =
-                BASE64_URL_SAFE_NO_PAD.encode(Sha256::new().chain_update(verifier).finalize());
-            if &actual_challenge != challenge {
-                return Err(bad_request_error(
-                    "invalid_grant",
-                    "Challenge does not match verifier",
-                )
-                .into());
-            }
-        }
-        (None, None, verifier) if verifier.is_empty() => {}
-        _ => {
-            return Err(bad_request_error(
-                "invalid_grant",
-                "Method, challenge and verifier must all be set or unset",
-            )
-            .into());
-        }
     }
 
     // Encode the access token and refresh token.
     let (access_token, access_claims) = encode_access_token(
         &encoding_key,
         AccessToken {
-            client_id: auth_token_claims.data.client_id.clone(),
+            client_id,
             expires_in: ACCESS_TOKEN_EXPIRY_SECS,
-            scope: auth_token_claims.data.scope.clone(),
-            user: auth_token_claims.data.user.clone(),
+            scope,
+            user,
             auth_token_claims,
         },
     )?;
@@ -588,6 +619,7 @@ struct AuthToken {
     client_id: String,
     expires_in: u64,
     scope: String,
+    response_type: String,
     redirect_uri: String,
     code_challenge_method: Option<String>,
     code_challenge: Option<String>,

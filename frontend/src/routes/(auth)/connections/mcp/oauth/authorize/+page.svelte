@@ -2,6 +2,7 @@
   import { headers, KosoError, parseResponse } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
+  import { toast } from "$lib/components/ui/sonner";
   import { Alert } from "$lib/kosui/alert";
   import Button from "$lib/kosui/button/button.svelte";
   import { onMount } from "svelte";
@@ -9,8 +10,8 @@
   let auth = getAuthContext();
 
   type Params = {
-    responseType: string;
-    clientId: string;
+    responseType: string | null;
+    clientId: string | null;
     redirectUri: string;
     scope: string | null;
     state: string | null;
@@ -22,15 +23,12 @@
   function parseParams(): Params {
     const urlParams = new URLSearchParams(window.location.search);
     const responseType = urlParams.get("response_type") || null;
-    if (responseType !== "code") {
-      throw new Error(`Unsupported response type: ${responseType}`);
-    }
     const clientId = urlParams.get("client_id") || null;
-    if (!clientId) {
-      throw new Error("Empty client_id");
-    }
     const redirectUri = urlParams.get("redirect_uri") || null;
     if (!redirectUri) {
+      toast.error(
+        "Invalid parameters (missing redirect_uri). Close the page and try again.",
+      );
       throw new Error("Empty redirectUri");
     }
     const scope = urlParams.get("scope") || null;
@@ -53,27 +51,25 @@
 
   async function handleCancelClick() {
     const params = parseParams();
-    const stateParam = params.state
-      ? `&state=${encodeURIComponent(params.state)}`
-      : ``;
-    let redirectUri = `${params.redirectUri}?error=access_denied&error_description=${encodeURIComponent("Authorization cancelled by user.")}${stateParam}`;
+    const redirectUri = newRedirectUri(params);
+    redirectUri.searchParams.append("error", "access_denied");
+    redirectUri.searchParams.append(
+      "error_description",
+      "Authorization cancelled by user.",
+    );
 
-    console.log(`Redirecting cancellation back to client: ${redirectUri}`);
+    console.log(`Cancelled, redirecting back to client: ${redirectUri}`);
     window.location.assign(redirectUri);
   }
 
   async function handleAuthorizeClick() {
-    let redirectUri = await authorize();
-    console.log(`Redirecting back to client: ${redirectUri}`);
+    const redirectUri = await authorize();
+    console.log(`Authorized, redirecting back to client: ${redirectUri}`);
     window.location.assign(redirectUri);
   }
 
-  async function authorize(): Promise<string> {
+  async function authorize(): Promise<URL> {
     const params = parseParams();
-    const stateParam = params.state
-      ? `&state=${encodeURIComponent(params.state)}`
-      : ``;
-
     try {
       const response = await fetch(`/oauth/approve`, {
         method: "POST",
@@ -91,20 +87,49 @@
         }),
       });
 
-      let approval: { code: string } = await parseResponse(auth, response);
+      const approval: { code: string } = await parseResponse(auth, response);
       // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
-      return `${params.redirectUri}?code=${encodeURIComponent(approval.code)}${stateParam}`;
+      const redirectUri = newRedirectUri(params);
+      redirectUri.searchParams.append("code", approval.code);
+      return redirectUri;
     } catch (e) {
       console.error("Approval request failed: ", e);
 
       // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1
-      const error =
-        (e instanceof KosoError && e.details[0]?.reason) || "server_error";
-      const error_description =
-        (e instanceof KosoError && e.details[0]?.msg) ||
-        "Something unexpected went wrong!";
-      return `${params.redirectUri}?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(error_description)}${stateParam}`;
+      const redirectUri = newRedirectUri(params);
+      let error;
+      let errorDescription;
+      if (e instanceof KosoError) {
+        const detail = e.details[0];
+        if (detail) {
+          error = detail.reason;
+          errorDescription = detail.msg;
+        } else {
+          if (e.status === 400) {
+            error = "invalid_request";
+            errorDescription = "Invalid approval request.";
+          } else {
+            error = "server_error";
+            errorDescription = "Something unexpected went wrong!";
+          }
+        }
+      } else {
+        error = "server_error";
+        errorDescription = "Something unexpected went wrong!";
+      }
+      redirectUri.searchParams.append("error", error);
+      redirectUri.searchParams.append("error", errorDescription);
+
+      return redirectUri;
     }
+  }
+
+  function newRedirectUri(params: Params) {
+    const redirectUri = new URL(params.redirectUri);
+    if (params.state) {
+      redirectUri.searchParams.append("state", params.state);
+    }
+    return redirectUri;
   }
 
   onMount(() => {
