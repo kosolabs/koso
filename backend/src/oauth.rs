@@ -26,6 +26,7 @@ use std::{
 use tower_http::cors::{self, CorsLayer};
 use uuid::Uuid;
 
+/// Implements MCP oauth: https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
 pub(crate) fn router() -> Result<Router> {
     let cors_layer = CorsLayer::new()
         .allow_origin(cors::Any)
@@ -72,16 +73,17 @@ pub(crate) fn router() -> Result<Router> {
 }
 
 /// Middleware function that authenticates requests to the MCP server.
-#[tracing::instrument(skip(request, next, decoding_key), fields(email))]
+#[tracing::instrument(skip(decoding_key, req, next), fields(email))]
 pub(crate) async fn authenticate(
     Extension(decoding_key): Extension<DecodingKey>,
-    mut request: extract::Request,
+    mut req: extract::Request,
     next: Next,
 ) -> OauthResult<Response<Body>> {
-    let access_token_claims: AccessTokenClaims = _authenticate(&decoding_key, &mut request)
+    let access_token_claims: AccessTokenClaims = _authenticate(&decoding_key, &mut req)
         .context_status(
             StatusCode::UNAUTHORIZED,
-            "invalid_client",
+            // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#name-error-codes
+            "invalid_token",
             "Unauthenticated client",
         )?;
 
@@ -89,9 +91,9 @@ pub(crate) async fn authenticate(
     user.email = user.email.to_lowercase();
 
     tracing::Span::current().record("email", user.email.clone());
-    assert!(request.extensions_mut().insert(user).is_none());
+    assert!(req.extensions_mut().insert(user).is_none());
 
-    Ok(next.run(request).await)
+    Ok(next.run(req).await)
 }
 
 fn _authenticate(
@@ -129,6 +131,7 @@ const REFRESH_GRANT_TYPE: &str = "refresh_token";
 /// oauth2 resource server metadata
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct ResourceServerMetadata {
+    /// https://www.rfc-editor.org/rfc/rfc8707.html
     resource: String,
     authorization_servers: Vec<String>,
     bearer_methods_supported: Vec<String>,
@@ -145,7 +148,7 @@ async fn get_resource_server_metadata() -> OauthResult<Json<ResourceServerMetada
         bearer_methods_supported: vec!["header".to_string()],
         scopes_supported: vec![READ_WRITE_SCOPE.to_string()],
     };
-    tracing::debug!("Metadata: {:?}", metadata);
+    tracing::trace!("Resource server metadata: {metadata:?}");
 
     Ok(Json(metadata))
 }
@@ -175,7 +178,7 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
         response_types_supported: vec![CODE_RESPONSE_TYPE.to_string()],
         code_challenge_methods_supported: vec!["S256".to_string()],
     };
-    tracing::debug!("Metadata: {:?}", metadata);
+    tracing::trace!("Authorization server metadata: {metadata:?}");
 
     Ok(Json(metadata))
 }
@@ -194,7 +197,7 @@ struct ClientRegistrationRequest {
     other: serde_json::Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct ClientRegistrationResponse {
     client_id: String,
     client_name: String,
@@ -208,13 +211,13 @@ struct ClientRegistrationResponse {
 
 // Handle dynamic client registration
 // https://datatracker.ietf.org/doc/html/rfc7591#section-3.1
-#[tracing::instrument(skip(key))]
+#[tracing::instrument(skip(key, req))]
 async fn oauth_register(
     Extension(key): Extension<EncodingKey>,
     Json(req): Json<ClientRegistrationRequest>,
 ) -> OauthResult<Json<ClientRegistrationResponse>> {
     let req = trim_client_registration_request(req);
-    tracing::debug!("Registering client");
+    tracing::debug!("Registering client: {req:?}");
 
     // Validate the request
     let redirect_uris = req.redirect_uris;
@@ -260,12 +263,13 @@ async fn oauth_register(
 
     // Generate the client secret.
     let client_id = format!("client-{}", Uuid::new_v4());
+    let client_name = req.client_name.unwrap_or_else(|| client_id.clone());
     let claims = ClientSecretClaims {
         exp: expires_at(CLIENT_SECRET_EXPIRY_SECS)?,
-        iss: CLIENT_SECRET_ISS.to_string(),
-        client_id: format!("client-{}", Uuid::new_v4()),
-        client_name: req.client_name.unwrap_or_else(|| client_id.clone()),
         expires_in: CLIENT_SECRET_EXPIRY_SECS,
+        iss: CLIENT_SECRET_ISS.to_string(),
+        client_id,
+        client_name,
         scope,
         redirect_uris,
         grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
@@ -299,6 +303,7 @@ struct ApprovalRequest {
     code_challenge_method: Option<String>,
     code_challenge: Option<String>,
     redirect_uri: Option<String>,
+    /// https://www.rfc-editor.org/rfc/rfc8707.html#name-resource-parameter
     #[allow(dead_code)]
     resource: Option<String>,
     #[allow(dead_code)]
@@ -313,14 +318,14 @@ struct ApprovalResponse {
 
 /// Handle approval requests sent from a client browser.
 /// https://datatracker.ietf.org/doc/html/rfc6749#section-3.1
-#[tracing::instrument(skip(user, encoding_key))]
+#[tracing::instrument(skip(user, encoding_key, req))]
 async fn oauth_approve(
     Extension(user): Extension<User>,
     Extension(encoding_key): Extension<EncodingKey>,
     Json(req): Json<ApprovalRequest>,
 ) -> ApiResult<Json<ApprovalResponse>> {
     let req: ApprovalRequest = trim_approval_request(req);
-    tracing::info!("Approving authorization");
+    tracing::info!("Approving authorization: {req:?}");
 
     // Validate the request.
     // TODO: validate redirect_uri against the registered client.
@@ -374,13 +379,13 @@ async fn oauth_approve(
         exp: expires_at(AUTH_TOKEN_EXPIRY_SECS)?,
         iss: AUTH_TOKEN_ISS.to_string(),
         client_id,
+        session: format!("session-{}", Uuid::new_v4()),
         expires_in: AUTH_TOKEN_EXPIRY_SECS,
         scope,
         response_type,
         redirect_uri,
         code_challenge,
         code_challenge_method,
-        access_token: format!("token-{}", Uuid::new_v4()),
         user,
     };
     let auth_token = encode_auth_token(&encoding_key, &auth_token_claims)?;
@@ -392,12 +397,17 @@ async fn oauth_approve(
 
 /// Note: All fields must be optional. Validation should occur with the handler.
 /// See `swap_empty_with_none` below.
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct TokenRequest {
     /// refresh_token or authorization_code
     grant_type: Option<String>,
     client_id: Option<String>,
     client_secret: Option<String>,
+    /// https://www.rfc-editor.org/rfc/rfc8707.html#name-resource-parameter
+    #[allow(dead_code)]
+    resource: Option<String>,
+    #[allow(dead_code)]
+    redirect_uri: Option<String>,
 
     // authorization_code fields
     code: Option<String>,
@@ -405,17 +415,13 @@ struct TokenRequest {
 
     // refresh_token_fields
     refresh_token: Option<String>,
-    #[allow(dead_code)]
-    redirect_uri: Option<String>,
-    #[allow(dead_code)]
-    resource: Option<String>,
 
     #[allow(dead_code)]
     #[serde(flatten)]
     other: serde_json::Value,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 struct TokenResponse {
     token_type: String,
     expires_in: u64,
@@ -426,18 +432,17 @@ struct TokenResponse {
 
 /// Handle token request from the MCP client
 /// https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
-#[tracing::instrument(skip(decoding_key, encoding_key))]
+#[tracing::instrument(skip(decoding_key, encoding_key, req))]
 async fn oauth_token(
     Extension(decoding_key): Extension<DecodingKey>,
     Extension(encoding_key): Extension<EncodingKey>,
     Form(req): Form<TokenRequest>,
 ) -> OauthResult<Json<TokenResponse>> {
     let req = trim_token_request(req);
+    tracing::info!("Handling token request: {req:?}");
 
     let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
         Some(REFRESH_GRANT_TYPE) => {
-            tracing::info!("Handling refresh token request");
-
             // Decode the refresh token and grab the auth token.
             let Some(refresh_token) = req.refresh_token else {
                 return Err(bad_request_error(
@@ -457,8 +462,6 @@ async fn oauth_token(
             )
         }
         Some(CODE_GRANT_TYPE) => {
-            tracing::info!("Handling access token request");
-
             // Decode the auth token.
             let Some(code) = req.code else {
                 return Err(bad_request_error(
@@ -599,13 +602,13 @@ struct AuthTokenClaims {
     exp: u64,
     iss: String,
     client_id: String,
+    session: String,
     expires_in: u64,
     scope: String,
     response_type: String,
     redirect_uri: String,
     code_challenge_method: Option<String>,
     code_challenge: Option<String>,
-    access_token: String,
     user: User,
 }
 
@@ -736,6 +739,58 @@ fn swap_empty_with_none(s: &mut Option<String>) {
         && ss.is_empty()
     {
         s.take();
+    }
+}
+
+impl std::fmt::Debug for ClientRegistrationResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ClientRegistrationResponse")
+            .field("client_id", &self.client_id)
+            .field("client_name", &self.client_name)
+            .field("scope", &self.scope)
+            .field("redirect_uris", &self.redirect_uris)
+            .field("grant_types", &self.grant_types)
+            .field("response_types", &self.response_types)
+            .field("client_secret_expires_at", &self.client_secret_expires_at)
+            .field("client_secret", &"<REDACTED>")
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for TokenRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TokenRequest")
+            .field("grant_type", &self.grant_type)
+            .field("client_id", &self.client_id)
+            .field(
+                "client_secret",
+                &self.client_secret.as_ref().map(|_| "<REDACTED>"),
+            )
+            .field("resource", &self.resource)
+            .field("redirect_uri", &self.redirect_uri)
+            .field("code", &self.code.as_ref().map(|_| "<REDACTED>"))
+            .field(
+                "code_verifier",
+                &self.code_verifier.as_ref().map(|_| "<REDACTED>"),
+            )
+            .field(
+                "refresh_token",
+                &self.refresh_token.as_ref().map(|_| "<REDACTED>"),
+            )
+            .field("other", &self.other)
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for TokenResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TokenRequest")
+            .field("token_type", &self.token_type)
+            .field("expires_in", &self.expires_in)
+            .field("scope", &self.scope)
+            .field("access_token", &"<REDACTED>")
+            .field("refresh_token", &"<REDACTED>")
+            .finish()
     }
 }
 
