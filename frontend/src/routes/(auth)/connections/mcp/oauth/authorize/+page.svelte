@@ -56,7 +56,7 @@
     const stateParam = params.state
       ? `&state=${encodeURIComponent(params.state)}`
       : ``;
-    let redirectUri = `${params.redirectUri}?error=access_denied&error_description=${encodeURIComponent("Authorization cancelled.")}${stateParam}`;
+    let redirectUri = `${params.redirectUri}?error=access_denied&error_description=${encodeURIComponent("Authorization cancelled by user.")}${stateParam}`;
 
     console.log(`Redirecting cancellation back to client: ${redirectUri}`);
     window.location.assign(redirectUri);
