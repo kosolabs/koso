@@ -18,7 +18,6 @@ use axum::{
 use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use serde_with::{NoneAsEmptyString, serde_as};
 use sha2::{Digest, Sha256};
 use std::{
     collections::HashSet,
@@ -180,12 +179,9 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
     Ok(Json(metadata))
 }
 
-#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ClientRegistrationRequest {
-    #[serde_as(as = "NoneAsEmptyString")]
     client_name: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
     scope: Option<String>,
     redirect_uris: Vec<String>,
     grant_types: Vec<String>,
@@ -214,6 +210,7 @@ async fn oauth_register(
     Extension(key): Extension<EncodingKey>,
     Json(req): Json<ClientRegistrationRequest>,
 ) -> OauthResult<Json<ClientRegistrationResponse>> {
+    let req = trim_client_registration_request(req);
     tracing::debug!("Registering client");
 
     // Validate the request
@@ -289,23 +286,15 @@ async fn oauth_register(
     Ok(Json(response))
 }
 
-#[serde_as]
 #[derive(Debug, Deserialize)]
 struct ApprovalRequest {
-    #[serde_as(as = "NoneAsEmptyString")]
     client_id: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
     scope: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
     response_type: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
     code_challenge_method: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
     code_challenge: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
     redirect_uri: Option<String>,
     #[allow(dead_code)]
-    #[serde_as(as = "NoneAsEmptyString")]
     resource: Option<String>,
     #[allow(dead_code)]
     #[serde(flatten)]
@@ -325,6 +314,7 @@ async fn oauth_approve(
     Extension(encoding_key): Extension<EncodingKey>,
     Json(req): Json<ApprovalRequest>,
 ) -> ApiResult<Json<ApprovalResponse>> {
+    let req: ApprovalRequest = trim_approval_request(req);
     tracing::info!("Approving authorization");
 
     // Validate the request.
@@ -395,32 +385,22 @@ async fn oauth_approve(
     Ok(Json(ApprovalResponse { code: auth_token }))
 }
 
-#[serde_as]
 #[derive(Debug, Deserialize)]
 struct TokenRequest {
     /// refresh_token or authorization_code
-    #[serde_as(as = "NoneAsEmptyString")]
     grant_type: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
     client_id: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
     client_secret: Option<String>,
 
     // authorization_code fields
-    #[serde_as(as = "NoneAsEmptyString")]
     code: Option<String>,
-    #[serde_as(as = "NoneAsEmptyString")]
     code_verifier: Option<String>,
 
     // refresh_token_fields
-    #[serde_as(as = "NoneAsEmptyString")]
     refresh_token: Option<String>,
-
     #[allow(dead_code)]
-    #[serde_as(as = "NoneAsEmptyString")]
     redirect_uri: Option<String>,
     #[allow(dead_code)]
-    #[serde_as(as = "NoneAsEmptyString")]
     resource: Option<String>,
 
     #[allow(dead_code)]
@@ -445,6 +425,8 @@ async fn oauth_token(
     Extension(encoding_key): Extension<EncodingKey>,
     Form(req): Form<TokenRequest>,
 ) -> OauthResult<Json<TokenResponse>> {
+    let req = trim_token_request(req);
+
     let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
         Some(REFRESH_GRANT_TYPE) => {
             tracing::info!("Handling refresh token request");
@@ -759,5 +741,47 @@ impl From<ErrorResponse> for OauthErrorResponse {
                 .unwrap_or("Internal error, something went wrong")
                 .to_string(),
         }
+    }
+}
+
+fn trim_client_registration_request(
+    mut req: ClientRegistrationRequest,
+) -> ClientRegistrationRequest {
+    empty_to_none(&mut req.client_name);
+    empty_to_none(&mut req.scope);
+
+    req
+}
+
+fn trim_approval_request(mut req: ApprovalRequest) -> ApprovalRequest {
+    empty_to_none(&mut req.client_id);
+    empty_to_none(&mut req.scope);
+    empty_to_none(&mut req.response_type);
+    empty_to_none(&mut req.code_challenge_method);
+    empty_to_none(&mut req.code_challenge);
+    empty_to_none(&mut req.redirect_uri);
+    empty_to_none(&mut req.resource);
+
+    req
+}
+
+fn trim_token_request(mut req: TokenRequest) -> TokenRequest {
+    empty_to_none(&mut req.grant_type);
+    empty_to_none(&mut req.client_id);
+    empty_to_none(&mut req.client_secret);
+    empty_to_none(&mut req.code);
+    empty_to_none(&mut req.code_verifier);
+    empty_to_none(&mut req.refresh_token);
+    empty_to_none(&mut req.redirect_uri);
+    empty_to_none(&mut req.resource);
+
+    req
+}
+
+fn empty_to_none(s: &mut Option<String>) {
+    if let Some(ss) = s
+        && ss.is_empty()
+    {
+        s.take();
     }
 }
