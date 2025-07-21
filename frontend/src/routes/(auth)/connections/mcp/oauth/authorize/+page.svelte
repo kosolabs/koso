@@ -86,42 +86,46 @@
           resource: params.resource,
         }),
       });
-
       const approval: { code: string } = await parseResponse(auth, response);
+
       // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
       const redirectUri = newRedirectUri(params);
       redirectUri.searchParams.append("code", approval.code);
       return redirectUri;
     } catch (e) {
       console.error("Approval request failed: ", e);
-
-      // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1
-      const redirectUri = newRedirectUri(params);
-      let error;
-      let errorDescription;
-      if (e instanceof KosoError) {
-        const detail = e.details[0];
-        if (detail) {
-          error = detail.reason;
-          errorDescription = detail.msg;
-        } else {
-          if (e.status === 400) {
-            error = "invalid_request";
-            errorDescription = "Invalid approval request.";
-          } else {
-            error = "server_error";
-            errorDescription = "Something unexpected went wrong!";
-          }
-        }
-      } else {
-        error = "server_error";
-        errorDescription = "Something unexpected went wrong!";
-      }
-      redirectUri.searchParams.append("error", error);
-      redirectUri.searchParams.append("error", errorDescription);
-
-      return redirectUri;
+      return newErrorRedirectUri(params, e);
     }
+  }
+
+  // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1
+  function newErrorRedirectUri(params: Params, e: unknown) {
+    let error;
+    let errorDescription;
+    if (e instanceof KosoError) {
+      const detail = e.details[0];
+      if (detail) {
+        error = detail.reason;
+        errorDescription = detail.msg;
+      } else {
+        if (e.status === 400) {
+          error = "invalid_request";
+          errorDescription = "Invalid approval request.";
+        } else {
+          error = "server_error";
+          errorDescription = "Something unexpected went wrong!";
+        }
+      }
+    } else {
+      error = "server_error";
+      errorDescription = "Something unexpected went wrong!";
+    }
+
+    const redirectUri = newRedirectUri(params);
+    redirectUri.searchParams.append("error", error);
+    redirectUri.searchParams.append("error", errorDescription);
+
+    return redirectUri;
   }
 
   function newRedirectUri(params: Params) {
@@ -133,8 +137,13 @@
   }
 
   onMount(() => {
-    const params = parseParams();
-    console.log(`Parsed authorization parameters`, params);
+    try {
+      console.log(
+        `Parsed authorization parameters: ${JSON.stringify(parseParams())}`,
+      );
+    } catch (e) {
+      console.log(e);
+    }
   });
 </script>
 
@@ -143,7 +152,7 @@
 <div class="m-2">
   <Alert>
     <div class="flex flex-col items-center gap-2">
-      <div>Click to authorize access to Koso.</div>
+      <div>Authorize access to Koso?</div>
       <div class="flex items-center gap-2">
         <Button onclick={handleAuthorizeClick}>Authorize</Button>
         <Button onclick={handleCancelClick}>Cancel</Button>
