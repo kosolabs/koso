@@ -179,6 +179,8 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
     Ok(Json(metadata))
 }
 
+/// Note: All fields must be optional. Validation should occur with the handler.
+/// See `swap_empty_with_none` below.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ClientRegistrationRequest {
     client_name: Option<String>,
@@ -286,6 +288,8 @@ async fn oauth_register(
     Ok(Json(response))
 }
 
+/// Note: All fields must be optional. Validation should occur with the handler.
+/// See `swap_empty_with_none` below.
 #[derive(Debug, Deserialize)]
 struct ApprovalRequest {
     client_id: Option<String>,
@@ -385,6 +389,8 @@ async fn oauth_approve(
     Ok(Json(ApprovalResponse { code: auth_token }))
 }
 
+/// Note: All fields must be optional. Validation should occur with the handler.
+/// See `swap_empty_with_none` below.
 #[derive(Debug, Deserialize)]
 struct TokenRequest {
     /// refresh_token or authorization_code
@@ -668,21 +674,68 @@ fn encode_token<T: Serialize>(key: &EncodingKey, claims: &T) -> ApiResult<String
     )
 }
 
+fn decode_token<T: DeserializeOwned>(key: &DecodingKey, token: &str, issuer: &str) -> Result<T> {
+    let mut validation = Validation::default();
+    validation.iss = Some(HashSet::from([issuer.to_string()]));
+    validation.required_spec_claims.insert("iss".to_string());
+
+    Ok(decode::<T>(token, key, &validation)
+        .context("Invalid token")?
+        .claims)
+}
+
 fn expires_at(expires_in: u64) -> ApiResult<u64> {
     let timer = SystemTime::now() + Duration::from_secs(expires_in);
     Ok(timer.duration_since(UNIX_EPOCH)?.as_secs())
 }
 
-fn decode_token<T: DeserializeOwned>(key: &DecodingKey, token: &str, issuer: &str) -> Result<T> {
-    let mut validation = Validation::default();
-    let mut iss = HashSet::new();
-    iss.insert(issuer.to_string());
-    validation.iss = Some(iss);
-    validation.required_spec_claims.insert("iss".to_string());
-    let token: jsonwebtoken::TokenData<T> =
-        decode::<T>(token, key, &validation).context("Invalid token")?;
+/// Replace all empty strings with None.
+fn trim_client_registration_request(
+    mut req: ClientRegistrationRequest,
+) -> ClientRegistrationRequest {
+    swap_empty_with_none(&mut req.client_name);
+    swap_empty_with_none(&mut req.scope);
 
-    Ok(token.claims)
+    req
+}
+
+/// Replace all empty strings with None.
+fn trim_approval_request(mut req: ApprovalRequest) -> ApprovalRequest {
+    swap_empty_with_none(&mut req.client_id);
+    swap_empty_with_none(&mut req.scope);
+    swap_empty_with_none(&mut req.response_type);
+    swap_empty_with_none(&mut req.code_challenge_method);
+    swap_empty_with_none(&mut req.code_challenge);
+    swap_empty_with_none(&mut req.redirect_uri);
+    swap_empty_with_none(&mut req.resource);
+
+    req
+}
+
+/// Replace all empty strings with None.
+fn trim_token_request(mut req: TokenRequest) -> TokenRequest {
+    swap_empty_with_none(&mut req.grant_type);
+    swap_empty_with_none(&mut req.client_id);
+    swap_empty_with_none(&mut req.client_secret);
+    swap_empty_with_none(&mut req.code);
+    swap_empty_with_none(&mut req.code_verifier);
+    swap_empty_with_none(&mut req.refresh_token);
+    swap_empty_with_none(&mut req.redirect_uri);
+    swap_empty_with_none(&mut req.resource);
+
+    req
+}
+
+/// If the options value is the empty string, replace it with None.
+/// Implements https://datatracker.ietf.org/doc/html/rfc6749
+/// >  Parameters sent without a value
+/// >  MUST be treated as if they were omitted from the request.
+fn swap_empty_with_none(s: &mut Option<String>) {
+    if let Some(ss) = s
+        && ss.is_empty()
+    {
+        s.take();
+    }
 }
 
 pub(crate) type OauthResult<T> = Result<T, OauthErrorResponse>;
@@ -712,19 +765,26 @@ impl IntoResponse for OauthErrorResponse {
         });
 
         let mut res = (self.status, body).into_response();
-        match HeaderValue::from_str(&format!(
-            "Bearer resource_metadata={}/.well-known/oauth-protected-resource",
-            settings().host
-        )) {
-            Ok(header_value) => {
-                res.headers_mut().insert("WWW-Authenticate", header_value);
-            }
-            Err(err) => {
+        if self.status == StatusCode::UNAUTHORIZED {
+            // Append the WWW-Authenticate header so the client knows how to proceed.
+            if let Err(err) = add_www_authenticate_header(&mut res) {
                 tracing::error!("Failed to crate authenticate header value: ${err:#}");
             }
-        };
+        }
         res
     }
+}
+
+fn add_www_authenticate_header(res: &mut Response) -> Result<()> {
+    res.headers_mut().insert(
+        "WWW-Authenticate",
+        HeaderValue::from_str(&format!(
+            "Bearer resource_metadata={}/.well-known/oauth-protected-resource",
+            settings().host
+        ))
+        .context("Failed to construct www-authenticate header value")?,
+    );
+    Ok(())
 }
 
 impl From<ErrorResponse> for OauthErrorResponse {
@@ -741,47 +801,5 @@ impl From<ErrorResponse> for OauthErrorResponse {
                 .unwrap_or("Internal error, something went wrong")
                 .to_string(),
         }
-    }
-}
-
-fn trim_client_registration_request(
-    mut req: ClientRegistrationRequest,
-) -> ClientRegistrationRequest {
-    empty_to_none(&mut req.client_name);
-    empty_to_none(&mut req.scope);
-
-    req
-}
-
-fn trim_approval_request(mut req: ApprovalRequest) -> ApprovalRequest {
-    empty_to_none(&mut req.client_id);
-    empty_to_none(&mut req.scope);
-    empty_to_none(&mut req.response_type);
-    empty_to_none(&mut req.code_challenge_method);
-    empty_to_none(&mut req.code_challenge);
-    empty_to_none(&mut req.redirect_uri);
-    empty_to_none(&mut req.resource);
-
-    req
-}
-
-fn trim_token_request(mut req: TokenRequest) -> TokenRequest {
-    empty_to_none(&mut req.grant_type);
-    empty_to_none(&mut req.client_id);
-    empty_to_none(&mut req.client_secret);
-    empty_to_none(&mut req.code);
-    empty_to_none(&mut req.code_verifier);
-    empty_to_none(&mut req.refresh_token);
-    empty_to_none(&mut req.redirect_uri);
-    empty_to_none(&mut req.resource);
-
-    req
-}
-
-fn empty_to_none(s: &mut Option<String>) {
-    if let Some(ss) = s
-        && ss.is_empty()
-    {
-        s.take();
     }
 }
