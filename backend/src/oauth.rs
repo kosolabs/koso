@@ -66,6 +66,7 @@ pub(crate) fn router() -> Result<Router> {
                         .options(oauth_approve)
                         .layer(middleware::from_fn(google::authenticate)),
                 )
+                .layer(middleware::from_fn(set_cache_control))
                 .fallback(api::handler_404),
         ))
 }
@@ -736,6 +737,19 @@ fn swap_empty_with_none(s: &mut Option<String>) {
     {
         s.take();
     }
+}
+
+/// Apply cache controls per https://datatracker.ietf.org/doc/html/rfc6749#section-5.1.
+async fn set_cache_control(request: extract::Request, next: Next) -> Response {
+    let mut response = next.run(request).await;
+    response
+        .headers_mut()
+        .insert("cache-control", HeaderValue::from_static("no-store"));
+    response
+        .headers_mut()
+        .insert("Pragma", HeaderValue::from_static("no-cache"));
+
+    response
 }
 
 pub(crate) type OauthResult<T> = Result<T, OauthErrorResponse>;
