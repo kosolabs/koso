@@ -602,11 +602,7 @@ to login as a test user, interact with tasks and trigger notifications.
 
 ### One-time setup
 
-#### Auth
-
-1. Log in to your local server and open the developer console
-1. Run `localStorage.credential`
-1. Copy the credential for usage below.
+After starting your local server:
 
 #### VS Code
 
@@ -643,4 +639,3 @@ Setup:
 
 1. Run the inspector: `npx @modelcontextprotocol/inspector`
 1. Enter the server URL ()`http://localhost:3000/api/mcp/sse`) and click Connect
-1. In the authentication section, paste the auth token from above in the Bearer Token field

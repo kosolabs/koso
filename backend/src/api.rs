@@ -237,23 +237,23 @@ impl ErrorRender<'_> {
 
 #[derive(Debug)]
 pub(crate) struct ErrorResponse {
-    status: StatusCode,
-    details: Vec<ErrorDetail>,
+    pub(crate) status: StatusCode,
+    pub(crate) details: Vec<ErrorDetail>,
 }
 
 #[derive(serde::Serialize, Debug)]
 pub(crate) struct ErrorDetail {
     // Terse, stable, machine readable error reason.
     // e.g. NO_STOCK
-    reason: &'static str,
+    pub(crate) reason: &'static str,
     // Debug message for developers. Not intended for end users.
-    msg: String,
+    pub(crate) msg: String,
     // Need more details about an error? Consider adding
     // a map of key/values for use in the client.
 }
 
 impl ErrorResponse {
-    fn as_err(&self) -> Error {
+    pub(crate) fn as_err(&self) -> Error {
         if self.details.is_empty() {
             anyhow!("({}) <MISSING_ERROR_DETAILS>", self.status)
         } else {
@@ -401,7 +401,7 @@ where
     }
 }
 
-trait IntoErrorResponse<E> {
+pub(crate) trait IntoErrorResponse<E> {
     fn context_status(self, status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse;
     fn context_bad_request(self, reason: &'static str, msg: &str) -> ErrorResponse;
     fn context_unauthenticated(self, msg: &str) -> ErrorResponse;

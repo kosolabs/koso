@@ -24,6 +24,7 @@ tower-http = { version = "0.6.6", features = [
     "trace",
     "timeout",
     "request-id",
+    "cors",
 ] }
 sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "any", "postgres", "macros", "chrono"] }
 tracing = "0.1.41"

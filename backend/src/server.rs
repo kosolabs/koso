@@ -4,7 +4,7 @@ use crate::{
         collab::Collab,
         google::{self, KeySet},
     },
-    debug, healthz, mcp,
+    debug, healthz, mcp, oauth,
     plugins::{
         PluginSettings,
         github::{self},
@@ -111,6 +111,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         )
         .nest("/healthz", healthz::router())
         .nest("/plugins/github", github_plugin.router()?)
+        .merge(oauth::router()?)
         // Apply these layers to all non-static routes.
         // Layers that are applied first will be called first.
         .layer(
