@@ -175,6 +175,7 @@ struct AuthorizationServerMetadata {
     registration_endpoint: String,
     issuer: String,
     scopes_supported: Vec<String>,
+    grant_types_supported: Vec<String>,
     response_types_supported: Vec<String>,
     code_challenge_methods_supported: Vec<String>,
 }
@@ -188,8 +189,9 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
         token_endpoint: format!("{host}/oauth/token"),
         token_endpoint_auth_methods_supported: vec![CLIENT_AUTH_METHOD.to_string()],
         registration_endpoint: format!("{host}/oauth/register"),
-        scopes_supported: vec![READ_WRITE_SCOPE.to_string()],
         issuer: host.clone(),
+        scopes_supported: vec![READ_WRITE_SCOPE.to_string()],
+        grant_types_supported: vec![CODE_GRANT_TYPE.to_string()],
         response_types_supported: vec![CODE_RESPONSE_TYPE.to_string()],
         code_challenge_methods_supported: vec!["S256".to_string()],
     };
