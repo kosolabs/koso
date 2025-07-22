@@ -557,12 +557,6 @@ async fn oauth_token(
     {
         // Prefer to use the Authorization header.
         Some(header) => {
-            let Some(header) = headers.get("Authorization").map(HeaderValue::as_bytes) else {
-                return Err(
-                    bad_request_error("invalid_client", "Authorization header absent").into(),
-                );
-            };
-
             let Some(credentials) = header.strip_prefix(b"Basic ") else {
                 return Err(
                     bad_request_error("invalid_client", "Invalid authorization header").into(),
