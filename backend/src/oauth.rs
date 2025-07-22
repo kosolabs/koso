@@ -647,7 +647,7 @@ fn authenticate_token_client(
         }
     };
 
-    let client_secret_claims = decode_client_secret(&decoding_key, &client_secret)
+    let client_secret_claims = decode_client_secret(decoding_key, &client_secret)
         .context_bad_request("invalid_grant", "Invalid client secret")?;
     if client_secret_claims.client_id != client_id {
         return Err(bad_request_error("invalid_grant", "Invalid client id").into());
