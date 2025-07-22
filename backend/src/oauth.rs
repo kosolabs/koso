@@ -10,12 +10,15 @@ use axum::{
     Extension, Json, Router,
     body::Body,
     extract::{self, Form},
-    http::{HeaderValue, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::{get, post},
 };
-use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
+use base64::{
+    Engine as _,
+    prelude::{BASE64_STANDARD, BASE64_URL_SAFE_NO_PAD},
+};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
@@ -38,6 +41,11 @@ pub(crate) fn router() -> Result<Router> {
             "/.well-known/oauth-authorization-server",
             Router::new()
                 .route(
+                    "/api/mcp/sse",
+                    get(get_authorization_server_metadata)
+                        .options(get_authorization_server_metadata),
+                )
+                .route(
                     "/",
                     get(get_authorization_server_metadata)
                         .options(get_authorization_server_metadata),
@@ -48,6 +56,10 @@ pub(crate) fn router() -> Result<Router> {
         .nest(
             "/.well-known/oauth-protected-resource",
             Router::new()
+                .route(
+                    "/api/mcp/sse",
+                    get(get_resource_server_metadata).options(get_resource_server_metadata),
+                )
                 .route(
                     "/",
                     get(get_resource_server_metadata).options(get_resource_server_metadata),
@@ -124,6 +136,7 @@ fn _authenticate(
 }
 
 const READ_WRITE_SCOPE: &str = "read_write";
+const CLIENT_AUTH_METHOD: &str = "client_secret_basic";
 const CODE_RESPONSE_TYPE: &str = "code";
 const CODE_GRANT_TYPE: &str = "authorization_code";
 const REFRESH_GRANT_TYPE: &str = "refresh_token";
@@ -158,9 +171,11 @@ async fn get_resource_server_metadata() -> OauthResult<Json<ResourceServerMetada
 struct AuthorizationServerMetadata {
     authorization_endpoint: String,
     token_endpoint: String,
+    token_endpoint_auth_methods_supported: Vec<String>,
     registration_endpoint: String,
     issuer: String,
     scopes_supported: Vec<String>,
+    grant_types_supported: Vec<String>,
     response_types_supported: Vec<String>,
     code_challenge_methods_supported: Vec<String>,
 }
@@ -172,9 +187,11 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
     let metadata = AuthorizationServerMetadata {
         authorization_endpoint: format!("{host}/connections/mcp/oauth/authorize"),
         token_endpoint: format!("{host}/oauth/token"),
+        token_endpoint_auth_methods_supported: vec![CLIENT_AUTH_METHOD.to_string()],
         registration_endpoint: format!("{host}/oauth/register"),
-        scopes_supported: vec![READ_WRITE_SCOPE.to_string()],
         issuer: host.clone(),
+        scopes_supported: vec![READ_WRITE_SCOPE.to_string()],
+        grant_types_supported: vec![CODE_GRANT_TYPE.to_string()],
         response_types_supported: vec![CODE_RESPONSE_TYPE.to_string()],
         code_challenge_methods_supported: vec!["S256".to_string()],
     };
@@ -190,6 +207,7 @@ struct ClientRegistrationRequest {
     client_name: Option<String>,
     scope: Option<String>,
     redirect_uris: Vec<String>,
+    token_endpoint_auth_method: Option<String>,
     grant_types: Vec<String>,
     response_types: Vec<String>,
     #[allow(dead_code)]
@@ -202,6 +220,7 @@ struct ClientRegistrationResponse {
     client_id: String,
     client_name: String,
     scope: String,
+    token_endpoint_auth_method: String,
     redirect_uris: Vec<String>,
     grant_types: Vec<String>,
     response_types: Vec<String>,
@@ -228,7 +247,7 @@ async fn oauth_register(
         )
         .into());
     }
-    if redirect_uris.len() > 5 {
+    if redirect_uris.len() > 15 {
         return Err(bad_request_error("invalid_redirect_uri", "Too many redirect uris").into());
     }
     if redirect_uris.iter().any(|s| s.is_empty()) {
@@ -271,6 +290,7 @@ async fn oauth_register(
         client_id,
         client_name,
         scope,
+        token_endpoint_auth_method: CLIENT_AUTH_METHOD.to_string(),
         redirect_uris,
         grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
         response_types: vec![CODE_RESPONSE_TYPE.to_string()],
@@ -282,6 +302,7 @@ async fn oauth_register(
         client_id: claims.client_id,
         client_name: claims.client_name,
         scope: claims.scope,
+        token_endpoint_auth_method: claims.token_endpoint_auth_method,
         redirect_uris: claims.redirect_uris,
         grant_types: claims.grant_types,
         response_types: claims.response_types,
@@ -357,7 +378,7 @@ async fn oauth_approve(
     }
     let (code_challenge_method, code_challenge) = (req.code_challenge_method, req.code_challenge);
     match (&code_challenge_method, &code_challenge) {
-        (Some(method), Some(challenge)) if !method.is_empty() && !challenge.is_empty() => {
+        (Some(method), Some(_challenge)) => {
             if method != "S256" {
                 return Err(bad_request_error(
                     "invalid_request",
@@ -432,88 +453,19 @@ struct TokenResponse {
 
 /// Handle token request from the MCP client
 /// https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
-#[tracing::instrument(skip(decoding_key, encoding_key, req))]
+#[tracing::instrument(skip(decoding_key, encoding_key, req, headers))]
 async fn oauth_token(
     Extension(decoding_key): Extension<DecodingKey>,
     Extension(encoding_key): Extension<EncodingKey>,
+    headers: HeaderMap,
     Form(req): Form<TokenRequest>,
 ) -> OauthResult<Json<TokenResponse>> {
     let req = trim_token_request(req);
     tracing::info!("Handling token request: {req:?}");
 
     let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
-        Some(REFRESH_GRANT_TYPE) => {
-            // Decode the refresh token and grab the auth token.
-            let Some(refresh_token) = req.refresh_token else {
-                return Err(bad_request_error(
-                    "invalid_request",
-                    "refresh_token required for refresh_token grant type",
-                )
-                .into());
-            };
-            let refresh_token = decode_refresh_token(&decoding_key, &refresh_token)
-                .context_bad_request("invalid_grant", "Invalid refresh token")?;
-
-            (
-                refresh_token.client_id,
-                refresh_token.scope,
-                refresh_token.user,
-                refresh_token.auth_token_claims,
-            )
-        }
-        Some(CODE_GRANT_TYPE) => {
-            // Decode the auth token.
-            let Some(code) = req.code else {
-                return Err(bad_request_error(
-                    "invalid_request",
-                    "code required for authorization_code grant type",
-                )
-                .into());
-            };
-            let auth_token_claims = decode_auth_token(&decoding_key, &code)
-                .context_bad_request("invalid_grant", "Invalid auth token")?;
-
-            // PKCE: Verify the challenge against the verifier.
-            match (
-                &auth_token_claims.code_challenge_method,
-                &auth_token_claims.code_challenge,
-                req.code_verifier,
-            ) {
-                (Some(method), Some(challenge), Some(verifier)) => {
-                    if method != "S256" {
-                        return Err(bad_request_error(
-                            "unsupported_grant_type",
-                            "Only S256 is supported",
-                        )
-                        .into());
-                    }
-                    let actual_challenge = BASE64_URL_SAFE_NO_PAD
-                        .encode(Sha256::new().chain_update(verifier).finalize());
-                    if &actual_challenge != challenge {
-                        return Err(bad_request_error(
-                            "invalid_grant",
-                            "Challenge does not match verifier",
-                        )
-                        .into());
-                    }
-                }
-                (None, None, None) => {}
-                _ => {
-                    return Err(bad_request_error(
-                        "invalid_grant",
-                        "Method, challenge and verifier must all be set or unset",
-                    )
-                    .into());
-                }
-            }
-
-            (
-                auth_token_claims.client_id.clone(),
-                auth_token_claims.scope.clone(),
-                auth_token_claims.user.clone(),
-                auth_token_claims,
-            )
-        }
+        Some(REFRESH_GRANT_TYPE) => validate_refresh_token(&req, &decoding_key)?,
+        Some(CODE_GRANT_TYPE) => validate_authorization_code(&req, &decoding_key)?,
         Some(_) => {
             return Err(bad_request_error(
                 "unsupported_grant_type",
@@ -526,22 +478,8 @@ async fn oauth_token(
         }
     };
 
-    let Some(req_client_id) = req.client_id else {
-        return Err(bad_request_error("invalid_request", "Client id required").into());
-    };
-    if req_client_id != client_id {
-        return Err(bad_request_error("invalid_grant", "Invalid client id").into());
-    }
-    let Some(client_secret) = req.client_secret else {
-        return Err(bad_request_error(
-            "invalid_request",
-            "client_secret required for authorization_code grant type",
-        )
-        .into());
-    };
-    let client_secret_claims = decode_client_secret(&decoding_key, &client_secret)
-        .context_bad_request("invalid_grant", "Invalid client secret")?;
-    if client_secret_claims.client_id != client_id {
+    // Authenticate the client using basic or post auth.
+    if authenticate_token_client(&headers, &req, &decoding_key)? != client_id {
         return Err(
             bad_request_error("invalid_grant", "Auth token issued to another client").into(),
         );
@@ -580,6 +518,144 @@ async fn oauth_token(
     }))
 }
 
+fn validate_refresh_token(
+    req: &TokenRequest,
+    decoding_key: &DecodingKey,
+) -> OauthResult<(String, String, User, AuthTokenClaims)> {
+    // Decode the refresh token and grab the auth token.
+    let Some(refresh_token) = &req.refresh_token else {
+        return Err(bad_request_error(
+            "invalid_request",
+            "refresh_token required for refresh_token grant type",
+        )
+        .into());
+    };
+    let refresh_token = decode_refresh_token(decoding_key, refresh_token)
+        .context_bad_request("invalid_grant", "Invalid refresh token")?;
+
+    Ok((
+        refresh_token.client_id,
+        refresh_token.scope,
+        refresh_token.user,
+        refresh_token.auth_token_claims,
+    ))
+}
+
+fn validate_authorization_code(
+    req: &TokenRequest,
+    decoding_key: &DecodingKey,
+) -> OauthResult<(String, String, User, AuthTokenClaims)> {
+    // Decode the auth token.
+    let Some(code) = &req.code else {
+        return Err(bad_request_error(
+            "invalid_request",
+            "code required for authorization_code grant type",
+        )
+        .into());
+    };
+    let auth_token_claims = decode_auth_token(decoding_key, code)
+        .context_bad_request("invalid_grant", "Invalid auth token")?;
+
+    // PKCE: Verify the challenge against the verifier.
+    match (
+        &auth_token_claims.code_challenge_method,
+        &auth_token_claims.code_challenge,
+        &req.code_verifier,
+    ) {
+        (Some(method), Some(challenge), Some(verifier)) => {
+            if method != "S256" {
+                return Err(
+                    bad_request_error("unsupported_grant_type", "Only S256 is supported").into(),
+                );
+            }
+            let actual_challenge =
+                BASE64_URL_SAFE_NO_PAD.encode(Sha256::new().chain_update(verifier).finalize());
+            if &actual_challenge != challenge {
+                return Err(bad_request_error(
+                    "invalid_grant",
+                    "Challenge does not match verifier",
+                )
+                .into());
+            }
+        }
+        (None, None, None) => {}
+        _ => {
+            return Err(bad_request_error(
+                "invalid_grant",
+                "Method, challenge and verifier must all be set or unset",
+            )
+            .into());
+        }
+    }
+
+    Ok((
+        auth_token_claims.client_id.clone(),
+        auth_token_claims.scope.clone(),
+        auth_token_claims.user.clone(),
+        auth_token_claims,
+    ))
+}
+
+fn authenticate_token_client(
+    headers: &HeaderMap,
+    req: &TokenRequest,
+    decoding_key: &DecodingKey,
+) -> OauthResult<String> {
+    let (client_id, client_secret) = match headers.get("Authorization").map(HeaderValue::as_bytes) {
+        // Prefer to use the Authorization header.
+        Some(header) => {
+            let Some(credentials) = header.strip_prefix(b"Basic ") else {
+                return Err(
+                    bad_request_error("invalid_client", "Invalid authorization header").into(),
+                );
+            };
+            let credentials: String = BASE64_STANDARD
+                .decode(credentials)
+                .context_bad_request("invalid_client", "Invalid authorization credentials")?
+                .try_into()
+                .context_bad_request("invalid_client", "Invalid authorization credentials")?;
+            let mut credentials = credentials.split(":");
+            let Some(client_id) = credentials.next() else {
+                return Err(bad_request_error(
+                    "invalid_client",
+                    "Invalid authorization credentials id",
+                )
+                .into());
+            };
+            let Some(client_secret) = credentials.next() else {
+                return Err(bad_request_error(
+                    "invalid_client",
+                    "Invalid authorization credentials secret",
+                )
+                .into());
+            };
+            (client_id.to_string(), client_secret.to_string())
+        }
+        // Use the request body when the Authorization header is absent.
+        None => {
+            let Some(client_id) = &req.client_id else {
+                return Err(bad_request_error("invalid_request", "Client id required").into());
+            };
+            let Some(client_secret) = &req.client_secret else {
+                return Err(bad_request_error(
+                    "invalid_request",
+                    "client_secret required for authorization_code grant type",
+                )
+                .into());
+            };
+            (client_id.clone(), client_secret.clone())
+        }
+    };
+
+    let client_secret_claims = decode_client_secret(decoding_key, &client_secret)
+        .context_bad_request("invalid_grant", "Invalid client secret")?;
+    if client_secret_claims.client_id != client_id {
+        return Err(bad_request_error("invalid_grant", "Invalid client id").into());
+    }
+
+    Ok(client_id)
+}
+
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
 const CLIENT_SECRET_EXPIRY_SECS: u64 = 30 * 24 * 60 * 60;
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -590,6 +666,7 @@ struct ClientSecretClaims {
     client_name: String,
     expires_in: u64,
     scope: String,
+    token_endpoint_auth_method: String,
     redirect_uris: Vec<String>,
     grant_types: Vec<String>,
     response_types: Vec<String>,
@@ -748,6 +825,10 @@ impl std::fmt::Debug for ClientRegistrationResponse {
             .field("client_id", &self.client_id)
             .field("client_name", &self.client_name)
             .field("scope", &self.scope)
+            .field(
+                "token_endpoint_auth_method",
+                &self.token_endpoint_auth_method,
+            )
             .field("redirect_uris", &self.redirect_uris)
             .field("grant_types", &self.grant_types)
             .field("response_types", &self.response_types)
@@ -848,7 +929,7 @@ fn add_www_authenticate_header(res: &mut Response) -> Result<()> {
     res.headers_mut().insert(
         "WWW-Authenticate",
         HeaderValue::from_str(&format!(
-            "Bearer resource_metadata={}/.well-known/oauth-protected-resource",
+            "Bearer resource_metadata={}/.well-known/oauth-protected-resource/api/mcp/sse",
             settings().host
         ))
         .context("Failed to construct www-authenticate header value")?,
