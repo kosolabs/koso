@@ -11,6 +11,8 @@ concurrency:
   group: ci-workflow-${{ github.workflow }}-ref-${{ github.ref }}
   # Cancel in-progress workflows for PRs (but not main).
   cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
+permissions:
+  contents: read
 jobs:
   cargo:
     runs-on: ubuntu-24.04
