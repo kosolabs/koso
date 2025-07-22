@@ -462,11 +462,7 @@ async fn oauth_token(
 ) -> OauthResult<Json<TokenResponse>> {
     let req = trim_token_request(req);
     tracing::info!("Handling token request: {req:?}");
-    tracing::info!(
-        "Authorization header: {:?}",
-        headers.get("Authorization").map(|h| h.to_str())
-    );
-    tracing::info!("Headers: {:?}", headers);
+
     let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
         Some(REFRESH_GRANT_TYPE) => {
             // Decode the refresh token and grab the auth token.
@@ -569,16 +565,15 @@ async fn oauth_token(
                 .context_bad_request("invalid_client", "Invalid authorization credentials")?
                 .try_into()
                 .context_bad_request("invalid_client", "Invalid authorization credentials")?;
-            tracing::info!("Got creds: {credentials}");
-            let mut iter = credentials.split(":");
-            let Some(req_client_id) = iter.next() else {
+            let mut credentials = credentials.split(":");
+            let Some(req_client_id) = credentials.next() else {
                 return Err(bad_request_error(
                     "invalid_client",
                     "Invalid authorization credentials id",
                 )
                 .into());
             };
-            let Some(client_secret) = iter.next() else {
+            let Some(client_secret) = credentials.next() else {
                 return Err(bad_request_error(
                     "invalid_client",
                     "Invalid authorization credentials secret",
