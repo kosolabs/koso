@@ -629,7 +629,10 @@ After starting your local server:
 
 1. Install Claude Code: `npm install -g @anthropic-ai/claude-code`
 1. Run the setup flow: `claude`
-1. Add Koso: `claude mcp add --transport http koso-mcp http://localhost:3000/api/mcp/sse`
+1. Add Koso
+   - Local: `claude mcp add --transport http koso-local-mcp http://localhost:3000/api/mcp/sse`
+   - Remote: `claude mcp add --transport http koso-mcp https://koso.app/api/mcp/sse`
+1. Run `claude` and then `/mcp` to authenticate
 
 #### MCP Inspector
 
