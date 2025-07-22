@@ -378,7 +378,7 @@ async fn oauth_approve(
     }
     let (code_challenge_method, code_challenge) = (req.code_challenge_method, req.code_challenge);
     match (&code_challenge_method, &code_challenge) {
-        (Some(method), Some(challenge)) if !method.is_empty() && !challenge.is_empty() => {
+        (Some(method), Some(_challenge)) => {
             if method != "S256" {
                 return Err(bad_request_error(
                     "invalid_request",
@@ -464,78 +464,8 @@ async fn oauth_token(
     tracing::info!("Handling token request: {req:?}");
 
     let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
-        Some(REFRESH_GRANT_TYPE) => {
-            // Decode the refresh token and grab the auth token.
-            let Some(refresh_token) = req.refresh_token else {
-                return Err(bad_request_error(
-                    "invalid_request",
-                    "refresh_token required for refresh_token grant type",
-                )
-                .into());
-            };
-            let refresh_token = decode_refresh_token(&decoding_key, &refresh_token)
-                .context_bad_request("invalid_grant", "Invalid refresh token")?;
-
-            (
-                refresh_token.client_id,
-                refresh_token.scope,
-                refresh_token.user,
-                refresh_token.auth_token_claims,
-            )
-        }
-        Some(CODE_GRANT_TYPE) => {
-            // Decode the auth token.
-            let Some(code) = req.code else {
-                return Err(bad_request_error(
-                    "invalid_request",
-                    "code required for authorization_code grant type",
-                )
-                .into());
-            };
-            let auth_token_claims = decode_auth_token(&decoding_key, &code)
-                .context_bad_request("invalid_grant", "Invalid auth token")?;
-
-            // PKCE: Verify the challenge against the verifier.
-            match (
-                &auth_token_claims.code_challenge_method,
-                &auth_token_claims.code_challenge,
-                req.code_verifier,
-            ) {
-                (Some(method), Some(challenge), Some(verifier)) => {
-                    if method != "S256" {
-                        return Err(bad_request_error(
-                            "unsupported_grant_type",
-                            "Only S256 is supported",
-                        )
-                        .into());
-                    }
-                    let actual_challenge = BASE64_URL_SAFE_NO_PAD
-                        .encode(Sha256::new().chain_update(verifier).finalize());
-                    if &actual_challenge != challenge {
-                        return Err(bad_request_error(
-                            "invalid_grant",
-                            "Challenge does not match verifier",
-                        )
-                        .into());
-                    }
-                }
-                (None, None, None) => {}
-                _ => {
-                    return Err(bad_request_error(
-                        "invalid_grant",
-                        "Method, challenge and verifier must all be set or unset",
-                    )
-                    .into());
-                }
-            }
-
-            (
-                auth_token_claims.client_id.clone(),
-                auth_token_claims.scope.clone(),
-                auth_token_claims.user.clone(),
-                auth_token_claims,
-            )
-        }
+        Some(REFRESH_GRANT_TYPE) => validate_refresh_token(&req, &decoding_key)?,
+        Some(CODE_GRANT_TYPE) => validate_authorization_code(&req, &decoding_key)?,
         Some(_) => {
             return Err(bad_request_error(
                 "unsupported_grant_type",
@@ -548,61 +478,8 @@ async fn oauth_token(
         }
     };
 
-    // Validate the client secret.
-    let (req_client_id, client_secret) = match headers
-        .get("Authorization")
-        .map(HeaderValue::as_bytes)
-    {
-        // Prefer to use the Authorization header.
-        Some(header) => {
-            let Some(credentials) = header.strip_prefix(b"Basic ") else {
-                return Err(
-                    bad_request_error("invalid_client", "Invalid authorization header").into(),
-                );
-            };
-            let credentials: String = BASE64_STANDARD
-                .decode(credentials)
-                .context_bad_request("invalid_client", "Invalid authorization credentials")?
-                .try_into()
-                .context_bad_request("invalid_client", "Invalid authorization credentials")?;
-            let mut credentials = credentials.split(":");
-            let Some(req_client_id) = credentials.next() else {
-                return Err(bad_request_error(
-                    "invalid_client",
-                    "Invalid authorization credentials id",
-                )
-                .into());
-            };
-            let Some(client_secret) = credentials.next() else {
-                return Err(bad_request_error(
-                    "invalid_client",
-                    "Invalid authorization credentials secret",
-                )
-                .into());
-            };
-            (req_client_id.to_string(), client_secret.to_string())
-        }
-        // Use the request body when the Authorization header is absent.
-        None => {
-            let Some(req_client_id) = req.client_id else {
-                return Err(bad_request_error("invalid_request", "Client id required").into());
-            };
-            let Some(client_secret) = req.client_secret else {
-                return Err(bad_request_error(
-                    "invalid_request",
-                    "client_secret required for authorization_code grant type",
-                )
-                .into());
-            };
-            (req_client_id, client_secret)
-        }
-    };
-    let client_secret_claims = decode_client_secret(&decoding_key, &client_secret)
-        .context_bad_request("invalid_grant", "Invalid client secret")?;
-    if req_client_id != client_id {
-        return Err(bad_request_error("invalid_grant", "Invalid client id").into());
-    }
-    if client_secret_claims.client_id != client_id {
+    // Authenticate the client using basic or post auth.
+    if authenticate_token_client(&headers, &req, &decoding_key)? != client_id {
         return Err(
             bad_request_error("invalid_grant", "Auth token issued to another client").into(),
         );
@@ -639,6 +516,144 @@ async fn oauth_token(
         access_token,
         refresh_token,
     }))
+}
+
+fn validate_refresh_token(
+    req: &TokenRequest,
+    decoding_key: &DecodingKey,
+) -> OauthResult<(String, String, User, AuthTokenClaims)> {
+    // Decode the refresh token and grab the auth token.
+    let Some(refresh_token) = &req.refresh_token else {
+        return Err(bad_request_error(
+            "invalid_request",
+            "refresh_token required for refresh_token grant type",
+        )
+        .into());
+    };
+    let refresh_token = decode_refresh_token(decoding_key, refresh_token)
+        .context_bad_request("invalid_grant", "Invalid refresh token")?;
+
+    Ok((
+        refresh_token.client_id,
+        refresh_token.scope,
+        refresh_token.user,
+        refresh_token.auth_token_claims,
+    ))
+}
+
+fn validate_authorization_code(
+    req: &TokenRequest,
+    decoding_key: &DecodingKey,
+) -> OauthResult<(String, String, User, AuthTokenClaims)> {
+    // Decode the auth token.
+    let Some(code) = &req.code else {
+        return Err(bad_request_error(
+            "invalid_request",
+            "code required for authorization_code grant type",
+        )
+        .into());
+    };
+    let auth_token_claims = decode_auth_token(decoding_key, code)
+        .context_bad_request("invalid_grant", "Invalid auth token")?;
+
+    // PKCE: Verify the challenge against the verifier.
+    match (
+        &auth_token_claims.code_challenge_method,
+        &auth_token_claims.code_challenge,
+        &req.code_verifier,
+    ) {
+        (Some(method), Some(challenge), Some(verifier)) => {
+            if method != "S256" {
+                return Err(
+                    bad_request_error("unsupported_grant_type", "Only S256 is supported").into(),
+                );
+            }
+            let actual_challenge =
+                BASE64_URL_SAFE_NO_PAD.encode(Sha256::new().chain_update(verifier).finalize());
+            if &actual_challenge != challenge {
+                return Err(bad_request_error(
+                    "invalid_grant",
+                    "Challenge does not match verifier",
+                )
+                .into());
+            }
+        }
+        (None, None, None) => {}
+        _ => {
+            return Err(bad_request_error(
+                "invalid_grant",
+                "Method, challenge and verifier must all be set or unset",
+            )
+            .into());
+        }
+    }
+
+    Ok((
+        auth_token_claims.client_id.clone(),
+        auth_token_claims.scope.clone(),
+        auth_token_claims.user.clone(),
+        auth_token_claims,
+    ))
+}
+
+fn authenticate_token_client(
+    headers: &HeaderMap,
+    req: &TokenRequest,
+    decoding_key: &DecodingKey,
+) -> OauthResult<String> {
+    let (client_id, client_secret) = match headers.get("Authorization").map(HeaderValue::as_bytes) {
+        // Prefer to use the Authorization header.
+        Some(header) => {
+            let Some(credentials) = header.strip_prefix(b"Basic ") else {
+                return Err(
+                    bad_request_error("invalid_client", "Invalid authorization header").into(),
+                );
+            };
+            let credentials: String = BASE64_STANDARD
+                .decode(credentials)
+                .context_bad_request("invalid_client", "Invalid authorization credentials")?
+                .try_into()
+                .context_bad_request("invalid_client", "Invalid authorization credentials")?;
+            let mut credentials = credentials.split(":");
+            let Some(client_id) = credentials.next() else {
+                return Err(bad_request_error(
+                    "invalid_client",
+                    "Invalid authorization credentials id",
+                )
+                .into());
+            };
+            let Some(client_secret) = credentials.next() else {
+                return Err(bad_request_error(
+                    "invalid_client",
+                    "Invalid authorization credentials secret",
+                )
+                .into());
+            };
+            (client_id.to_string(), client_secret.to_string())
+        }
+        // Use the request body when the Authorization header is absent.
+        None => {
+            let Some(client_id) = &req.client_id else {
+                return Err(bad_request_error("invalid_request", "Client id required").into());
+            };
+            let Some(client_secret) = &req.client_secret else {
+                return Err(bad_request_error(
+                    "invalid_request",
+                    "client_secret required for authorization_code grant type",
+                )
+                .into());
+            };
+            (client_id.clone(), client_secret.clone())
+        }
+    };
+
+    let client_secret_claims = decode_client_secret(&decoding_key, &client_secret)
+        .context_bad_request("invalid_grant", "Invalid client secret")?;
+    if client_secret_claims.client_id != client_id {
+        return Err(bad_request_error("invalid_grant", "Invalid client id").into());
+    }
+
+    Ok(client_id)
 }
 
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
