@@ -5,9 +5,9 @@
   import { toast } from "$lib/components/ui/sonner";
   import { Alert } from "$lib/kosui/alert";
   import Button from "$lib/kosui/button/button.svelte";
-  import { onMount } from "svelte";
 
   let auth = getAuthContext();
+  let details = $state(load());
 
   type Params = {
     responseType: string | null;
@@ -49,6 +49,33 @@
     };
   }
 
+  type AuthorizationDetails = {
+    client_name: string | null;
+  };
+
+  async function load(): Promise<AuthorizationDetails> {
+    let params = parseParams();
+    console.log(`Parsed authorization parameters: ${JSON.stringify(params)}`);
+
+    try {
+      const response = await fetch(`/oauth/authorization_details`, {
+        method: "POST",
+        headers: {
+          ...headers(auth),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          client_id: params.clientId,
+          redirect_uri: params.redirectUri,
+        }),
+      });
+      return await parseResponse(auth, response);
+    } catch (e) {
+      console.log("Failed to fetch authorization details", e);
+      return { client_name: null };
+    }
+  }
+
   async function handleCancelClick() {
     const params = parseParams();
     const redirectUri = newRedirectUri(params);
@@ -63,13 +90,14 @@
   }
 
   async function handleAuthorizeClick() {
-    const redirectUri = await authorize();
+    const redirectUri = await approve();
     console.log(`Authorized, redirecting back to client: ${redirectUri}`);
     window.location.assign(redirectUri);
   }
 
-  async function authorize(): Promise<URL> {
+  async function approve(): Promise<URL> {
     const params = parseParams();
+    let approval: { code: string };
     try {
       const response = await fetch(`/oauth/approve`, {
         method: "POST",
@@ -86,16 +114,16 @@
           resource: params.resource,
         }),
       });
-      const approval: { code: string } = await parseResponse(auth, response);
-
-      // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
-      const redirectUri = newRedirectUri(params);
-      redirectUri.searchParams.append("code", approval.code);
-      return redirectUri;
+      approval = await parseResponse(auth, response);
     } catch (e) {
       console.error("Approval request failed: ", e);
       return newErrorRedirectUri(params, e);
     }
+
+    // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
+    const redirectUri = newRedirectUri(params);
+    redirectUri.searchParams.append("code", approval.code);
+    return redirectUri;
   }
 
   // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1
@@ -135,16 +163,6 @@
     }
     return redirectUri;
   }
-
-  onMount(() => {
-    try {
-      console.log(
-        `Parsed authorization parameters: ${JSON.stringify(parseParams())}`,
-      );
-    } catch (e) {
-      console.log(e);
-    }
-  });
 </script>
 
 <Navbar />
@@ -152,11 +170,21 @@
 <div class="m-2">
   <Alert>
     <div class="flex flex-col items-center gap-2">
-      <div>Authorize access to Koso?</div>
-      <div class="flex items-center gap-2">
-        <Button onclick={handleAuthorizeClick}>Authorize</Button>
-        <Button onclick={handleCancelClick}>Cancel</Button>
-      </div>
+      {#await details}
+        <div class="text-l">Loading...</div>
+      {:then details}
+        {#if details.client_name}
+          <div>Authorize access to "{details.client_name}"?</div>
+          <div class="flex items-center gap-2">
+            <Button onclick={handleAuthorizeClick}>Authorize</Button>
+            <Button onclick={handleCancelClick}>Cancel</Button>
+          </div>
+        {:else}
+          <div class="text-l">
+            Something went wrong. Close the page and try again.
+          </div>
+        {/if}
+      {/await}
     </div>
   </Alert>
 </div>

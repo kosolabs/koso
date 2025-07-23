@@ -25,12 +25,21 @@ use base64::{
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    sync::Arc,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
+use tokio::sync::Mutex;
 use tower_http::cors::{self, CorsLayer};
 use uuid::Uuid;
 
 /// Implements MCP oauth: https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
 pub(crate) fn router() -> Result<Router> {
+    let store = Store {
+        clients: Arc::new(Mutex::new(HashMap::new())),
+    };
+
     let cors_layer = CorsLayer::new()
         .allow_origin(cors::Any)
         .allow_methods(cors::Any)
@@ -73,13 +82,14 @@ pub(crate) fn router() -> Result<Router> {
                 .route("/register", post(oauth_register).options(oauth_register))
                 .route("/token", post(oauth_token).options(oauth_token))
                 .layer(cors_layer)
+                .route("/authorization_details", post(oauth_authorization_details))
                 .route(
                     "/approve",
                     post(oauth_approve)
                         .options(oauth_approve)
                         .layer(middleware::from_fn(google::authenticate)),
                 )
-                .layer(middleware::from_fn(set_cache_control))
+                .layer((Extension(store), middleware::from_fn(set_cache_control)))
                 .fallback(api::handler_404),
         ))
 }
@@ -202,6 +212,30 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
     Ok(Json(metadata))
 }
 
+#[derive(Clone)]
+struct Store {
+    clients: Arc<Mutex<HashMap<String, ClientSecretClaims>>>,
+}
+
+impl Store {
+    async fn insert_client(&self, claims: &ClientSecretClaims) -> ApiResult<()> {
+        match self.clients.lock().await.entry(claims.client_id.clone()) {
+            Entry::Occupied(entry) => {
+                return Err(anyhow!("Client already exists: {}", entry.key()).into());
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(claims.clone());
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn get_client(&self, client_id: &str) -> Option<ClientSecretClaims> {
+        self.clients.lock().await.get(client_id).cloned()
+    }
+}
+
 /// Note: All fields must be optional. Validation should occur with the handler.
 /// See `swap_empty_with_none` below.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -232,9 +266,10 @@ struct ClientRegistrationResponse {
 
 // Handle dynamic client registration
 // https://datatracker.ietf.org/doc/html/rfc7591#section-3.1
-#[tracing::instrument(skip(key, req))]
+#[tracing::instrument(skip(key, store, req))]
 async fn oauth_register(
     Extension(key): Extension<EncodingKey>,
+    Extension(store): Extension<Store>,
     Json(req): Json<ClientRegistrationRequest>,
 ) -> OauthResult<Json<ClientRegistrationResponse>> {
     let req = trim_client_registration_request(req);
@@ -298,6 +333,7 @@ async fn oauth_register(
         response_types: vec![CODE_RESPONSE_TYPE.to_string()],
     };
     let client_secret = encode_client_secret(&key, &claims)?;
+    store.insert_client(&claims).await?;
 
     // Create the response.
     let response = ClientRegistrationResponse {
@@ -314,6 +350,57 @@ async fn oauth_register(
     tracing::debug!("Registered client: {response:?}");
 
     Ok(Json(response))
+}
+
+/// Note: All fields must be optional. Validation should occur with the handler.
+/// See `swap_empty_with_none` below.
+#[derive(Debug, Deserialize)]
+struct AuthorizationDetailsRequest {
+    client_id: Option<String>,
+    redirect_uri: Option<String>,
+    #[allow(dead_code)]
+    #[serde(flatten)]
+    other: serde_json::Value,
+}
+
+#[derive(Debug, Serialize)]
+struct AuthorizationDetailsResponse {
+    client_name: String,
+}
+
+#[tracing::instrument(skip(store, req))]
+async fn oauth_authorization_details(
+    Extension(store): Extension<Store>,
+    Json(req): Json<AuthorizationDetailsRequest>,
+) -> ApiResult<Json<AuthorizationDetailsResponse>> {
+    let req = trim_authorize_request(req);
+    tracing::info!("Handling authorization: {req:?}");
+
+    // Validate the request.
+    let Some(client_id) = req.client_id else {
+        return Err(bad_request_error("invalid_request", "Client id required"));
+    };
+    let Some(redirect_uri) = req.redirect_uri else {
+        return Err(bad_request_error(
+            "invalid_request",
+            "Redirect uri required",
+        ));
+    };
+
+    // Validate that the client exists and has registered the given redirect uri.
+    let Some(claims) = store.get_client(&client_id).await else {
+        return Err(bad_request_error(
+            "unauthorized_client",
+            "Unauthorized client id",
+        ));
+    };
+    if !claims.redirect_uris.contains(&redirect_uri) {
+        return Err(bad_request_error("invalid_request", "Invalid redirect uri"));
+    }
+
+    Ok(Json(AuthorizationDetailsResponse {
+        client_name: claims.client_name,
+    }))
 }
 
 /// Note: All fields must be optional. Validation should occur with the handler.
@@ -341,9 +428,10 @@ struct ApprovalResponse {
 
 /// Handle approval requests sent from a client browser.
 /// https://datatracker.ietf.org/doc/html/rfc6749#section-3.1
-#[tracing::instrument(skip(user, encoding_key, req))]
+#[tracing::instrument(skip(user, store, encoding_key, req))]
 async fn oauth_approve(
     Extension(user): Extension<User>,
+    Extension(store): Extension<Store>,
     Extension(encoding_key): Extension<EncodingKey>,
     Json(req): Json<ApprovalRequest>,
 ) -> ApiResult<Json<ApprovalResponse>> {
@@ -351,8 +439,6 @@ async fn oauth_approve(
     tracing::info!("Approving authorization: {req:?}");
 
     // Validate the request.
-    // TODO: validate redirect_uri against the registered client.
-    // TODO: validate the token hasn't already been used.
     let Some(client_id) = req.client_id else {
         return Err(bad_request_error("invalid_request", "Client id required"));
     };
@@ -395,6 +481,16 @@ async fn oauth_approve(
                 "Method and code must both be set or unset",
             ));
         }
+    }
+    // Validate that the client exists and has registered the given redirect uri.
+    let Some(claims) = store.get_client(&client_id).await else {
+        return Err(bad_request_error(
+            "unauthorized_client",
+            "Unauthorized client id",
+        ));
+    };
+    if !claims.redirect_uris.contains(&redirect_uri) {
+        return Err(bad_request_error("invalid_request", "Invalid redirect uri"));
     }
 
     // Encode the auth token
@@ -775,6 +871,14 @@ fn trim_client_registration_request(
 ) -> ClientRegistrationRequest {
     swap_empty_with_none(&mut req.client_name);
     swap_empty_with_none(&mut req.scope);
+
+    req
+}
+
+/// Replace all empty strings with None.
+fn trim_authorize_request(mut req: AuthorizationDetailsRequest) -> AuthorizationDetailsRequest {
+    swap_empty_with_none(&mut req.client_id);
+    swap_empty_with_none(&mut req.redirect_uri);
 
     req
 }
