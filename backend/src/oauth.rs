@@ -217,6 +217,7 @@ struct Store {
     clients: Arc<Mutex<HashMap<String, ClientSecretClaims>>>,
 }
 
+// TODO: Consider storing clients in the DB such that restarts don't evict.
 impl Store {
     async fn insert_client(&self, claims: &ClientSecretClaims) -> ApiResult<()> {
         let mut clients = self.clients.lock().await;
@@ -301,9 +302,7 @@ async fn oauth_register(
         );
     }
     if redirect_uris.iter().any(|s| s.len() > 2000) {
-        return Err(
-            bad_request_error("invalid_redirect_uri", "Redirect uri cannot be so long").into(),
-        );
+        return Err(bad_request_error("invalid_redirect_uri", "Redirect uri too long").into());
     }
     let response_types = req.response_types;
     if !response_types.is_empty() && !response_types.contains(&CODE_RESPONSE_TYPE.to_string()) {
