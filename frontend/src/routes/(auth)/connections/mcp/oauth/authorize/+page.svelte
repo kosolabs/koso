@@ -123,7 +123,7 @@
 
     const redirectUri = newRedirectUri(params);
     redirectUri.searchParams.append("error", error);
-    redirectUri.searchParams.append("error", errorDescription);
+    redirectUri.searchParams.append("error_description", errorDescription);
 
     return redirectUri;
   }
