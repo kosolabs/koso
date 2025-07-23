@@ -22,10 +22,7 @@ use base64::{
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
-use std::{
-    collections::HashSet,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tower_http::cors::{self, CorsLayer};
 use uuid::Uuid;
 
@@ -84,7 +81,8 @@ pub(crate) fn router() -> Result<Router> {
         ))
 }
 
-/// Middleware function that authenticates requests to the MCP server.
+/// Middleware function that authenticates requests to the MCP server
+/// by looking for a Bearer token in the Authorization header.
 #[tracing::instrument(skip(decoding_key, req, next), fields(email))]
 pub(crate) async fn authenticate(
     Extension(decoding_key): Extension<DecodingKey>,
@@ -757,7 +755,7 @@ fn encode_token<T: Serialize>(key: &EncodingKey, claims: &T) -> ApiResult<String
 
 fn decode_token<T: DeserializeOwned>(key: &DecodingKey, token: &str, issuer: &str) -> Result<T> {
     let mut validation = Validation::default();
-    validation.iss = Some(HashSet::from([issuer.to_string()]));
+    validation.set_issuer(&[issuer]);
     validation.required_spec_claims.insert("iss".to_string());
 
     Ok(decode::<T>(token, key, &validation)

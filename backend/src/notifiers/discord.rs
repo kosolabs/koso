@@ -81,10 +81,13 @@ pub(super) fn router() -> Router {
     Router::new().merge(routes).merge(webhooks)
 }
 
+const ISSUER: &str = "koso-notifiers-discord";
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct Claims {
     exp: u64,
+    iss: String,
     channel_id: String,
 }
 
@@ -106,7 +109,10 @@ async fn authorize_discord(
     Extension(key): Extension<DecodingKey>,
     Json(req): Json<AuthorizeDiscord>,
 ) -> ApiResult<Json<NotifierSettings>> {
-    let token = decode::<Claims>(&req.token, &key, &Validation::default()).context_status(
+    let mut validation = Validation::default();
+    validation.set_issuer(&[ISSUER]);
+    validation.required_spec_claims.insert("iss".to_string());
+    let token = decode::<Claims>(&req.token, &key, &validation).context_status(
         StatusCode::PRECONDITION_FAILED,
         "VALIDATION_FAILED",
         "Invalid token",
@@ -202,6 +208,7 @@ fn get_auth_url(key: EncodingKey, channel_id: &str) -> Result<String> {
     let timer = SystemTime::now() + Duration::from_secs(60 * 60);
     let claims = Claims {
         exp: timer.duration_since(UNIX_EPOCH)?.as_secs(),
+        iss: ISSUER.to_string(),
         channel_id: channel_id.into(),
     };
     let token = encode(&Header::default(), &claims, &key)?;
