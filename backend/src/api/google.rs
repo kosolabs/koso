@@ -249,7 +249,9 @@ fn decode_and_validate_token(token: &str, key: &DecodingKey) -> ApiResult<User> 
     validation.set_audience(&[
         "560654064095-kicdvg13cb48mf6fh765autv6s3nhp23.apps.googleusercontent.com",
     ]);
+    validation.required_spec_claims.insert("aud".to_string());
     validation.set_issuer(&["https://accounts.google.com"]);
+    validation.required_spec_claims.insert("iss".to_string());
     let token = jsonwebtoken::decode::<User>(token, key, &validation)
         .context_unauthenticated("Failed validation")?;
     if token.claims.email.is_empty() {
