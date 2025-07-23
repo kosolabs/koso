@@ -391,11 +391,14 @@ async fn oauth_authorization_details(
     let Some(claims) = store.get_client(&client_id).await else {
         return Err(bad_request_error(
             "unauthorized_client",
-            "Unauthorized client id",
+            "Client is unregistered. Delete any dynamic clients and try again.",
         ));
     };
     if !claims.redirect_uris.contains(&redirect_uri) {
-        return Err(bad_request_error("invalid_request", "Invalid redirect uri"));
+        return Err(bad_request_error(
+            "invalid_request",
+            "Registered redirect uri doesn't match the provided. Danger!",
+        ));
     }
 
     Ok(Json(AuthorizationDetailsResponse {
@@ -486,11 +489,14 @@ async fn oauth_approve(
     let Some(claims) = store.get_client(&client_id).await else {
         return Err(bad_request_error(
             "unauthorized_client",
-            "Unauthorized client id",
+            "Client is unregistered. Delete any dynamic clients and try again.",
         ));
     };
     if !claims.redirect_uris.contains(&redirect_uri) {
-        return Err(bad_request_error("invalid_request", "Invalid redirect uri"));
+        return Err(bad_request_error(
+            "invalid_request",
+            "Registered redirect uri doesn't match the provided. Danger!",
+        ));
     }
 
     // Encode the auth token

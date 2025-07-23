@@ -50,7 +50,8 @@
   }
 
   type AuthorizationDetails = {
-    client_name: string | null;
+    client_name?: string;
+    error?: string;
   };
 
   async function load(): Promise<AuthorizationDetails> {
@@ -72,7 +73,7 @@
       return await parseResponse(auth, response);
     } catch (e) {
       console.log("Failed to fetch authorization details", e);
-      return { client_name: null };
+      return { error: JSON.stringify(e) };
     }
   }
 
@@ -181,8 +182,9 @@
           </div>
         {:else}
           <div class="text-l">
-            Something went wrong. Close the page and try again.
+            Something went wrong. Clear any state and try again.
           </div>
+          <div class="text-red-500">{details.error}</div>
         {/if}
       {/await}
     </div>
