@@ -1,3 +1,6 @@
+/// Oauth authorization for MCP. The sequence diagram at
+/// https://modelcontextprotocol.io/specification/draft/basic/authorization#authorization-flow-steps
+/// is a useful resource.
 use crate::{
     api::{
         self, ApiResult, ErrorResponse, IntoApiResult, bad_request_error,
@@ -138,6 +141,7 @@ const CLIENT_AUTH_METHOD: &str = "client_secret_basic";
 const CODE_RESPONSE_TYPE: &str = "code";
 const CODE_GRANT_TYPE: &str = "authorization_code";
 const REFRESH_GRANT_TYPE: &str = "refresh_token";
+const S256_CHALLENGE_METHOD: &str = "S256";
 
 /// oauth2 resource server metadata
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -191,7 +195,7 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
         scopes_supported: vec![READ_WRITE_SCOPE.to_string()],
         grant_types_supported: vec![CODE_GRANT_TYPE.to_string()],
         response_types_supported: vec![CODE_RESPONSE_TYPE.to_string()],
-        code_challenge_methods_supported: vec!["S256".to_string()],
+        code_challenge_methods_supported: vec![S256_CHALLENGE_METHOD.to_string()],
     };
     tracing::trace!("Authorization server metadata: {metadata:?}");
 
@@ -377,7 +381,7 @@ async fn oauth_approve(
     let (code_challenge_method, code_challenge) = (req.code_challenge_method, req.code_challenge);
     match (&code_challenge_method, &code_challenge) {
         (Some(method), Some(_challenge)) => {
-            if method != "S256" {
+            if method != S256_CHALLENGE_METHOD {
                 return Err(bad_request_error(
                     "invalid_request",
                     "Only 'S256' code_challenge_method is supported",
@@ -461,20 +465,17 @@ async fn oauth_token(
     let req = trim_token_request(req);
     tracing::info!("Handling token request: {req:?}");
 
+    // Validate the refresh token or authorization code.
     let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
-        Some(REFRESH_GRANT_TYPE) => validate_refresh_token(&req, &decoding_key)?,
-        Some(CODE_GRANT_TYPE) => validate_authorization_code(&req, &decoding_key)?,
-        Some(_) => {
-            return Err(bad_request_error(
-                "unsupported_grant_type",
-                "only authorization_code is supported",
-            )
-            .into());
-        }
-        None => {
-            return Err(bad_request_error("invalid_request", "grant_type required").into());
-        }
-    };
+        Some(REFRESH_GRANT_TYPE) => validate_refresh_token(&req, &decoding_key),
+        Some(CODE_GRANT_TYPE) => validate_authorization_code(&req, &decoding_key),
+        Some(_) => Err(bad_request_error(
+            "unsupported_grant_type",
+            "only authorization_code is supported",
+        )
+        .into()),
+        None => Err(bad_request_error("invalid_request", "grant_type required").into()),
+    }?;
 
     // Authenticate the client using basic or post auth.
     if authenticate_token_client(&headers, &req, &decoding_key)? != client_id {
@@ -483,7 +484,7 @@ async fn oauth_token(
         );
     }
 
-    // Encode the access token and refresh token.
+    // Encode the new access token and refresh token.
     let access_claims = AccessTokenClaims {
         exp: expires_at(ACCESS_TOKEN_EXPIRY_SECS)?,
         iss: ACCESS_TOKEN_ISS.to_string(),
@@ -561,7 +562,7 @@ fn validate_authorization_code(
         &req.code_verifier,
     ) {
         (Some(method), Some(challenge), Some(verifier)) => {
-            if method != "S256" {
+            if method != S256_CHALLENGE_METHOD {
                 return Err(
                     bad_request_error("unsupported_grant_type", "Only S256 is supported").into(),
                 );
