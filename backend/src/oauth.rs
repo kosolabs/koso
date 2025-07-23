@@ -219,7 +219,15 @@ struct Store {
 
 impl Store {
     async fn insert_client(&self, claims: &ClientSecretClaims) -> ApiResult<()> {
-        match self.clients.lock().await.entry(claims.client_id.clone()) {
+        let mut clients = self.clients.lock().await;
+        // Drop all clients to avoid an OOM. The limit is sufficiently high such
+        // we're unlikely to hit it between server restarts.
+        if clients.len() > 7500 {
+            tracing::error!("Cleared oauth clients. Consider implementing better eviction.");
+            clients.clear();
+            clients.shrink_to_fit();
+        }
+        match clients.entry(claims.client_id.clone()) {
             Entry::Occupied(entry) => {
                 return Err(anyhow!("Client already exists: {}", entry.key()).into());
             }
@@ -292,6 +300,11 @@ async fn oauth_register(
             bad_request_error("invalid_redirect_uri", "Redirect uri cannot be empty").into(),
         );
     }
+    if redirect_uris.iter().any(|s| s.len() > 2000) {
+        return Err(
+            bad_request_error("invalid_redirect_uri", "Redirect uri cannot be so long").into(),
+        );
+    }
     let response_types = req.response_types;
     if !response_types.is_empty() && !response_types.contains(&CODE_RESPONSE_TYPE.to_string()) {
         return Err(bad_request_error(
@@ -317,9 +330,14 @@ async fn oauth_register(
         .into());
     }
 
-    // Generate the client secret.
     let client_id = format!("client-{}", Uuid::new_v4());
-    let client_name = req.client_name.unwrap_or_else(|| client_id.clone());
+    let mut client_name = req.client_name.unwrap_or_else(|| client_id.clone());
+    if client_name.len() > 255 {
+        client_name.truncate(255);
+        client_name = format!("{client_name}..");
+    }
+
+    // Generate the client secret.
     let claims = ClientSecretClaims {
         exp: expires_at(CLIENT_SECRET_EXPIRY_SECS)?,
         expires_in: CLIENT_SECRET_EXPIRY_SECS,
