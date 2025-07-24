@@ -644,12 +644,12 @@ async fn oauth_token(
         Ok(res) => res.into_response(),
         Err(err) => {
             let mut res = err.into_response();
-            // Append the WWW-Authenticate header so the client knows how to proceed.
-            // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-3.2.4
-            if res.status() == StatusCode::UNAUTHORIZED
-                && let Err(err) = add_www_authenticate_header(&mut res)
-            {
-                return err.into_response();
+            if res.status() == StatusCode::UNAUTHORIZED {
+                // Append the WWW-Authenticate header so the client knows how to proceed.
+                // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-3.2.4
+                if let Err(err) = add_www_authenticate_header(&mut res) {
+                    return err.into_response();
+                }
             }
             return res;
         }
