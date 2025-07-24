@@ -47,7 +47,7 @@
 
 <div class="flex h-dvh flex-col">
   <div class="grow-0">
-    <Navbar breadcrumbs="Home > {project.name}">
+    <Navbar breadcrumbs={["Home", project.name]}>
       {#snippet left()}
         <div>
           <Editable

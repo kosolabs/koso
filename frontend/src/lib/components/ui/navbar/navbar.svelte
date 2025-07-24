@@ -25,7 +25,7 @@
 
   type Props = {
     left?: Snippet;
-    breadcrumbs?: string;
+    breadcrumbs?: string[];
   };
   const { left, breadcrumbs }: Props = $props();
 
@@ -90,7 +90,7 @@
   class="bg-m3-surface-container shadow-m3-shadow/20 flex flex-col overflow-hidden border-b shadow"
 >
   <div
-    class="bg-m3-surface-container shadow-m3-shadow/20 flex items-center overflow-hidden border-b p-2 shadow"
+    class="bg-m3-surface-container flex items-center overflow-hidden border-b p-2"
   >
     <div class="flex flex-col gap-2"></div>
     <div class="flex items-center">
@@ -164,8 +164,13 @@
     </div>
   </div>
   {#if breadcrumbs}
-    <div class="p-2">
-      <h1 class="text-small pl-3 font-thin">{breadcrumbs}</h1>
+    <div class="flex items-center py-1 pl-4 text-sm font-thin">
+      {#each breadcrumbs as crumb, i (i)}
+        <span>{crumb}</span>
+        {#if i < breadcrumbs.length - 1}
+          <span class="px-1 text-gray-400">{">"}</span>
+        {/if}
+      {/each}
     </div>
   {/if}
 </nav>
