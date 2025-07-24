@@ -45,6 +45,7 @@
     Expand: "Expand",
     ExpandAll: "ExpandAll",
     ExportProject: "ExportProject",
+    GenerateDesignDoc: "GenerateDesignDoc",
     HideArchivedTasks: "HideArchivedTasks",
     Home: "Home",
     InboxView: "InboxView",

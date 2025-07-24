@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto, replaceState } from "$app/navigation";
-  import { AnthropicStream } from "$lib/anthropic-stream.svelte";
+  import { AnthropicStream } from "$lib/anthropic.svelte";
   import { headers } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
@@ -11,8 +11,10 @@
   import { KosoLogo } from "$lib/components/ui/koso-logo";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { toast } from "$lib/components/ui/sonner";
+  import { GeminiStream } from "$lib/gemini.svelte";
   import { Button } from "$lib/kosui/button";
   import { Action } from "$lib/kosui/command";
+  import { getDialoguerContext } from "$lib/kosui/dialog";
   import { Fab } from "$lib/kosui/fab";
   import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
@@ -77,6 +79,7 @@
   const planningCtx = getPlanningContext();
   const { koso } = planningCtx;
   const auth = getAuthContext();
+  const dialog = getDialoguerContext();
 
   function getRow(node: Node) {
     const maybeRow = rows[node.id];
@@ -349,6 +352,60 @@
       loading: "Koso Agent is breaking down the task...",
       success: "Task break down complete!",
       error: "Koso Agent encountered an error while breaking down the task.",
+    });
+
+    return await response;
+  }
+
+  async function generateDesignDoc() {
+    if (!planningCtx.selected) return;
+    prefs.detailPanel = "view";
+    const projectId = koso.projectId;
+
+    const task = koso.getTask(planningCtx.selected.name);
+
+    const match = task.name.match(/github.com\/([\w.-]+)\/([\w.-]+)/);
+    if (match === null) {
+      toast.error(
+        "Add a link to the GitHub repo in the task's name that you would like the Koso Agent to summarize.",
+      );
+      return;
+    }
+
+    const owner = match[1];
+    const repo = match[2];
+
+    if (task.desc !== null) {
+      const result = await dialog.confirm({
+        title: "Overwrite existing description?",
+        message:
+          "The task has an existing description. Generating a new design doc will overwrite it.",
+        acceptText: "Overwrite",
+        icon: Trash,
+      });
+
+      if (!result) return;
+    }
+
+    task.delDesc();
+    const desc = task.newDesc();
+
+    const response = new GeminiStream()
+      .onLine((token) => {
+        desc.insert(desc.length, token);
+      })
+      .fetch(
+        `/api/gemini/context?projectId=${projectId}&owner=${owner}&repo=${repo}`,
+        {
+          method: "GET",
+          headers: headers(auth),
+        },
+      );
+
+    toast.promise(response, {
+      loading: "Koso Agent is generating the design doc...",
+      success: "Done!",
+      error: "Koso Agent encountered an error while generating the design doc.",
     });
 
     return await response;
@@ -740,6 +797,15 @@
         koso.getTask(planningCtx.selected.name).isTask() &&
         koso.getStatus(planningCtx.selected.name) !== "Done" &&
         koso.getChildCount(planningCtx.selected.name) === 0,
+    }),
+    new Action({
+      id: ActionIds.GenerateDesignDoc,
+      callback: generateDesignDoc,
+      category: Categories.Agent,
+      name: "Generate Design Doc",
+      description: "Generate the design doc GitHub repo using Koso Agent",
+      icon: Sparkles,
+      enabled: () => !!planningCtx.selected,
     }),
   ];
 

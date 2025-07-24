@@ -38,6 +38,7 @@
 
       ActionIds.DashView,
       ActionIds.BreakDown,
+      ActionIds.GenerateDesignDoc,
     ]
       .map((id) => command.get(id))
       .filter((action) => action !== undefined)

@@ -183,10 +183,11 @@ export class YTaskProxy {
     return (this.#yTask.get("desc") as Y.Text) || null;
   }
 
-  newDesc() {
-    if (this.desc) return;
+  newDesc(): Y.Text {
+    if (this.desc) return this.desc;
     const desc = new Y.Text();
     this.#yTask.set("desc", desc);
+    return desc;
   }
 
   delDesc() {

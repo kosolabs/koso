@@ -19,10 +19,12 @@ pub(crate) mod auth;
 pub(crate) mod billing;
 pub(crate) mod collab;
 pub(crate) mod dev;
+pub(crate) mod gemini;
 pub(crate) mod google;
 pub(crate) mod model;
 pub(crate) mod profile;
 pub(crate) mod projects;
+pub(crate) mod simulate;
 pub(crate) mod users;
 pub(crate) mod ws;
 pub(crate) mod yproxy;
@@ -38,6 +40,7 @@ pub(crate) fn router() -> Result<Router> {
         .nest("/users", users::router())
         .nest("/dev", dev::router())
         .nest("/anthropic", anthropic::router()?)
+        .nest("/gemini", gemini::router()?)
         .layer(middleware::from_fn(google::authenticate))
         .nest("/notifiers", notifiers::router()?)
         .nest("/billing", billing::router()?))

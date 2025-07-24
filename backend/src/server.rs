@@ -144,12 +144,12 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
                 )
                 // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
                 // requests don't hang forever.
-                .layer(TimeoutLayer::new(Duration::from_secs(10))),
+                .layer(TimeoutLayer::new(Duration::from_secs(300))),
         )
         .fallback_service(
             ServiceBuilder::new()
                 .layer((
-                    TimeoutLayer::new(Duration::from_secs(10)),
+                    TimeoutLayer::new(Duration::from_secs(300)),
                     middleware::from_fn(set_static_cache_control),
                 ))
                 .service(

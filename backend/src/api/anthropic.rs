@@ -1,16 +1,15 @@
 use crate::{
     api::{
-        ApiResult, IntoApiResult, collab::Collab, google::User, verify_premium,
+        ApiResult, collab::Collab, google::User, simulate::simulate, verify_premium,
         verify_project_access,
     },
     secrets::{Secret, read_secret},
 };
-use anyhow::{Context, Result, anyhow};
-use axum::{Extension, Json, Router, body::Body, extract::Query, response::Response, routing::get};
-use futures::{StreamExt, stream};
+use anyhow::{Context, Result};
+use axum::{Extension, Router, body::Body, extract::Query, response::Response, routing::get};
 use serde_json::to_string;
-use sqlx::{Pool, Postgres, postgres::PgPool};
-use std::collections::BTreeSet;
+use sqlx::postgres::PgPool;
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct Task {
@@ -85,30 +84,6 @@ impl AnthropicClient {
             .await?
             .error_for_status()?)
     }
-
-    // async fn breakdown(&self, model: &str, context: &str, task: &Task) -> Result<String> {
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug, sqlx::FromRow)]
-#[serde(rename_all = "camelCase")]
-struct ProjectContext {
-    project_id: String,
-    llm_context: Option<String>,
-}
-
-impl ProjectContext {
-    async fn fetch(pool: &Pool<Postgres>, project_id: &str) -> Result<ProjectContext> {
-        Ok(sqlx::query_as(
-            "
-            SELECT project_id, llm_context
-            FROM projects
-            WHERE project_id = $1
-            ",
-        )
-        .bind(project_id)
-        .fetch_one(pool)
-        .await?)
-    }
 }
 
 pub(super) fn router() -> Result<Router> {
@@ -117,8 +92,7 @@ pub(super) fn router() -> Result<Router> {
     Ok(Router::new()
         .route("/summarize", get(summarize_handler))
         .route("/breakdown", get(breakdown_handler))
-        .layer(Extension(client))
-        .route("/context", get(get_context_handler)))
+        .layer(Extension(client)))
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -235,39 +209,41 @@ async fn breakdown_handler(
         return simulate("breakdown").await;
     }
 
-    let project: ProjectContext = sqlx::query_as(
-        "
-        SELECT project_id, llm_context
-        FROM projects
-        WHERE project_id = $1
-        ",
-    )
-    .bind(&req.project_id)
-    .fetch_one(pool)
-    .await?;
-
     let ydoc = collab.get_doc(&req.project_id).await?;
     let txn = ydoc.transact();
 
-    let ytask = ydoc.get(&txn, &req.task_id)?;
-    let task_name = ytask.get_name(&txn)?;
-    let task_desc = ytask.get_desc(&txn)?;
-
-    tracing::info!(project.llm_context);
+    let mut parents: HashMap<String, Vec<String>> = HashMap::new();
+    for task in ydoc.tasks(&txn)? {
+        let parent_id = task.get_id(&txn)?;
+        for child_id in task.get_children(&txn)? {
+            parents.entry(child_id).or_default().push(parent_id.clone());
+        }
+    }
 
     let content = {
-        let mut content = Vec::<AnthropicContent>::new();
+        let mut content = VecDeque::<AnthropicContent>::new();
 
-        if let Some(llm_context) = project.llm_context {
-            content.push(text("Task break down project description context:"));
-            content.push(text(&llm_context));
+        let mut processed: HashSet<String> = HashSet::new();
+        let mut remaining: VecDeque<String> = VecDeque::from([req.task_id.to_string()]);
+        while let Some(task_id) = remaining.pop_front() {
+            if let Some(parents) = parents.get(&task_id) {
+                for parent in parents {
+                    remaining.push_back(parent.into());
+                }
+            }
+            if !processed.contains(&task_id) {
+                let ytask = ydoc.get(&txn, &task_id)?;
+                if let Some(task_desc) = ytask.get_desc(&txn)? {
+                    content.push_front(text(&task_desc));
+                }
+                content.push_front(text(&ytask.get_name(&txn)?));
+                if req.task_id == task_id {
+                    content.push_front(text("Task:"));
+                }
+                processed.insert(task_id);
+            }
         }
-
-        content.push(text("Task:"));
-        content.push(text(&task_name));
-        if let Some(task_desc) = task_desc {
-            content.push(text(&task_desc));
-        }
+        content.push_front(text("Context:"));
 
         content
     };
@@ -281,58 +257,19 @@ async fn breakdown_handler(
         )],
         messages: vec![AnthropicMessage {
             role: "user".into(),
-            content,
+            content: content.into(),
         }],
     };
 
-    tracing::debug!("AnthropicMessageRequest: {:?}", message);
+    tracing::debug!(
+        "AnthropicMessageRequest: {}",
+        serde_json::to_string(&message)?
+    );
 
     let response = client.message(&message).await?;
 
     Ok(Response::builder()
         .status(200)
         .body(Body::from_stream(response.bytes_stream()))?)
-}
-
-async fn simulate(method: &str) -> ApiResult<Response> {
-    let data = if method == "summarize" {
-        include_str!("anthropic/summarize.txt")
-    } else if method == "breakdown" {
-        include_str!("anthropic/breakdown.txt")
-    } else {
-        return Err(anyhow!("Invalid method").into());
-    };
-    let chunks = data
-        .split_inclusive("\n\n")
-        .map(|chunk| chunk.as_bytes().to_vec())
-        .collect::<Vec<Vec<u8>>>();
-
-    let test_stream = stream::iter(chunks).then(move |chunk| async move {
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-        Ok::<_, std::io::Error>(chunk)
-    });
-
-    Ok(Response::builder()
-        .status(200)
-        .body(Body::from_stream(test_stream))?)
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct ProjectContextRequest {
-    project_id: String,
-}
-
-#[tracing::instrument(skip(user, pool))]
-async fn get_context_handler(
-    Extension(user): Extension<User>,
-    Extension(pool): Extension<&'static PgPool>,
-    req: Query<ProjectContextRequest>,
-) -> ApiResult<Json<ProjectContext>> {
-    verify_project_access(pool, &user, &req.project_id).await?;
-    Ok(Json(
-        ProjectContext::fetch(pool, &req.project_id)
-            .await
-            .context_not_found(&format!("Project ID {} not found", req.project_id))?,
-    ))
+    // Ok(Response::default())
 }

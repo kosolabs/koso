@@ -20,7 +20,7 @@ use tokio::task::JoinHandle;
 use webhook::Webhook;
 use yrs::TransactionMut;
 
-mod app;
+pub mod app;
 mod connect;
 mod poller;
 mod webhook;
