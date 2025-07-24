@@ -675,39 +675,6 @@ async fn oauth_token(
     }))
 }
 
-fn validate_refresh_token(
-    req: &TokenRequest,
-    decoding_key: &DecodingKey,
-) -> OauthResult<(String, String, User, AuthTokenClaims)> {
-    // Decode the refresh token and grab the auth token.
-    let Some(refresh_token) = &req.refresh_token else {
-        return Err(bad_request_error(
-            "invalid_request",
-            "refresh_token required for refresh_token grant type",
-        )
-        .into());
-    };
-    let refresh_token = decode_refresh_token(decoding_key, refresh_token)
-        .context_bad_request("invalid_grant", "Invalid refresh token")?;
-
-    // Validate the token was issued for this client
-    // The check is optional as client_id may be omitted for refresh_token requests.
-    if let Some(client_id) = &req.client_id
-        && client_id != &refresh_token.client_id
-    {
-        return Err(
-            bad_request_error("invalid_grant", "Refresh token issued to another client").into(),
-        );
-    }
-
-    Ok((
-        refresh_token.client_id,
-        refresh_token.scope,
-        refresh_token.user,
-        refresh_token.auth_token_claims,
-    ))
-}
-
 fn validate_authorization_code(
     req: &TokenRequest,
     decoding_key: &DecodingKey,
@@ -782,6 +749,39 @@ fn validate_code_challenge(
     }
 
     Ok(())
+}
+
+fn validate_refresh_token(
+    req: &TokenRequest,
+    decoding_key: &DecodingKey,
+) -> OauthResult<(String, String, User, AuthTokenClaims)> {
+    // Decode the refresh token and grab the auth token.
+    let Some(refresh_token) = &req.refresh_token else {
+        return Err(bad_request_error(
+            "invalid_request",
+            "refresh_token required for refresh_token grant type",
+        )
+        .into());
+    };
+    let refresh_token = decode_refresh_token(decoding_key, refresh_token)
+        .context_bad_request("invalid_grant", "Invalid refresh token")?;
+
+    // Validate the token was issued for this client
+    // The check is optional as client_id may be omitted for refresh_token requests.
+    if let Some(client_id) = &req.client_id
+        && client_id != &refresh_token.client_id
+    {
+        return Err(
+            bad_request_error("invalid_grant", "Refresh token issued to another client").into(),
+        );
+    }
+
+    Ok((
+        refresh_token.client_id,
+        refresh_token.scope,
+        refresh_token.user,
+        refresh_token.auth_token_claims,
+    ))
 }
 
 async fn authenticate_token_client(
