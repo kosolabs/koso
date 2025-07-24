@@ -25,20 +25,14 @@ use base64::{
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
-use std::{
-    collections::{HashMap, hash_map::Entry},
-    sync::Arc,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
-use tokio::sync::Mutex;
+use sqlx::PgPool;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tower_http::cors::{self, CorsLayer};
 use uuid::Uuid;
 
 /// Implements MCP oauth: https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
-pub(crate) fn router() -> Result<Router> {
-    let store = Store {
-        clients: Arc::new(Mutex::new(HashMap::new())),
-    };
+pub(crate) fn router(pool: &'static PgPool) -> Result<Router> {
+    let store = Store { pool };
 
     let cors_layer = CorsLayer::new()
         .allow_origin(cors::Any)
@@ -220,34 +214,54 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
 
 #[derive(Clone)]
 struct Store {
-    clients: Arc<Mutex<HashMap<String, ClientSecretClaims>>>,
+    pool: &'static PgPool,
 }
 
-// TODO: Consider storing clients in the DB such that restarts don't evict.
+type ClientRow = (sqlx::types::Json<ClientMetadata>,);
+
+#[derive(Deserialize, Serialize)]
+struct ClientMetadata {
+    claims: ClientSecretClaims,
+}
+
 impl Store {
-    async fn insert_client(&self, claims: &ClientSecretClaims) -> ApiResult<()> {
-        let mut clients = self.clients.lock().await;
-        // Drop all clients to avoid an OOM. The limit is sufficiently high such
-        // we're unlikely to hit it between server restarts.
-        if clients.len() > 7500 {
-            tracing::error!("Cleared oauth clients. Consider implementing better eviction.");
-            clients.clear();
-            clients.shrink_to_fit();
-        }
-        match clients.entry(claims.client_id.clone()) {
-            Entry::Occupied(entry) => {
-                return Err(anyhow!("Client already exists: {}", entry.key()).into());
-            }
-            Entry::Vacant(entry) => {
-                entry.insert(claims.clone());
-            }
+    async fn insert_client(&self, client_metadata: &ClientMetadata) -> ApiResult<()> {
+        let res = sqlx::query(
+            "
+        INSERT INTO oauth_clients (client_id, client_metadata)
+        VALUES ($1, $2);",
+        )
+        .bind(&client_metadata.claims.client_id)
+        .bind(sqlx::types::Json(&client_metadata))
+        .execute(self.pool)
+        .await?;
+        if res.rows_affected() == 0 {
+            return Err(anyhow!(
+                "Client already exists: {}",
+                client_metadata.claims.client_id
+            )
+            .into());
         }
 
         Ok(())
     }
 
-    async fn get_client(&self, client_id: &str) -> Option<ClientSecretClaims> {
-        self.clients.lock().await.get(client_id).cloned()
+    async fn get_client(&self, client_id: &str) -> ApiResult<Option<ClientMetadata>> {
+        let client: Option<ClientRow> = sqlx::query_as(
+            "
+            SELECT client_metadata
+            FROM oauth_clients
+            WHERE client_id=$1",
+        )
+        .bind(client_id)
+        .fetch_optional(self.pool)
+        .await
+        .context(format!("Failed to get client {client_id}"))?;
+        if let Some((client,)) = client {
+            Ok(Some(client.0))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -366,7 +380,11 @@ async fn oauth_register(
         response_types: vec![CODE_RESPONSE_TYPE.to_string()],
     };
     let client_secret = encode_client_secret(&key, &claims)?;
-    store.insert_client(&claims).await?;
+    store
+        .insert_client(&ClientMetadata {
+            claims: claims.clone(),
+        })
+        .await?;
 
     // Create the response.
     let response = ClientRegistrationResponse {
@@ -421,12 +439,13 @@ async fn oauth_authorization_details(
     };
 
     // Validate that the client exists and has registered the given redirect uri.
-    let Some(claims) = store.get_client(&client_id).await else {
+    let Some(client_metadata) = store.get_client(&client_id).await? else {
         return Err(bad_request_error(
             "unauthorized_client",
-            "Client is unregistered. Delete any dynamic clients and try again.",
+            "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         ));
     };
+    let claims = client_metadata.claims;
     if !claims.redirect_uris.contains(&redirect_uri) {
         return Err(bad_request_error(
             "invalid_request",
@@ -519,12 +538,13 @@ async fn oauth_approve(
         }
     }
     // Validate that the client exists and has registered the given redirect uri.
-    let Some(claims) = store.get_client(&client_id).await else {
+    let Some(client_metadata) = store.get_client(&client_id).await? else {
         return Err(bad_request_error(
             "unauthorized_client",
-            "Client is unregistered. Delete any dynamic clients and try again.",
+            "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         ));
     };
+    let claims = client_metadata.claims;
     if !claims.redirect_uris.contains(&redirect_uri) {
         return Err(bad_request_error(
             "invalid_request",
@@ -603,8 +623,7 @@ async fn oauth_token(
     tracing::info!("Handling token request: {req:?}");
 
     // Authenticate the client or allow unauthenticated clients.
-    let authenticated_client_id =
-        authenticate_token_client(&headers, &req, &store, &decoding_key).await?;
+    let client_metadata = authenticate_token_client(&headers, &req, &store, &decoding_key).await?;
 
     // Validate the refresh token or authorization code.
     let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
@@ -617,7 +636,7 @@ async fn oauth_token(
         .into()),
         None => Err(bad_request_error("invalid_request", "grant_type required").into()),
     }?;
-    if authenticated_client_id != client_id {
+    if client_metadata.claims.client_id != client_id {
         return Err(bad_request_error("invalid_grant", "Grant issued for another client").into());
     }
 
@@ -768,16 +787,18 @@ async fn authenticate_token_client(
     req: &TokenRequest,
     store: &Store,
     decoding_key: &DecodingKey,
-) -> OauthResult<String> {
+) -> OauthResult<ClientMetadata> {
     match (headers.get("Authorization"), &req.client_secret) {
         // client_secret_basic
         // Prefer to use the Authorization header.
-        (Some(header), _) => authenticate_token_client_basic(req, header, decoding_key),
+        (Some(header), _) => {
+            authenticate_token_client_basic(req, header, store, decoding_key).await
+        }
 
         // client_secret_post
         // Use the request body when the Authorization header is absent.
         (None, Some(client_secret)) => {
-            authenticate_token_client_post(req, client_secret, decoding_key)
+            authenticate_token_client_post(req, client_secret, store, decoding_key).await
         }
 
         // none
@@ -788,11 +809,12 @@ async fn authenticate_token_client(
 
 /// Authenticate the client using client_secret_basic auth.
 /// i.e. Authorization header Basic
-fn authenticate_token_client_basic(
+async fn authenticate_token_client_basic(
     req: &TokenRequest,
     header: &HeaderValue,
+    store: &Store,
     decoding_key: &DecodingKey,
-) -> OauthResult<String> {
+) -> OauthResult<ClientMetadata> {
     tracing::debug!("Authenticating with client_secret_basic Authorization header");
 
     let Some(credentials) = header.as_bytes().strip_prefix(b"Basic ") else {
@@ -829,16 +851,24 @@ fn authenticate_token_client_basic(
         );
     }
 
-    Ok(client_secret_claims.client_id)
+    let Some(client_metadata) = store.get_client(&client_secret_claims.client_id).await? else {
+        return Err(bad_request_error(
+            "invalid_client",
+            "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
+        )
+        .into());
+    };
+    Ok(client_metadata)
 }
 
 /// Authenticate the client using client_secret_post auth.
 /// i.e. using the the client_secret field.
-fn authenticate_token_client_post(
+async fn authenticate_token_client_post(
     req: &TokenRequest,
     client_secret: &str,
+    store: &Store,
     decoding_key: &DecodingKey,
-) -> OauthResult<String> {
+) -> OauthResult<ClientMetadata> {
     tracing::debug!("Authenticating with client_secret_post client_secret parameter");
 
     let client_secret_claims = decode_client_secret(decoding_key, client_secret)
@@ -850,10 +880,21 @@ fn authenticate_token_client_post(
             bad_request_error("invalid_client", "Authenticated as a different client").into(),
         );
     }
-    Ok(client_secret_claims.client_id)
+
+    let Some(client_metadata) = store.get_client(&client_secret_claims.client_id).await? else {
+        return Err(bad_request_error(
+            "invalid_client",
+            "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
+        )
+        .into());
+    };
+    Ok(client_metadata)
 }
 
-async fn validate_unauthenticated_client(req: &TokenRequest, store: &Store) -> OauthResult<String> {
+async fn validate_unauthenticated_client(
+    req: &TokenRequest,
+    store: &Store,
+) -> OauthResult<ClientMetadata> {
     tracing::debug!("Unauthenticated client");
 
     let Some(client_id) = &req.client_id else {
@@ -863,20 +904,22 @@ async fn validate_unauthenticated_client(req: &TokenRequest, store: &Store) -> O
         )
         .into());
     };
-    let Some(client) = store.get_client(client_id).await else {
+    let Some(client_metadata) = store.get_client(client_id).await? else {
         return Err(bad_request_error(
             "invalid_client",
-            "Client is unregistered. Delete any dynamic clients and try again.",
+            "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         )
         .into());
     };
-    if client.token_endpoint_auth_method != "none" {
-        return Err(
-            bad_request_error("invalid_client", "Client is requires authentication.").into(),
-        );
+    if client_metadata.claims.token_endpoint_auth_method != "none" {
+        return Err(bad_request_error(
+            "invalid_client",
+            "Confidential client requires authentication.",
+        )
+        .into());
     }
 
-    Ok(client.client_id)
+    Ok(client_metadata)
 }
 
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
