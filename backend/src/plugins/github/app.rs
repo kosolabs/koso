@@ -3,12 +3,15 @@ use crate::{
     settings::settings,
 };
 use anyhow::{Context, Result, anyhow};
+use base64::{Engine, prelude::BASE64_STANDARD};
+use futures::StreamExt;
 use octocrab::{
     Octocrab, OctocrabBuilder,
     models::{
         self, AppId, InstallationId, InstallationRepositories, Repository, pulls::PullRequest,
+        repos::Object,
     },
-    params::{Direction, State, pulls::Sort},
+    params::{Direction, State, pulls::Sort, repos::Reference},
 };
 
 pub enum InstallationRef {
@@ -52,6 +55,26 @@ impl AppGithub {
                 format!("failed authenticating as installation '{installation_id}'")
             })?;
         Ok(InstallationGithub { installation_crab })
+    }
+
+    pub async fn repo_github(&self, owner: &str, repo: &str) -> Result<RepoGithub> {
+        let installation_id = self
+            .app_crab
+            .apps()
+            .get_repository_installation(owner, repo)
+            .await?
+            .id;
+
+        let (octocrab, _) = self
+            .app_crab
+            .installation_and_token(installation_id)
+            .await?;
+
+        Ok(RepoGithub {
+            octocrab,
+            owner: owner.into(),
+            repo: repo.into(),
+        })
     }
 }
 
@@ -131,5 +154,211 @@ impl InstallationGithub {
             );
         }
         Ok(installed_repos.repositories)
+    }
+}
+
+pub struct RepoGithub {
+    pub octocrab: Octocrab,
+    owner: String,
+    repo: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct Trees {
+    sha: String,
+    url: String,
+    tree: Vec<TreeItem>,
+    truncated: bool,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct TreeItem {
+    path: String,
+    mode: String,
+    r#type: String,
+    sha: String,
+    size: Option<u64>,
+    url: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+pub struct Blob {
+    sha: String,
+    node_id: String,
+    size: u64,
+    url: String,
+    content: String,
+    encoding: String,
+}
+
+impl RepoGithub {
+    pub async fn get_trees(&self) -> Result<Trees> {
+        let branch = self
+            .octocrab
+            .repos(&self.owner, &self.repo)
+            .get()
+            .await?
+            .default_branch
+            .context("Unable to determine the default branch")?;
+
+        let commit_hash = match self
+            .octocrab
+            .repos(&self.owner, &self.repo)
+            .get_ref(&Reference::Branch(branch))
+            .await?
+            .object
+        {
+            Object::Commit { sha, .. } => sha,
+            Object::Tag { sha, .. } => sha,
+            _ => return Err(anyhow!("Unknown tag")),
+        };
+
+        let resp = serde_json::from_str::<Trees>(
+            &self
+                .octocrab
+                .body_to_string(
+                    self.octocrab
+                        ._get(format!(
+                            "https://api.github.com/repos/{}/{}/git/trees/{}?recursive=true",
+                            self.owner, self.repo, commit_hash
+                        ))
+                        .await?,
+                )
+                .await?,
+        )?;
+
+        Ok(resp)
+    }
+
+    pub async fn get_blob(&self, url: &str) -> Result<Blob> {
+        tracing::trace!("Downloading {url}");
+        let blob = serde_json::from_str::<Blob>(
+            &self
+                .octocrab
+                .body_to_string(self.octocrab._get(url).await?)
+                .await?,
+        )?;
+        if blob.encoding != "base64" {
+            return Err(anyhow!("Unknown encoding: {}", blob.encoding));
+        }
+        Ok(blob)
+    }
+
+    pub async fn get_text(&self, url: &str) -> Result<String> {
+        let blob = self.get_blob(url).await?;
+
+        Ok(String::from_utf8(
+            BASE64_STANDARD.decode(
+                blob.content
+                    .chars()
+                    .filter(|c| !c.is_whitespace())
+                    .collect::<String>(),
+            )?,
+        )?)
+    }
+
+    pub async fn compile_source_context(&self) -> Result<String> {
+        let paths = self
+            .get_trees()
+            .await?
+            .tree
+            .into_iter()
+            .filter(|item| {
+                // Exclude items that aren't files
+                if item.r#type != "blob" {
+                    tracing::trace!("Exclude non-blob: {}", item.path);
+                    return false;
+                }
+
+                // Exclude files that don't have a size or whose size is greater than 256kb
+                if item.size.is_none_or(|size| size > 262_144) {
+                    tracing::trace!("Exclude large file: {}", item.path);
+                    return false;
+                };
+
+                let Some(name) = item.path.split("/").last() else {
+                    tracing::trace!("Exclude no name: {}", item.path);
+                    return false;
+                };
+
+                // Exclude hidden files
+                if name.starts_with(".") {
+                    tracing::trace!("Exclude hidden: {}", item.path);
+                    return false;
+                }
+
+                // Files to exclude
+                if [
+                    "package-lock.json",
+                    "pnpm-lock.yaml",
+                    "go.sum",
+                    "mix.lock", // Lock files
+                ]
+                .into_iter()
+                .any(|exclude| name == exclude)
+                {
+                    tracing::trace!("Exclude file: {}", item.path);
+                    return false;
+                }
+
+                // Extensions to exclude
+                if [
+                    ".lock", // Text files
+                    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".ico", ".tiff",
+                    ".tif", ".apng", // Image files,
+                    ".mp4", ".mov", ".avi", ".wmv", ".flv", ".mkv", ".webm", ".mpeg", ".mpg",
+                    ".m4v", ".3gp", ".3g2", ".ts", ".mts", ".m2ts", ".vob",
+                    ".ogv", // Video files
+                ]
+                .into_iter()
+                .any(|ext| name.ends_with(ext))
+                {
+                    tracing::trace!("Exclude extension: {}", item.path);
+                    return false;
+                }
+                true
+            })
+            .collect::<Vec<TreeItem>>();
+
+        tracing::trace!("Processing: {paths:?}");
+
+        let total_files = paths.len();
+
+        let context = paths
+            .into_iter()
+            .map(async |item| {
+                let text = match self.get_text(&item.url).await {
+                    Ok(text) => text,
+                    Err(error) => {
+                        tracing::warn!("Error reading file {} {}", item.url, error);
+                        "".to_string()
+                    }
+                };
+                format!(
+                    "## File: {}\n```{}\n{}\n```\n\n",
+                    item.path,
+                    item.path.split('.').next_back().unwrap_or_default(),
+                    text
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let context = futures::stream::iter(context)
+            .buffer_unordered(10)
+            .collect::<Vec<_>>()
+            .await
+            .join("");
+
+        tracing::trace!("Context: {context}");
+
+        tracing::info!(
+            "Generated context for: {}/{} ({} files, {} bytes)",
+            self.owner,
+            self.repo,
+            total_files,
+            context.len()
+        );
+
+        Ok(context)
     }
 }

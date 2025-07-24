@@ -2,8 +2,8 @@
   import { headers } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
   import { Alert } from "$lib/kosui/alert";
-  import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { Settings2 } from "@lucide/svelte";
+  import { GoogleOAuthProvider } from "google-oauth-gsi";
   import { onMount } from "svelte";
 
   type Props = {

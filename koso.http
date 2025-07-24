@@ -1,98 +1,86 @@
-/*
-# Healthz
-*/
+### Healthz
 GET http://localhost:3000/healthz
 Content-Type: application/json
-/*
-# Profile
-*/
-###
+
+### Profile
 GET http://localhost:3000/api/profile
 Content-Type: application/json
-Authorization: Bearer {{token}}
-/*
-# Projects
-*/
-###
+Authorization: Bearer {{$dotenv token}}
+
+### Projects
 GET http://localhost:3000/api/projects
 Content-Type: application/json
-Authorization: Bearer {{token}}
-/*
-# Notifiers
-*/
-###
+Authorization: Bearer {{$dotenv token}}
+
+### Notifiers
 POST http://localhost:3000/api/notifiers
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{$dotenv token}}
 
 {
   "message": "🎁 Some *italicized* text with a link:\n[Koso profile](https://koso.app/profile)"
 }
-/*
-## Discord
-*/
-###
+
+#### Discord
 POST http://localhost:3000/api/notifiers
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{$dotenv token}}
 
 {
   "message": "🎁 Some *italicized* text with a link:\n[Koso profile](https://koso.app/profile)",
   "notifiers": ["discord"]
 }
-/*
-## Slack
-*/
-###
+
+#### Slack
 POST http://localhost:3000/api/notifiers
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{$dotenv token}}
 
 {
   "message": "🎁 Some *italicized* text with a link:\n[Koso profile](https://koso.app/profile)",
   "notifiers": ["slack"]
 }
-/*
-## Telegram
-*/
-###
+
+#### Telegram
 POST http://localhost:3000/api/notifiers
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{$dotenv token}}
 
 {
   "message": "🎁 Some *italicized* text with a link:\n[Koso profile](https://koso.app/profile)",
   "notifiers": ["telegram"]
 }
-/*
-# Anthropic
-*/
-/*
-## Context
-*/
-###
-GET http://localhost:3000/api/anthropic/context?projectId={{projectId}}
+
+
+### Agent
+
+#### Generate Context
+POST http://localhost:3000/api/gemini/context
 Content-Type: application/json
-Authorization: Bearer {{token}}
-/*
-## Summarize Task
-*/
-###
-GET http://localhost:3000/api/anthropic/summarize?simulate=true&projectId={{projectId}}&taskId={{iterationTaskId}}&model=claude-sonnet-4-20250514
+Authorization: Bearer {{$dotenv token}}
+
+{
+  "projectId": "{{$dotenv projectId}}",
+  "ghOwner": "kosolabs",
+  "ghRepo": "koso"
+}
+
+#### Summarize Task
+GET http://localhost:3000/api/anthropic/summarize?simulate=true&projectId={{$dotenv projectId}}&taskId={{$dotenv iterationTaskId}}&model=claude-sonnet-4-20250514
 Content-Type: application/json
-Authorization: Bearer {{token}}
-###
-GET http://localhost:3000/api/anthropic/summarize?projectId={{projectId}}&taskId={{iterationTaskId}}&model=claude-sonnet-4-20250514
+Authorization: Bearer {{$dotenv token}}
+
+####
+GET http://localhost:3000/api/anthropic/summarize?projectId={{$dotenv projectId}}&taskId={{$dotenv iterationTaskId}}&model=claude-sonnet-4-20250514
 Content-Type: application/json
-Authorization: Bearer {{token}}
-/*
-## Breakdown Task
-*/
-###
-GET http://localhost:3000/api/anthropic/breakdown?simulate=true&projectId={{projectId}}&taskId={{iterationTaskId}}&model=claude-sonnet-4-20250514
+Authorization: Bearer {{$dotenv token}}
+
+#### Breakdown Task
+GET http://localhost:3000/api/anthropic/breakdown?simulate=true&projectId={{$dotenv projectId}}&taskId={{$dotenv iterationTaskId}}&model=claude-sonnet-4-20250514
 Content-Type: application/json
-Authorization: Bearer {{token}}
-###
-GET http://localhost:3000/api/anthropic/breakdown?projectId={{projectId}}&taskId={{iterationTaskId}}&model=claude-sonnet-4-20250514
+Authorization: Bearer {{$dotenv token}}
+
+####
+GET http://localhost:3000/api/anthropic/breakdown?projectId={{$dotenv projectId}}&taskId={{$dotenv iterationTaskId}}&model=claude-sonnet-4-20250514
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{$dotenv token}}

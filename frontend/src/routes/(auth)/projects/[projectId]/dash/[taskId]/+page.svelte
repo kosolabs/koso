@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { AnthropicStream } from "$lib/anthropic-stream.svelte";
+  import { AnthropicStream } from "$lib/anthropic.svelte";
   import { headers } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
   import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";

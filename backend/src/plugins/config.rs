@@ -53,7 +53,9 @@ impl ConfigStorage {
         .bind(external_id)
         .fetch_all(self.pool)
         .await
-        .with_context(|| format!("Failed to list plugin configs for {plugin_id}:{external_id}"))?;
+        .context(format!(
+            "Failed to list plugin configs for {plugin_id}:{external_id}"
+        ))?;
 
         Ok(rows_to_configs(configs))
     }
@@ -74,7 +76,7 @@ impl ConfigStorage {
         .bind(plugin_id)
         .fetch_all(self.pool)
         .await
-        .with_context(|| format!("Failed to list plugin configs for {plugin_id}"))?;
+        .context(format!("Failed to list plugin configs for {plugin_id}"))?;
 
         Ok(rows_to_configs(configs))
     }
