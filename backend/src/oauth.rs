@@ -3,7 +3,7 @@
 /// is a useful resource.
 use crate::{
     api::{
-        self, ApiResult, ErrorResponse, IntoApiResult, bad_request_error,
+        self, ApiResult, IntoApiResult, bad_request_error, error_response,
         google::{self, User},
     },
     settings::settings,
@@ -95,14 +95,24 @@ pub(crate) async fn authenticate(
     Extension(decoding_key): Extension<DecodingKey>,
     mut req: extract::Request,
     next: Next,
-) -> OauthResult<Response<Body>> {
-    let access_token_claims: AccessTokenClaims = _authenticate(&decoding_key, &mut req)
+) -> Response<Body> {
+    let access_token_claims: AccessTokenClaims = match _authenticate(&decoding_key, &mut req)
         .context_status(
             StatusCode::UNAUTHORIZED,
             // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#name-error-codes
             "invalid_token",
-            "Unauthenticated client",
-        )?;
+            "Unauthenticated user",
+        ) {
+        Ok(access_token_claims) => access_token_claims,
+        Err(err) => {
+            let mut res = err.into_response();
+            // Append the WWW-Authenticate header so the client knows how to proceed.
+            if let Err(err) = add_www_authenticate_header(&mut res) {
+                return err.into_response();
+            }
+            return res;
+        }
+    };
 
     let mut user = access_token_claims.user;
     user.email = user.email.to_lowercase();
@@ -110,7 +120,7 @@ pub(crate) async fn authenticate(
     tracing::Span::current().record("email", user.email.clone());
     assert!(req.extensions_mut().insert(user).is_none());
 
-    Ok(next.run(req).await)
+    next.run(req).await
 }
 
 fn _authenticate(
@@ -162,7 +172,7 @@ struct ResourceServerMetadata {
 
 /// https://datatracker.ietf.org/doc/rfc9728/
 #[tracing::instrument()]
-async fn get_resource_server_metadata() -> OauthResult<Json<ResourceServerMetadata>> {
+async fn get_resource_server_metadata() -> ApiResult<Json<ResourceServerMetadata>> {
     let host = &settings().host;
     let metadata = ResourceServerMetadata {
         resource: format!("{host}/api/mcp/sse"),
@@ -191,7 +201,7 @@ struct AuthorizationServerMetadata {
 
 /// https://datatracker.ietf.org/doc/html/rfc8414
 #[tracing::instrument()]
-async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationServerMetadata>> {
+async fn get_authorization_server_metadata() -> ApiResult<Json<AuthorizationServerMetadata>> {
     let host = &settings().host;
     let metadata = AuthorizationServerMetadata {
         authorization_endpoint: format!("{host}/connections/mcp/oauth/authorize"),
@@ -300,53 +310,32 @@ async fn oauth_register(
     Extension(key): Extension<EncodingKey>,
     Extension(store): Extension<Store>,
     Json(req): Json<ClientRegistrationRequest>,
-) -> OauthResult<Json<ClientRegistrationResponse>> {
+) -> ApiResult<Json<ClientRegistrationResponse>> {
     let req = trim_client_registration_request(req);
     tracing::debug!("Registering client: {req:?}");
 
     // Validate the request
-    let redirect_uris = req.redirect_uris;
-    if redirect_uris.is_empty() {
-        return Err(bad_request_error(
-            "invalid_redirect_uri",
-            "At least one redirect uri is required",
-        )
-        .into());
-    }
-    if redirect_uris.len() > 15 {
-        return Err(bad_request_error("invalid_redirect_uri", "Too many redirect uris").into());
-    }
-    if redirect_uris.iter().any(|s| s.is_empty()) {
-        return Err(
-            bad_request_error("invalid_redirect_uri", "Redirect uri cannot be empty").into(),
-        );
-    }
-    if redirect_uris.iter().any(|s| s.len() > 2000) {
-        return Err(bad_request_error("invalid_redirect_uri", "Redirect uri too long").into());
-    }
+    let redirect_uris = validate_redirect_uris(req.redirect_uris)?;
     let response_types = req.response_types;
     if !response_types.is_empty() && !response_types.contains(&CODE_RESPONSE_TYPE.to_string()) {
         return Err(bad_request_error(
             "invalid_client_metadata",
             "Only the 'code' response_type is supported",
-        )
-        .into());
+        ));
     }
     let grant_types = req.grant_types;
     if !grant_types.is_empty() && !grant_types.contains(&CODE_GRANT_TYPE.to_string()) {
         return Err(bad_request_error(
             "invalid_client_metadata",
             "grant_types must contain 'authorization_code'",
-        )
-        .into());
+        ));
     }
     let scope = req.scope.unwrap_or_else(|| READ_WRITE_SCOPE.to_string());
     if scope != READ_WRITE_SCOPE {
         return Err(bad_request_error(
             "invalid_client_metadata",
             "Only read_write scope is supported",
-        )
-        .into());
+        ));
     }
     let token_endpoint_auth_method = req
         .token_endpoint_auth_method
@@ -355,11 +344,8 @@ async fn oauth_register(
         return Err(bad_request_error(
             "invalid_client_metadata",
             "Only client_secret_basic, client_secret_post and none token_auth_method are supported",
-        )
-        .into());
+        ));
     }
-
-    // TODO: validate the token hasn't already been used.
 
     let client_id = format!("client-{}", Uuid::new_v4());
     let mut client_name = req.client_name.unwrap_or_else(|| client_id.clone());
@@ -405,6 +391,34 @@ async fn oauth_register(
     Ok(Json(response))
 }
 
+fn validate_redirect_uris(redirect_uris: Vec<String>) -> ApiResult<Vec<String>> {
+    if redirect_uris.is_empty() {
+        return Err(bad_request_error(
+            "invalid_redirect_uri",
+            "At least one redirect uri is required",
+        ));
+    }
+    if redirect_uris.len() > 15 {
+        return Err(bad_request_error(
+            "invalid_redirect_uri",
+            "Too many redirect uris",
+        ));
+    }
+    if redirect_uris.iter().any(|s| s.is_empty()) {
+        return Err(bad_request_error(
+            "invalid_redirect_uri",
+            "Redirect uri cannot be empty",
+        ));
+    }
+    if redirect_uris.iter().any(|s| s.len() > 2000) {
+        return Err(bad_request_error(
+            "invalid_redirect_uri",
+            "Redirect uri too long",
+        ));
+    }
+    Ok(redirect_uris)
+}
+
 /// Note: All fields must be optional. Validation should occur with the handler.
 /// See `swap_empty_with_none` below.
 #[derive(Debug, Deserialize)]
@@ -448,6 +462,10 @@ async fn oauth_authorization_details(
         ));
     };
     let claims = client_metadata.claims;
+    // TODO: ignore ports for localhost.
+    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
+    // > The only exception is native apps using a localhost URI: In this case, the
+    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
     if !claims.redirect_uris.contains(&redirect_uri) {
         return Err(bad_request_error(
             "invalid_request",
@@ -547,6 +565,10 @@ async fn oauth_approve(
         ));
     };
     let claims = client_metadata.claims;
+    // TODO: ignore ports for localhost.
+    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
+    // > The only exception is native apps using a localhost URI: In this case, the
+    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
     if !claims.redirect_uris.contains(&redirect_uri) {
         return Err(bad_request_error(
             "invalid_request",
@@ -584,10 +606,7 @@ struct TokenRequest {
     client_id: Option<String>,
     client_secret: Option<String>,
     /// https://www.rfc-editor.org/rfc/rfc8707.html#name-resource-parameter
-    #[allow(dead_code)]
     resource: Option<String>,
-    // TODO: validate.
-    #[allow(dead_code)]
     redirect_uri: Option<String>,
 
     // authorization_code fields
@@ -620,7 +639,30 @@ async fn oauth_token(
     Extension(encoding_key): Extension<EncodingKey>,
     headers: HeaderMap,
     Form(req): Form<TokenRequest>,
-) -> OauthResult<Json<TokenResponse>> {
+) -> Response<Body> {
+    match _oauth_token(store, decoding_key, encoding_key, headers, req).await {
+        Ok(res) => res.into_response(),
+        Err(err) => {
+            let mut res = err.into_response();
+            // Append the WWW-Authenticate header so the client knows how to proceed.
+            // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-3.2.4
+            if res.status() == StatusCode::UNAUTHORIZED
+                && let Err(err) = add_www_authenticate_header(&mut res)
+            {
+                return err.into_response();
+            }
+            return res;
+        }
+    }
+}
+
+async fn _oauth_token(
+    store: Store,
+    decoding_key: DecodingKey,
+    encoding_key: EncodingKey,
+    headers: HeaderMap,
+    req: TokenRequest,
+) -> ApiResult<Json<TokenResponse>> {
     let req = trim_token_request(req);
     tracing::info!("Handling token request: {req:?}");
 
@@ -634,12 +676,29 @@ async fn oauth_token(
         Some(_) => Err(bad_request_error(
             "unsupported_grant_type",
             "only authorization_code is supported",
-        )
-        .into()),
-        None => Err(bad_request_error("invalid_request", "grant_type required").into()),
+        )),
+        None => Err(bad_request_error("invalid_request", "grant_type required")),
     }?;
     if client_metadata.claims.client_id != client_id {
-        return Err(bad_request_error("invalid_grant", "Grant issued for another client").into());
+        return Err(bad_request_error(
+            "invalid_grant",
+            "Grant issued for another client",
+        ));
+    }
+
+    // This is only for backwards compatibility with OAuth 2.0
+    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#name-redirect-uri-parameter-in-t
+    // TODO: ignore ports for localhost.
+    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
+    // > The only exception is native apps using a localhost URI: In this case, the
+    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
+    if let Some(redirect_uri) = &req.redirect_uri
+        && &auth_token_claims.redirect_uri != redirect_uri
+    {
+        return Err(bad_request_error(
+            "invalid_request",
+            "redirect_uri doesn't match the one in the authorization request",
+        ));
     }
 
     // Encode the new access token and refresh token.
@@ -678,14 +737,13 @@ async fn oauth_token(
 fn validate_authorization_code(
     req: &TokenRequest,
     decoding_key: &DecodingKey,
-) -> OauthResult<(String, String, User, AuthTokenClaims)> {
+) -> ApiResult<(String, String, User, AuthTokenClaims)> {
     // Decode the auth token.
     let Some(code) = &req.code else {
         return Err(bad_request_error(
             "invalid_request",
             "code required for authorization_code grant type",
-        )
-        .into());
+        ));
     };
     let auth_token_claims = decode_auth_token(decoding_key, code)
         .context_bad_request("invalid_grant", "Invalid auth token")?;
@@ -698,10 +756,13 @@ fn validate_authorization_code(
     if let Some(client_id) = &req.client_id
         && client_id != &auth_token_claims.client_id
     {
-        return Err(
-            bad_request_error("invalid_grant", "Auth code issued to another client").into(),
-        );
+        return Err(bad_request_error(
+            "invalid_grant",
+            "Auth code issued to another client",
+        ));
     }
+
+    // TODO: validate the token hasn't already been used.
 
     Ok((
         auth_token_claims.client_id.clone(),
@@ -716,7 +777,7 @@ fn validate_authorization_code(
 fn validate_code_challenge(
     req: &TokenRequest,
     auth_token_claims: &AuthTokenClaims,
-) -> OauthResult<()> {
+) -> ApiResult<()> {
     match (
         &auth_token_claims.code_challenge_method,
         &auth_token_claims.code_challenge,
@@ -724,9 +785,7 @@ fn validate_code_challenge(
     ) {
         (Some(method), Some(challenge), Some(verifier)) => {
             if method != S256_CHALLENGE_METHOD {
-                return Err(
-                    bad_request_error("unsupported_grant_type", "Only S256 is supported").into(),
-                );
+                return Err(bad_request_error("invalid_grant", "Only S256 is supported"));
             }
             let actual_challenge =
                 BASE64_URL_SAFE_NO_PAD.encode(Sha256::new().chain_update(verifier).finalize());
@@ -734,8 +793,7 @@ fn validate_code_challenge(
                 return Err(bad_request_error(
                     "invalid_grant",
                     "Challenge does not match verifier",
-                )
-                .into());
+                ));
             }
         }
         (None, None, None) => {}
@@ -743,8 +801,7 @@ fn validate_code_challenge(
             return Err(bad_request_error(
                 "invalid_grant",
                 "Method, challenge and verifier must all be set or unset",
-            )
-            .into());
+            ));
         }
     }
 
@@ -754,14 +811,13 @@ fn validate_code_challenge(
 fn validate_refresh_token(
     req: &TokenRequest,
     decoding_key: &DecodingKey,
-) -> OauthResult<(String, String, User, AuthTokenClaims)> {
+) -> ApiResult<(String, String, User, AuthTokenClaims)> {
     // Decode the refresh token and grab the auth token.
     let Some(refresh_token) = &req.refresh_token else {
         return Err(bad_request_error(
             "invalid_request",
             "refresh_token required for refresh_token grant type",
-        )
-        .into());
+        ));
     };
     let refresh_token = decode_refresh_token(decoding_key, refresh_token)
         .context_bad_request("invalid_grant", "Invalid refresh token")?;
@@ -771,10 +827,13 @@ fn validate_refresh_token(
     if let Some(client_id) = &req.client_id
         && client_id != &refresh_token.client_id
     {
-        return Err(
-            bad_request_error("invalid_grant", "Refresh token issued to another client").into(),
-        );
+        return Err(bad_request_error(
+            "invalid_grant",
+            "Refresh token issued to another client",
+        ));
     }
+
+    // TODO: Validate that the refresh token hasn't already been used.
 
     Ok((
         refresh_token.client_id,
@@ -789,7 +848,7 @@ async fn authenticate_token_client(
     req: &TokenRequest,
     store: &Store,
     decoding_key: &DecodingKey,
-) -> OauthResult<ClientMetadata> {
+) -> ApiResult<ClientMetadata> {
     match (headers.get("Authorization"), &req.client_secret) {
         // client_secret_basic
         // Prefer to use the Authorization header.
@@ -816,49 +875,64 @@ async fn authenticate_token_client_basic(
     header: &HeaderValue,
     store: &Store,
     decoding_key: &DecodingKey,
-) -> OauthResult<ClientMetadata> {
+) -> ApiResult<ClientMetadata> {
     tracing::debug!("Authenticating with client_secret_basic Authorization header");
 
     let Some(credentials) = header.as_bytes().strip_prefix(b"Basic ") else {
-        return Err(bad_request_error("invalid_client", "Invalid authorization header").into());
+        return Err(bad_request_error(
+            "invalid_request",
+            "Invalid authorization header",
+        ));
     };
     let credentials: String = BASE64_STANDARD
         .decode(credentials)
-        .context_bad_request("invalid_client", "Invalid authorization credentials")?
+        .context_bad_request("invalid_request", "Invalid authorization credentials")?
         .try_into()
-        .context_bad_request("invalid_client", "Invalid authorization credentials")?;
+        .context_bad_request("invalid_request", "Invalid authorization credentials")?;
     let mut credentials = credentials.split(":");
     let Some(client_id) = credentials.next() else {
-        return Err(
-            bad_request_error("invalid_client", "Invalid authorization credentials id").into(),
-        );
+        return Err(bad_request_error(
+            "invalid_request",
+            "Invalid authorization credentials id",
+        ));
     };
     let Some(client_secret) = credentials.next() else {
         return Err(bad_request_error(
-            "invalid_client",
+            "invalid_request",
             "Invalid authorization credentials secret",
-        )
-        .into());
+        ));
     };
-    let client_secret_claims = decode_client_secret(decoding_key, client_secret)
-        .context_bad_request("invalid_client", "Invalid client secret")?;
+    let client_secret_claims = decode_client_secret(decoding_key, client_secret).context_status(
+        StatusCode::UNAUTHORIZED,
+        "invalid_client",
+        "Invalid client secret",
+    )?;
     if client_secret_claims.client_id != client_id {
-        return Err(bad_request_error("invalid_client", "Invalid authorization client id").into());
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
+            "invalid_client",
+            "Invalid authorization client id",
+            None,
+        ));
     }
     if let Some(client_id) = &req.client_id
         && client_id != &client_secret_claims.client_id
     {
-        return Err(
-            bad_request_error("invalid_client", "Authenticated as a different client").into(),
-        );
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
+            "invalid_client",
+            "Authenticated as a different client",
+            None,
+        ));
     }
 
     let Some(client_metadata) = store.get_client(&client_secret_claims.client_id).await? else {
-        return Err(bad_request_error(
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
             "invalid_client",
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
-        )
-        .into());
+            None,
+        ));
     };
     Ok(client_metadata)
 }
@@ -870,25 +944,32 @@ async fn authenticate_token_client_post(
     client_secret: &str,
     store: &Store,
     decoding_key: &DecodingKey,
-) -> OauthResult<ClientMetadata> {
+) -> ApiResult<ClientMetadata> {
     tracing::debug!("Authenticating with client_secret_post client_secret parameter");
 
-    let client_secret_claims = decode_client_secret(decoding_key, client_secret)
-        .context_bad_request("invalid_client", "Invalid client secret")?;
+    let client_secret_claims = decode_client_secret(decoding_key, client_secret).context_status(
+        StatusCode::UNAUTHORIZED,
+        "invalid_client",
+        "Invalid client secret",
+    )?;
     if let Some(client_id) = &req.client_id
         && client_id != &client_secret_claims.client_id
     {
-        return Err(
-            bad_request_error("invalid_client", "Authenticated as a different client").into(),
-        );
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
+            "invalid_client",
+            "Authenticated as a different client",
+            None,
+        ));
     }
 
     let Some(client_metadata) = store.get_client(&client_secret_claims.client_id).await? else {
-        return Err(bad_request_error(
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
             "invalid_client",
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
-        )
-        .into());
+            None,
+        ));
     };
     Ok(client_metadata)
 }
@@ -896,29 +977,30 @@ async fn authenticate_token_client_post(
 async fn validate_unauthenticated_client(
     req: &TokenRequest,
     store: &Store,
-) -> OauthResult<ClientMetadata> {
+) -> ApiResult<ClientMetadata> {
     tracing::debug!("Unauthenticated client");
 
     let Some(client_id) = &req.client_id else {
         return Err(bad_request_error(
             "invalid_request",
             "Client id required for unauthenticated clients",
-        )
-        .into());
+        ));
     };
     let Some(client_metadata) = store.get_client(client_id).await? else {
-        return Err(bad_request_error(
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
             "invalid_client",
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
-        )
-        .into());
+            None,
+        ));
     };
     if client_metadata.claims.token_endpoint_auth_method != "none" {
-        return Err(bad_request_error(
+        return Err(error_response(
+            StatusCode::UNAUTHORIZED,
             "invalid_client",
             "Confidential client requires authentication.",
-        )
-        .into());
+            None,
+        ));
     }
 
     Ok(client_metadata)
@@ -1164,44 +1246,7 @@ async fn set_cache_control(request: extract::Request, next: Next) -> Response {
     response
 }
 
-pub(crate) type OauthResult<T> = Result<T, OauthErrorResponse>;
-
-#[derive(Debug)]
-pub(crate) struct OauthErrorResponse {
-    status: StatusCode,
-    /// https://datatracker.ietf.org/doc/html/rfc6749#section-5.2
-    /// invalid_request, invalid_client, invalid_grant, unauthorized_client, unsupported_grant_type, invalid_scope
-    error: String,
-    error_description: String,
-}
-
-#[derive(serde::Serialize)]
-struct OauthErrorResponseBody {
-    error: String,
-    error_description: String,
-}
-
-/// Converts from OauthErrorResponse to Response.
-/// Creates error bodies following: https://www.rfc-editor.org/rfc/rfc6749#section-5.2
-impl IntoResponse for OauthErrorResponse {
-    fn into_response(self) -> Response {
-        let body = axum::Json(OauthErrorResponseBody {
-            error: self.error,
-            error_description: self.error_description,
-        });
-
-        let mut res = (self.status, body).into_response();
-        if self.status == StatusCode::UNAUTHORIZED {
-            // Append the WWW-Authenticate header so the client knows how to proceed.
-            if let Err(err) = add_www_authenticate_header(&mut res) {
-                tracing::error!("Failed to crate authenticate header value: ${err:#}");
-            }
-        }
-        res
-    }
-}
-
-fn add_www_authenticate_header(res: &mut Response) -> Result<()> {
+fn add_www_authenticate_header(res: &mut Response) -> ApiResult<()> {
     res.headers_mut().insert(
         "WWW-Authenticate",
         HeaderValue::from_str(&format!(
@@ -1211,21 +1256,4 @@ fn add_www_authenticate_header(res: &mut Response) -> Result<()> {
         .context("Failed to construct www-authenticate header value")?,
     );
     Ok(())
-}
-
-impl From<ErrorResponse> for OauthErrorResponse {
-    fn from(err: ErrorResponse) -> Self {
-        let detail = err.details.first();
-        OauthErrorResponse {
-            status: err.status,
-            error: detail
-                .map(|d| d.reason)
-                .unwrap_or("server_error")
-                .to_string(),
-            error_description: detail
-                .map(|d| d.msg.as_str())
-                .unwrap_or("Internal error, something went wrong")
-                .to_string(),
-        }
-    }
 }

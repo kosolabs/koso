@@ -141,12 +141,12 @@ pub(crate) fn error_response(
         }
         _ => tracing::warn!("Failed: {} ({}): {:?}", status, reason, err),
     }
+    let msg = format!("{err}");
     ErrorResponse {
         status,
-        details: vec![ErrorDetail {
-            reason,
-            msg: format!("{err}"),
-        }],
+        error: reason,
+        error_description: msg.clone(),
+        details: vec![ErrorDetail { reason, msg }],
     }
 }
 
@@ -241,6 +241,8 @@ impl ErrorRender<'_> {
 #[derive(Debug)]
 pub(crate) struct ErrorResponse {
     pub(crate) status: StatusCode,
+    pub(crate) error: &'static str,
+    pub(crate) error_description: String,
     pub(crate) details: Vec<ErrorDetail>,
 }
 
@@ -269,6 +271,8 @@ impl ErrorResponse {
 struct ErrorResponseBody {
     // StatusCode in number form. e.g. 400, 500
     status: u16,
+    error: &'static str,
+    error_description: String,
     details: Vec<ErrorDetail>,
 }
 
@@ -277,6 +281,8 @@ impl IntoResponse for ErrorResponse {
     fn into_response(self) -> Response {
         let body = axum::Json(ErrorResponseBody {
             status: self.status.as_u16(),
+            error: self.error,
+            error_description: self.error_description,
             details: self.details,
         });
 
