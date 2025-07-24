@@ -228,8 +228,8 @@ impl Store {
     async fn insert_client(&self, client_metadata: &ClientMetadata) -> ApiResult<()> {
         let res = sqlx::query(
             "
-        INSERT INTO oauth_clients (client_id, client_metadata)
-        VALUES ($1, $2);",
+                INSERT INTO oauth_clients (client_id, client_metadata)
+                VALUES ($1, $2);",
         )
         .bind(&client_metadata.claims.client_id)
         .bind(sqlx::types::Json(&client_metadata))
@@ -358,6 +358,8 @@ async fn oauth_register(
         )
         .into());
     }
+
+    // TODO: validate the token hasn't already been used.
 
     let client_id = format!("client-{}", Uuid::new_v4());
     let mut client_name = req.client_name.unwrap_or_else(|| client_id.clone());
