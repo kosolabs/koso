@@ -111,7 +111,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         )
         .nest("/healthz", healthz::router())
         .nest("/plugins/github", github_plugin.router()?)
-        .merge(oauth::router()?)
+        .merge(oauth::router(pool)?)
         // Apply these layers to all non-static routes.
         // Layers that are applied first will be called first.
         .layer(

@@ -25,12 +25,15 @@ use base64::{
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
+use sqlx::PgPool;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tower_http::cors::{self, CorsLayer};
 use uuid::Uuid;
 
 /// Implements MCP oauth: https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
-pub(crate) fn router() -> Result<Router> {
+pub(crate) fn router(pool: &'static PgPool) -> Result<Router> {
+    let store = Store { pool };
+
     let cors_layer = CorsLayer::new()
         .allow_origin(cors::Any)
         .allow_methods(cors::Any)
@@ -73,13 +76,14 @@ pub(crate) fn router() -> Result<Router> {
                 .route("/register", post(oauth_register).options(oauth_register))
                 .route("/token", post(oauth_token).options(oauth_token))
                 .layer(cors_layer)
+                .route("/authorization_details", post(oauth_authorization_details))
                 .route(
                     "/approve",
                     post(oauth_approve)
                         .options(oauth_approve)
                         .layer(middleware::from_fn(google::authenticate)),
                 )
-                .layer(middleware::from_fn(set_cache_control))
+                .layer((Extension(store), middleware::from_fn(set_cache_control)))
                 .fallback(api::handler_404),
         ))
 }
@@ -137,7 +141,10 @@ fn _authenticate(
 }
 
 const READ_WRITE_SCOPE: &str = "read_write";
-const CLIENT_AUTH_METHOD: &str = "client_secret_basic";
+const BASIC_AUTH_METHOD: &str = "client_secret_basic";
+const POST_AUTH_METHOD: &str = "client_secret_post";
+const NONE_AUTH_METHOD: &str = "none";
+const AUTH_METHODS_SUPPORTED: &[&str] = &[BASIC_AUTH_METHOD, POST_AUTH_METHOD, NONE_AUTH_METHOD];
 const CODE_RESPONSE_TYPE: &str = "code";
 const CODE_GRANT_TYPE: &str = "authorization_code";
 const REFRESH_GRANT_TYPE: &str = "refresh_token";
@@ -189,7 +196,10 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
     let metadata = AuthorizationServerMetadata {
         authorization_endpoint: format!("{host}/connections/mcp/oauth/authorize"),
         token_endpoint: format!("{host}/oauth/token"),
-        token_endpoint_auth_methods_supported: vec![CLIENT_AUTH_METHOD.to_string()],
+        token_endpoint_auth_methods_supported: AUTH_METHODS_SUPPORTED
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
         registration_endpoint: format!("{host}/oauth/register"),
         issuer: host.clone(),
         scopes_supported: vec![READ_WRITE_SCOPE.to_string()],
@@ -200,6 +210,59 @@ async fn get_authorization_server_metadata() -> OauthResult<Json<AuthorizationSe
     tracing::trace!("Authorization server metadata: {metadata:?}");
 
     Ok(Json(metadata))
+}
+
+#[derive(Clone)]
+struct Store {
+    pool: &'static PgPool,
+}
+
+type ClientRow = (sqlx::types::Json<ClientMetadata>,);
+
+#[derive(Deserialize, Serialize)]
+struct ClientMetadata {
+    claims: ClientSecretClaims,
+}
+
+impl Store {
+    async fn insert_client(&self, client_metadata: &ClientMetadata) -> ApiResult<()> {
+        let res = sqlx::query(
+            "
+                INSERT INTO oauth_clients (client_id, client_metadata)
+                VALUES ($1, $2);",
+        )
+        .bind(&client_metadata.claims.client_id)
+        .bind(sqlx::types::Json(&client_metadata))
+        .execute(self.pool)
+        .await?;
+        if res.rows_affected() == 0 {
+            return Err(anyhow!(
+                "Client already exists: {}",
+                client_metadata.claims.client_id
+            )
+            .into());
+        }
+
+        Ok(())
+    }
+
+    async fn get_client(&self, client_id: &str) -> ApiResult<Option<ClientMetadata>> {
+        let client: Option<ClientRow> = sqlx::query_as(
+            "
+            SELECT client_metadata
+            FROM oauth_clients
+            WHERE client_id=$1",
+        )
+        .bind(client_id)
+        .fetch_optional(self.pool)
+        .await
+        .context(format!("Failed to get client {client_id}"))?;
+        if let Some((client,)) = client {
+            Ok(Some(client.0))
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 /// Note: All fields must be optional. Validation should occur with the handler.
@@ -232,9 +295,10 @@ struct ClientRegistrationResponse {
 
 // Handle dynamic client registration
 // https://datatracker.ietf.org/doc/html/rfc7591#section-3.1
-#[tracing::instrument(skip(key, req))]
+#[tracing::instrument(skip(key, store, req))]
 async fn oauth_register(
     Extension(key): Extension<EncodingKey>,
+    Extension(store): Extension<Store>,
     Json(req): Json<ClientRegistrationRequest>,
 ) -> OauthResult<Json<ClientRegistrationResponse>> {
     let req = trim_client_registration_request(req);
@@ -256,6 +320,9 @@ async fn oauth_register(
         return Err(
             bad_request_error("invalid_redirect_uri", "Redirect uri cannot be empty").into(),
         );
+    }
+    if redirect_uris.iter().any(|s| s.len() > 2000) {
+        return Err(bad_request_error("invalid_redirect_uri", "Redirect uri too long").into());
     }
     let response_types = req.response_types;
     if !response_types.is_empty() && !response_types.contains(&CODE_RESPONSE_TYPE.to_string()) {
@@ -281,10 +348,27 @@ async fn oauth_register(
         )
         .into());
     }
+    let token_endpoint_auth_method = req
+        .token_endpoint_auth_method
+        .unwrap_or_else(|| BASIC_AUTH_METHOD.to_string());
+    if !AUTH_METHODS_SUPPORTED.contains(&token_endpoint_auth_method.as_str()) {
+        return Err(bad_request_error(
+            "invalid_client_metadata",
+            "Only client_secret_basic, client_secret_post and none token_auth_method are supported",
+        )
+        .into());
+    }
+
+    // TODO: validate the token hasn't already been used.
+
+    let client_id = format!("client-{}", Uuid::new_v4());
+    let mut client_name = req.client_name.unwrap_or_else(|| client_id.clone());
+    if client_name.len() > 255 {
+        client_name.truncate(255);
+        client_name = format!("{client_name}..");
+    }
 
     // Generate the client secret.
-    let client_id = format!("client-{}", Uuid::new_v4());
-    let client_name = req.client_name.unwrap_or_else(|| client_id.clone());
     let claims = ClientSecretClaims {
         exp: expires_at(CLIENT_SECRET_EXPIRY_SECS)?,
         expires_in: CLIENT_SECRET_EXPIRY_SECS,
@@ -292,12 +376,17 @@ async fn oauth_register(
         client_id,
         client_name,
         scope,
-        token_endpoint_auth_method: CLIENT_AUTH_METHOD.to_string(),
+        token_endpoint_auth_method,
         redirect_uris,
         grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
         response_types: vec![CODE_RESPONSE_TYPE.to_string()],
     };
     let client_secret = encode_client_secret(&key, &claims)?;
+    store
+        .insert_client(&ClientMetadata {
+            claims: claims.clone(),
+        })
+        .await?;
 
     // Create the response.
     let response = ClientRegistrationResponse {
@@ -314,6 +403,61 @@ async fn oauth_register(
     tracing::debug!("Registered client: {response:?}");
 
     Ok(Json(response))
+}
+
+/// Note: All fields must be optional. Validation should occur with the handler.
+/// See `swap_empty_with_none` below.
+#[derive(Debug, Deserialize)]
+struct AuthorizationDetailsRequest {
+    client_id: Option<String>,
+    redirect_uri: Option<String>,
+    #[allow(dead_code)]
+    #[serde(flatten)]
+    other: serde_json::Value,
+}
+
+#[derive(Debug, Serialize)]
+struct AuthorizationDetailsResponse {
+    client_name: String,
+}
+
+#[tracing::instrument(skip(store, req))]
+async fn oauth_authorization_details(
+    Extension(store): Extension<Store>,
+    Json(req): Json<AuthorizationDetailsRequest>,
+) -> ApiResult<Json<AuthorizationDetailsResponse>> {
+    let req = trim_authorize_request(req);
+    tracing::info!("Handling authorization: {req:?}");
+
+    // Validate the request.
+    let Some(client_id) = req.client_id else {
+        return Err(bad_request_error("invalid_request", "Client id required"));
+    };
+    let Some(redirect_uri) = req.redirect_uri else {
+        return Err(bad_request_error(
+            "invalid_request",
+            "Redirect uri required",
+        ));
+    };
+
+    // Validate that the client exists and has registered the given redirect uri.
+    let Some(client_metadata) = store.get_client(&client_id).await? else {
+        return Err(bad_request_error(
+            "unauthorized_client",
+            "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
+        ));
+    };
+    let claims = client_metadata.claims;
+    if !claims.redirect_uris.contains(&redirect_uri) {
+        return Err(bad_request_error(
+            "invalid_request",
+            "Registered redirect uri doesn't match the provided. Danger!",
+        ));
+    }
+
+    Ok(Json(AuthorizationDetailsResponse {
+        client_name: claims.client_name,
+    }))
 }
 
 /// Note: All fields must be optional. Validation should occur with the handler.
@@ -341,9 +485,10 @@ struct ApprovalResponse {
 
 /// Handle approval requests sent from a client browser.
 /// https://datatracker.ietf.org/doc/html/rfc6749#section-3.1
-#[tracing::instrument(skip(user, encoding_key, req))]
+#[tracing::instrument(skip(user, store, encoding_key, req))]
 async fn oauth_approve(
     Extension(user): Extension<User>,
+    Extension(store): Extension<Store>,
     Extension(encoding_key): Extension<EncodingKey>,
     Json(req): Json<ApprovalRequest>,
 ) -> ApiResult<Json<ApprovalResponse>> {
@@ -351,8 +496,6 @@ async fn oauth_approve(
     tracing::info!("Approving authorization: {req:?}");
 
     // Validate the request.
-    // TODO: validate redirect_uri against the registered client.
-    // TODO: validate the token hasn't already been used.
     let Some(client_id) = req.client_id else {
         return Err(bad_request_error("invalid_request", "Client id required"));
     };
@@ -365,7 +508,7 @@ async fn oauth_approve(
     let scope = req.scope.unwrap_or_else(|| READ_WRITE_SCOPE.to_string());
     if scope != READ_WRITE_SCOPE {
         return Err(bad_request_error(
-            "invalid_client_metadata",
+            "invalid_scope",
             "Only read_write scope is supported",
         ));
     }
@@ -374,7 +517,7 @@ async fn oauth_approve(
         .unwrap_or_else(|| CODE_RESPONSE_TYPE.to_string());
     if response_type != CODE_RESPONSE_TYPE {
         return Err(bad_request_error(
-            "invalid_client_metadata",
+            "unsupported_response_type",
             "Only the 'code' response_type is supported",
         ));
     }
@@ -395,6 +538,20 @@ async fn oauth_approve(
                 "Method and code must both be set or unset",
             ));
         }
+    }
+    // Validate that the client exists and has registered the given redirect uri.
+    let Some(client_metadata) = store.get_client(&client_id).await? else {
+        return Err(bad_request_error(
+            "unauthorized_client",
+            "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
+        ));
+    };
+    let claims = client_metadata.claims;
+    if !claims.redirect_uris.contains(&redirect_uri) {
+        return Err(bad_request_error(
+            "invalid_request",
+            "Registered redirect uri doesn't match the provided. Danger!",
+        ));
     }
 
     // Encode the auth token
@@ -429,6 +586,7 @@ struct TokenRequest {
     /// https://www.rfc-editor.org/rfc/rfc8707.html#name-resource-parameter
     #[allow(dead_code)]
     resource: Option<String>,
+    // TODO: validate.
     #[allow(dead_code)]
     redirect_uri: Option<String>,
 
@@ -455,8 +613,9 @@ struct TokenResponse {
 
 /// Handle token request from the MCP client
 /// https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
-#[tracing::instrument(skip(decoding_key, encoding_key, req, headers))]
+#[tracing::instrument(skip(store, decoding_key, encoding_key, req, headers))]
 async fn oauth_token(
+    Extension(store): Extension<Store>,
     Extension(decoding_key): Extension<DecodingKey>,
     Extension(encoding_key): Extension<EncodingKey>,
     headers: HeaderMap,
@@ -465,10 +624,13 @@ async fn oauth_token(
     let req = trim_token_request(req);
     tracing::info!("Handling token request: {req:?}");
 
+    // Authenticate the client or allow unauthenticated clients.
+    let client_metadata = authenticate_token_client(&headers, &req, &store, &decoding_key).await?;
+
     // Validate the refresh token or authorization code.
     let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
-        Some(REFRESH_GRANT_TYPE) => validate_refresh_token(&req, &decoding_key),
         Some(CODE_GRANT_TYPE) => validate_authorization_code(&req, &decoding_key),
+        Some(REFRESH_GRANT_TYPE) => validate_refresh_token(&req, &decoding_key),
         Some(_) => Err(bad_request_error(
             "unsupported_grant_type",
             "only authorization_code is supported",
@@ -476,12 +638,8 @@ async fn oauth_token(
         .into()),
         None => Err(bad_request_error("invalid_request", "grant_type required").into()),
     }?;
-
-    // Authenticate the client using basic or post auth.
-    if authenticate_token_client(&headers, &req, &decoding_key)? != client_id {
-        return Err(
-            bad_request_error("invalid_grant", "Auth token issued to another client").into(),
-        );
+    if client_metadata.claims.client_id != client_id {
+        return Err(bad_request_error("invalid_grant", "Grant issued for another client").into());
     }
 
     // Encode the new access token and refresh token.
@@ -517,29 +675,6 @@ async fn oauth_token(
     }))
 }
 
-fn validate_refresh_token(
-    req: &TokenRequest,
-    decoding_key: &DecodingKey,
-) -> OauthResult<(String, String, User, AuthTokenClaims)> {
-    // Decode the refresh token and grab the auth token.
-    let Some(refresh_token) = &req.refresh_token else {
-        return Err(bad_request_error(
-            "invalid_request",
-            "refresh_token required for refresh_token grant type",
-        )
-        .into());
-    };
-    let refresh_token = decode_refresh_token(decoding_key, refresh_token)
-        .context_bad_request("invalid_grant", "Invalid refresh token")?;
-
-    Ok((
-        refresh_token.client_id,
-        refresh_token.scope,
-        refresh_token.user,
-        refresh_token.auth_token_claims,
-    ))
-}
-
 fn validate_authorization_code(
     req: &TokenRequest,
     decoding_key: &DecodingKey,
@@ -556,6 +691,32 @@ fn validate_authorization_code(
         .context_bad_request("invalid_grant", "Invalid auth token")?;
 
     // PKCE: Verify the challenge against the verifier.
+    validate_code_challenge(req, &auth_token_claims)?;
+
+    // Validate the token was issued for this client
+    // The check is optional as client_id may be omitted for authenticated auth_token requests.
+    if let Some(client_id) = &req.client_id
+        && client_id != &auth_token_claims.client_id
+    {
+        return Err(
+            bad_request_error("invalid_grant", "Auth code issued to another client").into(),
+        );
+    }
+
+    Ok((
+        auth_token_claims.client_id.clone(),
+        auth_token_claims.scope.clone(),
+        auth_token_claims.user.clone(),
+        auth_token_claims,
+    ))
+}
+
+/// Implement PKCE.
+/// See https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
+fn validate_code_challenge(
+    req: &TokenRequest,
+    auth_token_claims: &AuthTokenClaims,
+) -> OauthResult<()> {
     match (
         &auth_token_claims.code_challenge_method,
         &auth_token_claims.code_challenge,
@@ -587,76 +748,184 @@ fn validate_authorization_code(
         }
     }
 
+    Ok(())
+}
+
+fn validate_refresh_token(
+    req: &TokenRequest,
+    decoding_key: &DecodingKey,
+) -> OauthResult<(String, String, User, AuthTokenClaims)> {
+    // Decode the refresh token and grab the auth token.
+    let Some(refresh_token) = &req.refresh_token else {
+        return Err(bad_request_error(
+            "invalid_request",
+            "refresh_token required for refresh_token grant type",
+        )
+        .into());
+    };
+    let refresh_token = decode_refresh_token(decoding_key, refresh_token)
+        .context_bad_request("invalid_grant", "Invalid refresh token")?;
+
+    // Validate the token was issued for this client
+    // The check is optional as client_id may be omitted for refresh_token requests.
+    if let Some(client_id) = &req.client_id
+        && client_id != &refresh_token.client_id
+    {
+        return Err(
+            bad_request_error("invalid_grant", "Refresh token issued to another client").into(),
+        );
+    }
+
     Ok((
-        auth_token_claims.client_id.clone(),
-        auth_token_claims.scope.clone(),
-        auth_token_claims.user.clone(),
-        auth_token_claims,
+        refresh_token.client_id,
+        refresh_token.scope,
+        refresh_token.user,
+        refresh_token.auth_token_claims,
     ))
 }
 
-fn authenticate_token_client(
+async fn authenticate_token_client(
     headers: &HeaderMap,
     req: &TokenRequest,
+    store: &Store,
     decoding_key: &DecodingKey,
-) -> OauthResult<String> {
-    let (client_id, client_secret) = match headers.get("Authorization").map(HeaderValue::as_bytes) {
+) -> OauthResult<ClientMetadata> {
+    match (headers.get("Authorization"), &req.client_secret) {
+        // client_secret_basic
         // Prefer to use the Authorization header.
-        Some(header) => {
-            let Some(credentials) = header.strip_prefix(b"Basic ") else {
-                return Err(
-                    bad_request_error("invalid_client", "Invalid authorization header").into(),
-                );
-            };
-            let credentials: String = BASE64_STANDARD
-                .decode(credentials)
-                .context_bad_request("invalid_client", "Invalid authorization credentials")?
-                .try_into()
-                .context_bad_request("invalid_client", "Invalid authorization credentials")?;
-            let mut credentials = credentials.split(":");
-            let Some(client_id) = credentials.next() else {
-                return Err(bad_request_error(
-                    "invalid_client",
-                    "Invalid authorization credentials id",
-                )
-                .into());
-            };
-            let Some(client_secret) = credentials.next() else {
-                return Err(bad_request_error(
-                    "invalid_client",
-                    "Invalid authorization credentials secret",
-                )
-                .into());
-            };
-            (client_id.to_string(), client_secret.to_string())
+        (Some(header), _) => {
+            authenticate_token_client_basic(req, header, store, decoding_key).await
         }
-        // Use the request body when the Authorization header is absent.
-        None => {
-            let Some(client_id) = &req.client_id else {
-                return Err(bad_request_error("invalid_request", "Client id required").into());
-            };
-            let Some(client_secret) = &req.client_secret else {
-                return Err(bad_request_error(
-                    "invalid_request",
-                    "client_secret required for authorization_code grant type",
-                )
-                .into());
-            };
-            (client_id.clone(), client_secret.clone())
-        }
-    };
 
-    let client_secret_claims = decode_client_secret(decoding_key, &client_secret)
-        .context_bad_request("invalid_grant", "Invalid client secret")?;
+        // client_secret_post
+        // Use the request body when the Authorization header is absent.
+        (None, Some(client_secret)) => {
+            authenticate_token_client_post(req, client_secret, store, decoding_key).await
+        }
+
+        // none
+        // Unauthenticated clients.
+        (None, None) => validate_unauthenticated_client(req, store).await,
+    }
+}
+
+/// Authenticate the client using client_secret_basic auth.
+/// i.e. Authorization header Basic
+async fn authenticate_token_client_basic(
+    req: &TokenRequest,
+    header: &HeaderValue,
+    store: &Store,
+    decoding_key: &DecodingKey,
+) -> OauthResult<ClientMetadata> {
+    tracing::debug!("Authenticating with client_secret_basic Authorization header");
+
+    let Some(credentials) = header.as_bytes().strip_prefix(b"Basic ") else {
+        return Err(bad_request_error("invalid_client", "Invalid authorization header").into());
+    };
+    let credentials: String = BASE64_STANDARD
+        .decode(credentials)
+        .context_bad_request("invalid_client", "Invalid authorization credentials")?
+        .try_into()
+        .context_bad_request("invalid_client", "Invalid authorization credentials")?;
+    let mut credentials = credentials.split(":");
+    let Some(client_id) = credentials.next() else {
+        return Err(
+            bad_request_error("invalid_client", "Invalid authorization credentials id").into(),
+        );
+    };
+    let Some(client_secret) = credentials.next() else {
+        return Err(bad_request_error(
+            "invalid_client",
+            "Invalid authorization credentials secret",
+        )
+        .into());
+    };
+    let client_secret_claims = decode_client_secret(decoding_key, client_secret)
+        .context_bad_request("invalid_client", "Invalid client secret")?;
     if client_secret_claims.client_id != client_id {
-        return Err(bad_request_error("invalid_grant", "Invalid client id").into());
+        return Err(bad_request_error("invalid_client", "Invalid authorization client id").into());
+    }
+    if let Some(client_id) = &req.client_id
+        && client_id != &client_secret_claims.client_id
+    {
+        return Err(
+            bad_request_error("invalid_client", "Authenticated as a different client").into(),
+        );
     }
 
-    Ok(client_id)
+    let Some(client_metadata) = store.get_client(&client_secret_claims.client_id).await? else {
+        return Err(bad_request_error(
+            "invalid_client",
+            "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
+        )
+        .into());
+    };
+    Ok(client_metadata)
+}
+
+/// Authenticate the client using client_secret_post auth.
+/// i.e. using the the client_secret field.
+async fn authenticate_token_client_post(
+    req: &TokenRequest,
+    client_secret: &str,
+    store: &Store,
+    decoding_key: &DecodingKey,
+) -> OauthResult<ClientMetadata> {
+    tracing::debug!("Authenticating with client_secret_post client_secret parameter");
+
+    let client_secret_claims = decode_client_secret(decoding_key, client_secret)
+        .context_bad_request("invalid_client", "Invalid client secret")?;
+    if let Some(client_id) = &req.client_id
+        && client_id != &client_secret_claims.client_id
+    {
+        return Err(
+            bad_request_error("invalid_client", "Authenticated as a different client").into(),
+        );
+    }
+
+    let Some(client_metadata) = store.get_client(&client_secret_claims.client_id).await? else {
+        return Err(bad_request_error(
+            "invalid_client",
+            "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
+        )
+        .into());
+    };
+    Ok(client_metadata)
+}
+
+async fn validate_unauthenticated_client(
+    req: &TokenRequest,
+    store: &Store,
+) -> OauthResult<ClientMetadata> {
+    tracing::debug!("Unauthenticated client");
+
+    let Some(client_id) = &req.client_id else {
+        return Err(bad_request_error(
+            "invalid_request",
+            "Client id required for unauthenticated clients",
+        )
+        .into());
+    };
+    let Some(client_metadata) = store.get_client(client_id).await? else {
+        return Err(bad_request_error(
+            "invalid_client",
+            "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
+        )
+        .into());
+    };
+    if client_metadata.claims.token_endpoint_auth_method != "none" {
+        return Err(bad_request_error(
+            "invalid_client",
+            "Confidential client requires authentication.",
+        )
+        .into());
+    }
+
+    Ok(client_metadata)
 }
 
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
-const CLIENT_SECRET_EXPIRY_SECS: u64 = 30 * 24 * 60 * 60;
+const CLIENT_SECRET_EXPIRY_SECS: u64 = 31 * 24 * 60 * 60;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct ClientSecretClaims {
     exp: u64,
@@ -672,7 +941,7 @@ struct ClientSecretClaims {
 }
 
 const AUTH_TOKEN_ISS: &str = "koso-mcp-oauth-auth";
-const AUTH_TOKEN_EXPIRY_SECS: u64 = 10 * 60;
+const AUTH_TOKEN_EXPIRY_SECS: u64 = 8 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AuthTokenClaims {
     exp: u64,
@@ -702,7 +971,7 @@ struct AccessTokenClaims {
 }
 
 const REFRESH_TOKEN_ISS: &str = "koso-mcp-oauth-refresh";
-const REFRESH_TOKEN_EXPIRY_SECS: u64 = 30 * 24 * 60 * 60;
+const REFRESH_TOKEN_EXPIRY_SECS: u64 = 15 * 24 * 60 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct RefreshTokenClaims {
     exp: u64,
@@ -775,6 +1044,14 @@ fn trim_client_registration_request(
 ) -> ClientRegistrationRequest {
     swap_empty_with_none(&mut req.client_name);
     swap_empty_with_none(&mut req.scope);
+
+    req
+}
+
+/// Replace all empty strings with None.
+fn trim_authorize_request(mut req: AuthorizationDetailsRequest) -> AuthorizationDetailsRequest {
+    swap_empty_with_none(&mut req.client_id);
+    swap_empty_with_none(&mut req.redirect_uri);
 
     req
 }
