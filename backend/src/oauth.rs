@@ -231,7 +231,14 @@ type ClientRow = (sqlx::types::Json<ClientMetadata>,);
 
 #[derive(Deserialize, Serialize)]
 struct ClientMetadata {
-    claims: ClientSecretClaims,
+    client_id: String,
+    client_secret_expires_at: u64,
+    client_name: String,
+    scope: String,
+    token_endpoint_auth_method: String,
+    redirect_uris: Vec<String>,
+    grant_types: Vec<String>,
+    response_types: Vec<String>,
 }
 
 impl Store {
@@ -241,16 +248,12 @@ impl Store {
                 INSERT INTO oauth_clients (client_id, client_metadata)
                 VALUES ($1, $2);",
         )
-        .bind(&client_metadata.claims.client_id)
+        .bind(&client_metadata.client_id)
         .bind(sqlx::types::Json(&client_metadata))
         .execute(self.pool)
         .await?;
         if res.rows_affected() == 0 {
-            return Err(anyhow!(
-                "Client already exists: {}",
-                client_metadata.claims.client_id
-            )
-            .into());
+            return Err(anyhow!("Client already exists: {}", client_metadata.client_id).into());
         }
 
         Ok(())
@@ -357,9 +360,12 @@ async fn oauth_register(
     // Generate the client secret.
     let claims = ClientSecretClaims {
         exp: expires_at(CLIENT_SECRET_EXPIRY_SECS)?,
-        expires_in: CLIENT_SECRET_EXPIRY_SECS,
         iss: CLIENT_SECRET_ISS.to_string(),
+        client_id: client_id.clone(),
+    };
+    let client_metadata = ClientMetadata {
         client_id,
+        client_secret_expires_at: claims.exp,
         client_name,
         scope,
         token_endpoint_auth_method,
@@ -368,22 +374,18 @@ async fn oauth_register(
         response_types: vec![CODE_RESPONSE_TYPE.to_string()],
     };
     let client_secret = encode_client_secret(&key, &claims)?;
-    store
-        .insert_client(&ClientMetadata {
-            claims: claims.clone(),
-        })
-        .await?;
+    store.insert_client(&client_metadata).await?;
 
     // Create the response.
     let response = ClientRegistrationResponse {
         client_id: claims.client_id,
-        client_name: claims.client_name,
-        scope: claims.scope,
-        token_endpoint_auth_method: claims.token_endpoint_auth_method,
-        redirect_uris: claims.redirect_uris,
-        grant_types: claims.grant_types,
-        response_types: claims.response_types,
-        client_secret_expires_at: claims.exp,
+        client_name: client_metadata.client_name,
+        scope: client_metadata.scope,
+        token_endpoint_auth_method: client_metadata.token_endpoint_auth_method,
+        redirect_uris: client_metadata.redirect_uris,
+        grant_types: client_metadata.grant_types,
+        response_types: client_metadata.response_types,
+        client_secret_expires_at: client_metadata.client_secret_expires_at,
         client_secret,
     };
     tracing::debug!("Registered client: {response:?}");
@@ -461,12 +463,11 @@ async fn oauth_authorization_details(
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         ));
     };
-    let claims = client_metadata.claims;
     // TODO: ignore ports for localhost.
     // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
     // > The only exception is native apps using a localhost URI: In this case, the
     // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
-    if !claims.redirect_uris.contains(&redirect_uri) {
+    if !client_metadata.redirect_uris.contains(&redirect_uri) {
         return Err(bad_request_error(
             "invalid_request",
             "Registered redirect uri doesn't match the provided. Danger!",
@@ -474,7 +475,7 @@ async fn oauth_authorization_details(
     }
 
     Ok(Json(AuthorizationDetailsResponse {
-        client_name: claims.client_name,
+        client_name: client_metadata.client_name,
     }))
 }
 
@@ -564,12 +565,11 @@ async fn oauth_approve(
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         ));
     };
-    let claims = client_metadata.claims;
     // TODO: ignore ports for localhost.
     // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
     // > The only exception is native apps using a localhost URI: In this case, the
     // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
-    if !claims.redirect_uris.contains(&redirect_uri) {
+    if !client_metadata.redirect_uris.contains(&redirect_uri) {
         return Err(bad_request_error(
             "invalid_request",
             "Registered redirect uri doesn't match the provided. Danger!",
@@ -679,7 +679,7 @@ async fn _oauth_token(
         )),
         None => Err(bad_request_error("invalid_request", "grant_type required")),
     }?;
-    if client_metadata.claims.client_id != client_id {
+    if client_metadata.client_id != client_id {
         return Err(bad_request_error(
             "invalid_grant",
             "Grant issued for another client",
@@ -994,7 +994,7 @@ async fn validate_unauthenticated_client(
             None,
         ));
     };
-    if client_metadata.claims.token_endpoint_auth_method != "none" {
+    if client_metadata.token_endpoint_auth_method != "none" {
         return Err(error_response(
             StatusCode::UNAUTHORIZED,
             "invalid_client",
@@ -1013,13 +1013,6 @@ struct ClientSecretClaims {
     exp: u64,
     iss: String,
     client_id: String,
-    client_name: String,
-    expires_in: u64,
-    scope: String,
-    token_endpoint_auth_method: String,
-    redirect_uris: Vec<String>,
-    grant_types: Vec<String>,
-    response_types: Vec<String>,
 }
 
 const AUTH_TOKEN_ISS: &str = "koso-mcp-oauth-auth";
