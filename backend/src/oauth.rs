@@ -1123,6 +1123,7 @@ fn validate_redirect_uri(valid_redirect_uris: &[String], redirect_uri: &String) 
     }
     Ok(())
 }
+
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
 const CLIENT_SECRET_EXPIRY_SECS: u64 = 91 * 24 * 60 * 60;
 #[derive(Serialize, Deserialize, Debug, Clone)]
