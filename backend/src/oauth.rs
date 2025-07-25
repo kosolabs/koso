@@ -26,13 +26,21 @@ use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode}
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    sync::Arc,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
+use tokio::sync::Mutex;
 use tower_http::cors::{self, CorsLayer};
 use uuid::Uuid;
 
 /// Implements MCP oauth: https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
 pub(crate) fn router(pool: &'static PgPool) -> Result<Router> {
-    let store = Store { pool };
+    let store = Store {
+        pool,
+        tokens: Arc::new(Mutex::new(HashMap::new())),
+    };
 
     let cors_layer = CorsLayer::new()
         .allow_origin(cors::Any)
@@ -225,13 +233,37 @@ async fn get_authorization_server_metadata() -> ApiResult<Json<AuthorizationServ
 #[derive(Clone)]
 struct Store {
     pool: &'static PgPool,
+    tokens: Arc<Mutex<HashMap<String, AuthTokenMetadata>>>,
 }
 
 type ClientRow = (sqlx::types::Json<ClientMetadata>,);
 
 #[derive(Deserialize, Serialize)]
 struct ClientMetadata {
-    claims: ClientSecretClaims,
+    client_id: String,
+    client_name: String,
+    registered_at: u64,
+    client_secret_expires_at: u64,
+    scope: String,
+    token_endpoint_auth_method: String,
+    redirect_uris: Vec<String>,
+    grant_types: Vec<String>,
+    response_types: Vec<String>,
+}
+
+#[derive(Clone, Debug)]
+struct AuthTokenMetadata {
+    issued_at: u64,
+    expires_at: u64,
+    client_id: String,
+    token_id: String,
+    scope: String,
+    #[allow(dead_code)]
+    response_type: String,
+    redirect_uri: String,
+    code_challenge_method: Option<String>,
+    code_challenge: Option<String>,
+    user: User,
 }
 
 impl Store {
@@ -241,16 +273,12 @@ impl Store {
                 INSERT INTO oauth_clients (client_id, client_metadata)
                 VALUES ($1, $2);",
         )
-        .bind(&client_metadata.claims.client_id)
+        .bind(&client_metadata.client_id)
         .bind(sqlx::types::Json(&client_metadata))
         .execute(self.pool)
         .await?;
         if res.rows_affected() == 0 {
-            return Err(anyhow!(
-                "Client already exists: {}",
-                client_metadata.claims.client_id
-            )
-            .into());
+            return Err(anyhow!("Client already exists: {}", client_metadata.client_id).into());
         }
 
         Ok(())
@@ -272,6 +300,35 @@ impl Store {
         } else {
             Ok(None)
         }
+    }
+
+    async fn insert_auth_token(&self, auth_token: &AuthTokenMetadata) -> ApiResult<()> {
+        let mut tokens = self.tokens.lock().await;
+        // Drop all tokens to avoid an OOM. The limit is sufficiently high such
+        // we're unlikely to hit it between server restarts.
+        if tokens.len() > 2500 {
+            tracing::error!("Cleared oauth tokens. Consider implementing better eviction.");
+            tokens.clear();
+            tokens.shrink_to_fit();
+        }
+        match tokens.entry(auth_token.token_id.clone()) {
+            Entry::Occupied(entry) => {
+                return Err(anyhow!("Token already exists: {}", entry.key()).into());
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(auth_token.clone());
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn consume_auth_token(&self, token_id: &str) -> Result<AuthTokenMetadata> {
+        self.tokens
+            .lock()
+            .await
+            .remove(token_id)
+            .with_context(|| format!("Token {token_id} not found"))
     }
 }
 
@@ -353,37 +410,38 @@ async fn oauth_register(
         client_name.truncate(255);
         client_name = format!("{client_name}..");
     }
-
-    // Generate the client secret.
-    let claims = ClientSecretClaims {
-        exp: expires_at(CLIENT_SECRET_EXPIRY_SECS)?,
-        expires_in: CLIENT_SECRET_EXPIRY_SECS,
-        iss: CLIENT_SECRET_ISS.to_string(),
+    let client_metadata = ClientMetadata {
         client_id,
         client_name,
+        registered_at: now()?,
+        client_secret_expires_at: expires_at(CLIENT_SECRET_EXPIRY_SECS)?,
         scope,
         token_endpoint_auth_method,
         redirect_uris,
         grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
         response_types: vec![CODE_RESPONSE_TYPE.to_string()],
     };
+
+    // Generate the client secret.
+    let claims = ClientSecretClaims {
+        iat: client_metadata.registered_at,
+        exp: client_metadata.client_secret_expires_at,
+        iss: CLIENT_SECRET_ISS.to_string(),
+        client_id: client_metadata.client_id.clone(),
+    };
     let client_secret = encode_client_secret(&key, &claims)?;
-    store
-        .insert_client(&ClientMetadata {
-            claims: claims.clone(),
-        })
-        .await?;
+    store.insert_client(&client_metadata).await?;
 
     // Create the response.
     let response = ClientRegistrationResponse {
-        client_id: claims.client_id,
-        client_name: claims.client_name,
-        scope: claims.scope,
-        token_endpoint_auth_method: claims.token_endpoint_auth_method,
-        redirect_uris: claims.redirect_uris,
-        grant_types: claims.grant_types,
-        response_types: claims.response_types,
-        client_secret_expires_at: claims.exp,
+        client_id: client_metadata.client_id,
+        client_name: client_metadata.client_name,
+        scope: client_metadata.scope,
+        token_endpoint_auth_method: client_metadata.token_endpoint_auth_method,
+        redirect_uris: client_metadata.redirect_uris,
+        grant_types: client_metadata.grant_types,
+        response_types: client_metadata.response_types,
+        client_secret_expires_at: client_metadata.client_secret_expires_at,
         client_secret,
     };
     tracing::debug!("Registered client: {response:?}");
@@ -461,20 +519,10 @@ async fn oauth_authorization_details(
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         ));
     };
-    let claims = client_metadata.claims;
-    // TODO: ignore ports for localhost.
-    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
-    // > The only exception is native apps using a localhost URI: In this case, the
-    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
-    if !claims.redirect_uris.contains(&redirect_uri) {
-        return Err(bad_request_error(
-            "invalid_request",
-            "Registered redirect uri doesn't match the provided. Danger!",
-        ));
-    }
+    validate_redirect_uri(&client_metadata.redirect_uris, &redirect_uri)?;
 
     Ok(Json(AuthorizationDetailsResponse {
-        client_name: claims.client_name,
+        client_name: client_metadata.client_name,
     }))
 }
 
@@ -564,25 +612,14 @@ async fn oauth_approve(
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         ));
     };
-    let claims = client_metadata.claims;
-    // TODO: ignore ports for localhost.
-    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
-    // > The only exception is native apps using a localhost URI: In this case, the
-    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
-    if !claims.redirect_uris.contains(&redirect_uri) {
-        return Err(bad_request_error(
-            "invalid_request",
-            "Registered redirect uri doesn't match the provided. Danger!",
-        ));
-    }
+    validate_redirect_uri(&client_metadata.redirect_uris, &redirect_uri)?;
 
     // Encode the auth token
-    let auth_token_claims = AuthTokenClaims {
-        exp: expires_at(AUTH_TOKEN_EXPIRY_SECS)?,
-        iss: AUTH_TOKEN_ISS.to_string(),
+    let auth_token_metadata = AuthTokenMetadata {
+        issued_at: now()?,
+        expires_at: expires_at(AUTH_TOKEN_EXPIRY_SECS)?,
         client_id,
-        session: format!("session-{}", Uuid::new_v4()),
-        expires_in: AUTH_TOKEN_EXPIRY_SECS,
+        token_id: format!("token-{}", Uuid::new_v4()),
         scope,
         response_type,
         redirect_uri,
@@ -590,9 +627,19 @@ async fn oauth_approve(
         code_challenge_method,
         user,
     };
+    let auth_token_claims = AuthTokenClaims {
+        iat: auth_token_metadata.issued_at,
+        exp: auth_token_metadata.expires_at,
+        iss: AUTH_TOKEN_ISS.to_string(),
+        client_id: auth_token_metadata.client_id.clone(),
+        token_id: auth_token_metadata.token_id.clone(),
+    };
     let auth_token = encode_auth_token(&encoding_key, &auth_token_claims)?;
+    store.insert_auth_token(&auth_token_metadata).await?;
 
-    tracing::info!("Approved authorization, created auth token: {auth_token_claims:?}");
+    tracing::info!(
+        "Approved authorization, created auth token: {auth_token_claims:?}: {auth_token_metadata:?}"
+    );
 
     Ok(Json(ApprovalResponse { code: auth_token }))
 }
@@ -605,6 +652,7 @@ struct TokenRequest {
     grant_type: Option<String>,
     client_id: Option<String>,
     client_secret: Option<String>,
+    scope: Option<String>,
     /// https://www.rfc-editor.org/rfc/rfc8707.html#name-resource-parameter
     resource: Option<String>,
     redirect_uri: Option<String>,
@@ -666,78 +714,80 @@ async fn _oauth_token(
     let req = trim_token_request(req);
     tracing::info!("Handling token request: {req:?}");
 
-    // Authenticate the client or allow unauthenticated clients.
-    let client_metadata = authenticate_token_client(&headers, &req, &store, &decoding_key).await?;
-
-    // Validate the refresh token or authorization code.
-    let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
-        Some(CODE_GRANT_TYPE) => validate_authorization_code(&req, &decoding_key),
-        Some(REFRESH_GRANT_TYPE) => validate_refresh_token(&req, &decoding_key),
+    // Issue tokens based on the given grant type.
+    let (access_claims, refresh_claims) = match req.grant_type.as_deref() {
+        Some(CODE_GRANT_TYPE) => {
+            issue_from_authorization_code(store, decoding_key, headers, req).await
+        }
+        Some(REFRESH_GRANT_TYPE) => {
+            issue_from_refresh_token(store, decoding_key, headers, req).await
+        }
         Some(_) => Err(bad_request_error(
             "unsupported_grant_type",
-            "only authorization_code is supported",
+            "Only authorization_code is supported",
         )),
         None => Err(bad_request_error("invalid_request", "grant_type required")),
     }?;
-    if client_metadata.claims.client_id != client_id {
-        return Err(bad_request_error(
-            "invalid_grant",
-            "Grant issued for another client",
-        ));
-    }
 
-    // This is only for backwards compatibility with OAuth 2.0
-    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#name-redirect-uri-parameter-in-t
-    // TODO: ignore ports for localhost.
-    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
-    // > The only exception is native apps using a localhost URI: In this case, the
-    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
-    if let Some(redirect_uri) = &req.redirect_uri
-        && &auth_token_claims.redirect_uri != redirect_uri
-    {
-        return Err(bad_request_error(
-            "invalid_request",
-            "redirect_uri doesn't match the one in the authorization request",
-        ));
-    }
-
-    // Encode the new access token and refresh token.
-    let access_claims = AccessTokenClaims {
-        exp: expires_at(ACCESS_TOKEN_EXPIRY_SECS)?,
-        iss: ACCESS_TOKEN_ISS.to_string(),
-        client_id,
-        expires_in: ACCESS_TOKEN_EXPIRY_SECS,
-        scope,
-        user,
-        auth_token_claims,
-    };
     let access_token = encode_access_token(&encoding_key, &access_claims)?;
-    let refresh_claims = RefreshTokenClaims {
-        exp: expires_at(REFRESH_TOKEN_EXPIRY_SECS)?,
-        iss: REFRESH_TOKEN_ISS.to_string(),
-        client_id: access_claims.client_id.clone(),
-        expires_in: REFRESH_TOKEN_EXPIRY_SECS,
-        scope: access_claims.scope.clone(),
-        user: access_claims.user.clone(),
-        auth_token_claims: access_claims.auth_token_claims.clone(),
-    };
     let refresh_token = encode_refresh_token(&encoding_key, &refresh_claims)?;
 
     tracing::info!("Created access token: {access_claims:?}, refresh token: {refresh_claims:?}");
 
     Ok(Json(TokenResponse {
         token_type: "Bearer".to_string(),
-        expires_in: access_claims.expires_in,
+        expires_in: ACCESS_TOKEN_EXPIRY_SECS,
         scope: access_claims.scope,
         access_token,
         refresh_token,
     }))
 }
 
-fn validate_authorization_code(
+async fn issue_from_authorization_code(
+    store: Store,
+    decoding_key: DecodingKey,
+    headers: HeaderMap,
+    req: TokenRequest,
+) -> ApiResult<(AccessTokenClaims, RefreshTokenClaims)> {
+    // Authenticate the client or allow unauthenticated clients.
+    let client_metadata = authenticate_token_client(&headers, &req, &store, &decoding_key).await?;
+
+    // Validate the authorization token.
+    let (auth_token_claims, auth_token) =
+        validate_authorization_code(&req, &store, &decoding_key).await?;
+    if client_metadata.client_id != auth_token_claims.client_id {
+        return Err(bad_request_error(
+            "invalid_grant",
+            "Grant issued for another client",
+        ));
+    }
+
+    // Create the token claims.
+    let now = now()?;
+    let access_claims = AccessTokenClaims {
+        iat: now,
+        exp: expires_at(ACCESS_TOKEN_EXPIRY_SECS)?,
+        iss: ACCESS_TOKEN_ISS.to_string(),
+        scope: auth_token.scope,
+        user: auth_token.user,
+        auth_token_claims,
+    };
+    let refresh_claims = RefreshTokenClaims {
+        iat: now,
+        exp: expires_at(REFRESH_TOKEN_EXPIRY_SECS)?,
+        iss: REFRESH_TOKEN_ISS.to_string(),
+        scope: access_claims.scope.clone(),
+        user: access_claims.user.clone(),
+        auth_token_claims: access_claims.auth_token_claims.clone(),
+    };
+    Ok((access_claims, refresh_claims))
+}
+
+async fn validate_authorization_code(
     req: &TokenRequest,
+    store: &Store,
     decoding_key: &DecodingKey,
-) -> ApiResult<(String, String, User, AuthTokenClaims)> {
+) -> ApiResult<(AuthTokenClaims, AuthTokenMetadata)> {
     // Decode the auth token.
     let Some(code) = &req.code else {
         return Err(bad_request_error(
@@ -747,14 +797,21 @@ fn validate_authorization_code(
     };
     let auth_token_claims = decode_auth_token(decoding_key, code)
         .context_bad_request("invalid_grant", "Invalid auth token")?;
+    let auth_token = store
+        .consume_auth_token(&auth_token_claims.token_id)
+        .await
+        .context_bad_request("invalid_grant", "Auth code already used")?;
+    if auth_token.client_id != auth_token_claims.client_id {
+        return Err(bad_request_error("invalid_grant", "Invalid token client"));
+    }
 
     // PKCE: Verify the challenge against the verifier.
-    validate_code_challenge(req, &auth_token_claims)?;
+    validate_code_challenge(req, &auth_token)?;
 
     // Validate the token was issued for this client
     // The check is optional as client_id may be omitted for authenticated auth_token requests.
     if let Some(client_id) = &req.client_id
-        && client_id != &auth_token_claims.client_id
+        && client_id != &auth_token.client_id
     {
         return Err(bad_request_error(
             "invalid_grant",
@@ -762,25 +819,32 @@ fn validate_authorization_code(
         ));
     }
 
-    // TODO: validate the token hasn't already been used.
+    if let Some(scope) = &req.scope
+        && scope != &auth_token.scope
+    {
+        return Err(bad_request_error("invalid_scope", "Mismatched scope"));
+    }
 
-    Ok((
-        auth_token_claims.client_id.clone(),
-        auth_token_claims.scope.clone(),
-        auth_token_claims.user.clone(),
-        auth_token_claims,
-    ))
+    // This is only for backwards compatibility with OAuth 2.0
+    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#name-redirect-uri-parameter-in-t
+    if let Some(redirect_uri) = &req.redirect_uri
+        && &auth_token.redirect_uri != redirect_uri
+    {
+        return Err(bad_request_error(
+            "invalid_request",
+            "redirect_uri doesn't match the one in the authorization request",
+        ));
+    }
+
+    Ok((auth_token_claims, auth_token))
 }
 
 /// Implement PKCE.
 /// See https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
-fn validate_code_challenge(
-    req: &TokenRequest,
-    auth_token_claims: &AuthTokenClaims,
-) -> ApiResult<()> {
+fn validate_code_challenge(req: &TokenRequest, auth_token: &AuthTokenMetadata) -> ApiResult<()> {
     match (
-        &auth_token_claims.code_challenge_method,
-        &auth_token_claims.code_challenge,
+        &auth_token.code_challenge_method,
+        &auth_token.code_challenge,
         &req.code_verifier,
     ) {
         (Some(method), Some(challenge), Some(verifier)) => {
@@ -808,10 +872,51 @@ fn validate_code_challenge(
     Ok(())
 }
 
+async fn issue_from_refresh_token(
+    store: Store,
+    decoding_key: DecodingKey,
+    headers: HeaderMap,
+    req: TokenRequest,
+) -> ApiResult<(AccessTokenClaims, RefreshTokenClaims)> {
+    // Authenticate the client or allow unauthenticated clients.
+    let client_metadata = authenticate_token_client(&headers, &req, &store, &decoding_key).await?;
+
+    // Validate the refresh token.
+    let req_refresh_claims = validate_refresh_token(&req, &decoding_key)?;
+    let auth_token_claims = req_refresh_claims.auth_token_claims;
+    if client_metadata.client_id != auth_token_claims.client_id {
+        return Err(bad_request_error(
+            "invalid_grant",
+            "Grant issued for another client",
+        ));
+    }
+
+    // Create the token claims.
+    let now = now()?;
+    let access_claims = AccessTokenClaims {
+        iat: now,
+        exp: expires_at(ACCESS_TOKEN_EXPIRY_SECS)?,
+        iss: ACCESS_TOKEN_ISS.to_string(),
+        scope: req_refresh_claims.scope,
+        user: req_refresh_claims.user,
+        auth_token_claims,
+    };
+    let refresh_claims = RefreshTokenClaims {
+        iat: now,
+        // Limit the lifetime of the new refresh token to that of the existing one.
+        exp: req_refresh_claims.exp,
+        iss: REFRESH_TOKEN_ISS.to_string(),
+        scope: access_claims.scope.clone(),
+        user: access_claims.user.clone(),
+        auth_token_claims: access_claims.auth_token_claims.clone(),
+    };
+    Ok((access_claims, refresh_claims))
+}
+
 fn validate_refresh_token(
     req: &TokenRequest,
     decoding_key: &DecodingKey,
-) -> ApiResult<(String, String, User, AuthTokenClaims)> {
+) -> ApiResult<RefreshTokenClaims> {
     // Decode the refresh token and grab the auth token.
     let Some(refresh_token) = &req.refresh_token else {
         return Err(bad_request_error(
@@ -825,7 +930,7 @@ fn validate_refresh_token(
     // Validate the token was issued for this client
     // The check is optional as client_id may be omitted for refresh_token requests.
     if let Some(client_id) = &req.client_id
-        && client_id != &refresh_token.client_id
+        && client_id != &refresh_token.auth_token_claims.client_id
     {
         return Err(bad_request_error(
             "invalid_grant",
@@ -833,14 +938,13 @@ fn validate_refresh_token(
         ));
     }
 
-    // TODO: Validate that the refresh token hasn't already been used.
+    if let Some(scope) = &req.scope
+        && scope != &refresh_token.scope
+    {
+        return Err(bad_request_error("invalid_scope", "Mismatched scope"));
+    }
 
-    Ok((
-        refresh_token.client_id,
-        refresh_token.scope,
-        refresh_token.user,
-        refresh_token.auth_token_claims,
-    ))
+    Ok(refresh_token)
 }
 
 async fn authenticate_token_client(
@@ -994,7 +1098,7 @@ async fn validate_unauthenticated_client(
             None,
         ));
     };
-    if client_metadata.claims.token_endpoint_auth_method != "none" {
+    if client_metadata.token_endpoint_auth_method != "none" {
         return Err(error_response(
             StatusCode::UNAUTHORIZED,
             "invalid_client",
@@ -1006,60 +1110,60 @@ async fn validate_unauthenticated_client(
     Ok(client_metadata)
 }
 
+fn validate_redirect_uri(valid_redirect_uris: &[String], redirect_uri: &String) -> ApiResult<()> {
+    // TODO: ignore ports for localhost.
+    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
+    // > The only exception is native apps using a localhost URI: In this case, the
+    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
+    if !valid_redirect_uris.contains(redirect_uri) {
+        return Err(bad_request_error(
+            "invalid_request",
+            "Registered redirect uri doesn't match the provided. Danger!",
+        ));
+    }
+    Ok(())
+}
+
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
-const CLIENT_SECRET_EXPIRY_SECS: u64 = 31 * 24 * 60 * 60;
+const CLIENT_SECRET_EXPIRY_SECS: u64 = 91 * 24 * 60 * 60;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct ClientSecretClaims {
+    iat: u64,
     exp: u64,
     iss: String,
     client_id: String,
-    client_name: String,
-    expires_in: u64,
-    scope: String,
-    token_endpoint_auth_method: String,
-    redirect_uris: Vec<String>,
-    grant_types: Vec<String>,
-    response_types: Vec<String>,
 }
 
 const AUTH_TOKEN_ISS: &str = "koso-mcp-oauth-auth";
-const AUTH_TOKEN_EXPIRY_SECS: u64 = 8 * 60;
+const AUTH_TOKEN_EXPIRY_SECS: u64 = 2 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AuthTokenClaims {
+    iat: u64,
     exp: u64,
     iss: String,
     client_id: String,
-    session: String,
-    expires_in: u64,
-    scope: String,
-    response_type: String,
-    redirect_uri: String,
-    code_challenge_method: Option<String>,
-    code_challenge: Option<String>,
-    user: User,
+    token_id: String,
 }
 
 const ACCESS_TOKEN_ISS: &str = "koso-mcp-oauth-access";
 const ACCESS_TOKEN_EXPIRY_SECS: u64 = 7 * 24 * 60 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AccessTokenClaims {
+    iat: u64,
     exp: u64,
     iss: String,
-    client_id: String,
-    expires_in: u64,
     scope: String,
     user: User,
     auth_token_claims: AuthTokenClaims,
 }
 
 const REFRESH_TOKEN_ISS: &str = "koso-mcp-oauth-refresh";
-const REFRESH_TOKEN_EXPIRY_SECS: u64 = 15 * 24 * 60 * 60;
+const REFRESH_TOKEN_EXPIRY_SECS: u64 = 90 * 24 * 60 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct RefreshTokenClaims {
+    iat: u64,
     exp: u64,
     iss: String,
-    client_id: String,
-    expires_in: u64,
     scope: String,
     user: User,
     auth_token_claims: AuthTokenClaims,
@@ -1120,6 +1224,11 @@ fn expires_at(expires_in: u64) -> ApiResult<u64> {
     Ok(timer.duration_since(UNIX_EPOCH)?.as_secs())
 }
 
+fn now() -> ApiResult<u64> {
+    let timer = SystemTime::now();
+    Ok(timer.duration_since(UNIX_EPOCH)?.as_secs())
+}
+
 /// Replace all empty strings with None.
 fn trim_client_registration_request(
     mut req: ClientRegistrationRequest,
@@ -1156,6 +1265,7 @@ fn trim_token_request(mut req: TokenRequest) -> TokenRequest {
     swap_empty_with_none(&mut req.grant_type);
     swap_empty_with_none(&mut req.client_id);
     swap_empty_with_none(&mut req.client_secret);
+    swap_empty_with_none(&mut req.scope);
     swap_empty_with_none(&mut req.code);
     swap_empty_with_none(&mut req.code_verifier);
     swap_empty_with_none(&mut req.refresh_token);
