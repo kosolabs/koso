@@ -13,6 +13,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main'}}
 permissions:
   contents: read
+  packages: read
 jobs:
   cargo:
     runs-on: ubuntu-24.04
