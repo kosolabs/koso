@@ -37,7 +37,10 @@ use uuid::Uuid;
 
 /// Implements MCP oauth: https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization
 pub(crate) fn router(pool: &'static PgPool) -> Result<Router> {
-    let store = Store { pool };
+    let store = Store {
+        pool,
+        tokens: Arc::new(Mutex::new(HashMap::new())),
+    };
 
     let cors_layer = CorsLayer::new()
         .allow_origin(cors::Any)
@@ -253,6 +256,7 @@ struct AuthTokenMetadata {
     client_id: String,
     token_id: String,
     scope: String,
+    #[allow(dead_code)]
     response_type: String,
     redirect_uri: String,
     code_challenge_method: Option<String>,
@@ -305,9 +309,9 @@ impl Store {
             tokens.clear();
             tokens.shrink_to_fit();
         }
-        match tokens.entry(auth_token.client_id.clone()) {
+        match tokens.entry(auth_token.token_id.clone()) {
             Entry::Occupied(entry) => {
-                return Err(anyhow!("Client already exists: {}", entry.key()).into());
+                return Err(anyhow!("Token already exists: {}", entry.key()).into());
             }
             Entry::Vacant(entry) => {
                 entry.insert(auth_token.clone());
@@ -628,7 +632,7 @@ async fn oauth_approve(
     let auth_token_metadata = AuthTokenMetadata {
         expires_at: expires_at(AUTH_TOKEN_EXPIRY_SECS)?,
         client_id,
-        token_id: format!("session-{}", Uuid::new_v4()),
+        token_id: format!("token-{}", Uuid::new_v4()),
         scope,
         response_type,
         redirect_uri,
@@ -660,6 +664,7 @@ struct TokenRequest {
     grant_type: Option<String>,
     client_id: Option<String>,
     client_secret: Option<String>,
+    scope: Option<String>,
     /// https://www.rfc-editor.org/rfc/rfc8707.html#name-resource-parameter
     resource: Option<String>,
     redirect_uri: Option<String>,
@@ -745,8 +750,6 @@ async fn _oauth_token(
     let access_claims = AccessTokenClaims {
         exp: expires_at(ACCESS_TOKEN_EXPIRY_SECS)?,
         iss: ACCESS_TOKEN_ISS.to_string(),
-        client_id,
-        expires_in: ACCESS_TOKEN_EXPIRY_SECS,
         scope,
         user,
         auth_token_claims,
@@ -755,8 +758,6 @@ async fn _oauth_token(
     let refresh_claims = RefreshTokenClaims {
         exp: expires_at(REFRESH_TOKEN_EXPIRY_SECS)?,
         iss: REFRESH_TOKEN_ISS.to_string(),
-        client_id: access_claims.client_id.clone(),
-        expires_in: REFRESH_TOKEN_EXPIRY_SECS,
         scope: access_claims.scope.clone(),
         user: access_claims.user.clone(),
         auth_token_claims: access_claims.auth_token_claims.clone(),
@@ -767,7 +768,7 @@ async fn _oauth_token(
 
     Ok(Json(TokenResponse {
         token_type: "Bearer".to_string(),
-        expires_in: access_claims.expires_in,
+        expires_in: ACCESS_TOKEN_EXPIRY_SECS,
         scope: access_claims.scope,
         access_token,
         refresh_token,
@@ -808,6 +809,12 @@ async fn validate_authorization_code(
             "invalid_grant",
             "Auth code issued to another client",
         ));
+    }
+
+    if let Some(scope) = &req.scope
+        && scope != &auth_token.scope
+    {
+        return Err(bad_request_error("invalid_scope", "Mismatched scope"));
     }
 
     // This is only for backwards compatibility with OAuth 2.0
@@ -883,7 +890,7 @@ fn validate_refresh_token(
     // Validate the token was issued for this client
     // The check is optional as client_id may be omitted for refresh_token requests.
     if let Some(client_id) = &req.client_id
-        && client_id != &refresh_token.client_id
+        && client_id != &refresh_token.auth_token_claims.client_id
     {
         return Err(bad_request_error(
             "invalid_grant",
@@ -891,10 +898,14 @@ fn validate_refresh_token(
         ));
     }
 
-    // TODO: Validate that the refresh token hasn't already been used.
+    if let Some(scope) = &req.scope
+        && scope != &refresh_token.scope
+    {
+        return Err(bad_request_error("invalid_scope", "Mismatched scope"));
+    }
 
     Ok((
-        refresh_token.client_id,
+        refresh_token.auth_token_claims.client_id.clone(),
         refresh_token.scope,
         refresh_token.user,
         refresh_token.auth_token_claims,
@@ -1089,8 +1100,6 @@ const ACCESS_TOKEN_EXPIRY_SECS: u64 = 7 * 24 * 60 * 60;
 struct AccessTokenClaims {
     exp: u64,
     iss: String,
-    client_id: String,
-    expires_in: u64,
     scope: String,
     user: User,
     auth_token_claims: AuthTokenClaims,
@@ -1102,8 +1111,6 @@ const REFRESH_TOKEN_EXPIRY_SECS: u64 = 15 * 24 * 60 * 60;
 struct RefreshTokenClaims {
     exp: u64,
     iss: String,
-    client_id: String,
-    expires_in: u64,
     scope: String,
     user: User,
     auth_token_claims: AuthTokenClaims,
@@ -1200,6 +1207,7 @@ fn trim_token_request(mut req: TokenRequest) -> TokenRequest {
     swap_empty_with_none(&mut req.grant_type);
     swap_empty_with_none(&mut req.client_id);
     swap_empty_with_none(&mut req.client_secret);
+    swap_empty_with_none(&mut req.scope);
     swap_empty_with_none(&mut req.code);
     swap_empty_with_none(&mut req.code_verifier);
     swap_empty_with_none(&mut req.refresh_token);
