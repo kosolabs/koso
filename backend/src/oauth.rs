@@ -1145,7 +1145,7 @@ struct AuthTokenClaims {
 }
 
 const ACCESS_TOKEN_ISS: &str = "koso-mcp-oauth-access";
-const ACCESS_TOKEN_EXPIRY_SECS: u64 = 8 * 24 * 60 * 60;
+const ACCESS_TOKEN_EXPIRY_SECS: u64 = 7 * 24 * 60 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AccessTokenClaims {
     iat: u64,
