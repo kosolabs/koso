@@ -1067,7 +1067,7 @@ fn validate_redirect_uri(valid_redirect_uris: &[String], redirect_uri: &String) 
     Ok(())
 }
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
-const CLIENT_SECRET_EXPIRY_SECS: u64 = 31 * 24 * 60 * 60;
+const CLIENT_SECRET_EXPIRY_SECS: u64 = 90 * 24 * 60 * 60;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct ClientSecretClaims {
     exp: u64,
@@ -1076,7 +1076,7 @@ struct ClientSecretClaims {
 }
 
 const AUTH_TOKEN_ISS: &str = "koso-mcp-oauth-auth";
-const AUTH_TOKEN_EXPIRY_SECS: u64 = 8 * 60;
+const AUTH_TOKEN_EXPIRY_SECS: u64 = 2 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AuthTokenClaims {
     exp: u64,
@@ -1086,7 +1086,7 @@ struct AuthTokenClaims {
 }
 
 const ACCESS_TOKEN_ISS: &str = "koso-mcp-oauth-access";
-const ACCESS_TOKEN_EXPIRY_SECS: u64 = 7 * 24 * 60 * 60;
+const ACCESS_TOKEN_EXPIRY_SECS: u64 = 13 * 24 * 60 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AccessTokenClaims {
     exp: u64,
@@ -1097,7 +1097,7 @@ struct AccessTokenClaims {
 }
 
 const REFRESH_TOKEN_ISS: &str = "koso-mcp-oauth-refresh";
-const REFRESH_TOKEN_EXPIRY_SECS: u64 = 15 * 24 * 60 * 60;
+const REFRESH_TOKEN_EXPIRY_SECS: u64 = 31 * 24 * 60 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct RefreshTokenClaims {
     exp: u64,
