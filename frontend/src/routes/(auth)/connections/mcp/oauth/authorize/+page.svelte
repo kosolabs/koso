@@ -18,24 +18,34 @@
     codeChallenge: string | null;
     codeChallengeMethod: string | null;
     resource: string | null;
+    other: [string, string][];
   };
 
   function parseParams(): Params {
     const urlParams = new URLSearchParams(window.location.search);
-    const responseType = urlParams.get("response_type") || null;
-    const clientId = urlParams.get("client_id") || null;
-    const redirectUri = urlParams.get("redirect_uri") || null;
+    function pop(name: string): string | null {
+      const value = urlParams.get(name) || null;
+      urlParams.delete(name);
+      return value;
+    }
+
+    const responseType = pop("response_type");
+    const clientId = pop("client_id");
+    const redirectUri = pop("redirect_uri");
     if (!redirectUri) {
       toast.error(
         "Invalid parameters (missing redirect_uri). Close the page and try again.",
       );
       throw new Error("Empty redirectUri");
     }
-    const scope = urlParams.get("scope") || null;
-    const state = urlParams.get("state") || null;
-    const codeChallenge = urlParams.get("code_challenge") || null;
-    const codeChallengeMethod = urlParams.get("code_challenge_method") || null;
-    const resource = urlParams.get("resource") || null;
+    const scope = pop("scope");
+    const state = pop("state");
+    const codeChallenge = pop("code_challenge");
+    const codeChallengeMethod = pop("code_challenge_method");
+    const resource = pop("resource");
+
+    // Collect any remaining parameters.
+    const other = Array.from(urlParams.entries());
 
     return {
       responseType,
@@ -46,6 +56,7 @@
       codeChallenge,
       codeChallengeMethod,
       resource,
+      other,
     };
   }
 
@@ -113,6 +124,7 @@
           code_challenge_method: params.codeChallengeMethod,
           redirect_uri: params.redirectUri,
           resource: params.resource,
+          other: params.other.length ? params.other : undefined,
         }),
       });
       approval = await parseResponse(auth, response);
