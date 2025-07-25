@@ -85,7 +85,11 @@ pub(crate) fn router(pool: &'static PgPool) -> Result<Router> {
                 .route("/register", post(oauth_register).options(oauth_register))
                 .route("/token", post(oauth_token).options(oauth_token))
                 .layer(cors_layer)
-                .route("/authorization_details", post(oauth_authorization_details))
+                .route(
+                    "/authorization_details",
+                    post(oauth_authorization_details)
+                        .layer(middleware::from_fn(google::authenticate)),
+                )
                 .route(
                     "/approve",
                     post(oauth_approve)

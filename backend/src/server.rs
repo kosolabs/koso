@@ -148,10 +148,8 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         )
         .fallback_service(
             ServiceBuilder::new()
-                .layer((
-                    TimeoutLayer::new(Duration::from_secs(300)),
-                    middleware::from_fn(set_static_cache_control),
-                ))
+                .layer(middleware::from_fn(set_static_dir_headers))
+                .layer(TimeoutLayer::new(Duration::from_secs(300)))
                 .service(
                     ServeDir::new("static")
                         .precompressed_gzip()
@@ -312,7 +310,7 @@ fn client_ip<B>(request: &Request<B>) -> String {
 
 // Built frontend files in /_app/immutable/ are immutable and never change.
 // Allow them to be cached as such.
-async fn set_static_cache_control(request: Request, next: Next) -> Response {
+async fn set_static_dir_headers(request: Request, next: Next) -> Response {
     let header = if request.uri().path().starts_with("/_app/immutable/") {
         "public, immutable, max-age=31536000"
     } else if request.uri().path() == "/robots.txt" || request.uri().path() == "/favicon.svg" {
@@ -328,5 +326,11 @@ async fn set_static_cache_control(request: Request, next: Next) -> Response {
             HeaderValue::from_static(header),
         );
     }
+    // https://datatracker.ietf.org/doc/html/rfc6819#section-5.2.2.6
+    response.headers_mut().insert(
+        reqwest::header::X_FRAME_OPTIONS,
+        HeaderValue::from_static("deny"),
+    );
+
     response
 }
