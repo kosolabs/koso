@@ -515,16 +515,7 @@ async fn oauth_authorization_details(
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         ));
     };
-    // TODO: ignore ports for localhost.
-    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
-    // > The only exception is native apps using a localhost URI: In this case, the
-    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
-    if !client_metadata.redirect_uris.contains(&redirect_uri) {
-        return Err(bad_request_error(
-            "invalid_request",
-            "Registered redirect uri doesn't match the provided. Danger!",
-        ));
-    }
+    validate_redirect_uri(&client_metadata.redirect_uris, &redirect_uri)?;
 
     Ok(Json(AuthorizationDetailsResponse {
         client_name: client_metadata.client_name,
@@ -617,16 +608,7 @@ async fn oauth_approve(
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         ));
     };
-    // TODO: ignore ports for localhost.
-    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
-    // > The only exception is native apps using a localhost URI: In this case, the
-    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
-    if !client_metadata.redirect_uris.contains(&redirect_uri) {
-        return Err(bad_request_error(
-            "invalid_request",
-            "Registered redirect uri doesn't match the provided. Danger!",
-        ));
-    }
+    validate_redirect_uri(&client_metadata.redirect_uris, &redirect_uri)?;
 
     // Encode the auth token
     let auth_token_metadata = AuthTokenMetadata {
@@ -819,10 +801,6 @@ async fn validate_authorization_code(
 
     // This is only for backwards compatibility with OAuth 2.0
     // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#name-redirect-uri-parameter-in-t
-    // TODO: ignore ports for localhost.
-    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
-    // > The only exception is native apps using a localhost URI: In this case, the
-    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
     if let Some(redirect_uri) = &req.redirect_uri
         && &auth_token.redirect_uri != redirect_uri
     {
@@ -1075,6 +1053,19 @@ async fn validate_unauthenticated_client(
     Ok(client_metadata)
 }
 
+fn validate_redirect_uri(valid_redirect_uris: &[String], redirect_uri: &String) -> ApiResult<()> {
+    // TODO: ignore ports for localhost.
+    // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13#section-4.1.1
+    // > The only exception is native apps using a localhost URI: In this case, the
+    // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
+    if !valid_redirect_uris.contains(redirect_uri) {
+        return Err(bad_request_error(
+            "invalid_request",
+            "Registered redirect uri doesn't match the provided. Danger!",
+        ));
+    }
+    Ok(())
+}
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
 const CLIENT_SECRET_EXPIRY_SECS: u64 = 31 * 24 * 60 * 60;
 #[derive(Serialize, Deserialize, Debug, Clone)]
