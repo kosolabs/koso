@@ -242,6 +242,7 @@ type ClientRow = (sqlx::types::Json<ClientMetadata>,);
 struct ClientMetadata {
     client_id: String,
     client_name: String,
+    registered_at: u64,
     client_secret_expires_at: u64,
     scope: String,
     token_endpoint_auth_method: String,
@@ -252,6 +253,7 @@ struct ClientMetadata {
 
 #[derive(Clone, Debug)]
 struct AuthTokenMetadata {
+    issued_at: u64,
     expires_at: u64,
     client_id: String,
     token_id: String,
@@ -411,6 +413,7 @@ async fn oauth_register(
     let client_metadata = ClientMetadata {
         client_id,
         client_name,
+        registered_at: now()?,
         client_secret_expires_at: expires_at(CLIENT_SECRET_EXPIRY_SECS)?,
         scope,
         token_endpoint_auth_method,
@@ -421,6 +424,7 @@ async fn oauth_register(
 
     // Generate the client secret.
     let claims = ClientSecretClaims {
+        iat: client_metadata.registered_at,
         exp: client_metadata.client_secret_expires_at,
         iss: CLIENT_SECRET_ISS.to_string(),
         client_id: client_metadata.client_id.clone(),
@@ -612,6 +616,7 @@ async fn oauth_approve(
 
     // Encode the auth token
     let auth_token_metadata = AuthTokenMetadata {
+        issued_at: now()?,
         expires_at: expires_at(AUTH_TOKEN_EXPIRY_SECS)?,
         client_id,
         token_id: format!("token-{}", Uuid::new_v4()),
@@ -623,6 +628,7 @@ async fn oauth_approve(
         user,
     };
     let auth_token_claims = AuthTokenClaims {
+        iat: auth_token_metadata.issued_at,
         exp: auth_token_metadata.expires_at,
         iss: AUTH_TOKEN_ISS.to_string(),
         client_id: auth_token_metadata.client_id.clone(),
@@ -708,42 +714,22 @@ async fn _oauth_token(
     let req = trim_token_request(req);
     tracing::info!("Handling token request: {req:?}");
 
-    // Authenticate the client or allow unauthenticated clients.
-    let client_metadata = authenticate_token_client(&headers, &req, &store, &decoding_key).await?;
-
-    // Validate the refresh token or authorization code.
-    let (client_id, scope, user, auth_token_claims) = match req.grant_type.as_deref() {
-        Some(CODE_GRANT_TYPE) => validate_authorization_code(&req, &store, &decoding_key).await,
-        Some(REFRESH_GRANT_TYPE) => validate_refresh_token(&req, &decoding_key),
+    // Issue tokens based on the given grant type.
+    let (access_claims, refresh_claims) = match req.grant_type.as_deref() {
+        Some(CODE_GRANT_TYPE) => {
+            issue_from_authorization_code(store, decoding_key, headers, req).await
+        }
+        Some(REFRESH_GRANT_TYPE) => {
+            issue_from_refresh_token(store, decoding_key, headers, req).await
+        }
         Some(_) => Err(bad_request_error(
             "unsupported_grant_type",
-            "only authorization_code is supported",
+            "Only authorization_code is supported",
         )),
         None => Err(bad_request_error("invalid_request", "grant_type required")),
     }?;
-    if client_metadata.client_id != client_id {
-        return Err(bad_request_error(
-            "invalid_grant",
-            "Grant issued for another client",
-        ));
-    }
 
-    // Encode the new access token and refresh token.
-    let access_claims = AccessTokenClaims {
-        exp: expires_at(ACCESS_TOKEN_EXPIRY_SECS)?,
-        iss: ACCESS_TOKEN_ISS.to_string(),
-        scope,
-        user,
-        auth_token_claims,
-    };
     let access_token = encode_access_token(&encoding_key, &access_claims)?;
-    let refresh_claims = RefreshTokenClaims {
-        exp: expires_at(REFRESH_TOKEN_EXPIRY_SECS)?,
-        iss: REFRESH_TOKEN_ISS.to_string(),
-        scope: access_claims.scope.clone(),
-        user: access_claims.user.clone(),
-        auth_token_claims: access_claims.auth_token_claims.clone(),
-    };
     let refresh_token = encode_refresh_token(&encoding_key, &refresh_claims)?;
 
     tracing::info!("Created access token: {access_claims:?}, refresh token: {refresh_claims:?}");
@@ -757,11 +743,51 @@ async fn _oauth_token(
     }))
 }
 
+async fn issue_from_authorization_code(
+    store: Store,
+    decoding_key: DecodingKey,
+    headers: HeaderMap,
+    req: TokenRequest,
+) -> ApiResult<(AccessTokenClaims, RefreshTokenClaims)> {
+    // Authenticate the client or allow unauthenticated clients.
+    let client_metadata = authenticate_token_client(&headers, &req, &store, &decoding_key).await?;
+
+    // Validate the authorization token.
+    let (auth_token_claims, auth_token) =
+        validate_authorization_code(&req, &store, &decoding_key).await?;
+    if client_metadata.client_id != auth_token_claims.client_id {
+        return Err(bad_request_error(
+            "invalid_grant",
+            "Grant issued for another client",
+        ));
+    }
+
+    // Create the token claims.
+    let now = now()?;
+    let access_claims = AccessTokenClaims {
+        iat: now,
+        exp: expires_at(ACCESS_TOKEN_EXPIRY_SECS)?,
+        iss: ACCESS_TOKEN_ISS.to_string(),
+        scope: auth_token.scope,
+        user: auth_token.user,
+        auth_token_claims,
+    };
+    let refresh_claims = RefreshTokenClaims {
+        iat: now,
+        exp: expires_at(REFRESH_TOKEN_EXPIRY_SECS)?,
+        iss: REFRESH_TOKEN_ISS.to_string(),
+        scope: access_claims.scope.clone(),
+        user: access_claims.user.clone(),
+        auth_token_claims: access_claims.auth_token_claims.clone(),
+    };
+    Ok((access_claims, refresh_claims))
+}
+
 async fn validate_authorization_code(
     req: &TokenRequest,
     store: &Store,
     decoding_key: &DecodingKey,
-) -> ApiResult<(String, String, User, AuthTokenClaims)> {
+) -> ApiResult<(AuthTokenClaims, AuthTokenMetadata)> {
     // Decode the auth token.
     let Some(code) = &req.code else {
         return Err(bad_request_error(
@@ -810,12 +836,7 @@ async fn validate_authorization_code(
         ));
     }
 
-    Ok((
-        auth_token.client_id.clone(),
-        auth_token.scope.clone(),
-        auth_token.user.clone(),
-        auth_token_claims,
-    ))
+    Ok((auth_token_claims, auth_token))
 }
 
 /// Implement PKCE.
@@ -851,10 +872,51 @@ fn validate_code_challenge(req: &TokenRequest, auth_token: &AuthTokenMetadata) -
     Ok(())
 }
 
+async fn issue_from_refresh_token(
+    store: Store,
+    decoding_key: DecodingKey,
+    headers: HeaderMap,
+    req: TokenRequest,
+) -> ApiResult<(AccessTokenClaims, RefreshTokenClaims)> {
+    // Authenticate the client or allow unauthenticated clients.
+    let client_metadata = authenticate_token_client(&headers, &req, &store, &decoding_key).await?;
+
+    // Validate the refresh token.
+    let req_refresh_claims = validate_refresh_token(&req, &decoding_key)?;
+    let auth_token_claims = req_refresh_claims.auth_token_claims;
+    if client_metadata.client_id != auth_token_claims.client_id {
+        return Err(bad_request_error(
+            "invalid_grant",
+            "Grant issued for another client",
+        ));
+    }
+
+    // Create the token claims.
+    let now = now()?;
+    let access_claims = AccessTokenClaims {
+        iat: now,
+        exp: expires_at(ACCESS_TOKEN_EXPIRY_SECS)?,
+        iss: ACCESS_TOKEN_ISS.to_string(),
+        scope: req_refresh_claims.scope,
+        user: req_refresh_claims.user,
+        auth_token_claims,
+    };
+    let refresh_claims = RefreshTokenClaims {
+        iat: now,
+        // Limit the lifetime of the new refresh token to that of the existing one.
+        exp: req_refresh_claims.exp,
+        iss: REFRESH_TOKEN_ISS.to_string(),
+        scope: access_claims.scope.clone(),
+        user: access_claims.user.clone(),
+        auth_token_claims: access_claims.auth_token_claims.clone(),
+    };
+    Ok((access_claims, refresh_claims))
+}
+
 fn validate_refresh_token(
     req: &TokenRequest,
     decoding_key: &DecodingKey,
-) -> ApiResult<(String, String, User, AuthTokenClaims)> {
+) -> ApiResult<RefreshTokenClaims> {
     // Decode the refresh token and grab the auth token.
     let Some(refresh_token) = &req.refresh_token else {
         return Err(bad_request_error(
@@ -882,12 +944,7 @@ fn validate_refresh_token(
         return Err(bad_request_error("invalid_scope", "Mismatched scope"));
     }
 
-    Ok((
-        refresh_token.auth_token_claims.client_id.clone(),
-        refresh_token.scope,
-        refresh_token.user,
-        refresh_token.auth_token_claims,
-    ))
+    Ok(refresh_token)
 }
 
 async fn authenticate_token_client(
@@ -1067,9 +1124,10 @@ fn validate_redirect_uri(valid_redirect_uris: &[String], redirect_uri: &String) 
     Ok(())
 }
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
-const CLIENT_SECRET_EXPIRY_SECS: u64 = 90 * 24 * 60 * 60;
+const CLIENT_SECRET_EXPIRY_SECS: u64 = 91 * 24 * 60 * 60;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct ClientSecretClaims {
+    iat: u64,
     exp: u64,
     iss: String,
     client_id: String,
@@ -1079,6 +1137,7 @@ const AUTH_TOKEN_ISS: &str = "koso-mcp-oauth-auth";
 const AUTH_TOKEN_EXPIRY_SECS: u64 = 2 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AuthTokenClaims {
+    iat: u64,
     exp: u64,
     iss: String,
     client_id: String,
@@ -1086,9 +1145,10 @@ struct AuthTokenClaims {
 }
 
 const ACCESS_TOKEN_ISS: &str = "koso-mcp-oauth-access";
-const ACCESS_TOKEN_EXPIRY_SECS: u64 = 13 * 24 * 60 * 60;
+const ACCESS_TOKEN_EXPIRY_SECS: u64 = 8 * 24 * 60 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AccessTokenClaims {
+    iat: u64,
     exp: u64,
     iss: String,
     scope: String,
@@ -1097,9 +1157,10 @@ struct AccessTokenClaims {
 }
 
 const REFRESH_TOKEN_ISS: &str = "koso-mcp-oauth-refresh";
-const REFRESH_TOKEN_EXPIRY_SECS: u64 = 31 * 24 * 60 * 60;
+const REFRESH_TOKEN_EXPIRY_SECS: u64 = 90 * 24 * 60 * 60;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct RefreshTokenClaims {
+    iat: u64,
     exp: u64,
     iss: String,
     scope: String,
@@ -1159,6 +1220,11 @@ fn decode_token<T: DeserializeOwned>(key: &DecodingKey, token: &str, issuer: &st
 
 fn expires_at(expires_in: u64) -> ApiResult<u64> {
     let timer = SystemTime::now() + Duration::from_secs(expires_in);
+    Ok(timer.duration_since(UNIX_EPOCH)?.as_secs())
+}
+
+fn now() -> ApiResult<u64> {
+    let timer = SystemTime::now();
     Ok(timer.duration_since(UNIX_EPOCH)?.as_secs())
 }
 
