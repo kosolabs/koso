@@ -1,3 +1,5 @@
+import { bytesFromReader, linesFromBytes } from "./stream";
+
 type AnthropicMessage = AnthropicContentBlockStart | AnthropicContentBlockDelta;
 
 type AnthropicContentBlockStart = {
@@ -56,30 +58,20 @@ export class AnthropicStream {
     if (!response.body) {
       throw new Error("Response body is null");
     }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data:")) {
-            const data = JSON.parse(line.slice(5));
-            if (isAnthropicContentBlockStart(data)) {
-              this.stream = [];
-            } else if (isAnthropicContentBlockDelta(data)) {
-              this.#lineBuffer?.addToken(data.delta.text);
-              this.stream.push(data.delta.text);
-            }
-          }
+    for await (const line of linesFromBytes(
+      bytesFromReader(response.body.getReader()),
+    )) {
+      if (line.startsWith("data:")) {
+        const data = JSON.parse(line.slice(5));
+        if (isAnthropicContentBlockStart(data)) {
+          this.stream = [];
+        } else if (isAnthropicContentBlockDelta(data)) {
+          this.#lineBuffer?.addToken(data.delta.text);
+          this.stream.push(data.delta.text);
         }
       }
-    } finally {
-      this.#lineBuffer?.flush();
-      reader.releaseLock();
     }
+    this.#lineBuffer?.flush();
     this.running = false;
     return response;
   }

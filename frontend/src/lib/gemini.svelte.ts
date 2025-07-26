@@ -1,3 +1,5 @@
+import { bytesFromReader, linesFromBytes } from "./stream";
+
 type GeminiMessage = {
   candidates: {
     content: {
@@ -44,30 +46,20 @@ export class GeminiStream {
     if (!response.body) {
       throw new Error("Response body is null");
     }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data:")) {
-            const data = JSON.parse(line.slice(5)) as GeminiMessage;
-            for (const candidate of data.candidates) {
-              for (const part of candidate.content.parts) {
-                for (const subscriber of this.#subscribers) {
-                  subscriber(part.text);
-                }
-                this.stream.push(part.text);
-              }
+    for await (const line of linesFromBytes(
+      bytesFromReader(response.body.getReader()),
+    )) {
+      if (line.startsWith("data:")) {
+        const data = JSON.parse(line.slice(5)) as GeminiMessage;
+        for (const candidate of data.candidates) {
+          for (const part of candidate.content.parts) {
+            for (const subscriber of this.#subscribers) {
+              subscriber(part.text);
             }
+            this.stream.push(part.text);
           }
         }
       }
-    } finally {
-      reader.releaseLock();
     }
     this.running = false;
     return response;
