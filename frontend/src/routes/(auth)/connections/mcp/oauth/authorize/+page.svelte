@@ -7,12 +7,13 @@
   import Button from "$lib/kosui/button/button.svelte";
 
   let auth = getAuthContext();
-  let details = $state(load());
+  let paramsPromise = $state(load());
 
-  type Params = {
+  type ParsedParams = {
     responseType: string | null;
     clientId: string | null;
-    redirectUri: string;
+    /** We cannot trust the redirect URI until it's verified by the backend. */
+    unvalidatedRedirectUri: string;
     scope: string | null;
     state: string | null;
     codeChallenge: string | null;
@@ -21,7 +22,12 @@
     other: [string, string][];
   };
 
-  function parseParams(): Params {
+  type Params = Omit<ParsedParams, "unvalidatedRedirectUri"> & {
+    clientName: string;
+    validatedRedirectUri: string;
+  };
+
+  function parseParams(): ParsedParams {
     const urlParams = new URLSearchParams(window.location.search);
     function pop(name: string): string | null {
       const value = urlParams.get(name) || null;
@@ -31,8 +37,8 @@
 
     const responseType = pop("response_type");
     const clientId = pop("client_id");
-    const redirectUri = pop("redirect_uri");
-    if (!redirectUri) {
+    const unvalidatedRedirectUri = pop("redirect_uri");
+    if (!unvalidatedRedirectUri) {
       toast.error(
         "Invalid parameters (missing redirect_uri). Close the page and try again.",
       );
@@ -50,7 +56,7 @@
     return {
       responseType,
       clientId,
-      redirectUri,
+      unvalidatedRedirectUri,
       scope,
       state,
       codeChallenge,
@@ -60,36 +66,36 @@
     };
   }
 
-  type AuthorizationDetails = {
-    client_name?: string;
-    error?: string;
-  };
-
-  async function load(): Promise<AuthorizationDetails> {
+  async function load(): Promise<Params> {
     let params = parseParams();
     console.log(`Parsed authorization parameters: ${JSON.stringify(params)}`);
 
-    try {
-      const response = await fetch(`/oauth/authorization_details`, {
-        method: "POST",
-        headers: {
-          ...headers(auth),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          client_id: params.clientId,
-          redirect_uri: params.redirectUri,
-        }),
-      });
-      return await parseResponse(auth, response);
-    } catch (e) {
-      console.log("Failed to fetch authorization details", e);
-      return { error: JSON.stringify(e) };
-    }
+    const redirectUri = params.unvalidatedRedirectUri;
+    const response = await fetch(`/oauth/authorization_details`, {
+      method: "POST",
+      headers: {
+        ...headers(auth),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        client_id: params.clientId,
+        redirect_uri: redirectUri,
+      }),
+    });
+    const details: { client_name: string } = await parseResponse(
+      auth,
+      response,
+    );
+    return {
+      ...params,
+      clientName: details.client_name,
+      validatedRedirectUri: redirectUri,
+    };
   }
 
   async function handleCancelClick() {
-    const params = parseParams();
+    const params = await paramsPromise;
+
     const redirectUri = newRedirectUri(params);
     redirectUri.searchParams.append("error", "access_denied");
     redirectUri.searchParams.append(
@@ -103,12 +109,12 @@
 
   async function handleAuthorizeClick() {
     const redirectUri = await approve();
-    console.log(`Authorized, redirecting back to client: ${redirectUri}`);
+    console.log(`Redirecting back to client: ${redirectUri}`);
     window.location.assign(redirectUri);
   }
 
   async function approve(): Promise<URL> {
-    const params = parseParams();
+    const params = await paramsPromise;
     let approval: { code: string };
     try {
       const response = await fetch(`/oauth/approve`, {
@@ -122,12 +128,13 @@
           scope: params.scope,
           code_challenge: params.codeChallenge,
           code_challenge_method: params.codeChallengeMethod,
-          redirect_uri: params.redirectUri,
+          redirect_uri: params.validatedRedirectUri,
           resource: params.resource,
           other: params.other.length ? params.other : undefined,
         }),
       });
       approval = await parseResponse(auth, response);
+      console.info("Approval request succeeded");
     } catch (e) {
       console.error("Approval request failed: ", e);
       return newErrorRedirectUri(params, e);
@@ -170,7 +177,7 @@
   }
 
   function newRedirectUri(params: Params) {
-    const redirectUri = new URL(params.redirectUri);
+    const redirectUri = new URL(params.validatedRedirectUri);
     if (params.state) {
       redirectUri.searchParams.append("state", params.state);
     }
@@ -183,21 +190,19 @@
 <div class="m-2">
   <Alert>
     <div class="flex flex-col items-center gap-2">
-      {#await details}
+      {#await paramsPromise}
         <div class="text-l">Loading...</div>
-      {:then details}
-        {#if details.client_name}
-          <div>Authorize access to "{details.client_name}"?</div>
-          <div class="flex items-center gap-2">
-            <Button onclick={handleAuthorizeClick}>Authorize</Button>
-            <Button onclick={handleCancelClick}>Cancel</Button>
-          </div>
-        {:else}
-          <div class="text-l">
-            Something went wrong. Clear any state and try again.
-          </div>
-          <div class="text-red-500">{details.error}</div>
-        {/if}
+      {:then params}
+        <div>Authorize access to "{params.clientName}"?</div>
+        <div class="flex items-center gap-2">
+          <Button onclick={handleAuthorizeClick}>Authorize</Button>
+          <Button onclick={handleCancelClick}>Cancel</Button>
+        </div>
+      {:catch e}
+        <div class="text-l">
+          Something went wrong. Clear any state and try again.
+        </div>
+        <div class="text-red-500">{JSON.stringify(e)}</div>
       {/await}
     </div>
   </Alert>
