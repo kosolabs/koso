@@ -42,6 +42,7 @@ pub(crate) fn router(pool: &'static PgPool) -> Result<Router> {
         tokens: Arc::new(Mutex::new(HashMap::new())),
     };
 
+    // https://datatracker.ietf.org/doc/html/rfc9700#name-authorization-code-grant:~:text=Cross%2DOrigin%20Resource%20Sharing
     let cors_layer = CorsLayer::new()
         .allow_origin(cors::Any)
         .allow_methods(cors::Any)
@@ -84,7 +85,11 @@ pub(crate) fn router(pool: &'static PgPool) -> Result<Router> {
                 .route("/register", post(oauth_register).options(oauth_register))
                 .route("/token", post(oauth_token).options(oauth_token))
                 .layer(cors_layer)
-                .route("/authorization_details", post(oauth_authorization_details))
+                .route(
+                    "/authorization_details",
+                    post(oauth_authorization_details)
+                        .layer(middleware::from_fn(google::authenticate)),
+                )
                 .route(
                     "/approve",
                     post(oauth_approve)
@@ -861,6 +866,8 @@ fn validate_code_challenge(req: &TokenRequest, auth_token: &AuthTokenMetadata) -
             }
         }
         (None, None, None) => {}
+        // Prevent PKCE downgrade attacks.
+        // https://datatracker.ietf.org/doc/html/rfc9700#name-authorization-code-grant:~:text=servers%20MUST%20mitigate-,PKCE%20downgrade%20attacks,-by%20ensuring%20that
         _ => {
             return Err(bad_request_error(
                 "invalid_grant",
