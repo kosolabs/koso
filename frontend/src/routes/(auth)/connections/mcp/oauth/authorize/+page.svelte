@@ -108,14 +108,8 @@
   }
 
   async function handleAuthorizeClick() {
-    const redirectUri = await approve();
-    console.log(`Redirecting back to client: ${redirectUri}`);
-    window.location.assign(redirectUri);
-  }
-
-  async function approve(): Promise<URL> {
     const params = await paramsPromise;
-    let approval: { code: string };
+
     try {
       const response = await fetch(`/oauth/approve`, {
         method: "POST",
@@ -133,16 +127,22 @@
           other: params.other.length ? params.other : undefined,
         }),
       });
-      approval = await parseResponse(auth, response);
-      console.info("Approval request succeeded");
-    } catch (e) {
-      console.error("Approval request failed: ", e);
-      return newErrorRedirectUri(params, e);
-    }
+      const approval: { code: string } = await parseResponse(auth, response);
 
-    // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
+      const redirectUri = newSuccessRedirectUri(params, approval.code);
+      console.info(`Approval request succeeded, redirecting: ${redirectUri}`);
+      window.location.assign(redirectUri);
+    } catch (e) {
+      const redirectUri = newErrorRedirectUri(params, e);
+      console.info(`Approval request failed, redirecting: ${redirectUri}`, e);
+      window.location.assign(redirectUri);
+    }
+  }
+
+  // https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2
+  function newSuccessRedirectUri(params: Params, code: string) {
     const redirectUri = newRedirectUri(params);
-    redirectUri.searchParams.append("code", approval.code);
+    redirectUri.searchParams.append("code", code);
     return redirectUri;
   }
 
