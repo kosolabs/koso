@@ -168,7 +168,7 @@
       {#each breadcrumbs as crumb, i (i)}
         <span>{crumb}</span>
         {#if i < breadcrumbs.length - 1}
-          <span class="px-1 text-gray-400">{">"}</span>
+          <span class="px-1 text-gray-400">></span>
         {/if}
       {/each}
     </div>
