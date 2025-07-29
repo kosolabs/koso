@@ -1,10 +1,10 @@
 import { page } from "$app/state";
+import type { AuthContext } from "$lib/auth.svelte";
 import type { User } from "$lib/users";
 import { getContext, setContext } from "svelte";
 import * as Y from "yjs";
 import { Koso } from "./koso.svelte";
 import { KosoSocket } from "./socket.svelte";
-import type { AuthContext } from "$lib/auth.svelte";
 
 export class ProjectContext {
   id: string;
@@ -22,6 +22,7 @@ export class ProjectContext {
 
 export function newProjectContext(auth: AuthContext): ProjectContext {
   const id = page.params.projectId;
+  if (!id) throw new Error("Missing projectId slug");
   const koso = new Koso(id, new Y.Doc());
   const socket = new KosoSocket(auth, koso, id);
   window.koso = koso;

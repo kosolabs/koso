@@ -26,6 +26,8 @@
 
   const projectId = page.params.projectId;
   const taskId = page.params.taskId;
+  if (!projectId) throw new Error("Missing projectId slug");
+  if (!taskId) throw new Error("Missing taskId slug");
   const simulate = page.url.searchParams.get("simulate") === "true";
 
   const { koso, socket, name, users } = getProjectContext();
