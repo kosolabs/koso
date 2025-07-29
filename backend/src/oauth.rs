@@ -156,11 +156,11 @@ fn _authenticate(
         if parts.len() != 2 || parts[0] != "Bearer" {
             return Err(anyhow!("Could not split bearer parts: {parts:?}"));
         }
-        parts[1]
+        parts[1].into()
     };
 
     // Decode the access token.
-    decode_access_token(decoding_key, access_token)
+    decode_access_token(decoding_key, &access_token)
 }
 
 const READ_WRITE_SCOPE: &str = "read_write";
@@ -174,7 +174,7 @@ const REFRESH_GRANT_TYPE: &str = "refresh_token";
 const S256_CHALLENGE_METHOD: &str = "S256";
 
 /// oauth2 resource server metadata
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Serialize)]
 struct ResourceServerMetadata {
     /// https://www.rfc-editor.org/rfc/rfc8707.html
     resource: String,
@@ -199,7 +199,7 @@ async fn get_resource_server_metadata() -> ApiResult<Json<ResourceServerMetadata
 }
 
 /// oauth2 authorization server metadata
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Serialize)]
 struct AuthorizationServerMetadata {
     authorization_endpoint: String,
     token_endpoint: String,
@@ -339,20 +339,23 @@ impl Store {
 
 /// Note: All fields must be optional. Validation should occur with the handler.
 /// See `swap_empty_with_none` below.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 struct ClientRegistrationRequest {
     client_name: Option<String>,
     scope: Option<String>,
+    #[serde(default)]
     redirect_uris: Vec<String>,
     token_endpoint_auth_method: Option<String>,
+    #[serde(default)]
     grant_types: Vec<String>,
+    #[serde(default)]
     response_types: Vec<String>,
     #[allow(dead_code)]
     #[serde(flatten)]
     other: serde_json::Value,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 struct ClientRegistrationResponse {
     client_id: String,
     client_name: String,
@@ -362,7 +365,7 @@ struct ClientRegistrationResponse {
     grant_types: Vec<String>,
     response_types: Vec<String>,
     client_secret_expires_at: u64,
-    client_secret: String,
+    client_secret: Secret,
 }
 
 // Handle dynamic client registration
@@ -376,6 +379,38 @@ async fn oauth_register(
     let req = trim_client_registration_request(req);
     tracing::debug!("Registering client: {req:?}");
 
+    let client_metadata = create_client(req).await?;
+
+    // Generate the client secret.
+    let claims = ClientSecretClaims {
+        iat: client_metadata.registered_at,
+        exp: client_metadata.client_secret_expires_at,
+        iss: CLIENT_SECRET_ISS.to_string(),
+        client_id: client_metadata.client_id.clone(),
+    };
+    let client_secret = encode_client_secret(&key, &claims)?;
+
+    // Persist the client.
+    store.insert_client(&client_metadata).await?;
+
+    // Create the response.
+    let response = ClientRegistrationResponse {
+        client_id: client_metadata.client_id,
+        client_name: client_metadata.client_name,
+        scope: client_metadata.scope,
+        token_endpoint_auth_method: client_metadata.token_endpoint_auth_method,
+        redirect_uris: client_metadata.redirect_uris,
+        grant_types: client_metadata.grant_types,
+        response_types: client_metadata.response_types,
+        client_secret_expires_at: client_metadata.client_secret_expires_at,
+        client_secret,
+    };
+    tracing::debug!("Registered client: {response:?}");
+
+    Ok(Json(response))
+}
+
+async fn create_client(req: ClientRegistrationRequest) -> ApiResult<ClientMetadata> {
     // Validate the request
     let redirect_uris = validate_redirect_uris(req.redirect_uris)?;
     let response_types = req.response_types;
@@ -415,7 +450,8 @@ async fn oauth_register(
         client_name.truncate(255);
         client_name = format!("{client_name}..");
     }
-    let client_metadata = ClientMetadata {
+
+    Ok(ClientMetadata {
         client_id,
         client_name,
         registered_at: now()?,
@@ -425,33 +461,7 @@ async fn oauth_register(
         redirect_uris,
         grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
         response_types: vec![CODE_RESPONSE_TYPE.to_string()],
-    };
-
-    // Generate the client secret.
-    let claims = ClientSecretClaims {
-        iat: client_metadata.registered_at,
-        exp: client_metadata.client_secret_expires_at,
-        iss: CLIENT_SECRET_ISS.to_string(),
-        client_id: client_metadata.client_id.clone(),
-    };
-    let client_secret = encode_client_secret(&key, &claims)?;
-    store.insert_client(&client_metadata).await?;
-
-    // Create the response.
-    let response = ClientRegistrationResponse {
-        client_id: client_metadata.client_id,
-        client_name: client_metadata.client_name,
-        scope: client_metadata.scope,
-        token_endpoint_auth_method: client_metadata.token_endpoint_auth_method,
-        redirect_uris: client_metadata.redirect_uris,
-        grant_types: client_metadata.grant_types,
-        response_types: client_metadata.response_types,
-        client_secret_expires_at: client_metadata.client_secret_expires_at,
-        client_secret,
-    };
-    tracing::debug!("Registered client: {response:?}");
-
-    Ok(Json(response))
+    })
 }
 
 fn validate_redirect_uris(redirect_uris: Vec<String>) -> ApiResult<Vec<String>> {
@@ -551,7 +561,7 @@ struct ApprovalRequest {
 
 #[derive(Debug, Serialize)]
 struct ApprovalResponse {
-    code: String,
+    code: Secret,
 }
 
 /// Handle approval requests sent from a client browser.
@@ -566,6 +576,33 @@ async fn oauth_approve(
     let req: ApprovalRequest = trim_approval_request(req);
     tracing::info!("Approving authorization: {req:?}");
 
+    let auth_token_metadata = issue_auth_token(req, user, &store).await?;
+
+    // Encode the token.
+    let auth_token_claims = AuthTokenClaims {
+        iat: auth_token_metadata.issued_at,
+        exp: auth_token_metadata.expires_at,
+        iss: AUTH_TOKEN_ISS.to_string(),
+        client_id: auth_token_metadata.client_id.clone(),
+        token_id: auth_token_metadata.token_id.clone(),
+    };
+    let auth_token = encode_auth_token(&encoding_key, &auth_token_claims)?;
+
+    // Persist the token.
+    store.insert_auth_token(&auth_token_metadata).await?;
+
+    tracing::info!(
+        "Approved authorization, created auth token: {auth_token_claims:?}: {auth_token_metadata:?}"
+    );
+
+    Ok(Json(ApprovalResponse { code: auth_token }))
+}
+
+async fn issue_auth_token(
+    req: ApprovalRequest,
+    user: User,
+    store: &Store,
+) -> ApiResult<AuthTokenMetadata> {
     // Validate the request.
     let Some(client_id) = req.client_id else {
         return Err(bad_request_error("invalid_request", "Client id required"));
@@ -620,7 +657,7 @@ async fn oauth_approve(
     validate_redirect_uri(&client_metadata.redirect_uris, &redirect_uri)?;
 
     // Encode the auth token
-    let auth_token_metadata = AuthTokenMetadata {
+    Ok(AuthTokenMetadata {
         issued_at: now()?,
         expires_at: expires_at(AUTH_TOKEN_EXPIRY_SECS)?,
         client_id,
@@ -631,43 +668,28 @@ async fn oauth_approve(
         code_challenge,
         code_challenge_method,
         user,
-    };
-    let auth_token_claims = AuthTokenClaims {
-        iat: auth_token_metadata.issued_at,
-        exp: auth_token_metadata.expires_at,
-        iss: AUTH_TOKEN_ISS.to_string(),
-        client_id: auth_token_metadata.client_id.clone(),
-        token_id: auth_token_metadata.token_id.clone(),
-    };
-    let auth_token = encode_auth_token(&encoding_key, &auth_token_claims)?;
-    store.insert_auth_token(&auth_token_metadata).await?;
-
-    tracing::info!(
-        "Approved authorization, created auth token: {auth_token_claims:?}: {auth_token_metadata:?}"
-    );
-
-    Ok(Json(ApprovalResponse { code: auth_token }))
+    })
 }
 
 /// Note: All fields must be optional. Validation should occur with the handler.
 /// See `swap_empty_with_none` below.
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct TokenRequest {
     /// refresh_token or authorization_code
     grant_type: Option<String>,
     client_id: Option<String>,
-    client_secret: Option<String>,
+    client_secret: Option<Secret>,
     scope: Option<String>,
     /// https://www.rfc-editor.org/rfc/rfc8707.html#name-resource-parameter
     resource: Option<String>,
     redirect_uri: Option<String>,
 
     // authorization_code fields
-    code: Option<String>,
-    code_verifier: Option<String>,
+    code: Option<Secret>,
+    code_verifier: Option<Secret>,
 
     // refresh_token_fields
-    refresh_token: Option<String>,
+    refresh_token: Option<Secret>,
 
     #[allow(dead_code)]
     #[serde(flatten)]
@@ -679,8 +701,8 @@ struct TokenResponse {
     token_type: String,
     expires_in: u64,
     scope: String,
-    access_token: String,
-    refresh_token: String,
+    access_token: Secret,
+    refresh_token: Secret,
 }
 
 /// Handle token request from the MCP client
@@ -800,8 +822,7 @@ async fn validate_authorization_code(
             "code required for authorization_code grant type",
         ));
     };
-    let auth_token_claims = decode_auth_token(decoding_key, code)
-        .context_bad_request("invalid_grant", "Invalid auth token")?;
+    let auth_token_claims = decode_auth_token(decoding_key, code)?;
     let auth_token = store
         .consume_auth_token(&auth_token_claims.token_id)
         .await
@@ -856,8 +877,8 @@ fn validate_code_challenge(req: &TokenRequest, auth_token: &AuthTokenMetadata) -
             if method != S256_CHALLENGE_METHOD {
                 return Err(bad_request_error("invalid_grant", "Only S256 is supported"));
             }
-            let actual_challenge =
-                BASE64_URL_SAFE_NO_PAD.encode(Sha256::new().chain_update(verifier).finalize());
+            let actual_challenge = BASE64_URL_SAFE_NO_PAD
+                .encode(Sha256::new().chain_update(verifier.data()).finalize());
             if &actual_challenge != challenge {
                 return Err(bad_request_error(
                     "invalid_grant",
@@ -931,8 +952,7 @@ fn validate_refresh_token(
             "refresh_token required for refresh_token grant type",
         ));
     };
-    let refresh_token = decode_refresh_token(decoding_key, refresh_token)
-        .context_bad_request("invalid_grant", "Invalid refresh token")?;
+    let refresh_token = decode_refresh_token(decoding_key, refresh_token)?;
 
     // Validate the token was issued for this client
     // The check is optional as client_id may be omitted for refresh_token requests.
@@ -1007,17 +1027,13 @@ async fn authenticate_token_client_basic(
             "Invalid authorization credentials id",
         ));
     };
-    let Some(client_secret) = credentials.next() else {
+    let Some(client_secret) = credentials.next().map(Into::into) else {
         return Err(bad_request_error(
             "invalid_request",
             "Invalid authorization credentials secret",
         ));
     };
-    let client_secret_claims = decode_client_secret(decoding_key, client_secret).context_status(
-        StatusCode::UNAUTHORIZED,
-        "invalid_client",
-        "Invalid client secret",
-    )?;
+    let client_secret_claims = decode_client_secret(decoding_key, &client_secret)?;
     if client_secret_claims.client_id != client_id {
         return Err(error_response(
             StatusCode::UNAUTHORIZED,
@@ -1052,17 +1068,13 @@ async fn authenticate_token_client_basic(
 /// i.e. using the the client_secret field.
 async fn authenticate_token_client_post(
     req: &TokenRequest,
-    client_secret: &str,
+    client_secret: &Secret,
     store: &Store,
     decoding_key: &DecodingKey,
 ) -> ApiResult<ClientMetadata> {
     tracing::debug!("Authenticating with client_secret_post client_secret parameter");
 
-    let client_secret_claims = decode_client_secret(decoding_key, client_secret).context_status(
-        StatusCode::UNAUTHORIZED,
-        "invalid_client",
-        "Invalid client secret",
-    )?;
+    let client_secret_claims = decode_client_secret(decoding_key, client_secret)?;
     if let Some(client_id) = &req.client_id
         && client_id != &client_secret_claims.client_id
     {
@@ -1176,52 +1188,66 @@ struct RefreshTokenClaims {
     auth_token_claims: AuthTokenClaims,
 }
 
-fn encode_client_secret(key: &EncodingKey, claims: &ClientSecretClaims) -> ApiResult<String> {
+fn encode_client_secret(key: &EncodingKey, claims: &ClientSecretClaims) -> ApiResult<Secret> {
     encode_token(key, claims)
 }
 
-fn decode_client_secret(key: &DecodingKey, client_secret: &str) -> Result<ClientSecretClaims> {
-    decode_token(key, client_secret, CLIENT_SECRET_ISS)
-}
-
-fn encode_auth_token(key: &EncodingKey, claims: &AuthTokenClaims) -> ApiResult<String> {
-    encode_token(key, claims)
-}
-
-fn decode_auth_token(key: &DecodingKey, auth_token: &str) -> Result<AuthTokenClaims> {
-    decode_token(key, auth_token, AUTH_TOKEN_ISS)
-}
-
-fn encode_access_token(key: &EncodingKey, claims: &AccessTokenClaims) -> ApiResult<String> {
-    encode_token(key, claims)
-}
-
-fn decode_access_token(key: &DecodingKey, access_token: &str) -> Result<AccessTokenClaims> {
-    decode_token(key, access_token, ACCESS_TOKEN_ISS)
-}
-
-fn encode_refresh_token(key: &EncodingKey, claims: &RefreshTokenClaims) -> ApiResult<String> {
-    encode_token(key, claims)
-}
-
-fn decode_refresh_token(key: &DecodingKey, refresh_token: &str) -> Result<RefreshTokenClaims> {
-    decode_token(key, refresh_token, REFRESH_TOKEN_ISS)
-}
-
-fn encode_token<T: Serialize>(key: &EncodingKey, claims: &T) -> ApiResult<String> {
-    encode(&Header::default(), claims, key).context_status(
-        StatusCode::INTERNAL_SERVER_ERROR,
-        "server_error",
-        "Something went wrong encoding token.",
+fn decode_client_secret(
+    key: &DecodingKey,
+    client_secret: &Secret,
+) -> ApiResult<ClientSecretClaims> {
+    decode_token(key, client_secret, CLIENT_SECRET_ISS).context_status(
+        StatusCode::UNAUTHORIZED,
+        "invalid_client",
+        "Invalid client secret",
     )
 }
 
-fn decode_token<T: DeserializeOwned>(key: &DecodingKey, token: &str, issuer: &str) -> Result<T> {
+fn encode_auth_token(key: &EncodingKey, claims: &AuthTokenClaims) -> ApiResult<Secret> {
+    encode_token(key, claims)
+}
+
+fn decode_auth_token(key: &DecodingKey, auth_token: &Secret) -> ApiResult<AuthTokenClaims> {
+    decode_token(key, auth_token, AUTH_TOKEN_ISS)
+        .context_bad_request("invalid_grant", "Invalid auth token")
+}
+
+fn encode_access_token(key: &EncodingKey, claims: &AccessTokenClaims) -> ApiResult<Secret> {
+    encode_token(key, claims)
+}
+
+fn decode_access_token(key: &DecodingKey, access_token: &Secret) -> Result<AccessTokenClaims> {
+    decode_token(key, access_token, ACCESS_TOKEN_ISS)
+}
+
+fn encode_refresh_token(key: &EncodingKey, claims: &RefreshTokenClaims) -> ApiResult<Secret> {
+    encode_token(key, claims)
+}
+
+fn decode_refresh_token(
+    key: &DecodingKey,
+    refresh_token: &Secret,
+) -> ApiResult<RefreshTokenClaims> {
+    decode_token(key, refresh_token, REFRESH_TOKEN_ISS)
+        .context_bad_request("invalid_grant", "Invalid refresh token")
+}
+
+fn encode_token<T: Serialize>(key: &EncodingKey, claims: &T) -> ApiResult<Secret> {
+    Ok(encode(&Header::default(), claims, key)
+        .context_status(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "server_error",
+            "Something went wrong encoding token.",
+        )?
+        .into())
+}
+
+fn decode_token<T: DeserializeOwned>(key: &DecodingKey, token: &Secret, issuer: &str) -> Result<T> {
     let mut validation = Validation::default();
     validation.set_issuer(&[issuer]);
     validation.required_spec_claims.insert("iss".to_string());
 
-    Ok(decode::<T>(token, key, &validation)
+    Ok(decode::<T>(token.data(), key, &validation)
         .context("Invalid token")?
         .claims)
 }
@@ -1236,117 +1262,101 @@ fn now() -> ApiResult<u64> {
     Ok(timer.duration_since(UNIX_EPOCH)?.as_secs())
 }
 
-/// Replace all empty strings with None.
-fn trim_client_registration_request(
-    mut req: ClientRegistrationRequest,
-) -> ClientRegistrationRequest {
-    swap_empty_with_none(&mut req.client_name);
-    swap_empty_with_none(&mut req.scope);
+/// Wrapper that makes it hard to accidentally log a secret.
+#[derive(Clone, Serialize, Deserialize)]
+struct Secret(String);
 
-    req
+impl<S: Into<String>> From<S> for Secret {
+    fn from(data: S) -> Self {
+        Secret(data.into())
+    }
+}
+
+impl std::fmt::Debug for Secret {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("<REDACTED>")
+    }
+}
+
+impl Secret {
+    fn data(&self) -> &str {
+        &self.0
+    }
 }
 
 /// Replace all empty strings with None.
-fn trim_authorize_request(mut req: AuthorizationDetailsRequest) -> AuthorizationDetailsRequest {
-    swap_empty_with_none(&mut req.client_id);
-    swap_empty_with_none(&mut req.redirect_uri);
-
-    req
+fn trim_client_registration_request(req: ClientRegistrationRequest) -> ClientRegistrationRequest {
+    ClientRegistrationRequest {
+        client_name: trim_to_none(req.client_name),
+        scope: trim_to_none(req.scope),
+        redirect_uris: req.redirect_uris,
+        token_endpoint_auth_method: trim_to_none(req.token_endpoint_auth_method),
+        grant_types: req.grant_types,
+        response_types: req.response_types,
+        other: req.other,
+    }
 }
 
 /// Replace all empty strings with None.
-fn trim_approval_request(mut req: ApprovalRequest) -> ApprovalRequest {
-    swap_empty_with_none(&mut req.client_id);
-    swap_empty_with_none(&mut req.scope);
-    swap_empty_with_none(&mut req.response_type);
-    swap_empty_with_none(&mut req.code_challenge_method);
-    swap_empty_with_none(&mut req.code_challenge);
-    swap_empty_with_none(&mut req.redirect_uri);
-    swap_empty_with_none(&mut req.resource);
-
-    req
+fn trim_authorize_request(req: AuthorizationDetailsRequest) -> AuthorizationDetailsRequest {
+    AuthorizationDetailsRequest {
+        client_id: trim_to_none(req.client_id),
+        redirect_uri: trim_to_none(req.redirect_uri),
+        other: req.other,
+    }
 }
 
 /// Replace all empty strings with None.
-fn trim_token_request(mut req: TokenRequest) -> TokenRequest {
-    swap_empty_with_none(&mut req.grant_type);
-    swap_empty_with_none(&mut req.client_id);
-    swap_empty_with_none(&mut req.client_secret);
-    swap_empty_with_none(&mut req.scope);
-    swap_empty_with_none(&mut req.code);
-    swap_empty_with_none(&mut req.code_verifier);
-    swap_empty_with_none(&mut req.refresh_token);
-    swap_empty_with_none(&mut req.redirect_uri);
-    swap_empty_with_none(&mut req.resource);
-
-    req
+fn trim_approval_request(req: ApprovalRequest) -> ApprovalRequest {
+    ApprovalRequest {
+        client_id: trim_to_none(req.client_id),
+        scope: trim_to_none(req.scope),
+        response_type: trim_to_none(req.response_type),
+        code_challenge_method: trim_to_none(req.code_challenge_method),
+        code_challenge: trim_to_none(req.code_challenge),
+        redirect_uri: trim_to_none(req.redirect_uri),
+        resource: trim_to_none(req.resource),
+        other: req.other,
+    }
 }
 
-/// If the options value is the empty string, replace it with None.
+/// Replace all empty strings with None.
+fn trim_token_request(req: TokenRequest) -> TokenRequest {
+    TokenRequest {
+        grant_type: trim_to_none(req.grant_type),
+        client_id: trim_to_none(req.client_id),
+        client_secret: trim_secret_to_none(req.client_secret),
+        scope: trim_to_none(req.scope),
+        resource: trim_to_none(req.resource),
+        redirect_uri: trim_to_none(req.redirect_uri),
+        code: trim_secret_to_none(req.code),
+        code_verifier: trim_secret_to_none(req.code_verifier),
+        refresh_token: trim_secret_to_none(req.refresh_token),
+        other: req.other,
+    }
+}
+
+/// If the options value is the empty string, return None.
 /// Implements https://datatracker.ietf.org/doc/html/rfc6749
 /// >  Parameters sent without a value
 /// >  MUST be treated as if they were omitted from the request.
-fn swap_empty_with_none(s: &mut Option<String>) {
-    if let Some(ss) = s
+fn trim_to_none(s: Option<String>) -> Option<String> {
+    if let Some(ss) = &s
         && ss.is_empty()
     {
-        s.take();
+        None
+    } else {
+        s
     }
 }
 
-impl std::fmt::Debug for ClientRegistrationResponse {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ClientRegistrationResponse")
-            .field("client_id", &self.client_id)
-            .field("client_name", &self.client_name)
-            .field("scope", &self.scope)
-            .field(
-                "token_endpoint_auth_method",
-                &self.token_endpoint_auth_method,
-            )
-            .field("redirect_uris", &self.redirect_uris)
-            .field("grant_types", &self.grant_types)
-            .field("response_types", &self.response_types)
-            .field("client_secret_expires_at", &self.client_secret_expires_at)
-            .field("client_secret", &"<REDACTED>")
-            .finish()
-    }
-}
-
-impl std::fmt::Debug for TokenRequest {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TokenRequest")
-            .field("grant_type", &self.grant_type)
-            .field("client_id", &self.client_id)
-            .field(
-                "client_secret",
-                &self.client_secret.as_ref().map(|_| "<REDACTED>"),
-            )
-            .field("resource", &self.resource)
-            .field("redirect_uri", &self.redirect_uri)
-            .field("code", &self.code.as_ref().map(|_| "<REDACTED>"))
-            .field(
-                "code_verifier",
-                &self.code_verifier.as_ref().map(|_| "<REDACTED>"),
-            )
-            .field(
-                "refresh_token",
-                &self.refresh_token.as_ref().map(|_| "<REDACTED>"),
-            )
-            .field("other", &self.other)
-            .finish()
-    }
-}
-
-impl std::fmt::Debug for TokenResponse {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TokenRequest")
-            .field("token_type", &self.token_type)
-            .field("expires_in", &self.expires_in)
-            .field("scope", &self.scope)
-            .field("access_token", &"<REDACTED>")
-            .field("refresh_token", &"<REDACTED>")
-            .finish()
+fn trim_secret_to_none(s: Option<Secret>) -> Option<Secret> {
+    if let Some(ss) = &s
+        && ss.data().is_empty()
+    {
+        None
+    } else {
+        s
     }
 }
 
