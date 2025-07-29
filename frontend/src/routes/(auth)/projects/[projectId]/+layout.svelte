@@ -159,7 +159,7 @@
     new Action({
       id: ActionIds.ConnectToGitHub,
       callback: async () =>
-        await redirectToGithubInstallFlow(auth, ctx.id, page.url.pathname),
+        await redirectToGithubInstallFlow(auth, ctx.id, page.url.toString()),
       category: Categories.Project,
       name: "Connect to GitHub",
       description: "Connect the project to GitHub",
