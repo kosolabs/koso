@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { page } from "$app/state";
   import { KosoError } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
@@ -11,7 +12,7 @@
 
   onMount(async () => {
     // See https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-web-application-flow-to-generate-a-user-access-token
-    const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = page.url.searchParams;
 
     const state = parseAndValidateState(urlParams);
     if (!state) {
@@ -36,7 +37,7 @@
     await connectProject(state, code);
     toast.info("Project connected to Github!");
 
-    await goto(state.redirectUrl);
+    await goto(state.redirectUrl, { replaceState: true });
   });
 
   function parseAndValidateState(

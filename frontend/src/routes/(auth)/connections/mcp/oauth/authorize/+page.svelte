@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import { headers, KosoError, parseResponse } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
@@ -28,7 +29,7 @@
   };
 
   function parseParams(): ParsedParams {
-    const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = page.url.searchParams;
     function pop(name: string): string | null {
       const value = urlParams.get(name) || null;
       urlParams.delete(name);
@@ -104,7 +105,7 @@
     );
 
     console.log(`Cancelled, redirecting back to client: ${redirectUri}`);
-    window.location.assign(redirectUri);
+    window.location.replace(redirectUri);
   }
 
   async function handleAuthorizeClick() {
@@ -131,11 +132,11 @@
 
       const redirectUri = newSuccessRedirectUri(params, approval.code);
       console.info(`Approval request succeeded, redirecting: ${redirectUri}`);
-      window.location.assign(redirectUri);
+      window.location.replace(redirectUri);
     } catch (e) {
       const redirectUri = newErrorRedirectUri(params, e);
       console.info(`Approval request failed, redirecting: ${redirectUri}`, e);
-      window.location.assign(redirectUri);
+      window.location.replace(redirectUri);
     }
   }
 

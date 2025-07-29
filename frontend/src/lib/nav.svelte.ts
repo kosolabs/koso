@@ -29,7 +29,7 @@ class Nav {
    * page without being logged in or their credentials expiring.
    */
   pushRedirectOnUserNotAuthenticated() {
-    const redirect = page.url.pathname;
+    const redirect = page.url.toString();
     this.#onLoginRedirect = redirect;
     console.debug(
       `User isn't logged in. Going to / with redirect destination ${redirect}`,

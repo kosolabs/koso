@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto, replaceState } from "$app/navigation";
+  import { page } from "$app/state";
   import { AnthropicStream } from "$lib/anthropic.svelte";
   import { headers } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
@@ -810,7 +811,7 @@
   ];
 
   onMount(async () => {
-    const url = new URL(window.location.href);
+    const url = page.url;
     const taskId = url.searchParams.get("taskId");
     if (taskId) {
       await koso.synced;
