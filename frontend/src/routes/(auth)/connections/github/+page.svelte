@@ -37,7 +37,7 @@
     await connectProject(state, code);
     toast.info("Project connected to Github!");
 
-    await goto(state.redirectUrl);
+    await goto(state.redirectUrl, { replaceState: true });
   });
 
   function parseAndValidateState(
