@@ -6,11 +6,8 @@ use anyhow::{Context, Result, anyhow};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use futures::StreamExt;
 use octocrab::{
-    Octocrab, OctocrabBuilder,
-    models::{
-        self, AppId, InstallationId, InstallationRepositories, Repository, pulls::PullRequest,
-        repos::Object,
-    },
+    Octocrab, OctocrabBuilder, Page,
+    models::{AppId, InstallationId, Repository, pulls::PullRequest, repos::Object},
     params::{Direction, State, pulls::Sort, repos::Reference},
 };
 
@@ -84,7 +81,7 @@ pub struct InstallationGithub {
 
 impl InstallationGithub {
     pub async fn fetch_pull_requests(&self, owner: &str, repo: &str) -> Result<Vec<PullRequest>> {
-        let mut page = self
+        let page = self
             .installation_crab
             .pulls(owner, repo)
             .list()
@@ -94,26 +91,17 @@ impl InstallationGithub {
             .per_page(100)
             .send()
             .await?;
-
         // Paginate through additional pages, if any, collecting all results.
-        let mut prs = Vec::with_capacity(page.total_count.unwrap_or(0).try_into()?);
-        loop {
-            prs.append(&mut page.items);
-            page = match self
-                .installation_crab
-                .get_page::<models::pulls::PullRequest>(&page.next)
-                .await?
-            {
-                Some(next_page) => next_page,
-                None => break,
-            }
-        }
-        Ok(prs)
+        self.installation_crab
+            .all_pages(page)
+            .await
+            .context("Failed to paginate through PRs")
     }
 
     /// Returns all open PRs from all of the installation's repositories.
     pub async fn fetch_install_pull_requests(&self) -> Result<Vec<PullRequest>> {
         let installed_repos = self.fetch_install_repos().await?;
+        tracing::info!("Got installation repos: {installed_repos:?}");
         let mut results = Vec::new();
         for repo in installed_repos {
             let owner = match repo.owner {
@@ -143,17 +131,18 @@ impl InstallationGithub {
 
     /// Returns all of this installation's repositories.
     pub async fn fetch_install_repos(&self) -> Result<Vec<Repository>> {
-        let installed_repos: InstallationRepositories = self
+        let page: Page<Repository> = self
             .installation_crab
-            .get("/installation/repositories", None::<&()>)
-            .await?;
-        let len: i64 = installed_repos.repositories.len().try_into()?;
-        if len != installed_repos.total_count {
-            tracing::warn!(
-                "Number of intallation repositories is probably large and we need to paginate: {installed_repos:?}"
-            );
-        }
-        Ok(installed_repos.repositories)
+            .get(
+                "/installation/repositories",
+                Some(&serde_json::json!({"per_page": 100})),
+            )
+            .await
+            .unwrap();
+        self.installation_crab
+            .all_pages(page)
+            .await
+            .context("Failed to paginate through installation repos")
     }
 }
 
