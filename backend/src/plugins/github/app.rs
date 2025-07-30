@@ -101,7 +101,6 @@ impl InstallationGithub {
     /// Returns all open PRs from all of the installation's repositories.
     pub async fn fetch_install_pull_requests(&self) -> Result<Vec<PullRequest>> {
         let installed_repos = self.fetch_install_repos().await?;
-        tracing::info!("Got installation repos: {installed_repos:?}");
         let mut results = Vec::new();
         for repo in installed_repos {
             let owner = match repo.owner {
