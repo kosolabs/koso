@@ -14,7 +14,7 @@ use crate::api::{
 use anyhow::{Result, anyhow};
 use axum::extract::ws::Message;
 use rand::random;
-use std::{fmt, ops::ControlFlow, sync::Arc, time::Duration};
+use std::{error::Error as _, fmt, ops::ControlFlow, sync::Arc, time::Duration};
 use tokio::sync::mpsc::Receiver;
 use tokio::{sync::mpsc::Sender, time::timeout};
 use tokio_tungstenite::tungstenite::{self, error::ProtocolError};
@@ -138,8 +138,10 @@ impl ClientMessageReceiver {
                 })
             }
             Err(e) => {
-                let e = e.into_inner();
-                match e.downcast_ref() {
+                match e
+                    .source()
+                    .and_then(|e| e.downcast_ref::<tungstenite::Error>())
+                {
                     Some(tungstenite::Error::Protocol(
                         ProtocolError::ResetWithoutClosingHandshake,
                     )) => ControlFlow::Break(ClientClosure {
