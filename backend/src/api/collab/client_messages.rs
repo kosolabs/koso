@@ -152,9 +152,9 @@ impl ClientMessageReceiver {
                         ),
                         client_initiated: true,
                     }),
-                    _ => {
+                    ee => {
                         tracing::warn!(
-                            "Got error reading from client socket. Will close socket. {e:?}"
+                            "Got error reading from client socket. Will close socket. {e:?} :: {ee:?}"
                         );
                         ControlFlow::Break(ClientClosure {
                             code: CLOSE_ERROR,
