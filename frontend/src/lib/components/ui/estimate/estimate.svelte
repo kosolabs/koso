@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Menu, MenuContent, MenuItem, MenuTrigger } from "$lib/kosui/menu";
   import { ESTIMATES, type Estimate } from "$lib/yproxy";
   import { CircleSlash } from "@lucide/svelte";
+  import { Menu, MenuContent, MenuItem, MenuTrigger } from "kosui";
 
   type Props = {
     value: number | null;

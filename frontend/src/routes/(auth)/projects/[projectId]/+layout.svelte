@@ -11,7 +11,6 @@
   import { ProjectShareModal } from "$lib/components/ui/project-share-modal";
   import { toast } from "$lib/components/ui/sonner";
   import { redirectToGithubInstallFlow } from "$lib/github";
-  import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
   import { NavigationAction } from "$lib/navigation-action";
   import {
@@ -31,6 +30,7 @@
     Pencil,
     UserPlus,
   } from "@lucide/svelte";
+  import { Action } from "kosui";
   import { onMount, type Snippet } from "svelte";
   import { newProjectContext } from "../../../../lib/dag-table/project-context.svelte";
 

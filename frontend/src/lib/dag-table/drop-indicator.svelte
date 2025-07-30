@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Tooltip } from "$lib/kosui/tooltip";
   import type { YTaskProxy } from "$lib/yproxy";
   import { ArrowBigRight } from "@lucide/svelte";
+  import { Tooltip } from "kosui";
 
   type Props = {
     src: YTaskProxy;

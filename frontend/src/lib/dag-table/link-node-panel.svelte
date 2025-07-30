@@ -1,19 +1,6 @@
 <script module lang="ts">
   import { getAuthContext } from "$lib/auth.svelte";
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
-  import { Button } from "$lib/kosui/button";
-  import { Chip } from "$lib/kosui/chip";
-  import {
-    Command,
-    CommandContent,
-    CommandDivider,
-    CommandItem,
-    CommandSearch,
-  } from "$lib/kosui/command";
-  import { mergeComponentProps } from "$lib/kosui/merge-props";
-  import { Popover, type PopoverProps } from "$lib/kosui/popover";
-  import { Shortcut } from "$lib/kosui/shortcut";
-  import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
   import { match } from "$lib/utils";
   import {
     Clipboard,
@@ -21,6 +8,21 @@
     Network,
     SquarePlus,
   } from "@lucide/svelte";
+  import {
+    Button,
+    Chip,
+    Command,
+    CommandContent,
+    CommandDivider,
+    CommandItem,
+    CommandSearch,
+    mergeComponentProps,
+    Popover,
+    Shortcut,
+    ToggleButton,
+    ToggleGroup,
+    type PopoverProps,
+  } from "kosui";
   import { getContext } from "svelte";
   import { compareTasks } from "./compare-tasks.svelte";
   import type { Koso } from "./koso.svelte";

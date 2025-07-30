@@ -1,8 +1,7 @@
 <script module lang="ts">
-  import { Action, Commander, Registry } from "$lib/kosui/command";
-  import { Shortcut } from "$lib/kosui/shortcut";
   import { NavigationAction } from "$lib/navigation-action";
-  import { Book, House, Moon, Sun, SunMoon, Terminal } from "@lucide/svelte";
+  import { House, Moon, Sun, SunMoon, Terminal } from "@lucide/svelte";
+  import { Action, Commander, Registry, Shortcut } from "kosui";
   import { userPrefersMode as mode, resetMode, setMode } from "mode-watcher";
   import type { Snippet } from "svelte";
   import { getContext, onMount, setContext } from "svelte";
@@ -16,7 +15,6 @@
     MarkdownPanel: "Markdown Panel",
     Project: "Project",
     Select: "Select",
-    Storybook: "Storybook",
     Task: "Task",
     Theme: "Theme",
     Tools: "Tools",
@@ -74,7 +72,6 @@
     Search: "Search",
     ShareProject: "ShareProject",
     ShowArchivedTasks: "ShowArchivedTasks",
-    Storybook: "Storybook",
     SystemTheme: "SystemTheme",
     ToggleTaskStatus: "ToggleTaskStatus",
     Unarchive: "Unarchive",
@@ -148,14 +145,6 @@
       name: "Home",
       description: "Navigate Home",
       icon: House,
-    }),
-    new NavigationAction({
-      id: ActionIds.Storybook,
-      href: "/storybook",
-      category: Categories.Navigation,
-      name: "Storybook",
-      description: "Navigate to Koso's component library storybook",
-      icon: Book,
     }),
   ];
 

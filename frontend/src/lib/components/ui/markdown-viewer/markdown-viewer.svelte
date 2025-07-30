@@ -1,14 +1,14 @@
 <script lang="ts">
+  import type { ClassName } from "kosui";
   import {
     Markdown,
     MarkdownBlockquote,
     MarkdownHeading,
+    MarkdownLink,
     MarkdownList,
     MarkdownTable,
     MarkdownTableCell,
-  } from "$lib/kosui/markdown";
-  import MarkdownLink from "$lib/kosui/markdown/markdown-link.svelte";
-  import type { ClassName } from "$lib/kosui/utils";
+  } from "kosui";
   import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";
   import MarkdownCode from "./markdown-code.svelte";

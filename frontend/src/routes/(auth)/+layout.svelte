@@ -6,10 +6,10 @@
     ActionIds,
     Categories,
   } from "$lib/components/ui/command-palette/command-palette.svelte";
-  import { Action } from "$lib/kosui/command";
   import { nav } from "$lib/nav.svelte";
   import { NavigationAction } from "$lib/navigation-action";
   import { LogOut, Rows3, UserCog } from "@lucide/svelte";
+  import { Action } from "kosui";
   import { onMount, type Snippet } from "svelte";
 
   type Props = {

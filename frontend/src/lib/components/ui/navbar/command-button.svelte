@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getRegistryContext } from "$lib/components/ui/command-palette";
-  import { Button } from "$lib/kosui/button";
+  import { Button } from "kosui";
   import { twMerge } from "tailwind-merge";
 
   type Props = {

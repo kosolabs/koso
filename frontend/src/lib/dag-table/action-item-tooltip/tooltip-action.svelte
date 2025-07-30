@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Box } from "$lib/kosui/box";
-  import { Header } from "$lib/kosui/common";
+  import { Box, Header } from "kosui";
   import type { Snippet } from "svelte";
 
   export type ReasonProps = {

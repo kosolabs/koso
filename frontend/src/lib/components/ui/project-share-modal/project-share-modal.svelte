@@ -5,21 +5,21 @@
   import { UserAvatar } from "$lib/components/ui/user-select";
   import { getProjectContext } from "$lib/dag-table";
   import {
-    Autocomplete,
-    AutocompleteContent,
-    AutocompleteInput,
-    AutocompleteItem,
-  } from "$lib/kosui/autocomplete";
-  import { Button } from "$lib/kosui/button";
-  import { getDialoguerContext } from "$lib/kosui/dialog";
-  import { Modal } from "$lib/kosui/modal";
-  import {
     COMPARE_USERS_BY_NAME_AND_EMAIL,
     updateProjectUsers,
   } from "$lib/projects";
   import type { User } from "$lib/users";
   import { cn, match } from "$lib/utils";
   import { CircleMinus, TriangleAlert, X } from "@lucide/svelte";
+  import {
+    Autocomplete,
+    AutocompleteContent,
+    AutocompleteInput,
+    AutocompleteItem,
+    Button,
+    getDialoguerContext,
+    Modal,
+  } from "kosui";
   import { flip } from "svelte/animate";
 
   type Props = {

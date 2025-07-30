@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Alert } from "$lib/kosui/alert";
+  import { Alert } from "kosui";
 
   type Props = {
     offline: boolean;

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Tooltip } from "$lib/kosui/tooltip";
   import { cn } from "$lib/utils";
   import { Github, ToyBrick, type Icon } from "@lucide/svelte";
+  import { Tooltip } from "kosui";
 
   type Props = {
     kind: string;

@@ -1,16 +1,16 @@
 <script lang="ts">
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
-  import { Chip } from "$lib/kosui/chip";
+  import { match } from "$lib/utils";
+  import { Clipboard, Network } from "@lucide/svelte";
   import {
+    Chip,
     Command,
     CommandContent,
     CommandDivider,
     CommandItem,
     CommandSearch,
-  } from "$lib/kosui/command";
-  import { Modal } from "$lib/kosui/modal";
-  import { match } from "$lib/utils";
-  import { Clipboard, Network } from "@lucide/svelte";
+    Modal,
+  } from "kosui";
   import { compareTasks } from "./compare-tasks.svelte";
   import { getPlanningContext } from "./planning-context.svelte";
 

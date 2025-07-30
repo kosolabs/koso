@@ -7,12 +7,10 @@
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { TaskStatus } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
-  import { Chip } from "$lib/kosui/chip";
-  import { Goto } from "$lib/kosui/goto";
-  import { Link } from "$lib/kosui/link";
   import type { User } from "$lib/users";
   import { cn } from "$lib/utils";
   import { Grip } from "@lucide/svelte";
+  import { Chip, Goto, Link } from "kosui";
   import { tick } from "svelte";
   import { ActionItemTooltip } from "./action-item-tooltip";
   import DescAction from "./desc-action.svelte";

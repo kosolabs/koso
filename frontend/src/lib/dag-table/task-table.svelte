@@ -9,9 +9,6 @@
   } from "$lib/components/ui/command-palette/command-palette.svelte";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { toast } from "$lib/components/ui/sonner";
-  import { Alert } from "$lib/kosui/alert";
-  import { Action } from "$lib/kosui/command";
-  import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL } from "$lib/shortcuts";
   import type { User } from "$lib/users";
   import {
@@ -34,6 +31,7 @@
     Undo,
     UserRoundPlus,
   } from "@lucide/svelte";
+  import { Action, Alert, Shortcut } from "kosui";
   import { onMount, tick } from "svelte";
   import Confetti from "svelte-confetti";
   import { flip } from "svelte/animate";

@@ -7,12 +7,11 @@
   import { toast } from "$lib/components/ui/sonner";
   import { TaskStatus } from "$lib/components/ui/task-status";
   import { UserSelect } from "$lib/components/ui/user-select";
-  import { Chip } from "$lib/kosui/chip";
-  import { Link } from "$lib/kosui/link";
   import type { User } from "$lib/users";
   import { cn } from "$lib/utils";
-  import type { Map } from "immutable";
   import { ChevronRight, Grip } from "@lucide/svelte";
+  import type { Map } from "immutable";
+  import { Chip, Link } from "kosui";
   import Awareness, {
     getAwarenessOutline,
     getUniqueUsers,

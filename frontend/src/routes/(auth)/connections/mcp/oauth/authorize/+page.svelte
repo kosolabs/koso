@@ -4,8 +4,7 @@
   import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
-  import { Alert } from "$lib/kosui/alert";
-  import Button from "$lib/kosui/button/button.svelte";
+  import { Alert, Button } from "kosui";
 
   let auth = getAuthContext();
   let paramsPromise = $state(load());

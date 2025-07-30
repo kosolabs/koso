@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { CircularProgress } from "$lib/kosui/progress";
   import type { Status } from "$lib/yproxy";
   import {
     CircleCheck,
@@ -7,6 +6,7 @@
     CircleFadingArrowUp,
     OctagonPause,
   } from "@lucide/svelte";
+  import { CircularProgress } from "kosui";
 
   type Props = {
     status: Status | null;
