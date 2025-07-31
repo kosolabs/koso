@@ -165,7 +165,8 @@
   </div>
   {#if breadcrumbs}
     <div
-      class="flex items-center bg-[rgb(240,244,248)] py-1 pl-4 text-sm font-thin"
+      style="background-color: var(--md-sys-color-surface-container-low)"
+      class="flex items-center py-1 pl-4 text-sm font-thin"
     >
       {#each breadcrumbs as crumb, i (i)}
         <span>{crumb}</span>
