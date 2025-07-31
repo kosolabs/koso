@@ -1,7 +1,5 @@
 <script lang="ts">
-  import type { Action } from "$lib/kosui/command";
-  import { MenuItem } from "$lib/kosui/menu";
-  import { ShortcutBadge } from "$lib/kosui/shortcut";
+  import { type Action, MenuItem, ShortcutBadge } from "kosui";
 
   type Props = {
     action: Action;

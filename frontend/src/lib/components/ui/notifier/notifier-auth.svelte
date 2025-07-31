@@ -4,12 +4,14 @@
   import { headers, parseResponse } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
-  import { Alert } from "$lib/kosui/alert";
-  import { getDialoguerContext } from "$lib/kosui/dialog";
-  import { CircularProgress } from "$lib/kosui/progress";
   import { CircleCheck, CircleSlash, CircleX } from "@lucide/svelte";
+  import {
+    Alert,
+    CircularProgress,
+    getDialoguerContext,
+    toTitleCase,
+  } from "kosui";
   import { onMount } from "svelte";
-  import { toTitleCase } from "../../../kosui/utils";
 
   export type Notifier = "discord" | "slack" | "telegram";
 

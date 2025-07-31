@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Avatar } from "$lib/kosui/avatar";
-  import type { ClassName } from "$lib/kosui/utils";
   import { UserRound } from "@lucide/svelte";
+  import type { ClassName } from "kosui";
+  import { Avatar } from "kosui";
   import { twMerge } from "tailwind-merge";
 
   type Props = {

@@ -3,9 +3,8 @@
   import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { getProjectContext } from "$lib/dag-table/project-context.svelte";
-  import { Button } from "$lib/kosui/button";
-  import { Shortcut } from "$lib/kosui/shortcut";
   import { Eye, Pencil, Trash, X } from "@lucide/svelte";
+  import { Button, Shortcut } from "kosui";
   import { tick } from "svelte";
   import { toast } from "svelte-sonner";
   import { Editable } from "../editable";

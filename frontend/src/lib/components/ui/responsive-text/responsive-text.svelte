@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ClassName } from "$lib/kosui/utils";
+  import type { ClassName } from "kosui";
   import type { Snippet } from "svelte";
   import type { HTMLAttributes } from "svelte/elements";
   import { twMerge } from "tailwind-merge";

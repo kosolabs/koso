@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { Goto } from "$lib/kosui/goto";
   import type { NavigationAction } from "$lib/navigation-action";
+  import { Goto } from "kosui";
   import { twMerge } from "tailwind-merge";
   import { getRegistryContext } from "../command-palette";
 

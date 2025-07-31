@@ -1,10 +1,9 @@
 <script lang="ts">
   import { MarkdownViewer } from "$lib/components/ui/markdown-viewer";
   import { getPrefsContext } from "$lib/components/ui/prefs";
-  import { Button } from "$lib/kosui/button";
-  import { Tooltip } from "$lib/kosui/tooltip";
   import type { YTaskProxy } from "$lib/yproxy";
   import { Eye, FileText, Pencil } from "@lucide/svelte";
+  import { Button, Tooltip } from "kosui";
 
   type Props = {
     task: YTaskProxy;

@@ -1,5 +1,7 @@
 <script module lang="ts">
   import { Node } from "$lib/dag-table/planning-context.svelte";
+  import { cn } from "$lib/utils";
+  import { Tooltip } from "kosui";
 
   export type User = {
     email: string;
@@ -101,9 +103,6 @@
 </script>
 
 <script lang="ts">
-  import { Tooltip } from "$lib/kosui/tooltip";
-  import { cn } from "$lib/utils";
-
   type Props = {
     users: User[];
   };

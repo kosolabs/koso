@@ -9,7 +9,9 @@
   import OfflineAlert from "$lib/dag-table/offline-alert.svelte";
   import type { Node } from "$lib/dag-table/planning-context.svelte";
   import { getProjectContext } from "$lib/dag-table/project-context.svelte";
+  import { List } from "immutable";
   import {
+    CircularProgress,
     Markdown,
     MarkdownBlockquote,
     MarkdownCode,
@@ -18,10 +20,8 @@
     MarkdownList,
     MarkdownTable,
     MarkdownTableCell,
-  } from "$lib/kosui/markdown";
-  import { CircularProgress } from "$lib/kosui/progress";
-  import { Tooltip } from "$lib/kosui/tooltip";
-  import { List } from "immutable";
+    Tooltip,
+  } from "kosui";
   import { twMerge } from "tailwind-merge";
 
   const projectId = page.params.projectId;

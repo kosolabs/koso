@@ -3,14 +3,14 @@
     ActionIds,
     getRegistryContext,
   } from "$lib/components/ui/command-palette";
+  import { MoreVertical } from "@lucide/svelte";
   import {
     Menu,
     MenuActions,
     MenuContent,
     MenuTriggerButton,
     type MenuTriggerButtonProps,
-  } from "$lib/kosui/menu";
-  import { MoreVertical } from "@lucide/svelte";
+  } from "kosui";
 
   type Props = {} & MenuTriggerButtonProps;
   let { ...restProps }: Props = $props();

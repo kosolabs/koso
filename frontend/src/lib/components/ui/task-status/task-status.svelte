@@ -3,10 +3,6 @@
   import { getRegistryContext } from "$lib/components/ui/command-palette";
   import { toast } from "$lib/components/ui/sonner";
   import type { Koso } from "$lib/dag-table/koso.svelte";
-  import { Action } from "$lib/kosui/command";
-  import { getDialoguerContext } from "$lib/kosui/dialog";
-  import { Menu, MenuActions, MenuContent, MenuTrigger } from "$lib/kosui/menu";
-  import { Shortcut } from "$lib/kosui/shortcut";
   import { YTaskProxy, type Status } from "$lib/yproxy";
   import {
     CalendarDays,
@@ -20,8 +16,17 @@
     PauseOctagon,
     WandSparkles,
   } from "@lucide/svelte";
+  import {
+    Action,
+    CircularProgress,
+    getDialoguerContext,
+    Menu,
+    MenuActions,
+    MenuContent,
+    MenuTrigger,
+    Shortcut,
+  } from "kosui";
   import { TaskStatusIcon } from ".";
-  import { CircularProgress } from "../../../kosui/progress";
   import { confetti } from "../confetti";
   import { ResponsiveText } from "../responsive-text";
 

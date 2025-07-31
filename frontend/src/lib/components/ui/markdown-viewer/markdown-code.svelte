@@ -1,7 +1,6 @@
 <script lang="ts">
-  import type { MarkdownComponentProps } from "$lib/kosui/markdown";
-  import type { ClassName } from "$lib/kosui/utils";
   import hljs from "highlight.js";
+  import type { ClassName, MarkdownComponentProps } from "kosui";
   import type { Tokens } from "marked";
   import mermaid from "mermaid";
   import { userPrefersMode as mode } from "mode-watcher";

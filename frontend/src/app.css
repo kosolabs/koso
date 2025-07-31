@@ -147,3 +147,5 @@ layer(base);
     cursor: pointer;
   }
 }
+
+@source "../node_modules/kosui";

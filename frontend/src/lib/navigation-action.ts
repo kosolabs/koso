@@ -1,7 +1,7 @@
 import { goto } from "$app/navigation";
 import type { Icon } from "@lucide/svelte";
-import { Action } from "./kosui/command";
-import type { Shortcut } from "./kosui/shortcut";
+import type { Shortcut } from "kosui";
+import { Action } from "kosui";
 
 type NavigationActionProps = {
   id: string;

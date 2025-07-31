@@ -1,4 +1,4 @@
-import { Shortcut } from "$lib/kosui/shortcut";
+import { Shortcut } from "kosui";
 
 export const OK = new Shortcut({ key: "Enter" });
 export const CANCEL = new Shortcut({ key: "Escape" });

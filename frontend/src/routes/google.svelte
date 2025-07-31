@@ -1,9 +1,9 @@
 <script lang="ts">
   import { headers } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
-  import { Alert } from "$lib/kosui/alert";
   import { Settings2 } from "@lucide/svelte";
   import { GoogleOAuthProvider } from "google-oauth-gsi";
+  import { Alert } from "kosui";
   import { onMount } from "svelte";
 
   type Props = {

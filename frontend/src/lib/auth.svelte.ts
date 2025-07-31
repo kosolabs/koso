@@ -2,8 +2,8 @@ import { goto } from "$app/navigation";
 import { nav } from "$lib/nav.svelte";
 import { CircleX } from "@lucide/svelte";
 import { jwtDecode } from "jwt-decode";
+import { getDialoguerContext } from "kosui";
 import { getContext, setContext } from "svelte";
-import { getDialoguerContext } from "./kosui/dialog";
 import { loads, saves } from "./stores.svelte";
 import { fetchUser, type FullUser } from "./users";
 

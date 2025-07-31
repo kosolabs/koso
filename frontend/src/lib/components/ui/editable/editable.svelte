@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { Input } from "$lib/kosui/input";
-  import { Link } from "$lib/kosui/link";
   import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE, OK } from "$lib/shortcuts";
   import { cn } from "$lib/utils";
+  import { Input, Link } from "kosui";
   import { tick } from "svelte";
   import type { HTMLInputTypeAttribute } from "svelte/elements";
 

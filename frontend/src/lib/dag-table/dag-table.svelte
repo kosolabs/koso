@@ -13,11 +13,6 @@
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { toast } from "$lib/components/ui/sonner";
   import { GeminiStream } from "$lib/gemini.svelte";
-  import { Button } from "$lib/kosui/button";
-  import { Action } from "$lib/kosui/command";
-  import { getDialoguerContext } from "$lib/kosui/dialog";
-  import { Fab } from "$lib/kosui/fab";
-  import { Shortcut } from "$lib/kosui/shortcut";
   import { CANCEL, INSERT_CHILD_NODE, INSERT_NODE } from "$lib/shortcuts";
   import type { User } from "$lib/users";
   import {
@@ -58,6 +53,7 @@
     UserRoundPlus,
     Wrench,
   } from "@lucide/svelte";
+  import { Action, Button, Fab, getDialoguerContext, Shortcut } from "kosui";
   import { onMount, tick } from "svelte";
   import { flip } from "svelte/animate";
   import DagRow from "./dag-row.svelte";

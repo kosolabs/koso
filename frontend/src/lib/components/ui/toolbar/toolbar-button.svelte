@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Button } from "$lib/kosui/button";
-  import type { Action } from "$lib/kosui/command";
+  import { type Action, Button } from "kosui";
 
   const {
     icon,

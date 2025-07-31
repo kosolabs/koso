@@ -7,14 +7,6 @@
   import type { Notifier } from "$lib/components/ui/notifier";
   import { toast } from "$lib/components/ui/sonner";
   import { deleteUserConnection, redirectToConnectUserFlow } from "$lib/github";
-  import { Button } from "$lib/kosui/button";
-  import Chip from "$lib/kosui/chip/chip.svelte";
-  import { getDialoguerContext } from "$lib/kosui/dialog";
-  import { Input } from "$lib/kosui/input";
-  import { Link } from "$lib/kosui/link";
-  import { CircularProgress } from "$lib/kosui/progress";
-  import { ToggleButton, ToggleGroup } from "$lib/kosui/toggle";
-  import { toTitleCase } from "$lib/kosui/utils";
   import {
     CircleX,
     Crown,
@@ -26,6 +18,17 @@
     SunMoon,
     Trash2,
   } from "@lucide/svelte";
+  import {
+    Button,
+    Chip,
+    CircularProgress,
+    getDialoguerContext,
+    Input,
+    Link,
+    ToggleButton,
+    ToggleGroup,
+    toTitleCase,
+  } from "kosui";
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
   import SubSection from "./sub-section.svelte";

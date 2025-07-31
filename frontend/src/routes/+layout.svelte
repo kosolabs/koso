@@ -6,7 +6,7 @@
   import { Confetti } from "$lib/components/ui/confetti";
   import { Prefs } from "$lib/components/ui/prefs";
   import { toast, Toaster } from "$lib/components/ui/sonner";
-  import { Dialoguer } from "$lib/kosui/dialog";
+  import { Dialoguer } from "kosui";
   import { ModeWatcher } from "mode-watcher";
   import { untrack } from "svelte";
   import { Workbox } from "workbox-window";
