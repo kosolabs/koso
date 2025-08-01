@@ -86,7 +86,7 @@
   let paths = $derived(getLongestPaths());
 </script>
 
-<Navbar>
+<Navbar breadcrumbs={[name, "Dashboard"]}>
   {#snippet left()}
     <h1 class="ml-2 text-lg">
       {name} Dashboard

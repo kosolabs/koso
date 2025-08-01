@@ -23,7 +23,7 @@
 
 <div class="flex h-dvh flex-col">
   <div class="grow-0">
-    <Navbar>
+    <Navbar breadcrumbs={["Projects", project.name, "Inbox"]}>
       {#snippet left()}
         <div>
           <h1 class="ml-2 text-lg">
