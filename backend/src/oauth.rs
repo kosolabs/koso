@@ -250,7 +250,7 @@ impl Store {
 
 type ClientRow = (sqlx::types::Json<ClientMetadata>,);
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
 struct ClientMetadata {
     client_id: String,
     client_name: String,
@@ -263,7 +263,7 @@ struct ClientMetadata {
     response_types: Vec<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct AuthTokenMetadata {
     issued_at: u64,
     expires_at: u64,
@@ -362,7 +362,7 @@ struct ClientRegistrationRequest {
     other: serde_json::Value,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq)]
 struct ClientRegistrationResponse {
     client_id: String,
     client_name: String,
@@ -512,7 +512,7 @@ struct AuthorizationDetailsRequest {
     other: serde_json::Value,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq)]
 struct AuthorizationDetailsResponse {
     client_name: String,
 }
@@ -705,7 +705,7 @@ struct TokenRequest {
     other: serde_json::Value,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct TokenResponse {
     token_type: String,
     expires_in: u64,
@@ -1152,7 +1152,7 @@ fn validate_redirect_uri(valid_redirect_uris: &[String], redirect_uri: &String) 
 
 const CLIENT_SECRET_ISS: &str = "koso-mcp-oauth-client";
 const CLIENT_SECRET_EXPIRY_SECS: u64 = 91 * 24 * 60 * 60;
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 struct ClientSecretClaims {
     iat: u64,
     exp: u64,
@@ -1162,7 +1162,7 @@ struct ClientSecretClaims {
 
 const AUTH_TOKEN_ISS: &str = "koso-mcp-oauth-auth";
 const AUTH_TOKEN_EXPIRY_SECS: u64 = 2 * 60;
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 struct AuthTokenClaims {
     iat: u64,
     exp: u64,
@@ -1173,7 +1173,7 @@ struct AuthTokenClaims {
 
 const ACCESS_TOKEN_ISS: &str = "koso-mcp-oauth-access";
 const ACCESS_TOKEN_EXPIRY_SECS: u64 = 7 * 24 * 60 * 60;
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 struct AccessTokenClaims {
     iat: u64,
     exp: u64,
@@ -1185,7 +1185,7 @@ struct AccessTokenClaims {
 
 const REFRESH_TOKEN_ISS: &str = "koso-mcp-oauth-refresh";
 const REFRESH_TOKEN_EXPIRY_SECS: u64 = 90 * 24 * 60 * 60;
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 struct RefreshTokenClaims {
     iat: u64,
     exp: u64,
@@ -1270,7 +1270,7 @@ fn now() -> ApiResult<u64> {
 }
 
 /// Wrapper that makes it hard to accidentally log a secret.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 struct Secret(String);
 
 impl<S: Into<String>> From<S> for Secret {
@@ -1398,162 +1398,178 @@ mod tests {
     use axum::http::StatusCode;
     use serde_json::Value;
 
+    const REDIRECT_URI1: &str = "http:://localhost/test/redirect1";
+    const REDIRECT_URI2: &str = "http:://localhost/test/redirect2";
+    const CLIENT_ID: &str = "client-1";
+    const CLIENT_NAME: &str = "Client 123";
+    const CODE_VERIFIER: &str = "qkkIJx-brh0RjiBH3RJZeIiam66UuxHCZmsR7DxPuYB";
+    const CODE_CHALLENGE: &str = "5IcmHkDZ7xfw54Bs1U7ejZxKRZ5pxo0z_d5mCDWRlkc";
+    const KEY: &[u8] = &[1, 2];
+    const TOKEN_ID: &str = "token-123";
+
     #[test_log::test(sqlx::test)]
     async fn test_oauth_register_full(pool: PgPool) {
-        let key = EncodingKey::from_secret(&[1, 2]);
-        let decoding_key = DecodingKey::from_secret(&[1, 2]);
+        let key = EncodingKey::from_secret(KEY);
+        let decoding_key = DecodingKey::from_secret(KEY);
         let store = Store::new(Box::leak(Box::new(pool)));
 
-        // Register the cliet
-        let redirect_uri1: String = "http:://localhost/test/redirect1".to_string();
-        let redirect_uri2: String = "http:://localhost/test/redirect2".to_string();
-        let req = ClientRegistrationRequest {
-            client_name: Some("Client 123".to_string()),
-            scope: Some(READ_WRITE_SCOPE.to_string()),
-            token_endpoint_auth_method: Some(BASIC_AUTH_METHOD.to_string()),
-            redirect_uris: vec![redirect_uri1.clone(), redirect_uri2.clone()],
-            grant_types: vec![CODE_GRANT_TYPE.to_string(), "ignored_grant".to_string()],
-            response_types: vec![
-                CODE_RESPONSE_TYPE.to_string(),
-                "ignored_response_type".to_string(),
-            ],
-            other: Value::Null,
-        };
-        let Json(res) = oauth_register(Extension(key), Extension(store.clone()), Json(req))
-            .await
-            .unwrap();
+        // Register the client
+        let Json(res) = oauth_register(
+            Extension(key),
+            Extension(store.clone()),
+            Json(ClientRegistrationRequest {
+                client_name: Some(CLIENT_NAME.to_string()),
+                scope: Some(READ_WRITE_SCOPE.to_string()),
+                token_endpoint_auth_method: Some(BASIC_AUTH_METHOD.to_string()),
+                redirect_uris: vec![REDIRECT_URI1.to_string(), REDIRECT_URI2.to_string()],
+                grant_types: vec![CODE_GRANT_TYPE.to_string(), "ignored_grant".to_string()],
+                response_types: vec![
+                    CODE_RESPONSE_TYPE.to_string(),
+                    "ignored_response_type".to_string(),
+                ],
+                other: Value::Null,
+            }),
+        )
+        .await
+        .unwrap();
 
         // Asserts over the response
-        assert!(!res.client_id.is_empty());
-        assert_eq!(res.client_name, "Client 123");
-        assert_eq!(res.scope, READ_WRITE_SCOPE);
-        assert_eq!(res.token_endpoint_auth_method, BASIC_AUTH_METHOD);
-        assert_eq!(
-            res.redirect_uris,
-            vec![redirect_uri1.clone(), redirect_uri2.clone()]
-        );
-        assert_eq!(res.grant_types, vec![CODE_GRANT_TYPE, REFRESH_GRANT_TYPE]);
-        assert_eq!(res.response_types, vec![CODE_RESPONSE_TYPE]);
-        assert!(res.client_secret_expires_at > 0);
-        assert!(!res.client_secret.data().is_empty());
         let client_claims = decode_client_secret(&decoding_key, &res.client_secret).unwrap();
-        assert_eq!(client_claims.exp, res.client_secret_expires_at);
-        assert_eq!(client_claims.client_id, res.client_id);
+        assert!(client_claims.exp > 0);
+        assert_eq!(client_claims.iss, CLIENT_SECRET_ISS);
+        assert_eq!(
+            res,
+            ClientRegistrationResponse {
+                client_id: client_claims.client_id.clone(),
+                client_name: CLIENT_NAME.to_string(),
+                scope: READ_WRITE_SCOPE.to_string(),
+                token_endpoint_auth_method: BASIC_AUTH_METHOD.to_string(),
+                redirect_uris: vec![REDIRECT_URI1.to_string(), REDIRECT_URI2.to_string()],
+                grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
+                response_types: vec![CODE_RESPONSE_TYPE.to_string()],
+                client_secret_expires_at: client_claims.exp,
+                client_secret: res.client_secret.clone(),
+            }
+        );
 
         // Assert the client exists.
-        let client = store.get_client(&res.client_id).await.unwrap().unwrap();
-        assert_eq!(res.client_id, client.client_id);
-        assert_eq!(res.client_name, client.client_name);
-        assert_eq!(res.scope, client.scope);
+        let client_metadata = store.get_client(&res.client_id).await.unwrap().unwrap();
         assert_eq!(
-            res.token_endpoint_auth_method,
-            client.token_endpoint_auth_method
-        );
-        assert_eq!(res.redirect_uris, client.redirect_uris);
-        assert_eq!(res.grant_types, client.grant_types);
-        assert_eq!(res.response_types, client.response_types);
-        assert_eq!(
-            res.client_secret_expires_at,
-            client.client_secret_expires_at
+            client_metadata,
+            ClientMetadata {
+                registered_at: client_metadata.registered_at,
+                client_id: res.client_id,
+                client_name: res.client_name,
+                scope: res.scope,
+                token_endpoint_auth_method: res.token_endpoint_auth_method,
+                redirect_uris: res.redirect_uris,
+                grant_types: res.grant_types,
+                response_types: res.response_types,
+                client_secret_expires_at: res.client_secret_expires_at,
+            }
         );
     }
 
     #[test_log::test(sqlx::test)]
     async fn test_oauth_register_minimal(pool: PgPool) {
-        let key = EncodingKey::from_secret(&[1, 2]);
-        let decoding_key = DecodingKey::from_secret(&[1, 2]);
+        let key = EncodingKey::from_secret(KEY);
+        let decoding_key = DecodingKey::from_secret(KEY);
         let store = Store::new(Box::leak(Box::new(pool)));
 
-        // Register the cliet
-        let redirect_uri1: String = "http:://localhost/test/redirect1".to_string();
-        let req = ClientRegistrationRequest {
-            client_name: Some("Client 123".to_string()),
-            scope: None,
-            token_endpoint_auth_method: None,
-            redirect_uris: vec![redirect_uri1.clone()],
-            grant_types: vec![],
-            response_types: vec![],
-            other: Value::Null,
-        };
-        let Json(res) = oauth_register(Extension(key), Extension(store.clone()), Json(req))
-            .await
-            .unwrap();
+        // Register the client
+        let Json(res) = oauth_register(
+            Extension(key),
+            Extension(store.clone()),
+            Json(ClientRegistrationRequest {
+                client_name: Some(CLIENT_NAME.to_string()),
+                scope: None,
+                token_endpoint_auth_method: None,
+                redirect_uris: vec![REDIRECT_URI1.to_string()],
+                grant_types: vec![],
+                response_types: vec![],
+                other: Value::Null,
+            }),
+        )
+        .await
+        .unwrap();
 
         // Asserts over the response
-        assert!(!res.client_id.is_empty());
-        assert_eq!(res.client_name, "Client 123");
-        assert_eq!(res.scope, READ_WRITE_SCOPE);
-        assert_eq!(res.token_endpoint_auth_method, BASIC_AUTH_METHOD);
-        assert_eq!(res.redirect_uris, vec![redirect_uri1.clone()]);
-        assert_eq!(res.grant_types, vec![CODE_GRANT_TYPE, REFRESH_GRANT_TYPE]);
-        assert_eq!(res.response_types, vec![CODE_RESPONSE_TYPE]);
-        assert!(res.client_secret_expires_at > 0);
-        assert!(!res.client_secret.data().is_empty());
         let client_claims = decode_client_secret(&decoding_key, &res.client_secret).unwrap();
-        assert_eq!(client_claims.exp, res.client_secret_expires_at);
-        assert_eq!(client_claims.client_id, res.client_id);
+        assert!(client_claims.exp > 0);
+        assert_eq!(client_claims.iss, CLIENT_SECRET_ISS);
+        assert_eq!(
+            res,
+            ClientRegistrationResponse {
+                client_id: client_claims.client_id.clone(),
+                client_name: CLIENT_NAME.to_string(),
+                scope: READ_WRITE_SCOPE.to_string(),
+                token_endpoint_auth_method: BASIC_AUTH_METHOD.to_string(),
+                redirect_uris: vec![REDIRECT_URI1.to_string()],
+                grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
+                response_types: vec![CODE_RESPONSE_TYPE.to_string()],
+                client_secret_expires_at: client_claims.exp,
+                client_secret: res.client_secret.clone(),
+            }
+        );
 
         // Assert the client exists.
-        let client = store.get_client(&res.client_id).await.unwrap().unwrap();
-        assert_eq!(res.client_id, client.client_id);
-        assert_eq!(res.client_name, client.client_name);
-        assert_eq!(res.scope, client.scope);
+        let client_metadata = store.get_client(&res.client_id).await.unwrap().unwrap();
         assert_eq!(
-            res.token_endpoint_auth_method,
-            client.token_endpoint_auth_method
-        );
-        assert_eq!(res.redirect_uris, client.redirect_uris);
-        assert_eq!(res.grant_types, client.grant_types);
-        assert_eq!(res.response_types, client.response_types);
-        assert_eq!(
-            res.client_secret_expires_at,
-            client.client_secret_expires_at
+            client_metadata,
+            ClientMetadata {
+                registered_at: client_metadata.registered_at,
+                client_id: res.client_id,
+                client_name: res.client_name,
+                scope: res.scope,
+                token_endpoint_auth_method: res.token_endpoint_auth_method,
+                redirect_uris: res.redirect_uris,
+                grant_types: res.grant_types,
+                response_types: res.response_types,
+                client_secret_expires_at: res.client_secret_expires_at,
+            }
         );
     }
 
     #[test_log::test(sqlx::test)]
-    async fn test_oauth_authorization_details(pool: PgPool) {
+    async fn test_oauth_authorization_details_succeeds(pool: PgPool) {
         let store = Store::new(Box::leak(Box::new(pool)));
+        store.insert_client(&default_client()).await.unwrap();
 
-        // Insert a client
-        let client_id = "client-123".to_string();
-        let client_name = "Client 123".to_string();
-        let redirect_uri = "http:://localhost/test/redirect".to_string();
-        store
-            .insert_client(&ClientMetadata {
-                client_id: client_id.clone(),
-                client_name: client_name.to_string(),
-                registered_at: 123,
-                client_secret_expires_at: 9999999999999,
-                scope: READ_WRITE_SCOPE.to_string(),
-                token_endpoint_auth_method: BASIC_AUTH_METHOD.to_string(),
-                redirect_uris: vec![redirect_uri.clone()],
-                grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
-                response_types: vec![CODE_RESPONSE_TYPE.to_string()],
-            })
-            .await
-            .unwrap();
+        let Json(res) = oauth_authorization_details(
+            Extension(store.clone()),
+            Json(AuthorizationDetailsRequest {
+                client_id: Some(CLIENT_ID.to_string()),
+                redirect_uri: Some(REDIRECT_URI1.to_string()),
+                other: Value::Null,
+            }),
+        )
+        .await
+        .unwrap();
 
-        let req = AuthorizationDetailsRequest {
-            client_id: Some(client_id.clone()),
-            redirect_uri: Some(redirect_uri.clone()),
-            other: Value::Null,
-        };
+        assert_eq!(
+            res,
+            AuthorizationDetailsResponse {
+                client_name: CLIENT_NAME.to_string()
+            }
+        );
+    }
 
-        // Success
-        let Json(res) = oauth_authorization_details(Extension(store.clone()), Json(req))
-            .await
-            .unwrap();
-        assert_eq!(res.client_name, client_name);
+    #[test_log::test(sqlx::test)]
+    async fn test_oauth_authorization_details_rejects_invalid_uri(pool: PgPool) {
+        let store = Store::new(Box::leak(Box::new(pool)));
+        store.insert_client(&default_client()).await.unwrap();
 
-        // Invalid redirect URI
-        let req = AuthorizationDetailsRequest {
-            client_id: Some(client_id.clone()),
-            redirect_uri: Some(format!("{redirect_uri}/bad")),
-            other: Value::Null,
-        };
-        let res = oauth_authorization_details(Extension(store), Json(req)).await;
-        let err = res.unwrap_err();
+        let err = oauth_authorization_details(
+            Extension(store),
+            Json(AuthorizationDetailsRequest {
+                client_id: Some(CLIENT_ID.to_string()),
+                redirect_uri: Some(format!("{REDIRECT_URI1}/invalid")),
+                other: Value::Null,
+            }),
+        )
+        .await
+        .unwrap_err();
+
         assert_eq!(err.status, StatusCode::BAD_REQUEST);
         assert_eq!(err.error, "invalid_request");
         assert!(err.error_description.contains("uri doesn't match"));
@@ -1561,351 +1577,452 @@ mod tests {
 
     #[test_log::test(sqlx::test)]
     async fn test_oauth_approve_full(pool: PgPool) {
-        let user = User {
-            email: "user@example.com".to_string(),
-            name: "User".to_string(),
-            picture: "pic".to_string(),
-            exp: 9999999999,
-        };
-        let key = EncodingKey::from_secret(&[1, 2]);
-        let decoding_key = DecodingKey::from_secret(&[1, 2]);
+        let user = default_user();
+        let key = EncodingKey::from_secret(KEY);
+        let decoding_key = DecodingKey::from_secret(KEY);
         let store = Store::new(Box::leak(Box::new(pool)));
+        store.insert_client(&default_client()).await.unwrap();
 
-        // Insert a client
-        let client_id = "client-123".to_string();
-        let client_name = "Client 123".to_string();
-        let redirect_uri = "http:://localhost/test/redirect".to_string();
-        store
-            .insert_client(&ClientMetadata {
-                client_id: client_id.clone(),
-                client_name: client_name.to_string(),
-                registered_at: 123,
-                client_secret_expires_at: 9999999999999,
-                scope: READ_WRITE_SCOPE.to_string(),
-                token_endpoint_auth_method: BASIC_AUTH_METHOD.to_string(),
-                redirect_uris: vec![redirect_uri.clone()],
-                grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
-                response_types: vec![CODE_RESPONSE_TYPE.to_string()],
-            })
-            .await
-            .unwrap();
-
-        // Send the request
-        let code_challenge = "5IcmHkDZ7xfw54Bs1U7ejZxKRZ5pxo0z_d5mCDWRlkc";
-        let req = ApprovalRequest {
-            client_id: Some(client_id.clone()),
-            scope: Some(READ_WRITE_SCOPE.to_string()),
-            response_type: Some(CODE_RESPONSE_TYPE.to_string()),
-            code_challenge_method: Some("S256".to_string()),
-            code_challenge: Some(code_challenge.to_string()),
-            redirect_uri: Some(redirect_uri.clone()),
-            resource: Some("Some/resource".to_string()),
-            other: Value::Null,
-        };
         let Json(res) = oauth_approve(
             Extension(user.clone()),
             Extension(store.clone()),
             Extension(key),
-            Json(req),
+            Json(ApprovalRequest {
+                client_id: Some(CLIENT_ID.to_string()),
+                scope: Some(READ_WRITE_SCOPE.to_string()),
+                response_type: Some(CODE_RESPONSE_TYPE.to_string()),
+                code_challenge_method: Some(S256_CHALLENGE_METHOD.to_string()),
+                code_challenge: Some(CODE_CHALLENGE.to_string()),
+                redirect_uri: Some(REDIRECT_URI1.to_string()),
+                resource: Some("Some/resource".to_string()),
+                other: Value::Null,
+            }),
         )
         .await
         .unwrap();
-        assert!(!res.code.data().is_empty());
 
-        // Assert over the resulting token.
         let token_claims: AuthTokenClaims = decode_auth_token(&decoding_key, &res.code).unwrap();
+        assert!(token_claims.exp > 0);
+        assert_eq!(token_claims.iss, AUTH_TOKEN_ISS);
         let token = store
             .consume_auth_token(&token_claims.token_id)
             .await
             .unwrap();
-        assert!(token.expires_at > 0);
-        assert_eq!(token.client_id, client_id);
-        assert_eq!(token.token_id, token_claims.token_id);
-        assert_eq!(token.scope, READ_WRITE_SCOPE);
-        assert_eq!(token.response_type, CODE_RESPONSE_TYPE);
-        assert_eq!(token.redirect_uri, redirect_uri);
-        assert_eq!(token.code_challenge_method, Some("S256".to_string()));
-        assert_eq!(token.code_challenge, Some(code_challenge.to_string()));
-        assert_eq!(token.user.email, user.email);
+        assert_eq!(
+            token,
+            AuthTokenMetadata {
+                issued_at: token.issued_at,
+                expires_at: token_claims.exp,
+                client_id: CLIENT_ID.to_string(),
+                token_id: token_claims.token_id,
+                scope: READ_WRITE_SCOPE.to_string(),
+                response_type: CODE_RESPONSE_TYPE.to_string(),
+                redirect_uri: REDIRECT_URI1.to_string(),
+                code_challenge_method: Some(S256_CHALLENGE_METHOD.to_string()),
+                code_challenge: Some(CODE_CHALLENGE.to_string()),
+                user
+            }
+        );
     }
 
     #[test_log::test(sqlx::test)]
     async fn test_oauth_approve_minimal(pool: PgPool) {
-        let user = User {
-            email: "user@example.com".to_string(),
-            name: "User".to_string(),
-            picture: "pic".to_string(),
-            exp: 9999999999,
-        };
-        let key = EncodingKey::from_secret(&[1, 2]);
-        let decoding_key = DecodingKey::from_secret(&[1, 2]);
+        let user = default_user();
+        let key = EncodingKey::from_secret(KEY);
+        let decoding_key = DecodingKey::from_secret(KEY);
         let store = Store::new(Box::leak(Box::new(pool)));
+        store.insert_client(&default_client()).await.unwrap();
 
-        // Insert the client.
-        let client_id = "client-123".to_string();
-        let client_name = "Client 123".to_string();
-        let redirect_uri = "http:://localhost/test/redirect".to_string();
-        store
-            .insert_client(&ClientMetadata {
-                client_id: client_id.clone(),
-                client_name: client_name.to_string(),
-                registered_at: 123,
-                client_secret_expires_at: 9999999999999,
-                scope: READ_WRITE_SCOPE.to_string(),
-                token_endpoint_auth_method: BASIC_AUTH_METHOD.to_string(),
-                redirect_uris: vec![redirect_uri.clone()],
-                grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
-                response_types: vec![CODE_RESPONSE_TYPE.to_string()],
-            })
-            .await
-            .unwrap();
-
-        // Send the request
-        let req = ApprovalRequest {
-            client_id: Some(client_id.clone()),
-            scope: None,
-            response_type: None,
-            code_challenge_method: None,
-            code_challenge: None,
-            redirect_uri: Some(redirect_uri.clone()),
-            resource: None,
-            other: Value::Null,
-        };
         let Json(res) = oauth_approve(
             Extension(user.clone()),
             Extension(store.clone()),
             Extension(key),
-            Json(req),
+            Json(ApprovalRequest {
+                client_id: Some(CLIENT_ID.to_string()),
+                scope: None,
+                response_type: None,
+                code_challenge_method: None,
+                code_challenge: None,
+                redirect_uri: Some(REDIRECT_URI1.to_string()),
+                resource: None,
+                other: Value::Null,
+            }),
         )
         .await
         .unwrap();
-        assert!(!res.code.data().is_empty());
 
-        // Assert over the resulting token.
         let token_claims: AuthTokenClaims = decode_auth_token(&decoding_key, &res.code).unwrap();
+        assert!(token_claims.exp > 0);
+        assert_eq!(token_claims.iss, AUTH_TOKEN_ISS);
         let token = store
             .consume_auth_token(&token_claims.token_id)
             .await
             .unwrap();
-        assert!(token.expires_at > 0);
-        assert_eq!(token.client_id, client_id);
-        assert_eq!(token.token_id, token_claims.token_id);
-        assert_eq!(token.scope, READ_WRITE_SCOPE);
-        assert_eq!(token.response_type, CODE_RESPONSE_TYPE);
-        assert_eq!(token.redirect_uri, redirect_uri);
-        assert_eq!(token.code_challenge_method, None);
-        assert_eq!(token.code_challenge, None);
-        assert_eq!(token.user.email, user.email);
+        assert_eq!(
+            token,
+            AuthTokenMetadata {
+                issued_at: token.issued_at,
+                expires_at: token_claims.exp,
+                client_id: CLIENT_ID.to_string(),
+                token_id: token_claims.token_id,
+                scope: READ_WRITE_SCOPE.to_string(),
+                response_type: CODE_RESPONSE_TYPE.to_string(),
+                redirect_uri: REDIRECT_URI1.to_string(),
+                code_challenge_method: None,
+                code_challenge: None,
+                user
+            }
+        );
     }
 
     #[test_log::test(sqlx::test)]
     async fn test_oauth_token(pool: PgPool) {
-        let user = User {
-            email: "user@example.com".to_string(),
-            name: "User".to_string(),
-            picture: "pic".to_string(),
-            exp: 9999999999,
-        };
-        let key = EncodingKey::from_secret(&[1, 2]);
-        let decoding_key = DecodingKey::from_secret(&[1, 2]);
+        let user = default_user();
+        let key = EncodingKey::from_secret(KEY);
+        let decoding_key = DecodingKey::from_secret(KEY);
         let store = Store::new(Box::leak(Box::new(pool)));
-        let mut headers = HeaderMap::new();
-
+        let headers = HeaderMap::new();
         // Insert a client
-        let client_id = "client-123".to_string();
-        let code_verifier = "qkkIJx-brh0RjiBH3RJZeIiam66UuxHCZmsR7DxPuYB";
-        let code_challenge = "5IcmHkDZ7xfw54Bs1U7ejZxKRZ5pxo0z_d5mCDWRlkc";
-        let redirect_uri = "http:://localhost/test/redirect".to_string();
         let client_secret = encode_client_secret(
             &key,
             &ClientSecretClaims {
                 iat: 123,
                 exp: 99999999999999,
                 iss: CLIENT_SECRET_ISS.to_string(),
-                client_id: client_id.clone(),
+                client_id: CLIENT_ID.to_string(),
             },
         )
         .unwrap();
-        store
-            .insert_client(&ClientMetadata {
-                client_id: client_id.clone(),
-                client_name: "Some client".to_string(),
-                registered_at: 123,
-                client_secret_expires_at: 9999999999999,
-                scope: READ_WRITE_SCOPE.to_string(),
-                token_endpoint_auth_method: BASIC_AUTH_METHOD.to_string(),
-                redirect_uris: vec![redirect_uri.clone()],
-                grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
-                response_types: vec![CODE_RESPONSE_TYPE.to_string()],
-            })
-            .await
-            .unwrap();
-
+        store.insert_client(&default_client()).await.unwrap();
         // Store an auth token
-        let token_id = "token-123".to_string();
+        let auth_token = AuthTokenMetadata {
+            issued_at: 123,
+            expires_at: 99999999999999,
+            client_id: CLIENT_ID.to_string(),
+            token_id: TOKEN_ID.to_string(),
+            scope: READ_WRITE_SCOPE.to_string(),
+            response_type: CODE_RESPONSE_TYPE.to_string(),
+            redirect_uri: REDIRECT_URI1.to_string(),
+            code_challenge_method: Some(S256_CHALLENGE_METHOD.to_string()),
+            code_challenge: Some(CODE_CHALLENGE.to_string()),
+            user: user.clone(),
+        };
         let code = encode_auth_token(
             &key,
             &AuthTokenClaims {
-                iat: 123,
-                exp: 99999999999999,
+                iat: auth_token.issued_at,
+                exp: auth_token.expires_at,
                 iss: AUTH_TOKEN_ISS.to_string(),
-                client_id: client_id.clone(),
-                token_id: token_id.clone(),
+                client_id: CLIENT_ID.to_string(),
+                token_id: TOKEN_ID.to_string(),
             },
         )
         .unwrap();
-        store
-            .insert_auth_token(&AuthTokenMetadata {
-                issued_at: 123,
-                expires_at: 99999999999999,
-                client_id: client_id.clone(),
-                token_id: token_id.clone(),
-                scope: READ_WRITE_SCOPE.to_string(),
-                response_type: CODE_RESPONSE_TYPE.to_string(),
-                redirect_uri: redirect_uri.clone(),
-                code_challenge_method: Some("S256".to_string()),
-                code_challenge: Some(code_challenge.to_string()),
-                user: user.clone(),
-            })
-            .await
-            .unwrap();
+        store.insert_auth_token(&auth_token).await.unwrap();
 
-        // Send a token request
-        let req = TokenRequest {
+        let code_req = TokenRequest {
             grant_type: Some(CODE_GRANT_TYPE.to_string()),
-            client_id: Some(client_id.clone()),
+            client_id: Some(CLIENT_ID.to_string()),
             client_secret: Some(client_secret.clone()),
             scope: Some(READ_WRITE_SCOPE.to_string()),
             resource: Some("resource/some".to_string()),
-            redirect_uri: Some(redirect_uri.clone()),
+            redirect_uri: Some(REDIRECT_URI1.to_string()),
             code: Some(code),
-            code_verifier: Some(Secret::from(code_verifier)),
+            code_verifier: Some(Secret::from(CODE_VERIFIER)),
             refresh_token: None,
             other: Value::Null,
         };
-        let res = oauth_token(
-            Extension(store.clone()),
-            Extension(decoding_key.clone()),
-            Extension(key.clone()),
-            headers.clone(),
-            Form(req.clone()),
-        )
-        .await;
-        assert_eq!(res.status(), StatusCode::OK);
-        let res: TokenResponse = serde_json::from_slice(
-            &axum::body::to_bytes(res.into_body(), 1024 * 1024)
-                .await
-                .unwrap(),
-        )
-        .unwrap();
 
-        // Asserts over the response
-        assert_eq!(res.token_type, "Bearer");
-        assert_eq!(res.scope, READ_WRITE_SCOPE);
-        assert_eq!(res.expires_in, ACCESS_TOKEN_EXPIRY_SECS);
-        assert!(!res.access_token.data().is_empty());
-        assert!(!res.refresh_token.data().is_empty());
-        let access_token = decode_access_token(&decoding_key, &res.access_token).unwrap();
-        assert_eq!(access_token.user.email, user.email);
-        assert_eq!(access_token.iss, ACCESS_TOKEN_ISS);
-        assert_eq!(access_token.scope, READ_WRITE_SCOPE);
-        assert_eq!(access_token.auth_token_claims.client_id, client_id);
-        assert_eq!(access_token.auth_token_claims.token_id, token_id);
-        let refresh_token = decode_refresh_token(&decoding_key, &res.refresh_token).unwrap();
-        assert_eq!(access_token.user.email, user.email);
-        assert_eq!(refresh_token.iss, REFRESH_TOKEN_ISS);
-        assert_eq!(refresh_token.scope, READ_WRITE_SCOPE);
-        assert_eq!(refresh_token.auth_token_claims.client_id, client_id);
-        assert_eq!(refresh_token.auth_token_claims.token_id, token_id);
-        // Ensure the token doesn't exist.
-        assert!(store.consume_auth_token(&token_id).await.is_err());
+        // Send a token request
+        let refresh_token = {
+            let res = oauth_token(
+                Extension(store.clone()),
+                Extension(decoding_key.clone()),
+                Extension(key.clone()),
+                headers.clone(),
+                Form(code_req.clone()),
+            )
+            .await;
+            assert_eq!(res.status(), StatusCode::OK);
+            let res: TokenResponse = parse_response(res).await;
 
-        // Requests reusing a code are rejected.
-        let err_res = oauth_token(
-            Extension(store.clone()),
-            Extension(decoding_key.clone()),
-            Extension(key.clone()),
-            headers.clone(),
-            Form(req.clone()),
-        )
-        .await;
-        assert_eq!(err_res.status(), StatusCode::BAD_REQUEST);
-        let err: Value = serde_json::from_slice(
-            &axum::body::to_bytes(err_res.into_body(), 1024 * 1024)
-                .await
-                .unwrap(),
-        )
-        .unwrap();
-        assert_eq!(err.get("error").unwrap().as_str().unwrap(), "invalid_grant");
-        assert!(
-            err.get("error_description")
-                .unwrap()
-                .as_str()
-                .unwrap()
-                .contains("Auth code already used")
-        );
+            // Asserts over the response
+            assert_eq!(
+                res,
+                TokenResponse {
+                    token_type: "Bearer".to_string(),
+                    expires_in: ACCESS_TOKEN_EXPIRY_SECS,
+                    scope: READ_WRITE_SCOPE.to_string(),
+                    access_token: res.access_token.clone(),
+                    refresh_token: res.refresh_token.clone()
+                }
+            );
+            let access_token = decode_access_token(&decoding_key, &res.access_token).unwrap();
+            assert_eq!(
+                access_token,
+                AccessTokenClaims {
+                    iat: access_token.iat,
+                    exp: access_token.exp,
+                    iss: ACCESS_TOKEN_ISS.to_string(),
+                    scope: READ_WRITE_SCOPE.to_string(),
+                    user: user.clone(),
+                    auth_token_claims: AuthTokenClaims {
+                        iat: auth_token.issued_at,
+                        exp: auth_token.expires_at,
+                        iss: AUTH_TOKEN_ISS.to_string(),
+                        client_id: CLIENT_ID.to_string(),
+                        token_id: TOKEN_ID.to_string()
+                    }
+                }
+            );
+            let refresh_token = decode_refresh_token(&decoding_key, &res.refresh_token).unwrap();
+            assert_eq!(
+                refresh_token,
+                RefreshTokenClaims {
+                    iat: access_token.iat,
+                    exp: refresh_token.exp,
+                    iss: REFRESH_TOKEN_ISS.to_string(),
+                    scope: READ_WRITE_SCOPE.to_string(),
+                    user: user.clone(),
+                    auth_token_claims: AuthTokenClaims {
+                        iat: auth_token.issued_at,
+                        exp: auth_token.expires_at,
+                        iss: AUTH_TOKEN_ISS.to_string(),
+                        client_id: CLIENT_ID.to_string(),
+                        token_id: TOKEN_ID.to_string()
+                    }
+                }
+            );
+            // Ensure the token doesn't exist.
+            assert!(store.consume_auth_token(TOKEN_ID).await.is_err());
+
+            res.refresh_token
+        };
+
+        // Send the same request as above and validate that auth tokens
+        // cannot be reused.
+        {
+            let err_res = oauth_token(
+                Extension(store.clone()),
+                Extension(decoding_key.clone()),
+                Extension(key.clone()),
+                headers.clone(),
+                Form(code_req),
+            )
+            .await;
+            assert_eq!(err_res.status(), StatusCode::BAD_REQUEST);
+            let err: Value = parse_response(err_res).await;
+            assert_eq!(err.get("error").unwrap().as_str().unwrap(), "invalid_grant");
+            assert!(
+                err.get("error_description")
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .contains("Auth code already used")
+            );
+        }
 
         // Send a request using the refresh token issued in the last call
-        let req = TokenRequest {
-            grant_type: Some(REFRESH_GRANT_TYPE.to_string()),
-            client_id: Some(client_id.clone()),
-            client_secret: None,
-            scope: None,
-            resource: None,
-            redirect_uri: None,
-            code: None,
-            code_verifier: None,
-            refresh_token: Some(res.refresh_token),
-            other: Value::Null,
+        {
+            let mut headers = HeaderMap::new();
+            headers.append(
+                "Authorization",
+                HeaderValue::from_str(&format!(
+                    "Basic {}",
+                    BASE64_STANDARD.encode(format!("{CLIENT_ID}:{}", client_secret.data()))
+                ))
+                .unwrap(),
+            );
+            let res = oauth_token(
+                Extension(store.clone()),
+                Extension(decoding_key.clone()),
+                Extension(key.clone()),
+                headers.clone(),
+                Form(TokenRequest {
+                    grant_type: Some(REFRESH_GRANT_TYPE.to_string()),
+                    client_id: Some(CLIENT_ID.to_string()),
+                    client_secret: None,
+                    scope: None,
+                    resource: None,
+                    redirect_uri: None,
+                    code: None,
+                    code_verifier: None,
+                    refresh_token: Some(refresh_token),
+                    other: Value::Null,
+                }),
+            )
+            .await;
+            assert_eq!(res.status(), StatusCode::OK);
+            let res: TokenResponse = parse_response(res).await;
+
+            // Assert over the response.
+            assert_eq!(
+                res,
+                TokenResponse {
+                    token_type: "Bearer".to_string(),
+                    expires_in: ACCESS_TOKEN_EXPIRY_SECS,
+                    scope: READ_WRITE_SCOPE.to_string(),
+                    access_token: res.access_token.clone(),
+                    refresh_token: res.refresh_token.clone()
+                }
+            );
+            let access_token = decode_access_token(&decoding_key, &res.access_token).unwrap();
+            assert_eq!(
+                access_token,
+                AccessTokenClaims {
+                    iat: access_token.iat,
+                    exp: access_token.exp,
+                    iss: ACCESS_TOKEN_ISS.to_string(),
+                    scope: READ_WRITE_SCOPE.to_string(),
+                    user: user.clone(),
+                    auth_token_claims: AuthTokenClaims {
+                        iat: auth_token.issued_at,
+                        exp: auth_token.expires_at,
+                        iss: AUTH_TOKEN_ISS.to_string(),
+                        client_id: CLIENT_ID.to_string(),
+                        token_id: TOKEN_ID.to_string()
+                    }
+                }
+            );
+            let refresh_token = decode_refresh_token(&decoding_key, &res.refresh_token).unwrap();
+            assert_eq!(
+                refresh_token,
+                RefreshTokenClaims {
+                    iat: access_token.iat,
+                    exp: refresh_token.exp,
+                    iss: REFRESH_TOKEN_ISS.to_string(),
+                    scope: READ_WRITE_SCOPE.to_string(),
+                    user: user.clone(),
+                    auth_token_claims: AuthTokenClaims {
+                        iat: auth_token.issued_at,
+                        exp: auth_token.expires_at,
+                        iss: AUTH_TOKEN_ISS.to_string(),
+                        client_id: CLIENT_ID.to_string(),
+                        token_id: TOKEN_ID.to_string()
+                    }
+                }
+            );
+        }
+    }
+
+    #[test_log::test(sqlx::test)]
+    async fn test_oauth_token_public_client(pool: PgPool) {
+        let user = default_user();
+        let key = EncodingKey::from_secret(KEY);
+        let decoding_key = DecodingKey::from_secret(KEY);
+        let store = Store::new(Box::leak(Box::new(pool)));
+        let headers = HeaderMap::new();
+        store
+            .insert_client(&ClientMetadata {
+                token_endpoint_auth_method: NONE_AUTH_METHOD.to_string(),
+                ..default_client()
+            })
+            .await
+            .unwrap();
+        // Store an auth token
+        let auth_token = AuthTokenMetadata {
+            issued_at: 123,
+            expires_at: 99999999999999,
+            client_id: CLIENT_ID.to_string(),
+            token_id: TOKEN_ID.to_string(),
+            scope: READ_WRITE_SCOPE.to_string(),
+            response_type: CODE_RESPONSE_TYPE.to_string(),
+            redirect_uri: REDIRECT_URI1.to_string(),
+            code_challenge_method: Some(S256_CHALLENGE_METHOD.to_string()),
+            code_challenge: Some(CODE_CHALLENGE.to_string()),
+            user: user.clone(),
         };
-        headers.append(
-            "Authorization",
-            HeaderValue::from_str(&format!(
-                "Basic {}",
-                BASE64_STANDARD.encode(format!("{client_id}:{}", client_secret.data()))
-            ))
-            .unwrap(),
-        );
+        let code = encode_auth_token(
+            &key,
+            &AuthTokenClaims {
+                iat: auth_token.issued_at,
+                exp: auth_token.expires_at,
+                iss: AUTH_TOKEN_ISS.to_string(),
+                client_id: CLIENT_ID.to_string(),
+                token_id: TOKEN_ID.to_string(),
+            },
+        )
+        .unwrap();
+        store.insert_auth_token(&auth_token).await.unwrap();
+
+        // Send a token request
         let res = oauth_token(
             Extension(store.clone()),
             Extension(decoding_key.clone()),
             Extension(key.clone()),
             headers.clone(),
-            Form(req.clone()),
+            Form(TokenRequest {
+                grant_type: Some(CODE_GRANT_TYPE.to_string()),
+                client_id: Some(CLIENT_ID.to_string()),
+                client_secret: None,
+                scope: Some(READ_WRITE_SCOPE.to_string()),
+                resource: Some("resource/some".to_string()),
+                redirect_uri: Some(REDIRECT_URI1.to_string()),
+                code: Some(code),
+                code_verifier: Some(Secret::from(CODE_VERIFIER)),
+                refresh_token: None,
+                other: Value::Null,
+            }),
         )
         .await;
         assert_eq!(res.status(), StatusCode::OK);
-        let res: TokenResponse = serde_json::from_slice(
-            &axum::body::to_bytes(res.into_body(), 1024 * 1024)
-                .await
-                .unwrap(),
-        )
-        .unwrap();
+        let res: TokenResponse = parse_response(res).await;
 
-        // Assert over the response.
-        assert_eq!(res.token_type, "Bearer");
-        assert_eq!(res.scope, READ_WRITE_SCOPE);
-        assert_eq!(res.expires_in, ACCESS_TOKEN_EXPIRY_SECS);
-        assert!(!res.access_token.data().is_empty());
-        assert!(!res.refresh_token.data().is_empty());
+        // Asserts over the response
+        assert_eq!(
+            res,
+            TokenResponse {
+                token_type: "Bearer".to_string(),
+                expires_in: ACCESS_TOKEN_EXPIRY_SECS,
+                scope: READ_WRITE_SCOPE.to_string(),
+                access_token: res.access_token.clone(),
+                refresh_token: res.refresh_token.clone()
+            }
+        );
         let access_token = decode_access_token(&decoding_key, &res.access_token).unwrap();
-        assert_eq!(access_token.user.email, user.email);
-        assert_eq!(access_token.iss, ACCESS_TOKEN_ISS);
-        assert_eq!(access_token.scope, READ_WRITE_SCOPE);
-        assert_eq!(access_token.auth_token_claims.client_id, client_id);
-        assert_eq!(access_token.auth_token_claims.token_id, token_id);
+        assert_eq!(
+            access_token,
+            AccessTokenClaims {
+                iat: access_token.iat,
+                exp: access_token.exp,
+                iss: ACCESS_TOKEN_ISS.to_string(),
+                scope: READ_WRITE_SCOPE.to_string(),
+                user: user.clone(),
+                auth_token_claims: AuthTokenClaims {
+                    iat: auth_token.issued_at,
+                    exp: auth_token.expires_at,
+                    iss: AUTH_TOKEN_ISS.to_string(),
+                    client_id: CLIENT_ID.to_string(),
+                    token_id: TOKEN_ID.to_string()
+                }
+            }
+        );
         let refresh_token = decode_refresh_token(&decoding_key, &res.refresh_token).unwrap();
-        assert_eq!(access_token.user.email, user.email);
-        assert_eq!(refresh_token.iss, REFRESH_TOKEN_ISS);
-        assert_eq!(refresh_token.scope, READ_WRITE_SCOPE);
-        assert_eq!(refresh_token.auth_token_claims.client_id, client_id);
-        assert_eq!(refresh_token.auth_token_claims.token_id, token_id);
+        assert_eq!(
+            refresh_token,
+            RefreshTokenClaims {
+                iat: access_token.iat,
+                exp: refresh_token.exp,
+                iss: REFRESH_TOKEN_ISS.to_string(),
+                scope: READ_WRITE_SCOPE.to_string(),
+                user: user.clone(),
+                auth_token_claims: AuthTokenClaims {
+                    iat: auth_token.issued_at,
+                    exp: auth_token.expires_at,
+                    iss: AUTH_TOKEN_ISS.to_string(),
+                    client_id: CLIENT_ID.to_string(),
+                    token_id: TOKEN_ID.to_string()
+                }
+            }
+        );
+        // Ensure the token doesn't exist.
+        assert!(store.consume_auth_token(TOKEN_ID).await.is_err());
     }
 
     #[test_log::test(sqlx::test)]
     async fn mismatched_iss_fails_decoding() {
-        let key = EncodingKey::from_secret(&[1, 2]);
-        let decoding_key = DecodingKey::from_secret(&[1, 2]);
+        let key = EncodingKey::from_secret(KEY);
+        let decoding_key = DecodingKey::from_secret(KEY);
 
         let token = encode_auth_token(
             &key,
@@ -1913,8 +2030,8 @@ mod tests {
                 iat: 123,
                 exp: now().unwrap() + 9999,
                 iss: ACCESS_TOKEN_ISS.to_string(),
-                client_id: "client-1".to_string(),
-                token_id: "token-1".to_string(),
+                client_id: CLIENT_ID.to_string(),
+                token_id: TOKEN_ID.to_string(),
             },
         )
         .unwrap();
@@ -1925,9 +2042,38 @@ mod tests {
     }
 
     #[test_log::test(sqlx::test)]
+    async fn absent_iss_fails_decoding() {
+        let key = EncodingKey::from_secret(KEY);
+        let decoding_key = DecodingKey::from_secret(KEY);
+
+        #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+        struct Claims {
+            iat: u64,
+            exp: u64,
+            iss: Option<String>,
+        }
+
+        let issuer = "some_issuer";
+        let mut claims = Claims {
+            iat: 123,
+            exp: now().unwrap() + 9999,
+            iss: Some(issuer.to_string()),
+        };
+        let token = encode_token(&key, &claims).unwrap();
+        assert_eq!(
+            decode_token::<Claims>(&decoding_key, &token, issuer).unwrap(),
+            claims
+        );
+
+        claims.iss = None;
+        let token = encode_token(&key, &claims).unwrap();
+        assert!(decode_token::<Claims>(&decoding_key, &token, issuer).is_err());
+    }
+
+    #[test_log::test(sqlx::test)]
     async fn expired_token_fails_decoding() {
-        let key = EncodingKey::from_secret(&[1, 2]);
-        let decoding_key = DecodingKey::from_secret(&[1, 2]);
+        let key = EncodingKey::from_secret(KEY);
+        let decoding_key = DecodingKey::from_secret(KEY);
 
         let token = encode_auth_token(
             &key,
@@ -1935,8 +2081,8 @@ mod tests {
                 iat: 123,
                 exp: now().unwrap() - 500,
                 iss: AUTH_TOKEN_ISS.to_string(),
-                client_id: "client-1".to_string(),
-                token_id: "token-1".to_string(),
+                client_id: CLIENT_ID.to_string(),
+                token_id: TOKEN_ID.to_string(),
             },
         )
         .unwrap();
@@ -1946,116 +2092,34 @@ mod tests {
         assert_eq!(err.error, "invalid_grant");
     }
 
-    #[test_log::test(sqlx::test)]
-    async fn test_oauth_token_public_client(pool: PgPool) {
-        let user = User {
+    fn default_client() -> ClientMetadata {
+        ClientMetadata {
+            client_id: CLIENT_ID.to_string(),
+            client_name: CLIENT_NAME.to_string(),
+            registered_at: 123,
+            client_secret_expires_at: now().unwrap() + 9999,
+            scope: READ_WRITE_SCOPE.to_string(),
+            token_endpoint_auth_method: BASIC_AUTH_METHOD.to_string(),
+            redirect_uris: vec![REDIRECT_URI1.to_string()],
+            grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
+            response_types: vec![CODE_RESPONSE_TYPE.to_string()],
+        }
+    }
+    fn default_user() -> User {
+        User {
             email: "user@example.com".to_string(),
             name: "User".to_string(),
             picture: "pic".to_string(),
-            exp: 9999999999,
-        };
-        let key = EncodingKey::from_secret(&[1, 2]);
-        let decoding_key = DecodingKey::from_secret(&[1, 2]);
-        let store = Store::new(Box::leak(Box::new(pool)));
-        let headers = HeaderMap::new();
+            exp: 99999999999999,
+        }
+    }
 
-        // Insert a client
-        let client_id = "client-123".to_string();
-        let code_verifier = "qkkIJx-brh0RjiBH3RJZeIiam66UuxHCZmsR7DxPuYB";
-        let code_challenge = "5IcmHkDZ7xfw54Bs1U7ejZxKRZ5pxo0z_d5mCDWRlkc";
-        let redirect_uri = "http:://localhost/test/redirect".to_string();
-        store
-            .insert_client(&ClientMetadata {
-                client_id: client_id.clone(),
-                client_name: "Some client".to_string(),
-                registered_at: 123,
-                client_secret_expires_at: 9999999999999,
-                scope: READ_WRITE_SCOPE.to_string(),
-                token_endpoint_auth_method: NONE_AUTH_METHOD.to_string(),
-                redirect_uris: vec![redirect_uri.clone()],
-                grant_types: vec![CODE_GRANT_TYPE.to_string(), REFRESH_GRANT_TYPE.to_string()],
-                response_types: vec![CODE_RESPONSE_TYPE.to_string()],
-            })
-            .await
-            .unwrap();
-
-        // Store an auth token
-        let token_id = "token-123".to_string();
-        let code = encode_auth_token(
-            &key,
-            &AuthTokenClaims {
-                iat: 123,
-                exp: 99999999999999,
-                iss: AUTH_TOKEN_ISS.to_string(),
-                client_id: client_id.clone(),
-                token_id: token_id.clone(),
-            },
-        )
-        .unwrap();
-        store
-            .insert_auth_token(&AuthTokenMetadata {
-                issued_at: 123,
-                expires_at: 99999999999999,
-                client_id: client_id.clone(),
-                token_id: token_id.clone(),
-                scope: READ_WRITE_SCOPE.to_string(),
-                response_type: CODE_RESPONSE_TYPE.to_string(),
-                redirect_uri: redirect_uri.clone(),
-                code_challenge_method: Some("S256".to_string()),
-                code_challenge: Some(code_challenge.to_string()),
-                user: user.clone(),
-            })
-            .await
-            .unwrap();
-
-        // Send a token request
-        let req = TokenRequest {
-            grant_type: Some(CODE_GRANT_TYPE.to_string()),
-            client_id: Some(client_id.clone()),
-            client_secret: None,
-            scope: Some(READ_WRITE_SCOPE.to_string()),
-            resource: Some("resource/some".to_string()),
-            redirect_uri: Some(redirect_uri.clone()),
-            code: Some(code),
-            code_verifier: Some(Secret::from(code_verifier)),
-            refresh_token: None,
-            other: Value::Null,
-        };
-        let res = oauth_token(
-            Extension(store.clone()),
-            Extension(decoding_key.clone()),
-            Extension(key.clone()),
-            headers.clone(),
-            Form(req.clone()),
-        )
-        .await;
-        assert_eq!(res.status(), StatusCode::OK);
-        let res: TokenResponse = serde_json::from_slice(
+    async fn parse_response<T: DeserializeOwned>(res: Response<Body>) -> T {
+        serde_json::from_slice(
             &axum::body::to_bytes(res.into_body(), 1024 * 1024)
                 .await
                 .unwrap(),
         )
-        .unwrap();
-
-        // Asserts over the response
-        assert_eq!(res.token_type, "Bearer");
-        assert_eq!(res.scope, READ_WRITE_SCOPE);
-        assert_eq!(res.expires_in, ACCESS_TOKEN_EXPIRY_SECS);
-        assert!(!res.access_token.data().is_empty());
-        assert!(!res.refresh_token.data().is_empty());
-        let access_token = decode_access_token(&decoding_key, &res.access_token).unwrap();
-        assert_eq!(access_token.user.email, user.email);
-        assert_eq!(access_token.iss, ACCESS_TOKEN_ISS);
-        assert_eq!(access_token.scope, READ_WRITE_SCOPE);
-        assert_eq!(access_token.auth_token_claims.client_id, client_id);
-        assert_eq!(access_token.auth_token_claims.token_id, token_id);
-        let refresh_token = decode_refresh_token(&decoding_key, &res.refresh_token).unwrap();
-        assert_eq!(access_token.user.email, user.email);
-        assert_eq!(refresh_token.iss, REFRESH_TOKEN_ISS);
-        assert_eq!(refresh_token.scope, READ_WRITE_SCOPE);
-        assert_eq!(refresh_token.auth_token_claims.client_id, client_id);
-        assert_eq!(refresh_token.auth_token_claims.token_id, token_id);
-        // Ensure the token doesn't exist.
-        assert!(store.consume_auth_token(&token_id).await.is_err());
+        .unwrap()
     }
 }
