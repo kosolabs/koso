@@ -1394,6 +1394,8 @@ fn add_www_authenticate_header(res: &mut Response) -> ApiResult<()> {
 
 #[cfg(test)]
 mod tests {
+    use crate::tests::db::UnsafePoolWrapper;
+
     use super::*;
     use axum::http::StatusCode;
     use serde_json::Value;
@@ -1411,7 +1413,9 @@ mod tests {
     async fn test_oauth_register_full(pool: PgPool) {
         let key = EncodingKey::from_secret(KEY);
         let decoding_key = DecodingKey::from_secret(KEY);
-        let store = Store::new(Box::leak(Box::new(pool)));
+        let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+        let pool = pool_wrapper.pool;
+        let store = Store::new(pool);
 
         // Register the client
         let Json(res) = oauth_register(
@@ -1474,7 +1478,9 @@ mod tests {
     async fn test_oauth_register_minimal(pool: PgPool) {
         let key = EncodingKey::from_secret(KEY);
         let decoding_key = DecodingKey::from_secret(KEY);
-        let store = Store::new(Box::leak(Box::new(pool)));
+        let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+        let pool = pool_wrapper.pool;
+        let store = Store::new(pool);
 
         // Register the client
         let Json(res) = oauth_register(
@@ -1532,7 +1538,9 @@ mod tests {
 
     #[test_log::test(sqlx::test)]
     async fn test_oauth_authorization_details_succeeds(pool: PgPool) {
-        let store = Store::new(Box::leak(Box::new(pool)));
+        let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+        let pool = pool_wrapper.pool;
+        let store = Store::new(pool);
         store.insert_client(&default_client()).await.unwrap();
 
         let Json(res) = oauth_authorization_details(
@@ -1556,7 +1564,9 @@ mod tests {
 
     #[test_log::test(sqlx::test)]
     async fn test_oauth_authorization_details_rejects_invalid_uri(pool: PgPool) {
-        let store = Store::new(Box::leak(Box::new(pool)));
+        let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+        let pool = pool_wrapper.pool;
+        let store = Store::new(pool);
         store.insert_client(&default_client()).await.unwrap();
 
         let err = oauth_authorization_details(
@@ -1580,7 +1590,9 @@ mod tests {
         let user = default_user();
         let key = EncodingKey::from_secret(KEY);
         let decoding_key = DecodingKey::from_secret(KEY);
-        let store = Store::new(Box::leak(Box::new(pool)));
+        let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+        let pool = pool_wrapper.pool;
+        let store = Store::new(pool);
         store.insert_client(&default_client()).await.unwrap();
 
         let Json(res) = oauth_approve(
@@ -1630,7 +1642,9 @@ mod tests {
         let user = default_user();
         let key = EncodingKey::from_secret(KEY);
         let decoding_key = DecodingKey::from_secret(KEY);
-        let store = Store::new(Box::leak(Box::new(pool)));
+        let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+        let pool = pool_wrapper.pool;
+        let store = Store::new(pool);
         store.insert_client(&default_client()).await.unwrap();
 
         let Json(res) = oauth_approve(
@@ -1680,7 +1694,9 @@ mod tests {
         let user = default_user();
         let key = EncodingKey::from_secret(KEY);
         let decoding_key = DecodingKey::from_secret(KEY);
-        let store = Store::new(Box::leak(Box::new(pool)));
+        let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+        let pool = pool_wrapper.pool;
+        let store = Store::new(pool);
         let headers = HeaderMap::new();
         // Insert a client
         let client_secret = encode_client_secret(
@@ -1910,7 +1926,9 @@ mod tests {
         let user = default_user();
         let key = EncodingKey::from_secret(KEY);
         let decoding_key = DecodingKey::from_secret(KEY);
-        let store = Store::new(Box::leak(Box::new(pool)));
+        let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+        let pool = pool_wrapper.pool;
+        let store = Store::new(pool);
         let headers = HeaderMap::new();
         store
             .insert_client(&ClientMetadata {
