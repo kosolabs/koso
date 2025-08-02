@@ -280,7 +280,7 @@ fn decode_and_validate_test_token(token: &str, key: &DecodingKey) -> ApiResult<U
     Ok(user)
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub(crate) struct User {
     pub(crate) email: String,
     pub(crate) name: String,
