@@ -147,7 +147,7 @@ impl ConnectHandler {
         api::verify_project_access(self.pool, &user, &request.project_id).await?;
         self.verify_installation_access(&request).await?;
 
-        tracing::info!(
+        tracing::debug!(
             "Connecting project {} to installation {}",
             request.project_id,
             request.installation_id
@@ -218,7 +218,7 @@ impl ConnectHandler {
     ) -> ApiResult<Json<ConnectUserResponse>> {
         let octocrab::models::Author { url, id, .. } = self.fetch_user(&request).await?;
 
-        tracing::info!("Connecting user {} to github user {id} ({url})", user.email);
+        tracing::debug!("Connecting user {} to github user {id} ({url})", user.email);
         self.update_user_connection(&user, Some(&id.to_string()))
             .await?;
 
