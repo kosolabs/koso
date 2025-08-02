@@ -2,12 +2,13 @@
   import { goto } from "$app/navigation";
   import { KosoError } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
+  import { Goto } from "$lib/components/ui/goto";
   import { Navbar } from "$lib/components/ui/navbar";
   import { toast } from "$lib/components/ui/sonner";
   import * as rest from "$lib/projects";
   import { type Project, type ProjectExport } from "$lib/projects";
   import { HardDriveUpload, Layers, PackagePlus, Trash2 } from "@lucide/svelte";
-  import { Alert, Button, Goto } from "kosui";
+  import { Alert, Button } from "kosui";
 
   const auth = getAuthContext();
 

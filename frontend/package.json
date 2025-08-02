@@ -49,7 +49,7 @@
     "js-base64": "3.7.7",
     "jsdom": "26.1.0",
     "jwt-decode": "4.0.0",
-    "kosui": "github:kosolabs/kosui#v0.0.2",
+    "kosui": "^0.0.7",
     "lib0": "0.2.114",
     "marked": "16.1.1",
     "mermaid": "11.9.0",

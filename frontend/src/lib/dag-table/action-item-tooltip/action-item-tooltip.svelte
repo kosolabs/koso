@@ -1,6 +1,7 @@
 <script module lang="ts">
+  import { Goto } from "$lib/components/ui/goto";
   import { Blocks, CalendarCheck2, CirclePlay, Icon } from "@lucide/svelte";
-  import { Button, Goto, Tooltip } from "kosui";
+  import { Button, Tooltip } from "kosui";
   import {
     type ActionItem,
     getInboxContext,
