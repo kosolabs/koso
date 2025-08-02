@@ -117,6 +117,8 @@ fn rows_to_configs(configs: Vec<ConfigRow>) -> Vec<Config> {
 mod tests {
     use serde::{Deserialize, Serialize};
 
+    use crate::tests::db::UnsafePoolWrapper;
+
     use super::*;
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -126,13 +128,14 @@ mod tests {
 
     #[test_log::test(sqlx::test)]
     async fn config_test(pool: PgPool) -> Result<()> {
-        let pool = Box::leak(Box::new(pool.clone()));
+        let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+        let pool = pool_wrapper.pool;
         let storage = ConfigStorage { pool };
 
         sqlx::query("INSERT INTO projects (project_id, name) VALUES ($1, $2)")
             .bind("project_id_1")
             .bind("config_test")
-            .execute(&*pool)
+            .execute(pool)
             .await?;
         storage
             .insert_or_update(&Config {
@@ -170,13 +173,14 @@ mod tests {
 
     #[test_log::test(sqlx::test)]
     async fn list_excludes_deleted_projects(pool: PgPool) -> Result<()> {
-        let pool = Box::leak(Box::new(pool.clone()));
+        let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+        let pool = pool_wrapper.pool;
         let storage = ConfigStorage { pool };
 
         sqlx::query("INSERT INTO projects (project_id, name, deleted_on) VALUES ($1, $2, CURRENT_TIMESTAMP)")
             .bind("project_id_1")
             .bind("config_test")
-            .execute(&*pool)
+            .execute(pool)
             .await?;
 
         storage
