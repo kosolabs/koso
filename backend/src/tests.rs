@@ -333,6 +333,59 @@ async fn create_and_delete_project(pool: PgPool) -> sqlx::Result<()> {
     Ok(())
 }
 
+async fn setup_project(
+    client: &Client,
+    addr: &SocketAddr,
+    token: &str,
+    claims: &Claims,
+    pool: &PgPool,
+) -> String {
+    // Log in and share the project
+    let res = client
+        .post(format!("http://{addr}/api/auth/login"))
+        .bearer_auth(token)
+        .send()
+        .await
+        .expect("Failed to send request.");
+    assert_eq!(res.status(), StatusCode::OK);
+    set_user_premium(&claims.email, pool).await.unwrap();
+
+    let project_id = {
+        let res = client
+            .post(format!("http://{addr}/api/projects"))
+            .bearer_auth(token)
+            .header("Content-Type", "application/json")
+            .body("{\"name\":\"Test Project\"}")
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let project: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        let project = project.as_object().unwrap();
+        project
+            .get("projectId")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+
+    let res = client
+        .patch(format!("http://{addr}/api/projects/{project_id}/users"))
+        .bearer_auth(token)
+        .header("Content-Type", "application/json")
+        .body(format!(
+            "{{\"projectId\":\"{project_id}\", \"addEmails\":[\"{}\"], \"removeEmails\":[]}}",
+            claims.email
+        ))
+        .send()
+        .await
+        .expect("Failed to send request.");
+    assert_eq!(res.status(), StatusCode::OK);
+
+    project_id
+}
+
 #[test_log::test(sqlx::test)]
 async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let (mut server, addr) = start_server(&pool).await;
@@ -342,51 +395,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
     let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
 
     // Log in and share the project
-    let project_id = {
-        let res = client
-            .post(format!("http://{addr}/api/auth/login"))
-            .bearer_auth(&token)
-            .send()
-            .await
-            .expect("Failed to send request.");
-        assert_eq!(res.status(), StatusCode::OK);
-        set_user_premium(&claims.email, &pool).await.unwrap();
-
-        let project_id = {
-            let res = client
-                .post(format!("http://{addr}/api/projects"))
-                .bearer_auth(&token)
-                .header("Content-Type", "application/json")
-                .body("{\"name\":\"Test Project\"}")
-                .send()
-                .await
-                .expect("Failed to send request.");
-            assert_eq!(res.status(), StatusCode::OK);
-            let project: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
-            let project = project.as_object().unwrap();
-            project
-                .get("projectId")
-                .unwrap()
-                .as_str()
-                .unwrap()
-                .to_string()
-        };
-
-        let res = client
-            .patch(format!("http://{addr}/api/projects/{project_id}/users"))
-            .bearer_auth(&token)
-            .header("Content-Type", "application/json")
-            .body(format!(
-                "{{\"projectId\":\"{project_id}\", \"addEmails\":[\"{}\"], \"removeEmails\":[]}}",
-                claims.email
-            ))
-            .send()
-            .await
-            .expect("Failed to send request.");
-        assert_eq!(res.status(), StatusCode::OK);
-
-        project_id
-    };
+    let project_id = setup_project(&client, &addr, &token, &claims, &pool).await;
 
     // Test that unauthenticated users are rejected.
     {
@@ -440,18 +449,43 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
             .unwrap(),
         );
 
-        let (mut socket, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
-        let socket = &mut socket;
+        let (mut socket1, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
+        let socket1 = &mut socket1;
         assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
-        assert_eq!(read_sync_request(socket).await, StateVector::default());
-        close_socket(socket).await;
+        assert_eq!(read_sync_request(socket1).await, StateVector::default());
+        let (mut socket2, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
+        let socket2 = &mut socket2;
+        assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
+        assert_eq!(read_sync_request(socket2).await, StateVector::default());
+
+        // Closing one socket should trigger awareness broadcasts to others.
+        close_socket(socket2).await;
+        read_awareness_state(socket1).await;
+        close_socket(socket1).await;
 
         // Abruptly close the socket, this'll trigger the error handling in ClientMessageReceiver
         let (_socket, response) = tokio_tungstenite::connect_async(req.clone()).await.unwrap();
         assert_eq!(response.status(), StatusCode::SWITCHING_PROTOCOLS);
     }
 
-    // Finally, run through a valid websocket interaction.
+    server.start_shutdown().await;
+    server.wait_for_shutdown().await.unwrap();
+
+    Ok(())
+}
+
+#[test_log::test(sqlx::test)]
+async fn ws_test_full(pool: PgPool) -> sqlx::Result<()> {
+    let (mut server, addr) = start_server(&pool).await;
+    let client = Client::default();
+
+    let claims = Claims::default();
+    let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
+
+    // Log in and share the project
+    let project_id = setup_project(&client, &addr, &token, &claims, &pool).await;
+
+    // Run through a valid websocket interaction.
     let mut req = format!("ws://{addr}/api/ws/projects/{project_id}")
         .into_client_request()
         .unwrap();
@@ -511,8 +545,7 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
         )))
         .await
         .unwrap();
-    // Read the Koso awareness state.
-    read_awareness_state(socket_1).await;
+
     // Read the sync_response.
     assert_eq!(read_sync_response(socket_1).await, Update::default());
     // Send the sync_response.
@@ -685,6 +718,11 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 
         close_socket(socket).await;
     }
+
+    // Read the Koso awareness state triggered by the close above.
+    read_awareness_state(socket_1).await;
+    read_awareness_state(socket_2).await;
+    read_awareness_state(socket_3).await;
 
     // Open up enough sockets to hit the limit.
     let mut sockets = Vec::new();
