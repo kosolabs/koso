@@ -372,7 +372,7 @@ async fn setup_project(
 
     let res = client
         .patch(format!("http://{addr}/api/projects/{project_id}/users"))
-        .bearer_auth(&token)
+        .bearer_auth(token)
         .header("Content-Type", "application/json")
         .body(format!(
             "{{\"projectId\":\"{project_id}\", \"addEmails\":[\"{}\"], \"removeEmails\":[]}}",
