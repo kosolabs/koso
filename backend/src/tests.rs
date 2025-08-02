@@ -13,7 +13,10 @@ use crate::{
     },
     plugins::PluginSettings,
     server::{self, Config},
-    tests::msg_sync::{MSG_KOSO_AWARENESS, MSG_KOSO_AWARENESS_STATE},
+    tests::{
+        db::UnsafePoolWrapper,
+        msg_sync::{MSG_KOSO_AWARENESS, MSG_KOSO_AWARENESS_STATE},
+    },
 };
 use anyhow::{Result, anyhow};
 use axum::http::HeaderValue;
@@ -54,7 +57,9 @@ type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 #[test_log::test(sqlx::test)]
 async fn api_test(pool: PgPool) -> sqlx::Result<()> {
-    let (server, addr) = start_server(&pool).await;
+    let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+    let pool = pool_wrapper.pool;
+    let (server, addr) = start_server(pool).await;
     let client = Client::default();
 
     // Health check
@@ -78,7 +83,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
-        set_user_premium(&claims.email, &pool).await.unwrap();
+        set_user_premium(&claims.email, pool).await.unwrap();
     }
 
     // Log in a second user
@@ -97,7 +102,7 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
             .await
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::OK);
-        set_user_premium(&claims.email, &pool).await.unwrap();
+        set_user_premium(&claims.email, pool).await.unwrap();
     }
 
     // Try a request without any credentials attached.
@@ -261,7 +266,9 @@ async fn api_test(pool: PgPool) -> sqlx::Result<()> {
 
 #[test_log::test(sqlx::test)]
 async fn not_invite_user(pool: PgPool) -> sqlx::Result<()> {
-    let (server, addr) = start_server(&pool).await;
+    let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+    let pool = pool_wrapper.pool;
+    let (server, addr) = start_server(pool).await;
     let client = Client::default();
 
     let claims = Claims::default();
@@ -311,10 +318,12 @@ async fn assert_not_premium(res: Response) {
 
 #[test_log::test(sqlx::test)]
 async fn create_and_delete_project(pool: PgPool) -> sqlx::Result<()> {
-    let (mut server, addr) = start_server(&pool).await;
+    let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+    let pool = pool_wrapper.pool;
+    let (mut server, addr) = start_server(pool).await;
     let client = Client::default();
 
-    let token = login(&client, &addr, &pool).await.unwrap();
+    let token = login(&client, &addr, pool).await.unwrap();
 
     let project = create_project(&client, &addr, &token, "A Project to Delete")
         .await
@@ -388,14 +397,16 @@ async fn setup_project(
 
 #[test_log::test(sqlx::test)]
 async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
-    let (mut server, addr) = start_server(&pool).await;
+    let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+    let pool = pool_wrapper.pool;
+    let (mut server, addr) = start_server(pool).await;
     let client = Client::default();
 
     let claims = Claims::default();
     let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
 
     // Log in and share the project
-    let project_id = setup_project(&client, &addr, &token, &claims, &pool).await;
+    let project_id = setup_project(&client, &addr, &token, &claims, pool).await;
 
     // Test that unauthenticated users are rejected.
     {
@@ -476,14 +487,16 @@ async fn ws_test(pool: PgPool) -> sqlx::Result<()> {
 
 #[test_log::test(sqlx::test)]
 async fn ws_test_full(pool: PgPool) -> sqlx::Result<()> {
-    let (mut server, addr) = start_server(&pool).await;
+    let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+    let pool = pool_wrapper.pool;
+    let (mut server, addr) = start_server(pool).await;
     let client = Client::default();
 
     let claims = Claims::default();
     let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
 
     // Log in and share the project
-    let project_id = setup_project(&client, &addr, &token, &claims, &pool).await;
+    let project_id = setup_project(&client, &addr, &token, &claims, pool).await;
 
     // Run through a valid websocket interaction.
     let mut req = format!("ws://{addr}/api/ws/projects/{project_id}")
@@ -770,11 +783,13 @@ async fn ws_test_full(pool: PgPool) -> sqlx::Result<()> {
 
 #[test_log::test(sqlx::test)]
 async fn plugin_test(pool: PgPool) -> Result<()> {
-    let (server, addr) = start_server(&pool).await;
+    let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+    let pool = pool_wrapper.pool;
+    let (server, addr) = start_server(pool).await;
     let client = Client::default();
 
     // Setup the project.
-    let token = login(&client, &addr, &pool).await.unwrap();
+    let token = login(&client, &addr, pool).await.unwrap();
     let project = create_project(&client, &addr, &token, "plugin_test")
         .await
         .unwrap();
@@ -789,14 +804,14 @@ async fn plugin_test(pool: PgPool) -> Result<()> {
     // https://github.com/organizations/kosolabs/settings/installations/
     // Don't forget to update org id references elsewhere in test code.
     .bind("57987456")
-    .execute(&pool)
+    .execute(pool)
     .await?;
     sqlx::query(
         "
     INSERT INTO users (email, name, picture, subscription_end_time, github_user_id)
     VALUES ('foo@koso.test', 'Foo Bar', 'foopic@koso.test', TIMESTAMP '2100-01-20 13:00:00', '4945355')",
     )
-    .execute(&pool)
+    .execute(pool)
     .await?;
 
     let mut req = format!("ws://{addr}/api/ws/projects/{}", project.project_id)
@@ -1205,10 +1220,10 @@ impl ServerHandle {
     }
 }
 
-async fn start_server(pool: &PgPool) -> (ServerHandle, SocketAddr) {
+async fn start_server(pool: &'static PgPool) -> (ServerHandle, SocketAddr) {
     let cancel = CancellationToken::new();
     let (addr, serve) = server::start_main_server(Config {
-        pool: Some(Box::leak(Box::new(pool.clone()))),
+        pool: Some(pool),
         port: Some(0),
         shutdown_signal: cancel.clone(),
         key_set: Some(testonly_key_set().await.unwrap()),
@@ -1226,4 +1241,48 @@ async fn start_server(pool: &PgPool) -> (ServerHandle, SocketAddr) {
         },
         addr,
     )
+}
+
+pub(crate) mod db {
+    use std::time::Duration;
+
+    use sqlx::PgPool;
+    use tokio::time::timeout;
+
+    /// Wraps a database pool and provides a static reference.
+    /// It is a hack in order to support tests without leaking pools.
+    /// Because sqlx tries to prevent tests from consuming too many connections,
+    /// they arrange pools such that the total number of connections made across
+    /// tests is limited: https://github.com/launchbadge/sqlx/blob/24317d5eab40fbc33caf1142946e2f39caad73ea/sqlx-postgres/src/testing/mod.rs#L176
+    /// When tests fail to drop the pool provided by sqlx, we start seeing errors like:
+    /// "failed to connect test pool: PoolTimedOut".
+    ///
+    /// The wrapper is unsafe because it's trivial to keep the reference around
+    /// after this wrapper and thus the pool is dropped.
+    pub(crate) struct UnsafePoolWrapper {
+        raw: Option<Box<PgPool>>,
+        pub(crate) pool: &'static PgPool,
+    }
+
+    impl UnsafePoolWrapper {
+        pub(crate) fn wrap(pool: PgPool) -> UnsafePoolWrapper {
+            let pool = Box::leak(Box::new(pool));
+            UnsafePoolWrapper {
+                raw: Some(unsafe { Box::from_raw(pool) }),
+                pool,
+            }
+        }
+    }
+
+    impl Drop for UnsafePoolWrapper {
+        fn drop(&mut self) {
+            if let Some(pool) = self.raw.take() {
+                tokio::spawn(async move {
+                    let _ = timeout(Duration::from_millis(500), pool.close()).await;
+                    tracing::debug!("Dropped pool: {pool:?}");
+                    drop(pool);
+                });
+            }
+        }
+    }
 }
