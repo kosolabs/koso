@@ -3,6 +3,7 @@
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
   import { Estimate } from "$lib/components/ui/estimate";
+  import { Goto } from "$lib/components/ui/goto";
   import { ManagedTaskIcon } from "$lib/components/ui/managed-task-icon";
   import { getPrefsContext } from "$lib/components/ui/prefs";
   import { TaskStatus } from "$lib/components/ui/task-status";
@@ -10,7 +11,7 @@
   import type { User } from "$lib/users";
   import { cn } from "$lib/utils";
   import { Grip } from "@lucide/svelte";
-  import { Chip, Goto, Link } from "kosui";
+  import { Chip, Link } from "kosui";
   import { tick } from "svelte";
   import { ActionItemTooltip } from "./action-item-tooltip";
   import DescAction from "./desc-action.svelte";
