@@ -339,7 +339,7 @@ impl RepoGithub {
 
         tracing::trace!("Context: {context}");
 
-        tracing::info!(
+        tracing::debug!(
             "Generated context for: {}/{} ({} files, {} bytes)",
             self.owner,
             self.repo,

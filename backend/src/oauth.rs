@@ -523,7 +523,7 @@ async fn oauth_authorization_details(
     Json(req): Json<AuthorizationDetailsRequest>,
 ) -> ApiResult<Json<AuthorizationDetailsResponse>> {
     let req = trim_authorize_request(req);
-    tracing::info!("Handling authorization: {req:?}");
+    tracing::debug!("Handling authorization: {req:?}");
 
     // Validate the request.
     let Some(client_id) = req.client_id else {
@@ -583,7 +583,7 @@ async fn oauth_approve(
     Json(req): Json<ApprovalRequest>,
 ) -> ApiResult<Json<ApprovalResponse>> {
     let req: ApprovalRequest = trim_approval_request(req);
-    tracing::info!("Approving authorization: {req:?}");
+    tracing::debug!("Approving authorization: {req:?}");
 
     let auth_token_metadata = issue_auth_token(req, user, &store).await?;
 
@@ -602,7 +602,7 @@ async fn oauth_approve(
     // Persist the token.
     store.insert_auth_token(&auth_token_metadata).await?;
 
-    tracing::info!("Approved authorization, created auth token: {auth_token_metadata:?}");
+    tracing::debug!("Approved authorization, created auth token: {auth_token_metadata:?}");
 
     Ok(Json(ApprovalResponse { code: auth_token }))
 }
@@ -748,7 +748,7 @@ async fn _oauth_token(
     req: TokenRequest,
 ) -> ApiResult<Json<TokenResponse>> {
     let req = trim_token_request(req);
-    tracing::info!("Handling token request: {req:?}");
+    tracing::debug!("Handling token request: {req:?}");
 
     // Issue tokens based on the given grant type.
     let (access_claims, refresh_claims) = match req.grant_type.as_deref() {
@@ -767,7 +767,7 @@ async fn _oauth_token(
     let access_token = encode_access_token(&encoding_key, &access_claims)?;
     let refresh_token = encode_refresh_token(&encoding_key, &refresh_claims)?;
 
-    tracing::info!("Created access token: {access_claims:?}, refresh token: {refresh_claims:?}");
+    tracing::debug!("Created access token: {access_claims:?}, refresh token: {refresh_claims:?}");
 
     Ok(Json(TokenResponse {
         token_type: "Bearer".to_string(),

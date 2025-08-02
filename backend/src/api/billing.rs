@@ -92,7 +92,7 @@ async fn handle_create_checkout_session(
 
         client.create_checkout_session(&params).await?
     };
-    tracing::info!("Created Stripe CheckoutSession. ID={}", session.id);
+    tracing::debug!("Created Stripe CheckoutSession. ID={}", session.id);
 
     Ok(Json(CreateCheckoutSessionResponse {
         redirect_url: session.url,
@@ -122,7 +122,7 @@ async fn handle_create_portal_session(
         };
         client.create_portal_session(&params).await?
     };
-    tracing::info!("Created Stripe BillingPortalSession. ID={}", session.id);
+    tracing::debug!("Created Stripe BillingPortalSession. ID={}", session.id);
 
     Ok(Json(CreatePortalSessionResponse {
         redirect_url: session.url,
@@ -590,7 +590,7 @@ mod webhook {
             "checkout.session.completed" => {
                 let session: CheckoutSessionObject = serde_json::from_str(event.data.get())?;
                 let session = session.object;
-                tracing::info!("Processing completed session event: {session:?}");
+                tracing::debug!("Processing completed session event: {session:?}");
 
                 let subscription = client.get_subscription(&session.subscription).await?;
                 apply_subscription(pool, &subscription).await?;
@@ -604,7 +604,7 @@ mod webhook {
             | "customer.subscription.resumed" => {
                 let subscription: SubscriptionObject = serde_json::from_str(event.data.get())?;
                 let subscription = subscription.object;
-                tracing::info!("Processing subscription event: {subscription:?}");
+                tracing::debug!("Processing subscription event: {subscription:?}");
 
                 let subscription = client.get_subscription(&subscription.id).await?;
                 apply_subscription(pool, &subscription).await?;
@@ -614,7 +614,7 @@ mod webhook {
             "invoice.paid" => {
                 let invoice: InvoiceObject = serde_json::from_str(event.data.get())?;
                 let invoice = invoice.object;
-                tracing::info!("Processing invoice event: {invoice:?}");
+                tracing::debug!("Processing invoice event: {invoice:?}");
 
                 let subscription = client
                     .get_subscription(&invoice.parent.subscription_details.subscription)
@@ -629,7 +629,7 @@ mod webhook {
     }
 
     async fn apply_subscription(pool: &PgPool, subscription: &Subscription) -> Result<()> {
-        tracing::info!("Applying subscription {subscription:?}");
+        tracing::debug!("Applying subscription {subscription:?}");
 
         // Grab details from the subscription.
         let item = subscription
