@@ -52,11 +52,11 @@ config = { version = "0.15.13", default-features = false, features = ["json"] }
 regex = "1.11.1"
 serde_qs = "1.0.0-rc.3"
 ed25519-dalek = "2.2.0"
-tokio-tungstenite = { version = "0.26.2" }
+tokio-tungstenite = { version = "0.27.0" }
 rmcp = { version = "0.3.0", features = ["server", "transport-io", "transport-streamable-http-server", "transport-sse-server", "auth"] }
 url = "2.5.4"
 
 [dev-dependencies]
 test-log = { version = "0.2.18", features = ["trace", "color"] }
-tokio-tungstenite = { version = "0.26.2", features = ["url"] }
+tokio-tungstenite = { version = "0.27.0", features = ["url"] }
 rsa = "0.9.8"

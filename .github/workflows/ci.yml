@@ -56,7 +56,7 @@ jobs:
           shared-key: "backend-build"
       - name: Setup Stripe CLI
         run: |
-          STRIPE_CLI_VERSION="1.28.0"
+          STRIPE_CLI_VERSION="1.29.0"
           curl -L https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_x86_64.tar.gz --output stripe.tar.gz
           tar -xvf stripe.tar.gz
           mv stripe /usr/local/bin
@@ -158,7 +158,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
       - name: Setup Stripe CLI
         run: |
-          STRIPE_CLI_VERSION="1.28.0"
+          STRIPE_CLI_VERSION="1.29.0"
           curl -L https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_x86_64.tar.gz --output stripe.tar.gz
           tar -xvf stripe.tar.gz
           mv stripe /usr/local/bin
@@ -192,7 +192,7 @@ jobs:
       # Log in to the Container registry registry using the account and password
       # that will publish the cache.
       - name: Log in to the Container registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -277,7 +277,7 @@ jobs:
       # that will publish the packages.
       # Once published, the packages are scoped to the account defined here.
       - name: Log in to the Container registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -286,7 +286,7 @@ jobs:
       - name: Extract metadata (tags, labels) for Docker
         # allows the output of this step to be referenced in a subsequent step.
         id: meta
-        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
         with:
           # Base name for the tags and labels.
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}

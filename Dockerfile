@@ -24,7 +24,7 @@ WORKDIR /app
 COPY rust-toolchain.toml ./
 RUN cargo install sqlx-cli@=0.8.6 --locked --no-default-features --features native-tls,postgres --root ./
 
-FROM node:24.4.1@sha256:c7a63f857d6dc9b3780ceb1874544cc22f3e399333c82de2a46de0049e841729 AS frontend
+FROM node:24.5.0@sha256:dd5c5e4d0a67471a683116483409d1e46605a79521b000c668cff29df06efd51 AS frontend
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -44,7 +44,7 @@ RUN pnpm run build
 #
 # Use the :debug image to debug
 # https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images
-FROM gcr.io/distroless/cc-debian12@sha256:eccec5274132c1be0ce5d2c8e6fe41033e64af5e987ccee9007826e4c012069d AS runtime
+FROM gcr.io/distroless/cc-debian12@sha256:bf0494952368db47e9e38eecc325c33f5ee299b1b1ccc5d9e30bdf1e5e4e3a58 AS runtime
 WORKDIR /app
 
 COPY --from=sqlx /app/bin/sqlx ./
