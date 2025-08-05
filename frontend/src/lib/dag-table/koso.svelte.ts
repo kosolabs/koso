@@ -1049,6 +1049,7 @@ export class Koso {
   getTaskPermalink(taskId: string) {
     const curr = page.url;
     curr.pathname = `/projects/${this.projectId}`;
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     curr.search = new URLSearchParams({ taskId }).toString();
     return curr;
   }
