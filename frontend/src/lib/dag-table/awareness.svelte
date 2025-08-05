@@ -91,6 +91,7 @@
 
   export function getUniqueUsers(awarenesses: Awareness[]): User[] {
     let users = [];
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     let emails: Set<string> = new Set();
     for (const awareness of awarenesses) {
       if (!emails.has(awareness.user.email)) {
