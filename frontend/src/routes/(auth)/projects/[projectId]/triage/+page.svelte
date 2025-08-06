@@ -4,12 +4,12 @@
   import { getProjectContext } from "$lib/dag-table";
 
   //   const auth = getAuthContext();
-  //   const project = getProjectContext();
+  const project = getProjectContext();
 </script>
 
 <div class="flex h-dvh flex-col">
   <div class="grow-0">
-    <Navbar breadcrumbs={["Triage"]}>
+    <Navbar breadcrumbs={[project.name, "Triage"]}>
       {#snippet left()}
         <div>
           <h1 class="ml-2 text-lg">Triage</h1>
