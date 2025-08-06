@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getAuthContext } from "$lib/auth.svelte";
+  // import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { getProjectContext } from "$lib/dag-table";
 
