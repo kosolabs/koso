@@ -517,11 +517,11 @@ impl Drop for ProjectState {
         // and avoid the burst of compacting many projects at once.
         {
             let clients = self.clients.try_lock();
-            if let Ok(clients) = clients {
-                if clients.stopped {
-                    tracing::trace!("Skipping compacting, shutting down");
-                    return;
-                }
+            if let Ok(clients) = clients
+                && clients.stopped
+            {
+                tracing::trace!("Skipping compacting, shutting down");
+                return;
             }
         }
 

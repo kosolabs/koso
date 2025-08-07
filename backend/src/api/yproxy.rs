@@ -122,7 +122,7 @@ impl YDocProxy {
         self.doc.transact()
     }
 
-    pub fn transact_mut_with<T: Into<Origin>>(&self, origin: T) -> TransactionMut {
+    pub fn transact_mut_with<'a, T: Into<Origin>>(&'a self, origin: T) -> TransactionMut<'a> {
         self.doc.transact_mut_with(origin)
     }
 

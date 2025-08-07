@@ -219,10 +219,10 @@ impl EventProcessor {
 
     async fn notify_assignee(&self, event: &KosoEvent, assignee: &str) -> Result<()> {
         // Don't notify a user if they assigned the task to themself.
-        if let Actor::User(user) = &event.origin.actor {
-            if user.email == assignee {
-                return Ok(());
-            }
+        if let Actor::User(user) = &event.origin.actor
+            && user.email == assignee
+        {
+            return Ok(());
         };
 
         let msg = format!(
@@ -264,10 +264,10 @@ impl EventProcessor {
         // TODO: We could parallelize this.
         for (task_id, assignee, name) in actionable {
             // Don't notify a user if they unblocked the task themself.
-            if let Actor::User(user) = &event.origin.actor {
-                if user.email == assignee {
-                    continue;
-                }
+            if let Actor::User(user) = &event.origin.actor
+                && user.email == assignee
+            {
+                continue;
             }
 
             let msg = format!(
@@ -322,14 +322,15 @@ impl EventProcessor {
                         stack.extend(descendent.get_children(&txn)?);
                     }
                 }
-                if found && complete {
-                    if let Some(assignee) = task.get_assignee(&txn)? {
-                        actionable.push((
-                            task.get_id(&txn)?,
-                            assignee,
-                            ytask_display_name(&task, &txn)?,
-                        ));
-                    }
+                if found
+                    && complete
+                    && let Some(assignee) = task.get_assignee(&txn)?
+                {
+                    actionable.push((
+                        task.get_id(&txn)?,
+                        assignee,
+                        ytask_display_name(&task, &txn)?,
+                    ));
                 }
             }
         }
@@ -372,7 +373,7 @@ impl Sender<'_> {
         }
     }
 
-    fn from_actor(actor: &Actor) -> Sender {
+    fn from_actor<'a>(actor: &'a Actor) -> Sender<'a> {
         match actor {
             Actor::User(user) => Sender::User(user),
             _ => Sender::Koso,
