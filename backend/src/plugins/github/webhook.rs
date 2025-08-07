@@ -128,7 +128,7 @@ async fn github_webhook(
 }
 
 // See https://docs.github.com/en/webhooks/webhook-events-and-payloads#delivery-headers.
-fn parse_headers(headers: &HeaderMap) -> ApiResult<WebhookHeaders> {
+fn parse_headers<'a>(headers: &'a HeaderMap) -> ApiResult<WebhookHeaders<'a>> {
     let Some(header) = headers.get("X-GitHub-Event") else {
         return Err(bad_request_error(
             "MISSING_HEADER",
@@ -243,10 +243,10 @@ impl Webhook {
         tracing::debug!("Processing Koso event: {event:?}");
 
         // Populate the email of the author if we're able to.
-        if let Some(user_id) = &event.task.user_id {
-            if let Some(email) = lookup_by_github_user_id(user_id, self.pool).await? {
-                event.task.koso_user_email = Some(email);
-            }
+        if let Some(user_id) = &event.task.user_id
+            && let Some(email) = lookup_by_github_user_id(user_id, self.pool).await?
+        {
+            event.task.koso_user_email = Some(email);
         }
 
         let configs = self
