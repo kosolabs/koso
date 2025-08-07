@@ -1,6 +1,6 @@
 use crate::{
     api::{
-        ApiResult, IntoApiResult,
+        ApiResult, IntoApiResult, bad_request_error,
         collab::{
             Collab,
             projects_state::DocBox,
@@ -187,10 +187,11 @@ impl rmcp::ServerHandler for KosoTools {
         ServerInfo {
             instructions: Some("This server provides access to Koso projects and tasks".into()),
             capabilities: ServerCapabilities::builder()
-                .enable_logging()
+                // .enable_logging()
                 .enable_prompts()
                 .enable_tools()
                 .enable_resources()
+                .enable_completions()
                 .build(),
             ..Default::default()
         }
@@ -255,6 +256,15 @@ impl rmcp::ServerHandler for KosoTools {
             resource_templates,
             next_cursor: None,
         })
+    }
+
+    async fn complete(
+        &self,
+        request: CompleteRequestParam,
+        context: RequestContext<RoleServer>,
+    ) -> Result<CompleteResult, ErrorData> {
+        tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
+        Ok(self._complete(&request, context).await?)
     }
 }
 
@@ -368,6 +378,64 @@ impl KosoTools {
                 mime_type: Some("application/json".to_string()),
                 text: serde_json::to_string(&task)?,
             }],
+        })
+    }
+
+    async fn _complete(
+        &self,
+        request: &CompleteRequestParam,
+        mut context: RequestContext<RoleServer>,
+    ) -> ApiResult<CompleteResult> {
+        let Reference::Resource(ResourceReference { uri }) = &request.r#ref else {
+            return Err(bad_request_error(
+                "unsupported_reference",
+                &format!("Only resource reference is supported, got: {request:?}"),
+            ));
+        };
+        if !uri.starts_with("projects:///projects/{project_id}") {
+            return Err(bad_request_error(
+                "unsupported_uri",
+                &format!(
+                    "Only projects:///projects/{{project_id}} reference URI supported, got {request:?}"
+                ),
+            ));
+        }
+        let argument = &request.argument;
+        if argument.name != "project_id"
+            && argument.name != "name"
+            && argument.name != "project_name"
+        {
+            return Err(bad_request_error(
+                "unsupported_argument_name",
+                &format!(
+                    "Only project_id, name and project_name argument.name values supported, got: {request:?}"
+                ),
+            ));
+        }
+
+        let user = user_extension(&mut context).await?;
+        let projects: Vec<Project> = list_projects(&user.email, self.inner.pool)
+            .await
+            .context_internal("Failed to list projects")?;
+
+        let value = argument.value.to_lowercase();
+
+        // Filter projects by name containing the input
+        let values = projects
+            .into_iter()
+            .filter(|p| {
+                p.name.to_lowercase().contains(&value)
+                    || p.project_id.to_lowercase().contains(&value)
+            })
+            .map(|p| p.project_id)
+            .collect::<Vec<_>>();
+
+        Ok(CompleteResult {
+            completion: CompletionInfo {
+                total: Some(values.len().try_into()?),
+                has_more: Some(false),
+                values,
+            },
         })
     }
 }
