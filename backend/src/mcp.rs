@@ -36,6 +36,8 @@ use tokio_util::sync::CancellationToken;
 use url::Url;
 use uuid::Uuid;
 
+const PROMPT_CREATE_TASK: &str = r#"You are a Koso project management AI assistant. Your task is to return a tool call that invokes the Koso `create_task` tool with the `project_id` and `name` arguments. Render the output of tool call in a pleasing, human readable format, showing the creator of the task the new task. Include a perma-link to the task in koso, of the form: https://koso.app/projects/{project_id}?taskId={task_id}"#;
+
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct CreateTaskParam {
@@ -187,7 +189,6 @@ impl rmcp::ServerHandler for KosoTools {
         ServerInfo {
             instructions: Some("This server provides access to Koso projects and tasks".into()),
             capabilities: ServerCapabilities::builder()
-                // .enable_logging()
                 .enable_prompts()
                 .enable_tools()
                 .enable_resources()
@@ -264,7 +265,51 @@ impl rmcp::ServerHandler for KosoTools {
         context: RequestContext<RoleServer>,
     ) -> Result<CompleteResult, ErrorData> {
         tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
+        tracing::info!("Handling complete: {request:?}");
         Ok(self._complete(&request, context).await?)
+    }
+
+    async fn get_prompt(
+        &self,
+        request: GetPromptRequestParam,
+        context: RequestContext<RoleServer>,
+    ) -> Result<GetPromptResult, ErrorData> {
+        tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
+        tracing::info!("Handling get_prompt: {request:?}");
+        Ok(self._get_prompt(request, context).await?)
+    }
+
+    async fn list_prompts(
+        &self,
+        request: Option<PaginatedRequestParam>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListPromptsResult, ErrorData> {
+        tracing::Span::current().record("request_id", Uuid::new_v4().to_string());
+        tracing::info!("Handling list_promps: {request:?}");
+
+        Ok(ListPromptsResult {
+            next_cursor: None,
+            prompts: vec![Prompt {
+                name: "create_koso_task".to_string(),
+                description: Some(
+                    "Create a new Koso task in an existing Koso project.".to_string(),
+                ),
+                arguments: Some(vec![
+                    PromptArgument {
+                        name: "project_id".to_string(),
+                        description: Some("ID of the Koso project".to_string()),
+                        required: Some(true),
+                    },
+                    PromptArgument {
+                        name: "name".to_string(),
+                        description: Some(
+                            "Name of the task. A concise description of the task.".to_string(),
+                        ),
+                        required: Some(true),
+                    },
+                ]),
+            }],
+        })
     }
 }
 
@@ -386,20 +431,20 @@ impl KosoTools {
         request: &CompleteRequestParam,
         mut context: RequestContext<RoleServer>,
     ) -> ApiResult<CompleteResult> {
-        let Reference::Resource(ResourceReference { uri }) = &request.r#ref else {
-            return Err(bad_request_error(
-                "unsupported_reference",
-                &format!("Only resource reference is supported, got: {request:?}"),
-            ));
+        tracing::info!("Handling complete: {request:?}");
+
+        match &request.r#ref {
+            Reference::Resource(ResourceReference { uri }) => {
+                if !uri.starts_with("projects:///projects/{project_id}") {
+                    return Err(bad_request_error(
+                        "unsupported_uri",
+                        "Only projects:///projects/{{project_id}} reference URI supported",
+                    ));
+                }
+            }
+            Reference::Prompt(_) => {}
         };
-        if !uri.starts_with("projects:///projects/{project_id}") {
-            return Err(bad_request_error(
-                "unsupported_uri",
-                &format!(
-                    "Only projects:///projects/{{project_id}} reference URI supported, got {request:?}"
-                ),
-            ));
-        }
+
         let argument = &request.argument;
         if argument.name != "project_id"
             && argument.name != "name"
@@ -407,9 +452,7 @@ impl KosoTools {
         {
             return Err(bad_request_error(
                 "unsupported_argument_name",
-                &format!(
-                    "Only project_id, name and project_name argument.name values supported, got: {request:?}"
-                ),
+                "Only project_id, name and project_name argument.name values supported",
             ));
         }
 
@@ -436,6 +479,51 @@ impl KosoTools {
                 has_more: Some(false),
                 values,
             },
+        })
+    }
+
+    async fn _get_prompt(
+        &self,
+        request: GetPromptRequestParam,
+        _context: RequestContext<RoleServer>,
+    ) -> ApiResult<GetPromptResult> {
+        if request.name != "create_koso_task" {
+            return Err(bad_request_error(
+                "invalid_request",
+                &format!("Prompt `{}` is not supported", request.name),
+            ));
+        }
+        let Some(arguments) = request.arguments else {
+            return Err(bad_request_error(
+                "invalid_arguments",
+                "No arguments provided",
+            ));
+        };
+
+        // let Some(project_id) = arguments.get("project_id").and_then(|p| p.as_str()) else {
+        //     return Err(bad_request_error(
+        //         "invalid_arguments",
+        //         "Missing `project_id` argument",
+        //     ));
+        // };
+        // let name = arguments.get("name").and_then(|p| p.as_str()) else {
+        //     return Err(bad_request_error(
+        //         "invalid_arguments",
+        //         "Missing `name` arugment",
+        //     ));
+        // };
+
+        let prompt = format!(
+            "{PROMPT_CREATE_TASK}\n\n### Input\n{}",
+            serde_json::to_string(&arguments)?
+        );
+
+        Ok(GetPromptResult {
+            description: Some("Foo".to_string()),
+            messages: vec![PromptMessage {
+                role: PromptMessageRole::User,
+                content: PromptMessageContent::text(prompt),
+            }],
         })
     }
 }
