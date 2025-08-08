@@ -159,7 +159,7 @@ test.describe("mcp tests", () => {
       id: 0,
       result: {
         protocolVersion: "2025-03-26",
-        capabilities: { logging: {}, prompts: {}, resources: {}, tools: {} },
+        capabilities: { prompts: {}, resources: {}, tools: {} },
         serverInfo: { name: "rmcp" },
         instructions: "This server provides access to Koso projects and tasks",
       },
@@ -284,7 +284,7 @@ test.describe("mcp tests", () => {
       id: 0,
       result: {
         protocolVersion: "2025-03-26",
-        capabilities: { logging: {}, prompts: {}, resources: {}, tools: {} },
+        capabilities: { prompts: {}, resources: {}, tools: {} },
         serverInfo: { name: "rmcp" },
         instructions: "This server provides access to Koso projects and tasks",
       },
