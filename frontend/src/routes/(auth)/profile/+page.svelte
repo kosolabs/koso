@@ -2,32 +2,32 @@
   import { page } from "$app/state";
   import { headers, parseResponse } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
-  import { Discord, Telegram } from "$lib/components/ui/custom-icons";
+  import { Discord, Teams, Telegram } from "$lib/components/ui/custom-icons";
   import { Navbar } from "$lib/components/ui/navbar";
   import type { Notifier } from "$lib/components/ui/notifier";
   import { toast } from "$lib/components/ui/sonner";
   import { deleteUserConnection, redirectToConnectUserFlow } from "$lib/github";
   import {
-    CircleX,
-    Crown,
-    Github,
-    Moon,
-    Send,
-    Slack,
-    Sun,
-    SunMoon,
-    Trash2,
+      CircleX,
+      Crown,
+      Github,
+      Moon,
+      Send,
+      Slack,
+      Sun,
+      SunMoon,
+      Trash2,
   } from "@lucide/svelte";
   import {
-    Button,
-    Chip,
-    CircularProgress,
-    getDialoguerContext,
-    Input,
-    Link,
-    ToggleButton,
-    ToggleGroup,
-    toTitleCase,
+      Button,
+      Chip,
+      CircularProgress,
+      getDialoguerContext,
+      Input,
+      Link,
+      ToggleButton,
+      ToggleGroup,
+      toTitleCase,
   } from "kosui";
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
@@ -65,10 +65,21 @@
     };
   };
 
+  type TeamsNotificationConfig = {
+    notifier: "teams";
+    email: string;
+    enabled: boolean;
+    settings: {
+      botToken: string;
+      channelId: string;
+    };
+  };
+
   type NotificationConfig =
     | DiscordNotificationConfig
     | SlackNotificationConfig
-    | TelegramNotificationConfig;
+    | TelegramNotificationConfig
+    | TeamsNotificationConfig;
 
   type PluginConnections = {
     githubUserId?: string;
@@ -169,11 +180,16 @@
   ): TelegramNotificationConfig | null;
   function getNotificationConfig(
     profile: Profile,
+    notifier: "teams",
+  ): TeamsNotificationConfig | null;
+  function getNotificationConfig(
+    profile: Profile,
     notifier: Notifier,
   ):
     | DiscordNotificationConfig
     | SlackNotificationConfig
     | TelegramNotificationConfig
+    | TeamsNotificationConfig
     | null {
     return (
       profile.notificationConfigs.find(
@@ -435,6 +451,37 @@
           Koso is not authorized to send messages to Telegram. To authorize
           Koso, start a Telegram Chat with
           <Link href="https://t.me/KosoLabsBot">@KosoLabsBot</Link>.
+        {/if}
+      </SubSection>
+
+      <SubSection title="Microsoft Teams" icon={Teams}>
+        {@const teamsConfig = getNotificationConfig(profile, "teams")}
+        {#if teamsConfig}
+          <div class="flex flex-col gap-2">
+            <div>Koso is authorized to send messages to Microsoft Teams.</div>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                icon={Send}
+                onclick={() => sendTestNotification("teams")}
+              >
+                Send Test Teams Notification
+              </Button>
+              <div class="ml-auto">
+                <Button
+                  icon={CircleX}
+                  variant="filled"
+                  onclick={() => deleteNotificationConfig("teams")}
+                >
+                  Delete Teams Authorization
+                </Button>
+              </div>
+            </div>
+            <div></div>
+          </div>
+        {:else}
+          Koso is not authorized to send messages to Microsoft Teams. To authorize
+          Koso, create a Microsoft 365 Agent using the Microsoft 365 Agents Toolkit
+          and configure it to post to your preferred channel.
         {/if}
       </SubSection>
     {/await}
