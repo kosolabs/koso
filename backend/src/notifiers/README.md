@@ -12,7 +12,9 @@ Koso supports sending notifications to Microsoft Teams channels using Microsoft 
 
 2. **User Authorization**:
    - Users can authorize Teams notifications through their profile page
-   - Each user provides their own bot token and channel ID for their preferred channel
+   - Click "Connect Microsoft Teams" button in the Teams section
+   - Enter your bot token and channel ID in the form
+   - Click "Connect Teams" to complete the authorization
    - The credentials are stored securely in the user's notification settings
 
 ## How It Works
@@ -21,6 +23,26 @@ Koso supports sending notifications to Microsoft Teams channels using Microsoft 
 - Each user can configure their own bot token and channel ID for their preferred channel
 - Messages are sent using the modern Teams messaging API
 - Supports Adaptive Cards and rich message formatting
+
+## Getting Your Bot Token and Channel ID
+
+1. **Create a Microsoft 365 Agent**:
+
+   - Use the Microsoft 365 Agents Toolkit (previously Teams Toolkit)
+   - Follow the [official documentation](https://learn.microsoft.com/en-us/microsoftteams/platform/toolkit/overview)
+   - Deploy your agent to Teams
+
+2. **Obtain Bot Token**:
+
+   - After deployment, your agent will have a bot token
+   - This is typically found in your agent's configuration or Azure Bot Service
+   - The token allows Koso to authenticate with Microsoft Graph API
+
+3. **Find Channel ID**:
+   - In Teams, right-click on your target channel
+   - Select "Get link to channel"
+   - The channel ID is in the URL: `https://teams.microsoft.com/l/channel/19:abc123...`
+   - Extract the part after `/l/channel/` as your channel ID
 
 ## Security
 

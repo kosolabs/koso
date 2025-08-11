@@ -220,6 +220,49 @@
     }
   }
 
+  let showTeamsForm = $state(false);
+  let teamsBotToken = $state("");
+  let teamsChannelId = $state("");
+
+  async function showTeamsAuthDialog() {
+    showTeamsForm = true;
+  }
+
+  async function connectTeams() {
+    if (!teamsBotToken || !teamsChannelId) {
+      toast.error("Please enter both bot token and channel ID");
+      return;
+    }
+
+    const toastId = toast.loading("Connecting to Microsoft Teams...");
+
+    try {
+      // Create a temporary token for authorization
+      const tempToken = btoa(JSON.stringify({
+        bot_token: teamsBotToken,
+        channel_id: teamsChannelId,
+      }));
+
+      let resp = await fetch(`/api/notifiers/teams`, {
+        method: "POST",
+        headers: {
+          ...headers(auth),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token: tempToken }),
+      });
+      
+      await parseResponse(auth, resp);
+      toast.success("Microsoft Teams connected successfully!", { id: toastId });
+      profile = load();
+      showTeamsForm = false;
+      teamsBotToken = "";
+      teamsChannelId = "";
+    } catch {
+      toast.error("Failed to connect to Microsoft Teams.", { id: toastId });
+    }
+  }
+
   async function createCheckoutSession() {
     const req: { cancelUrl: string; successUrl: string } = {
       successUrl: `${location.origin}/profile`,
@@ -479,9 +522,68 @@
             <div></div>
           </div>
         {:else}
-          Koso is not authorized to send messages to Microsoft Teams. To authorize
-          Koso, create a Microsoft 365 Agent using the Microsoft 365 Agents Toolkit
-          and configure it to post to your preferred channel.
+          {#if showTeamsForm}
+            <div class="flex flex-col gap-4 p-4 border rounded-lg bg-gray-50">
+              <div class="text-sm text-gray-600">
+                Enter your Microsoft 365 Agent credentials to connect to Teams:
+              </div>
+              <div class="flex flex-col gap-3">
+                <div>
+                  <label for="teams-bot-token" class="block text-sm font-medium text-gray-700 mb-1">
+                    Bot Token
+                  </label>
+                  <Input
+                    id="teams-bot-token"
+                    type="password"
+                    placeholder="Enter your bot token"
+                    bind:value={teamsBotToken}
+                  />
+                </div>
+                <div>
+                  <label for="teams-channel-id" class="block text-sm font-medium text-gray-700 mb-1">
+                    Channel ID
+                  </label>
+                  <Input
+                    id="teams-channel-id"
+                    type="text"
+                    placeholder="Enter your channel ID"
+                    bind:value={teamsChannelId}
+                  />
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <Button onclick={() => connectTeams()}>
+                  Connect Teams
+                </Button>
+                <Button
+                  variant="outlined"
+                  onclick={() => {
+                    showTeamsForm = false;
+                    teamsBotToken = "";
+                    teamsChannelId = "";
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          {:else}
+            <div class="flex flex-col gap-2">
+              <div>Koso is not authorized to send messages to Microsoft Teams.</div>
+              <div class="flex flex-wrap gap-2">
+                <Button
+                  icon={Github}
+                  onclick={() => showTeamsAuthDialog()}
+                >
+                  Connect Microsoft Teams
+                </Button>
+              </div>
+              <div class="text-sm text-gray-600">
+                You'll need to create a Microsoft 365 Agent using the Microsoft 365 Agents Toolkit
+                and provide the bot token and channel ID.
+              </div>
+            </div>
+          {/if}
         {/if}
       </SubSection>
     {/await}
