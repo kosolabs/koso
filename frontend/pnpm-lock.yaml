@@ -96,7 +96,7 @@ importers:
         specifier: 4.0.0
         version: 4.0.0
       kosui:
-        specifier: ^0.0.20
+        specifier: 0.0.20
         version: 0.0.20(svelte@5.38.0)
       lib0:
         specifier: 0.2.114
