@@ -6,10 +6,10 @@
   import { Navbar } from "$lib/components/ui/navbar";
   import { CircleCheck, CircleSlash, CircleX } from "@lucide/svelte";
   import {
-      Alert,
-      CircularProgress,
-      getDialoguerContext,
-      toTitleCase,
+    Alert,
+    CircularProgress,
+    getDialoguerContext,
+    toTitleCase,
   } from "kosui";
   import { onMount } from "svelte";
 
@@ -86,7 +86,11 @@
     <Alert>
       <div class="flex items-center gap-2">
         <CircularProgress />
-        <div>Koso is authorizing sending notifications to {toTitleCase(notifier)}...</div>
+        <div>
+          Koso is authorizing sending notifications to {toTitleCase(
+            notifier,
+          )}...
+        </div>
       </div>
     </Alert>
   </div>

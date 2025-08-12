@@ -8,26 +8,26 @@
   import { toast } from "$lib/components/ui/sonner";
   import { deleteUserConnection, redirectToConnectUserFlow } from "$lib/github";
   import {
-      CircleX,
-      Crown,
-      Github,
-      Moon,
-      Send,
-      Slack,
-      Sun,
-      SunMoon,
-      Trash2,
+    CircleX,
+    Crown,
+    Github,
+    Moon,
+    Send,
+    Slack,
+    Sun,
+    SunMoon,
+    Trash2,
   } from "@lucide/svelte";
   import {
-      Button,
-      Chip,
-      CircularProgress,
-      getDialoguerContext,
-      Input,
-      Link,
-      ToggleButton,
-      ToggleGroup,
-      toTitleCase,
+    Button,
+    Chip,
+    CircularProgress,
+    getDialoguerContext,
+    Input,
+    Link,
+    ToggleButton,
+    ToggleGroup,
+    toTitleCase,
   } from "kosui";
   import { userPrefersMode as mode } from "mode-watcher";
   import Section from "./section.svelte";
@@ -238,10 +238,12 @@
 
     try {
       // Create a temporary token for authorization
-      const tempToken = btoa(JSON.stringify({
-        bot_token: teamsBotToken,
-        channel_id: teamsChannelId,
-      }));
+      const tempToken = btoa(
+        JSON.stringify({
+          bot_token: teamsBotToken,
+          channel_id: teamsChannelId,
+        }),
+      );
 
       let resp = await fetch(`/api/notifiers/teams`, {
         method: "POST",
@@ -251,7 +253,7 @@
         },
         body: JSON.stringify({ token: tempToken }),
       });
-      
+
       await parseResponse(auth, resp);
       toast.success("Microsoft Teams connected successfully!", { id: toastId });
       profile = load();
@@ -503,10 +505,7 @@
           <div class="flex flex-col gap-2">
             <div>Koso is authorized to send messages to Microsoft Teams.</div>
             <div class="flex flex-wrap gap-2">
-              <Button
-                icon={Send}
-                onclick={() => sendTestNotification("teams")}
-              >
+              <Button icon={Send} onclick={() => sendTestNotification("teams")}>
                 Send Test Teams Notification
               </Button>
               <div class="ml-auto">
@@ -521,69 +520,70 @@
             </div>
             <div></div>
           </div>
+        {:else if showTeamsForm}
+          <div class="flex flex-col gap-4 rounded-lg border bg-gray-50 p-4">
+            <div class="text-sm text-gray-600">
+              Enter your Microsoft 365 Agent credentials to connect to Teams:
+            </div>
+            <div class="flex flex-col gap-3">
+              <div>
+                <label
+                  for="teams-bot-token"
+                  class="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  Bot Token
+                </label>
+                <Input
+                  id="teams-bot-token"
+                  type="password"
+                  placeholder="Enter your bot token"
+                  bind:value={teamsBotToken}
+                />
+              </div>
+              <div>
+                <label
+                  for="teams-channel-id"
+                  class="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  Channel ID
+                </label>
+                <Input
+                  id="teams-channel-id"
+                  type="text"
+                  placeholder="Enter your channel ID"
+                  bind:value={teamsChannelId}
+                />
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <Button onclick={() => connectTeams()}>Connect Teams</Button>
+              <Button
+                variant="outlined"
+                onclick={() => {
+                  showTeamsForm = false;
+                  teamsBotToken = "";
+                  teamsChannelId = "";
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         {:else}
-          {#if showTeamsForm}
-            <div class="flex flex-col gap-4 p-4 border rounded-lg bg-gray-50">
-              <div class="text-sm text-gray-600">
-                Enter your Microsoft 365 Agent credentials to connect to Teams:
-              </div>
-              <div class="flex flex-col gap-3">
-                <div>
-                  <label for="teams-bot-token" class="block text-sm font-medium text-gray-700 mb-1">
-                    Bot Token
-                  </label>
-                  <Input
-                    id="teams-bot-token"
-                    type="password"
-                    placeholder="Enter your bot token"
-                    bind:value={teamsBotToken}
-                  />
-                </div>
-                <div>
-                  <label for="teams-channel-id" class="block text-sm font-medium text-gray-700 mb-1">
-                    Channel ID
-                  </label>
-                  <Input
-                    id="teams-channel-id"
-                    type="text"
-                    placeholder="Enter your channel ID"
-                    bind:value={teamsChannelId}
-                  />
-                </div>
-              </div>
-              <div class="flex gap-2">
-                <Button onclick={() => connectTeams()}>
-                  Connect Teams
-                </Button>
-                <Button
-                  variant="outlined"
-                  onclick={() => {
-                    showTeamsForm = false;
-                    teamsBotToken = "";
-                    teamsChannelId = "";
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
+          <div class="flex flex-col gap-2">
+            <div>
+              Koso is not authorized to send messages to Microsoft Teams.
             </div>
-          {:else}
-            <div class="flex flex-col gap-2">
-              <div>Koso is not authorized to send messages to Microsoft Teams.</div>
-              <div class="flex flex-wrap gap-2">
-                <Button
-                  icon={Github}
-                  onclick={() => showTeamsAuthDialog()}
-                >
-                  Connect Microsoft Teams
-                </Button>
-              </div>
-              <div class="text-sm text-gray-600">
-                You'll need to create a Microsoft 365 Agent using the Microsoft 365 Agents Toolkit
-                and provide the bot token and channel ID.
-              </div>
+            <div class="flex flex-wrap gap-2">
+              <Button icon={Github} onclick={() => showTeamsAuthDialog()}>
+                Connect Microsoft Teams
+              </Button>
             </div>
-          {/if}
+            <div class="text-sm text-gray-600">
+              You'll need to create a Microsoft 365 Agent using the Microsoft
+              365 Agents Toolkit and provide the bot token and channel ID.
+            </div>
+          </div>
         {/if}
       </SubSection>
     {/await}
