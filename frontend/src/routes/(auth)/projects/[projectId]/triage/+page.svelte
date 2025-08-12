@@ -25,7 +25,7 @@
 </script>
 
 <!-- Navbar -->
-<div class="flex h-dvh flex-col">
+<div class="flex-col">
   <div class="grow-0">
     <Navbar breadcrumbs={["Projects", project.name, "Triage"]}>
       {#snippet left()}
@@ -37,11 +37,19 @@
   </div>
 </div>
 
-<div>Hello</div>
 <!-- Card Layout -->
-<Card
-  taskID="1234"
-  title="Task 1"
-  description="Description of Task 1"
-  parentTask="Parent Task Name"
-/>
+<div class="flex min-h-screen items-center justify-center">
+  <Card
+    taskID="1234"
+    title="Task 1"
+    description="Description of Task 1"
+    parentTask="Parent Task Name"
+  />
+
+  <Card
+    taskID="5678"
+    title="Task 2"
+    description="Description of Task 2"
+    parentTask="Parent Task Name"
+  />
+</div>

@@ -19,16 +19,14 @@
     <div class="text-xs text-gray-400">Parent: {parentTask}</div>
   {/if}
 </div>
-<!-- 
-<div class="flex gap-2">
-  <div class="flex w-8 flex-none items-start justify-center">
+
+<div class="flex">
+  <div class="flex w-8 justify-center">
     <Box
       variant="filled"
       shape="rounded"
       color="secondary"
       class="cursor-default px-1 text-xs"
-    >
-      +{score}
-    </Box>
+    ></Box>
   </div>
-</div> -->
+</div>
