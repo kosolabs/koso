@@ -1,1 +1,1 @@
-export { default as Card } from "./card/card.svelte";
+export { default as Card } from "./Card.svelte";

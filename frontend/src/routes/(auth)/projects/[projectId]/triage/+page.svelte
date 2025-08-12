@@ -2,7 +2,7 @@
   import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { getProjectContext } from "$lib/dag-table";
-  import { Card } from "$lib/components/ui/card";
+  import Card from "$lib/components/ui/card/Card.svelte";
 
   const auth = getAuthContext();
   const project = getProjectContext();
