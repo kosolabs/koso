@@ -96,8 +96,8 @@ importers:
         specifier: 4.0.0
         version: 4.0.0
       kosui:
-        specifier: 0.0.20
-        version: 0.0.20(svelte@5.38.0)
+        specifier: 0.0.21
+        version: 0.0.21(svelte@5.38.0)
       lib0:
         specifier: 0.2.114
         version: 0.2.114
@@ -1740,8 +1740,8 @@ packages:
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
 
-  kosui@0.0.20:
-    resolution: {integrity: sha512-cLJf7VIJ5mfC9+ehoTLhlOlpe4QRHaAiWTaPKuQPHWc7Ds0QbQx9hnYfvhBN5IIWJ4Ct5vshQJeo6/QjL8XSbg==}
+  kosui@0.0.21:
+    resolution: {integrity: sha512-nAIYk3Qa89NEP+/V1rJoarCtkre/ZnXsOt2GkHxVXNU5V/KTkJtGdtSWXe7r8Kj1WgBnf2IhXT7fjyQ85mC/5Q==}
     engines: {node: '>= 20'}
     peerDependencies:
       svelte: ^5.0.0
@@ -4289,7 +4289,7 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  kosui@0.0.20(svelte@5.38.0):
+  kosui@0.0.21(svelte@5.38.0):
     dependencies:
       '@floating-ui/dom': 1.7.3
       '@lucide/svelte': 0.539.0(svelte@5.38.0)
