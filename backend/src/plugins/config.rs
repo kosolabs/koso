@@ -20,10 +20,21 @@ pub(crate) struct Config {
 #[serde(rename_all = "camelCase", tag = "type")]
 pub(crate) enum Settings {
     Github(GithubSettings),
+    GoogleWorkspace(GoogleWorkspaceSettings),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub(crate) struct GithubSettings {}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+pub(crate) struct GoogleWorkspaceSettings {
+    pub(crate) sync_frequency: Option<String>, // "15m", "1h", "6h", "daily"
+    pub(crate) auto_create_tasks: Option<bool>,
+    pub(crate) sync_comments: Option<bool>,
+    pub(crate) sync_reviewers: Option<bool>,
+    pub(crate) include_resolved: Option<bool>,
+    pub(crate) default_assignee: Option<String>,
+}
 
 type ConfigRow = (String, String, String, Json<Settings>);
 

@@ -8,6 +8,7 @@ use crate::{
     plugins::{
         PluginSettings,
         github::{self},
+        google_workspace::{self},
     },
     secrets::read_secret,
     settings::settings,
@@ -86,12 +87,28 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
     };
 
     let github_plugin = github::Plugin::new(
-        config.plugin_settings.unwrap_or_default(),
+        config
+            .plugin_settings
+            .as_ref()
+            .unwrap_or(&PluginSettings::default())
+            .clone(),
         collab.clone(),
         pool,
     )
     .await?;
     let github_poll_handle = github_plugin.start_polling();
+
+    let google_workspace_plugin = google_workspace::Plugin::new(
+        config
+            .plugin_settings
+            .as_ref()
+            .unwrap_or(&PluginSettings::default())
+            .clone(),
+        collab.clone(),
+        pool,
+    )
+    .await?;
+    let google_workspace_sync_handle = google_workspace_plugin.start_syncing();
 
     let hmac = read_secret::<String>("koso/hmac")?;
     let encoding_key = EncodingKey::from_base64_secret(&hmac.data)?;
@@ -111,6 +128,10 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
         )
         .nest("/healthz", healthz::router())
         .nest("/plugins/github", github_plugin.router()?)
+        .nest(
+            "/plugins/google-workspace",
+            google_workspace_plugin.router()?,
+        )
         .merge(oauth::router(pool)?)
         // Apply these layers to all non-static routes.
         // Layers that are applied first will be called first.
@@ -189,6 +210,7 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
 
         // Now that the server is shutdown, it's safe to clean things up.
         github_poll_handle.abort();
+        google_workspace_sync_handle.abort();
         collab.stop().await;
         tracing::info!("Closing database pool...");
         pool.close().await;

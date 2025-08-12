@@ -1,0 +1,22 @@
+{
+  "env": "dev",
+  "host": "http://localhost:3000",
+  "database_url": "postgresql://postgres:postgres@localhost:5432/koso",
+  "secrets_dir": "secrets",
+  "plugins": {
+    "github": {
+      "client_id": "your_github_client_id",
+      "app_id": 12345,
+      "app_name": "Koso GitHub App"
+    },
+    "google_workspace": {
+      "client_id": "your_google_client_id",
+      "client_secret": "your_google_client_secret"
+    }
+  },
+  "stripe": {
+    "price_id": "price_1234567890",
+    "enable_unauthenticated_webhook": true
+  },
+  "debug_path": null
+}

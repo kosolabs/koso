@@ -30,6 +30,7 @@ struct SettingsRaw {
 #[serde(deny_unknown_fields)]
 pub(crate) struct Plugins {
     pub(crate) github: Github,
+    pub(crate) google_workspace: GoogleWorkspace,
 }
 
 #[derive(Debug, Deserialize)]
@@ -38,6 +39,13 @@ pub(crate) struct Github {
     pub(crate) client_id: String,
     pub(crate) app_id: u64,
     pub(crate) app_name: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct GoogleWorkspace {
+    pub(crate) client_id: String,
+    pub(crate) client_secret: String,
 }
 
 #[derive(Debug, Deserialize)]
