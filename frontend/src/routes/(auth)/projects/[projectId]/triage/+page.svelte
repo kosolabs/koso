@@ -6,6 +6,22 @@
 
   const auth = getAuthContext();
   const project = getProjectContext();
+
+  // Mock Data
+  let pair = [
+    {
+      taskId: "T1",
+      title: "Fix login bug",
+      description: "Resolve 500 error when logging in",
+      parentTask: "Auth Module",
+    },
+    {
+      taskId: "T2",
+      title: "Login error fix",
+      description: "Investigate and fix login issues",
+      parentTask: "Authentication",
+    },
+  ];
 </script>
 
 <!-- Navbar -->
@@ -21,6 +37,7 @@
   </div>
 </div>
 
+<div>Hello</div>
 <!-- Card Layout -->
 <Card
   taskID="1234"

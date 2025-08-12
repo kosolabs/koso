@@ -1,8 +1,14 @@
-<script>
-  export let title: String;
-  export let description: String;
-  export let taskID: String;
-  export let parentTask: String;
+<script lang="ts">
+  import { Box } from "kosui";
+
+  type Props = {
+    title: string;
+    description: string;
+    taskID: value;
+    parentTask: string;
+  };
+
+  let { title, description, taskID, parentTask }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-2 rounded-lg border bg-white p-4 shadow-sm">
@@ -13,3 +19,16 @@
     <div class="text-xs text-gray-400">Parent: {parentTask}</div>
   {/if}
 </div>
+<!-- 
+<div class="flex gap-2">
+  <div class="flex w-8 flex-none items-start justify-center">
+    <Box
+      variant="filled"
+      shape="rounded"
+      color="secondary"
+      class="cursor-default px-1 text-xs"
+    >
+      +{score}
+    </Box>
+  </div>
+</div> -->
