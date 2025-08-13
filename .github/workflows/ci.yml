@@ -169,7 +169,7 @@ jobs:
         id: get-docker-image-cache-name
         uses: ./.github/actions/find-docker-image-cache
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
 
       # Build a backend docker image that will be ran by playwright.
       - name: Set up Docker Buildx
@@ -280,7 +280,7 @@ jobs:
         id: get-docker-image-cache-name
         uses: ./.github/actions/find-docker-image-cache
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
 
       # Build the image, based on our `Dockerfile`.
       # If the build succeeds, it pushes the image to GitHub Packages.
