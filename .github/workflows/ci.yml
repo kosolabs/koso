@@ -167,24 +167,9 @@ jobs:
       # Find PR number
       - name: Find docker image cache
         id: get-docker-image-cache-name
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: ./.github/actions/find-docker-image-cache
         with:
-          result-encoding: string
-          script: |
-            if (context.eventName == 'pull_request') {
-              return 'pr-' + context.issue.number;
-            }
-            if (context.ref == 'refs/heads/main') {
-              const prNum = (
-                await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                  commit_sha: context.sha,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                })
-              )?.data[0]?.number;
-              return prNum ? 'pr-' + prNum : 'main';
-            }
-            return 'main'
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Build a backend docker image that will be ran by playwright.
       - name: Set up Docker Buildx
@@ -293,24 +278,9 @@ jobs:
       # Find PR number
       - name: Find docker image cache
         id: get-docker-image-cache-name
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: ./.github/actions/find-docker-image-cache
         with:
-          result-encoding: string
-          script: |
-            if (context.eventName == 'pull_request') {
-              return 'pr-' + context.issue.number;
-            }
-            if (context.ref == 'refs/heads/main') {
-              const prNum = (
-                await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                  commit_sha: context.sha,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                })
-              )?.data[0]?.number;
-              return prNum ? 'pr-' + prNum : 'main';
-            }
-            return 'main'
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Build the image, based on our `Dockerfile`.
       # If the build succeeds, it pushes the image to GitHub Packages.

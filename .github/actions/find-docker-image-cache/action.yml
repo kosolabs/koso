@@ -1,0 +1,12 @@
+name: "Find Docker Image Cache Name"
+description: "Determines the cache name for Docker images based on PR or main branch."
+inputs:
+  gh_token:
+    description: "GitHub token for authentication"
+    required: true
+outputs:
+  result:
+    description: "Cache name for Docker image"
+runs:
+  using: "node24"
+  main: "index.js"
