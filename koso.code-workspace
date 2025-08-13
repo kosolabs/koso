@@ -6,9 +6,6 @@
     },
     {
       "path": "frontend"
-    },
-    {
-      "path": "../kosui"
     }
   ],
   "settings": {

@@ -19,6 +19,7 @@ pub(crate) mod auth;
 pub(crate) mod billing;
 pub(crate) mod collab;
 pub(crate) mod dev;
+pub(crate) mod dupes;
 pub(crate) mod gemini;
 pub(crate) mod google;
 pub(crate) mod model;

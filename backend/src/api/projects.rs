@@ -5,6 +5,7 @@ use crate::api::{
         storage::{self, persist_update},
         txn_origin::{self, YOrigin},
     },
+    dupes,
     google::User,
     model::{
         CreateProject, Project, ProjectExport, ProjectId, ProjectUser, UpdateProjectUsers,
@@ -38,6 +39,16 @@ pub(super) fn router() -> Router {
             get(get_project_doc_updates_handler),
         )
         .route("/{project_id}/export", get(export_project))
+        .route("/{project_id}/dupes", get(dupes::list_dupes_handler))
+        .route("/{project_id}/dupes", post(dupes::create_dupe_handler))
+        .route(
+            "/{project_id}/dupes/{dupe_id}",
+            get(dupes::get_dupe_handler),
+        )
+        .route(
+            "/{project_id}/dupes/{dupe_id}",
+            patch(dupes::update_dupe_resolution_handler),
+        )
 }
 
 #[tracing::instrument(skip(user, pool))]
