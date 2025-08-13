@@ -1,12 +1,17 @@
 name: "Find Docker Image Cache Name"
 description: "Determines the cache name for Docker images based on PR or main branch."
-inputs:
-  gh_token:
-    description: "GitHub token for authentication"
-    required: true
 outputs:
   result:
     description: "Cache name for Docker image"
+    value: ${{ steps.get-docker-image-cache-name.outputs.result }}
 runs:
-  using: "node24"
-  main: "index.js"
+  using: "composite"
+  steps:
+    - name: Find docker image cache
+      id: get-docker-image-cache-name
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+      with:
+        result-encoding: string
+        script: |
+          const script = require('.github/actions/find-docker-image-cache/script.js')
+          await script({github, context})
