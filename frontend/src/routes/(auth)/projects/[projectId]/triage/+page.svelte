@@ -10,15 +10,15 @@
   // Mock Data
   let pair = [
     {
-      taskId: "T1",
-      title: "Fix login bug",
-      description: "Resolve 500 error when logging in",
+      taskID: "T1",
+      taskName: "Fix login bug",
+      taskDescription: "Resolve 500 error when logging in",
       parentTask: "Auth Module",
     },
     {
-      taskId: "T2",
-      title: "Login error fix",
-      description: "Investigate and fix login issues",
+      taskID: "T2",
+      taskName: "Login error fix",
+      taskDescription: "Investigate and fix login issues",
       parentTask: "Authentication",
     },
   ];
@@ -38,18 +38,13 @@
 </div>
 
 <!-- Card Layout -->
-<div class="flex min-h-screen items-center justify-center">
-  <Card
-    taskID="1234"
-    title="Task 1"
-    description="Description of Task 1"
-    parentTask="Parent Task Name"
-  />
-
-  <Card
-    taskID="5678"
-    title="Task 2"
-    description="Description of Task 2"
-    parentTask="Parent Task Name"
-  />
+<div class="flex min-h-screen items-center justify-center gap-8">
+  {#each pair as task}
+    <Card
+      taskID={task.taskID}
+      taskName={task.taskName}
+      taskDescription={task.taskDescription}
+      parentTask={task.parentTask}
+    />
+  {/each}
 </div>
