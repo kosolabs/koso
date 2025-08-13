@@ -234,5 +234,198 @@ async def clustering_similarity():
         print(f"An error occurred while saving to SQLite: {e}")
         print("Please ensure your 'jdf' DataFrame is correctly structured before saving.")
 
+async def dedupe(): 
+    import pandas as pd 
+    import numpy as np 
+    from sklearn.metrics.pairwise import cosine_similarity
+    import json 
+    import sqlite3
+
+    #load raw task data from JSON 
+    try: 
+        with open('koso-dogfood-export-2025-7-5-12-2.json', 'r') as fp: 
+            koso_raw_data = json.load(fp)
+            #convert graph to dictionary values in DataFrame
+        tasks_df = pd.DataFrame(koso_raw_data['graph'].values())
+        print(f'{len(tasks_df)} tasks have been successfully loaded from the DataFrame')
+
+
+        tasks_df = tasks_df.dropna(subset=['id', 'name']).reset_index(drop=True)
+        print(f'Filtered to {len(tasks_df)} tasks with valid IDs and names')
+
+    except FileNotFoundError as e: 
+        print(f"Error: File not found. Please ensure it's in the same directory: {e}")
+        exit()
+    except json.JSONDecodeError as e: 
+        print(f'Error: Could not decode JSON. Check file format: {e}')
+        exit()
+    except KeyError as e: 
+        print(f"Error: 'graph' key not found in the JSON data. Ensure JSON structure is as expected: {e}")
+        exit()
+
+    db_file = 'koso-tasks-embeddings.sqlite'
+
+    try: 
+        conn = sqlite3.connect(db_file)
+
+        sdf = pd.read_sql('SELECT id, name, embedding FROM embeddings', conn)
+
+        sdf['embedding'] = sdf['embedding'].apply(lambda x: np.array(json.loads(x)))
+        print(f"Successfully loaded {len(sdf)} embeddings from 'embeddings' table.")
+
+        jdf = pd.read_sql('SELECT id, name, cluster, similarity FROM clustered_tasks_jdf', conn)
+        print(f"Successfully loaded {len(jdf)} clustered tasks from 'clustered_tasks_jdf' table.")
+
+        conn.close()
+
+    except sqlite3.OperationalError as e:
+        print(f"Error connecting to or reading from SQLite database '{db_file}': {e}")
+        # Enhanced guidance for the user
+        if "no such table" in str(e):
+            print("Specifically, the table 'clustered_tasks_jdf' was not found.")
+            print("Please ensure you have run your 'clusteringandsimilarity.ipynb' notebook and saved the 'jdf' DataFrame to SQLite under the table name 'clustered_tasks_jdf'.")
+            print("Example code to save jdf to SQLite:")
+            print("jdf.to_sql('clustered_tasks_jdf', conn, if_exists='replace', index=False)")
+        exit()
+    except KeyError as e:
+        print(f"Error: Missing expected column in loaded DataFrame: {e}")
+        print("Ensure your 'embeddings' table has 'id', 'name', 'embedding' and 'clustered_tasks_jdf' table has 'id', 'name', 'cluster', 'similarity'.")
+        exit()
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON from 'embedding' column in 'embeddings' table: {e}")
+        print("Ensure the 'embedding' column contains valid JSON strings of numerical lists.")
+        exit()
+
+    print("Real data loaded from SQLite. Proceeding with deduplication.")
+
+
+    db_file = "koso-tasks-embeddings.sqlite"
+
+    try:
+        conn = sqlite3.connect(db_file)
+
+        sdf = pd.read_sql('SELECT id, name, embedding FROM embeddings', conn)
+        sdf['embedding'] = sdf['embedding'].apply(lambda x: np.array(json.loads(x)))
+        print(f"Successfully loaded {len(sdf)} embeddings from 'embeddings' table in '{db_file}'.")
+
+    
+        jdf = pd.read_sql('SELECT id, name, cluster, similarity FROM clustered_tasks_jdf', conn)
+        print(f"Successfully loaded {len(jdf)} clustered tasks from 'clustered_tasks_jdf' table in '{db_file}'.")
+
+        conn.close() 
+
+    except sqlite3.OperationalError as e:
+        print(f"Error connecting to or reading from SQLite database '{db_file}': {e}")
+        print("ACTION REQUIRED: Please ensure the database file exists and the tables 'embeddings' and 'clustered_tasks_jdf' are present and correctly named.")
+        print("  - 'embeddings' is typically created by your embedding.ipynb notebook.")
+        print("  - 'clustered_tasks_jdf' is typically created by your clusteringandsimilarity.ipynb notebook.")
+        print("  If these tables don't exist, you need to run those notebooks first to generate and save the data.")
+        exit()
+    except KeyError as e:
+        print(f"Error: Missing expected column in loaded DataFrame: {e}")
+        print("ACTION REQUIRED: Ensure your 'embeddings' table has 'id', 'name', 'embedding' and 'clustered_tasks_jdf' table has 'id', 'name', 'cluster', 'similarity'.")
+        exit()
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON from 'embedding' column in 'embeddings' table: {e}")
+        print("ACTION REQUIRED: Ensure the 'embedding' column in your 'embeddings' table contains valid JSON strings of numerical lists.")
+        exit()
+
+    print("All necessary data loaded from SQLite. Proceeding with deduplication logic.")
+
+    #define similarity thresholds
+    AUTO_APPROVE_THRESHOLD = 0.95
+
+    PROMPT_THRESHOLD =  0.85
+
+    #list to store al potiental duplicate pairs that will be sent to the frontend
+    potiental_duplicate_pairs = []
+
+    #set to keep track of pairs already checked to avoid redundant comparisons 
+    checked_pairs = set()
+
+    print('Identifying potiental duplicate pairs for frontend presentation...')
+
+    #group tasks by assigend cluster
+
+    for cluster_id, group in jdf.groupby('cluster'): 
+        if cluster_id == -1: 
+            continue #skips outlier
+
+        group_records = group.sort_values(by= 'similarity', ascending=False).to_dict('records')
+
+        #compare every unique pair of tasks within the current cluster 
+        for i in range(len(group_records)): 
+            for j in range(i + 1, len(group_records)): 
+                task1_id = group_records[i]['id']
+                task2_id = group_records[j]['id']
+                task1_name = group_records[i]['name']
+                task2_name = group_records[j]['name']
+
+            #this makes (1, 2) same as (2, 1), etc
+                pair_key = tuple(sorted([task1_name, task2_name]))
+
+
+                if pair_key in checked_pairs: 
+                    continue 
+                checked_pairs.add(pair_key) #mark pair as checked 
+
+
+                if task1_id not in sdf['id'].values or task2_id not in sdf['id'].values:
+                    print(f'Warning: Missing embedding for ID {task1_id} or {task2_id}. Skipping Pair.')
+                    continue
+
+                #retrieves embeddings for the two tasks directly from 'sdf'
+                emb1_raw = sdf.loc[sdf['id'] == task1_id, 'embedding'].values[0]
+                emb2_raw = sdf.loc[sdf['id'] == task2_id, 'embedding'].values[0]
+
+                if not isinstance(emb1_raw, np.ndarray) or not isinstance (emb2_raw, np.ndarray):
+                    print(f"Skipping pair due to non-ndarray embedding type for: '{task1_name}' ({task1_id}) and '{task2_name}' ({task2_id}).")
+                    continue 
+
+                emb1 = emb1_raw
+                emb2 = emb2_raw
+
+            
+                #calculate cosine similarity between two emebddings
+                sim = cosine_similarity(emb1.reshape(1, -1), emb2.reshape(1, -1))[0][0]
+
+
+                if sim >= PROMPT_THRESHOLD: 
+                    potiental_duplicate_pairs.append({
+                        'task1_id': task1_id, 
+                        'task1_name': task1_name, 
+                        'task2_id': task2_id, 
+                        'task2_name': task2_name, 
+                        'similarity': sim, 
+                        'auto_approve_candidate': sim >= AUTO_APPROVE_THRESHOLD
+                    })
+
+
+    #converts list of potiental dupes into pandas DataFrame 
+    potiental_duplicate_pairs_df = pd.DataFrame(potiental_duplicate_pairs)
+
+    if not potiental_duplicate_pairs_df.empty: 
+        potiental_duplicate_pairs_df = potiental_duplicate_pairs_df.sort_values(
+            by='similarity', ascending=False
+        ).reset_index(drop=True)
+
+        print("\nSuccessfully identified potential duplicate pairs.")
+        print(potiental_duplicate_pairs_df)
+
+
+        #output for frontend 
+        output_columns = ['task1_id', 'task1_name', 'task2_id', 'task2_name', 'similarity', 'auto_approve_candidate']
+        csv_output_df = potiental_duplicate_pairs_df[output_columns]
+
+        # Save the DataFrame to a CSV file
+        csv_file_path = 'potential_duplicates.csv'
+        csv_output_df.to_csv(csv_file_path, index=False)
+        print(f"\nPotential duplicate pairs saved to {csv_file_path}")
+    else:
+        print("\nNo potential duplicate pairs found above the PROMPT_THRESHOLD.")
+
+
+
+
 
 
