@@ -1,0 +1,1181 @@
+,id,name,cluster,similarity,num,status,kind
+0,d2a2e9f8-c957-46c9-8507-4f63bc6c14cd,"Rename status: Blocked -> Juggled, rename kind: Juggled -> Task",200,0.9444694796538158,650,Done,
+1,e887e37f-1650-4d70-acb2-cde7d321ffe1,Use Avatars for Reporter and Assignee,70,0.8842751600878102,10,Done,
+2,8dea4f86-8c7a-40d9-83f8-a6d1c2bff02d,Bump @sveltejs/kit from 2.20.5 to 2.20.6 in /frontend in the npm_and_yarn group across 1 directory,-1,,774,Done,github_pr
+3,67dee491-9b1b-40e6-9629-5fba67514b7b,Add score to tasks in the inbox,226,0.7780400882101578,906,Done,
+4,7496aa64-601c-4214-be03-37bc12650d3f,Make task name editable to match planning page,189,0.8541806236657479,979,Done,github_pr
+5,doO8ZK7iSEmduTNDKsn-qA,Add more logging when processing anthropic requests,19,0.8852368833352243,1116,Done,github_pr
+6,35f899ed-eed8-4f67-a87f-6aa51d71989a,Derive estimates for rollups,139,0.6275896315490319,971,,
+7,0a9659ae-91be-4de5-b69e-58182133a0cf,Add a category field to help organize the command palette,154,0.9828369514318204,978,Done,github_pr
+8,2JA7MpZRQr-B97nHavc5Gw,Update Rust crate tokio to v1.38.2 [SECURITY] - autoclosed,-1,,1130,Done,github_pr
+9,3605d591-c845-451a-bb9a-0b8686707c39,Restrict usage of the parent global,-1,,738,Done,github_pr
+10,ef3e36b2-67fc-42b9-a3a2-c71a7748dfde,Add more padding to link panel task IDs,160,0.9004024428630616,278,Done,
+11,xNzZ5Zq8TWiTIpsM8PYAbQ,aAdd note about remote server,5,0.6514022467217372,1125,Done,github_pr
+12,99b6ad1d-f574-46d4-bb8a-c6abfa26fb7f,Make action item tooltip clearer,261,0.9115034764674506,1013,Done,Task
+13,acd64ad4-22ff-4b27-96b8-b313bef56c78,"UI tweaks - drag handle, m3 colors in table, avatar fallback",92,0.8948605927043023,528,Done,github_pr
+14,fed4f088-9101-4af8-a7c8-7e465e2f7ebd,Fix padding on Inbox to make selection highlight less janky,-1,,820,Done,github_pr
+15,c2d77f00-e987-4ec2-aa78-e505d7cd31b0,Move inbox under project slug route,-1,,411,Done,github_pr
+16,2fd6cbaf-4104-402f-be4b-f9055a9c6217,Avoid accidentally holding mutexes longer than expected,-1,,968,Done,github_pr
+17,S6QEkvq5Q-ifbdzHOsgp9w,Update dependabot.yml,-1,,1051,Done,github_pr
+18,465528b0-c6bb-4697-b7dc-2e42604d0e50,Task Management Plugin,101,0.8450169075179357,292,,
+19,1fe288aa-f7eb-4bc7-9675-fa314905e853,"Fix unknown property cx, cy, r in pnpm check",88,0.9271050911552909,428,Done,github_pr
+20,bb61cd48-d3fa-484a-bac9-a5216c5a5bb9,Move tasks within blocks,187,0.8043306450890235,252,,Rollup
+21,pP2XVm1_Rq6jHNfiSgbPJQ,Fixup a few bits of documentation,126,0.7558116224456886,1085,Done,github_pr
+22,e80aa739-220e-4578-a941-923359b13e8e,Migrate from shadcn Alert to kosui,-1,,520,Done,github_pr
+23,7850ab8e-38e7-4f9e-829e-3fd97feb2578,"Remove deadline column, remove haptics from long press, set tooltip duration to 500ms",-1,,996,Done,github_pr
+24,64198820-bb5d-49fa-9c4d-cadfc4462385,Keyboard shortcuts should be disabled while editing,17,0.8417818460983809,108,Done,
+25,cdf9ad79-58a0-4a64-8ea7-1af9fc4934f6,Remove Kosui dependence on tailwind-variants,116,0.9026310681364305,514,Done,github_pr
+26,ee7f3539-8e7f-4854-ad29-d5b0fe313f43,"Refactor status, kind and progress handling",124,0.876248996626069,561,Done,github_pr
+27,e52ee428-60b7-4326-88f7-aed44d4ab448,Video of a GitHub PR automatically being linked in the graph,107,0.8863373046266341,379,,
+28,3b7f551d-1476-4a38-a06b-f5d88ad2a20f,Organize tailwind classes in Kosui components,116,0.8170398355598854,536,Done,github_pr
+29,5f4016cc-bb56-414a-9901-9c16bfae10da,Implement search for tasks - ⌘ + P,185,0.9074386911342696,358,Done,github_pr
+30,dad934e1-d029-48c6-89ed-955aa56dc7be,Lock file maintenance,197,1.000000000000001,976,Done,github_pr
+31,032d3004-ef2b-4603-9ebd-e4f83c4899d1,Tweak navbar nav menu and restore toggling navigate buttons,90,0.7790285964007893,991,Done,github_pr
+32,1eaf3d6b-ff96-4dfb-9c7d-33371a6e2f9d,Confetti shows up behind rows in the planning view,-1,,1030,In Progress,
+33,eaa0bb7b-f896-4472-a6b6-56c6edaf23af,Run integration tests in GitHub actions,-1,,116,Done,
+34,2b2df3b3-87c1-4ab4-85db-ed91ed4aaf21,Improve backend error handling,157,0.7561062421591851,489,Done,github_pr
+35,0eeef8eb-e337-4305-9e0f-0d0d73bb40e6,Use settings files to configure backend,-1,,476,Done,github_pr
+36,kUFo-rQmQbqfkW6ocMIPZg,Add endpoint to fetch the project's LLM context,-1,,1120,Done,github_pr
+37,216a2ebc-284b-4f3c-8293-d3ca0797a30b,Add renderer for formatting table cells,-1,,703,Done,github_pr
+38,jfp0KqhcRWaCUyo_nsKtEQ,Lock file maintenance,197,1.000000000000001,1241,Done,github_pr
+39,dd917df6-309c-4de5-88bb-8b8eb5062d5c,Delete last of shadcn-svelte components and remove bits-ui dependency,264,0.9027072669369149,592,Done,github_pr
+40,b3c15ca9-9b86-489c-94a0-da2156ac80ee,Open the doors,-1,,830,Done,github_pr
+41,MGoUU2bfQLmeR_29vkjnZQ,"Make lint, check, etc the same as Koso",-1,,1204,Done,github_pr
+42,ca58d5a8-cf82-460b-8365-937867b63fb2,Bump the npm-deps group across 1 directory with 12 updates,250,1.0000000000000009,545,Done,github_pr
+43,23bb1e72-127b-47e4-9822-59f5731df7b4,Plugin to import review of GitHub PRs as a koso task that resolves when the PR is reviewed,180,0.8038354148247948,957,,
+44,dc1c2fa4-de9a-4272-906f-4e94c1bc77a0,Accept single x-fowarded-for values,-1,,706,Done,github_pr
+45,43bf1a4b-6760-45b2-a06f-6e16e86204a8,Deflake playwright tests,-1,,618,Done,github_pr
+46,MIeZQyTTSv-2u_xNRIJiOQ,Update dependency @sveltejs/kit to v2.20.6 [SECURITY] - autoclosed,238,0.985350023018279,1131,Done,github_pr
+47,2ba3171f-f4c9-40b5-b7cb-9ee6d3dba1b0,Correctly handle unmanaged kinds,15,0.9320439006576503,537,Done,github_pr
+48,c78972b8-7684-4349-9fe2-4bdc83f17683,Migrate Toggle from shadcn-svelte to Kosui,271,0.9614849439701005,584,Done,github_pr
+49,d4b377a8-7145-4b04-97ba-6b4a247ee67e,Milestone 7: Human Resources,1,0.8388668905021683,1011,,
+50,89d006d9-34ca-44e4-bb56-0e6de992cdb2,Update all dependencies,232,1.0000000000000004,407,Done,github_pr
+51,7eb9e44c-5672-459e-a966-c7ab1acb5219,Adopt MenuActions in the Status Menu,90,0.784172275425066,998,Done,github_pr
+52,jqHW6rVBSTW3VXmjBXNl9w,Organize CI steps nicely and fix typos,151,0.8988902693303429,1075,Done,github_pr
+53,W7oeHz-uSB-M4PCwB4mJig,Create Teams notification message formatting and sending logic,146,0.8292666922809883,1221,,
+54,qoLoQY-fRPSGSYvbaDYrzg,Use @lucide/svelte,196,0.8823719185389913,1150,Done,github_pr
+55,86693605-0eb8-4f63-b415-bf98daff8dd9,chip,-1,,173,Done,
+56,5552acac-241a-4d6a-b736-53927ece599a,koso-854: Add a click flag to show Tooltip on click and delete TooltipTrigger,255,0.9315261054909991,866,Done,github_pr
+57,185f96b5-e0ae-4772-987e-e826d5089d4a,Zero inbox,206,0.9133141321310532,24,Done,
+58,d83eb70f-52c2-4ac4-9b2b-e8ab92d819f8,Implement Awareness in the backend,39,0.8487166879258803,347,Done,github_pr
+59,4f54cad8-c3b2-4531-ad36-fe7867e3c360,Implement Juggler that reassigns tasks when they become actionable,201,0.9526622613294959,519,Done,github_pr
+60,P526aJThQA2RNN9oPof7Sw,Fixup seats verbiage,-1,,1073,Done,github_pr
+61,6c9d3dff-30f6-4265-b5a6-8d3e41c325e5,"Dragged node remains after dragging ends sometimes (switching windows, drag out of collapsed children)",99,0.8468846085771349,60,Done,
+62,3129457b-5ba1-411e-b0d9-1fc7cc3d5b56,Allow task name to be edited using the detail panel,189,0.9579098239924377,909,,
+63,92823d6a-e0a4-445a-887a-2f98e6cd78af,Bump to svelte 16.3,204,0.9179346512426948,373,Done,github_pr
+64,e012cb84-63b0-4b54-bb28-a0525342075a,user-select,-1,,178,Done,
+65,33807d79-87cc-4132-9586-6179077840ff,Milestone 2: Demo to Lexi Quirk,-1,,633,,
+66,a3md7rZVRUC40wdmGqD5jQ,Migrate off of bits-ui,128,0.9397166391289588,1273,Done,github_pr
+67,aad1d3ef-c6c3-4100-95b5-5973f7b0abc5,responsive-text,34,0.8742851389034134,171,Done,
+68,1c0bd483-4432-4835-ab23-28fa07132a32,Move things into the relevant context,-1,,751,Done,github_pr
+69,e84456a3-c483-4b15-8a0d-5944ed8e22ca,koso-900: Bootstrap inbox tests,167,0.7876593335762554,1040,Done,github_pr
+70,cfaea931-9918-4c6d-8a60-a77aee2c0246,Milestone 6: Add Cipherly to Koso Labs,-1,,1010,,
+71,4e2df9c8-c0d4-42d3-b3e9-3bfb88736fa3,Drop target should indicate the level at which the dragged node will be dropped,73,0.7596129681766979,76,Done,
+72,5021555b-1b8f-4962-817c-8a2c9b780db1,Adopt tailwind-variants in Kosui,116,0.9036168459842111,436,Done,github_pr
+73,597cdd16-a1d0-48f1-8259-7edf18ee024e,Should rollups show up in inbox?,193,0.8446124834773073,597,Done,
+74,41c0410a-7a21-48d8-8950-4b0d68ed9376,⌥+⇧+Down should move task to the bottom,194,0.9118076911796875,247,Done,
+75,46bd5514-1e67-4420-9930-f0482dc71068,Spacebar should toggle task status,-1,,231,Done,
+76,1eee604d-cfa2-4077-b256-51515a594039,Add Fab for adding tasks and remove toolbar in desktop mode,147,0.8990882849945359,800,Done,github_pr
+77,799abfcd-f39a-4440-833e-7a218d7cd120,Navbar Improvements,100,0.8518657351563553,17,Done,
+78,35a62fb2-09d5-4103-a9ff-d37e8d254087,Use Kosui Tooltip for ManagedTaskIcon,265,0.7864701476414185,481,Done,github_pr
+79,6487ae19-7b6e-446f-a7a4-4890ed7c6723,Fix 429 errors when fetching user images for avatars,-1,,681,Done,github_pr
+80,2cc90354-a91b-43e6-b6a0-3827e9e1d8e4,Cmd+Shift+Enter should create a new task above,202,0.9474488302215789,222,Done,
+81,pMYyJfSZTxuFMWJF-UZo0Q,"Add a playwright test for billing, including going through the stripe portal",103,0.7346069228384771,1071,,
+82,e1679c63-02d2-42d5-9c56-3d795e6387fa,Make the setup flow more robust,51,0.8757646251580835,325,Done,
+83,af9afd66-f180-46e7-ab8e-68ddca1af3c6,Move deps to dev deps,199,0.9295923499260937,789,Done,github_pr
+84,66c21e8d-9235-4e0d-9cd6-285d703b0190,Undent/indent show twice in the command palette and break scroll,150,0.8701165738498386,264,Done,
+85,74b0c122-e13b-4718-89d6-7b34c9113ede,Add support for archiving tasks,170,0.9493713577769218,1008,In Progress,
+86,9f4fb7ed-56fe-44fe-a7d2-f900c551a03c,Update all dependencies,232,1.0000000000000004,864,Done,github_pr
+87,SX6JLHspQd-bCxlb-7_nKg,Allow file reupload after clear,-1,,1205,Done,github_pr
+88,0d34a66c-1463-4523-873b-01d13e0780c7,koso-285: Create initial implementation of the executive dashboard,-1,,964,Done,github_pr
+89,a3827817-a13a-41f8-b191-bbee2bd79636,Add action to copy task permalink to the clipboard,178,0.8819354982580269,896,In Progress,
+90,e9cbbc7f-1048-44dd-8722-bc4b96064449,Update notifiers with settings variant,-1,,459,Done,github_pr
+91,ea9e6a12-d025-45b8-ab0c-9637661b32a0,Separate link panel into node and task variants,159,0.9258444411757063,953,Done,github_pr
+92,a6b6d81d-37c6-4f5a-9b25-0ccc5c0c7417,Add tooltip for managed tasks,265,0.9835920868267205,353,Done,
+93,lGBzBxGYRL-JcrD-OLtTnA,Update components to be strictly dependent on Svelte and not SvelteKit,-1,,1246,Done,github_pr
+94,51eca712-5fbd-4f24-993e-d1b4afb3356a,koso-1001: Add a Ready status to mark a task as Ready for Work,234,0.9022556467837215,1021,Done,github_pr
+95,7bff0466-5338-4b9f-bae0-a2d830dc854f,Improve typing of github state,140,0.9011701180169389,580,Done,github_pr
+96,m48VFJV1Q4aFLAy0APfb5A,Force runes mode for all project svelte files,134,0.9188845774611158,1057,Done,github_pr
+97,4071b81a-b9f2-4802-b288-09112f44d195,Handle juggled tasks in toggle status,-1,,564,Done,github_pr
+98,f091860a-6241-4c28-896d-58a9587e65f5,koso-4: Working on testing 1,164,0.8916171922385019,697,Done,github_pr
+99,d124368b-b946-48e9-a4e9-dcaf7cf2a486,Migrate renovate config,123,0.9542299586883125,835,Done,github_pr
+100,byFm-lpxQsiz6uJWeDbFqw,Remove debug log,117,0.9277494446587776,1209,Done,github_pr
+101,8ce8897f-4b0a-4153-a968-ec10502534bc,Bump the docker-deps group with 2 updates,241,0.9999997110543515,418,Done,github_pr
+102,jpEoM9TCSeOzQZTyjMue0A,Validate billing redirect URLs,-1,,1092,Done,github_pr
+103,6d83d909-d444-4aca-83a4-31afef114ecc,Grant points on blocking of task,132,0.892421836128187,1002,Blocked,Task
+104,ab9d04d7-d2c7-4581-9622-d5e519c0f84d,Milestone 3: VITO (Very Important Top Officer),1,0.8388669224667373,647,,Rollup
+105,b8bd9bdf-5858-4f6c-b3fb-6b1b39597052,Implement front end handling of external tasks,101,0.8500458088125373,320,Done,
+106,66ffb0d7-f603-4cbd-bf49-2c07b536083a,"When interacting with a component, disable keyboard bindings",17,0.8389726133414155,120,Done,
+107,5ae069bd-4aed-4db2-b808-977bb42a8389,Handle rollup tasks in inbox,193,0.9361760789257549,530,Done,github_pr
+108,d64482ac-ddf2-4976-b90c-53b7483cb24c,Add a fallback avatar image and title to the navbar,81,0.8780376485828003,386,Done,github_pr
+109,c1a1b03f-d716-48ce-8611-2eea89e3ad0b,Add buttons to navigate between Project Planning and Zero Inbox,-1,,587,Done,github_pr
+110,2c7e9041-0b8f-4e71-b316-af1f5b037ead,koso-1030: Fix confetti z-index,108,0.6789186672546411,1037,Done,github_pr
+111,3eb357e4-e91b-4511-8814-77ff56cbbef5,Upgrade to Rust 1.85 and Rust 2024,165,0.9292834572493496,502,Done,github_pr
+112,06bb4f1c-c022-4fb1-bea6-9e7e8c6a6d7b,Implement full history of a Koso project,-1,,121,,
+113,176dcbc5-bec3-48e4-bef4-c038e5039691,Update dependency vitest to v3.0.5 [SECURITY],239,0.8125071378828064,423,Done,github_pr
+114,fc1c98d5-dbd0-4303-9074-b169b231d282,Fix task deep links,235,0.8739780945598108,895,In Progress,
+115,a84e5c25-1072-489b-bfef-c5fd56ccc9c8,Run ci as part of deploy with reusable workflow,-1,,206,Done,
+116,1b76872d-024a-4350-afd2-2698d738a8e9,Video of the Zero Inbox showing assigned tasks and notifications when tasks become actionable,-1,,380,,
+117,6d341baa-0063-4c83-8704-15ec048203f4,Make offline mode great again,28,0.8739471585008052,786,Done,github_pr
+118,491ffc32-23a6-4e94-be95-10255ec3fe3e,"In mobile mode, task context menu should appear on the mobile taskbar",221,0.9610631465935093,857,In Progress,
+119,22eab22d-68f6-4936-a1cb-77916323c21f,Simplify render delegation by using useRef callback instead of element box,13,0.9101789206957444,556,Done,github_pr
+120,39af332b-5b3a-4190-8aa7-4cbbda5b9cee,Treat eslint warnings as errors,177,0.8194904760990995,880,Done,github_pr
+121,c2ab95ec-bcd3-476b-bcbf-5e6bd9bdc1b9,Rename toggle-state to toggle-context,257,0.9202545266115971,617,Done,github_pr
+122,fccd30e0-2946-4085-9924-c9918379a8f8,Allow Fab classes to be customized and tweak layout on dag table,110,0.8871748521270144,848,Done,github_pr
+123,5ImD7hNAR_q-TrZ2zCNdrQ,chore(deps): lock file maintenance,205,0.9999994013931857,1244,Done,github_pr
+124,PqS65stKRw-2qvNpkCcPPA,Replaces Card component with kosui Box component,253,0.9253496806842358,1264,Done,github_pr
+125,dcba45b3-c298-41ed-8d41-40e6daba88f1,Automatic developer performance evaluations,-1,,649,,
+126,6079d812-43f9-426e-aeaf-1503122635ee,Fix double scrollbar in link panel,160,0.9004024263507066,625,Done,github_pr
+127,7deabf19-bdbe-49d9-b327-226b2b079662,Link panel integration tests are flaky,85,0.8302196948785445,267,Done,
+128,b488ae9e-60dc-48fc-93e1-50e92583f29f,Add Avatar to the Navbar,81,0.913418148315511,8,Done,
+129,07857b54-81d6-422b-9ba8-b68f5b20ce7a,Dropdown menus shouldn't hold focus after they are closed,114,0.8888314134055441,164,Done,
+130,zNVHH3HIQ-yXWGUc3y0gTw,Fix racy tests exposed by playwright,105,0.9349461610528556,1049,Done,github_pr
+131,59346153-e12c-4976-a8a1-5bac337c0602,Create toggle buttons for use in Link Panel,79,0.9015834404935371,605,Done,github_pr
+132,680bebd1-6d6d-41b0-84a3-5367af2e0c29,Add all Input variants and Scale parameter to Kosui components,-1,,499,Done,github_pr
+133,fd48aa0c-b74a-456b-8e23-6e005a1ad21f,koso-856: Make tooltips wrap when they get too long,-1,,861,Done,github_pr
+134,36db2f04-28e6-4f8e-b06a-456196246e24,Promotional landing page describing Koso’s mission ,-1,,300,,
+135,acfcb223-db64-4be9-9ffd-40c603c0ee65,Add handler for keydown events when Popover is open (onKeydownWhileOpen),-1,,567,Done,github_pr
+136,bd0aded3-0b18-49ee-bfdb-ef427a1b3a08,Fix GitHub and GitHub PR looking disabled and connect to github button styling,-1,,965,Done,github_pr
+137,fcd74c2b-9381-43b7-b73c-416a7ab7b71e,All navigation buttons should allow copy link via href but should prefer goto,175,0.9559015674687248,913,In Progress,
+138,86bfffbd-9fdb-4167-ad21-b963b20ed7aa,Explicitly store a shutdown status,42,0.8419140403514469,719,Done,github_pr
+139,033dcddc-c222-4fee-abf9-23656ef7d9c9,Enrich error logging with context,-1,,793,Done,github_pr
+140,e382263f-a270-402f-8d53-6a5ffbdd635a,Add a search bar to search for tasks and select rows,185,0.9074386874785619,27,Done,
+141,kQKltdSyQeqXCPljm_0-KA,Add support for notifications in Discord,83,0.9365267058083678,1095,Done,github_pr
+142,e61b0c2e-fe87-4ce0-8a3e-86993053cbad,Awareness should show some indication when a user has selected a child,-1,,671,,
+143,849b83fb-ded9-4471-be79-2ecef2afbb37,Polish,-1,,304,,
+144,90ef838e-3a39-407c-9b97-8870ef6f3cda,Add project debug page,117,0.7327649496463526,899,,
+145,aEZf0vNJRs6XRmBcjS26uw,Inbox page tests,167,0.9108168643007624,1080,,
+146,bd6fa80a-28c3-43ae-9105-da3722e0a38f,Make commander more ergonomic and move palette to navbar,153,0.7926131637826135,667,Done,github_pr
+147,6026c277-416f-4296-9ca3-372cc3fab7e8,Fix Inbox2 row selection and keyboard navigation,207,0.9298150589085095,749,Done,github_pr
+148,249d69dc-765b-4d9e-a49f-9357a4ac8513,Tailwind 4,116,0.7075770997854106,408,Done,github_pr
+149,3db9d514-7816-4fa3-a7c6-56b0a4531949,Show status and tags in search/link panels,220,0.9333010446371448,387,Done,github_pr
+150,c4d0b71d-f3f7-4732-8f90-10b5d796b870,Add task status with fireworks,-1,,9,Done,
+151,44bc44d7-1c39-41ef-a8be-8c4c6c3438a1,Round out the bottom left and right of the dag and task tables,155,0.7795359973624063,843,Done,github_pr
+152,c4aba0ab-5fca-45b0-9439-38a5e87f4a9a,Tooltip should wrap when the content is wider than the viewport,-1,,856,In Progress,
+153,e9ef4227-54f6-4b89-b272-72b93eb2a5fc,Implement an API for tasks,-1,,287,,
+154,62f00c83-0c8e-497f-aa3b-7655f4d7677a,Stop pulling the github repo onto the deploy host (koso.service needs transferred),-1,,230,Done,
+155,06abf8e3-85c0-4dab-910f-94c00ecd845d,Avoid depending on mode to decide on the github app,142,0.7663385293570342,579,Done,github_pr
+156,f52852ce-b556-47ab-8e24-0f3a5dc61360,Fix several lint warnings,176,0.9262327396367895,532,Done,github_pr
+157,0qjlexWWTXi-plLVPHPfVg,Add support for breaking down tasks using Claude,-1,,1115,Done,github_pr
+158,3452e587-4e0e-4229-9e42-32322b4d27d7,build(deps): bump node from 24.0.2 to 24.1.0 in the docker-deps group,210,0.9160139973988821,972,Done,github_pr
+159,950f19c7-f25a-4bf3-b813-d3991f31ac9d,Add support for floating tasks,-1,,1001,Done,Task
+160,7b133888-79e0-4d1e-8938-8a322ad23353,Enable Kosui menu to handle up/down arrows,-1,,549,Done,github_pr
+161,cyWfxBl3SSuSZFE_Davo5g,Migrates Label off of bits-ui,128,0.939716640966088,1267,Done,github_pr
+162,5216d18b-020f-4af0-8cb4-730126e4631c,Consider making Meta+up/down cycle through non-expanded nodes,-1,,301,Done,
+163,d657d528-3987-4efd-b3fa-d9b1e2191820,Add Due Date to Dashboard and make On Track / At Risk reactive,60,0.8952341957908014,983,Done,github_pr
+164,VAlpHuOPQmKfQaPpAmh6RQ,fix(deps): update all dependencies,218,0.9999999999999987,1265,Done,github_pr
+165,5ca57f64-b200-447c-8c24-3cb88f6d36ba,Search should sort by task status,227,0.9158648204004904,381,Done,
+166,50188fc6-6d39-4525-b70e-1885e66d38e1,koso-894: Populate PR authors on tasks,-1,,949,Done,github_pr
+167,da256d6f-5741-4cba-bb28-d2ca9d23e71f,Dejank popovers like tooltips and project share modal search,115,0.8927921815263149,504,Done,github_pr
+168,ZryCeXl3Qx2kB2Ot3SE2LA,Tweak versions in package.json,-1,,1143,Done,github_pr
+169,f1c559ca-386d-464f-a24e-83537bc028f3,Tasks that are part of the critical path should show up in the engineer's inbox to get estimated,57,0.7754346023975272,960,,
+170,daf881ff-7929-42d0-8984-d42031af34c8,build(deps): bump docker/build-push-action from 6.17.0 to 6.18.0 in the github-actions-deps group,-1,,975,Done,github_pr
+171,RjVLkbpPQ4S-snipsE74QQ,fix(deps): update all dependencies,219,0.9999998573033507,1114,Done,github_pr
+172,0e3f781f-5391-4820-b1c3-749d482abf77,Add Fab flag to reserve space so that you can scroll past content to show fab by itself,110,0.8871748349830768,805,Done,github_pr
+173,5e0da712-b0f0-4515-8ae0-e9da8dd04004,sonner,-1,,187,Done,
+174,11ac1aae-0062-48ca-a22f-753a70b5ca42,Update Zero icons,-1,,302,Done,
+175,sgIJeEa3QDiXFxXhC3D13w,Projects page tests,163,0.9571085328619932,1082,,
+176,62666e73-36bb-498c-bcbb-59d151bc4fc8,Create a test that ensures various widths of browsers have no scrollbars,56,0.9188947018710112,912,In Progress,
+177,1c5a91ac-5d33-4047-9e50-3cb7914cfca3,task-status-select,131,0.9335739780581316,175,Done,
+178,c185e133-dc88-4795-9939-d203b5ec64b7,Implement attention (indicate which tasks other users have selected),136,0.7507363649049037,306,Done,
+179,4c4c0ac8-c5a2-487e-96da-19a9470bfa31,Migrate from flowbite to shadcn,-1,,67,Done,
+180,0a93c5dd-4499-4e4d-a7cc-5c130af55505,Use Svelte Store to enable reactivity on YTaskProxy,104,0.8643822357328268,765,Done,github_pr
+181,11d5c53a-1525-4603-af6d-49768f35902a,Add a Reason column to the Zero Inbox,161,0.9010740889658617,859,Done,github_pr
+182,j8X_lkiYR--9Ole7fuyG2g,Cleanup debug log,117,0.9313103962817142,1211,Done,github_pr
+183,fb171050-99bd-4dd3-a454-69af72b9164d,Fix parse error due to esrap when running locally,-1,,393,Done,github_pr
+184,ca2ff170-284e-4f45-a08e-fc93b2e7574e,Changing task status shouldn't move tasks around,187,0.8381600919059577,637,In Progress,
+185,ad83f607-cce4-4ff7-8eea-6add37787f38,Do full screen confetti when task is marked done,216,0.8940229230589423,162,Done,
+186,b8b249fd-cd3f-4930-8594-4308d234e1a1,Toggle markdown editor back to view mode if task doesn't have any details,-1,,934,,
+187,9d002df0-f960-4cea-bce6-05ffc9f77bfb,koso-4: Do the things,164,0.7690442363963743,699,In Progress,github_pr
+188,c1212e41-9333-45de-80d7-be87dca13eaf,Prototype task dedupe using OpenAI embeddings,-1,,643,Done,
+189,369957d3-e5b5-4783-ad76-dfcf0a7ad861,Option shift should move tasks to the boundary of the current block,187,0.7962947949567738,283,Done,
+190,bea4e276-4dd5-4f97-9c87-7300e25811c7,koso.ts → koso.svelte.ts,179,0.8962224756001571,199,Done,
+191,89cce7a1-c271-46c3-9eca-71ec1c2d0264,koso-916: Add edit and view buttons to task detail preview tooltip,260,0.9325731821810874,919,Done,github_pr
+192,da73b292-a1b9-41fc-b569-b117db67975b,Add shift to the Copy Task shortcut because existing shortcut conflicts,-1,,904,Done,github_pr
+193,root,Root,38,0.8848176949991001,0,,
+194,e397a6c9-fa1c-4983-8897-01a7a12c078d,build(deps-dev): bump the npm-deps group across 1 directory with 11 updates,-1,,974,Done,github_pr
+195,fbadb5ff-f176-4b62-bd8f-1a051b7a1e1a,Fix dark mode for the editor,243,0.8825489797842498,755,,
+196,14646214-042f-481b-9370-087fae2e7525,Make tooltips narrower for mobile drag and drop by reworking the text,233,0.9341250122741505,241,Done,
+197,a23fd7c2-71e9-44d9-a324-ad00d34dc0ac,Make sure confetti doesn't abruptly disappear,-1,,660,Done,github_pr
+198,ada31236-ca88-4cdf-8c48-64f7d8f5bc2b,Improve socket shutdown handling,42,0.8159613657837872,712,Done,github_pr
+199,19a16c16-e590-4faf-ad84-6c5f5b39631c,Tooltips should appear above the table header,-1,,59,Done,
+200,feea0697-0c25-4b1f-8698-2375c6a0d46c,Make github links bidirectional (modify the PR to link to the koso task in description and tags),180,0.8667819681627855,694,Done,
+201,cf4b9e4a-664a-4fb6-b280-1599b2b40a11,Handle selection when tasks disappear,136,0.8776724534106557,602,Done,
+202,d19506eb-cc66-4f88-a2e7-89dca43f2011,Bump node to v24,210,0.9160139836563576,865,Done,github_pr
+203,vjTAZKqaS0WNyRANzlbQ2Q,Set patterns on all updates,-1,,1045,Done,github_pr
+204,ded2421d-2507-4db7-8fa7-bd1a875b24e9,task-status-icon,131,0.9335739845298351,174,Done,
+205,AK3lQRaAQ-6esxfmuaIkCw,Fixup svelte eslint warning,177,0.8926227038237147,1279,Done,github_pr
+206,8930a2f2-ebc9-4df3-958b-acf6dacd27da,"Revert ""Update all dependencies""",-1,,452,Done,github_pr
+207,ae0fae10-dda1-4d61-bb94-2ee598e38509,Implement the undo manager,35,0.8009704752648839,112,Done,
+208,0bd11548-be94-4884-aba8-f0bac4cdbc66,Different color drop target depending on whether drag and drop will add as peer or child,73,0.8204939357968524,227,Done,
+209,1cf3d7df-9147-47e9-97a2-3d542ab1216f,Rename Juggled kind to Task,200,0.9444694744616959,675,Done,github_pr
+210,7cdf831a-cc87-431b-9173-af0bfea60d5f,Update colors to match logo's new blue,50,0.9015976462946975,305,Done,
+211,UnA0jOsnSRi6UJNr9XsClg,Adjust log levels,118,0.7940989198726416,1256,Done,github_pr
+212,af5ec712-9761-42cf-990f-b74255c066ab,Bump the npm-deps group across 1 directory with 12 updates,250,1.0000000000000009,811,Done,github_pr
+213,15e53bce-426e-48f8-9918-cdab7830c3a5,Add support for selecting Auto-* kind,-1,,993,Done,github_pr
+214,d3a13ee2-6eb2-471e-90e1-fca57b93c394,"Reorganize markdown editor -> DetailPanel, viewer -> MarkdownViewer",211,0.9086217397697423,813,Done,github_pr
+215,9d2736e1-83f1-4608-b27a-06d2b3e2190c,Bump yrs from 0.23.1 to 0.23.2 in the cargo-deps group across 1 directory,244,0.8892524201877474,887,Done,github_pr
+216,23a0e794-acd7-4732-9460-bfb867470341,Factor out observer creation,-1,,464,Done,github_pr
+217,35f2b364-b35a-48c8-973a-a185572277ae,Auto-assign to assignee of parent task,169,0.8528850234448859,604,Done,github_pr
+218,7e353788-7924-425f-8d61-2268a0413ec4,Try setting the exact install version,9,0.8581806907794565,573,Done,github_pr
+219,a0fa0e72-7d39-4a99-946f-f2b1b5c62655,Consolidate toolbar code into one component and rename table -> dag-table,111,0.9070871516737389,812,Done,github_pr
+220,hYeD9MlQQJii_N27xXy0TA,Add scrollbar test for Inbox page,167,0.8072104970720037,1067,Done,github_pr
+221,7bdf426c-2f44-421f-82d2-6e0ce74749d7,Make reason tooltip max 80% width of screen,-1,,874,Done,github_pr
+222,54b379a0-aed0-492e-a4b7-9de062a9a2de,Introduce Kosui common folder and centralize Divider and Header,-1,,679,Done,github_pr
+223,872fdc06-0cac-47be-8fc4-dc9f1d5bc04e,Usability,10,0.7875842812722353,12,Done,
+224,VtlqHDHYSfiMhWQxHacU4g,fix(deps): update all dependencies,218,0.9999999999999987,1066,Done,github_pr
+225,b8903fef-9695-431a-bf15-44f577643ad9,Promote Chips to Kosui,-1,,534,Done,github_pr
+226,8b3f9fdd-62a2-415c-8cf9-d6e1ff1793cc,Update all dependencies,232,1.0000000000000004,503,Done,github_pr
+227,32621375-c3b8-4e53-9ee0-f7bf25393001,Tooltips for what will happen when you drag and drop,-1,,226,Done,
+228,cd6bf7d3-a827-4dcc-898a-33a3bcce9910,Add global frontend error handling to avoid the white screen of death,-1,,70,Done,
+229,7b7b2d16-ab38-4ee0-a7cf-8ef1a07c7eb8,Simplify Command component by using a state context,-1,,615,Done,github_pr
+230,d8a3db3b-19a6-42cd-b657-5b21611c979b,Websocket stays open across mount/unmounts; need to unmount connections or reuse,-1,,44,Done,
+231,95a2cab3-c30c-4155-9ad5-cf1f0fb3643c,Improve usability of context actions,191,0.9083974464768565,641,,
+232,522cb727-3d0e-466c-b728-dafce922c044,Put WebSocket logs behind the debug flag,117,0.7496638894085967,154,Done,
+233,d9c77484-da36-4d3c-b509-b872a705ecec,Replace landing page images with dark mode ones,168,0.8059164571978708,395,Done,github_pr
+234,c7e81cbf-1021-4684-9d4c-91d14400d756,Do a demo,69,0.902164126309589,95,Done,
+235,9f2b22a1-a494-4d58-996e-d6cd7de5906e,Move Navbar buttons to new Project Menu,90,0.8300115905584086,598,Done,github_pr
+236,CjGXL_jfTaSta1EVzITR2Q,Remove `koso/` from paths in README stripe instructions,-1,,1079,Done,github_pr
+237,64296e44-a75d-4878-a9c4-3c2d7d1568f2,build(deps): bump reqwest from 0.12.15 to 0.12.18 in the cargo-deps group across 1 directory,244,0.903509735583521,973,Done,github_pr
+238,164057f9-8820-4331-83af-dd18e8fd8d20,Bump ring from 0.17.11 to 0.17.13 in the cargo group across 1 directory,-1,,571,Done,github_pr
+239,020f9225-e122-4550-9cb9-5705306356fe,project-share-modal.svelte,196,0.7853092320638437,250,Done,
+240,22e12302-e8f0-4680-9a31-3a2bec880570,Update all dependencies,232,1.0000000000000004,818,Done,github_pr
+241,e740e56c-66a1-45fc-8ba5-c90907223f67,Refresh Google oauth certs dynamically,-1,,69,Done,
+242,84173e80-db91-4d5b-8e79-b9ff9af5d5a7,Archive,6,0.8542407138949801,1000,,
+243,31a8bfa1-a711-4e97-9728-194f87fa8946,Fix chip's delete button also trigger click,-1,,538,Done,github_pr
+244,91cc23b4-89ee-4a28-a373-c70b1053efce,Update all dependencies,232,1.0000000000000004,889,Done,github_pr
+245,f0d27b90-70d7-4177-831c-0d0480310970,Add a different action tooltip message for managed tasks,265,0.8926415852542469,1016,Done,
+246,aec70557-0657-4f64-b39e-1a23d593818f,Done tasks should eventually disappear,194,0.7101321852590805,73,,Rollup
+247,5db5f20e-fd77-4510-b339-4939bdec65c9,Add scroll bar to project-share user select in case of many users,-1,,210,Done,
+248,d7dd4149-8110-452b-bbf4-072281d29aa3,Put a license on it,4,0.8854494222332303,94,Done,
+249,9eef0997-d38c-4d6b-a536-16c9a2cb044d,Use image digests,-1,,205,Done,
+250,9c885b05-862c-40b0-8e80-4739c4d8f30d,Convert Autocomplete to use Svelte context,256,0.8045003783841066,663,Done,github_pr
+251,ea6146d6-0816-46b1-bd16-0035b2ed467a,Update secondary colors to provide a nice contrast,50,0.9015976290974866,228,Done,
+252,5e6bffc9-b964-4cc0-8dba-af32bac279b6,Nodes should only expand after a delay when dragging,99,0.801814147514263,74,Done,
+253,16f1aa16-0f3d-470d-b454-d7f513fb99fe,Bump the github-actions-deps group with 2 updates,242,0.9841534422543592,455,Done,github_pr
+254,3224a7b1-2090-4a8e-8baf-1dc2cd289e8b,Fix task auto organization being too jarring due to too much movement,-1,,636,,
+255,19f4a183-e044-4d6a-827b-9bd41b3f7749,Ensure origin is always set on mutable transactions,5,0.6870301286510465,575,Done,github_pr
+256,f870fd36-b595-4b37-9179-b074dd6591c5,Delete AI Rollup as a coming soon feature,49,0.9157904883633516,319,Done,
+257,5ec9b4cb-683d-4594-a8ec-24a8bd0cd61c,Prune stale containers/images,36,0.8990881916367777,204,Done,
+258,2d9f6937-d1c0-48f1-b1e2-8311d9c94f1c,Task detail preview tooltip should include an edit action button,260,0.9325731874248697,916,In Progress,
+259,b8f77097-2b78-4b46-a15d-3dfc1bd6e3d2,"Modifying a GitHub PR's title after it has merged leaves the task ""In Progress""",-1,,1023,Done,
+260,cd8708a3-754e-4922-badf-aa74a929841b,Correct status comparison to avoid generating spurious updates,-1,,506,Done,github_pr
+261,8d61f9ad-8dce-4850-8af1-3eb5f3b110be,Delete Zero and merge kosolib with koso,-1,,453,Done,github_pr
+262,2703e267-f28a-4506-9650-137d69a5d0ae,Competency,10,0.7852462461249915,130,,
+263,80d3014e-607e-4379-8a37-6c77e44c405b,Cmd+Shift+Option+Enter should create a new child in previous task,202,0.9474488423006913,223,Done,
+264,07ed5695-87c1-4bb4-96ef-cde12373d02c,Update all dependencies,232,1.0000000000000004,796,Done,github_pr
+265,be5cb03d-8700-46f9-9f91-3c00265f9a27,Add docs about telegram secrets,113,0.8399110800834713,945,Done,github_pr
+266,pcBpieDnTb23j5-U_eXJXg,Improve Github plugin logging,141,0.9081989784347413,1106,Done,github_pr
+267,tCOipmpuQJK2m6QWwfDA3Q,Configure renovate,122,0.7318176346974423,1277,Done,github_pr
+268,G3BtpG3_THmMSwowH70oCA,Begin migration to Kosui,252,0.8701875505636181,1253,Done,github_pr
+269,877f7ce4-1695-4a1d-8f17-e97501712382,Stop using node in many places in koso.svelte,179,0.850841732098555,733,Done,github_pr
+270,ce738db1-b5e0-430a-99f2-fa39c59611a0,Use project context in task detail page,-1,,763,Done,github_pr
+271,0a27ebb8-6726-4150-b722-12a1f24f9d5d,Fix managed task icon color in dark mode,-1,,349,Done,github_pr
+272,dZmU8MHmRlCr6dyyaIw1yA,Set permissions on workflows,-1,,1137,Done,github_pr
+273,18954137-5588-4411-a3bb-85c5a2a8ed2c,"When adding a new task, start editing title by default",203,0.9081141055622106,103,Done,
+274,9c01f863-80d8-40f4-8c52-3375944c23f3,Experiment,7,0.9999998426914012,883,Done,github_pr
+275,6d5a0f91-31aa-4e10-8261-f5765e4a8366,Drag and drop to child now highlights the row,73,0.8332459562565672,524,Done,github_pr
+276,012b516b-9ace-42a6-974f-5c8dff84985b,Improve handling of offline and unauthorized errors,157,0.8288609807782185,404,Done,github_pr
+277,26034bfe-d8cc-4ed0-994f-1a63f2829748,Handle rollup tasks in the juggler notifier,193,0.8602617768419295,529,Done,github_pr
+278,b184cb3b-7172-44e3-ba99-19654121ddf8,Refactor yUpdates table to be append only,27,0.6855403442186324,155,,
+279,Bpp8cgxtTq-dfYvgaqLNKw,"Bump the ""all-deps"" group with 2 updates across multiple ecosystems",230,1.0000000000000004,1243,Done,github_pr
+280,f642e3c0-32bb-48ca-84d0-ce5994fcc7a3,Update all dependencies,231,0.9999997713100128,451,Done,github_pr
+281,955b2543-2c2c-402a-bf3c-a6ee3af600c4,Update all dependencies,232,1.0000000000000004,362,Done,github_pr
+282,447abad3-cc17-4c28-bac1-fa325e94c1af,Implement setup flow,51,0.9129272330201033,308,Done,
+283,c58448c3-69b1-4ee0-af5e-0bfdfc961496,koso-910: Fix premium crown causing horizontal scroll,108,0.956176482399157,911,Done,github_pr
+284,58c160ad-cd08-4c97-92c6-4cfb15f00fe6,"Undo on a new project will undo creation of ""root""",46,0.8840581507948713,211,Done,
+285,be0f71db-ef88-499c-af80-63c2914a6d01,Refactor LinkPanel and TaskStatus to take Task instead of Node,159,0.9258444402850872,737,Done,github_pr
+286,0RyPdL6aTUaxD8p6asaKoA,Update dependency vite to v5.4.19 [SECURITY] - autoclosed,239,0.9139637871089877,1132,Done,github_pr
+287,56fe0875-1a6e-49ef-b676-e0634490b8b8,Provide URL to a node to enable discussions outside of koso,-1,,135,Done,
+288,An0bq9fXRN-leI3HU50pIg,Add Kosui to the Workspace,-1,,1252,Done,github_pr
+289,5a90725c-6b07-4a01-bd12-863bb4a9373d,Initial implementation of Koso UI (kosui),248,0.9148373210465048,422,Done,github_pr
+290,784a9e7e-564b-43f7-b458-915d9b697683,Polish frontend handling,102,0.8904860968897822,350,,
+291,b8vDHWfyTEi2wPgHS09gDQ,Create frontend UI components for Teams connection management,-1,,1227,,
+292,cb0d11f0-f17c-4548-9b5d-30ab7603e1cc,stylable markdown,-1,,702,Done,github_pr
+293,bc2fc853-76c6-460e-8ce4-ebbe0bf001a1,Fix badge import in navbar,-1,,875,Done,github_pr
+294,104b7467-d858-4c4e-a50e-262f57bee638,Toggle to show done tasks,-1,,140,Done,
+295,vB7RNdsASA2WQHGqo4MyNw,Enable auto deploy of Kosui to NPM,-1,,1248,Done,github_pr
+296,62289fd4-45f5-4347-8fa9-ff0690420c1d,Rename days to points in estimate and add a tooltip,-1,,992,Done,github_pr
+297,369f2f70-59c5-47cf-aa49-8a144e7f47b8,koso-869: Fix non-reactive task status,234,0.8285434379212151,871,Done,github_pr
+298,975c4577-bee2-4c97-98f6-a848e3b2fbd0,Delete shadcn-svelte Tooltip component,264,0.8924050914542503,483,Done,github_pr
+299,kT_heQ6-RmSub0IqdRWLCA,Create Teams app registration documentation,149,0.9331349633368257,1237,,
+300,987c885e-00c3-4759-9a9a-dbd1ffcd2171,"koso-1036: Sort tasks in Inbox by Status first, then Score",226,0.8894844327590623,1038,Done,github_pr
+301,cec9be3e-1694-4e6c-9d98-71614c0a0c8f,Log even more error messages on healthz check failure,89,0.9662380375368809,371,Done,github_pr
+302,3ff75fa1-cdae-4cef-a683-de444b7ec414,"Rewrite task ""num"" field in the backend to resolve conflicts",62,0.9162771757681781,47,Done,
+303,2e7aa496-78d1-4df5-8fcd-31de97ae2a78,Markdown editor should wrap text,268,0.766473536407161,852,,
+304,0bb22800-94e1-48bf-8933-b371f3f578ef,Add Koso task number to GitHub PR to link PR to Koso task (koso#<ID>),180,0.8962509061980362,651,Done,
+305,f3511888-3493-498b-9e2d-8da64d5edc4b,koso-895: Really fix task deep links,235,0.9728507036867914,898,Done,github_pr
+306,bb83cdb1-33eb-4d6a-8676-62e98185956a,Move cargo config to root to appease vscode,94,0.8970753884704432,475,Done,github_pr
+307,53f134a5-6c97-4a0e-b9fc-9afad166aaa9,Buttons to move tasks up / down,195,0.939599474319692,79,Done,
+308,4e00a4e7-8cd6-4ed2-85de-5f2e05cf7726,Create a context menu for each task,222,0.9622568719719481,673,Done,github_pr
+309,2a6bbe3b-ee4a-40cb-ba4a-f96023ad6448,Bump the docker-deps group with 2 updates,241,0.999999728184453,454,Done,github_pr
+310,db8b4513-0f2e-467b-be6c-55a65cd97cb8,Replace shadcn status menu with Kosui implementation,-1,,565,Done,github_pr
+311,9533a2b5-e0b6-4c79-b2a5-dae139f2635f,Make kind hierarchy handling robust in the face of interesting names,16,0.9160417968146274,375,Done,github_pr
+312,38ff107a-2c37-41d4-b01d-11056ab4d84f,Heartbeat monitor client,23,0.9803644736122799,269,Done,
+313,XPldytcETyqBXnXBszOTVQ,Add trait to ease converting errors into error responses,-1,,1103,Done,github_pr
+314,c51844f7-df53-437a-9d44-f397052b7904,Consider compressing API responses: https://github.com/kosolabs/koso/pull/327,-1,,224,,
+315,2294095b-5dcb-4804-9f40-207475ffed55,Show tooltip on task status (the text itself may be hidden on mobile),262,0.93161217357917,194,Done,
+316,892b0c95-0cfa-4d05-a679-2ef7986ec2e2,Select Menu item by typing menu item text prefix,-1,,554,Done,github_pr
+317,cdb2d16d-de0d-4928-861c-6170dc14688d,Bump the cargo-deps group across 1 directory with 2 updates,246,0.9999755522438389,368,Done,github_pr
+318,d5baf182-7454-4ed3-ae78-0923648b5989,Create a user selection component,-1,,49,Done,
+319,de5cfbc2-6eb7-498a-abb4-96ffa845e9ae,Fix modal and popover behaviors wrt clicks and keyboard interactions,-1,,593,Done,github_pr
+320,c0a96c10-970a-451c-abd2-2cf0a4d4ca69,Configure panics to abort the process,32,0.8670868008314764,776,Done,github_pr
+321,420e72ef-ea8a-47e1-92d2-8ae24027aefc,Sort tasks by the score field when executing the organize task action,226,0.735241384997098,829,Ready,
+322,bc93ab1f-170e-49eb-8006-bf683800655a,circular-progress-status,171,0.9722597603637702,170,Done,
+323,ea6aa539-9e84-4d68-8779-ad1f513e7a90,Make tooltips show up with long press on mobile,233,0.934125019767099,994,Done,github_pr
+324,YQyqNYSKQ--HhFc6pwwNAg,Configure npm authToken in deploy to avoid warnings in CI,-1,,1275,Done,github_pr
+325,d7e6a175-d307-4d53-8d41-c3b3b822fc9e,Move project related components out of lib folder,-1,,102,Done,
+326,561f0a3b-24e4-4f88-9242-0dee6a9b2bbb,Bump the cargo-deps group across 1 directory with 2 updates,246,0.999999684406953,456,Done,github_pr
+327,100c0374-2186-456b-ac29-0cca175a59c5,Create demo videos of highlighted features,69,0.9021641097978839,303,,
+328,5b14886c-d7fc-4271-91ee-f361e0153171,Add unattended upgrades to the setup script,-1,,942,Done,github_pr
+329,ebccfc80-45c5-4808-aa5c-6de9363aebc4,Use the root getter,38,0.8848177168923437,735,Done,github_pr
+330,f67714fc-8763-4af7-8887-7b0006802295,Move telegram notifications out of deploy.sh into the github action using appleboy/telegram-action,-1,,229,Done,
+331,f3443e99-b69e-463f-9d82-a6fb85a3a494,Buttons to indent and undent tasks,195,0.9395994771103627,26,Done,
+332,d9c95072-eb40-4d74-9b48-b96ab6880b8a,Reorganize a few koso methods,162,0.8996064130412389,758,Done,github_pr
+333,c4830a3c-3909-4807-a6a8-fb46753ec3e0,Suppress noisy chrome workspace logs,-1,,872,Done,github_pr
+334,a843138c-0124-4a82-afc8-1c4ea134d424,Use a state machine to manage toggle state,-1,,608,Done,github_pr
+335,ce463ff2-80b1-4510-acb0-fb60e9be541e,Update all dependencies,225,1.0,487,Done,github_pr
+336,c4833956-4f90-49e2-a77c-2d9054fc867b,Run clippy over tests,-1,,882,Done,github_pr
+337,cf1c1e04-e107-4458-b166-deb41d5a65bb,koso-902: Fix update hangs by untracking toasts,-1,,926,Done,github_pr
+338,49bd275b-9819-44aa-9d09-5eb61dfc3517,Update all dependencies,232,1.0000000000000004,782,Done,github_pr
+339,e3b3ab3f-366d-4567-95fe-33a2636793cf,Make progress icon hoverable,-1,,113,Done,
+340,dd8140b6-e047-4b23-97a7-a9e3fcd0c03b,Use Koso context accessors,138,0.9103448650182693,759,Done,github_pr
+341,51d9305d-6093-4d4c-8ad7-e289e7ff71e4,Add Badge component and Box base component to Kosui,253,0.9253496840460692,847,Done,github_pr
+342,6d64ada7-fbd7-4690-8efa-c6dcde9a9b7a,Video of a plan being made in Koso,96,0.9647854554032296,376,In Progress,
+343,9acf5538-2446-4284-a0a1-ac20c6c8c03b,build(deps): bump brace-expansion from 1.1.11 to 1.1.12 in /frontend in the npm_and_yarn group across 1 directory,-1,,1019,Done,github_pr
+344,uE1l95arQt-sPsYUBEAhAg,fix(deps): update all dependencies,218,0.9999999999999987,1122,Done,github_pr
+345,fc5a0a20-2c01-4e8a-85cd-b4ee817bb761,Compaction may not keep up with the rate of updates for large projects,27,0.7918337585099338,35,,
+346,17912f5c-78e6-4cc2-98d4-129c7fafd15f,Disable Delete action in inbox,208,0.8704283911120777,612,Done,github_pr
+347,bd14e5ae-da28-4984-9636-72b4cd400c0b,Should task status progress numbers show in progress and not just done?,186,0.814039332896837,215,Done,
+348,9122743b-e1fb-4e78-9af2-4ebc4227d1b8,koso-894: Add an update user endpoint,-1,,940,Done,github_pr
+349,9440c7fa-0bd6-4312-baa0-21040a4d2e02,Add support for mermaid diagrams,12,0.98132108267267,730,Done,
+350,802bcb3a-1986-44a9-b146-4b1482f2fd1b,Refactor Actions to be owned by Commander,67,0.8169873314361255,676,Done,github_pr
+351,3e3d349d-9256-4ff3-a2f7-bda50ee68388,Refactor Kosui autocomplete component to use a Svelte context,256,0.9353629212068162,654,Done,
+352,a5ecae97-2e9a-4d2a-83b1-a51b79166225,Remove unused cargo deps,240,0.9431113672571124,510,Done,github_pr
+353,954de0c9-9265-4fd8-aca3-aed2251261fc,Get rid of the old command-palette component and the action registry,-1,,620,Done,github_pr
+354,129f3e9e-9c51-42d1-8fbd-5d9560b33ce0,"If task name is empty, show a ""Click here to edit"" prompt",-1,,104,Done,
+355,0f97e324-02c5-4e39-88e8-01fbfb989899,Bump openssl from 0.10.68 to 0.10.70 in the cargo group across 1 directory,217,0.9909362025159564,420,Done,github_pr
+356,XBiBI403S6SIQFf1VlDcsQ,Try fixing down cast,59,0.8187976138921228,1206,Done,github_pr
+357,4265e9ec-9e37-45bb-973e-ab2948387f65,Use strict equality,66,0.8878146541804477,559,Done,github_pr
+358,996eea11-f3be-4051-84d3-79775f5af6de,Intelligent sorting of tasks in the Zero inbox,226,0.8348652983514576,832,Done,
+359,073240d3-1fa8-4b4c-ab53-79160e5d2af6,"Make Taskbar beautiful on mobile (wrap, smaller, add tooltips)",-1,,106,Done,
+360,0a3097bc-7fc3-431d-9df3-1d90d860b680,"Cannot find base config file ""./.svelte-kit/tsconfig.json"" in docker build",-1,,207,Done,
+361,Q9gDEi6oQkWphPGWQThv9w,Add support for generating design docs based off of a repo,-1,,1152,Done,github_pr
+362,2809855c-ba71-4f8b-a5d3-1f1e7f6e1621,Clicking escape on nested popovers should close in reverse order of open (see share dialog and self-removal),-1,,363,Done,
+363,37d4df42-eb68-49b0-a253-b302146c2099,Update all dependencies,223,1.0000000000000002,557,Done,github_pr
+364,a8c5956e-5bcf-487c-b270-230b2dfa62a1,Add a cute 404 and error page,-1,,841,,
+365,856e1ba7-a7c5-40b9-9c5c-6ad0cbf986e1,Video of multiple people planning in Koso,96,0.9647854562383855,377,,
+366,19e5afb1-ac3a-44ce-abc1-090c0ca73591,Better debug: set `localStorage.dev = true`; toggle debug in the command palette,-1,,1020,Done,github_pr
+367,d16f5c35-1f2f-4653-a9fa-2109fd2fb9c2,Upgrade bits-ui,127,0.9999998397207868,413,Done,github_pr
+368,KqbKS26gRK2BskC2aFQbEA,fix(deps): update all dependencies,218,0.9999999999999987,1182,Done,github_pr
+369,7872328f-35ee-49f6-98f4-9ec8709b756f,Make tasks property reactive,104,0.7477645175860379,403,Done,github_pr
+370,9f02d675-2a24-4502-bb61-287e60282767,Add uncontrolled flag to Menu to disable close onSelect,129,0.5445880241187961,542,Done,github_pr
+371,0086da51-f4da-410c-8e9b-4416685f43c1,Create an OrderedHTMLElements class to help with focus management,21,0.9011773066356962,655,Done,github_pr
+372,hbCx6ktnSnKahosDyyn9iw,Create Teams webhook signature validation,-1,,1231,,
+373,8b619428-d490-4fbd-9230-872f6d91493d,Add Bindable utility class for having bindable fields in Svelte contexts,-1,,657,Done,github_pr
+374,39a5201a-a319-4347-8582-8e2a2a8c7f8e,Allow deleting projects (move to trash),37,0.8120063755060696,295,Done,
+375,59365c1b-839f-4b57-aac1-f9ef13edb834,Fix hard to click expand / collapse button,184,0.9124047082557799,833,In Progress,
+376,7e59693f-5362-4794-ab86-42d73aae54ce,Reset size overrides used in various places,-1,,401,Done,github_pr
+377,9b86a483-68e7-4ba8-80c4-9a137d6287a0,Make Navbar available on all pages,91,0.8832899305679649,7,Done,
+378,dcf2c919-f0d4-462d-9d3f-c9086fc91f4b,Add a few more checks,224,0.9283695040228181,590,Done,github_pr
+379,9392d456-3464-4599-b9aa-f7a5fb04d1b1,Purge projects from the trash that are older than 30 days,37,0.8246847547789381,298,,
+380,d68e298b-3391-4092-8b8a-11d3105494d4,Setup dockerfile,145,0.9023491076269428,202,Done,
+381,a0f48299-5c52-483b-b289-19cdf0c93761,Reliability,10,0.8150051646394181,129,,
+382,f4f98180-d216-4889-aa4c-ba1c4bf6802d,Bump mode-watcher to 1.0.0,11,0.9749297467603476,783,Done,github_pr
+383,7b141c2d-7aaf-4d9f-9c1c-076140aa5eb7,Fix node path,-1,,581,Done,github_pr
+384,7a60509f-18b1-420f-bfa9-f597e01b4973,Limit the number of connected clients for a given project,53,0.9160938546262967,53,Done,
+385,8df0322c-3e0e-4d17-b17b-c524ba849298,Tooltips can be cancelled by dialogs opening and closing,-1,,501,Done,github_pr
+386,3024ac13-5d34-44f2-aa20-217d1c175d25,Update all dependencies,232,1.0000000000000004,419,Done,github_pr
+387,31969f30-0775-421f-9d29-cfc9afa5ad10,Nudge user to try the command palette shortcut,-1,,388,,
+388,c6fea87c-9556-41b1-833c-9da2d9418e33,Implement client side warnings when schema is off,52,0.7647395542630575,145,,
+389,077b4600-7b4e-4e0b-8d81-e25728552947,Blocking a task on another using link-panel sets kind to Juggled,-1,,626,Done,github_pr
+390,9db0d6f7-3d1d-4f11-a812-d5f5e78f9742,Svelte 5: Migration,-1,,168,,
+391,73360483-ec18-4cb3-b303-955b545ec261,Gracefully shutdown github pollers,33,0.7229454135463528,777,Done,github_pr
+392,2a57d548-a760-4aa3-a294-cc6991c9b381,Make Github app public,142,0.8165382006249662,312,Done,
+393,1a2ca708-62df-47bf-8b79-0a4e9bed1419,Short circuit graph iteration when all references are found,-1,,701,Done,github_pr
+394,436cfffd-a24b-4cca-9631-cef6fc119f39,Add ability to set task kind to Iteration,-1,,988,Done,github_pr
+395,bac4ef59-a5d1-4857-b704-3907c1c062e3,Marking a task as In Progress should move the node to the top and assign to current user,-1,,165,Done,
+396,68d430da-ac8d-4129-bacc-bc785ed50324,Break circular import deps,-1,,770,Done,github_pr
+397,761dd97c-9467-485e-b6ba-0b71b64e2d87,Fix typo in cache from name,-1,,631,Done,github_pr
+398,79d63e81-fd31-4776-85a4-de119822dc06,Scalability,-1,,43,,
+399,ZR-1iPe6SWaYYEFbEtKnrg,Update dependency svelte to v4.2.19 [SECURITY] - autoclosed,238,0.8800294599388415,1128,Done,github_pr
+400,5ad4c0cf-dc97-4c1b-9a7e-938d5dfece2d,Remove newCompContext methods in favor of explicit setCompContext(new CompContext()),-1,,862,Done,github_pr
+401,ced2028a-42a9-48a4-9d1b-a9bea74ef102,Move library function out of index.ts,-1,,788,Done,github_pr
+402,43f47b02-c394-4e87-a337-9bc9c0f4f8ea,Add our first UI interaction test,-1,,97,Done,
+403,DToe1OaWQkKqCvjdp9Op9w,Fixup usage of deprecated type,-1,,1121,Done,github_pr
+404,9535bfef-f083-48d9-b633-05095c7ecefe,koso-863: Add action to copy a task's git commit message to the clipboard,178,0.9058851363454605,901,Done,github_pr
+405,f0a6de3a-b151-4bd7-aa25-1bc7445afd96,Avoid conflating null and false + more yproxy tests,-1,,1031,Done,github_pr
+406,04062d43-129e-4a7d-9825-e3b229d75df6,Implement render delegated version of Kosui menu,256,0.6908862576286792,551,Done,github_pr
+407,Cu3XL4QMRye8kArdGESqSQ,Add Teams notifier to the notification dispatch system,146,0.8615486144938899,1226,,
+408,39f7fe4f-2091-43e9-8342-ba23133711d2,Force reload of a client if they aren't running the latest code,25,0.7354923544914946,143,Done,
+409,36cfbdb5-c971-452a-899c-3038a02e17c0,koso-852: Markdown editor wraps text,268,0.9346926864655284,905,Done,github_pr
+410,Ljt7yjhKSX66Hcqg9xmAiA,"Store oauth clients in postgres and support auth method ""none""",-1,,1153,Done,github_pr
+411,179193c3-3967-407a-b75e-51053846feeb,Add experimental support for mermaid diagrams,12,0.9813210804682734,823,Done,github_pr
+412,8ed49d40-e87f-453c-b0cb-397ea7b9b763,"Fix bug with select next link, add bounds checks",-1,,589,Done,github_pr
+413,bfa2cc9b-ed5c-4dc3-8e59-fafd03a71297,Configure environment variables in frontend based on environment,47,0.7520768558843454,326,Done,
+414,8708d499-183a-40ae-99e5-81083f7090f9,Enable pnpm's strict-dep-builds,209,0.7921358896021058,466,Done,github_pr
+415,a81af57b-7481-4d36-8143-a5f7fd035712,Enable strict mode,66,0.8878146547399525,249,Done,
+416,f408a6f0-9a95-42bf-b4ec-4dd3f8298943,Toast users when blocking or completing tasks,132,0.8924218328461005,603,Done,github_pr
+417,hnUA6c9CRReXgIszK2Cqsg,Let pnpm manage node version,209,0.934202209435677,1138,Done,github_pr
+418,ISPFBq2TT4Sq7hyHiBjs2Q,Remove teloxide from healthz checker,55,0.8593404878264806,1093,Done,github_pr
+419,ac75119c-42e2-4971-91b7-42e1761a6b0b,Use small icons for status and assignee column headers in mobile view,58,0.872329181319125,62,Done,
+420,1d624f06-59b4-46ea-9423-afc08160373c,Write an integration test,237,0.8453895781919867,110,Done,
+421,ad4868c9-d4cb-4245-8f66-1bd0d21d3ccd,Rename projects.id to project_id,-1,,66,Done,
+422,2f8345c5-79f2-4c33-963b-61eb6929d3df,Add block-on toggle to Link Panel and make it default in Inbox view,79,0.8180129202927766,606,Done,github_pr
+423,fc25b9ef-b14c-464b-9ae1-c07fcc6d8307,Remove post-status change reordering,-1,,659,Done,github_pr
+424,OjqqX1tHQ0ySiYpQQ67_ig,Implement notifications via Microsoft Teams,146,0.8010922184806452,1216,,
+425,30982787-f3db-4070-8943-48eb3f406cab,koso-868: Render Markdown links nicely,268,0.8745835826902615,907,Done,github_pr
+426,f72b4c63-4ac8-4cc1-affb-f8fb24e74bf2,koso-1013: Improve look and feel of the action item tooltip,261,0.895573998339483,1015,Done,github_pr
+427,fb5eecda-ee3f-49dd-9669-aa7d1a35eb7c,Bump vite from 6.3.2 to 6.3.4 in /frontend in the npm_and_yarn group across 1 directory,229,0.9820042205174642,801,Done,github_pr
+428,github,GitHub,71,0.9019257749191791,340,,github
+429,c86c5cd4-8955-4fd7-9ccd-09387479387a,koso-1008: Add support for archiving tasks,170,0.9493713561756187,1014,Done,github_pr
+430,08a77e59-0cea-48d8-a635-3adb88ac7873,awareness,39,0.789519743849147,354,Done,github_pr
+431,c7ac6432-16f6-45a0-bf8d-11701c3c312f,Configure CI,151,0.8988902819937037,203,Done,
+432,e69b6fcd-8d70-463f-b58d-66c1ac382454,"Fix ""Take me home"" dialog escape",-1,,142,Done,
+433,90177ba2-d61b-4da8-9a6b-9622b0ebac95,Add some tweaks to the action item reason text,-1,,860,Done,github_pr
+434,c344728a-6747-4ebb-8773-b6658e296790,Remove unused import,212,0.8444460004319257,463,Done,github_pr
+435,3276fc89-d8e3-4131-8d84-344daf111df0,Create a compacted view over yUpdates,27,0.7943853638239482,156,,
+436,6dc02038-0e5a-4f15-9729-5307f6766585,Add landing page screenshots,168,0.884660483573801,394,Done,github_pr
+437,MzW4zNfWSO6kz0hzN1d6uA,Tweak renovate timings,-1,,1270,Done,github_pr
+438,hO8BTMbOQJeNa5TdI3hAZQ,Bump the rust toolchain to 1.88.0 and address lints,166,0.8032881415190399,1072,Done,github_pr
+439,9f71818b-42a6-45a9-963c-08a6728b299f,Tweak Link component so that it doesn't wrap when placed in body text,-1,,870,Done,github_pr
+440,eb1889b7-6418-4bd0-aac7-568f32441843,Detect when running in standalone mode and adjust UI so that action bar is taller,-1,,233,Done,
+441,33a176c8-a0e7-4fd7-91b5-f8b7ecee33a6,Propagate errors instead of panicking,32,0.8261363621393103,775,Done,github_pr
+442,26998bb1-d436-4b44-8094-859667ce36c1,Avoid recounting the same tasks when calculating Progress,-1,,986,Done,github_pr
+443,7834d8b9-382b-44cd-9b04-39aa0d8769ba,koso-971: Display remaining estimate for rollup tasks,139,0.8437187471683802,980,Done,github_pr
+444,96b81c01-b9a7-4b84-a1ca-ed7165dfd233,Update all dependencies,232,1.0000000000000004,846,Done,github_pr
+445,61e38ea1-b6cf-4a48-b749-6bc7c0b9fe2c,Lock file maintenance,197,1.000000000000001,367,Done,github_pr
+446,Csgu2P8RQUSTF72CbiHDWA,Try a different environment variable name for publishing,43,0.9999998354349707,1250,Done,github_pr
+447,c32832cc-4b40-4bd3-8e94-4a3d764a6e7d,Fix base styles to work with Menu Items,95,0.8895175745381023,540,Done,github_pr
+448,3d4eb4c2-ac22-44b1-94b8-c6222495c750,Plugin for //TODO comments in a codebase,-1,,286,,
+449,2c88e765-2cb9-4a18-b8f2-bb89e000b0be,"By default, tasks that have children should show progress for status",186,0.8972007889811979,85,Done,
+450,83de3047-91da-461d-af98-40226ad4b4d9,Plumb errors from each server to main,-1,,792,Done,github_pr
+451,26b86072-6047-4668-a0f3-5bdc869fb2a2,Link panel should allow linking to the Root,85,0.8401919826014437,293,Done,
+452,2dca0799-7198-42f3-ac6c-66e5f0c55036,Bump the github-actions-deps group with 5 updates,242,0.9738185239184172,547,Done,github_pr
+453,6d25d0b6-ee48-460e-9b4b-0e03ad0ad4c8,Task selection cuts off left and right selection highlight,-1,,816,Done,
+454,c1c6e720-cc4e-4812-a221-d160f73ca854,Navigate directly to a task from the inbox,190,0.8945704364112981,406,Done,github_pr
+455,42f27259-041d-4d28-8162-697bb88ba180,Show unauthorized dialog on inbox2 page,68,0.9063169354358943,764,Done,github_pr
+456,2c2dc9f9-d32d-441f-ab3f-6278858d89c5,Simplify Github app config,142,0.8935331274712923,477,Done,github_pr
+457,2b6fea1b-9b90-4cde-a512-98dfe58b90a7,koso-902: Instrument service worker and workbox with more logs,93,0.8800779929972165,914,Done,github_pr
+458,42a0cd79-582f-4f9f-b4b5-78f316c05c29,Fix placement of Add Task FAB and improve task / detail layout proportions,147,0.8990882805045144,822,Done,github_pr
+459,bacd31fd-2a72-44a2-8ea2-a3ca718e0725,Introduce TaskLinkage,-1,,742,Done,github_pr
+460,207cba11-dcf4-4130-bd6d-7fb19fc9796f,Handle out of order events,-1,,307,Not Started,
+461,6a11b95f-0e89-4c9e-8fcf-9594621aa2e3,Add support for GitHub reference links,107,0.8863373155943974,698,Done,github_pr
+462,bae8fbf4-ff6d-4bc8-9413-904e0b051f7b,Update all dependencies,232,1.0000000000000004,771,Done,github_pr
+463,f9ccb9da-6171-46c2-a78c-c532e75b25a7,Migrate shadcn-svelte's Avatar to Kosui,270,0.9488126792610554,522,Done,github_pr
+464,cc453717-9273-4212-aecf-c86b0707cc3e,Use the new dialog to implement the Unauthorized Dialog,68,0.9063169307713896,434,Done,github_pr
+465,75c1b903-dc90-4bd9-876e-9a373a5af9fa,Set version on sqlx-cli,9,0.8581806922130628,572,Done,github_pr
+466,266a5c5b-4d29-4ecf-9742-f2cac5eaf415,koso-1029: Avoid showing expand toggle when no children are visible,184,0.8000432624420363,1028,Done,github_pr
+467,432d2b99-fad5-49db-8bb7-4a7df54b6827,⌥+⇧+Up should move task to top,194,0.8889791370496352,246,Done,
+468,kyXMNEBxShWg8q1oiCHZgw,Correct multi-ecosystem-group pattern,-1,,1044,Done,github_pr
+469,-bzG9PgvS7STYIQO1_FbzA,Add marketing for the zero inbox,-1,,1060,Done,github_pr
+470,db80b599-7785-4d1a-bd72-695a0f2583c5,Make inbox2 the primary inbox,208,0.8248391131611044,795,Done,github_pr
+471,us4fCIreRgGCXPY2oMiq_Q,Update notification event observers to include Teams dispatch,146,0.8356488754018327,1233,,
+472,1050643b-2355-4eba-bc18-38219760918b,Update pnpm to v10.8.1,209,0.7871528752533723,772,Done,github_pr
+473,64f41ae5-1a65-4c94-ba47-bf4ff3f375a1,Setting project name to empty fails silently,98,0.896655074395313,259,Done,
+474,3b7f93c1-7820-439f-8444-7482fe0c6e61,Base64 URL encode task IDs,-1,,1043,Done,github_pr
+475,bf8cae64-e985-4aae-bac1-f85f0651ce18,Persist undos across page refreshes,30,0.866057521810949,123,,
+476,7ccf5e7c-5d02-4127-aa47-1da8e48d1810,Restructure plugin configs to be project oriented,82,0.9117842932310511,342,Done,github_pr
+477,0290bf32-50d6-4ccb-a17a-dffd2b3f2d26,Task description markdown viewer / editor should open side-by-side in desktop mode,-1,,725,Done,
+478,TCB60gyRTLSWP2TKfIxbEw,Add Teams configuration to deployment scripts,-1,,1236,,
+479,5689a57d-bb5f-4567-9fc4-02a47099e00f,Add a script to login with a test user,-1,,437,Done,github_pr
+480,GOVu-zNfQ9eKUMR96o7iZA,Fix a few billing bugs and add tests,-1,,1070,Done,github_pr
+481,dacbefe6-ea5b-4f17-8062-271d4b613068,Directly configure the rust toolchain for CI,166,0.8403698766058234,884,Done,github_pr
+482,b7c51b80-47d2-49e9-b1b0-2b80f63e30c9,Key all the svelte eaches and enable linter,-1,,930,Done,github_pr
+483,a6d5f61a-a4fd-4a28-a647-b77a1cc74602,Bump various rust deps and fixup octocrab interaction,166,0.6325571125950209,689,Done,github_pr
+484,ca04ad1c-6b73-492d-8319-9a23beaed1f5,Use Kosui Tooltip for Awareness,266,0.9138963828905053,480,Done,github_pr
+485,5f2cf3a7-8e85-499c-9a29-986297b2bd21,Add commands to cycle between the nodes of a task,-1,,273,Done,
+486,jpAOdaV8RWqkMqXWlCxOcw,Add Teams-specific error handling and logging,-1,,1230,,
+487,994eb415-f015-41f3-b196-5af5a2d4b1c2,Bump the npm-deps group across 2 directories with 4 updates,249,0.9781299752073138,365,Done,github_pr
+488,MPu9JzeSSPmXO62hWCcdmw,Reorganize layers,-1,,1088,Done,github_pr
+489,xLpT1hwnTyGTa-Kfnjh6cw,Fix static content links to work for unauthenticated users,8,0.8649211140150921,1061,Done,github_pr
+490,802c0c3f-4832-4a29-a57a-99288d3da2c2,Add a reason field to represent the reason why a task is assigned,161,0.9010740744513765,747,,
+491,Ra7Fd4NASmSAIEytXxu5HQ,Experiment fixing Svelte bug,-1,,1048,Done,github_pr
+492,e198bb6a-ed90-4eb2-aecc-6565092a68f0,Remove old Input component and use Kosui,-1,,495,Done,github_pr
+493,a102dd8a-b66e-45a7-9a89-a82d710d62e9,Rewrite dialog to work in Safari,-1,,513,Done,github_pr
+494,4e8c897d-e3cf-4409-a9fb-7e33b435f67a,Add type for awareness update,39,0.7991369190883497,762,Done,github_pr
+495,eec99cef-e098-4d36-8de0-f375732e9d36,koso-138: Implement collaborative task description viewer and editor,228,0.9141137482799198,723,Done,github_pr
+496,802d02d0-94e8-4122-80db-859db9af45dd,YJs Explorer,-1,,157,,
+497,iWhb2jiuTfieIXcSIYaEuw,Remove single-use transactions,5,0.7295128053285997,1076,Done,github_pr
+498,52757756-a25f-4f9b-a076-f20baaed5cb7,Prototype a task detail view,182,0.9312206228020784,136,,Rollup
+499,76cd6bee-b952-489e-a93c-09f6c29268b3,Add a cool UI effect when a user earns points,-1,,1003,Ready,Task
+500,d54c2b11-5d1a-40a6-996f-c8631cb14242,Backend Improvements,100,0.9200407035652816,29,Done,
+501,836733ae-2c52-43e3-9538-2f06e96a4e2a,Move status column to be between ID and Name and hide column header in mobile view,58,0.8463230917762774,56,Done,
+502,9eef2775-b253-4fae-a8e0-e58f7baff92d,Integrate with Github webhooks,-1,,251,,Rollup
+503,5288a5e5-ea23-4494-a26e-a5397a2cb47e,Whether or not a task has markdown should appear as a small icon at the beginning of the task in mobile mode,174,0.9017315469417678,855,,
+504,b4379e33-29f5-4144-94ed-6f82ce4d9cb5,Bump the npm-deps group across 1 directory with 6 updates,249,0.9859368523919392,886,Done,github_pr
+505,c0cfc982-eee7-4170-ad05-24ca4a288a70,Bump the npm-deps group across 1 directory with 3 updates,250,0.9600118551049565,691,Done,github_pr
+506,jjk3tKvUTVmjGzRfeT7ZzA,Add MIT license,4,0.8854494192227371,1179,Done,github_pr
+507,a4d4016e-52b7-4366-b7b0-58d6c6155e93,Bump the cargo-deps group across 2 directories with 4 updates,245,0.9962760350559426,416,Done,github_pr
+508,593fdae3-c257-4bc8-a5cb-0855a0d07427,Polish the task editor,102,0.8904860677722274,724,,
+509,423a28b8-74ad-4807-80b2-d7dc9ac7ad31,Make clicking on the logo go to projects page,-1,,6,Done,
+510,VvuxPKbsRaihInfM4aQa_w,Add Teams integration tests,236,0.931152274357902,1234,,
+511,e371e86c-4444-4895-a625-f34961b11b90,Fix staggered spacing when task name wraps,86,0.9999998564371958,351,Done,
+512,ZIteY60nQkej6EM2dq_Urg,Remove patterns from group def,-1,,1047,Done,github_pr
+513,github_pr,GitHub PR,71,0.9019257693971849,341,,github_pr
+514,90f3a832-83cc-4623-9138-3688bae9ab97,Ready now removes task from Inbox and managed tasks show different action to resolve,215,0.9102998374108889,1032,Done,github_pr
+515,5bdc0f9e-c006-47be-9516-9943797cdc7a,Fix outline bug in Safari,-1,,128,Done,
+516,044d58ae-d76e-4c08-9e64-fd5c38e1b163,koso-842: Fix markdown rendering by setting token each loop key,268,0.8358963045232988,929,Done,github_pr
+517,b38feb51-9fe1-430a-8300-127d41aa2213,"After doing some action on a row, refocus the row",-1,,126,Done,
+518,c375c467-6876-4985-90aa-b039d7df7afd,Update dependency @sveltejs/kit to v2.20.6 [SECURITY],238,0.9621033166045502,773,Done,github_pr
+519,fdc5819d-3b99-4542-bc65-a9fa3ccb7ff2,Organizing tasks throws Invalid status Ready when Ready tasks are present,234,0.8291231622691011,1033,In Progress,
+520,x9WytwaNSf2truW1OPuu6w,Configure vscode settings,94,0.897075385829776,1139,Done,github_pr
+521,59f22ba4-b72c-4ac7-b50d-7d038e36f130,Add ability to set project name,98,0.8966550646568263,1,Done,
+522,fab5bd58-7d2b-45ef-b82c-ac90d334b2c9,"Add a ""move to"" tab in the link panel",-1,,840,Done,Task
+523,e4be31ff-b56e-4b77-8423-d0d848dd77f4,Delete shadcn-svelte dropdown-menu component,264,0.9098713547845612,583,Done,github_pr
+524,8e76ed80-9df5-4c67-a175-3fb488429c20,Use exactly name matches to avoid flakes,26,0.8700343180854757,722,Done,github_pr
+525,dae27b7f-8a3e-46f1-b26c-3397f616175a,Add task size estimate field that defaults to days in Fibonacci,-1,,959,In Progress,
+526,2b1a04e1-fe97-400b-b5a1-dfa95eff8499,Downgrade to rust 1.86,165,0.9292834590187149,877,Done,github_pr
+527,f142c0e0-9bc8-4500-ae0c-2f9477a9209a,Lock file maintenance,197,1.000000000000001,693,Done,github_pr
+528,8da2197a-4ee3-4b79-8f3e-d38514dad588,Implement Telegram notification configs and wire-up Telegram auth,75,0.9130814970692838,412,Done,github_pr
+529,f8260ce3-0928-432f-81f9-19185e134c51,Identify and invoke actions using a type-safe ID field,40,0.865868427309729,678,Done,github_pr
+530,131e717c-bfe5-4909-a645-68b313792fd9,Drop zones are incorrect when row heights aren’t a single line,45,0.875825776424883,75,Done,
+531,afb73ca9-07d2-42fa-a010-dfcbc9bc3fcd,Use different lib names to avoid name conflicts,-1,,623,Done,github_pr
+532,0ba8e5c6-700b-4c10-b4e7-892ceb80db50,Show dag-table and task-table header icons in desktop mode as well,109,0.8872022447657401,985,Done,github_pr
+533,1cMFpBMFQl63ipQP4AcNLw,Enable playwright caching,106,1.0000000000000004,1271,Done,github_pr
+534,cb6f26f0-fbe1-49ed-97d6-894f631a762b,Check GitHub branch names for koso task refs,180,0.8018005936227822,943,,
+535,9sFy_QL3TOioJbIVuc_i1Q,Add streaming responses from anthropic endpoints,19,0.8852368833908184,1113,Done,github_pr
+536,5f296a10-5089-4ec8-bfaf-bb478838fe99,Fixup postgres version refs,48,0.8736317574154322,944,Done,github_pr
+537,7atAzPrHTVKhcM37_Dxc1g,"Migrate Input, Textarea, and Alert components to kosui equivalents.",-1,,1261,Done,github_pr
+538,971b0922-4938-48c0-a186-3678abaaa6e7,Send notifications when a task is assigned to you by someone else,173,0.9379729694420331,460,Done,github_pr
+539,3e92c4c7-4ff3-456b-b534-edd9d505d5bd,Tweak log configuration,118,0.9438237850228542,713,Done,github_pr
+540,ac2de6d4-1b19-4f55-81f4-b623125c7bb7,Stop using node in organizeTasks,158,0.9196572845851287,740,Done,github_pr
+541,144f9909-1dd6-42cf-a0f0-c404c7604789,Apply fixes for eslint svelte v3,177,0.8554349918929298,531,Done,github_pr
+542,a4e9f88c-d3f4-4af2-b743-66d200032eb0,Ensure that collaborators can add tasks without conflict,137,0.902764488749306,15,Done,
+543,f9d0acab-dd91-4c50-95f6-36c37070d8aa,Upgrade bits-ui,127,0.9999998397207408,317,Done,
+544,c1e5a578-9356-46ab-bc17-ae92019715c6,Use Kosui Tooltip for DropIndicator,266,0.918119304466417,482,Done,github_pr
+545,7a81a6eb-a012-4471-8d22-094ad8f1b338,Auto generate subtasks based on task detail,-1,,915,In Progress,
+546,465168b3-59c3-434b-a6de-abb6ccae129c,Changing status should move tasks to the boundary of their block,187,0.9119027580814687,253,Done,
+547,DkTimr9FQourpFoEQU7hVQ,Configure stripe branding,77,0.7064007457506363,1063,Done,
+548,KOfumh8QRdiZFmaaLJ8C5g,Migrate from Rocket to Axum,-1,,1141,Done,github_pr
+549,02a0fd41-7e83-4aec-b5c5-8d8b533219ac,Rename Row -> DagRow to match TaskTable / TaskRow,155,0.894217257491238,844,Done,github_pr
+550,fd5fdc3f-5644-4a46-a9e6-d1cebe530d9d,option-move rows end up hidden under toolbar,44,0.8730521797422998,281,Done,
+551,dae47536-301c-46d9-a5fa-57da620c07d8,"koso-709: Support multiple log formats, e.g. json",93,0.8307803906502782,684,Done,github_pr
+552,ab2929b3-0ff2-4ec3-a368-e9599b762284,Creating a new task should start editing by default,203,0.9365374871859578,191,Done,
+553,ca9d525d-b86d-43c4-aa3c-360a3cc3ae23,koso-853: Add a `rich` flag to Tooltip component for styling Rich Tooltips,254,0.9227697494749825,891,Done,github_pr
+554,35280a23-8f91-4ecc-96a9-14a55efe0ff5,Adjust margins to look more consistent with menubar,95,0.8895175709641208,115,Done,
+555,rAhkQVIhQvmx452LkBTx7A,Fix downcasting of protocol errors,59,0.879627095777241,1118,Done,github_pr
+556,2dfa8971-6e25-491e-b598-23f4c7878e6a,Implement workflow: block on -> new task -> assign to someone else,258,0.9628495010174197,925,In Progress,
+557,80ef8xiNSoGtk1dp0oc22w,Avoid warning when clients reset connections,52,0.8928628431023423,1101,Done,github_pr
+558,d28d858a-5f96-4cd1-9fe5-2c48cfdbd270,Wrap toast in a popover so that we can show them over dialogs,-1,,493,Done,github_pr
+559,13184b17-3de7-4b35-818b-18869ec4152d,Bump the npm-deps group across 1 directory with 12 updates,250,1.0000000000000009,457,Done,github_pr
+560,4a95b9a3-f4c8-497a-9c74-05c3a6265b8a,Bump the github-actions-deps group with 3 updates,242,0.9866476753440895,808,Done,github_pr
+561,0a31a1bd-8de9-4384-86d8-828911325717,Use the success toast variant,61,0.8805175231959086,624,Done,github_pr
+562,cf99b071-4f74-494b-9650-2c697b5732a3,Bump vite from 6.2.5 to 6.2.6 in /frontend in the npm_and_yarn group across 1 directory,229,0.9974394315860042,756,Done,github_pr
+563,63141d2c-0150-48ea-90a3-1669e0b8a6b9,Scroll command items into view When navigating with arrow keys,-1,,621,Done,github_pr
+564,9f47c036-f457-4040-a1b6-cd5aeed2c31f,Anchor project with a top level root node,-1,,41,Done,
+565,ae5b5f69-f6db-48ef-a8dd-50d23d265494,Double click on Markdown button toggles the viewer,211,0.9086217248015617,908,Done,github_pr
+566,515b4934-a4ad-4157-88ad-2a1637feeafe,Update all dependencies,232,1.0000000000000004,577,Done,github_pr
+567,cc18205c-4586-4194-ab89-b59123893cf3,Remove slide dialog animations,-1,,424,Done,github_pr
+568,96b266f4-004e-4f3c-9d6d-31693c5fa2a3,Add tailwind styles that implement Material 3,119,0.901141245077836,441,Done,github_pr
+569,50a2cc66-e195-4916-b293-d6a857ef93cd,user-avatar,81,0.7675900763714211,177,Done,
+570,4a865f94-4366-4c12-8fa2-6c5a4733c1f4,koso-896: Add action to copy task permalink to the clipboard,178,0.9187495218063939,933,Done,github_pr
+571,Z8ZOH3l6QEK5XCLzrGHVHg,"Bump the ""all-deps"" group with 2 updates across multiple ecosystems",230,1.0000000000000004,1133,Done,github_pr
+572,bf4ee114-37b7-4284-b4be-851f98112475,koso-741: Always show the markdown viewer / editor even if a task is not selected,267,0.9266277013249297,752,Done,github_pr
+573,6d057b51-f887-4e2f-a60c-6531d88d1bbf,Prevent password managers from prompting to fill the name field,-1,,166,Done,
+574,d0a88c81-6ad9-44ff-9e2b-449de51a6af8,dag-table/table,135,0.9581115592906391,198,Done,
+575,XTkKd4YcTbSB6yN6l6Z0fQ,chore(deps): lock file maintenance,205,1.0000000000000004,1242,Done,github_pr
+576,e22a2e9f-d491-4f5d-8ae0-71e10a2da0c4,Migrate search for tasks component to Kosui,-1,,588,Done,github_pr
+577,2ad876ae-81d8-4eb8-a0e9-f6c32982032f,Remove old images from github containers,36,0.89908818200622,201,Done,
+578,mgmhIeKFTTCcpBtBhM_cFw,Generate project status summaries,57,0.8319292799252123,1083,Done,Task
+579,78f7c43c-6006-4e0f-82d7-a61023ee8786,Bump the cargo-deps group across 2 directories with 1 update,246,0.9832018714466024,692,Done,github_pr
+580,2b9f85cd-9aee-4fb4-b556-981f5f187ab1,Display badges for premium members,41,0.9018230282290547,858,Done,github_pr
+581,_Mo_HbaFSpmYpEafQK4oUw,Update all dependencies,231,0.9999997670013367,1183,Done,github_pr
+582,82d546d3-1d0e-4509-a603-28951df268ff,koso-755: Support dark mode in CodeMirror,-1,,769,Done,github_pr
+583,93e8cc0b-946c-44c3-bc7c-ac1fdd22b4c1,Prompt users to log in in response to 401 errors,-1,,71,Done,
+584,1b3dca04-beeb-4a92-a505-278438e18d8c,Allow Rollup as an explicit Kind,-1,,989,Done,github_pr
+585,e35c8b80-93a8-4204-b920-632171eb2468,Run migrations in run_dev.sh and change default db url,-1,,467,Done,github_pr
+586,05e07d31-6758-42f5-8d5e-b3bdaecc9d59,Combine command-context and autocomplete-context into item-context,-1,,680,Done,github_pr
+587,OghVuuZlQbCtHGGNiG97jQ,Upgrades kosui to v0.0.10 and uses its Skeleton component,72,0.8934535623227872,1263,Done,github_pr
+588,dc0e1e1e-7956-4cd0-9938-af8094fb046a,Fulltext description,-1,,138,,Rollup
+589,fc99e208-3ba2-4b56-9aa3-53a0e9ba5afc,Split planning context tests from koso tests,162,0.8151467144134976,760,Done,github_pr
+590,f9ebaa73-7f87-4ecd-88a9-7b219d2b5cf2,Update all dependencies,232,1.0000000000000004,686,Done,github_pr
+591,56c06f7f-20d3-45b9-b1b7-6b0413d8d01c,Add integration tests for collaboration,236,0.9311522785284269,163,Done,
+592,ed8810da-3e9d-4366-aea5-6aae787acb48,Use goto for fast nav to tasks,-1,,787,Done,github_pr
+593,YwGyPY0lSoqs23J9tBJk9Q,Add nice env vars,47,0.8316886282956115,1142,Done,github_pr
+594,f2dc90f5-b98c-436b-a9cd-1ecd90c836b5,Support task detail panel being shown side-by-side on large screens,183,0.8477665349808299,821,Done,github_pr
+595,28b6917f-0c1b-4588-86b9-5e3bdaca180c,Lock file maintenance,197,1.000000000000001,810,Done,github_pr
+596,6fad0ec3-ce74-4c9d-8b60-2abbb9b7f3c5,Add child shortcut (shift+option+enter),-1,,146,Done,
+597,e2861e11-8587-4ddb-ad59-422dd9cf4b4a,"Creating a new project errors on first load with ""Error: Task ID <ID> not found in yGraph""",-1,,65,Done,
+598,774512bf-eac9-49a8-b2e0-3fba25f965be,Use Svelte context to pass toggle state around,257,0.9202545212548949,611,Done,github_pr
+599,2e4ebd2b-02f8-4360-9864-ad8b88c4d98f,Task detail panel and task list should be independently scrollable,183,0.8991870450049757,815,Done,
+600,91b05620-d619-42f7-85a1-94b1ca8a5683,Link a task as a child of another task by searching,190,0.7693404849173888,82,Done,
+601,d9cb1a05-9085-4ab6-beb1-f88aad65765a,"Add swipe gestures for mobile: left = delete, right = done",-1,,314,,
+602,1b58051e-80c4-471b-bbad-3e10d65f702e,Implement kosui tooltip and apply to existing buttons,266,0.8902755286742651,474,Done,github_pr
+603,155596fa-d9e5-45ea-980b-85bea4150530,Reuse octocrab client,-1,,527,Done,github_pr
+604,b3e55245-7e35-4237-a567-4050433433a1,Avoid trying to close connections we already know are closed,52,0.738865624507619,717,Done,github_pr
+605,abbdda95-9f4c-4f73-83bb-fb5b6d958b29,koso-1033: Fix organizing tasks with Ready present,234,0.8922888447508326,1035,Done,github_pr
+606,a19c0d24-6198-4cdf-87ef-fa590d3f324b,Camel case a few function names,-1,,939,Done,github_pr
+607,40dcefdb-ab5f-42b8-a4fc-cc2f8720740a,Make a flaky flag that skips flakes,26,0.8700343282742197,525,Done,github_pr
+608,f638169b-e0c6-4779-8f2a-9cc5a360ed49,koso-913: All navigation buttons now allow copy link via href but uses goto on click,175,0.9559015632510728,928,Done,github_pr
+609,c3bb0a57-8b4a-412e-b5b7-60a2cca008e0,Show an offline indicator and automatically reconnect when back online,28,0.8739471564611844,78,Done,
+610,c5238767-c46e-4c09-a6db-27eb6d8a3a86,Add generic type parameter to toggle buttons,79,0.7878164186575413,674,Done,github_pr
+611,c64e45d4-7f6e-42d6-875d-5a896f54d432,Import and export a project,-1,,125,,Rollup
+612,4b009a3d-e9bd-4e78-91bc-18949b92d9ed,Prototype chips for representing alternate parents,-1,,127,Done,
+613,c1d2ca4d-2950-4035-981a-3867e51233f3,Move event handling to notifications module,-1,,465,Done,github_pr
+614,_harNJhzSAar45ZKsY0Yug,Update notification settings UI to include Teams toggle,146,0.8163124783918969,1229,,
+615,e4d73ce7-2ba7-4c96-9ba5-ddbf73bdd7b6,Bump the npm-deps group across 1 directory with 13 updates,250,0.9813025665291827,807,Done,github_pr
+616,2ed400d9-277a-43a0-8f74-16146743bfc6,Stop using node in visibility filter,-1,,739,Done,github_pr
+617,0b53a30f-7390-47b4-abcd-64aa54667bac,Send notifications when tasks become actionable,173,0.8656012689947172,92,,Rollup
+618,STCXHQ3iSpenbUKF5p1Rrw,Add pagination for installation repos,-1,,1207,Done,github_pr
+619,f8a29121-23b3-45b3-adc2-ff4fabfbc816,Close Menu on click outside,129,0.6147594187505808,543,Done,github_pr
+620,4c053b39-6992-46c3-9204-237f8ca351e8,Delete unnecessary types RowType and TaskActionType,-1,,553,Done,github_pr
+621,ab07a11a-f74e-42cd-836b-ea2f89a0eef5,Add unit tests for YTaskProxy,104,0.7977711804414491,768,Done,github_pr
+622,6afd2065-ca40-4b8d-b28d-483132b85d54,Implement ProjectContext to enable re-use of Koso and Socket across pages,138,0.9103448621225829,750,Done,github_pr
+623,a84fe2b6-995b-436b-9763-d746a7d3a329,"koso-857: In mobile mode, task context menu now appears on the mobile taskbar",221,0.9610631447038868,924,Done,github_pr
+624,5081e0df-2ea5-49ed-a537-e767bf101e06,Adjust default environment variables,47,0.9222141002792437,471,Done,github_pr
+625,c6e9b12d-7538-4fac-8948-3659306254d3,Setup development and prod Github app and secrets,142,0.7729665917883497,311,Done,
+626,8d6c0e82-5bef-49e3-a41e-3d5c94926022,Search should show tags associated with tasks,227,0.9158648283569442,382,Done,
+627,0cf21e21-5969-4d66-929a-8269786f045c,koso-729: Add syntax highlighting for code blocks in markdown view,263,0.9469014505417448,731,Done,github_pr
+628,4f119651-359d-471e-ba09-648d0f882c62,Tweak mobile toolbar to be open / close instead of edit / view,-1,,937,Done,github_pr
+629,95d7ec0b-cb51-43ee-899b-ed92dd677a44,Update backend to funnel updates through observer,-1,,11,Done,
+630,0y0xeaEhQ-W7F4p6nlroew,Planning page tests,163,0.9025550824202735,1081,,
+631,123ed0e7-0663-4cdc-8cd5-6e0446b50070,Clean up database after integration tests,130,0.9239065736447059,117,Done,
+632,d4254fea-9e76-4b0f-8c00-6c87b0b899ab,Changing a task from Not Started to In Progress doesn't react on the Inbox page,-1,,869,,
+633,7f15bebc-6043-4849-ab22-9fecfcbe88cf,Rework progress kind,124,0.9038574802478524,677,Done,github_pr
+634,faaee219-eea2-4097-8894-baa849167c79,Add merge-props utility for merging props,-1,,491,Done,github_pr
+635,38f94739-3b1c-4bb8-96a8-f098c100a4c3,"Project should show active collaborators, even if they don't have a task selected",137,0.9027644782054612,385,,
+636,13bb2b35-ddf4-4547-b86d-03441a6976e2,Sticky bar not so sticky on Chrome for Android,-1,,114,Done,
+637,a1cb1a51-5344-49a7-9c48-67b07e4ec1d1,Backlog,6,0.8542407105432864,84,,
+638,92ada3db-65d8-4401-82c5-b3a873cc763c,Standardize icon buttons,112,0.8694352453589871,665,Done,github_pr
+639,8003fe7d-96af-4810-9128-3ed6d54ae5c6,Avoid showing blocked juggled tasks in the inbox,214,0.9076421861379891,558,Done,github_pr
+640,7rkha_bITXKuYIetwPzLgw,Validate Discord timestamp is fresh and print request and response headers in debug,-1,,1102,Done,github_pr
+641,568acf43-45bb-41d5-8dbd-96d31a439992,Avoid waiting for slow clients to respond,25,0.8034573981605064,794,Done,github_pr
+642,b3185b1e-3d27-4ef8-9f56-8d281af30cbf,Add collab tests for task description editor / viewer,228,0.9141137595141648,767,Done,github_pr
+643,UMRcm6-oRyiKqsa1B5SMCw,Enable renovate and configure dependabot,122,0.6002612173164418,1127,Done,github_pr
+644,ft0045fhTaeQd6oy2zOqtw,Add Teams webhook endpoint for receiving interactive commands,143,0.912701918291529,1222,,
+645,b547372d-a894-4e42-9c0b-6b696258707d,Uses enum style constants for ActionIDs instead of relying on types,40,0.8297573914509024,967,Done,github_pr
+646,2b86bd03-8ac2-4e8e-a104-2d5450539e62,Inbox Actionable tasks should sort by Status,226,0.8125728193587543,1036,In Progress,
+647,mVIaDkxXSfqhdKz9FPel0Q,Configure Renovate - autoclosed,122,0.9999999999999994,1126,Done,github_pr
+648,dffe6d1c-ad0f-42ed-905f-b7bc17974e3c,Gracefully handled suspended or uninstalled installations,-1,,321,,
+649,onqLOY_bTHqDIvc5whb8vQ,"Migrate to pnpm, bump deps, etc",209,0.7848139012245021,1134,Done,github_pr
+650,qhf9FQzpTQudPyXaiqwC3Q,Fix error_description key,18,0.8781220451425418,1151,Done,github_pr
+651,35ce5c5a-db36-4c78-8a72-54c4045739b3,Update all dependencies,232,1.0000000000000004,458,Done,github_pr
+652,557a0b73-623d-43e8-910b-51211e77c475,Convert build to Docker,-1,,96,,Rollup
+653,b5858a1f-3d18-4234-8d84-eb1a008f128a,Migrate link panel component to Kosui,269,0.9258068381318478,591,Done,github_pr
+654,761664a1-0e19-4ef1-a9aa-f82af0d3fa3d,Put the navbar menu everywhere that the taskbar exists,91,0.8832899557100939,839,Done,github_pr
+655,a24f9f91-23c0-43cf-856a-1cbecf3bd422,Move remaining node bits,-1,,753,Done,github_pr
+656,b1ef7e17-54c0-4aa9-92a0-1751949381e9,Done tasks should move to the bottom,194,0.8916221618172679,81,Done,
+657,e1a1b495-72ea-4fc5-929a-ca45e91ccfe9,Experiment,7,0.9999998426914034,966,Done,github_pr
+658,c4291bbc-b334-4b85-b758-39c476679420,"Add MenuActions componenent and migrate Profile, Nav, and TaskAction menus",90,0.8491636814663062,990,Done,github_pr
+659,18a43681-e714-4dc6-bc2b-3d89f3c45f26,Add ability to set assignee,169,0.8974348763783481,5,Done,
+660,2bfd7ea3-701c-44dc-9182-bf07c20bd080,Reject duplicate client entries outright,-1,,716,Done,github_pr
+661,090df2e0-1814-472a-a7b9-305c04dca6d9,"Show skeletons instead of loading indicators (projects list, dag table)",-1,,282,,
+662,ZSupwqttQUOMe1EfU37gMQ,Use the same port for playwright and host setting,-1,,1091,Done,github_pr
+663,9e316014-5573-4bba-abb9-7250668bf41b,"Handle showing/hiding ""progress"" tasks with children that are done (or not)",186,0.8663431544884037,167,Done,
+664,1460207d-d271-4178-80ba-6aa8f4550283,Limit the size of compacted update rows,27,0.827436068332662,52,,
+665,4e185bf6-2ab7-40c6-96bd-82ffbfd3a003,Empty dag table hint not visible in dark mode,109,0.8872022411248959,220,Done,
+666,3ee53849-a8df-4c49-8beb-5dbe64c58c6a,Upgrade components,125,0.850892370304816,316,Done,
+667,7e3f8850-f3d9-481f-8d8a-aa8aec9299de,Use x-forwarded-for for logging and remove IP from who,-1,,705,Done,github_pr
+668,1488820e-5f7a-4ce9-9db6-f70488fc3ed9,Refactor Kosui menu component to use a Svelte context,256,0.9477509038674347,653,Done,
+669,dea407e3-866a-4ddc-ad5f-c536ded85e32,Remove prefs context from planning context,63,0.8776785358562976,1027,Done,github_pr
+670,f95ab86c-ac8b-48c3-b9df-1d6067205f0f,Refactor drag and drop to use methods from koso,162,0.8483648539311728,99,Done,
+671,c6c6dbea-3c21-4ed6-a899-e5b1c74faceb,koso-902: Add more SW logs,93,0.8906192466735436,920,Done,github_pr
+672,bd773a9e-0d08-47e9-86c4-673a01c2bb4c,koso-3: Update testing.md ,164,0.9101092663364825,696,Done,github_pr
+673,5a2e464e-694b-4ec0-a362-469d011eebd4,Starting to edit a row using the mouse should select that row,73,0.6774933114049986,221,Done,
+674,96493afc-f310-4bdf-935f-00f032bcfdcc,Enable graceful shutdown of telegram bot,74,0.8006443793859536,410,Done,github_pr
+675,56b992fd-bea2-4607-95e3-0d2f558819a6,Move Portal component over to Kosui,-1,,486,Done,github_pr
+676,9d590d97-605d-48f3-8580-3ccc9fba0905,Delete Kosui's cn() and rely solely on tailwind-variants / twMerge,116,0.8403096314902851,484,Done,github_pr
+677,971c4383-c6bb-43f4-9016-b281276dcd67,Add navigation commands to the command palette,153,0.9015072034862719,683,Done,
+678,9b90fb79-d40c-4d90-8dc3-1c1b35e607fc,Only show the Markdown view icon when markdown content exists,174,0.901731554580804,892,Done,github_pr
+679,tVHnli4yRqOT0pB5ZFIvOg,Setup subscription billing,77,0.7081771773466983,1062,,
+680,d10e5502-6d0c-48bc-b160-dfea07ea1c14,Update dependency vite to v6.2.5 [SECURITY],239,0.9644242554145476,714,Done,github_pr
+681,422996f4-c40a-4185-a17c-6611a6fc7e6e,Add a telegram bot server to serve tokens,-1,,409,Done,github_pr
+682,c5360281-16b3-4aca-a77f-b0bb156f6107,Improve test DB cleanup,130,0.9239065727505176,433,Done,github_pr
+683,cfe82f44-5a7c-4283-867c-2711d5f84818,"New kind on task, replace status button with type toggle (rollup, juggle)",-1,,400,Done,
+684,5b555d21-ecc5-455c-a6cf-851ad9a01729,Tag height should be fixed,45,0.8758257717363777,133,Done,
+685,3oPDsFVMQmik_jThwVqotA,Add support for Anthropic summaries of Koso iterations in project dashboard,-1,,1078,Done,github_pr
+686,e9870cb4-cdde-4f1c-80b8-128eb2f6834b,Update all dependencies,232,1.0000000000000004,389,Done,github_pr
+687,c4348e68-f9ec-4f0d-84c4-57e8bf280648,Icons for dark and system themes in the command palette are incorrect,-1,,268,Done,
+688,c494b7e1-c2b5-4029-b4ee-8b7d2b01f333,Verify table undo/redo on Windows,35,0.8403709347244969,119,,
+689,ba460f64-6b53-4ace-82e2-11b93033140c,Enable actions to be invokable globally,67,0.8407572222399841,628,Done,github_pr
+690,4a7583dd-226c-4038-9732-bba5c076893e,Single task view for detail,182,0.8675613992791485,644,,
+691,d51cb7e2-5f0d-43eb-a343-f4d3028450de,Expand toggle is shown when no children are visible due to archiving,-1,,1029,In Progress,
+692,5dd2ac56-fa8d-4b4f-8d1f-86a06f749f4a,Correct isManagedTask condition in BE,-1,,1025,Done,github_pr
+693,SojNkHCDRiuJ_6c39ZgILg,Integrate stripe,77,0.8240258487264351,1064,Done,
+694,a9649bc4-cee8-418f-9adf-3a90cb3b93dc,Run CI tests inside of our docker container,144,0.9089772281151008,294,,
+695,a27f7d13-38b3-4211-8623-5122791aa309,Investigate koso freezing,-1,,902,Done,Task
+696,dd354c0c-a45c-4eb4-9c69-340476ea275f,Add support for mapping certain repositories to certain projects,87,0.9651160740847946,323,,
+697,jcRFYsUWSGOz_WJ5ygv-sg,Add Teams permissions and scopes configuration,-1,,1238,,
+698,d05c6b67-09a1-4450-81d7-d6477481acb5,Scroll if newly created task is out of the view port,183,0.827024778323235,38,Done,
+699,7cb1aee7-3ac3-4dbe-97ee-6ec94b6cd609,Filter out plugin configs for deleted projects,82,0.8278327575936946,704,Done,github_pr
+700,b58a1bc6-01c8-4233-b1e3-9b7d7e103a42,Bootstrap tests for inbox,167,0.8765757463911554,900,In Progress,
+701,11UotznHR8OcmYo9l8ou_Q,Update all dependencies,232,0.9999993389679608,1278,Done,github_pr
+702,1608f573-e81a-40c0-a833-0cf995d20590,Closing the link panel should clear the filter text,65,0.9884236638746168,645,,
+703,67e8a813-63c4-4af5-8ec7-8f7d309baadb,Reintroduce tags that link to various versions of the task in the project planning view,-1,,748,Done,
+704,d38443be-4487-492e-9757-05477f29b21b,Pressing shift enter while editing a task should save the existing task and create a new task,203,0.8648967142935884,192,Done,
+705,cb826f37-3c2b-47f1-8335-8d3d7673ed7d,Heartbeat monitor server,23,0.9803644714085824,255,,Rollup
+706,aa477197-07c3-4004-b18f-b1890ac7afd9,Map GitHub users to Koso users,181,0.9427045609119504,894,In Progress,
+707,def7049a-9df2-4a4e-86f7-489a48897cac,"npm run check: Unknown property: 'cy' (css) (cx, cy, r)",88,0.927105085516766,209,Done,
+708,31715c71-086d-4a43-aed0-0a5d0747a34d,Add WAI-ARIA compliance tests for Kosui Menu,-1,,570,Done,github_pr
+709,6466e549-80fa-417b-a01a-e432c2727522,Hamburger menu should not be visible when there are no items in it,114,0.8888314176605012,932,In Progress,
+710,8d95c0ff-fe7b-4340-a23c-9f9b80cfdf47,"Score: Add a score to tasks and keep track of a user's score (total, per week, per day) and grant a badge based on stats",-1,,955,,
+711,cd3cbdae-012f-4bb5-a72f-dc338e01cf8a,Enable eslint in VS Code to provide lint errors in svelte files,177,0.8708332009278982,505,Done,github_pr
+712,00759460-05d5-4b58-baa3-352177c5d00f,Remove the AI Rollup section,49,0.9157904957605878,392,Done,github_pr
+713,9833c902-c781-449a-a30a-2ba095419a04,Move the context menu to show up to the left of the Koso logo,-1,,610,Done,github_pr
+714,2cbb3d7e-fa4a-4ae1-b97d-d0139e0c481f,Contextify CommandPalette,-1,,881,Done,github_pr
+715,3a9d89de-31c4-4623-85a0-aa96825baf8b,Implement a task priority field,198,0.9430586541327601,954,,
+716,2cf775df-9831-4b1d-a344-a988b6a412b3,"Remove unused shadcn-svelte (accordion, alert-dialog, button)",264,0.8351828908488332,515,Done,github_pr
+717,46QDQ96OQIihTmhmuZbuNQ,Simplify the Github connection flow,142,0.8402076132732944,1112,Done,github_pr
+718,613c7369-53d4-4ae8-a39b-3b31389edb6f,Add clickable flag to Tooltip which shows Tooltip on click instead of on hover,255,0.931526103751674,854,In Progress,
+719,cf7ae1da-e154-497d-9c5a-e25c3eb82909,Make sure teloxide always shuts down,55,0.831692295284118,516,Done,github_pr
+720,5ad14523-cd47-4e9a-b1d7-69ab83c14841,Put the commander context into a class,-1,,669,Done,github_pr
+721,734503a0-cf28-4733-8038-f352b421dca3,Replace stateful #items with regular array in OrderedHTMLElements class,21,0.9011773176243384,656,Done,github_pr
+722,b67e4c0c-3065-48cb-aaad-5982b63c56f0,Command palette shows duplicate undent and indent commands,150,0.9323341311367604,265,Done,
+723,H-KcCtvJTCa-SyAUS4wrQA,Maintain query parameters when redirecting on login,-1,,1202,Done,github_pr
+724,7361f77c-9243-4f05-ba36-b01c24f3c9dd,Update frontend dependencies,-1,,687,Done,github_pr
+725,34u34yqtTn2IWQwRFM8V0w,Establish public interface by adding exports to index.ts,-1,,1212,Done,github_pr
+726,debed5ec-01e7-4577-85cd-1d627df3c085,Batch sending messages to clients if throughput is an issue,25,0.7797839028935613,55,,
+727,RUXFMDvfTPiUbFwV4zafDw,Update install steps in the readme,54,0.8713890990542732,1146,Done,github_pr
+728,cb8fe177-e3be-455f-847d-38884e7cd33d,Stop using node for insertNode,158,0.8209817968511188,743,Done,github_pr
+729,40KxD6tPTTSPhg4XNbVAbA,Tweak test message to use location.origin,-1,,1107,Done,github_pr
+730,188d8563-ae76-48e4-a5fd-9e1e6cc12291,Use Promises instead of Svelte State for sync state,152,0.8983288480923233,535,Done,github_pr
+731,9d9e7820-4afd-4585-9feb-58d9b5db3474,Copy links into landing page,168,0.839822159603615,845,,
+732,c2d5fc78-f66b-4dd1-90db-4870b9dc8568,Bump the docker-deps group with 2 updates,241,0.9999997753421492,546,Done,github_pr
+733,e3f1be21-70d8-4b66-9335-17e2d7e12d0a,Prototype Node using Immutable.js,-1,,100,Done,
+734,uDeDF8lQTCuHDtiMaBVsBg,fix(deps): update all dependencies,219,0.9999998573033569,1094,Done,github_pr
+735,cbaa6227-f15c-4e7b-a0aa-a06ec0f9c6ae,Implement medium screen view of dag table (phone landscape),-1,,299,Done,
+736,db78042d-994e-4639-99fe-a0f88abbf458,Linking a GitHub PR by referencing a koso task does not link if the task kind is Task,180,0.903889798014595,1022,Done,
+737,1b2a1da2-a6a1-465a-8745-09737ac89b8c,Beautify and use toasts consistently everywhere,61,0.8805175402593762,296,Done,
+738,-irbRVVuTiKs7IjnLhhTIw,"Enable checks, lints, unit, and e2e tests",237,0.8386666514249116,1155,Done,github_pr
+739,cc71542a-beb4-4c06-bf38-cb04a60bf99f,Toasts in zero inbox,-1,,399,Done,
+740,889f0f8f-3bed-4242-98f0-55fea5c1a593,koso-932: Use hamburger menu to navigate around storybook and hide when no items,-1,,936,Done,github_pr
+741,6m-2_Uf9TSuufN_pV7WlKA,Set CI concurrency and on,-1,,1135,Done,github_pr
+742,ad27ae9b-ee09-43a0-83b1-3858b6a60f2f,koso-925: Implement workflow: block on -> new task -> assign to someone else,258,0.9628494994675667,938,Done,github_pr
+743,0e304b3f-8a65-4825-8866-af2c669af20f,Add handlers for Home and End buttons,-1,,550,Done,github_pr
+744,361866ea-f1c6-4f67-80e2-718dae8d8f35,Server endpoint /healthz,89,0.6908447731472778,270,Done,
+745,af649590-3ae1-402c-9c83-579132fa6925,Make a component out of the Koso logo controllable via the theme,-1,,242,Done,
+746,980b8070-ca3b-494a-a13f-9af8e824d200,Refactor plugin config settings representation,82,0.8646868389398382,462,Done,github_pr
+747,d6c80a31-ffea-482e-bbb5-5dae23978e82,Fix viewport and confetti jumping when marking task Done,216,0.8316763919937582,150,Done,
+748,113e9a1a-01c1-4b21-b0ed-04d3df0f4e60,koso-727: Show markdown preview when hovering markdown view / edit button,267,0.9266276981483152,732,Done,github_pr
+749,a914e9da-8d65-4d62-a567-86f99bbc118b,Keyboard bindings for all buttons,17,0.8025262996769452,13,Done,
+750,cc09a053-7bcb-46a0-9d69-636e8ecc7772,editable,-1,,172,Done,
+751,bo-LTl3tQfKw1T7p8BIsJQ,Set login_time on first login,24,0.8878597342978609,1068,Done,github_pr
+752,d93e1263-c7c1-4e07-be62-b39581c7d973,Don't new-up the telegram bot on every notify,74,0.8669320076967115,468,Done,github_pr
+753,bf5f1629-5ca2-4c16-9cad-adf43214e24a,"Revert ""Temporarily log headers (#952)""",29,0.9455300228127923,708,Done,github_pr
+754,52802b3d-01c3-4b2d-ba76-410ce389099b,Bump the docker-deps group with 3 updates,241,0.9512587414440209,888,Done,github_pr
+755,aVI10YcBQ1Ovadnf5_njeA,Convert several pages to runes mode to avoid Svelte bug,134,0.9188845826252293,1054,Done,github_pr
+756,9e51ab39-c030-46ea-98ce-ada9f6a9bd50,Add Organize Tasks action,-1,,668,Done,github_pr
+757,56bfbb0f-9407-4653-ba3e-8514813052fe,Support for auto generated test users in integration tests,-1,,118,Done,
+758,pJBBHMI6QR6xqqJDL_V-Ng,Use Lucide's svelte5 package,196,0.6745847543943988,1056,Done,github_pr
+759,ecb79c85-4f87-4bb8-b45c-1ba561662cce,Update all dependencies,232,1.0000000000000004,658,Done,github_pr
+760,22e8cc8c-af67-45d0-a99b-5e362f19af34,Update README.md,54,0.8827007388136474,951,Done,github_pr
+761,8ec8d691-2093-4db3-8417-414d6c00eea0,Investigate performance scrolling / expanding / collapsing when there are many tasks,172,0.8539688363704876,828,In Progress,
+762,vUWbqx4YQVCjAIBOtw0jaQ,Validate Slack messages using the Signing Secret,113,0.8215502560522647,1104,Done,github_pr
+763,2ce6414c-b1cf-4be1-98fe-b7f8015a7065,Add new inbox landing page,167,0.7488758998700169,402,Done,github_pr
+764,0add22b0-806c-4f4e-bc17-e9203ac2edfa,Move the deadline column behind the debug flag and make estimate small,-1,,984,Done,github_pr
+765,da5a677e-d2d6-4fd1-b729-82241598b94d,Improve plugins - github,141,0.8903555682978088,327,,
+766,QncVVqENTZyhMYQbwEXMiA,Validate Telegram messages using a Secret Token,113,0.890948095469005,1105,Done,github_pr
+767,1c1089ed-a2d2-481a-b6ba-9412d70dbd23,Add parent tags to inbox2,192,0.9340905308378307,785,Done,github_pr
+768,e764c64b-a512-4787-8838-6b3744642f70,Toolbar shows vertical and horizontal scrollbar,-1,,212,Done,
+769,9999b154-5242-48c9-8cc7-986f9d3ab903,Omit the leading root slug from node ids in the inbox,-1,,627,Done,github_pr
+770,pnJB74HcSQKh79Tw6yYT4g,Add Teams notification settings to user configuration schema,146,0.8307779307194298,1224,,
+771,6263a81b-1146-41da-bb0b-c981326fadd5,Adjust icon colors for m3,92,0.8948605992202827,563,Done,github_pr
+772,5c199915-786e-4ec1-996e-c18d2cd02cdf,Projects page,163,0.8672829320813955,19,,
+773,022d3fe9-5e2b-4f2c-ab80-38b13f97d892,Update all dependencies,225,1.0,977,Done,github_pr
+774,a1d18a21-0c8c-49e7-a88b-ecf9788bdbbb,Remove duplicate outline class,-1,,414,Done,github_pr
+775,de4b645e-f634-4f8e-8595-ef219401958f,Implement restore project from trash,37,0.8774326853772463,297,,
+776,8211def6-f7cf-4afc-b33c-1f35460ab66a,Retry drag and drop tests,99,0.7276113054500488,616,Done,github_pr
+777,61d9e7d0-9f35-419e-b297-e7aae0c45f10,Move the github app code into github plugin,142,0.791309857008909,472,Done,github_pr
+778,fe0ad502-f981-4cf3-9561-c02c157ac9bb,Implement Debug trait for project,-1,,461,Done,github_pr
+779,8983d777-3c1f-4200-8f3f-f25469a40ff3,Implement task description markdown view popover on hover of the markdown view button,-1,,727,,
+780,034026d2-2269-40d0-80bd-db1fe77604ec,Includ rollup tasks with unassigned children,188,0.9625504254924365,629,Done,github_pr
+781,f17fc8fd-ebf9-4f25-8785-dd7bf1ba75dd,Disable tracing for static files,8,0.8649211123408266,28,Done,
+782,30a766dc-0bf0-41bb-9d36-6de5eda0fc21,Degrade to read-only mode when too many clients are connected,53,0.7647721094955976,58,,
+783,070b83c4-6bb0-421d-b60e-2cec2175556e,Setup uptime checks,31,0.8783258190795253,836,Done,
+784,0d38f9ac-a69a-4ff0-a02e-054d25a3c06e,"Add invite only mode, I.e, cannot register until invited",-1,,244,Done,
+785,9eeaa802-7082-42f4-b3f3-2bbe0b43c362,Remove the CSS that was produced by shadcn-svelte,264,0.8505669637506138,600,Done,github_pr
+786,4177dbda-c581-4916-8657-de5eadd2b3b2,Make the name column full width,76,0.902058810329641,384,Done,github_pr
+787,fd420bc7-047d-4d45-9dbe-9b1ca1426e3f,Add option-shift indent/undent,-1,,161,Done,
+788,Sph0UW7uS4yKotcvVdbDag,Put components in a sidebar,125,0.7492431653527933,1214,Done,github_pr
+789,99db644b-9dec-4603-8167-703cca3f2652,Reimplement DagTable using HTML table,111,0.9070871357448345,2,Done,
+790,06a0671c-b7b9-448a-aff7-badcf5beee5d,Update dependency vite to v6.3.4 [SECURITY],239,0.9642625296891469,802,Done,github_pr
+791,443d1687-b685-43a1-b32d-9dfd72a4330b,Enable deep-linking tasks by passing a taskId query arg,235,0.7011075527031014,526,Done,github_pr
+792,878153bf-8395-4dc8-ae5c-f77d7fb83106,Update Kosui buttons and links to match Material 3,251,0.9395322937281432,448,Done,github_pr
+793,UHMQ8aaSTuu69hUPvbZJaw,Improve stream handling client side by buffering lines,25,0.7518626943061486,1159,Done,github_pr
+794,6e8e8717-6733-41e8-b2ca-831a73f4eab7,Simplify tailwind.config.js and abandon custom radius theme,120,0.9146421669525651,601,Done,github_pr
+795,uvYiFk4HQwmzX7aqQtz6fw,Add MCP oauth support,103,0.8382662920700609,1123,Done,github_pr
+796,70fd940a-d214-45e9-bff8-a72281e9fef2,Enable spreading of ref callback during render delegation,13,0.9101789058297814,560,Done,github_pr
+797,17d3da98-fbf2-418e-aaaf-bf402aca24f8,Tweak button styles to make Icon buttons simpler,112,0.8917854233557176,666,Done,github_pr
+798,69a2299a-75b6-4c0b-bd9f-8668a195c82c,Add support for mapping a repository/install to multiple projects,87,0.9651160768993505,324,Done,
+799,5da056ad-bc67-42be-9488-e5e2eb93f71c,Update README with once a day / after every pull instructions,54,0.8614388792339638,470,Done,github_pr
+800,-CbV_eHLT9aaPk_laNZW9g,Migrate Kosui subfolder to separate package,252,0.9114720546443804,1213,Done,github_pr
+801,b221b798-84c3-4f19-8b9a-513959a7755b,Add global event manager to correctly order and handle DOM events,20,0.8777339653006888,488,Done,github_pr
+802,ca42c511-5858-49cd-87f2-daf8ddd82bcc,Style Modal component and start separating base styles,-1,,508,Done,github_pr
+803,Yotsxnc_QLqISPkUWqx1sg,Integrate Stripe billing and subscription management,77,0.8936459558541627,1065,Done,github_pr
+804,0299d4df-587d-4f1a-aaa1-6a5f56a8682a,Create a CLI that reads a binary YJs update and produces the JSON,-1,,158,,
+805,gGzj_UJZQVGntssT0VofMQ,Moves marked from devDependencies to dependencies,199,0.9295923468355705,1257,Done,github_pr
+806,10edda47-65ca-4b90-a486-67a4c64d5f99,Fix wrapping of name field when table is narrow,76,0.9020588140515589,446,Done,github_pr
+807,be6b922e-5689-4ceb-8205-5242ce7cbbea,Fix Editable not using the full width,-1,,361,Done,github_pr
+808,8cb266e8-84f1-42fd-bb6c-65f45f769074,Show tooltip on status hover,262,0.931612163094452,160,Done,
+809,db95d8f6-177b-41de-a1d2-527b872649f1,Display number of days that a user has been on a streak,-1,,1006,Blocked,Task
+810,3ffcf5b2-32f0-44f4-8ccf-bad8116b50e3,Auto resolve tasks when PRs get merged,-1,,291,,Rollup
+811,d0c96f91-5363-4c73-8b5a-17e87b36b9cb,Add keybindings to view / edit task description markdown,-1,,728,Done,
+812,095d004d-490e-4d34-b229-c63f39e26e99,"Executive view to show project progress, project risk status, and highlight critical paths",57,0.8730316939909244,285,,Rollup
+813,cb36f6ba-1241-41fb-81d2-09aa9a27eaab,Make markdown editor and task / node table independently scrollable,-1,,803,Done,github_pr
+814,3df6267f-fdf1-45c7-b923-7bc051e2e3af,koso-902: Stop using deprecated stores,84,0.9999998612196346,922,Done,github_pr
+815,5147a52f-5ad5-4af7-acb1-54dfef491766,"After a task is deleted, the next task should be selected; or previous if no next",136,0.761688370544249,193,Done,
+816,f790f54b-dfb2-4a9e-befc-ed5d9aa5864d,Update all dependencies,-1,,574,Done,github_pr
+817,518a17b1-ee73-460f-8084-e7079dcfa7c6,Expose navigation methods over rust graph,-1,,313,Done,
+818,a084baeb-d284-4441-a5a5-da47635b996e,Add creation and login timestamps to users table,24,0.8878597225383934,398,Done,github_pr
+819,57dfc333-f7fa-4fdc-af76-6ff24d1623b7,Collapsing or expanding nodes causes viewport to scroll to selected task,172,0.872479220605342,279,Done,
+820,2ae1860a-1204-4a3b-9f91-bba359907113,"Aggregate tasks show ""Not Started"" even when some children are in-progress",186,0.8195344865333463,190,Done,
+821,764a0246-1e36-4f4e-8a57-026249004747,Implement ability to set estimation in the task table of the inbox page,-1,,970,,
+822,aede7044-deea-48e3-bdb2-57b45a7cbba5,Contextify auth,78,0.9935163519334305,963,Done,github_pr
+823,5d584b95-e131-49f5-b85f-72fd05400bbf,Refactor project-share-modal to use Kosui,-1,,494,Done,github_pr
+824,7562b612-168b-42ef-a157-1a03c8d3e254,Update Dialog component to use bindable open prop,-1,,438,Done,github_pr
+825,2110db97-eb64-46a5-9300-3334f9e9de59,Fix build warnings on code-mirror,-1,,797,Done,github_pr
+826,03485a44-5f1f-4cb6-9630-30e5d558209b,Navigate to the task itself rather than just the parent,190,0.8572622881833801,614,Done,github_pr
+827,-f0IWLihT620P7zdMkFWpg,Improve perf by computing current iterations only once instead of once per task,-1,,1053,Done,github_pr
+828,ca50aa08-3d34-40ae-a378-cba08c798ce7,KTLO,0,0.8234445638530539,131,,Rollup
+829,f71d68bd-58a0-4301-8edc-bf239ca0ccaa,Dragging a node towards the edge of a window should scroll,99,0.7812882949569346,61,Done,
+830,3b294b94-360d-4434-a60c-2ba597487716,Implement project sharing,133,0.9026868714668498,4,Done,
+831,e18348ca-58c3-4646-afe0-20255d93dc4a,Research oauth flow,126,0.7287052624871879,941,Done,
+832,acea6172-52c6-4e76-86d1-56ac106b9601,Rework status icons to have consistent colors,124,0.8149207466763333,101,Done,
+833,5e4717f5-22e6-44ef-86dc-e8ee9c4f4733,Beautify the dashboard a hook it up to navigation menu and task actions menu,-1,,995,Done,github_pr
+834,76245b3f-f681-487e-ba2f-c2d346a78869,Modify link/search panels to sort by status,220,0.9333010551399473,390,Done,github_pr
+835,8e1f6cdc-021b-4307-a260-fdaea0f34e22,Add syntax highlighting for codeblocks in markdown view,263,0.9469014509788386,729,,
+836,a1302692-0ce0-4a2c-8b2f-01bab5a8f637,Limit the number of connected clients  globally,53,0.9362968748396929,57,,
+837,17eebd97-1408-4ef8-a09f-5dd6274b6a70,circular-progress,171,0.972259754037484,169,Done,
+838,438d0330-9ded-4540-ad6c-ab6d8a77d184,Add tests for setting task status and setting assignee and reporter,169,0.8106263933013449,262,Done,
+839,224fef43-7539-4677-8c0a-3fc46d334949,Group all dependabot updates together,-1,,1041,Done,github_pr
+840,39f8e965-ba9c-49f2-8b62-92fa5990da46,Fix debug print of KosoEvent when deleting a YText field,-1,,734,Done,github_pr
+841,ZXrbixdDSVCj_9kht1I53w,Fix flaky websocket test due to awareness,-1,,1254,Done,github_pr
+842,XxCjClVVRQuqqKlnVqBgyg,chore(deps): lock file maintenance,205,1.0000000000000004,1086,Done,github_pr
+843,200e6799-2092-490d-9f32-fb6f0e6f2926,Bump the cargo-deps group across 1 directory with 2 updates,246,0.9999996419873391,544,Done,github_pr
+844,59f0413f-461f-4732-90d1-fb2d14e5660d,Migrate configs,123,0.9542299620184789,315,Done,
+845,ATLDE9hdTo-wjTkO7zJgiw,Add instructions for setting up local development of Slack and Discord,-1,,1097,Done,github_pr
+846,debb2c1f-aca2-435a-b25c-ff044c8c86b5,Common components,125,0.7721477562735984,45,Done,
+847,KjefVZrVSp6tWLZxCJiwFw,Simplify signature verification,-1,,1111,Done,github_pr
+848,W_gRcj30QVya2Uh-BXrtAQ,chore(deps): update all dependencies,213,1.0000000000000004,1046,Done,github_pr
+849,a5375518-8ab0-48c9-a5be-5d1dc55d5fbf,koso-970: Add deadline and estimate to the frontend,139,0.8892606512317662,969,Done,github_pr
+850,ff4f97ec-807d-4412-8b20-76a6da412303,"Menus (e.g. command, link) flash back to default content on close",64,0.8875189551957927,533,Done,
+851,8c64d620-5a55-41fc-bc25-726f804d0f5a,Make inbox2 selection and navigation work with filtering,207,0.9298150504744211,780,Done,github_pr
+852,af74fb49-8704-4403-b183-8665e2918a5c,Log close errors,-1,,710,Done,github_pr
+853,7bfe7a5d-7845-4fc9-ac29-d3ade4cda2e0,Rename 'insert' to 'add',22,0.9530636437266218,443,Done,
+854,36e8f3e4-5254-4b84-b848-d288450f59ad,Backup monitoring,31,0.8783258235506874,257,Done,
+855,06aa22f4-35f5-4551-8e39-42c044caad13,Milestone 1: Ready for our first alpha customers,-1,,80,,
+856,b1722189-7078-45da-b78e-7ad7ed300775,Allow tasks to be juggled by another task and reassigned when actionable,201,0.9526622682118505,86,Done,Juggled
+857,c63b9e7c-34ab-44b6-8f9d-d5f2e0f82d44,Remove github repo deploy key from server,-1,,243,Done,
+858,6500a569-cdc3-427e-915e-6977a83d28dc,DRYify merging of event handlers,20,0.8777339631174563,507,Done,github_pr
+859,1e5aef84-3c9b-48fb-b179-1d0d288ba7f2,Refactor koso and socket to not need onMount or onDestroy,-1,,356,Done,github_pr
+860,9e1d5120-3455-40e6-a601-be966116c85a,"Add kosui link, buttons, and breadcrumbs",251,0.9395322869221701,427,Done,github_pr
+861,6b23104b-1af6-4a18-8a0a-63b34885b042,Implement deactivation flow,51,0.79101908877437,309,,
+862,1ff07807-5615-4d46-9187-27f109ef245f,Add command to navigate to the Dashboard,-1,,982,Done,github_pr
+863,52ea2788-e423-4fbd-9794-60fcc0ff630b,Use service account impersonation instead of keys,-1,,784,Done,github_pr
+864,b2d7f767-f834-4416-a005-511914a142bb,Task action buttons are not all the same size and the right side clips,247,0.9113697857178655,917,In Progress,
+865,DysDWi8hQUKE_b6hwkHFMA,Enable unwind tables for better backtraces,35,0.7903138295722971,1096,Done,github_pr
+866,8a4bee6d-d7c9-4473-8514-923b76de9917,Dedupe postgres environment variables,48,0.8736317716487397,630,Done,github_pr
+867,5c6fcda4-7d04-4003-9682-239c943eb06d,Add a category field to the command palette,154,0.9828369518175686,682,,
+868,c_nGaZjyQcaQ7-dPTLmksA,"Bump svelte, vite, filesize, and zod to latest",204,0.9179346683462791,1140,Done,github_pr
+869,8f46141e-f054-43f5-8e92-62888b320462,Speed up playwright tests,105,0.9349461594377166,195,Done,
+870,604f7782-31dd-48a3-8ad0-00f9938b8640,Factor out TypingBuffer,-1,,555,Done,github_pr
+871,552dc037-69d2-4e2e-90e3-b92b551ff70e,Add button on tags to remove it,97,0.7958336070449263,272,Done,
+872,bd8a5052-b383-4592-9f9d-116bf0d3d9ce,Add autocomplete component and use in share project modal,115,0.8927921891573646,599,Done,github_pr
+873,931e0d75-11c9-42ae-a36d-005763582aec,Add a child should expand parent,-1,,89,Done,
+874,ac3f9508-75a2-486a-b5b9-35d85188699a,Add payment processing,77,0.7435872588407894,254,,
+875,Ys1WtYRcQs2fBz581f_aIw,Inbox zero is achieved when all triage and actionable items are done,206,0.9133141412821073,1058,Done,github_pr
+876,86ebfbb0-467e-4645-9e60-8a3fb5f48ec8,Link panel should be centered,85,0.8834865768353967,277,Done,
+877,2afc8a10-7498-4bf9-b59f-b71268e989b4,Rename TaskAction -> TaskStatus,187,0.73201826863245,670,Done,github_pr
+878,85928de4-71b0-41cb-ba41-a1bf0935bdbd,Remove / rename Add Root,46,0.8840581412754185,83,Done,
+879,4d7ae212-561b-4cff-9754-a5548079d55f,Update dependency vite to v6.2.6 [SECURITY] - autoclosed,239,0.9618259477804755,757,Done,github_pr
+880,IZ4a0xR9TcaFM4rvtFPahg,Design doc for https://github.com/kosolabs/koso/,-1,,1215,,
+881,2be8ffbc-c931-4c6d-927b-bdb6e89c217c,Blocked handling,-1,,576,Done,github_pr
+882,7dfda6b1-576b-4aa5-bed3-dbd1081ce9ef,Dedupe tasks via Zero inbox,226,0.6883071470227102,826,,
+883,0811aa22-739d-4257-a7ec-dddb1964f316,Rename juggle and block kind and status,-1,,672,Done,github_pr
+884,dc1eb73e-9324-409a-b1b0-fe449087577b,Add videos to the landing page,168,0.8440094961328541,950,Done,github_pr
+885,fa9c9f5d-5adf-4649-ab3f-8e0c85cb5b29,Install rust toolchain,166,0.9509606479870422,878,Done,github_pr
+886,GGg_emIzQQioLGzsOCS83w,Update API documentation for Teams endpoints,-1,,1235,,
+887,vt9QfyHLRQm8IL3S8JWjdA,Adds skeleton component and updates branding,72,0.89345357383727,1262,Done,github_pr
+888,269bbb02-8392-4497-aa2b-a154c795c8fb,Show a congratulations alert in the Inbox when the only tasks are Actionable tasks,216,0.7644951987701742,1034,,
+889,3c044062-9f9e-447b-a068-924e5e90b467,Get rid of ghost and show drop target as a thick line,-1,,72,Done,
+890,jC_DQGmfTxmk5QrjaqUPcw,Add several tests,224,0.9283695080339357,1245,Done,github_pr
+891,JBpC6swfRQO0QpcfTrAU7g,Onboard,-1,,1269,,
+892,17c6b578-9b7d-4dc7-a26d-73fcabee6cc9,Fix more imports trying to fix HMR,-1,,876,Done,github_pr
+893,0bc2941e-472e-479f-9459-6eb86c8f0b19,Reduce shutdown signaling to a single cancellation token,42,0.8039325272978118,791,Done,github_pr
+894,c5dddd93-3aa1-495e-b906-111cdaf9b672,Bump teloxide to 0.14,55,0.853441386667682,690,Done,github_pr
+895,4f094548-e1c9-4b2b-b88d-180ddccc17b5,Update all dependencies,231,0.999999784349259,607,Done,github_pr
+896,f62bdbff-410e-4693-89f6-0160c09c1793,koso#3: Create testing.md,164,0.880099870304663,695,Done,github_pr
+897,e86b0c3f-1383-4e0c-93b4-5224e39bd4e5,Split Tooltip component into Tooltip and Popover components,-1,,492,Done,github_pr
+898,03cdace8-632f-4d31-bf67-88b5b703d985,Migrate to updated version of shadcn-svelte,272,0.970016429777962,275,,Rollup
+899,28529219-28d2-41b7-86ae-05eda8f9ff9a,Bump the cargo-deps group across 1 directory with 4 updates,245,0.9962760352225748,806,Done,github_pr
+900,8ee21832-fd75-4827-84a6-6036fd5a71f1,Add rich flag to Tooltip to allow them to be invertible (dark on light / light on dark),254,0.9227697565831212,853,In Progress,
+901,3b4dae75-a7a5-4009-93d3-5a8c5509b8e9,Fix dialog box not triggering onSelect when clicking outside,129,0.9999994841911879,635,Done,github_pr
+902,31085529-c5d1-44db-9860-06f1864a23a0,Broadcasting holds a clients updates lock serializing broadcasts for a project,-1,,36,,
+903,c7080cd3-0955-4b7e-b3a5-5131e1bfb62f,Remove opacities to improve performance and create a perf page,14,0.8081670029033768,837,Done,github_pr
+904,SrtdKaHhSQmEijYXnp0_Pw,Fix image caching,-1,,1158,Done,github_pr
+905,1469017a-86bb-4834-bf74-ecfc29d2142e,koso-894: Add the ability to connect a Koso user to Github,181,0.9427045673981876,946,Done,github_pr
+906,e3ad286f-3cc0-4180-8518-b0b858df25d2,Factor out user authorization,157,0.7642948927797725,947,Done,github_pr
+907,caaa3121-a4f5-49ee-ba9f-c41923aef649,Add estimation of tasks in the most recent iteration to reasons in the Inbox view,-1,,997,Done,github_pr
+908,abe7198b-5a9c-4d9c-9481-553443bbc976,Export backend logs to gcp or somewhere else,-1,,709,,
+909,c6c22dc4-4cae-4ba9-9a62-2d3954da4289,"Add a command to organize tasks in the current scope (move done to bottom, in progress to top)",-1,,638,,
+910,79a47458-fdb6-4fe4-a4e8-0cdec3d94385,Display the user's badges on the profile page,41,0.8265442242415406,1005,Ready,Task
+911,34b43eb6-598e-4273-adf2-6107f9f8a88d,Show Unassigned Ready tasks in the Inbox when there are no Actionable tasks,215,0.9102998222812381,1039,Ready,
+912,56887e41-6cfd-49d7-b59a-a7c226608ae0,Refactor drop zones to support scrollable panels,-1,,798,Done,github_pr
+913,fNT4zd-JSJWyys4XPvVjYw,Migrates Button and Badge components from shadcn-svelte to kosui,271,0.9614849476348241,1258,Done,github_pr
+914,L0irtnPKSIG8k_Gy0eu0Og,Scrollbar width test,56,0.9188946935868931,1055,Done,github_pr
+915,275fb399-7279-426f-a71c-3318897bb8ac,Handle plugin tasks in the frontend,101,0.9108813017926378,345,Done,github_pr
+916,425533e7-1a5e-4efc-ab6a-4bf24060ee88,Implement profile page with Telegram config,75,0.9130815048685139,415,Done,github_pr
+917,p3Vyj_YbQ6ip_XNhbUFpQw,Avoid spawning a background task in GH webhook,-1,,1109,Done,github_pr
+918,95806b07-e8e4-4b22-986b-e5743e2aad8c,Update all dependencies,232,1.0000000000000004,948,Done,github_pr
+919,c0188fa6-0cd7-4847-92f8-6cefaafac398,koso-895: Fix task deep links,235,0.977189386780799,897,Done,github_pr
+920,77360dfd-3ccb-4495-a59f-e69a1de30a10,Bump vite from 6.2.4 to 6.2.5 in /frontend in the npm_and_yarn group across 1 directory,229,0.9972129563727592,715,Done,github_pr
+921,f6ab8a92-163a-4931-bf71-b50ab02c74de,Tidy up the command component,125,0.7371139220610057,632,Done,github_pr
+922,qOVezwL6SpieVtKpT7-mKg,Fix formatting in poller,33,0.8355193260646487,1108,Done,github_pr
+923,QeS2P6qlSfGZkqeks_sLWQ,Create Teams OAuth client registration and app manifest configuration,149,0.9331349606909757,1219,,
+924,lCDHog_1QDef47g9qK6yCQ,Standardize formatting of notifications on Markdown,-1,,1100,Done,github_pr
+925,83ebf1e5-eefa-4fc8-ba42-6d1b54785bbd,Add dark mode toggle to profile menu,243,0.8603456082521312,68,Done,
+926,ddff94ae-434e-4425-998d-40f7da8c2bbe,koso-934: Make task detail workflow better,-1,,935,Done,github_pr
+927,8e87a4e5-5167-4691-ab1a-198b4e406b61,"Show toast when task disappears from inbox (juggled, done)",-1,,596,Done,
+928,37efb8eb-0be0-4b7c-a8b2-fa5a64a24294,Avoid flash of default content when loading project,64,0.887518951847903,218,Done,
+929,9201da4d-70f4-495e-bc86-fc2d16bbc7e6,Bump the docker-deps group with 2 updates,241,0.9999997169439806,809,Done,github_pr
+930,_r4-hWV2ToWK_nwGk2Ws9A,Require iss and aud claims,3,0.8828940438635653,1147,Done,github_pr
+931,D4USlx_PRWW3B9O4mIrU6w,chore(deps): update all dependencies,213,1.0000000000000004,1084,Done,github_pr
+932,c5c88cf4-fce9-44ba-9e42-b70bbfa3a6b9,PR for integration testing. Do not close,-1,,343,In Progress,github_pr
+933,9d405289-0ce8-4fcb-b36d-8aa51bce2fe8,Fix shortcut throwing error for unmapped keys,-1,,500,Done,github_pr
+934,59264388-0427-4dca-8815-df40cd7ae294,Reduce tooltip complexity to make them less annoying,-1,,511,Done,github_pr
+935,86a5f6d0-2e61-43f0-9e0e-42b0ccefc96a,Improve selection handling,-1,,585,Done,github_pr
+936,683e2b68-4993-4f5f-b0a1-19a2e67cf931,The premium crown causes horizontal scroll,108,0.8861964934593453,910,,
+937,46a46725-5086-4717-bf9e-ccc2aa4ab544,Convert Koso to a Progressive Web App,-1,,124,Done,
+938,1651b217-b3b3-4fd6-87dc-1c5126c8ae04,Add action / context menu to tasks,222,0.9622568699399436,640,Done,
+939,chhUqlKxTAO9t0qmAJx-bQ,Fix the AI slop in the Discord code,-1,,1099,Done,github_pr
+940,ee76be0d-fa4b-484f-a2c6-628e761d2ade,Start with all nodes collapsed,156,0.8593383380206767,40,Done,
+941,289ec5eb-983c-4a4a-b5fb-21623872512f,Keep markdown viewer / editor open even if nothing is selected to prevent jank when dragging and dropping,-1,,741,,
+942,19c49226-a866-454d-96f8-b67e7be8369e,Add screenshots,-1,,391,Done,
+943,6Tg96fvDQxyx_xt31FSmzQ,Export function from utils,-1,,1059,Done,github_pr
+944,8928c2be-030a-4d44-94b1-4d63809e896f,"Prevent assignee, reporter, and status text from wrapping",70,0.8842751782953309,50,Done,
+945,ced4aff6-aeb7-46d6-b422-c63ad6dd2c67,Reintroduce selection based on tasks instead of node,136,0.8142947081058669,746,Done,
+946,27b70e08-01a9-4af9-bed5-0cc810fdb2e4,Bump openssl from 0.10.71 to 0.10.72 in the cargo group across 1 directory,217,0.9909362029497399,718,Done,github_pr
+947,6c389490-f112-41f5-b201-90328e472566,"When collaborating, if person A is editing a field, editing will get cancelled if person B stops editing some other field",-1,,639,Done,
+948,bc7ec02c-8d28-402f-bf89-df978236b2f2,Implement export,212,0.8639491410065422,260,Done,
+949,81ffe4c9-16de-422d-9f59-b345179aba90,Command palette (cmd+p),150,0.8182346047267062,147,Done,
+950,Blh0FHsjSFi2o8gibCyoQA,Add support for notifications in Slack,83,0.9365267043033588,1089,Done,github_pr
+951,bf0b3290-a46c-43c6-a797-564dcd4c9aac,Rewrite conflicting task numbers,62,0.9162771784453978,344,Done,github_pr
+952,a217aff9-ba06-4c8c-9880-c7a4c46810ae,Introduce new TaskTable and TaskRow components for the reimagined inbox,155,0.7740860270094192,744,Done,github_pr
+953,9VQI7vStSiKOmD3YFS242Q,initial commit and prop declaration,-1,,1098,Done,github_pr
+954,11d8ee95-973c-4dd6-8dc4-f46adec08e61,Modifying rust code triggers the dependencies docker layer to rebuild,-1,,219,Done,
+955,9e602c52-ba50-4771-9713-d8f004d457d3,Remove extraneous autofocus props,-1,,439,Done,github_pr
+956,5ec41ccb-4e09-4cca-8645-1e5f725180a3,Tweak eslint config to avoid parsing error on .svelte.ts files,177,0.8894079230615934,523,Done,github_pr
+957,f68389f1-6e73-40ef-8ea4-fcec62a692df,Protocol Improvements,100,0.8736616678142775,16,Done,
+958,586642d0-0a16-41b6-a09f-09bdf3ac1a0c,Update all dependencies,223,1.0000000000000002,348,Done,github_pr
+959,1270e16a-832b-45ee-a371-417879fe76ed,Delete button that deletes the entire subtree,-1,,90,Done,
+960,b720edd8-e3fe-47ca-a7f7-891910f63182,Square off buttons to look more like JoyUI,-1,,497,Done,github_pr
+961,bbd40341-a096-44a3-97fb-933ef8f8c1cb,Migrate UserSelect component over to Kosui Menu,269,0.880043721700708,568,Done,github_pr
+962,c90f1df5-c1c7-4272-b232-109ec79a62fd,Add commands to the command palette to toggle the theme,153,0.8444790521865553,232,Done,
+963,120819f4-8380-4228-b211-99f671dddeae,Check for keys after blocking on a concurrent load,-1,,961,Done,github_pr
+964,aaaa762d-930c-49a4-8bba-970d0de75426,Put sharing feature behind premium flag,41,0.7139424405192062,831,Done,
+965,660e1b42-a0c4-4023-b2e5-8137a9ce244f,Log error messages on healthz check failure,89,0.9721893953311723,370,Done,github_pr
+966,8e6c8326-18cc-4865-b028-da50b83445f3,Clicking to edit a task causes the view port to jump to top of page,-1,,42,Done,
+967,Z6ClqesCS8aHjyM6KyWz8A,Add issuer to notifier claims,3,0.8828940629875748,1148,Done,github_pr
+968,3263baec-8da5-46a0-8e60-2fdbc11b8a6d,koso-833: Fix hard to click expand / collapse button,184,0.9524111982065,834,Done,github_pr
+969,5eb5c82d-a81e-4e5d-8269-0caad0b824e9,Add Yrs proxies for all interactions with the YGraph,-1,,289,Done,
+970,b6bd4949-0a40-4c4a-9b16-fc86170cfb19,Refactor Menu to use a Svelte context,256,0.9025063031126394,661,Done,github_pr
+971,aAqpXRQGSMm-eTd5BZ9jvA,Flip price to the live account,-1,,1069,Done,github_pr
+972,a2d4c40c-f7b1-4ad3-80de-91d6c12509ba,Add a new 'input' to dialoguer to allow inputs of various types,-1,,987,Done,github_pr
+973,6260f032-b01b-41c8-9dd9-94d1da7a0a85,Promote Shortcut and Shortcut badge to Kosui component,-1,,496,Done,github_pr
+974,189e5a98-4372-4cf8-a766-18251faeec01,Bump the npm-deps group across 2 directories with 6 updates,249,0.9951075364522262,430,Done,github_pr
+975,9NIgIQVVRMiZmHLgNIEDig,Delete the semver check,14,0.7072842011883994,1247,Done,github_pr
+976,yaHB1uexQUamLwL-1fyv-g,Try unifying versions to make downcast work,59,0.7792575397428624,1210,Done,github_pr
+977,ee8bbc86-bbf4-45ec-9fd3-23a808c3d013,Shortcuts should have a short name and a long name,-1,,274,Done,
+978,bdeb9a13-f645-439b-9aa1-bd1ccd89c380,Plugin to read tasks out of GitHub (checkout Tsugi for reference),-1,,93,Done,
+979,fc22c581-00cc-481c-8ebb-2aa34d1713e7,Improve environment variable defaults,47,0.8953055472829514,469,Done,github_pr
+980,10166524-3386-4b0a-beba-3b0624534b67,Data Source Plugin,-1,,290,,
+981,956ee345-8354-4cc3-a6f9-11aaeb09b7f0,Action buttons should be visible even when table is scrolled,44,0.873052186085306,48,Done,
+982,bb1da839-266d-4f09-a190-32e220048746,Clickable tags don't work,97,0.872212317180343,276,Done,
+983,zOLSPKSkQcGA6mT17Hx16g,Configure Renovate - autoclosed,122,0.9999999999999994,1154,Done,github_pr
+984,11f59951-2c98-41c1-94b4-a724d265e2b7,Client poller,33,0.8847724753399103,271,Done,
+985,3be14cbc-8810-4103-8471-891becb47786,Collapsing a node sometimes causes another node to expand,156,0.8429726532109181,98,Done,
+986,332d46b6-ae07-4a63-82ee-740cd50d57ca,Add version header to websocket connections,-1,,346,Done,github_pr
+987,91cad9de-157a-44b7-a1ee-f710d5f5e759,Video of dragging and dropping tasks to create a dependency graph,-1,,378,Done,
+988,8be29041-a44f-4b12-8cc3-6c3fd755b187,Attempt to fix auth related crashes,-1,,509,Done,github_pr
+989,3d5499e0-ee00-45f5-bcd0-6f64e9b35a5f,Show unassigned children of assigned rollup tasks,188,0.9625504208606603,609,Done,github_pr
+990,fb51dd9c-27f9-49f9-9d76-22cfdd24f540,Migrate stores to Svelte $state rune,152,0.8983288379360561,258,Done,
+991,avmoj8RHTpCUJZTVEzy2qg,Add Teams bot commands handling (like /token command),143,0.9127019189659973,1232,,
+992,0a7c7963-c145-47d4-ad2d-3b53eff67903,Implement a REST endpoint for points,-1,,1009,Ready,
+993,AOiz9NVSTu-Sh6lcwcEUDQ,Migrate Kosui from the Koso repo,252,0.9246862731180923,1181,Done,github_pr
+994,HR9sqFQUQo-Jfvia4sP4Vg,Update database schema to support Teams notifier configuration,146,0.8311594076481187,1225,,
+995,493925eb-ee90-4402-9826-9ec51d159fe9,+layout.svelte,196,0.8558535848189226,248,Done,
+996,i_e-UqymSDy2Baqx1aPgHg,Add error and error_description to ErrorResponse,18,0.878122011803113,1156,Done,github_pr
+997,5e284ba1-05a7-4f29-a541-1be2ee9e5185,Rendering a link in Markdown shows no indication of the link,-1,,868,,
+998,_czmzGeQRoOdfOyq7R5Z-A,Implement Teams API client with authentication handling,-1,,1220,,
+999,8f3c2dc7-7f17-414f-833a-e39b29be4cd5,Bump the npm-deps group across 2 directories with 7 updates,249,0.9829696612845417,417,Done,github_pr
+1000,d36d7170-0b9a-4be2-8ca8-04b8ad310213,koso-902: Stop using deprecated stores,84,0.999999861219587,921,Done,github_pr
+1001,067214a4-591b-4abb-bb36-2cf629a4c828,Implement Poller,33,0.9120605930689276,310,Done,
+1002,EuK5LELsQ9KZc0kfQunM4w,Create Teams authorization flow endpoints (connect/disconnect),148,0.9243473632510029,1223,,
+1003,7a5a4123-8eab-4ebb-8aaf-c709fa4434e1,Fix the detail panel close button,-1,,726,Done,github_pr
+1004,5c21fbe7-8b76-4a9d-b92e-a00b56ab4f2a,Lock file maintenance,197,1.000000000000001,548,Done,github_pr
+1005,9075e8bf-05f8-4654-89f1-80efe2d9ccf6,Adopt anyhow error,-1,,33,Done,
+1006,5e2dd012-bef8-40a2-8114-568a478252f9,"In mobile view, only have symbol in view for status",58,0.8267816606020034,51,Done,
+1007,pF-4kebaQgueu2ASogOlkQ,Add middleware to log request and response bodies in dev mode,-1,,1087,Done,github_pr
+1008,99362b6c-f444-4379-b98b-a4a42fce73f5,navbar.svelte,196,0.8113946822478729,196,Done,
+1009,c484778f-b0e4-4168-aea1-b8e4a83c7068,Install rust toolchain if not installed,166,0.9237609396930039,562,Done,github_pr
+1010,99ce9702-afcf-45c3-b805-385ebf924a02,Convert healthz checker to axum service for use in Cloud Run,-1,,369,Done,github_pr
+1011,805b5ed5-32b3-42b0-b9f2-698e4c896c8b,toolbar-button,-1,,176,Done,
+1012,27df4659-3adb-45c6-801f-3b271e6f6fbc,Delete the perf page,14,0.8814235997301539,838,Done,github_pr
+1013,db6c9c15-f5c9-447d-99ab-bcec5c3f9ed0,Add button in mobile view to show markdown and fix horizontal scrolling issue,-1,,804,Done,github_pr
+1014,f31d653f-1ec6-43f1-970c-33fe3bc5902f,Fix test lint,176,0.9262327303868718,873,Done,github_pr
+1015,31cad936-b395-46f7-bdda-959a21dea0b8,Update all dependencies,232,1.0000000000000004,720,Done,github_pr
+1016,255b39ec-6993-4913-aeb5-f0fbc954cd73,Link task should not be visible when no task is selected,136,0.7637677773962135,266,Done,
+1017,aa2b924f-1645-4594-9bd2-e05ea1486a1f,Migrate back to shadcn-svelte,272,0.9700164318052849,153,Done,
+1018,EQKoVW62SMOhczc91d0JSg,Add debugging to see protocol error,59,0.6455034564565796,1208,Done,github_pr
+1019,9fa277fc-f37c-4dd1-a74a-574d7586935c,"Display the user's score (total, per iteration, per day) in the Inbox somewhere",-1,,1004,Blocked,Task
+1020,7f37f3ac-b3de-46d2-a5a6-342c907f90f9,Show first-time message when project has no tasks (e.g. Click here to create your first task!),-1,,39,Done,
+1021,7c1e2420-fd9d-4523-ae73-8fb5743634f8,Fix flickering of rows in Safari when expanding / collapsing tasks,172,0.8042136989566584,814,Done,github_pr
+1022,f77fdbbd-80b4-49b7-a7f1-db14cdb71fd2,Add working onSelect to Kosui menu,259,0.919030810559356,541,Done,github_pr
+1023,4c634786-3fbe-4a61-8a8a-c308fcb2041e,Split Dialog component into Dialog and Modal,80,0.9516393884343379,490,Done,github_pr
+1024,y6oiES4dREyHAb6ufwo8qA,Implement a Koso MCP server,-1,,1119,Done,github_pr
+1025,26c230d8-9bdb-4a17-8474-afac4168de1e,Convert from timestamp to timestamptz,-1,,435,Done,github_pr
+1026,c1b5771f-16ca-41b4-a641-4e00f0a27f0d,Cleanup a few development logs,117,0.7442899732979625,518,Done,github_pr
+1027,2ef36fe0-8a1c-45d4-ba08-e2fc649b0e17,Use github pr issue state instead of action,140,0.9011701037523537,1026,Done,github_pr
+1028,358a3d8f-1a74-4472-a829-0a8f8d169e57,Add inbox status icon and link to project,-1,,405,Done,github_pr
+1029,ca3a1107-a7b5-407c-a07f-eb326e72bf75,Use new Material 3 dialog in Telegram authorization,121,0.9035300304174589,450,Done,github_pr
+1030,36326522-f219-4eb1-98c9-b1416fc46b28,Setup backup and have a story for restore,37,0.6038541045073708,122,Done,
+1031,LpaU-aI4Q06HDLowhNNDxA,Show ready tasks when all other tasks are done and show confetti when inbox zero achieved,216,0.8929963453133406,1050,Done,github_pr
+1032,26903835-e7e5-4410-b605-bdb6ffc321cc,Plugin for GitHub issues,141,0.833961741547124,956,,
+1033,zXEqZ0kgTMmhmXf-C7ZtWA,Add vite config support to enable linking Kosui,-1,,1239,Done,github_pr
+1034,Z2wyjt5HQIuVNYp4nXKKsA,Avoid extending the lifetime of refresh tokens beyond the original expiry,-1,,1157,Done,github_pr
+1035,4b101c7c-b0de-4f1d-b027-431dbb02ea80,Order inbox tasks by priority,226,0.841223230012545,890,Done,github_pr
+1036,d914c090-28bd-4075-90b1-42dcee4a6421,Use underscores to generalize the kind hierarchy,16,0.916041787185637,374,Done,github_pr
+1037,m6L7hqRyT92fxJ60RuAjDg,Add an MCP OAuth playwright test,103,0.9319406969126665,1203,Done,github_pr
+1038,2c0e8cc3-e010-4225-89ff-9713cba03dfc,Kosui menu deselects menu item when mouse leaves,259,0.91903079696889,552,Done,github_pr
+1039,f44a88a2-a263-4290-8439-450c92870ae9,koso-917: Make task action buttons consistent and fix clipping,247,0.9113697959966107,918,Done,github_pr
+1040,87b68414-4784-4c4f-9aed-f7526b9cc43d,Hoist layout of tasks / nodes and detail panel up to +page,-1,,819,Done,github_pr
+1041,ec7518b8-8cf3-40c1-9466-77f45feee4c8,Add a tooltip for managed tasks,265,0.9862762229510238,359,Done,github_pr
+1042,3dbe9156-aa1a-4138-9c55-5e272ac1beff,Ignore remote transactions,5,0.8562344200673297,662,Done,github_pr
+1043,ef6807b5-7ee2-405c-80df-7829adf41b68,Fix dialog box not triggering onSelect when clicking outside,129,0.9999994712372124,634,In Progress,
+1044,78fa7e72-660b-4039-83b3-62e03f61f4e1,Set TimeoutStopSec to bound restart time,-1,,517,Done,github_pr
+1045,5bfd8f3a-df0a-4afc-ae02-e253f9f03cbb,Contextify Auth,78,0.9935163520567912,893,Done,
+1046,a573c0bc-fbc5-4ef7-b607-7a617773c6a7,Lower the collab stop timeout,-1,,711,Done,github_pr
+1047,e251ef0e-723f-4691-bf0f-850c0351ec12,Configure pnpm's use-node-version,209,0.8964738241728313,429,Done,github_pr
+1048,b065c313-3248-450e-9e74-2a1dcb8b00c3,contextify dialoguer,-1,,879,Done,github_pr
+1049,rlOewG01Tf2VmxUBU0MuOA,Update all dependencies,232,1.0000000000000004,1266,Done,github_pr
+1050,bb67c52c-bb59-49a5-b366-d8796e12f1e6,Introduce dark mode,243,0.9100653677608839,63,Done,
+1051,6bb8b2a2-5de3-4163-8618-df3232bc776a,Compaction,27,0.6860477448362571,30,Done,
+1052,f2f01118-774c-45c3-93c1-c3544fc1d5d4,"Clicking assigned, reporter or status drop-down on mobile takes 2 clicks",-1,,51,Done,
+1053,7871b83f-f252-4ea5-a3d8-331da8e20c2c,Optimize retrieval from github when multiple projects integrate with the same installation,-1,,338,,
+1054,40c3b7ca-61d1-4699-92de-c5a7b982fcc0,Clicking task names in the Inbox navigates to corresponding task in Plan,190,0.8375038348622674,927,Done,github_pr
+1055,c09a8118-58d3-4d04-b23a-0511f7d2b9d9,Replace unmanagedKinds,15,0.9320439017329859,1024,Done,github_pr
+1056,cb2fc509-cbb7-44a0-91d9-65a8fcdffd4c,Temporarily log headers,29,0.9455300264267652,707,Done,github_pr
+1057,5ddc7c74-77e8-42a7-8909-1b68992012c4,Lock file maintenance,197,1.000000000000001,421,Done,github_pr
+1058,DdXyXuVOR4SMaeAO68DlvA,Organize code in anthropic.rs and fix vuln in slack.rs,-1,,1110,Done,github_pr
+1059,bfed8f91-3dfe-48a4-9393-5e4b62df2470,Filter visible tasks in inbox2,214,0.9076421772480786,779,Done,github_pr
+1060,9ab87eec-f1db-410a-a838-e4ca58351804,Remove button animation from tasks,-1,,240,Done,
+1061,831ec2b6-3d22-452b-b12c-fa25abfc0da2,Propagate panics from spawned tasks,32,0.8852542638643577,790,Done,github_pr
+1062,_ACFFg7WQKuMF7SLr0ROlQ,Add subscription e2e tests,-1,,1074,Done,github_pr
+1063,1956df43-46c5-4013-9c81-5a1803710c6b,Migrate avatar profile menu to Kosui,270,0.9488126858409598,582,Done,github_pr
+1064,544365b9-6bd9-4449-bb68-615236754bee,Provide a stronger visual indication of which page you're on Planning / Inbox / Executive,-1,,931,Ready,
+1065,f66KK6jBSmqTVVMqhsmCag,Enable playwright caching,106,1.0000000000000004,1272,Done,github_pr
+1066,c6fad628-7a13-4d90-82f7-69e5a33a121f,Stop using node in setTaskStatus,158,0.9045719895771016,736,Done,github_pr
+1067,b6602bee-aedd-4eaf-98ac-77da6283b821,Linking a GitHub PR to a task causes the task's estimate to be overridden by the managed task's non-existent estimate,180,0.7201315953236234,1018,,
+1068,bc741586-5c16-4dfc-a02b-7f1c2a46bbaf,Show link + on drag immediately when option is pressed,-1,,216,Done,
+1069,9a62686e-6b16-40d0-a9dc-b3ccd919dab6,Add a priority field,198,0.9430586573051364,1012,,
+1070,34e23128-e0e3-4045-8718-6f700d9d29aa,"koso-648, koso-959: Add estimate and deadline fields",139,0.9044055246430218,962,Done,github_pr
+1071,41c97e95-571e-4f56-9938-6a66830044af,Bump reqwest from 0.12.11 to 0.12.12 in the cargo-deps group across 1 directory,244,0.9397993543581165,366,Done,github_pr
+1072,1daa2001-8d25-4d1d-a464-ac3237490ab8,Add promotional text,34,0.8742851215727874,318,Done,
+1073,e6cfe843-91fb-4ca0-98d9-0e911c0e1cbf,Introduce user preferences context and make detail panel state a pref,63,0.8776785670346998,824,Done,github_pr
+1074,11083446-ea5f-4cc4-b9c6-c46639b9a498,"Toolbar remains in ""task selected"" mode after undoing creation of a task",-1,,213,Done,
+1075,a9dd5a6a-8024-4c52-a46f-bbc2f93e29e0,bug: insert child should start editing the task name,-1,,595,Done,
+1076,TXdGJpscTEmFECsKYzbrmQ,"Bump the ""all-deps"" group with 2 updates across multiple ecosystems",230,1.0000000000000004,1240,Done,github_pr
+1077,-oLRFDMxQcequObVS_DQbw,Migrates Goto component from kosui to local implementation,269,0.8809349573450892,1251,Done,github_pr
+1078,63bca2f0-bb82-4ca5-8f46-1e39c75f8ec6,Telemetries,0,0.8234445810875368,256,,Rollup
+1079,zKGS2B6ITRWrmkpzYpjC_Q,Adds textarea component to UI library,-1,,1260,Done,github_pr
+1080,A_82zD2mQFG_5YHy_w9dAw,Bump mode-watcher,11,0.9749297481262734,1144,Done,github_pr
+1081,dd76a1f3-74b8-473a-b4c7-9302a4a74719,Tweak settings logs,118,0.9295319438717696,521,Done,github_pr
+1082,909d9649-6587-4bb1-b520-e31130040052,Split dialogs into Dialoguer provider and Dialog component,80,0.9516393884929875,432,Done,github_pr
+1083,5b0cb04e-495c-4da6-b12c-0316742c29d9,controlled and delegated,-1,,478,Done,github_pr
+1084,d7c0f0bf-220a-4299-8e74-f6b23e85164f,Tags,-1,,958,,
+1085,312519d3-4bba-4771-9756-14f735d80aeb,Bugs,-1,,132,,Rollup
+1086,2bc1f6c7-a9d3-4d46-a6b9-720aa404334d,Change 'insert' label to 'add',22,0.9530636512173931,473,Done,github_pr
+1087,119708e3-5b5c-4c13-bb71-490e372d8d71,"Make ""tags"" clickable",97,0.8981575821496239,208,Done,
+1088,OnIVWw5sTkaOVP_ruBVDvA,Try a different environment variable name for publishing,43,0.9999998354349645,1249,Done,github_pr
+1089,51d16130-5a3f-4ab1-9cdc-16c384733be5,Koso Agent: AI Project Manager,-1,,851,,Rollup
+1090,fe71d4ee-4d7f-4df1-bae5-8ae4e02fe36a,Prototype notifications,-1,,148,Done,
+1091,f69ceae9-b7d6-4ff1-92c9-fb89bb72eb40,Simplify ActionItemTooltip to be just a clickable tooltip,261,0.8960188556032953,867,Done,github_pr
+1092,857c89c8-832e-41e0-b7a6-ee634ce19855,Set cache-control headers on _app/immutable files,-1,,189,Done,
+1093,00ad8344-5c4e-4a2f-ac48-00c6201895c9,Remove unnecessary vite override,-1,,431,Done,github_pr
+1094,87012a7c-fd17-49ad-acf3-ae3b3ae5897f,Make task name editable from the detail panel,189,0.9730350811473779,923,Done,github_pr
+1095,YJ3IvPItRXeEQIk_vRz5Dw,Adds basic end-to-end testing with Playwright,-1,,1259,Done,github_pr
+1096,4431be38-fd80-4ebb-b001-be30f263b064,Simplify tailwind CSS for buttons and links,120,0.9146421509788697,498,Done,github_pr
+1097,46aba95e-51e8-4f29-af6c-99b3698fc0ed,Consolidate circular progress into one component and move to Kosui,-1,,440,Done,github_pr
+1098,255e39ae-4e52-4acc-87d6-2833848fd2ae,Validate docker image before deploy,145,0.9023491118138023,200,Done,
+1099,b56c9e8b-dbfc-4dd3-be37-e218cc5677c2,Optimize queries for config-by-installation by creating an index,-1,,336,,
+1100,685523e1-8af5-4334-b3b4-58b8a83835cc,fix(deps): update all dependencies,218,0.9999999999999987,1042,Done,github_pr
+1101,2add4a1f-4c5c-4f3f-9af4-3b01ec55594a,Fix markdown rendering glitches when a collaborator is editing the markdown,-1,,842,,
+1102,75bdcd87-c53c-4d74-bd0f-a1bedf666def,Resimplify awareness handling,39,0.8001653193657832,761,Done,github_pr
+1103,900859ec-4d6b-4dce-9428-c73dfc5ff201,Consolidate unauthorized dialog to +layout.svelte,196,0.7683848462625463,799,Done,github_pr
+1104,42b5b9b8-7da4-4ada-b5a0-9a9e1c261ffb,Fix inconsistent dragging (sometimes dragging doesn't drag),99,0.8231620429133535,149,Done,
+1105,2f2b23ab-f262-4ce8-a027-4bc11f3b5d03,Move koso.svelte and socket.ts into dag-table,179,0.8606164285547302,355,Done,github_pr
+1106,3eb1e471-81dd-40a1-bc5b-abae3d4dad6f,Implement inbox using dag Table component,-1,,426,Done,github_pr
+1107,df436765-f336-475e-86fb-b9286d188435,Simplify MarkdownEditor using the new YTaskProxy store,104,0.8145119621156227,766,Done,github_pr
+1108,004d82bd-d85b-443b-80ad-2685c95b8305,Task status needs a datetime,-1,,139,Done,
+1109,e2d1600d-4cae-4840-a694-32ac64dc5cb8,Clear command palette and task search on close,-1,,263,Done,
+1110,a350894d-688d-4df4-8847-45ffcb9b1d32,Remove context actions from toolbar,191,0.9083974460991635,642,Done,
+1111,6dcd6420-da88-41c9-9a54-5406fbc94a65,Limit the duration of a client connection,53,0.8528609403786225,77,Done,
+1112,1dd27aef-f946-4ac6-98ad-7046ec12c52f,Text field should not have the same background as the task,-1,,111,Done,
+1113,4OLEA-TZStSlJq8eimNt0w,Update dependency vitest to v1.6.1 [SECURITY] - autoclosed,239,0.845683361878373,1129,Done,github_pr
+1114,eae36745-1d9a-4fc0-84a0-05973f13bd0c,"Add a ""copy git commit message"" action for tasks",178,0.8083083427684017,863,In Progress,
+1115,053b4a32-0621-460e-a615-56a579ba7a3a,Integration tests,237,0.9147441685521779,754,,
+1116,788386e8-673c-4d08-ae62-af81583860fb,Gamification: Incentives for Engineers,2,0.8588418015019104,827,,Rollup
+1117,61246a57-412c-470b-a0e2-4d130f096f65,Update all dependencies,225,1.0,999,Done,github_pr
+1118,MwW3UAfFSp21_pqE3b4_Yw,Bump tailwind-variants,116,0.7843613312894382,1145,Done,github_pr
+1119,5acaa58f-2dea-4dc7-aefe-fa0b19b36071,Add components to setup and tidy,125,0.8581995753437257,885,Done,github_pr
+1120,f5477702-75ff-485c-a44e-3e84771d1f0c,Reimagine the Inbox,-1,,652,,
+1121,fe4e41bd-7c49-4d8f-9478-c44fa680bdb6,Closing the Link panel clears the filter text,65,0.9884236646000412,646,Done,github_pr
+1122,93fc6e1a-531a-42c1-953f-da63d93afe80,Add an export command to the command palette,153,0.8353874284757894,280,Done,
+1123,e5c3c828-c365-4820-93b2-4cf909dcecaa,Implement import,212,0.9083372396441156,261,Done,
+1124,6a825e06-6f3c-4e18-8f22-883c1771a74b,Sharing a project with a user should not show all user's of Koso,133,0.9026868856738883,245,Done,
+1125,I9jF0Ki7QDKr5RrqDj8opA,Avoid leaking database pools in tests,-1,,1255,Done,github_pr
+1126,4275991e-811b-4ea8-8d2a-597c7332a962,Ability to perform actions on more than one task at a time,-1,,18,,
+1127,ffc0e36e-c7c3-43c6-825c-85b2c9cae899,Update all dependencies,232,1.0000000000000004,397,Done,github_pr
+1128,73064d5b-1746-4345-84e2-26fc50cee500,Make a global Commander that you can register actions with anywhere,67,0.8852864355173538,619,Done,github_pr
+1129,df98249e-7811-45e9-a7bc-aa6e3eac7e0e,Bump cargo deps,240,0.9431113719784648,688,Done,github_pr
+1130,023bb858-a1b5-41dd-a2d9-b5b6bea0aaf8,Implement inbox2 deletion,208,0.9232042339657497,781,Done,github_pr
+1131,1d98085b-fd47-421e-ab07-46f5e455a181,Persist state of collapsed / expanded nodes,156,0.8715748711278486,31,Done,
+1132,2ee3effa-31ab-44e1-9297-3affdc7dacf1,npm bug: `npm ci` can only install packages when your package.json and package-lock.json,-1,,214,Done,
+1133,fe294fb4-af30-4b85-ab8c-2b5afc0a730a,Implement our first server side validation,-1,,144,Done,
+1134,d01eebae-e9cb-42d6-a866-7c32f194b5ef,"MVP Workflows: Engineers, Product Mangers, and Executives",2,0.8588417808052268,849,,Rollup
+1135,05f6b8d8-bc97-4d4e-983f-8898d2a6f2a4,Fixup a couple of unwraps,-1,,578,Done,github_pr
+1136,fe4cb50f-aa32-43e6-96f3-09c4a37094a3,Update all dependencies,232,1.0000000000000004,364,Done,github_pr
+1137,xQCmljQ7QaiJmuluwOt0ew,Update telegram notifier to use webhooks and remove teloxide,74,0.8210083681173364,1090,Done,github_pr
+1138,f08026e5-8609-4f48-9fad-88f1d05ee87d,Storyboard the videos,-1,,383,In Progress,
+1139,6bOS38D1TRW604bNeMEiBw,Add support for Basic client auth,-1,,1124,Done,github_pr
+1140,gtiM9r0lRKiU8SHhLMcD1A,"Bump the ""all-deps"" group with 2 updates across multiple ecosystems",230,1.0000000000000004,1136,Done,github_pr
+1141,5a6aefad-5966-44b0-a105-9afddccdc10f,Apply workspace Cargo.toml file to docker builds,-1,,778,Done,github_pr
+1142,f05f5bf1-a559-4ecf-b6f2-fb909e96a0c9,Use the Kosui button throughout Koso,248,0.9148373326882479,485,Done,github_pr
+1143,L-ft6YeVQC-Dix-GlnuQRg,Anvita tasks,-1,,1268,,
+1144,07d9b284-ceb4-4c55-b4bf-4a21f4494dcc,Make drag element better looking,-1,,396,Done,github_pr
+1145,db6193d2-4f60-4610-a587-114dd5484099,Fork the dag-table into TaskTable and TaskRow,155,0.8991719298057268,745,Done,Task
+1146,ef7a7a2d-a3cc-4b6c-94a7-68d039c49afd,Focus shifts after scrolling away from a selected a node and expanding a collapsed node (or editing a task),172,0.8805936540593005,151,Done,
+1147,stZ68z9OThCtJ1dFXFobqw,Fixup a few oauth bits,126,0.9214921147619004,1149,Done,github_pr
+1148,6abe65ba-2000-47de-960d-15148dfb2d91,Fixup healthz teloxide change,55,0.8480622919022642,721,Done,github_pr
+1149,da663102-87b8-4bdd-9f58-d7e5a8306e9c,Rename plain-tooltip to just tooltip,-1,,539,Done,github_pr
+1150,717ce8ca-f837-4193-a382-ceab43f50694,"Refactor Menu, Command, and Autocomplete to look more similar",-1,,664,Done,github_pr
+1151,832f5e2e-e7d6-43f1-8c87-ddcad98c9cb8,Update all dependencies,232,1.0000000000000004,512,Done,github_pr
+1152,bfd61d1b-8ca5-43d9-8b24-412babbc4ebc,Update all dependencies,223,1.0000000000000002,372,Done,github_pr
+1153,eb873b14-4066-4028-ba5e-00800309351a,Migrate command-palette to Kosui component,269,0.8908250633357655,586,Done,github_pr
+1154,58b27ad4-ae6d-477d-bb5d-60c1d78e1523,Add tooltip prop to Button component,-1,,479,Done,github_pr
+1155,583924d2-c63d-4d29-b6cc-e1b33b24a4f2,Show a tag for all parents in the inbox,192,0.9340905279592506,613,Done,github_pr
+1156,2e97cbac-b5b4-4dc7-9dfd-41646753a8e8,dag-table/row,135,0.9581115552018162,197,Done,
+1157,f36f6da7-cedf-440a-8356-2b205b48aec1,Update dialog to Material 3,121,0.9035300350225534,449,Done,github_pr
+1158,K5zlDd0RQ7edntONYkflnQ,Reorganize queries by domain,-1,,1077,Done,github_pr
+1159,HupLjtg6T_ywppJ_dJmUPw,Move @floating-ui/dom to dependencies,-1,,1274,Done,github_pr
+1160,20994e5b-93fe-4e7e-9189-3ad5f22ccdfa,Refactor github merge functions,142,0.7289876772229921,952,Done,github_pr
+1161,a2ca2924-6837-4987-91a2-d68863d1cb2a,Refactor MenuItem so that it doesn't need a menu reference,-1,,569,Done,github_pr
+1162,b011ce5b-8945-46b0-9a33-3387479de906,Investigate poor performance during rendering,-1,,360,Done,
+1163,72c88549-bd75-4450-84d9-7e8603379ecc,Use pnpm to manage its own versions,209,0.9206748344612412,425,Done,github_pr
+1164,71e5f527-cbb2-4920-9384-0eb67b198457,Add ability to force refresh of local state in indexedDB,30,0.8660575191939157,288,Done,
+1165,3199aeb0-6fc6-4176-b2c1-a09180c4f92e,Add deadlines / due dates for use in iteration risk assessment,60,0.8952342075937725,648,,
+1166,f2fa5448-f68a-47cd-b501-48655a4ca5a6,"Simplify the default stylings of Gotos, Buttons, and Fabs",112,0.8168257555588717,1007,Done,github_pr
+1167,4ca03538-2bb4-4f69-8205-bc7d2ba76d18,Add Kosui component for rendering Markdown,-1,,700,Done,github_pr
+1168,01ce1bd0-5b44-48cb-8e14-bfcf47280629,Notifications: Notify users when something is assigned to them,173,0.9011258792028242,134,Done,
+1169,02a5447e-be4b-41e0-bfd7-66138a777df0,Make command-palette and link-panel more beautiful,-1,,622,Done,github_pr
+1170,d2c1687f-2a85-4ef3-b526-ef03bfa9fba6,Sending tasks to the child of another task should intelligently place the task based on its status,186,0.7547418459118331,284,Done,
+1171,bc6f5049-8fb4-4a42-b221-6963c5bbdd82,Create a class for Actions,40,0.7689830337624819,234,Done,
+1172,b313767b-2e78-4b8a-b6ac-c36ba2f7fe95,Create a task detail view placeholder,182,0.9138513056715826,685,Done,github_pr
+1173,fcff616e-e9ca-414c-9900-a46e5033a961,Add basic tests for Kosui buttons,-1,,566,Done,github_pr
+1174,7aa5df9a-a14c-468d-9e78-9f5a82afdb70,Fix staggered spacing when task name wraps,86,0.999999856437213,357,Done,github_pr
+1175,bgCzl7t1S-KqqahMENEB3w,Simplify authorization error handling,157,0.896254698417797,1180,Done,github_pr
+1176,5ba401e8-922e-490c-8f13-0750337e44b0,Fix tailwind intellisense of @apply in app.css,119,0.9011412499631083,447,Done,github_pr
+1177,GyJoc6LwQRWTeJ-Z_N_VaA,Run E2E tests against docker image,144,0.9089772241715762,1276,Done,github_pr
+1178,w40iO1YBT_uHBgCewL_11A,Add Teams OAuth flow initiation in the frontend,148,0.9243473623019514,1228,,
+1179,e8040afa-163e-43d4-9645-76fd2d19a261,Give toolbar buttons an animation,-1,,225,Done,
