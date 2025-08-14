@@ -18,6 +18,7 @@ serde_json = { version = "1.0.141", features = ["raw_value"] }
 uuid = { version = "1.17.0", features = [
     "v4",       # Lets you generate random UUIDs
     "fast-rng", # Use a faster (but still sufficiently random) RNG
+    "serde",    # Enable serde serialization support
 ] }
 tower-http = { version = "0.6.6", features = [
     "fs",
@@ -26,7 +27,7 @@ tower-http = { version = "0.6.6", features = [
     "request-id",
     "cors",
 ] }
-sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "any", "postgres", "macros", "chrono"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "any", "postgres", "macros", "chrono", "rust_decimal", "uuid"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 listenfd = "1.0.2"
@@ -55,6 +56,7 @@ ed25519-dalek = "2.2.0"
 tokio-tungstenite = { version = "0.27.0" }
 rmcp = { version = "0.5.0", features = ["server", "transport-io", "transport-streamable-http-server", "transport-sse-server", "auth"] }
 url = "2.5.4"
+rust_decimal = { version = "1.37.2", features = ["serde"] }
 
 [dev-dependencies]
 test-log = { version = "0.2.18", features = ["trace", "color"] }

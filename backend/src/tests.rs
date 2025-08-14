@@ -1286,3 +1286,472 @@ pub(crate) mod db {
         }
     }
 }
+
+#[test_log::test(sqlx::test)]
+async fn dupes_api_test(pool: PgPool) -> sqlx::Result<()> {
+    use crate::api::dupes::{CreateDupeCandidate, DedupeCandidate};
+    use rust_decimal::Decimal;
+
+    let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+    let pool = pool_wrapper.pool;
+    let (server, addr) = start_server(pool).await;
+    let client = Client::default();
+
+    let claims = Claims::default();
+    let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
+
+    // Log in
+    {
+        let res = client
+            .post(format!("http://{addr}/api/auth/login"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        set_user_premium(&claims.email, pool).await.unwrap();
+    }
+
+    // Create a test project
+    let project_name = "Dupes Test Project";
+    let project_id = {
+        let res = client
+            .post(format!("http://{addr}/api/projects"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(format!("{{\"name\":\"{project_name}\"}}"))
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let project: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        project["projectId"].as_str().unwrap().to_string()
+    };
+
+    // Test GET /dupes - should be empty initially
+    {
+        let res = client
+            .get(format!("http://{addr}/api/projects/{project_id}/dupes"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let dupes: Vec<Value> = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        assert_eq!(dupes.len(), 0);
+    }
+
+    // Test POST /dupes - create a dupe candidate
+    let _created_dupe = {
+        let create_dupe = CreateDupeCandidate {
+            task_1_id: "task-abc-123".to_string(),
+            task_2_id: "task-def-456".to_string(),
+            similarity: Decimal::new(9249530206277398, 16), // 0.9249530206277398
+        };
+
+        let res = client
+            .post(format!("http://{addr}/api/projects/{project_id}/dupes"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&create_dupe).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let dupe: DedupeCandidate =
+            serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+
+        assert_eq!(dupe.project_id, project_id);
+        assert_eq!(dupe.task_1_id, "task-abc-123");
+        assert_eq!(dupe.task_2_id, "task-def-456");
+        assert_eq!(dupe.similarity, Decimal::new(9249530206277398, 16));
+        assert!(dupe.resolution.is_none());
+        assert!(dupe.resolved_at.is_none());
+        assert!(dupe.resolved_by.is_none());
+
+        dupe
+    };
+
+    // Test POST /dupes - create another dupe candidate
+    {
+        let create_dupe = CreateDupeCandidate {
+            task_1_id: "task-xyz-789".to_string(),
+            task_2_id: "task-uvw-012".to_string(),
+            similarity: Decimal::new(8500000000000000, 16), // 0.85
+        };
+
+        let res = client
+            .post(format!("http://{addr}/api/projects/{project_id}/dupes"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&create_dupe).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+    };
+
+    // Test GET /dupes - should now have 2 dupes, sorted by similarity DESC
+    {
+        let res = client
+            .get(format!("http://{addr}/api/projects/{project_id}/dupes"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let dupes: Vec<DedupeCandidate> =
+            serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        assert_eq!(dupes.len(), 2);
+
+        // First should be higher similarity (0.92...)
+        assert_eq!(dupes[0].similarity, Decimal::new(9249530206277398, 16));
+        assert_eq!(dupes[0].task_1_id, "task-abc-123");
+
+        // Second should be lower similarity (0.85)
+        assert_eq!(dupes[1].similarity, Decimal::new(8500000000000000, 16));
+        assert_eq!(dupes[1].task_1_id, "task-xyz-789");
+    }
+
+    // Test POST /dupes - error cases
+
+    // Same task IDs should fail
+    {
+        let create_dupe = CreateDupeCandidate {
+            task_1_id: "same-task".to_string(),
+            task_2_id: "same-task".to_string(),
+            similarity: Decimal::new(8000000000000000, 16),
+        };
+
+        let res = client
+            .post(format!("http://{addr}/api/projects/{project_id}/dupes"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&create_dupe).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let error: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        assert_eq!(error["error"], "SAME_TASK_IDS");
+    }
+
+    // Similarity > 1 should fail
+    {
+        let create_dupe = CreateDupeCandidate {
+            task_1_id: "task-1".to_string(),
+            task_2_id: "task-2".to_string(),
+            similarity: Decimal::new(15000000000000000, 16), // 1.5
+        };
+
+        let res = client
+            .post(format!("http://{addr}/api/projects/{project_id}/dupes"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&create_dupe).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let error: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        assert_eq!(error["error"], "INVALID_SIMILARITY");
+    }
+
+    // Similarity < 0 should fail
+    {
+        let create_dupe = CreateDupeCandidate {
+            task_1_id: "task-1".to_string(),
+            task_2_id: "task-2".to_string(),
+            similarity: Decimal::new(-5000000000000000, 16), // -0.5
+        };
+
+        let res = client
+            .post(format!("http://{addr}/api/projects/{project_id}/dupes"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&create_dupe).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        let error: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        assert_eq!(error["error"], "INVALID_SIMILARITY");
+    }
+
+    // Test access control - different user shouldn't have access
+    {
+        let other_claims = Claims {
+            email: "other-user@koso.app".to_string(),
+            ..Claims::default()
+        };
+        let other_token = encode_token(&other_claims, KID_1, PEM_1).unwrap();
+
+        // Login other user
+        let res = client
+            .post(format!("http://{addr}/api/auth/login"))
+            .bearer_auth(&other_token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+
+        // Try to access dupes - should fail
+        let res = client
+            .get(format!("http://{addr}/api/projects/{project_id}/dupes"))
+            .bearer_auth(&other_token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+    }
+
+    drop(server);
+    Ok(())
+}
+
+#[test_log::test(sqlx::test)]
+async fn individual_dupe_api_test(pool: PgPool) -> sqlx::Result<()> {
+    use crate::api::dupes::{CreateDupeCandidate, DedupeCandidate, ResolutionUpdate};
+    use rust_decimal::Decimal;
+
+    let pool_wrapper = UnsafePoolWrapper::wrap(pool);
+    let pool = pool_wrapper.pool;
+    let (server, addr) = start_server(pool).await;
+    let client = Client::default();
+
+    let claims = Claims::default();
+    let token: String = encode_token(&claims, KID_1, PEM_1).unwrap();
+
+    // Log in
+    {
+        let res = client
+            .post(format!("http://{addr}/api/auth/login"))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        set_user_premium(&claims.email, pool).await.unwrap();
+    }
+
+    // Create a test project
+    let project_name = "Individual Dupe Test Project";
+    let project_id = {
+        let res = client
+            .post(format!("http://{addr}/api/projects"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(format!("{{\"name\":\"{project_name}\"}}"))
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let project: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+        project["projectId"].as_str().unwrap().to_string()
+    };
+
+    // Create a dupe candidate to work with
+    let dupe_id = {
+        let create_dupe = CreateDupeCandidate {
+            task_1_id: "task-individual-123".to_string(),
+            task_2_id: "task-individual-456".to_string(),
+            similarity: Decimal::new(9000000000000000, 16), // 0.9
+        };
+
+        let res = client
+            .post(format!("http://{addr}/api/projects/{project_id}/dupes"))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&create_dupe).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let dupe: DedupeCandidate =
+            serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+
+        dupe.dupe_id
+    };
+
+    // Test GET /dupes/{dupe_id} - get individual dupe
+    {
+        let res = client
+            .get(format!(
+                "http://{addr}/api/projects/{project_id}/dupes/{dupe_id}"
+            ))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let dupe: DedupeCandidate =
+            serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+
+        assert_eq!(dupe.dupe_id, dupe_id);
+        assert_eq!(dupe.project_id, project_id);
+        assert_eq!(dupe.task_1_id, "task-individual-123");
+        assert_eq!(dupe.task_2_id, "task-individual-456");
+        assert_eq!(dupe.similarity, Decimal::new(9000000000000000, 16));
+        assert!(dupe.resolution.is_none());
+        assert!(dupe.resolved_at.is_none());
+        assert!(dupe.resolved_by.is_none());
+    }
+
+    // Test PATCH /dupes/{dupe_id} - set resolution to "is dupe" (true)
+    {
+        let resolution_update = ResolutionUpdate {
+            resolution: Some(true),
+        };
+
+        let res = client
+            .patch(format!(
+                "http://{addr}/api/projects/{project_id}/dupes/{dupe_id}"
+            ))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&resolution_update).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let dupe: DedupeCandidate =
+            serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+
+        assert_eq!(dupe.dupe_id, dupe_id);
+        assert_eq!(dupe.resolution, Some(true));
+        assert!(dupe.resolved_at.is_some());
+        assert_eq!(dupe.resolved_by, Some(claims.email.clone()));
+    }
+
+    // Test PATCH /dupes/{dupe_id} - set resolution to "is not dupe" (false)
+    {
+        let resolution_update = ResolutionUpdate {
+            resolution: Some(false),
+        };
+
+        let res = client
+            .patch(format!(
+                "http://{addr}/api/projects/{project_id}/dupes/{dupe_id}"
+            ))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&resolution_update).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let dupe: DedupeCandidate =
+            serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+
+        assert_eq!(dupe.dupe_id, dupe_id);
+        assert_eq!(dupe.resolution, Some(false));
+        assert!(dupe.resolved_at.is_some());
+        assert_eq!(dupe.resolved_by, Some(claims.email.clone()));
+    }
+
+    // Test PATCH /dupes/{dupe_id} - clear resolution (null)
+    {
+        let resolution_update = ResolutionUpdate { resolution: None };
+
+        let res = client
+            .patch(format!(
+                "http://{addr}/api/projects/{project_id}/dupes/{dupe_id}"
+            ))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&resolution_update).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+        let dupe: DedupeCandidate =
+            serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
+
+        assert_eq!(dupe.dupe_id, dupe_id);
+        assert!(dupe.resolution.is_none());
+        assert!(dupe.resolved_at.is_none());
+        assert!(dupe.resolved_by.is_none());
+    }
+
+    // Test GET with non-existent dupe_id - should return 404
+    {
+        let fake_dupe_id = "non-existent-dupe-id";
+        let res = client
+            .get(format!(
+                "http://{addr}/api/projects/{project_id}/dupes/{fake_dupe_id}"
+            ))
+            .bearer_auth(&token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+    }
+
+    // Test PATCH with non-existent dupe_id - should return 404
+    {
+        let fake_dupe_id = "non-existent-dupe-id";
+        let resolution_update = ResolutionUpdate {
+            resolution: Some(true),
+        };
+
+        let res = client
+            .patch(format!(
+                "http://{addr}/api/projects/{project_id}/dupes/{fake_dupe_id}"
+            ))
+            .bearer_auth(&token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&resolution_update).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::NOT_FOUND);
+    }
+
+    // Test access control - different user shouldn't have access
+    {
+        let other_claims = Claims {
+            email: "other-user-individual@koso.app".to_string(),
+            ..Claims::default()
+        };
+        let other_token = encode_token(&other_claims, KID_1, PEM_1).unwrap();
+
+        // Login other user
+        let res = client
+            .post(format!("http://{addr}/api/auth/login"))
+            .bearer_auth(&other_token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::OK);
+
+        // Try to access individual dupe - should fail
+        let res = client
+            .get(format!(
+                "http://{addr}/api/projects/{project_id}/dupes/{dupe_id}"
+            ))
+            .bearer_auth(&other_token)
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+
+        // Try to update individual dupe - should fail
+        let resolution_update = ResolutionUpdate {
+            resolution: Some(true),
+        };
+        let res = client
+            .patch(format!(
+                "http://{addr}/api/projects/{project_id}/dupes/{dupe_id}"
+            ))
+            .bearer_auth(&other_token)
+            .header("Content-Type", "application/json")
+            .body(serde_json::to_string(&resolution_update).unwrap())
+            .send()
+            .await
+            .expect("Failed to send request.");
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+    }
+
+    drop(server);
+    Ok(())
+}

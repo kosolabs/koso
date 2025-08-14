@@ -12,6 +12,118 @@ GET http://localhost:3000/api/projects
 Content-Type: application/json
 Authorization: Bearer {{$dotenv token}}
 
+### Project Dupes
+GET http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+### Create Dupe Candidate
+POST http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+{
+  "task1Id": "task-abc-123",
+  "task2Id": "task-def-456", 
+  "similarity": 0.9249530206277398
+}
+
+### === Individual Dupe Management ===
+
+### Get Individual Dupe
+GET http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes/{{$dotenv dupeId}}
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+### Mark Dupe as "Is Duplicate" (true)
+PATCH http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes/{{$dotenv dupeId}}
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+{
+  "resolution": true
+}
+
+### Mark Dupe as "Not Duplicate" (false)
+PATCH http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes/{{$dotenv dupeId}}
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+{
+  "resolution": false
+}
+
+### Clear Dupe Resolution (set to null)
+PATCH http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes/{{$dotenv dupeId}}
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+{
+  "resolution": null
+}
+
+### === Additional Test Data ===
+
+### Create Another Dupe Candidate for Testing
+POST http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+{
+  "task1Id": "task-xyz-789",
+  "task2Id": "task-uvw-012", 
+  "similarity": 0.85
+}
+
+### === Error Testing ===
+
+### Test 404 - Get Non-existent Dupe
+GET http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes/non-existent-dupe-id
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+### Test 404 - Update Non-existent Dupe
+PATCH http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes/non-existent-dupe-id
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+{
+  "resolution": true
+}
+
+### Test 400 - Create Dupe with Same Task IDs
+POST http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+{
+  "task1Id": "task-same-123",
+  "task2Id": "task-same-123", 
+  "similarity": 0.9
+}
+
+### Test 400 - Create Dupe with Invalid Similarity (> 1)
+POST http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+{
+  "task1Id": "task-invalid-123",
+  "task2Id": "task-invalid-456", 
+  "similarity": 1.5
+}
+
+### Test 400 - Create Dupe with Invalid Similarity (< 0)
+POST http://localhost:3000/api/projects/{{$dotenv projectId}}/dupes
+Content-Type: application/json
+Authorization: Bearer {{$dotenv token}}
+
+{
+  "task1Id": "task-invalid-123",
+  "task2Id": "task-invalid-456", 
+  "similarity": -0.1
+}
+
 ### Notifiers
 POST http://localhost:3000/api/notifiers
 Content-Type: application/json
