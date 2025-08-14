@@ -40,3 +40,6 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: vi.fn(),
   })),
 });
+
+// Workaround for https://github.com/sveltejs/kit/issues/14143
+vi.stubGlobal("__SVELTEKIT_PAYLOAD__", { data: null });
