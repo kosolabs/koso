@@ -3,6 +3,7 @@
   import { Navbar } from "$lib/components/ui/navbar";
   import { getProjectContext } from "$lib/dag-table";
   import Card from "$lib/components/ui/card/Card.svelte";
+  import { Button } from "kosui";
 
   const auth = getAuthContext();
   const project = getProjectContext();
@@ -38,13 +39,19 @@
 </div>
 
 <!-- Card Layout -->
-<div class="flex min-h-screen items-center justify-center gap-8">
-  {#each pair as task}
-    <Card
-      taskID={task.taskID}
-      taskName={task.taskName}
-      taskDescription={task.taskDescription}
-      parentTask={task.parentTask}
-    />
-  {/each}
+<div class="items-center justify-center gap-8">
+  <div class="flex items-center justify-center p-10">
+    {#each pair as task}
+      <Card
+        taskID={task.taskID}
+        taskName={task.taskName}
+        taskDescription={task.taskDescription}
+        parentTask={task.parentTask}
+      />
+    {/each}
+  </div>
+  <div class="flex items-center justify-center gap-8 p-4 font-bold text-white">
+    <Button variant="filled">Yes / Merge</Button>
+    <Button variant="filled">No / Keep Separate</Button>
+  </div>
 </div>
