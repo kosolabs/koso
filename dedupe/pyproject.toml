@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "anthropic>=0.61.0",
     "dotenv>=0.9.9",
+    "httpx>=0.28.1",
     "ipykernel>=6.30.1",
     "openai>=1.99.0",
     "pandas>=2.3.1",
