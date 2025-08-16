@@ -2,27 +2,25 @@
   import { getAuthContext } from "$lib/auth.svelte";
   import { Navbar } from "$lib/components/ui/navbar";
   import { getProjectContext } from "$lib/dag-table";
+  import { onMount } from "svelte";
   import Card from "$lib/components/ui/card/Card.svelte";
   import { Button } from "kosui";
+  import { fetchDupes } from "$lib/projects";
+  import type { DupePair } from "$lib/projects";
 
   const auth = getAuthContext();
   const project = getProjectContext();
 
-  // Mock Data
-  let pair = [
-    {
-      taskID: "T1",
-      taskName: "Fix login bug",
-      taskDescription: "Resolve 500 error when logging in",
-      parentTask: "Auth Module",
-    },
-    {
-      taskID: "T2",
-      taskName: "Login error fix",
-      taskDescription: "Investigate and fix login issues",
-      parentTask: "Authentication",
-    },
-  ];
+  let pair: DupePair[] = [];
+
+  onMount(async () => {
+    try {
+      pair = await fetchDupes(auth, project.id);
+      console.log("[triage Duplicates fetched:", pair);
+    } catch (err) {
+      console.error("Error fetching duplicates:", err);
+    }
+  });
 </script>
 
 <!-- Navbar -->
