@@ -1,7 +1,16 @@
 import argparse
 import os
-
 import httpx
+import asyncio
+import pandas as pd
+import json
+import dotenv
+import openai
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+import sqlite3
+from tqdm.asyncio import tqdm_asyncio
+from sklearn.cluster import HDBSCAN
 
 
 HEADERS = {
@@ -10,14 +19,14 @@ HEADERS = {
 }
 
 
-def list(project_id: str):
+def list_dupes(project_id: str):
     client = httpx.Client()
     url = f"https://koso.app/api/projects/{project_id}/dupes"
     response = client.get(url, headers=HEADERS).json()
     print(response)
 
 
-def create(project_id: str, task1: str, task2: str, similarity: float):
+def create_dupe(project_id: str, task1: str, task2: str, similarity: float):
     client = httpx.Client()
     url = f"https://koso.app/api/projects/{project_id}/dupes"
     response = client.post(
@@ -33,46 +42,33 @@ def create(project_id: str, task1: str, task2: str, similarity: float):
 
 
 def main():
-    print("write code here")
+    asyncio.run(run_pipeline())
 
 
-async def embeddings_notebook():
-    import asyncio
-    import pandas as pd
-    import json
-    import dotenv
-    import openai
-
-    import sqlite3
-    from tqdm.asyncio import tqdm_asyncio
-
+async def run_pipeline():
     dotenv.load_dotenv()
+    db_file = "koso-tasks-embeddings.sqlite"
+    file_path = "koso-dogfood-export-2025-7-5-12-2.json"
+    project_id = "CZVDD94wT5KrFwAv1hhejg"
+    await compute_embeddings(file_path, db_file)
+    compute_clusters(file_path, db_file)
+    dupes = compute_dupes(project_id, file_path, db_file)
+    await store_dupes(dupes, project_id)
 
+
+async def compute_embeddings(file_path: str, db_file: str):
     client = openai.AsyncOpenAI()
 
-    response = await client.embeddings.create(
-        model="text-embedding-3-small",
-        input="The food was delicious and the waiter...",
-        encoding_format="float",
-    )
+    with open(file_path) as new:
+        data = json.load(new)
 
-    response
-
-    with open("koso-dogfood-export-2025-7-5-12-2.json") as new:
-        embedding = json.load(new)
-
-    tasks = embedding["graph"]
-
-    for _, task in tasks.items():
-        print(task["name"])
+    tasks = data["graph"]
 
     async def get_embedding(data):
         response = await client.embeddings.create(
             model="text-embedding-3-small", input=data, encoding_format="float"
         )
         return response.data[0].embedding
-
-    await get_embedding("Koso will be revolutionary!")
 
     async def process_row(row, db, semaphore=asyncio.Semaphore(1)):
         async with semaphore:
@@ -100,7 +96,6 @@ async def embeddings_notebook():
 
     semaphore = asyncio.Semaphore(20)
 
-    db_file = "koso-tasks-embeddings.sqlite"
     db = sqlite3.connect(db_file, autocommit=True)
 
     processed_ids = get_processed_row_ids(db)
@@ -109,48 +104,22 @@ async def embeddings_notebook():
     ]
 
     coros = []
-
     for task in filtered_tasks:
         coros.append(process_row(task, db, semaphore))
     await tqdm_asyncio.gather(*coros)
 
-    tasks.items()
 
-    for _, task in tasks.items():
-        print(task["id"])
-
-
-async def clustering_similarity():
-    import pandas as pd
-    import numpy as np
-    import sqlite3
-    import json
-
-    from sklearn.cluster import HDBSCAN
-    from sklearn.metrics.pairwise import cosine_similarity
-
+def compute_clusters(file_path: str, db_file: str):
     pd.set_option("display.max_colwidth", None)
     pd.options.display.max_rows = 1000
     pd.options.display.max_columns = 300
 
-    with open("koso-dogfood-export-2025-7-5-12-2.json", "r") as fp:
+    with open(file_path, "r") as fp:
         koso_data = json.load(fp)
 
-    # returns the values from the data
-
-    koso_data["graph"].values()
-
     # makes the data frame
-
     koso_data_frame = pd.DataFrame(koso_data["graph"].values())
-    koso_data_frame.head()
 
-    # returns the dimension of the data frame
-
-    koso_data_frame.shape
-
-    # .connect establishes a connect to the sqlite database
-    db_file = "koso-tasks-embeddings.sqlite"
     # defining a str that has the sqlite database file
     db = sqlite3.connect(db_file, autocommit=True)
     # autocommit=True means any changes are automatically
@@ -159,43 +128,15 @@ async def clustering_similarity():
     df = pd.read_sql("SELECT * FROM embeddings", db)
     df["embedding"] = df["embedding"].apply(json.loads)
 
-    # .head() shows the rows in a dataframe,
-    # put a number n in the () to only see the top n rows
-    df.head()
-
-    # dimensions of data frame, from embedding data?
-    df.shape
-
-    duplicated_ids = df["id"].value_counts()[lambda s: s > 1].index
-
-    # df["id"].value_counts() ---> counts how many times each unique ID appears in 'id'
-    # [lambda s : s >1] ---> a filter that keeps only the ID's that appear more than once
-    # .index ---> extracts the ID's (not the counts)
-
-    # returns the # of unique id's in the data frame
-    df["id"].nunique()
-
-    # returns the # of unique names in the data frame
-    df["name"].nunique()
-
-    df["name"].value_counts()[lambda s: s > 1]
-    # returns the unique names and the count of each unique name,
-    # listed in dscending order
-
     # removes duplicate rows from the 'name' and 'id' columns
     # if two+ rows have the same combo of 'id' and 'name' only the 1st is kept
-
     df = df.drop_duplicates(subset=["id", "name"])
-    df.shape
-
-    # the dimensions of the dataframe after the duplicates are removed
 
     sdf = df
     embeddings = list(sdf["embedding"].values)
     X = np.array(embeddings)
 
     # HDBSCAN groups similar points into clusters, can identify outliers/noise
-
     model = HDBSCAN(
         min_cluster_size=2,  # two or more to form a cluster
         store_centers="centroid",  # centroid is the center point of the cluster
@@ -203,9 +144,9 @@ async def clustering_similarity():
 
     sdf["cluster"] = model.labels_
 
-    # drops the mebedding column from the data frame
-    # showx the first five rows via .head()
-    sdf.drop(columns=["embedding"]).head()
+    # drops the embedding column from the data frame
+    # show the first five rows via .head()
+    # sdf.drop(columns=["embedding"]).head()
 
     # detects outliers (-1)
     # unique cluster label,
@@ -225,7 +166,6 @@ async def clustering_similarity():
             similarities.append(None)
         else:
             centroid = model.centroids_[cluster]
-            embedding = row["embedding"]
             similarity = cosine_similarity([centroid], [row["embedding"]])
 
             similarities.append(similarity[0][0])
@@ -266,8 +206,6 @@ async def clustering_similarity():
     jdf[(jdf["cluster"] != -1) & (jdf["similarity"] > 0.93)].sort_values(
         by=["cluster", "similarity"], ascending=[True, False]
     )
-
-    db_file = "koso-tasks-embeddings.sqlite"
     try:
         conn = sqlite3.connect(db_file)
         jdf.to_sql("clustered_tasks_jdf", conn, if_exists="replace", index=False)
@@ -285,31 +223,26 @@ async def clustering_similarity():
         )
 
 
-async def dedupe():
-    import pandas as pd
-    import numpy as np
-    from sklearn.metrics.pairwise import cosine_similarity
-    import json
-    import sqlite3
-
+def compute_dupes(project_id: str, file_path: str, db_file: str):
     # load raw task data from JSON
-    try: 
-        with open('koso-dogfood-export-2025-7-5-12-2.json', 'r') as fp: 
+    try:
+        with open(file_path, "r") as fp:
             koso_raw_data = json.load(fp)
-            #convert graph to dictionary values in DataFrame
+            # convert graph to dictionary values in DataFrame
 
-        PROJECT_ID = 'CZVDD94wT5KrFwAv1hhejg' 
-    
-        if koso_raw_data.get('projectId') == PROJECT_ID: 
-            tasks_df = pd.DataFrame(koso_raw_data['graph'].values())
-            print(f'{len(tasks_df)} tasks have been successfully loaded from the DataFrame')
+        if koso_raw_data.get("projectId") == project_id:
+            tasks_df = pd.DataFrame(koso_raw_data["graph"].values())
+            print(
+                f"{len(tasks_df)} tasks have been successfully loaded from the DataFrame"
+            )
 
+            tasks_df = tasks_df.dropna(subset=["id", "name"]).reset_index(drop=True)
+            print(f"Filtered to {len(tasks_df)} tasks with valid IDs and names")
 
-            tasks_df = tasks_df.dropna(subset=['id', 'name']).reset_index(drop=True)
-            print(f'Filtered to {len(tasks_df)} tasks with valid IDs and names')
-
-        else: 
-            print(f'Skipping file: Project ID "{koso_raw_data.get('project_id')}" does not match target ID "{PROJECT_ID}".')
+        else:
+            print(
+                f'Skipping file: Project ID "{koso_raw_data.get("project_id")}" does not match target ID "{project_id}".'
+            )
             tasks_df = pd.DataFrame()
 
     except FileNotFoundError as e:
@@ -323,8 +256,6 @@ async def dedupe():
             f"Error: 'graph' key not found in the JSON data. Ensure JSON structure is as expected: {e}"
         )
         exit()
-
-    db_file = "koso-tasks-embeddings.sqlite"
 
     try:
         conn = sqlite3.connect(db_file)
@@ -370,8 +301,6 @@ async def dedupe():
         exit()
 
     print("Real data loaded from SQLite. Proceeding with deduplication.")
-
-    db_file = "koso-tasks-embeddings.sqlite"
 
     try:
         conn = sqlite3.connect(db_file)
@@ -519,8 +448,15 @@ async def dedupe():
         csv_file_path = "potential_duplicates.csv"
         csv_output_df.to_csv(csv_file_path, index=False)
         print(f"\nPotential duplicate pairs saved to {csv_file_path}")
+        return csv_output_df.to_dict(orient="records")
     else:
         print("\nNo potential duplicate pairs found above the PROMPT_THRESHOLD.")
+        return []
+
+
+async def store_dupes(dupes, project_id):
+    for dupe in dupes:
+        create_dupe(project_id, dupe["task1_id"], dupe["task2_id"], dupe["similarity"])
 
 
 if __name__ == "__main__":

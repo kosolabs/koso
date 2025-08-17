@@ -1,0 +1,67 @@
+task1_id,task1_name,task2_id,task2_name,similarity,auto_approve_candidate
+dad934e1-d029-48c6-89ed-955aa56dc7be,Lock file maintenance,jfp0KqhcRWaCUyo_nsKtEQ,Lock file maintenance,1.000000000000001,True
+ca58d5a8-cf82-460b-8365-937867b63fb2,Bump the npm-deps group across 1 directory with 12 updates,af5ec712-9761-42cf-990f-b74255c066ab,Bump the npm-deps group across 1 directory with 12 updates,1.0000000000000009,True
+XTkKd4YcTbSB6yN6l6Z0fQ,chore(deps): lock file maintenance,XxCjClVVRQuqqKlnVqBgyg,chore(deps): lock file maintenance,1.0000000000000004,True
+W_gRcj30QVya2Uh-BXrtAQ,chore(deps): update all dependencies,D4USlx_PRWW3B9O4mIrU6w,chore(deps): update all dependencies,1.0000000000000004,True
+Bpp8cgxtTq-dfYvgaqLNKw,"Bump the ""all-deps"" group with 2 updates across multiple ecosystems",Z8ZOH3l6QEK5XCLzrGHVHg,"Bump the ""all-deps"" group with 2 updates across multiple ecosystems",1.0000000000000004,True
+1cMFpBMFQl63ipQP4AcNLw,Enable playwright caching,f66KK6jBSmqTVVMqhsmCag,Enable playwright caching,1.0000000000000004,True
+37d4df42-eb68-49b0-a253-b302146c2099,Update all dependencies,586642d0-0a16-41b6-a09f-09bdf3ac1a0c,Update all dependencies,1.0000000000000002,True
+mVIaDkxXSfqhdKz9FPel0Q,Configure Renovate - autoclosed,zOLSPKSkQcGA6mT17Hx16g,Configure Renovate - autoclosed,0.9999999999999994,True
+VAlpHuOPQmKfQaPpAmh6RQ,fix(deps): update all dependencies,VtlqHDHYSfiMhWQxHacU4g,fix(deps): update all dependencies,0.9999999999999987,True
+561f0a3b-24e4-4f88-9242-0dee6a9b2bbb,Bump the cargo-deps group across 1 directory with 2 updates,200e6799-2092-490d-9f32-fb6f0e6f2926,Bump the cargo-deps group across 1 directory with 2 updates,0.9999994916035112,True
+c2d5fc78-f66b-4dd1-90db-4870b9dc8568,Bump the docker-deps group with 2 updates,2a6bbe3b-ee4a-40cb-ba4a-f96023ad6448,Bump the docker-deps group with 2 updates,0.9999994848920307,True
+3df6267f-fdf1-45c7-b923-7bc051e2e3af,koso-902: Stop using deprecated stores,d36d7170-0b9a-4be2-8ca8-04b8ad310213,koso-902: Stop using deprecated stores,0.9999994448784857,True
+7aa5df9a-a14c-468d-9e78-9f5a82afdb70,Fix staggered spacing when task name wraps,e371e86c-4444-4895-a625-f34961b11b90,Fix staggered spacing when task name wraps,0.9999994257488587,True
+3b4dae75-a7a5-4009-93d3-5a8c5509b8e9,Fix dialog box not triggering onSelect when clicking outside,ef6807b5-7ee2-405c-80df-7829adf41b68,Fix dialog box not triggering onSelect when clicking outside,0.9999993742940567,True
+e1a1b495-72ea-4fc5-929a-ca45e91ccfe9,Experiment,9c01f863-80d8-40f4-8c52-3375944c23f3,Experiment,0.9999993707656585,True
+d16f5c35-1f2f-4653-a9fa-2109fd2fb9c2,Upgrade bits-ui,f9d0acab-dd91-4c50-95f6-36c37070d8aa,Upgrade bits-ui,0.9999993588831066,True
+Csgu2P8RQUSTF72CbiHDWA,Try a different environment variable name for publishing,OnIVWw5sTkaOVP_ruBVDvA,Try a different environment variable name for publishing,0.9999993417399247,True
+cf99b071-4f74-494b-9650-2c697b5732a3,Bump vite from 6.2.5 to 6.2.6 in /frontend in the npm_and_yarn group across 1 directory,77360dfd-3ccb-4495-a59f-e69a1de30a10,Bump vite from 6.2.4 to 6.2.5 in /frontend in the npm_and_yarn group across 1 directory,0.993421894993627,True
+28529219-28d2-41b7-86ae-05eda8f9ff9a,Bump the cargo-deps group across 1 directory with 4 updates,a4d4016e-52b7-4366-b7b0-58d6c6155e93,Bump the cargo-deps group across 2 directories with 4 updates,0.9851318763856052,True
+561f0a3b-24e4-4f88-9242-0dee6a9b2bbb,Bump the cargo-deps group across 1 directory with 2 updates,78f7c43c-6006-4e0f-82d7-a61023ee8786,Bump the cargo-deps group across 2 directories with 1 update,0.9831269455183497,True
+189e5a98-4372-4cf8-a766-18251faeec01,Bump the npm-deps group across 2 directories with 6 updates,b4379e33-29f5-4144-94ed-6f82ce4d9cb5,Bump the npm-deps group across 1 directory with 6 updates,0.9814166532487462,True
+ca58d5a8-cf82-460b-8365-937867b63fb2,Bump the npm-deps group across 1 directory with 12 updates,e4d73ce7-2ba7-4c96-9ba5-ddbf73bdd7b6,Bump the npm-deps group across 1 directory with 13 updates,0.9813025665291827,True
+5bfd8f3a-df0a-4afc-ae02-e253f9f03cbb,Contextify Auth,aede7044-deea-48e3-bdb2-57b45a7cbba5,Contextify auth,0.9741494833633473,True
+189e5a98-4372-4cf8-a766-18251faeec01,Bump the npm-deps group across 2 directories with 6 updates,8f3c2dc7-7f17-414f-833a-e39b29be4cd5,Bump the npm-deps group across 2 directories with 7 updates,0.9716172910493107,True
+cf99b071-4f74-494b-9650-2c697b5732a3,Bump vite from 6.2.5 to 6.2.6 in /frontend in the npm_and_yarn group across 1 directory,fb5eecda-ee3f-49dd-9669-aa7d1a35eb7c,Bump vite from 6.3.2 to 6.3.4 in /frontend in the npm_and_yarn group across 1 directory,0.9714067487679838,True
+ec7518b8-8cf3-40c1-9466-77f45feee4c8,Add a tooltip for managed tasks,a6b6d81d-37c6-4f5a-9b25-0ccc5c0c7417,Add tooltip for managed tasks,0.9712035619047735,True
+77360dfd-3ccb-4495-a59f-e69a1de30a10,Bump vite from 6.2.4 to 6.2.5 in /frontend in the npm_and_yarn group across 1 directory,fb5eecda-ee3f-49dd-9669-aa7d1a35eb7c,Bump vite from 6.3.2 to 6.3.4 in /frontend in the npm_and_yarn group across 1 directory,0.9702425258655749,True
+d10e5502-6d0c-48bc-b160-dfea07ea1c14,Update dependency vite to v6.2.5 [SECURITY],06a0671c-b7b9-448a-aff7-badcf5beee5d,Update dependency vite to v6.3.4 [SECURITY],0.9671471851116706,True
+189e5a98-4372-4cf8-a766-18251faeec01,Bump the npm-deps group across 2 directories with 6 updates,994eb415-f015-41f3-b196-5af5a2d4b1c2,Bump the npm-deps group across 2 directories with 4 updates,0.966986914835311,True
+e4d73ce7-2ba7-4c96-9ba5-ddbf73bdd7b6,Bump the npm-deps group across 1 directory with 13 updates,c0cfc982-eee7-4170-ad05-24ca4a288a70,Bump the npm-deps group across 1 directory with 3 updates,0.965399750825616,True
+c0188fa6-0cd7-4847-92f8-6cefaafac398,koso-895: Fix task deep links,f3511888-3493-498b-9e2d-8da64d5edc4b,koso-895: Really fix task deep links,0.9647421715973501,True
+27b70e08-01a9-4af9-bed5-0cc810fdb2e4,Bump openssl from 0.10.71 to 0.10.72 in the cargo group across 1 directory,0f97e324-02c5-4e39-88e8-01fbfb989899,Bump openssl from 0.10.68 to 0.10.70 in the cargo group across 1 directory,0.9639091157731927,True
+ca58d5a8-cf82-460b-8365-937867b63fb2,Bump the npm-deps group across 1 directory with 12 updates,c0cfc982-eee7-4170-ad05-24ca4a288a70,Bump the npm-deps group across 1 directory with 3 updates,0.9600118551049565,True
+4a95b9a3-f4c8-497a-9c74-05c3a6265b8a,Bump the github-actions-deps group with 3 updates,16f1aa16-0f3d-470d-b454-d7f513fb99fe,Bump the github-actions-deps group with 2 updates,0.9599483263521598,True
+8f3c2dc7-7f17-414f-833a-e39b29be4cd5,Bump the npm-deps group across 2 directories with 7 updates,994eb415-f015-41f3-b196-5af5a2d4b1c2,Bump the npm-deps group across 2 directories with 4 updates,0.9547457319155322,True
+fe4e41bd-7c49-4d8f-9478-c44fa680bdb6,Closing the Link panel clears the filter text,1608f573-e81a-40c0-a833-0cf995d20590,Closing the link panel should clear the filter text,0.9539626800486951,True
+b4379e33-29f5-4144-94ed-6f82ce4d9cb5,Bump the npm-deps group across 1 directory with 6 updates,8f3c2dc7-7f17-414f-833a-e39b29be4cd5,Bump the npm-deps group across 2 directories with 7 updates,0.9534099461018589,True
+c2d5fc78-f66b-4dd1-90db-4870b9dc8568,Bump the docker-deps group with 2 updates,52802b3d-01c3-4b2d-ba76-410ce389099b,Bump the docker-deps group with 3 updates,0.9511721353628939,True
+b4379e33-29f5-4144-94ed-6f82ce4d9cb5,Bump the npm-deps group across 1 directory with 6 updates,994eb415-f015-41f3-b196-5af5a2d4b1c2,Bump the npm-deps group across 2 directories with 4 updates,0.9437165985919639,False
+4a95b9a3-f4c8-497a-9c74-05c3a6265b8a,Bump the github-actions-deps group with 3 updates,2dca0799-7198-42f3-ac6c-66e5f0c55036,Bump the github-actions-deps group with 5 updates,0.9422490999639133,False
+MIeZQyTTSv-2u_xNRIJiOQ,Update dependency @sveltejs/kit to v2.20.6 [SECURITY] - autoclosed,c375c467-6876-4985-90aa-b039d7df7afd,Update dependency @sveltejs/kit to v2.20.6 [SECURITY],0.9384285089093727,False
+16f1aa16-0f3d-470d-b454-d7f513fb99fe,Bump the github-actions-deps group with 2 updates,2dca0799-7198-42f3-ac6c-66e5f0c55036,Bump the github-actions-deps group with 5 updates,0.9339174958524473,False
+5c6fcda4-7d04-4003-9682-239c943eb06d,Add a category field to the command palette,0a9659ae-91be-4de5-b69e-58182133a0cf,Add a category field to help organize the command palette,0.9319369469578436,False
+9440c7fa-0bd6-4312-baa0-21040a4d2e02,Add support for mermaid diagrams,179193c3-3967-407a-b75e-51053846feeb,Add experimental support for mermaid diagrams,0.9259821302692781,False
+660e1b42-a0c4-4023-b2e5-8137a9ce244f,Log error messages on healthz check failure,cec9be3e-1694-4e6c-9d98-71614c0a0c8f,Log even more error messages on healthz check failure,0.9249530206277398,False
+d10e5502-6d0c-48bc-b160-dfea07ea1c14,Update dependency vite to v6.2.5 [SECURITY],4d7ae212-561b-4cff-9754-a5548079d55f,Update dependency vite to v6.2.6 [SECURITY] - autoclosed,0.9237860978701726,False
+38ff107a-2c37-41d4-b01d-11056ab4d84f,Heartbeat monitor client,cb826f37-3c2b-47f1-8335-8d3d7673ed7d,Heartbeat monitor server,0.922228997921311,False
+87012a7c-fd17-49ad-acf3-ae3b3ae5897f,Make task name editable from the detail panel,3129457b-5ba1-411e-b0d9-1fc7cc3d5b56,Allow task name to be edited using the detail panel,0.914842478900046,False
+fa9c9f5d-5adf-4649-ab3f-8e0c85cb5b29,Install rust toolchain,c484778f-b0e4-4168-aea1-b8e4a83c7068,Install rust toolchain if not installed,0.9140070435617469,False
+4d7ae212-561b-4cff-9754-a5548079d55f,Update dependency vite to v6.2.6 [SECURITY] - autoclosed,0RyPdL6aTUaxD8p6asaKoA,Update dependency vite to v5.4.19 [SECURITY] - autoclosed,0.9053775651416414,False
+06a0671c-b7b9-448a-aff7-badcf5beee5d,Update dependency vite to v6.3.4 [SECURITY],4d7ae212-561b-4cff-9754-a5548079d55f,Update dependency vite to v6.2.6 [SECURITY] - autoclosed,0.9030962063449384,False
+A_82zD2mQFG_5YHy_w9dAw,Bump mode-watcher,f4f98180-d216-4889-aa4c-ba1c4bf6802d,Bump mode-watcher to 1.0.0,0.9009760248997526,False
+bc93ab1f-170e-49eb-8006-bf683800655a,circular-progress-status,17eebd97-1408-4ef8-a09f-5dd6274b6a70,circular-progress,0.8905780709436429,False
+hnUA6c9CRReXgIszK2Cqsg,Let pnpm manage node version,72c88549-bd75-4450-84d9-7e8603379ecc,Use pnpm to manage its own versions,0.8819137482098542,False
+aa2b924f-1645-4594-9bd2-e05ea1486a1f,Migrate back to shadcn-svelte,03cdace8-632f-4d31-bf67-88b5b703d985,Migrate to updated version of shadcn-svelte,0.8818637520114403,False
+1488820e-5f7a-4ce9-9db6-f70488fc3ed9,Refactor Kosui menu component to use a Svelte context,3e3d349d-9256-4ff3-a2f7-bda50ee68388,Refactor Kosui autocomplete component to use a Svelte context,0.8735574260002745,False
+1488820e-5f7a-4ce9-9db6-f70488fc3ed9,Refactor Kosui menu component to use a Svelte context,b6bd4949-0a40-4c4a-9b16-fc86170cfb19,Refactor Menu to use a Svelte context,0.866557773259998,False
+69a2299a-75b6-4c0b-bd9f-8668a195c82c,Add support for mapping a repository/install to multiple projects,dd354c0c-a45c-4eb4-9c69-340476ea275f,Add support for mapping certain repositories to certain projects,0.8628980783464398,False
+856e1ba7-a7c5-40b9-9c5c-6ad0cbf986e1,Video of multiple people planning in Koso,6d64ada7-fbd7-4690-8efa-c6dcde9a9b7a,Video of a plan being made in Koso,0.8616219515267254,False
+j8X_lkiYR--9Ole7fuyG2g,Cleanup debug log,byFm-lpxQsiz6uJWeDbFqw,Remove debug log,0.8606372729606755,False
+ec7518b8-8cf3-40c1-9466-77f45feee4c8,Add a tooltip for managed tasks,f0d27b90-70d7-4177-831c-0d0480310970,Add a different action tooltip message for managed tasks,0.8554517202904139,False
+2dfa8971-6e25-491e-b598-23f4c7878e6a,Implement workflow: block on -> new task -> assign to someone else,ad27ae9b-ee09-43a0-83b1-3858b6a60f2f,koso-925: Implement workflow: block on -> new task -> assign to someone else,0.8541583202344376,False
+034026d2-2269-40d0-80bd-db1fe77604ec,Includ rollup tasks with unassigned children,3d5499e0-ee00-45f5-bcd0-6f64e9b35a5f,Show unassigned children of assigned rollup tasks,0.8530066343147065,False
+a1302692-0ce0-4a2c-8b2f-01bab5a8f637,Limit the number of connected clients  globally,7a60509f-18b1-420f-bfa9-f597e01b4973,Limit the number of connected clients for a given project,0.8518860504437429,False
+4e00a4e7-8cd6-4ed2-85de-5f2e05cf7726,Create a context menu for each task,1651b217-b3b3-4fd6-87dc-1c5126c8ae04,Add action / context menu to tasks,0.8518765714038576,False
+41c0410a-7a21-48d8-8950-4b0d68ed9376,⌥+⇧+Down should move task to the bottom,432d2b99-fad5-49db-8bb7-4a7df54b6827,⌥+⇧+Up should move task to top,0.8503317994000094,False
