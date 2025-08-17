@@ -42,18 +42,14 @@ def create_dupe(project_id: str, task1: str, task2: str, similarity: float):
 
 
 def main():
-    asyncio.run(run_pipeline())
-
-
-async def run_pipeline():
     dotenv.load_dotenv()
     db_file = "koso-tasks-embeddings.sqlite"
     file_path = "koso-dogfood-export-2025-7-5-12-2.json"
     project_id = "CZVDD94wT5KrFwAv1hhejg"
-    await compute_embeddings(file_path, db_file)
+    asyncio.run(compute_embeddings(file_path, db_file))
     compute_clusters(file_path, db_file)
     dupes = compute_dupes(project_id, file_path, db_file)
-    await store_dupes(dupes, project_id)
+    store_dupes(dupes, project_id)
 
 
 async def compute_embeddings(file_path: str, db_file: str):
@@ -454,7 +450,7 @@ def compute_dupes(project_id: str, file_path: str, db_file: str):
         return []
 
 
-async def store_dupes(dupes, project_id):
+def store_dupes(dupes, project_id):
     for dupe in dupes:
         create_dupe(project_id, dupe["task1_id"], dupe["task2_id"], dupe["similarity"])
 
