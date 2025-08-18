@@ -45,7 +45,12 @@ def main():
     dotenv.load_dotenv()
     db_file = "koso-tasks-embeddings.sqlite"
     file_path = "koso-dogfood-export-2025-7-5-12-2.json"
-    project_id = "CZVDD94wT5KrFwAv1hhejg"
+
+    with open(file_path, "r") as f:
+        data = json.load(f)
+    projectId = data.get("projectId")
+    project_id = projectId
+
     asyncio.run(compute_embeddings(file_path, db_file))
     compute_clusters(file_path, db_file)
     dupes = compute_dupes(project_id, file_path, db_file)
