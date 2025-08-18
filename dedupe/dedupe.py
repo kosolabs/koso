@@ -48,22 +48,17 @@ def main():
 
     with open(file_path, "r") as f:
         data = json.load(f)
-    projectId = data.get("projectId")
-    project_id = projectId
+    project_id = data.get("projectId")
+    tasks = data["graph"]
 
-    asyncio.run(compute_embeddings(file_path, db_file))
-    compute_clusters(file_path, db_file)
-    dupes = compute_dupes(project_id, file_path, db_file)
+    asyncio.run(compute_embeddings(db_file, tasks))
+    compute_clusters(db_file, tasks)
+    dupes = compute_dupes(project_id, db_file, tasks)
     store_dupes(dupes, project_id)
 
 
-async def compute_embeddings(file_path: str, db_file: str):
+async def compute_embeddings(db_file: str, tasks):
     client = openai.AsyncOpenAI()
-
-    with open(file_path) as new:
-        data = json.load(new)
-
-    tasks = data["graph"]
 
     async def get_embedding(data):
         response = await client.embeddings.create(
@@ -110,16 +105,13 @@ async def compute_embeddings(file_path: str, db_file: str):
     await tqdm_asyncio.gather(*coros)
 
 
-def compute_clusters(file_path: str, db_file: str):
+def compute_clusters(db_file: str, tasks):
     pd.set_option("display.max_colwidth", None)
     pd.options.display.max_rows = 1000
     pd.options.display.max_columns = 300
 
-    with open(file_path, "r") as fp:
-        koso_data = json.load(fp)
-
     # makes the data frame
-    koso_data_frame = pd.DataFrame(koso_data["graph"].values())
+    koso_data_frame = pd.DataFrame(tasks.values())
 
     # defining a str that has the sqlite database file
     db = sqlite3.connect(db_file, autocommit=True)
@@ -224,27 +216,15 @@ def compute_clusters(file_path: str, db_file: str):
         )
 
 
-def compute_dupes(project_id: str, file_path: str, db_file: str):
+def compute_dupes(project_id: str, db_file: str, tasks):
     # load raw task data from JSON
     try:
-        with open(file_path, "r") as fp:
-            koso_raw_data = json.load(fp)
-            # convert graph to dictionary values in DataFrame
+        # convert graph to dictionary values in DataFrame
+        tasks_df = pd.DataFrame(tasks.values())
+        print(f"{len(tasks_df)} tasks have been successfully loaded from the DataFrame")
 
-        if koso_raw_data.get("projectId") == project_id:
-            tasks_df = pd.DataFrame(koso_raw_data["graph"].values())
-            print(
-                f"{len(tasks_df)} tasks have been successfully loaded from the DataFrame"
-            )
-
-            tasks_df = tasks_df.dropna(subset=["id", "name"]).reset_index(drop=True)
-            print(f"Filtered to {len(tasks_df)} tasks with valid IDs and names")
-
-        else:
-            print(
-                f'Skipping file: Project ID "{koso_raw_data.get("project_id")}" does not match target ID "{project_id}".'
-            )
-            tasks_df = pd.DataFrame()
+        tasks_df = tasks_df.dropna(subset=["id", "name"]).reset_index(drop=True)
+        print(f"Filtered to {len(tasks_df)} tasks with valid IDs and names")
 
     except FileNotFoundError as e:
         print(f"Error: File not found. Please ensure it's in the same directory: {e}")
