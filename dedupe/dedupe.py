@@ -51,13 +51,13 @@ def main():
     project_id = data.get("projectId")
     tasks = data["graph"]
 
-    asyncio.run(compute_embeddings(db_file, tasks))
+    compute_embeddings(db_file, tasks)
     compute_clusters(db_file, tasks)
     dupes = compute_dupes(project_id, db_file, tasks)
     store_dupes(dupes, project_id)
 
 
-async def compute_embeddings(db_file: str, tasks):
+def compute_embeddings(db_file: str, tasks):
     client = openai.AsyncOpenAI()
 
     async def get_embedding(data):
@@ -90,19 +90,22 @@ async def compute_embeddings(db_file: str, tasks):
             print(f"Skipping delta due to error getting previously processed Id's: {e}")
         return set()
 
-    semaphore = asyncio.Semaphore(20)
+    async def process():
+        semaphore = asyncio.Semaphore(20)
 
-    db = sqlite3.connect(db_file, autocommit=True)
+        db = sqlite3.connect(db_file, autocommit=True)
 
-    processed_ids = get_processed_row_ids(db)
-    filtered_tasks = [
-        task for task in list(tasks.values()) if task["id"] not in processed_ids
-    ]
+        processed_ids = get_processed_row_ids(db)
+        filtered_tasks = [
+            task for task in list(tasks.values()) if task["id"] not in processed_ids
+        ]
 
-    coros = []
-    for task in filtered_tasks:
-        coros.append(process_row(task, db, semaphore))
-    await tqdm_asyncio.gather(*coros)
+        coros = []
+        for task in filtered_tasks:
+            coros.append(process_row(task, db, semaphore))
+        await tqdm_asyncio.gather(*coros)
+
+    asyncio.run(process())
 
 
 def compute_clusters(db_file: str, tasks):
