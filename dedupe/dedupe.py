@@ -59,50 +59,129 @@ def main():
 
 async def compute_embeddings(db_file: str, tasks):
     client = openai.AsyncOpenAI()
+    db =sqlite3.connect(db_file, autocommit=True)
+    semaphore = asyncio.Semaphore(20)
 
-    async def get_embedding(data):
+
+    print("Computing and storing basic embeddings for all tasks...")
+    
+    async def get_embedding(data, model="text-embedding-3-small"):
         response = await client.embeddings.create(
-            model="text-embedding-3-small", input=data, encoding_format="float"
+            model=model, input=data, encoding_format="float"
         )
         return response.data[0].embedding
 
-    async def process_row(row, db, semaphore=asyncio.Semaphore(1)):
+    async def process_basic_embedding(task, semaphore):
         async with semaphore:
-            embedding = await get_embedding(row["name"])
-            df = pd.DataFrame(
-                [
-                    {
-                        "id": row["id"],
-                        "name": row["name"],
-                        "embedding": json.dumps(embedding),
-                    }
-                ]
-            ).set_index("id")
-            df.to_sql("embeddings", db, if_exists="append")
-            return df
-
-    def get_processed_row_ids(db):
-        try:
+            embedding = await get_embedding(task["name"])
             return {
-                row[0] for row in db.execute("Select id from embeddings").fetchall()
+                "id": task["id"],
+                "name": task["name"],
+                "embedding": json.dumps(embedding),
             }
-        except sqlite3.OperationalError as e:
-            print(f"Skipping delta due to error getting previously processed Id's: {e}")
-        return set()
 
-    semaphore = asyncio.Semaphore(20)
+    coros_basic = [process_basic_embedding(task, semaphore) for task in list(tasks.values())]
+    results_basic = await tqdm_asyncio.gather(*coros_basic) 
+    
+    basic_embeddings_df = pd.DataFrame(results_basic).set_index("id")
+    basic_embeddings_df.to_sql("basic_embeddings", db, if_exists="replace", index=True)
+    
+    print(f"Stored {len(basic_embeddings_df)} basic embeddings.")
 
-    db = sqlite3.connect(db_file, autocommit=True)
+    print("Generating and storing hierarchical embeddings...")
 
-    processed_ids = get_processed_row_ids(db)
-    filtered_tasks = [
-        task for task in list(tasks.values()) if task["id"] not in processed_ids
-    ]
+    MAX_INPUT_LENGTH = 8192 * 4
 
-    coros = []
-    for task in filtered_tasks:
-        coros.append(process_row(task, db, semaphore))
-    await tqdm_asyncio.gather(*coros)
+    def get_contextual_string(task_id, tasks_dict):
+        task = tasks_dict.get(task_id, {})
+        task_name = task.get("name", "")
+
+        parent_id = task.get("parent")
+        parent_name = tasks_dict.get(parent_id, {}).get("name", "")
+
+        children_names = []
+        for child_id in task.get("children", []):
+            child_name = tasks_dict.get(child_id, {}).get("name", "")
+            if child_name:
+                children_names.append(child_name)
+
+        # Build the base string
+        input_string_parts = [task_name]
+        if parent_name:
+            input_string_parts.append(f"Parent: {parent_name}")
+        if children_names:
+            input_string_parts.append(f"Children: {', '.join(children_names)}")
+            
+        description = task.get("desc")
+        if description:
+            #check for length 
+            if len(description) + len(' | Description: ') + len(' | '.join(input_string_parts)) < MAX_INPUT_LENGTH:
+                input_string_parts.append(f"Description: {description}")
+            else:
+                remaining_length = MAX_INPUT_LENGTH - (len(' | '.join(input_string_parts)) + len(' | Description: '))
+                if remaining_length > 0:
+                    truncated_description = description[:remaining_length]
+                    input_string_parts.append(f"Description: {truncated_description}")
+
+        input_string = " | ".join(input_string_parts)
+
+        return input_string
+
+    async def process_hierarchical_embedding(task_id, tasks_dict, semaphore):
+        async with semaphore:
+            input_string = get_contextual_string(task_id, tasks_dict)
+            if not input_string.strip():
+                return None
+            
+            hierarchical_embedding = await get_embedding(input_string)
+            return {
+                "id": task_id,
+                "name": tasks_dict[task_id].get("name", ""),
+                "embedding": json.dumps(hierarchical_embedding),
+            }
+
+    coros_hierarchical = [process_hierarchical_embedding(task_id, tasks, semaphore) for task_id in tasks]
+    results_hierarchical = await tqdm_asyncio.gather(*coros_hierarchical)
+    
+    hierarchical_embeddings_df = pd.DataFrame([r for r in results_hierarchical if r]).set_index("id")
+    hierarchical_embeddings_df.to_sql("hierarchical_embeddings", db, if_exists="replace", index=True)
+    
+    print(f"Stored {len(hierarchical_embeddings_df)} hierarchical embeddings.")
+    db.close() 
+
+    # async def process_row(row, db, semaphore=asyncio.Semaphore(1)):
+    #     async with semaphore:
+    #         embedding = await get_embedding(row["name"])
+    #         df = pd.DataFrame(
+    #             [
+    #                 {
+    #                     "id": row["id"],
+    #                     "name": row["name"],
+    #                     "embedding": json.dumps(embedding),
+    #                 }
+    #             ]
+    #         ).set_index("id")
+    #         df.to_sql("embeddings", db, if_exists="append")
+    #         return df
+
+    # def get_processed_row_ids(db):
+    #     try:
+    #         return {
+    #             row[0] for row in db.execute("Select id from embeddings").fetchall()
+    #         }
+    #     except sqlite3.OperationalError as e:
+    #         print(f"Skipping delta due to error getting previously processed Id's: {e}")
+    #     return set()
+
+    # processed_ids = get_processed_row_ids(db)
+    # filtered_tasks = [
+    #     task for task in list(tasks.values()) if task["id"] not in processed_ids
+    # ]
+
+    # coros = []
+    # for task in filtered_tasks:
+    #     coros.append(process_row(task, db, semaphore))
+    # await tqdm_asyncio.gather(*coros)
 
 
 def compute_clusters(db_file: str, tasks):
