@@ -40,6 +40,22 @@ def create_dupe(project_id: str, task1: str, task2: str, similarity: float):
     ).json()
     print(response)
 
+def preprocess_tasks(tasks):
+    for task_id in tasks:
+        tasks[task_id]["parent"] = None
+
+    def dfs(parent_id, task_id):
+        if parent_id is not None:
+            tasks[task_id]["parent"] = parent_id
+
+        for child_id in tasks[task_id].get("children", []):
+            if child_id in tasks:
+                dfs(task_id, child_id)
+
+    if "root" in tasks:
+        dfs(None, "root")
+    
+    return tasks
 
 def main():
     dotenv.load_dotenv()
@@ -51,17 +67,21 @@ def main():
     project_id = data.get("projectId")
     tasks = data["graph"]
 
-    asyncio.run(compute_embeddings(db_file, tasks))
-    compute_clusters(db_file, tasks)
-    dupes = compute_dupes(project_id, db_file, tasks)
-    store_dupes(dupes, project_id)
+    tasks = preprocess_tasks(tasks)
 
+    asyncio.run(compute_embeddings(db_file, tasks))
+    compute_clusters(db_file, tasks, embeddings_table="hierarchical_embeddings")
+    dupes = compute_dupes(project_id, db_file, tasks, embeddings_table="hierarchical_embeddings")
+    store_dupes(dupes, project_id)
 
 async def compute_embeddings(db_file: str, tasks):
     client = openai.AsyncOpenAI()
-    db =sqlite3.connect(db_file, autocommit=True)
+    db = sqlite3.connect(db_file)
     semaphore = asyncio.Semaphore(20)
 
+    db.execute("DROP TABLE IF EXISTS basic_embeddings")
+    db.execute("DROP TABLE IF EXISTS hierarchical_embeddings")
+    db.commit()
 
     print("Computing and storing basic embeddings for all tasks...")
     
@@ -81,7 +101,7 @@ async def compute_embeddings(db_file: str, tasks):
             }
 
     coros_basic = [process_basic_embedding(task, semaphore) for task in list(tasks.values())]
-    results_basic = await tqdm_asyncio.gather(*coros_basic) 
+    results_basic = await tqdm_asyncio.gather(*coros_basic)
     
     basic_embeddings_df = pd.DataFrame(results_basic).set_index("id")
     basic_embeddings_df.to_sql("basic_embeddings", db, if_exists="replace", index=True)
@@ -90,42 +110,32 @@ async def compute_embeddings(db_file: str, tasks):
 
     print("Generating and storing hierarchical embeddings...")
 
-    MAX_INPUT_LENGTH = 8192 * 4
-
     def get_contextual_string(task_id, tasks_dict):
         task = tasks_dict.get(task_id, {})
         task_name = task.get("name", "")
-
+        
         parent_id = task.get("parent")
         parent_name = tasks_dict.get(parent_id, {}).get("name", "")
-
+        
         children_names = []
         for child_id in task.get("children", []):
             child_name = tasks_dict.get(child_id, {}).get("name", "")
             if child_name:
                 children_names.append(child_name)
-
-        # Build the base string
+        
         input_string_parts = [task_name]
-        if parent_name:
+        if parent_name and parent_id != "root":
             input_string_parts.append(f"Parent: {parent_name}")
         if children_names:
             input_string_parts.append(f"Children: {', '.join(children_names)}")
             
         description = task.get("desc")
         if description:
-            #check for length 
-            if len(description) + len(' | Description: ') + len(' | '.join(input_string_parts)) < MAX_INPUT_LENGTH:
-                input_string_parts.append(f"Description: {description}")
-            else:
-                remaining_length = MAX_INPUT_LENGTH - (len(' | '.join(input_string_parts)) + len(' | Description: '))
-                if remaining_length > 0:
-                    truncated_description = description[:remaining_length]
-                    input_string_parts.append(f"Description: {truncated_description}")
-
-        input_string = " | ".join(input_string_parts)
-
-        return input_string
+             input_string_parts.append(f"Description: {description}")
+        
+        full_string = " | ".join(input_string_parts)
+        MAX_INPUT_LENGTH = 8192 * 4 
+        return full_string[:MAX_INPUT_LENGTH]
 
     async def process_hierarchical_embedding(task_id, tasks_dict, semaphore):
         async with semaphore:
@@ -147,7 +157,7 @@ async def compute_embeddings(db_file: str, tasks):
     hierarchical_embeddings_df.to_sql("hierarchical_embeddings", db, if_exists="replace", index=True)
     
     print(f"Stored {len(hierarchical_embeddings_df)} hierarchical embeddings.")
-    db.close() 
+    db.close()
 
     # async def process_row(row, db, semaphore=asyncio.Semaphore(1)):
     #     async with semaphore:
@@ -184,7 +194,7 @@ async def compute_embeddings(db_file: str, tasks):
     # await tqdm_asyncio.gather(*coros)
 
 
-def compute_clusters(db_file: str, tasks):
+def compute_clusters(db_file: str, tasks, embeddings_table: str = "embeddings"):
     pd.set_option("display.max_colwidth", None)
     pd.options.display.max_rows = 1000
     pd.options.display.max_columns = 300
@@ -295,7 +305,7 @@ def compute_clusters(db_file: str, tasks):
         )
 
 
-def compute_dupes(project_id: str, db_file: str, tasks):
+def compute_dupes(project_id: str, db_file: str, tasks, embeddings_table: str = "embeddings"):
     # load raw task data from JSON
     try:
         # convert graph to dictionary values in DataFrame
@@ -521,3 +531,10 @@ def store_dupes(dupes, project_id):
 
 if __name__ == "__main__":
     main()
+
+
+# data = task["name"]
+
+# parents = todo
+# data = "\n".join([f"- {parent.name}" for parent in parents])
+# data += "\n\n" + task["name"]
