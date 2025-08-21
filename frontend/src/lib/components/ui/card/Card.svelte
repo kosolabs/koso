@@ -1,19 +1,23 @@
 <script lang="ts">
   import { Box } from "kosui";
+  import { getProjectContext } from "$lib/dag-table";
 
   type Props = {
-    dupeId?: string;
-    task1Id?: string;
-    task2Id?: string;
-    similarity?: string;
+    dupeId: string;
+    taskId: string;
+    similarity: string;
   };
 
-  let { dupeId, task1Id, task2Id, similarity }: Props = $props();
+  let { dupeId, taskId, similarity }: Props = $props();
+
+  const { koso } = getProjectContext();
+
+  const task = koso.getTask(taskId);
 </script>
 
 <div class="border-red flex flex-col gap-2 rounded-lg bg-white p-4 shadow-sm">
-  <div class="text-sm text-gray-500">Task 1: {task1Id}</div>
-  <div class="text-sm text-gray-500">Task 2: {task2Id}</div>
+  <div class="text-sm text-gray-500">Task: {taskId}</div>
+  <div>Task Name {task.name}</div>
   <div class="text-lg font-semibold">Similarity: {similarity}</div>
   <!-- <div class="text-gray-600">{taskDescription}</div> -->
   <!-- {#if parentTask}

@@ -13,15 +13,28 @@
   const project = getProjectContext();
 
   let dupes: Dupe[] = $state([]);
-  let onlyDupe: Dupe = $state({} as Dupe);
+  let currentDupeIndex: number = $state(0);
+
+  let currentDupe: Dupe | null = $derived.by(() => {
+    if (currentDupeIndex >= dupes.length) {
+      return null;
+    }
+    for (let i = currentDupeIndex; i < dupes.length; i++) {
+      const dupe = dupes[i];
+      if (
+        project.koso.graph.has(dupe.task1Id) &&
+        project.koso.graph.has(dupe.task2Id)
+      ) {
+        return dupe;
+      }
+    }
+    return null;
+  });
 
   onMount(async () => {
     try {
       dupes = await fetchDupes(auth, project.id);
-      if (dupes.length == 1) {
-        onlyDupe = dupes[0];
-      }
-
+      // TODO: Filter dupes to show only unresolved
       console.log("[triage Duplicates fetched:", dupes);
     } catch (err) {
       console.error("Error fetching duplicates:", err);
@@ -31,6 +44,16 @@
   $effect(() => {
     console.log("[triage] Current dupe pair:", dupes);
   });
+
+  function handleYesOnClick() {
+    currentDupeIndex++;
+    // TODO: Send a patch call to confirm the dupe and merge the tasks
+  }
+
+  function handleNoOnClick() {
+    currentDupeIndex++;
+    // TODO: Send a patch call to decline the dupe
+  }
 
   // validation
   // project.koso.graph.has(dupes.task1Id);
@@ -91,20 +114,32 @@
   </div>
 </div> -->
 
-{#if onlyDupe}
+<!-- {#if noRealTask} -->
+<!-- <div> No dupes / fake task </div> -->
+<!-- {/if} -->
+
+{#if currentDupe}
   <div class="grid grid-cols-1 gap-4 p-10">
     <Card
-      dupeId={onlyDupe.dupeId}
-      task1Id={onlyDupe.task1Id}
-      similarity={onlyDupe.similarity}
+      dupeId={currentDupe.dupeId}
+      taskId={currentDupe.task1Id}
+      similarity={currentDupe.similarity}
     />
-    <Card task2Id={onlyDupe.task2Id} />
+    <Card
+      dupeId={currentDupe.dupeId}
+      taskId={currentDupe.task2Id}
+      similarity={currentDupe.similarity}
+    />
   </div>
 
   <div class="flex items-center justify-center gap-8 p-4 font-bold text-white">
-    <Button variant="filled">Yes / Merge</Button>
-    <Button variant="filled">No / Keep Separate</Button>
+    <Button onclick={handleYesOnClick} variant="filled">Yes / Merge</Button>
+    <Button onclick={handleNoOnClick} variant="filled"
+      >No / Keep Separate</Button
+    >
   </div>
+{:else if currentDupeIndex > 0}
+  <p>Great Job! All duplicates resolved!</p>
 {:else}
   <p class="p-10 text-gray-400">No duplicates found 🎉</p>
 {/if}
