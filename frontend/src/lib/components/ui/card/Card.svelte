@@ -2,22 +2,23 @@
   import { Box } from "kosui";
 
   type Props = {
-    taskID: value;
-    taskName: string;
-    taskDescription: string;
-    parentTask: string;
+    dupeId?: string;
+    task1Id?: string;
+    task2Id?: string;
+    similarity?: string;
   };
 
-  let { taskID, taskName, taskDescription, parentTask }: Props = $props();
+  let { dupeId, task1Id, task2Id, similarity }: Props = $props();
 </script>
 
-<div class="flex flex-col gap-2 rounded-lg border bg-white p-4 shadow-sm">
-  <div class="text-sm text-gray-500">Task ID: {taskID}</div>
-  <div class="text-lg font-semibold">{taskName}</div>
-  <div class="text-gray-600">{taskDescription}</div>
-  {#if parentTask}
+<div class="border-red flex flex-col gap-2 rounded-lg bg-white p-4 shadow-sm">
+  <div class="text-sm text-gray-500">Task 1: {task1Id}</div>
+  <div class="text-sm text-gray-500">Task 2: {task2Id}</div>
+  <div class="text-lg font-semibold">Similarity: {similarity}</div>
+  <!-- <div class="text-gray-600">{taskDescription}</div> -->
+  <!-- {#if parentTask}
     <div class="text-xs text-gray-400">Parent: {parentTask}</div>
-  {/if}
+  {/if} -->
 </div>
 
 <div class="flex">

@@ -20,12 +20,17 @@ export type ProjectExport = {
   graph: Graph;
 };
 
-export interface DupePair {
-  taskID: string;
-  taskName: string;
-  taskDescription: string;
-  parentTask: string;
-}
+export type Dupe = {
+  dupeId: string;
+  projectId: string;
+  task1Id: string;
+  task2Id: string;
+  similarity: string;
+  // taskID: string;
+  // taskName: string;
+  // taskDescription: string;
+  // parentTask: string;
+};
 
 export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>
   a.name.localeCompare(b.name) || a.email.localeCompare(b.email);
@@ -137,7 +142,7 @@ export async function exportProject(
 export async function fetchDupes(
   auth: AuthContext,
   projectId: string,
-): Promise<DupePair[]> {
+): Promise<Dupe[]> {
   const response = await fetch(`/api/projects/${projectId}/dupes`, {
     headers: headers(auth),
   });
@@ -145,6 +150,6 @@ export async function fetchDupes(
     throw new Error(`Failed to fetch dupes: ${response.status}`);
   }
 
-  const data: DupePair[] = await response.json();
-  return data;
+  // const data = await response.json();
+  return await parseResponse(auth, response);
 }
