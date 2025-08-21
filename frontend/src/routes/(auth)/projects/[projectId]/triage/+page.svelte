@@ -5,7 +5,7 @@
   import { onMount } from "svelte";
   import Card from "$lib/components/ui/card/Card.svelte";
   import { Button } from "kosui";
-  import { fetchDupes } from "$lib/projects";
+  import { fetchDupes, updateDupes } from "$lib/projects";
   import type { Dupe } from "$lib/projects";
   // import type {ProjectExport} from "$lib/projects";
 
@@ -45,12 +45,29 @@
     console.log("[triage] Current dupe pair:", dupes);
   });
 
-  function handleYesOnClick() {
+  async function handleYesOnClick() {
+    const dupe = dupes[currentDupeIndex];
+    console.log("Sending YES for dupe:", dupe.dupeId);
+
+    try {
+      await updateDupes(auth, project.id, dupe.dupeId, true);
+      console.log("Successfully updated dupe", dupe.dupeId);
+    } catch (err) {
+      console.error("Failed to update dupe:");
+    }
     currentDupeIndex++;
     // TODO: Send a patch call to confirm the dupe and merge the tasks
   }
 
-  function handleNoOnClick() {
+  async function handleNoOnClick() {
+    const dupe = dupes[currentDupeIndex];
+    console.log("Sending NO for dupe:", dupe.dupeId);
+    try {
+      await updateDupes(auth, project.id, dupe.dupeId, true);
+      console.log("Successfully updated dupe", dupe.dupeId);
+    } catch (err) {
+      console.error("Failed to update dupe:", err);
+    }
     currentDupeIndex++;
     // TODO: Send a patch call to decline the dupe
   }
@@ -139,7 +156,7 @@
     >
   </div>
 {:else if currentDupeIndex > 0}
-  <p>Great Job! All duplicates resolved!</p>
+  <p class="p-10 text-gray-400">Great Job! All duplicates resolved!</p>
 {:else}
   <p class="p-10 text-gray-400">No duplicates found 🎉</p>
 {/if}

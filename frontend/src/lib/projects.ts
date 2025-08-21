@@ -153,3 +153,20 @@ export async function fetchDupes(
   // const data = await response.json();
   return await parseResponse(auth, response);
 }
+
+export async function updateDupes(
+  auth: AuthContext,
+  projectId: string,
+  dupe_id: string,
+  resolution: boolean | null,
+): Promise<void> {
+  const response = await fetch(`/api/projects/${projectId}/dupes/${dupe_id}`, {
+    method: "PATCH",
+    headers: {
+      ...headers(auth),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ resolution }),
+  });
+  await parseResponse(auth, response);
+}
