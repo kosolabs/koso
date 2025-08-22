@@ -54,7 +54,7 @@
     try {
       await updateDupes(auth, project.id, dupe.dupeId, true);
       console.log("Successfully updated dupe", dupe.dupeId);
-    } catch (err) {
+    } catch (_err) {
       console.error("Failed to update dupe:");
     }
     currentDupeIndex++;
