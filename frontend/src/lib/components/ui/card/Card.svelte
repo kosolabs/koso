@@ -19,6 +19,7 @@
   <div class="text-sm text-gray-500">Task: {taskId}</div>
   <div>Task Name {task.name}</div>
   <div class="text-lg font-semibold">Similarity: {similarity}</div>
+  <div>Dupe ID: {dupeId}</div>
   <!-- <div class="text-gray-600">{taskDescription}</div> -->
   <!-- {#if parentTask}
     <div class="text-xs text-gray-400">Parent: {parentTask}</div>
