@@ -26,10 +26,7 @@ export type Dupe = {
   task1Id: string;
   task2Id: string;
   similarity: string;
-  // taskID: string;
-  // taskName: string;
-  // taskDescription: string;
-  // parentTask: string;
+  resolution: boolean | null;
 };
 
 export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>

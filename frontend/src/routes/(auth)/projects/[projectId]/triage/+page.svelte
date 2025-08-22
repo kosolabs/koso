@@ -33,7 +33,9 @@
 
   onMount(async () => {
     try {
-      dupes = await fetchDupes(auth, project.id);
+      dupes = (await fetchDupes(auth, project.id)).filter(
+        (dupe) => !dupe.resolution === null,
+      );
       // TODO: Filter dupes to show only unresolved
       console.log("[triage Duplicates fetched:", dupes);
     } catch (err) {
@@ -156,7 +158,7 @@
     >
   </div>
 {:else if currentDupeIndex > 0}
-  <p class="p-10 text-gray-400">Great Job! All duplicates resolved!</p>
+  <p class="p-10 text-gray-400">Great Job! All duplicates resolved! 🎉</p>
 {:else}
   <p class="p-10 text-gray-400">No duplicates found 🎉</p>
 {/if}
