@@ -34,7 +34,7 @@
   onMount(async () => {
     try {
       dupes = (await fetchDupes(auth, project.id)).filter(
-        (dupe) => !dupe.resolution === null,
+        (dupe) => dupe.resolution === null,
       );
       // TODO: Filter dupes to show only unresolved
       console.log("[triage Duplicates fetched:", dupes);
