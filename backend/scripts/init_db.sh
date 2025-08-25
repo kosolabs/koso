@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#set -x
-#set -eo pipefail
+set -eo pipefail
+
 if [ -z "${DATABASE_URL}" ]; then
     echo "DATABASE_URL variable must be set."
     exit 1

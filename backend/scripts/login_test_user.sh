@@ -1,3 +1,5 @@
+#!/bin/bash
+set -eo pipefail
 
 encode() {
     echo "$1" | base64 | tr '/+' '_-' | tr -d '='

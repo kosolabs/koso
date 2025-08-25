@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eo pipefail
 
 if [ -z "${SECRET_KEY}" ]; then
     parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
