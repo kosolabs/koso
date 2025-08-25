@@ -19,10 +19,10 @@ WORKDIR /app/backend
 RUN cargo build --release
 
 # Build the sqlx binary, used to apply database migrations.
-FROM rust:1.89.0@sha256:e090f7b4adf86191313dba91260351d7f5e15cac0fe34f26706a805c0cb9641f AS sqlx
+FROM rust:1.89.0@sha256:6e6d04bd50cd4c433a805c58c13f186a508c5b5417b9b61cae40ec28e0593c51 AS sqlx
 WORKDIR /app
 COPY rust-toolchain.toml ./
-RUN cargo install sqlx-cli@=0.8.6 --locked --no-default-features --features native-tls,postgres --root ./
+RUN cargo install sqlx-cli@=0.8.6 --locked --no-default-features --features rustls,postgres --root ./
 
 FROM node:24.6.0@sha256:d2b6b5aedb5b729f68ee1129e0f5a5d4713d93f82448249e82241876d8e8d86e AS frontend
 ENV PNPM_HOME="/pnpm"
@@ -44,7 +44,7 @@ RUN pnpm run build
 #
 # Use the :debug image to debug
 # https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images
-FROM gcr.io/distroless/cc-debian12@sha256:00cc20b928afcc8296b72525fa68f39ab332f758c4f2a9e8d90845d3e06f1dc4 AS runtime
+FROM gcr.io/distroless/cc-debian13@sha256:TODO AS runtime
 WORKDIR /app
 
 COPY --from=sqlx /app/bin/sqlx ./

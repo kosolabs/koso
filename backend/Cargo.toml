@@ -27,7 +27,7 @@ tower-http = { version = "0.6.6", features = [
     "request-id",
     "cors",
 ] }
-sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "any", "postgres", "macros", "chrono", "rust_decimal", "uuid"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "chrono", "rust_decimal", "uuid"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 listenfd = "1.0.2"
