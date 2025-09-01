@@ -20,7 +20,7 @@ use base64::{Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use regex::Regex;
 use rmcp::{
     ErrorData, RoleServer,
-    handler::server::{router::tool::ToolRouter, tool::Parameters},
+    handler::server::{router::tool::ToolRouter, wrapper::Parameters},
     model::*,
     schemars::{self},
     service::RequestContext,
