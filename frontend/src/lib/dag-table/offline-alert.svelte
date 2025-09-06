@@ -9,7 +9,7 @@
 
 {#if offline}
   <div class="m-2">
-    <Alert variant="outlined" color="secondary">
+    <Alert variant="tonal" color="plain" elevated outlined>
       Connection to server lost. Working offline.
     </Alert>
   </div>
