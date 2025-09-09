@@ -137,6 +137,7 @@ impl KosoTools {
             uri: format!("tasks://projects/{}/tasks/{}", request.project_id, task.id),
             mime_type: Some("application/json".to_string()),
             text: serde_json::to_string(&task)?,
+            meta: None,
         }))
     }
 
@@ -177,6 +178,7 @@ impl KosoTools {
                 .to_string(),
             ),
             text: serde_json::to_string(&project)?,
+            meta: None,
         }))
     }
 }
@@ -382,6 +384,7 @@ impl KosoTools {
                     uri: format!("projects:///projects/{}", project.project_id),
                     mime_type: Some("application/json".to_string()),
                     text: serde_json::to_string(&project)?,
+                    meta: None,
                 }],
             }),
             Err(e) => Err(e.into()),
@@ -422,6 +425,7 @@ impl KosoTools {
                 uri: format!("projects:///projects/{}/tasks/{}", project_id, task.id),
                 mime_type: Some("application/json".to_string()),
                 text: serde_json::to_string(&task)?,
+                meta: None,
             }],
         })
     }
