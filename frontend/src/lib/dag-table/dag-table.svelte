@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto, replaceState } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { AnthropicStream } from "$lib/anthropic.svelte";
   import { headers } from "$lib/api";
@@ -771,7 +772,11 @@
     new Action({
       id: ActionIds.DashView,
       callback: () =>
-        goto(`/projects/${projectCtx.id}/dash/${planningCtx.selected?.name}`),
+        goto(
+          resolve(
+            `/projects/${projectCtx.id}/dash/${planningCtx.selected?.name}`,
+          ),
+        ),
       category: Categories.Navigation,
       name: "Dashboard",
       description: "Navigate to Project Dashboard view",

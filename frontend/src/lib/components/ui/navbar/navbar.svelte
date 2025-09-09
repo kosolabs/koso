@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from "$app/paths";
   import { getAuthContext } from "$lib/auth.svelte";
   import {
     ActionIds,
@@ -95,7 +96,7 @@
           </MenuContent>
         </Menu>
       {/if}
-      <a href="/projects" aria-label="Home">
+      <a href={resolve("/projects")} aria-label="Home">
         <KosoLogo class="size-10" />
       </a>
       {@render left?.()}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { parseChipProps, type ChipProps } from "$lib/components/ui/chip";
   import { Editable } from "$lib/components/ui/editable";
   import { Estimate } from "$lib/components/ui/estimate";
@@ -67,7 +68,7 @@
         const props: ChipProps = parseChipProps(parent.name);
         props.onClick = (event) => {
           event.stopPropagation();
-          goto(`/projects/${koso.projectId}?taskId=${parent.id}`);
+          goto(resolve(`/projects/${koso.projectId}?taskId=${parent.id}`));
         };
         return props;
       });

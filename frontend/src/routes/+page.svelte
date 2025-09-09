@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { getAuthContext } from "$lib/auth.svelte";
   import { nav } from "$lib/nav.svelte";
   import { fetchProjects } from "$lib/projects";
@@ -31,7 +32,7 @@
       console.debug(
         `Going to last visited project: ${nav.lastVisitedProjectId}`,
       );
-      await goto(`/projects/${nav.lastVisitedProjectId}`);
+      await goto(resolve(`/projects/${nav.lastVisitedProjectId}`));
       return;
     }
 
@@ -40,13 +41,13 @@
     if (projects.length == 1) {
       const onlyProjectId = projects[0].projectId;
       console.debug(`Going to singular project: ${onlyProjectId}`);
-      await goto(`/projects/${onlyProjectId}`);
+      await goto(resolve(`/projects/${onlyProjectId}`));
       return;
     }
 
     // If there's no better choice, go to the projects page.
     console.debug("Going to /projects");
-    await goto(`/projects`);
+    await goto(resolve(`/projects`));
   }
 </script>
 
