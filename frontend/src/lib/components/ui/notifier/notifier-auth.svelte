@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { headers, parseResponse } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
@@ -38,7 +39,7 @@
         message: `Koso failed to authorize sending notifications to ${name} because the token was missing. Return to the User Profile page and try again.`,
         acceptText: "Return to User Profile",
       });
-      return await goto("/profile");
+      return await goto(resolve("/profile"));
     }
 
     const resp = await fetch(`/api/notifiers/${notifier}`, {
@@ -61,9 +62,9 @@
         acceptText: "Return Home",
       });
       if (goHome) {
-        return await goto("/");
+        return await goto(resolve("/"));
       } else {
-        return await goto("/profile");
+        return await goto(resolve("/profile"));
       }
     } catch {
       await dialog.notice({
@@ -72,7 +73,7 @@
         message: `Koso failed to authorize sending notifications to ${name} because the token was invalid. Return to the User Profile page and try again.`,
         acceptText: "Return to User Profile",
       });
-      return await goto("/profile");
+      return await goto(resolve("/profile"));
     }
   }
 

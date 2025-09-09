@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto, replaceState } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { getAuthContext } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
@@ -301,7 +302,7 @@
     new Action({
       id: ActionIds.DashView,
       callback: () =>
-        goto(`/projects/${projectCtx.id}/dash/${inbox.selected?.id}`),
+        goto(resolve(`/projects/${projectCtx.id}/dash/${inbox.selected?.id}`)),
       category: Categories.Navigation,
       name: "Dashboard",
       description: "Navigate to Project Dashboard view",

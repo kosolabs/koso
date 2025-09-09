@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { getAuthContext } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
   import {
@@ -23,7 +24,7 @@
   $effect(() => {
     if (!auth.ok()) {
       nav.pushRedirectOnUserNotAuthenticated();
-      goto("/");
+      goto(resolve("/"));
     }
   });
 
