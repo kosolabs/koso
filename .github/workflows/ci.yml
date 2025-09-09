@@ -25,7 +25,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17.6@sha256:29e0bb09c8e7e7fc265ea9f4367de9622e55bae6b0b97e7cce740c2d63c2ebc0
+        image: postgres:17.6@sha256:7be29db83c6f7084804058fe18952f19424fdab3131caaaf2e90dd21076e0341
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -106,7 +106,7 @@ jobs:
         with:
           package_json_file: frontend/package.json
       - name: Setup Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version-file: frontend/.nvmrc
           cache: "pnpm"
@@ -125,7 +125,7 @@ jobs:
       REGISTRY: ghcr.io
     services:
       postgres:
-        image: postgres:17.6@sha256:29e0bb09c8e7e7fc265ea9f4367de9622e55bae6b0b97e7cce740c2d63c2ebc0
+        image: postgres:17.6@sha256:7be29db83c6f7084804058fe18952f19424fdab3131caaaf2e90dd21076e0341
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -147,7 +147,7 @@ jobs:
         with:
           package_json_file: frontend/package.json
       - name: Setup Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version-file: frontend/.nvmrc
           cache: "pnpm"
