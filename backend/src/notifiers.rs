@@ -7,11 +7,13 @@ use sqlx::{PgPool, prelude::FromRow};
 use crate::api::google::User;
 use crate::api::{ApiResult, google};
 use crate::notifiers::slack::SlackClient;
+use crate::notifiers::teams::TeamsClient;
 use crate::notifiers::telegram::TelegramClient;
 use crate::settings::settings;
 
 pub(crate) mod discord;
 pub(crate) mod slack;
+pub(crate) mod teams;
 pub(crate) mod telegram;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -33,11 +35,19 @@ pub(super) struct TelegramSettings {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct TeamsSettings {
+    pub(super) bot_token: String,
+    pub(super) channel_id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", tag = "type")]
 pub(super) enum NotifierSettings {
     Discord(DiscordSettings),
     Slack(SlackSettings),
     Telegram(TelegramSettings),
+    Teams(TeamsSettings),
 }
 
 #[derive(Serialize, Deserialize, FromRow, Debug)]
@@ -56,7 +66,8 @@ pub(super) fn router() -> Result<Router> {
         .layer(middleware::from_fn(google::authenticate))
         .nest("/discord", discord::router())
         .nest("/slack", slack::router())
-        .nest("/telegram", telegram::router()))
+        .nest("/telegram", telegram::router())
+        .nest("/teams", teams::router()))
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -83,6 +94,7 @@ pub(super) struct Notifier {
     discord: Option<discord::DiscordClient>,
     slack: Option<slack::SlackClient>,
     telegram: Option<telegram::TelegramClient>,
+    teams: Option<teams::TeamsClient>,
 }
 
 impl Notifier {
@@ -119,6 +131,16 @@ impl Notifier {
                     }
                 }
             },
+            teams: match TeamsClient::new() {
+                Ok(client) => Some(client),
+                Err(e) => {
+                    if settings().is_dev() {
+                        None
+                    } else {
+                        return Err(e.context("Failed to initialize Teams client"));
+                    }
+                }
+            },
         })
     }
 
@@ -129,7 +151,7 @@ impl Notifier {
         notifiers: Option<Vec<String>>,
     ) -> Result<()> {
         let notifiers = notifiers.unwrap_or(
-            vec!["discord", "slack", "telegram"]
+            vec!["discord", "slack", "telegram", "teams"]
                 .into_iter()
                 .map(|s| s.to_string())
                 .collect(),
@@ -161,6 +183,13 @@ impl Notifier {
                 NotifierSettings::Telegram(settings) => {
                     if let Some(client) = &self.telegram {
                         client.send_message(settings.chat_id, message).await?;
+                    }
+                }
+                NotifierSettings::Teams(settings) => {
+                    if let Some(client) = &self.teams {
+                        client
+                            .send_message(&settings.bot_token, &settings.channel_id, message)
+                            .await?;
                     }
                 }
             }
@@ -195,6 +224,7 @@ pub(crate) async fn insert_notification_config(
         NotifierSettings::Discord(_) => "discord",
         NotifierSettings::Slack(_) => "slack",
         NotifierSettings::Telegram(_) => "telegram",
+        NotifierSettings::Teams(_) => "teams",
     };
     sqlx::query(
         "
