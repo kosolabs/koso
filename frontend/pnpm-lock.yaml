@@ -66,8 +66,8 @@ importers:
         specifier: 10.1.8
         version: 10.1.8(eslint@9.36.0(jiti@2.6.0))
       eslint-plugin-svelte:
-        specifier: 3.12.4
-        version: 3.12.4(eslint@9.36.0(jiti@2.6.0))(svelte@5.39.4)
+        specifier: 3.11.0
+        version: 3.11.0(eslint@9.36.0(jiti@2.6.0))(svelte@5.39.4)
       fake-indexeddb:
         specifier: 6.2.2
         version: 6.2.2
@@ -1463,8 +1463,8 @@ packages:
     peerDependencies:
       eslint: '>=7.0.0'
 
-  eslint-plugin-svelte@3.12.4:
-    resolution: {integrity: sha512-hD7wPe+vrPgx3U2X2b/wyTMtWobm660PygMGKrWWYTc9lvtY8DpNFDaU2CJQn1szLjGbn/aJ3g8WiXuKakrEkw==}
+  eslint-plugin-svelte@3.11.0:
+    resolution: {integrity: sha512-KliWlkieHyEa65aQIkRwUFfHzT5Cn4u3BQQsu3KlkJOs7c1u7ryn84EWaOjEzilbKgttT4OfBURA8Uc4JBSQIw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.1 || ^9.0.0
@@ -4039,7 +4039,7 @@ snapshots:
     dependencies:
       eslint: 9.36.0(jiti@2.6.0)
 
-  eslint-plugin-svelte@3.12.4(eslint@9.36.0(jiti@2.6.0))(svelte@5.39.4):
+  eslint-plugin-svelte@3.11.0(eslint@9.36.0(jiti@2.6.0))(svelte@5.39.4):
     dependencies:
       '@eslint-community/eslint-utils': 4.9.0(eslint@9.36.0(jiti@2.6.0))
       '@jridgewell/sourcemap-codec': 1.5.5
