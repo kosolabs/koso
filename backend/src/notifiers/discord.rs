@@ -97,11 +97,6 @@ struct AuthorizeDiscord {
     token: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct DiscordChannel {
-    id: String,
-}
-
 #[tracing::instrument(skip(user, pool, key))]
 async fn authorize_discord(
     Extension(user): Extension<User>,

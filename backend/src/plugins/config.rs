@@ -115,16 +115,9 @@ fn rows_to_configs(configs: Vec<ConfigRow>) -> Vec<Config> {
 
 #[cfg(test)]
 mod tests {
-    use serde::{Deserialize, Serialize};
-
     use crate::tests::db::UnsafePoolWrapper;
 
     use super::*;
-
-    #[derive(Debug, Deserialize, Serialize, PartialEq)]
-    pub(super) struct SomePluginSettings {
-        pub(super) other_thing: String,
-    }
 
     #[test_log::test(sqlx::test)]
     async fn config_test(pool: PgPool) -> Result<()> {

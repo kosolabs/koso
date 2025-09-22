@@ -1,4 +1,5 @@
 import { goto } from "$app/navigation";
+import { resolve } from "$app/paths";
 import { nav } from "$lib/nav.svelte";
 import { CircleX } from "@lucide/svelte";
 import { jwtDecode } from "jwt-decode";
@@ -93,7 +94,7 @@ export async function showUnauthorizedDialog() {
     acceptText: "Return Home",
   });
   nav.lastVisitedProjectId = null;
-  await goto("/");
+  await goto(resolve("/"));
 }
 
 export function setAuthContext(ctx: AuthContext): AuthContext {

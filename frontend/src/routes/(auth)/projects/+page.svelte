@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { KosoError } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
   import { Goto } from "$lib/components/ui/goto";
@@ -23,7 +24,7 @@
     );
     try {
       let project = await rest.createProject(auth, projectExport);
-      await goto(`/projects/${project.projectId}`);
+      await goto(resolve(`/projects/${project.projectId}`));
       toast.success(projectExport ? "Project imported!" : "Project created!", {
         id: toastId,
       });

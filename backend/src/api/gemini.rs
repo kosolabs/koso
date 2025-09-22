@@ -14,11 +14,6 @@ struct GenerateContentRequest {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
-struct GenerateContentResponse {
-    candidates: Vec<Content>,
-}
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct Content {
     parts: Vec<Part>,
 }

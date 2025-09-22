@@ -137,6 +137,7 @@ impl KosoTools {
             uri: format!("tasks://projects/{}/tasks/{}", request.project_id, task.id),
             mime_type: Some("application/json".to_string()),
             text: serde_json::to_string(&task)?,
+            meta: None,
         }))
     }
 
@@ -177,6 +178,7 @@ impl KosoTools {
                 .to_string(),
             ),
             text: serde_json::to_string(&project)?,
+            meta: None,
         }))
     }
 }
@@ -231,6 +233,7 @@ impl rmcp::ServerHandler for KosoTools {
                 RawResourceTemplate {
                     uri_template: "projects:///projects/{project_id}".to_string(),
                     name: "Koso Project".to_string(),
+                    title: Some("Koso Project".to_string()),
                     description: Some(
                         "A Koso project has multiple collaborators and contains Koso tasks"
                             .to_string(),
@@ -243,6 +246,7 @@ impl rmcp::ServerHandler for KosoTools {
                 RawResourceTemplate {
                     uri_template: "tasks:///projects/{project_id}/tasks/{task_id}".to_string(),
                     name: "Koso Task".to_string(),
+                    title: Some("Koso Task".to_string()),
                     description: Some(
                         "A Koso task exists in a Koso project, may be assigned to a collaborator and may have children"
                             .to_string(),
@@ -291,17 +295,21 @@ impl rmcp::ServerHandler for KosoTools {
             next_cursor: None,
             prompts: vec![Prompt {
                 name: "create_koso_task".to_string(),
+                title: Some("Create Koso task".to_string()),
+                icons: None,
                 description: Some(
                     "Create a new Koso task in an existing Koso project.".to_string(),
                 ),
                 arguments: Some(vec![
                     PromptArgument {
                         name: "project_id".to_string(),
+                        title: Some("Project ID".to_string()),
                         description: Some("ID of the Koso project".to_string()),
                         required: Some(true),
                     },
                     PromptArgument {
                         name: "name".to_string(),
+                        title: Some("Task name".to_string()),
                         description: Some(
                             "Name of the task. A concise description of the task.".to_string(),
                         ),
@@ -382,6 +390,7 @@ impl KosoTools {
                     uri: format!("projects:///projects/{}", project.project_id),
                     mime_type: Some("application/json".to_string()),
                     text: serde_json::to_string(&project)?,
+                    meta: None,
                 }],
             }),
             Err(e) => Err(e.into()),
@@ -422,6 +431,7 @@ impl KosoTools {
                 uri: format!("projects:///projects/{}/tasks/{}", project_id, task.id),
                 mime_type: Some("application/json".to_string()),
                 text: serde_json::to_string(&task)?,
+                meta: None,
             }],
         })
     }
