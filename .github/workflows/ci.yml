@@ -25,7 +25,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17.6@sha256:7be29db83c6f7084804058fe18952f19424fdab3131caaaf2e90dd21076e0341
+        image: postgres:18.0@sha256:1d288494853e244e7a78d87b3526e650e5221c622f9768ecac9313d0874a9c39
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -125,7 +125,7 @@ jobs:
       REGISTRY: ghcr.io
     services:
       postgres:
-        image: postgres:17.6@sha256:7be29db83c6f7084804058fe18952f19424fdab3131caaaf2e90dd21076e0341
+        image: postgres:18.0@sha256:1d288494853e244e7a78d87b3526e650e5221c622f9768ecac9313d0874a9c39
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password

@@ -11,7 +11,7 @@
 1. Install and start [PostgreSQL](https://www.postgresql.org/).
 
    ```sh
-   POSTGRESQL_VERSION=17
+   POSTGRESQL_VERSION=18
    brew install postgresql@$POSTGRESQL_VERSION
    brew services start postgresql@$POSTGRESQL_VERSION
    ```
@@ -287,15 +287,15 @@ PGPASSWORD=$PSQL_PASSWORD pg_restore \
 
 ### Upgrade
 
-Upgrade Postgres to a new major version. In the example below, from 16 to 17.
+Upgrade Postgres to a new major version. In the example below, from 17 to 18.
 
-1. Update the postgres image version from postgres:16 to postgres:17 in ci.yml and merge.
+1. Update the postgres image version from postgres:17 to postgres:18 in ci.yml and merge.
 
 1. Install the new version of posgres:
 
    ```bash
    sudo apt update
-   sudo apt install postgresql-17
+   sudo apt install postgresql-18
    pg_lsclusters
    ```
 
@@ -309,8 +309,8 @@ Upgrade Postgres to a new major version. In the example below, from 16 to 17.
 
    ```
    sudo service postgresql stop
-   sudo pg_renamecluster 17 main main_pristine
-   sudo pg_upgradecluster 16 main
+   sudo pg_renamecluster 18 main main_pristine
+   sudo pg_upgradecluster 17 main
    sudo service postgresql start
 
    pg_lsclusters
@@ -325,8 +325,8 @@ Upgrade Postgres to a new major version. In the example below, from 16 to 17.
 1. Drop the old and transition version:
 
    ```bash
-   sudo pg_dropcluster 16 main --stop
-   sudo pg_dropcluster 17 main_pristine --stop
+   sudo pg_dropcluster 17 main --stop
+   sudo pg_dropcluster 18 main_pristine --stop
    ```
 
 # Integrations
