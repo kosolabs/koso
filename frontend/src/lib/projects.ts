@@ -20,6 +20,15 @@ export type ProjectExport = {
   graph: Graph;
 };
 
+export type Dupe = {
+  dupeId: string;
+  projectId: string;
+  task1Id: string;
+  task2Id: string;
+  similarity: string;
+  resolution: boolean | null;
+};
+
 export const COMPARE_USERS_BY_NAME_AND_EMAIL = (a: User, b: User) =>
   a.name.localeCompare(b.name) || a.email.localeCompare(b.email);
 
@@ -125,4 +134,36 @@ export async function exportProject(
     headers: headers(auth),
   });
   return await parseResponse(auth, response);
+}
+
+export async function fetchDupes(
+  auth: AuthContext,
+  projectId: string,
+): Promise<Dupe[]> {
+  const response = await fetch(`/api/projects/${projectId}/dupes`, {
+    headers: headers(auth),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch dupes: ${response.status}`);
+  }
+
+  // const data = await response.json();
+  return await parseResponse(auth, response);
+}
+
+export async function updateDupes(
+  auth: AuthContext,
+  projectId: string,
+  dupe_id: string,
+  resolution: boolean | null,
+): Promise<void> {
+  const response = await fetch(`/api/projects/${projectId}/dupes/${dupe_id}`, {
+    method: "PATCH",
+    headers: {
+      ...headers(auth),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ resolution }),
+  });
+  await parseResponse(auth, response);
 }
