@@ -185,7 +185,7 @@
           <div class="flex items-center border-t p-2">
             <Goto
               class="text-lg"
-              href={resolve("/projects/{project.projectId}")}
+              href={resolve(`/projects/${project.projectId}`)}
             >
               {project.name}
             </Goto>
