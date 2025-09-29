@@ -10,10 +10,10 @@ name = "build_backend_dummy"
 path = "build/dummy.rs"
 
 [dependencies]
-axum = { version = "0.8.4", features = ["http2", "ws", "macros"] }
-axum-extra = { version = "0.10.1", features = ["typed-header"] }
+axum = { version = "0.8.5", features = ["http2", "ws", "macros"] }
+axum-extra = { version = "0.10.2", features = ["typed-header"] }
 tokio = { version = "1.47.1", features = ["full"] }
-serde = { version = "1.0.226", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.145", features = ["raw_value"] }
 uuid = { version = "1.18.1", features = [
     "v4",       # Lets you generate random UUIDs
@@ -49,8 +49,8 @@ hmac = "0.12.1"
 hex = "0.4.3"
 sha2 = "0.10.9"
 async-trait = "0.1.89"
-config = { version = "0.15.16", default-features = false, features = ["json"] }
-regex = "1.11.2"
+config = { version = "0.15.17", default-features = false, features = ["json"] }
+regex = "1.11.3"
 serde_qs = "1.0.0-rc.3"
 ed25519-dalek = "2.2.0"
 tokio-tungstenite = { version = "0.28.0" }
