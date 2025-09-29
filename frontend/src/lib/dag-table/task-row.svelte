@@ -103,7 +103,7 @@
   <td class={cn("border-t px-2")}>
     <div class="flex items-center gap-1">
       <Grip class="w-4" />
-      <Goto href={`/projects/${koso.projectId}?taskId=${task.id}`}>
+      <Goto href={resolve(`/projects/${koso.projectId}?taskId=${task.id}`)}>
         {task.num}
       </Goto>
     </div>

@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { resolve } from "$app/paths";
   import { NavigationAction } from "$lib/navigation-action";
   import { House, Moon, Sun, SunMoon, Terminal } from "@lucide/svelte";
   import { Action, Commander, Registry, Shortcut } from "kosui";
@@ -140,7 +141,7 @@
     }),
     new NavigationAction({
       id: ActionIds.Home,
-      href: "/",
+      href: resolve("/"),
       category: Categories.Navigation,
       name: "Home",
       description: "Navigate Home",

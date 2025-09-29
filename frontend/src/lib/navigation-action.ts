@@ -1,11 +1,12 @@
 import { goto } from "$app/navigation";
+import type { ResolvedPathname } from "$app/types";
 import type { Icon } from "@lucide/svelte";
 import type { Shortcut } from "kosui";
 import { Action } from "kosui";
 
 type NavigationActionProps = {
   id: string;
-  href: string;
+  href: ResolvedPathname;
   category?: string;
   categoryIndex?: number;
   name?: string;
@@ -16,18 +17,20 @@ type NavigationActionProps = {
 };
 
 export class NavigationAction extends Action {
-  #href: string;
+  #href: ResolvedPathname;
 
   constructor({ id, href, ...restProps }: NavigationActionProps) {
     super({
       id,
+      // ResolvedPathName not yet supported.
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
       callback: () => goto(href),
       ...restProps,
     });
     this.#href = href;
   }
 
-  get href(): string {
+  get href(): ResolvedPathname {
     return this.#href;
   }
 }

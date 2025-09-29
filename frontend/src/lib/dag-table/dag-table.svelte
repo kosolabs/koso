@@ -817,6 +817,8 @@
     if (taskId) {
       await koso.synced;
       url.searchParams.delete("taskId");
+      // ResolvedPathName not yet supported.
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
       replaceState(url, {});
       // The task may not exist locally, yet. It
       // might come from the server, so wait for that.

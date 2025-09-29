@@ -625,7 +625,7 @@
               <Button
                 icon={Github}
                 onclick={async () =>
-                  await redirectToConnectUserFlow(auth, page.url.toString())}
+                  await redirectToConnectUserFlow(auth, page.url)}
               >
                 Connect to Github
               </Button>
