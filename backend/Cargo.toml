@@ -10,10 +10,10 @@ name = "build_backend_dummy"
 path = "build/dummy.rs"
 
 [dependencies]
-axum = { version = "0.8.4", features = ["http2", "ws", "macros"] }
-axum-extra = { version = "0.10.1", features = ["typed-header"] }
+axum = { version = "0.8.5", features = ["http2", "ws", "macros"] }
+axum-extra = { version = "0.10.2", features = ["typed-header"] }
 tokio = { version = "1.47.1", features = ["full"] }
-serde = { version = "1.0.226", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.145", features = ["raw_value"] }
 uuid = { version = "1.18.1", features = [
     "v4",       # Lets you generate random UUIDs
@@ -44,21 +44,21 @@ rand = "0.9.2"
 tower = "0.5.2"
 similar = "2.7.0"
 chrono = { version = "0.4.42", features = ["serde"] }
-octocrab = "0.45.0"
+octocrab = "0.46.0"
 hmac = "0.12.1"
 hex = "0.4.3"
 sha2 = "0.10.9"
 async-trait = "0.1.89"
-config = { version = "0.15.16", default-features = false, features = ["json"] }
-regex = "1.11.2"
+config = { version = "0.15.17", default-features = false, features = ["json"] }
+regex = "1.11.3"
 serde_qs = "1.0.0-rc.3"
 ed25519-dalek = "2.2.0"
-tokio-tungstenite = { version = "0.27.0" }
-rmcp = { version = "0.6.4", features = ["server", "transport-io", "transport-streamable-http-server", "transport-sse-server", "auth"] }
+tokio-tungstenite = { version = "0.28.0" }
+rmcp = { version = "0.7.0", features = ["server", "transport-io", "transport-streamable-http-server", "transport-sse-server", "auth"] }
 url = "2.5.7"
 rust_decimal = { version = "1.38.0", features = ["serde"] }
 
 [dev-dependencies]
 test-log = { version = "0.2.18", features = ["trace", "color"] }
-tokio-tungstenite = { version = "0.27.0", features = ["url"] }
+tokio-tungstenite = { version = "0.28.0", features = ["url"] }
 rsa = "0.9.8"

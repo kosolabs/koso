@@ -64,11 +64,13 @@ systemctl restart caddy.service
 sudo apt update
 sudo apt install -y postgresql-common
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
-apt install postgresql-17
-cat >>/etc/postgresql/17/main/postgresql.conf <<EOL
+apt install postgresql-18
+cat >>/etc/postgresql/18/main/postgresql.conf <<EOL
 
 # Commit asynchronously for better performance
 synchronous_commit = off
+# Enable uring async io
+io_method = io_uring
 EOL
 
 systemctl start postgresql.service
