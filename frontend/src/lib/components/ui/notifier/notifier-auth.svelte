@@ -14,7 +14,7 @@
   } from "kosui";
   import { onMount } from "svelte";
 
-  export type Notifier = "discord" | "slack" | "telegram";
+  export type Notifier = "discord" | "slack" | "telegram" | "teams";
 
   export type NotifierAuthProps = {
     notifier: Notifier;
@@ -87,7 +87,11 @@
     <Alert>
       <div class="flex items-center gap-2">
         <CircularProgress />
-        <div>Koso is authorizing sending notifications to Discord...</div>
+        <div>
+          Koso is authorizing sending notifications to {toTitleCase(
+            notifier,
+          )}...
+        </div>
       </div>
     </Alert>
   </div>
