@@ -183,7 +183,10 @@
       >
         {#each projects as project (project.projectId)}
           <div class="flex items-center border-t p-2">
-            <Goto class="text-lg" href="/projects/{project.projectId}">
+            <Goto
+              class="text-lg"
+              href={resolve(`/projects/${project.projectId}`)}
+            >
               {project.name}
             </Goto>
             <Button

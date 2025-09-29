@@ -1,4 +1,6 @@
 import { goto } from "$app/navigation";
+import { resolve } from "$app/paths";
+import type { ResolvedPathname } from "$app/types";
 import { headers, parseResponse } from "./api";
 import type { AuthContext } from "./auth.svelte";
 
@@ -17,7 +19,7 @@ export type InitResponse = {
 export async function redirectToGithubInstallFlow(
   auth: AuthContext,
   projectId: string,
-  redirectUrl: string,
+  redirectUrl: URL & { pathname: ResolvedPathname },
 ) {
   const init = await initGithub(auth);
 
@@ -28,12 +30,15 @@ export async function redirectToGithubInstallFlow(
     projectId,
     clientId: init.clientId,
     installationId: undefined,
-    redirectUrl,
+    redirectUrl: redirectUrl.toString(),
   });
   sessionStorage.setItem(stateSessionKey, state);
-  window.location.assign(
-    `https://github.com/apps/${init.appName}/installations/new?state=${encodeURIComponent(state)}`,
+  const url = new URL(
+    `https://github.com/apps/${init.appName}/installations/new`,
   );
+  url.searchParams.append("state", state);
+
+  window.location.assign(url);
 }
 
 /**
@@ -43,18 +48,22 @@ export async function redirectToGithubInstallFlow(
  */
 export async function redirectToConnectUserFlow(
   auth: AuthContext,
-  redirectUrl: string,
+  redirectUrl: URL & { pathname: ResolvedPathname },
 ) {
   const init = await initGithub(auth);
 
   const state = encodeState<ConnectUserState>({
     csrf: generateCsrfValue(),
     clientId: init.clientId,
-    redirectUrl,
+    redirectUrl: redirectUrl.toString(),
   });
   sessionStorage.setItem(stateSessionKey, state);
 
-  await goto(`/connections/github/user?state=${encodeURIComponent(state)}`);
+  await goto(
+    // ResolvedPathName not yet supported.
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
+    `${resolve("/connections/github/user")}?state=${encodeURIComponent(state)}`,
+  );
 }
 
 async function initGithub(auth: AuthContext): Promise<InitResponse> {

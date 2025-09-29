@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { resolve } from "$app/paths";
   import { Goto } from "$lib/components/ui/goto";
   import { Blocks, CalendarCheck2, CirclePlay, Icon } from "@lucide/svelte";
   import { Button, Tooltip } from "kosui";
@@ -89,7 +90,7 @@
         {@const task = reason.parents[0]}
         <TooltipReason title="Owner of Parent" icon={icons[reason.name]}>
           This task is in your inbox because you are the owner of it's parent:
-          <Goto href={`/projects/${koso.projectId}?taskId=${task.id}`}>
+          <Goto href={resolve(`/projects/${koso.projectId}?taskId=${task.id}`)}>
             Task {task.num} - {task.name}
           </Goto>
           and it is not assigned.

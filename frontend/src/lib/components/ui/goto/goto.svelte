@@ -1,10 +1,11 @@
 <script module lang="ts">
   import { goto } from "$app/navigation";
+  import type { ResolvedPathname } from "$app/types";
   import { Link, mergeProps, type LinkProps } from "kosui";
   import type { Snippet } from "svelte";
 
   export type GotoProps = {
-    href: string;
+    href: ResolvedPathname;
     children: Snippet;
   } & Omit<LinkProps, "href">;
 </script>
@@ -20,6 +21,8 @@
     onclick: (event: MouseEvent) => {
       event.stopPropagation();
       event.preventDefault();
+      // ResolvedPathName not yet supported.
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
       goto(href);
     },
   })}

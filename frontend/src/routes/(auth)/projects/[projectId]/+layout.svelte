@@ -1,6 +1,8 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { page } from "$app/state";
+  import type { ResolvedPathname } from "$app/types";
   import { getAuthContext, showUnauthorizedDialog } from "$lib/auth.svelte";
   import { getRegistryContext } from "$lib/components/ui/command-palette";
   import {
@@ -81,10 +83,10 @@
     ctx.users = users;
   }
 
-  function getNextIterationDashboard() {
+  function getNextIterationDashboard(): ResolvedPathname | undefined {
     const plannedTasks = ctx.koso.getCurrentIterations();
     if (plannedTasks.length > 0) {
-      return `/projects/${ctx.id}/dash/${plannedTasks[0].id}`;
+      return resolve(`/projects/${ctx.id}/dash/${plannedTasks[0].id}`);
     }
   }
 
@@ -97,7 +99,7 @@
   const actions: Action[] = [
     new NavigationAction({
       id: ActionIds.InboxView,
-      href: `/projects/${ctx.id}/inbox`,
+      href: resolve(`/projects/${ctx.id}/inbox`),
       category: Categories.Navigation,
       name: "Zero Inbox",
       description: "Navigate to Zero Inbox view",
@@ -105,7 +107,7 @@
     }),
     new NavigationAction({
       id: ActionIds.PlanView,
-      href: `/projects/${ctx.id}`,
+      href: resolve(`/projects/${ctx.id}`),
       category: Categories.Navigation,
       name: "Project Planning",
       description: "Navigate to Project Planning view",
@@ -113,6 +115,8 @@
     }),
     new Action({
       id: ActionIds.NextDashView,
+      // ResolvedPathName not yet supported.
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
       callback: () => goto(getNextIterationDashboard()!),
       category: Categories.Navigation,
       name: "Current Iteration",
@@ -159,7 +163,7 @@
     new Action({
       id: ActionIds.ConnectToGitHub,
       callback: async () =>
-        await redirectToGithubInstallFlow(auth, ctx.id, page.url.toString()),
+        await redirectToGithubInstallFlow(auth, ctx.id, page.url),
       category: Categories.Project,
       name: "Connect to GitHub",
       description: "Connect the project to GitHub",

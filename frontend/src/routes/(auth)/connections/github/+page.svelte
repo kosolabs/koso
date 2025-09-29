@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { KosoError } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
@@ -16,7 +17,7 @@
 
     const state = parseAndValidateState(urlParams);
     if (!state) {
-      await goto("/");
+      await goto(resolve("/"));
       return;
     }
 
@@ -37,6 +38,8 @@
     await connectProject(state, code);
     toast.info("Project connected to Github!");
 
+    // Guaranteed to be a URL of the same origin.
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
     await goto(state.redirectUrl, { replaceState: true });
   });
 
@@ -135,9 +138,13 @@
       if (e instanceof KosoError) {
         if (e.hasReason("GITHUB_UNAUTHENTICATED")) {
           toast.error("Github authentication expired. Please try again");
+          // Guaranteed to be a URL of the same origin.
+          // eslint-disable-next-line svelte/no-navigation-without-resolve
           await goto(state.redirectUrl);
         } else if (e.hasReason("GITHUB_AUTH_REJECTED")) {
           toast.error("Failed to authenticate with Github. Please try again");
+          // Guaranteed to be a URL of the same origin.
+          // eslint-disable-next-line svelte/no-navigation-without-resolve
           await goto(state.redirectUrl);
         }
       }

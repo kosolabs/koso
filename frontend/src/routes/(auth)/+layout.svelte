@@ -31,7 +31,7 @@
   const actions: Action[] = [
     new NavigationAction({
       id: ActionIds.ProjectsView,
-      href: "/projects",
+      href: resolve("/projects"),
       category: Categories.Navigation,
       name: "List Projects",
       description: "Navigate to All Projects view",
@@ -39,7 +39,7 @@
     }),
     new NavigationAction({
       id: ActionIds.ProfileView,
-      href: "/profile",
+      href: resolve("/profile"),
       category: Categories.Account,
       name: "User Profile",
       description: "Navigate to your user profile settings",
