@@ -34,7 +34,7 @@ export async function redirectToGithubInstallFlow(
   });
   sessionStorage.setItem(stateSessionKey, state);
   const url = new URL(
-    "https://github.com/apps/${init.appName}/installations/new",
+    `https://github.com/apps/${init.appName}/installations/new`,
   );
   url.searchParams.append("state", state);
 
