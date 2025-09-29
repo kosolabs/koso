@@ -2,7 +2,7 @@
   import { page } from "$app/state";
   import { headers, parseResponse } from "$lib/api";
   import { getAuthContext } from "$lib/auth.svelte";
-  import { Discord, Telegram } from "$lib/components/ui/custom-icons";
+  import { Discord, Teams, Telegram } from "$lib/components/ui/custom-icons";
   import { Navbar } from "$lib/components/ui/navbar";
   import type { Notifier } from "$lib/components/ui/notifier";
   import { toast } from "$lib/components/ui/sonner";
@@ -65,10 +65,21 @@
     };
   };
 
+  type TeamsNotificationConfig = {
+    notifier: "teams";
+    email: string;
+    enabled: boolean;
+    settings: {
+      botToken: string;
+      channelId: string;
+    };
+  };
+
   type NotificationConfig =
     | DiscordNotificationConfig
     | SlackNotificationConfig
-    | TelegramNotificationConfig;
+    | TelegramNotificationConfig
+    | TeamsNotificationConfig;
 
   type PluginConnections = {
     githubUserId?: string;
@@ -169,11 +180,16 @@
   ): TelegramNotificationConfig | null;
   function getNotificationConfig(
     profile: Profile,
+    notifier: "teams",
+  ): TeamsNotificationConfig | null;
+  function getNotificationConfig(
+    profile: Profile,
     notifier: Notifier,
   ):
     | DiscordNotificationConfig
     | SlackNotificationConfig
     | TelegramNotificationConfig
+    | TeamsNotificationConfig
     | null {
     return (
       profile.notificationConfigs.find(
@@ -201,6 +217,51 @@
       profile = load();
     } catch {
       toast.error("Failed to delete Github connection.", { id: toastId });
+    }
+  }
+
+  let showTeamsForm = $state(false);
+  let teamsBotToken = $state("");
+  let teamsChannelId = $state("");
+
+  async function showTeamsAuthDialog() {
+    showTeamsForm = true;
+  }
+
+  async function connectTeams() {
+    if (!teamsBotToken || !teamsChannelId) {
+      toast.error("Please enter both bot token and channel ID");
+      return;
+    }
+
+    const toastId = toast.loading("Connecting to Microsoft Teams...");
+
+    try {
+      // Create a temporary token for authorization
+      const tempToken = btoa(
+        JSON.stringify({
+          bot_token: teamsBotToken,
+          channel_id: teamsChannelId,
+        }),
+      );
+
+      let resp = await fetch(`/api/notifiers/teams`, {
+        method: "POST",
+        headers: {
+          ...headers(auth),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token: tempToken }),
+      });
+
+      await parseResponse(auth, resp);
+      toast.success("Microsoft Teams connected successfully!", { id: toastId });
+      profile = load();
+      showTeamsForm = false;
+      teamsBotToken = "";
+      teamsChannelId = "";
+    } catch {
+      toast.error("Failed to connect to Microsoft Teams.", { id: toastId });
     }
   }
 
@@ -435,6 +496,94 @@
           Koso is not authorized to send messages to Telegram. To authorize
           Koso, start a Telegram Chat with
           <Link href="https://t.me/KosoLabsBot">@KosoLabsBot</Link>.
+        {/if}
+      </SubSection>
+
+      <SubSection title="Microsoft Teams" icon={Teams}>
+        {@const teamsConfig = getNotificationConfig(profile, "teams")}
+        {#if teamsConfig}
+          <div class="flex flex-col gap-2">
+            <div>Koso is authorized to send messages to Microsoft Teams.</div>
+            <div class="flex flex-wrap gap-2">
+              <Button icon={Send} onclick={() => sendTestNotification("teams")}>
+                Send Test Teams Notification
+              </Button>
+              <div class="ml-auto">
+                <Button
+                  icon={CircleX}
+                  variant="filled"
+                  onclick={() => deleteNotificationConfig("teams")}
+                >
+                  Delete Teams Authorization
+                </Button>
+              </div>
+            </div>
+            <div></div>
+          </div>
+        {:else if showTeamsForm}
+          <div class="flex flex-col gap-4 rounded-lg border bg-gray-50 p-4">
+            <div class="text-sm text-gray-600">
+              Enter your Microsoft 365 Agent credentials to connect to Teams:
+            </div>
+            <div class="flex flex-col gap-3">
+              <div>
+                <label
+                  for="teams-bot-token"
+                  class="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  Bot Token
+                </label>
+                <Input
+                  id="teams-bot-token"
+                  type="password"
+                  placeholder="Enter your bot token"
+                  bind:value={teamsBotToken}
+                />
+              </div>
+              <div>
+                <label
+                  for="teams-channel-id"
+                  class="mb-1 block text-sm font-medium text-gray-700"
+                >
+                  Channel ID
+                </label>
+                <Input
+                  id="teams-channel-id"
+                  type="text"
+                  placeholder="Enter your channel ID"
+                  bind:value={teamsChannelId}
+                />
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <Button onclick={() => connectTeams()}>Connect Teams</Button>
+              <Button
+                variant="outlined"
+                onclick={() => {
+                  showTeamsForm = false;
+                  teamsBotToken = "";
+                  teamsChannelId = "";
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        {:else}
+          <div class="flex flex-col gap-2">
+            <div>
+              Koso is not authorized to send messages to Microsoft Teams.
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <Button icon={Github} onclick={() => showTeamsAuthDialog()}>
+                Connect Microsoft Teams
+              </Button>
+            </div>
+            <div class="text-sm text-gray-600">
+              You'll need to create a Microsoft 365 Agent using the Microsoft
+              365 Agents Toolkit and provide the bot token and channel ID.
+            </div>
+          </div>
         {/if}
       </SubSection>
     {/await}
