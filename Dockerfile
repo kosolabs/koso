@@ -24,7 +24,7 @@ WORKDIR /app
 
 # The debian 13 image doesn't seem to include zlib1g. Installit.
 # Error: ./sqlx: error while loading shared libraries: libz.so.1: cannot open shared object file: No such file or directory
-RUN apt-get update && apt-get install -y --no-install-recommends zlib1g
+RUN apt-get update && apt-get install -y --no-install-recommends zlib1g libzstd1
 
 COPY rust-toolchain.toml ./
 RUN cargo install sqlx-cli@=0.8.6 --locked --no-default-features --features native-tls,postgres --root ./
@@ -54,6 +54,7 @@ WORKDIR /app
 
 # From zlib1g
 COPY --from=sqlx /lib/*/libz.so.1 /lib/
+COPY --from=sqlx /lib/*/libzstd.so.1 /lib/
 COPY --from=sqlx /app/bin/sqlx ./
 COPY backend/migrations ./migrations
 COPY --from=backend /app/target/release/koso ./
