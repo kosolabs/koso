@@ -21,6 +21,11 @@ RUN cargo build --release
 # Build the sqlx binary, used to apply database migrations.
 FROM rust:1.90.0@sha256:976303ceda00c5f21d6fe97500927285c7e0f6a2e8df71ae18a6c8e9b37550a1 AS sqlx
 WORKDIR /app
+
+# The debian 13 image doesn't seem to include zlib1g. Installit.
+# Error: ./sqlx: error while loading shared libraries: libz.so.1: cannot open shared object file: No such file or directory
+RUN apt-get update && apt-get install -y --no-install-recommends zlib1g
+
 COPY rust-toolchain.toml ./
 RUN cargo install sqlx-cli@=0.8.6 --locked --no-default-features --features native-tls,postgres --root ./
 
@@ -47,6 +52,8 @@ RUN pnpm run build
 FROM gcr.io/distroless/cc-debian13@sha256:5a64e8f2c90d871d22befc6ee0296a6afa05143e62b8f25f9c17f492c6dbf8f5 AS runtime
 WORKDIR /app
 
+# From zlib1g
+COPY --from=sqlx /lib/*/libz.so.1 /lib/
 COPY --from=sqlx /app/bin/sqlx ./
 COPY backend/migrations ./migrations
 COPY --from=backend /app/target/release/koso ./
