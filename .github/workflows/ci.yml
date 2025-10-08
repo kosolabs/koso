@@ -25,7 +25,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:18.0@sha256:1d288494853e244e7a78d87b3526e650e5221c622f9768ecac9313d0874a9c39
+        image: postgres:18.0@sha256:073e7c8b84e2197f94c8083634640ab37105effe1bc853ca4d5fbece3219b0e8
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -56,7 +56,7 @@ jobs:
           shared-key: "backend-build"
       - name: Setup Stripe CLI
         run: |
-          STRIPE_CLI_VERSION="1.30.0"
+          STRIPE_CLI_VERSION="1.31.0"
           curl -L https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_x86_64.tar.gz --output stripe.tar.gz
           tar -xvf stripe.tar.gz
           mv stripe /usr/local/bin
@@ -102,7 +102,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Setup pnpm
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
         with:
           package_json_file: frontend/package.json
       - name: Setup Node
@@ -125,7 +125,7 @@ jobs:
       REGISTRY: ghcr.io
     services:
       postgres:
-        image: postgres:18.0@sha256:1d288494853e244e7a78d87b3526e650e5221c622f9768ecac9313d0874a9c39
+        image: postgres:18.0@sha256:073e7c8b84e2197f94c8083634640ab37105effe1bc853ca4d5fbece3219b0e8
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -143,7 +143,7 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/frontend/pnpm-lock.yaml') }}
           restore-keys: ${{ runner.os }}-playwright-
       - name: Setup pnpm
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
         with:
           package_json_file: frontend/package.json
       - name: Setup Node
@@ -158,7 +158,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
       - name: Setup Stripe CLI
         run: |
-          STRIPE_CLI_VERSION="1.30.0"
+          STRIPE_CLI_VERSION="1.31.0"
           curl -L https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_x86_64.tar.gz --output stripe.tar.gz
           tar -xvf stripe.tar.gz
           mv stripe /usr/local/bin
