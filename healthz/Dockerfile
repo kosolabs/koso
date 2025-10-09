@@ -19,7 +19,7 @@ RUN cargo build --release
 #
 # Use the :debug image to debug
 # https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images
-FROM gcr.io/distroless/cc-debian12@sha256:14f6999db515330e5d00537bd457289a8968b6456e9197c7a28101ee63a7522f AS runtime
+FROM gcr.io/distroless/cc-debian13@sha256:5a64e8f2c90d871d22befc6ee0296a6afa05143e62b8f25f9c17f492c6dbf8f5 AS runtime
 WORKDIR /app
 
 COPY --from=build /app/target/release/healthz ./
