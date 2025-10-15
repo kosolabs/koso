@@ -22,9 +22,10 @@ RUN cargo build --release
 FROM rust:1.90.0@sha256:976303ceda00c5f21d6fe97500927285c7e0f6a2e8df71ae18a6c8e9b37550a1 AS sqlx
 WORKDIR /app
 
-# The debian 13 image doesn't seem to include zlib1g. Installit.
-# Error: ./sqlx: error while loading shared libraries: libz.so.1: cannot open shared object file: No such file or directory
-RUN apt-get update && apt-get install -y --no-install-recommends zlib1g libzstd1
+# The debian 13 image doesn't seem to include libzstd1. Install it.
+# See https://github.com/GoogleContainerTools/distroless/issues/1887
+# Error: ./sqlx: error while loading shared libraries: libzstd.so.1: cannot open shared object file: No such file or directory
+RUN apt-get update && apt-get install -y --no-install-recommends libzstd1
 
 COPY rust-toolchain.toml ./
 RUN cargo install sqlx-cli@=0.8.6 --locked --no-default-features --features native-tls,postgres --root ./
@@ -49,11 +50,10 @@ RUN pnpm run build
 #
 # Use the :debug image to debug
 # https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images
-FROM gcr.io/distroless/cc-debian13@sha256:5a64e8f2c90d871d22befc6ee0296a6afa05143e62b8f25f9c17f492c6dbf8f5 AS runtime
+FROM gcr.io/distroless/cc-debian13@sha256:68db2bf2b975ff277c9b2b569c327e47e2824e2c143f4dfe7c4027b15ff2f931 AS runtime
 WORKDIR /app
 
 # From zlib1g
-COPY --from=sqlx /lib/*/libz.so.1 /lib/
 COPY --from=sqlx /lib/*/libzstd.so.1 /lib/
 COPY --from=sqlx /app/bin/sqlx ./
 COPY backend/migrations ./migrations
