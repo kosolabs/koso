@@ -1,6 +1,5 @@
 use crate::{
     api::{
-        ApiResult,
         collab::{
             Collab,
             projects_state::DocBox,
@@ -20,6 +19,7 @@ use crate::{
 };
 use anyhow::Result;
 use axum::{Extension, Router, routing::post};
+use axum_anyhow::ApiResult;
 use std::{
     collections::HashMap,
     time::{Duration, Instant},

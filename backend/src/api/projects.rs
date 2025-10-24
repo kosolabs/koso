@@ -1,5 +1,4 @@
 use crate::api::{
-    ApiResult, bad_request_error,
     collab::{
         Collab,
         storage::{self, persist_update},
@@ -11,7 +10,7 @@ use crate::api::{
         CreateProject, Project, ProjectExport, ProjectId, ProjectUser, UpdateProjectUsers,
         UpdateProjectUsersResponse,
     },
-    not_found_error, verify_premium, verify_project_access,
+    verify_premium, verify_project_access,
     yproxy::YDocProxy,
 };
 use anyhow::{Context, Result};
@@ -20,6 +19,7 @@ use axum::{
     extract::Path,
     routing::{delete, get, patch, post},
 };
+use axum_anyhow::{ApiResult, OptionExt, bad_request};
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use sqlx::postgres::PgPool;
 use uuid::Uuid;
@@ -88,7 +88,7 @@ async fn create_project_handler(
     let projects = list_projects(&user.email, pool).await?;
     const MAX_PROJECTS: usize = 20;
     if projects.len() >= MAX_PROJECTS {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "TOO_MANY_PROJECTS",
             &format!("Cannot create more than {MAX_PROJECTS} projects"),
         ));
@@ -165,9 +165,9 @@ async fn get_project_handler(
 ) -> ApiResult<Json<Project>> {
     verify_project_access(pool, &user, &project_id).await?;
 
-    let Some(project) = fetch_project(pool, &project_id).await? else {
-        return Err(not_found_error("NOT_FOUND", "Project not found"));
-    };
+    let project = fetch_project(pool, &project_id)
+        .await?
+        .context_not_found("NOT_FOUND", "Project not found")?;
     Ok(Json(project))
 }
 
@@ -181,7 +181,7 @@ async fn update_project_handler(
     verify_project_access(pool, &user, &project_id).await?;
 
     if project_id != project.project_id {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "ID_MISMATCH",
             &format!(
                 "Path project id ({project_id} is different than body project id {}",
@@ -218,9 +218,9 @@ async fn delete_project_handler(
     .execute(pool)
     .await?;
 
-    let Some(project) = fetch_project(pool, &project_id).await? else {
-        return Err(not_found_error("NOT_FOUND", "Project not found"));
-    };
+    let project = fetch_project(pool, &project_id)
+        .await?
+        .context_not_found("NOT_FOUND", "Project not found")?;
     Ok(Json(project))
 }
 
@@ -235,7 +235,7 @@ async fn update_project_users_handler(
     verify_premium(pool, &user).await?;
 
     if project_id != update.project_id {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "ID_MISMATCH",
             &format!(
                 "Path project id ({project_id} is different than body project id {}",
@@ -336,11 +336,11 @@ async fn export_project(
 
 fn validate_project_name(name: &str) -> ApiResult<()> {
     if name.is_empty() || name.chars().all(char::is_whitespace) {
-        return Err(bad_request_error("EMPTY_NAME", "Project name is blank"));
+        return Err(bad_request("EMPTY_NAME", "Project name is blank"));
     }
     const MAX_NAME_LEN: usize = 36;
     if name.len() > MAX_NAME_LEN {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "LONG_NAME",
             &format!("Project name cannot be longer than {MAX_NAME_LEN} characters"),
         ));

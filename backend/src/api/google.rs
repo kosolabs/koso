@@ -1,9 +1,7 @@
-use crate::{
-    api::{ApiResult, IntoApiResult as _, unauthenticated_error},
-    settings::settings,
-};
+use crate::settings::settings;
 use anyhow::{Result, anyhow};
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
+use axum_anyhow::{ApiResult, ResultExt, unauthorized};
 use jsonwebtoken::{DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -169,22 +167,25 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
 
     let bearer = if let Some(auth_header) = headers.get("Authorization") {
         let Ok(auth) = auth_header.to_str() else {
-            return Err(unauthenticated_error(&format!(
-                "Could not convert auth header to string: {auth_header:?}"
-            )));
+            return Err(unauthorized(
+                "UNAUTHENTICATED",
+                &format!("Could not convert auth header to string: {auth_header:?}"),
+            ));
         };
         let parts: Vec<&str> = auth.split(' ').collect();
         if parts.len() != 2 || parts[0] != "Bearer" {
-            return Err(unauthenticated_error(&format!(
-                "Could not split bearer parts: {parts:?}"
-            )));
+            return Err(unauthorized(
+                "UNAUTHENTICATED",
+                &format!("Could not split bearer parts: {parts:?}"),
+            ));
         }
         parts[1]
     } else if let Some(swp_header) = headers.get("sec-websocket-protocol") {
         let Ok(swp) = swp_header.to_str() else {
-            return Err(unauthenticated_error(&format!(
-                "sec-websocket-protocol must be only visible ASCII chars: {swp_header:?}"
-            )));
+            return Err(unauthorized(
+                "UNAUTHENTICATED",
+                &format!("sec-websocket-protocol must be only visible ASCII chars: {swp_header:?}"),
+            ));
         };
         // Search the comma separated parts for "bearer"
         // and return the subsequent part containing the token value.
@@ -199,30 +200,36 @@ pub(crate) async fn authenticate(mut request: Request, next: Next) -> ApiResult<
             }
         };
         let Some(token) = token else {
-            return Err(unauthenticated_error(&format!(
-                "sec-websocket-protocol must contain a bearer token: {swp:?}"
-            )));
+            return Err(unauthorized(
+                "UNAUTHENTICATED",
+                &format!("sec-websocket-protocol must contain a bearer token: {swp:?}"),
+            ));
         };
 
         token
     } else {
-        return Err(unauthenticated_error("Authorization header is absent."));
+        return Err(unauthorized(
+            "UNAUTHENTICATED",
+            "Authorization header is absent.",
+        ));
     };
 
     let Ok(header) = jsonwebtoken::decode_header(bearer) else {
-        return Err(unauthenticated_error(&format!(
-            "Could not decode header: {bearer:?}"
-        )));
+        return Err(unauthorized(
+            "UNAUTHENTICATED",
+            &format!("Could not decode header: {bearer:?}"),
+        ));
     };
     let Some(kid) = header.kid else {
-        return Err(unauthenticated_error(&format!(
-            "header.kid is absent: {header:?}"
-        )));
+        return Err(unauthorized(
+            "UNAUTHENTICATED",
+            &format!("header.kid is absent: {header:?}"),
+        ));
     };
     let key = key_set
         .get(&kid)
         .await
-        .context_unauthenticated("certs is absent")?;
+        .context_unauthorized("UNAUTHENTICATED", "certs is absent")?;
 
     let mut user = if kid == KeySet::INTEG_TEST_KID {
         decode_and_validate_test_token(bearer, &key)?
@@ -253,11 +260,12 @@ fn decode_and_validate_token(token: &str, key: &DecodingKey) -> ApiResult<User> 
     validation.set_issuer(&["https://accounts.google.com"]);
     validation.required_spec_claims.insert("iss".to_string());
     let token = jsonwebtoken::decode::<User>(token, key, &validation)
-        .context_unauthenticated("Failed validation")?;
+        .context_unauthorized("UNAUTHENTICATED", "Failed validation")?;
     if token.claims.email.is_empty() {
-        return Err(unauthenticated_error(&format!(
-            "Claims email is empty: {token:?}"
-        )));
+        return Err(unauthorized(
+            "UNAUTHENTICATED",
+            &format!("Claims email is empty: {token:?}"),
+        ));
     }
     Ok(token.claims)
 }
@@ -268,14 +276,14 @@ fn decode_and_validate_test_token(token: &str, key: &DecodingKey) -> ApiResult<U
     let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
     validation.insecure_disable_signature_validation();
     let token = jsonwebtoken::decode::<User>(token, key, &validation)
-        .context_unauthenticated("Failed to decode test cred token")?;
+        .context_unauthorized("UNAUTHENTICATED", "Failed to decode test cred token")?;
 
     let user = token.claims;
     if !user.email.ends_with(TEST_USER_SUFFIX) {
-        return Err(unauthenticated_error(&format!(
-            "Invalid test cred email: {}",
-            user.email
-        )));
+        return Err(unauthorized(
+            "UNAUTHENTICATED",
+            &format!("Invalid test cred email: {}", user.email),
+        ));
     }
     Ok(user)
 }

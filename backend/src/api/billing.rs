@@ -1,6 +1,5 @@
 use crate::{
     api::{
-        ApiResult, bad_request_error,
         billing::{
             model::{
                 CreateCheckoutSessionRequest, CreateCheckoutSessionResponse,
@@ -11,7 +10,6 @@ use crate::{
             webhook::WebhookSecret,
         },
         google::{self, User},
-        not_found_error,
     },
     secrets::{self},
     settings::settings,
@@ -20,6 +18,7 @@ use anyhow::{Context, Result};
 use axum::middleware;
 use axum::routing::put;
 use axum::{Extension, Json, Router, routing::post};
+use axum_anyhow::{ApiResult, OptionExt, bad_request};
 use chrono::{DateTime, Utc};
 use sqlx::{PgConnection, PgPool, Postgres};
 use std::collections::HashMap;
@@ -109,12 +108,9 @@ async fn handle_create_portal_session(
     validate_redirect_url(&request.return_url)?;
 
     let session = {
-        let Some(customer_id) = get_stripe_customer_id(&user, pool).await? else {
-            return Err(bad_request_error(
-                "CUSTOMER_ID_UNSET",
-                "Customer ID is not set",
-            ));
-        };
+        let customer_id = get_stripe_customer_id(&user, pool)
+            .await?
+            .context_bad_request("CUSTOMER_ID_UNSET", "Customer ID is not set")?;
 
         let params = stripe::CreatePortalSession {
             customer: &customer_id,
@@ -162,17 +158,13 @@ async fn handle_update_subscription(
         .collect::<Vec<String>>();
     desired_members.sort();
     if !desired_members.contains(&user.email) {
-        return Err(bad_request_error(
-            "MISSING_SELF",
-            "Members must include owner",
-        ));
+        return Err(bad_request("MISSING_SELF", "Members must include owner"));
     }
 
     let mut txn = pool.begin().await?;
-    let Some((seats, existing_members, _)) = get_subscription_details(&user, &mut txn).await?
-    else {
-        return Err(not_found_error("NOT_FOUND", "Subscription not found"));
-    };
+    let (seats, existing_members, _) = get_subscription_details(&user, &mut txn)
+        .await?
+        .context_not_found("NOT_FOUND", "Subscription not found")?;
 
     let added_members = desired_members
         .iter()
@@ -189,7 +181,7 @@ async fn handle_update_subscription(
 
     // Don't allow more members to be added than there are seats available.
     if !added_members.is_empty() && desired_members.len() > usize::try_from(seats)? {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "TOO_MANY_MEMBERS",
             &format!(
                 "Tried to put {} members in {seats} seats",
@@ -299,7 +291,7 @@ pub(crate) async fn fetch_owned_subscription(
 
 fn validate_redirect_url(url: &str) -> ApiResult<()> {
     if url.is_empty() || !url.starts_with(&format!("{}/", &settings().host)) {
-        return Err(bad_request_error("INVALID_URL", "Redirect URL is invalid"));
+        return Err(bad_request("INVALID_URL", "Redirect URL is invalid"));
     }
     Ok(())
 }
@@ -470,11 +462,7 @@ mod stripe {
 
 mod webhook {
     use crate::{
-        api::{
-            ApiResult, IntoApiResult as _, bad_request_error,
-            billing::stripe::{KosoMetadata, StripeClient, Subscription},
-            unauthorized_error,
-        },
+        api::billing::stripe::{KosoMetadata, StripeClient, Subscription},
         secrets::Secret,
         settings::settings,
     };
@@ -484,6 +472,7 @@ mod webhook {
         body::{Body, Bytes},
         http::HeaderMap,
     };
+    use axum_anyhow::{ApiResult, ResultExt, bad_request, forbidden};
     use chrono::{DateTime, TimeDelta, Utc};
     use hmac::{Hmac, Mac};
     use serde::{Deserialize, Serialize};
@@ -570,7 +559,7 @@ mod webhook {
         if let Some(signature) = headers.get("stripe-signature") {
             validate_signature(signature.to_str()?, &body, &webhook_secret)?;
         } else if !settings().stripe.enable_unauthenticated_webhook {
-            return Err(bad_request_error(
+            return Err(bad_request(
                 "MISSING_HEADER",
                 "Missing stripe-signature header",
             ));
@@ -712,21 +701,22 @@ mod webhook {
         payload: &[u8],
         secret: &WebhookSecret,
     ) -> ApiResult<()> {
-        let (timestamp, signature) =
-            parse_signature(signature_header).context_unauthorized("Invalid signature header")?;
+        let (timestamp, signature) = parse_signature(signature_header)
+            .context_forbidden("UNAUTHORIZED", "Invalid signature header")?;
 
         Hmac::<Sha256>::new_from_slice(&secret.0.data)?
             .chain_update(timestamp.to_string().as_bytes())
             .chain_update(".".as_bytes())
             .chain_update(payload)
             .verify_slice(&signature)
-            .context_unauthorized("Invalid signature")?;
+            .context_forbidden("UNAUTHORIZED", "Invalid signature")?;
 
         // Get current timestamp to compare to signature timestamp
         if (Utc::now().timestamp() - timestamp).abs() > 300 {
-            return Err(unauthorized_error(&format!(
-                "stale event at time {timestamp}"
-            )));
+            return Err(forbidden(
+                "UNAUTHORIZED",
+                &format!("stale event at time {timestamp}"),
+            ));
         }
 
         Ok(())

@@ -1,5 +1,5 @@
-use crate::api::{ApiResult, google::User};
-use crate::api::{IntoApiResult, google};
+use crate::api::google;
+use crate::api::google::User;
 use crate::notifiers::{
     NotifierSettings, TelegramSettings, delete_notification_config, insert_notification_config,
 };
@@ -13,6 +13,7 @@ use axum::{
     Extension, Json, Router,
     routing::{delete, post},
 };
+use axum_anyhow::{ApiResult, ResultExt};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -201,7 +202,8 @@ fn get_auth_url(key: EncodingKey, chat_id: u64) -> Result<String> {
 async fn verify_telegram_signature(request: Request, next: Next) -> ApiResult<Response> {
     let secret_token = read_secret::<String>("telegram/secret_token")?;
 
-    verify_signature(&request, &secret_token).context_unauthorized("Failed to verify signature")?;
+    verify_signature(&request, &secret_token)
+        .context_forbidden("UNAUTHORIZED", "Failed to verify signature")?;
 
     Ok(next.run(request).await)
 }

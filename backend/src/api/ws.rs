@@ -1,4 +1,4 @@
-use crate::api::{ApiResult, collab::Collab, google::User};
+use crate::api::{collab::Collab, google::User};
 use axum::{
     Extension, Router,
     body::Body,
@@ -6,6 +6,7 @@ use axum::{
     response::Response,
     routing::get,
 };
+use axum_anyhow::ApiResult;
 use tracing::Instrument as _;
 use uuid::Uuid;
 

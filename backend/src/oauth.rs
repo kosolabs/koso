@@ -3,7 +3,7 @@
 /// is a useful resource.
 use crate::{
     api::{
-        self, ApiResult, IntoApiResult, bad_request_error, error_response,
+        self,
         google::{self, User},
     },
     settings::settings,
@@ -18,6 +18,7 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, post},
 };
+use axum_anyhow::{ApiResult, ResultExt, bad_request, unauthorized};
 use base64::{
     Engine as _,
     prelude::{BASE64_STANDARD, BASE64_URL_SAFE_NO_PAD},
@@ -424,21 +425,21 @@ async fn create_client(req: ClientRegistrationRequest) -> ApiResult<ClientMetada
     let redirect_uris = validate_redirect_uris(req.redirect_uris)?;
     let response_types = req.response_types;
     if !response_types.is_empty() && !response_types.contains(&CODE_RESPONSE_TYPE.to_string()) {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_client_metadata",
             "Only the 'code' response_type is supported",
         ));
     }
     let grant_types = req.grant_types;
     if !grant_types.is_empty() && !grant_types.contains(&CODE_GRANT_TYPE.to_string()) {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_client_metadata",
             "grant_types must contain 'authorization_code'",
         ));
     }
     let scope = req.scope.unwrap_or_else(|| READ_WRITE_SCOPE.to_string());
     if scope != READ_WRITE_SCOPE {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_client_metadata",
             "Only read_write scope is supported",
         ));
@@ -447,7 +448,7 @@ async fn create_client(req: ClientRegistrationRequest) -> ApiResult<ClientMetada
         .token_endpoint_auth_method
         .unwrap_or_else(|| BASIC_AUTH_METHOD.to_string());
     if !AUTH_METHODS_SUPPORTED.contains(&token_endpoint_auth_method.as_str()) {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_client_metadata",
             "Only client_secret_basic, client_secret_post and none token_auth_method are supported",
         ));
@@ -475,28 +476,25 @@ async fn create_client(req: ClientRegistrationRequest) -> ApiResult<ClientMetada
 
 fn validate_redirect_uris(redirect_uris: Vec<String>) -> ApiResult<Vec<String>> {
     if redirect_uris.is_empty() {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_redirect_uri",
             "At least one redirect uri is required",
         ));
     }
     if redirect_uris.len() > 15 {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_redirect_uri",
             "Too many redirect uris",
         ));
     }
     if redirect_uris.iter().any(|s| s.is_empty()) {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_redirect_uri",
             "Redirect uri cannot be empty",
         ));
     }
     if redirect_uris.iter().any(|s| s.len() > 2000) {
-        return Err(bad_request_error(
-            "invalid_redirect_uri",
-            "Redirect uri too long",
-        ));
+        return Err(bad_request("invalid_redirect_uri", "Redirect uri too long"));
     }
     Ok(redirect_uris)
 }
@@ -527,18 +525,15 @@ async fn oauth_authorization_details(
 
     // Validate the request.
     let Some(client_id) = req.client_id else {
-        return Err(bad_request_error("invalid_request", "Client id required"));
+        return Err(bad_request("invalid_request", "Client id required"));
     };
     let Some(redirect_uri) = req.redirect_uri else {
-        return Err(bad_request_error(
-            "invalid_request",
-            "Redirect uri required",
-        ));
+        return Err(bad_request("invalid_request", "Redirect uri required"));
     };
 
     // Validate that the client exists and has registered the given redirect uri.
     let Some(client_metadata) = store.get_client(&client_id).await? else {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "unauthorized_client",
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         ));
@@ -614,17 +609,14 @@ async fn issue_auth_token(
 ) -> ApiResult<AuthTokenMetadata> {
     // Validate the request.
     let Some(client_id) = req.client_id else {
-        return Err(bad_request_error("invalid_request", "Client id required"));
+        return Err(bad_request("invalid_request", "Client id required"));
     };
     let Some(redirect_uri) = req.redirect_uri else {
-        return Err(bad_request_error(
-            "invalid_request",
-            "Redirect uri required",
-        ));
+        return Err(bad_request("invalid_request", "Redirect uri required"));
     };
     let scope = req.scope.unwrap_or_else(|| READ_WRITE_SCOPE.to_string());
     if scope != READ_WRITE_SCOPE {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_scope",
             "Only read_write scope is supported",
         ));
@@ -633,7 +625,7 @@ async fn issue_auth_token(
         .response_type
         .unwrap_or_else(|| CODE_RESPONSE_TYPE.to_string());
     if response_type != CODE_RESPONSE_TYPE {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "unsupported_response_type",
             "Only the 'code' response_type is supported",
         ));
@@ -642,7 +634,7 @@ async fn issue_auth_token(
     match (&code_challenge_method, &code_challenge) {
         (Some(method), Some(_challenge)) => {
             if method != S256_CHALLENGE_METHOD {
-                return Err(bad_request_error(
+                return Err(bad_request(
                     "invalid_request",
                     "Only 'S256' code_challenge_method is supported",
                 ));
@@ -650,7 +642,7 @@ async fn issue_auth_token(
         }
         (None, None) => {}
         _ => {
-            return Err(bad_request_error(
+            return Err(bad_request(
                 "invalid_request",
                 "Method and code must both be set or unset",
             ));
@@ -658,7 +650,7 @@ async fn issue_auth_token(
     }
     // Validate that the client exists and has registered the given redirect uri.
     let Some(client_metadata) = store.get_client(&client_id).await? else {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "unauthorized_client",
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
         ));
@@ -758,11 +750,11 @@ async fn _oauth_token(
         Some(REFRESH_GRANT_TYPE) => {
             issue_from_refresh_token(store, decoding_key, headers, req).await
         }
-        Some(_) => Err(bad_request_error(
+        Some(_) => Err(bad_request(
             "unsupported_grant_type",
             "Only authorization_code is supported",
         )),
-        None => Err(bad_request_error("invalid_request", "grant_type required")),
+        None => Err(bad_request("invalid_request", "grant_type required")),
     }?;
     let access_token = encode_access_token(&encoding_key, &access_claims)?;
     let refresh_token = encode_refresh_token(&encoding_key, &refresh_claims)?;
@@ -819,7 +811,7 @@ async fn validate_authorization_code(
 ) -> ApiResult<(AuthTokenClaims, AuthTokenMetadata)> {
     // Decode the auth token.
     let Some(code) = &req.code else {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_request",
             "code required for authorization_code grant type",
         ));
@@ -830,7 +822,7 @@ async fn validate_authorization_code(
         .await
         .context_bad_request("invalid_grant", "Auth code already used")?;
     if auth_token.client_id != auth_token_claims.client_id {
-        return Err(bad_request_error("invalid_grant", "Invalid token client"));
+        return Err(bad_request("invalid_grant", "Invalid token client"));
     }
 
     // PKCE: Verify the challenge against the verifier.
@@ -841,13 +833,13 @@ async fn validate_authorization_code(
     if let Some(client_id) = &req.client_id
         && client_id != &auth_token.client_id
     {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_grant",
             "Auth code issued to another client",
         ));
     }
     if client_metadata.client_id != auth_token_claims.client_id {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_grant",
             "Grant issued for another client",
         ));
@@ -856,7 +848,7 @@ async fn validate_authorization_code(
     if let Some(scope) = &req.scope
         && scope != &auth_token.scope
     {
-        return Err(bad_request_error("invalid_scope", "Mismatched scope"));
+        return Err(bad_request("invalid_scope", "Mismatched scope"));
     }
 
     // This is only for backwards compatibility with OAuth 2.0
@@ -864,7 +856,7 @@ async fn validate_authorization_code(
     if let Some(redirect_uri) = &req.redirect_uri
         && &auth_token.redirect_uri != redirect_uri
     {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_request",
             "redirect_uri doesn't match the one in the authorization request",
         ));
@@ -883,12 +875,12 @@ fn validate_code_challenge(req: &TokenRequest, auth_token: &AuthTokenMetadata) -
     ) {
         (Some(method), Some(challenge), Some(verifier)) => {
             if method != S256_CHALLENGE_METHOD {
-                return Err(bad_request_error("invalid_grant", "Only S256 is supported"));
+                return Err(bad_request("invalid_grant", "Only S256 is supported"));
             }
             let actual_challenge = BASE64_URL_SAFE_NO_PAD
                 .encode(Sha256::new().chain_update(verifier.data()).finalize());
             if &actual_challenge != challenge {
-                return Err(bad_request_error(
+                return Err(bad_request(
                     "invalid_grant",
                     "Challenge does not match verifier",
                 ));
@@ -898,7 +890,7 @@ fn validate_code_challenge(req: &TokenRequest, auth_token: &AuthTokenMetadata) -
         // Prevent PKCE downgrade attacks.
         // https://datatracker.ietf.org/doc/html/rfc9700#name-authorization-code-grant:~:text=servers%20MUST%20mitigate-,PKCE%20downgrade%20attacks,-by%20ensuring%20that
         _ => {
-            return Err(bad_request_error(
+            return Err(bad_request(
                 "invalid_grant",
                 "Method, challenge and verifier must all be set or unset",
             ));
@@ -948,7 +940,7 @@ fn validate_refresh_token(
 ) -> ApiResult<RefreshTokenClaims> {
     // Decode the refresh token and grab the auth token.
     let Some(refresh_token) = &req.refresh_token else {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_request",
             "refresh_token required for refresh_token grant type",
         ));
@@ -960,13 +952,13 @@ fn validate_refresh_token(
     if let Some(client_id) = &req.client_id
         && client_id != &refresh_token.auth_token_claims.client_id
     {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_grant",
             "Refresh token issued to another client",
         ));
     }
     if client_metadata.client_id != refresh_token.auth_token_claims.client_id {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_grant",
             "Grant issued for another client",
         ));
@@ -975,7 +967,7 @@ fn validate_refresh_token(
     if let Some(scope) = &req.scope
         && scope != &refresh_token.scope
     {
-        return Err(bad_request_error("invalid_scope", "Mismatched scope"));
+        return Err(bad_request("invalid_scope", "Mismatched scope"));
     }
 
     Ok(refresh_token)
@@ -1017,7 +1009,7 @@ async fn authenticate_token_client_basic(
     tracing::debug!("Authenticating with client_secret_basic Authorization header");
 
     let Some(credentials) = header.as_bytes().strip_prefix(b"Basic ") else {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_request",
             "Invalid authorization header",
         ));
@@ -1029,43 +1021,37 @@ async fn authenticate_token_client_basic(
         .context_bad_request("invalid_request", "Invalid authorization credentials")?;
     let mut credentials = credentials.split(":");
     let Some(client_id) = credentials.next() else {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_request",
             "Invalid authorization credentials id",
         ));
     };
     let Some(client_secret) = credentials.next().map(Into::into) else {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_request",
             "Invalid authorization credentials secret",
         ));
     };
     let client_secret_claims = decode_client_secret(decoding_key, &client_secret)?;
     if client_secret_claims.client_id != client_id {
-        return Err(error_response(
-            StatusCode::UNAUTHORIZED,
+        return Err(unauthorized(
             "invalid_client",
             "Invalid authorization client id",
-            None,
         ));
     }
     if let Some(client_id) = &req.client_id
         && client_id != &client_secret_claims.client_id
     {
-        return Err(error_response(
-            StatusCode::UNAUTHORIZED,
+        return Err(unauthorized(
             "invalid_client",
             "Authenticated as a different client",
-            None,
         ));
     }
 
     let Some(client_metadata) = store.get_client(&client_secret_claims.client_id).await? else {
-        return Err(error_response(
-            StatusCode::UNAUTHORIZED,
+        return Err(unauthorized(
             "invalid_client",
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
-            None,
         ));
     };
     Ok(client_metadata)
@@ -1085,20 +1071,16 @@ async fn authenticate_token_client_post(
     if let Some(client_id) = &req.client_id
         && client_id != &client_secret_claims.client_id
     {
-        return Err(error_response(
-            StatusCode::UNAUTHORIZED,
+        return Err(unauthorized(
             "invalid_client",
             "Authenticated as a different client",
-            None,
         ));
     }
 
     let Some(client_metadata) = store.get_client(&client_secret_claims.client_id).await? else {
-        return Err(error_response(
-            StatusCode::UNAUTHORIZED,
+        return Err(unauthorized(
             "invalid_client",
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
-            None,
         ));
     };
     Ok(client_metadata)
@@ -1111,25 +1093,21 @@ async fn validate_unauthenticated_client(
     tracing::debug!("Unauthenticated client");
 
     let Some(client_id) = &req.client_id else {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_request",
             "Client id required for unauthenticated clients",
         ));
     };
     let Some(client_metadata) = store.get_client(client_id).await? else {
-        return Err(error_response(
-            StatusCode::UNAUTHORIZED,
+        return Err(unauthorized(
             "invalid_client",
             "Unregistered client. Clear any auth state, delete dynamic clients, and try again.",
-            None,
         ));
     };
     if client_metadata.token_endpoint_auth_method != "none" {
-        return Err(error_response(
-            StatusCode::UNAUTHORIZED,
+        return Err(unauthorized(
             "invalid_client",
             "Confidential client requires authentication.",
-            None,
         ));
     }
 
@@ -1142,7 +1120,7 @@ fn validate_redirect_uri(valid_redirect_uris: &[String], redirect_uri: &String) 
     // > The only exception is native apps using a localhost URI: In this case, the
     // > authorization server MUST allow variable port numbers as described in Section 7.3 of [RFC8252].
     if !valid_redirect_uris.contains(redirect_uri) {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "invalid_request",
             "Registered redirect uri doesn't match the provided. Danger!",
         ));
@@ -1581,8 +1559,8 @@ mod tests {
         .unwrap_err();
 
         assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.error, "invalid_request");
-        assert!(err.error_description.contains("uri doesn't match"));
+        assert_eq!(err.title, "invalid_request");
+        assert!(err.detail.contains("uri doesn't match"));
     }
 
     #[test_log::test(sqlx::test)]
@@ -1828,9 +1806,10 @@ mod tests {
             .await;
             assert_eq!(err_res.status(), StatusCode::BAD_REQUEST);
             let err: Value = parse_response(err_res).await;
-            assert_eq!(err.get("error").unwrap().as_str().unwrap(), "invalid_grant");
+            println!("{}", err);
+            assert_eq!(err.get("title").unwrap().as_str().unwrap(), "invalid_grant");
             assert!(
-                err.get("error_description")
+                err.get("detail")
                     .unwrap()
                     .as_str()
                     .unwrap()
@@ -2056,7 +2035,7 @@ mod tests {
 
         let err = decode_auth_token(&decoding_key, &token).unwrap_err();
         assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.error, "invalid_grant");
+        assert_eq!(err.title, "invalid_grant");
     }
 
     #[test_log::test(sqlx::test)]
@@ -2107,7 +2086,7 @@ mod tests {
 
         let err = decode_auth_token(&decoding_key, &token).unwrap_err();
         assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.error, "invalid_grant");
+        assert_eq!(err.title, "invalid_grant");
     }
 
     fn default_client() -> ClientMetadata {

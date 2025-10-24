@@ -1,16 +1,16 @@
 use crate::{
     api::{
-        ApiResult, IntoApiResult, bad_request_error,
+        RmcpErrorData,
         collab::{
             Collab,
             projects_state::DocBox,
             txn_origin::{Actor, YOrigin},
         },
         google::User,
+        invalid_request,
         model::{Project, Task},
-        not_found_error,
         projects::{fetch_project, list_projects},
-        verify_project_access,
+        resource_not_found, verify_project_access,
     },
     oauth,
 };
@@ -90,9 +90,11 @@ impl KosoTools {
         request: CreateTaskParam,
         mut context: RequestContext<RoleServer>,
         request_id: String,
-    ) -> ApiResult<Content> {
+    ) -> Result<Content, RmcpErrorData> {
         let user = user_extension(&mut context).await?;
-        verify_project_access(self.inner.pool, &user, &request.project_id).await?;
+        verify_project_access(self.inner.pool, &user, &request.project_id)
+            .await
+            .map_err(|e| e.into_error())?;
 
         let client = self
             .inner
@@ -158,7 +160,7 @@ impl KosoTools {
     async fn _list_projects(
         &self,
         mut context: RequestContext<RoleServer>,
-    ) -> ApiResult<CallToolResult> {
+    ) -> Result<CallToolResult, RmcpErrorData> {
         let user = user_extension(&mut context).await?;
         let projects: Vec<Project> = list_projects(&user.email, self.inner.pool).await?;
         let projects = projects
@@ -330,11 +332,11 @@ impl KosoTools {
     async fn _list_resources(
         &self,
         mut context: RequestContext<RoleServer>,
-    ) -> ApiResult<ListResourcesResult> {
+    ) -> Result<ListResourcesResult, RmcpErrorData> {
         let user = user_extension(&mut context).await?;
         let projects: Vec<Project> = list_projects(&user.email, self.inner.pool)
             .await
-            .context_internal("Failed to list projects")?;
+            .context("Failed to list projects")?;
         let projects = projects
             .into_iter()
             .map(|p| {
@@ -355,49 +357,50 @@ impl KosoTools {
         &self,
         uri: &str,
         mut context: RequestContext<RoleServer>,
-    ) -> ApiResult<ReadResourceResult> {
+    ) -> Result<ReadResourceResult, RmcpErrorData> {
         let user = user_extension(&mut context).await?;
-        let uri = url::Url::parse(uri).context_bad_request("invalid_uri", "Invalid URI")?;
+        let uri = url::Url::parse(uri).context("Invalid URI")?;
         match uri.scheme() {
             "projects" => self.read_project(uri, user).await,
             "tasks" => self.read_task(uri, user).await,
-            scheme => Err(not_found_error(
+            scheme => Err(resource_not_found(
                 "resource_not_found",
                 &format!("Invalid scheme: {scheme}"),
             )),
         }
     }
 
-    async fn read_project(&self, uri: Url, user: User) -> ApiResult<ReadResourceResult> {
+    async fn read_project(
+        &self,
+        uri: Url,
+        user: User,
+    ) -> Result<ReadResourceResult, RmcpErrorData> {
         let project_id = PROJECT_RE
             .with(|re| {
                 re.captures(uri.path())
                     .and_then(|c| c.get(1))
                     .map(|m| m.as_str())
             })
-            .context("Invalid project path")
-            .context_bad_request("invalid_uri", "Invalid project path")?;
+            .context("Invalid project path")?;
 
-        verify_project_access(self.inner.pool, &user, &project_id.to_string()).await?;
+        verify_project_access(self.inner.pool, &user, &project_id.to_string())
+            .await
+            .map_err(|e| e.into_error())?;
 
-        match fetch_project(self.inner.pool, project_id).await {
-            Ok(None) => Err(not_found_error(
-                "resource_not_found",
-                &format!("Project {project_id} not found"),
-            )),
-            Ok(Some(project)) => Ok(ReadResourceResult {
-                contents: vec![ResourceContents::TextResourceContents {
-                    uri: format!("projects:///projects/{}", project.project_id),
-                    mime_type: Some("application/json".to_string()),
-                    text: serde_json::to_string(&project)?,
-                    meta: None,
-                }],
-            }),
-            Err(e) => Err(e.into()),
-        }
+        let project = fetch_project(self.inner.pool, project_id)
+            .await?
+            .context(format!("Project {project_id} not found"))?;
+        Ok(ReadResourceResult {
+            contents: vec![ResourceContents::TextResourceContents {
+                uri: format!("projects:///projects/{}", project.project_id),
+                mime_type: Some("application/json".to_string()),
+                text: serde_json::to_string(&project)?,
+                meta: None,
+            }],
+        })
     }
 
-    async fn read_task(&self, uri: Url, user: User) -> ApiResult<ReadResourceResult> {
+    async fn read_task(&self, uri: Url, user: User) -> Result<ReadResourceResult, RmcpErrorData> {
         let (project_id, task_id) = TASK_RE
             .with(|re| {
                 re.captures(uri.path())
@@ -407,10 +410,11 @@ impl KosoTools {
                         _ => None,
                     })
             })
-            .context("Invalid task path")
-            .context_bad_request("invalid_uri", "Invalid task path")?;
+            .context("Invalid task path")?;
 
-        verify_project_access(self.inner.pool, &user, &project_id.to_string()).await?;
+        verify_project_access(self.inner.pool, &user, &project_id.to_string())
+            .await
+            .map_err(|e| e.into_error())?;
 
         let task = {
             let client = self
@@ -422,7 +426,7 @@ impl KosoTools {
             let doc = DocBox::doc_or_error(doc.as_ref())?;
             let doc = &doc.ydoc;
             let txn = doc.transact();
-            let task = doc.get(&txn, task_id).context_not_found("Task not found")?;
+            let task = doc.get(&txn, task_id)?;
             task.to_task(&txn)?
         };
 
@@ -440,13 +444,13 @@ impl KosoTools {
         &self,
         request: &CompleteRequestParam,
         mut context: RequestContext<RoleServer>,
-    ) -> ApiResult<CompleteResult> {
+    ) -> Result<CompleteResult, RmcpErrorData> {
         tracing::info!("Handling complete: {request:?}");
 
         match &request.r#ref {
             Reference::Resource(ResourceReference { uri }) => {
                 if !uri.starts_with("projects:///projects/{project_id}") {
-                    return Err(bad_request_error(
+                    return Err(invalid_request(
                         "unsupported_uri",
                         "Only projects:///projects/{{project_id}} reference URI supported",
                     ));
@@ -460,7 +464,7 @@ impl KosoTools {
             && argument.name != "name"
             && argument.name != "project_name"
         {
-            return Err(bad_request_error(
+            return Err(invalid_request(
                 "unsupported_argument_name",
                 "Only project_id, name and project_name argument.name values supported",
             ));
@@ -469,7 +473,7 @@ impl KosoTools {
         let user = user_extension(&mut context).await?;
         let projects: Vec<Project> = list_projects(&user.email, self.inner.pool)
             .await
-            .context_internal("Failed to list projects")?;
+            .context("Failed to list projects")?;
 
         let value = argument.value.to_lowercase();
 
@@ -496,15 +500,15 @@ impl KosoTools {
         &self,
         request: GetPromptRequestParam,
         _context: RequestContext<RoleServer>,
-    ) -> ApiResult<GetPromptResult> {
+    ) -> Result<GetPromptResult, RmcpErrorData> {
         if request.name != "create_koso_task" {
-            return Err(bad_request_error(
+            return Err(invalid_request(
                 "invalid_request",
                 &format!("Prompt `{}` is not supported", request.name),
             ));
         }
         let Some(arguments) = request.arguments else {
-            return Err(bad_request_error(
+            return Err(invalid_request(
                 "invalid_arguments",
                 "No arguments provided",
             ));

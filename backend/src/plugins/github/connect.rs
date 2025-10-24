@@ -1,5 +1,5 @@
 use crate::{
-    api::{self, ApiResult, bad_request_error, google::User, not_found_error, unauthorized_error},
+    api::{self, google::User},
     plugins::{
         config::{Config, ConfigStorage, GithubSettings, Settings},
         github::{self, Poller},
@@ -12,6 +12,7 @@ use axum::{
     Extension, Json, Router,
     routing::{delete, get, post},
 };
+use axum_anyhow::{ApiResult, bad_request, forbidden, not_found};
 use octocrab::{Octocrab, OctocrabBuilder, models::Installation};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -169,7 +170,7 @@ impl ConnectHandler {
 
     async fn verify_installation_access(&self, request: &ConnectRequest) -> ApiResult<()> {
         if request.code.is_empty() {
-            return Err(bad_request_error("EMPTY_CODE", "Code is blank"));
+            return Err(bad_request("EMPTY_CODE", "Code is blank"));
         }
 
         let installations = self.fetch_installations(&request.code).await?;
@@ -177,10 +178,13 @@ impl ConnectHandler {
             .into_iter()
             .any(|installation| installation.id.0.to_string() == request.installation_id);
         if !installation_authorized {
-            return Err(unauthorized_error(&format!(
-                "Not authorized to access installation {}",
-                request.installation_id
-            )));
+            return Err(forbidden(
+                "UNAUTHORIZED",
+                &format!(
+                    "Not authorized to access installation {}",
+                    request.installation_id
+                ),
+            ));
         }
         Ok(())
     }
@@ -230,7 +234,7 @@ impl ConnectHandler {
         request: &ConnectUserRequest,
     ) -> ApiResult<octocrab::models::Author> {
         if request.code.is_empty() {
-            return Err(bad_request_error("EMPTY_CODE", "Code is blank"));
+            return Err(bad_request("EMPTY_CODE", "Code is blank"));
         }
 
         let token = self.generate_access_token(&request.code).await?;
@@ -251,7 +255,7 @@ impl ConnectHandler {
         &self,
         user: &User,
         github_user_id: Option<&str>,
-    ) -> Result<(), api::ErrorResponse> {
+    ) -> ApiResult<()> {
         let res = sqlx::query(
             "
             UPDATE users
@@ -263,7 +267,7 @@ impl ConnectHandler {
         .execute(self.pool)
         .await?;
         if res.rows_affected() == 0 {
-            return Err(not_found_error("NOT_FOUND", "User does not exist."));
+            return Err(not_found("NOT_FOUND", "User does not exist."));
         }
         Ok(())
     }
@@ -295,7 +299,7 @@ impl ConnectHandler {
         let oauth = match res {
             GithubOAuthResponse::Success(oauth) => oauth,
             GithubOAuthResponse::Error(e) => {
-                return Err(bad_request_error(
+                return Err(bad_request(
                     "GITHUB_AUTH_REJECTED",
                     &format!("Login rejected: '{}' - '{}'", e.error, e.error_description),
                 ));

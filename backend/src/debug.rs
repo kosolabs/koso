@@ -5,9 +5,10 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use axum_anyhow::ApiResult;
 use regex::Regex;
 
-use crate::{api::ApiResult, settings::settings};
+use crate::settings::settings;
 
 const BODY_LIMIT: usize = 10 * 1024 * 1024;
 

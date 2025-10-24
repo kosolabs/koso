@@ -1,11 +1,12 @@
 use anyhow::{Context as _, Result};
 use axum::routing::post;
 use axum::{Extension, Json, Router, middleware};
+use axum_anyhow::ApiResult;
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, prelude::FromRow};
 
+use crate::api::google;
 use crate::api::google::User;
-use crate::api::{ApiResult, google};
 use crate::notifiers::slack::SlackClient;
 use crate::notifiers::teams::TeamsClient;
 use crate::notifiers::telegram::TelegramClient;

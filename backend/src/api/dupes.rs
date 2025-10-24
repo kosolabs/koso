@@ -1,9 +1,7 @@
-use crate::api::{
-    ApiResult, IntoApiResult, bad_request_error, google::User, model::ProjectId,
-    verify_project_access,
-};
+use crate::api::{google::User, model::ProjectId, verify_project_access};
 use anyhow::{Context, Result};
 use axum::{Extension, Json, extract::Path};
+use axum_anyhow::{ApiResult, OptionExt, bad_request};
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -58,15 +56,12 @@ pub(crate) async fn create_dupe_handler(
 
     // Validate that task IDs are different
     if create_dupe.task_1_id == create_dupe.task_2_id {
-        return Err(bad_request_error(
-            "SAME_TASK_IDS",
-            "Task IDs must be different",
-        ));
+        return Err(bad_request("SAME_TASK_IDS", "Task IDs must be different"));
     }
 
     // Validate similarity is between 0 and 1
     if create_dupe.similarity < Decimal::from(0) || create_dupe.similarity > Decimal::from(1) {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "INVALID_SIMILARITY",
             "Similarity must be between 0 and 1",
         ));
@@ -220,8 +215,7 @@ pub(crate) async fn get_dedupe_candidate(
     .fetch_optional(pool)
     .await
     .context("Failed to get dedupe candidate")?
-    .context("Dedupe candidate not found")
-    .context_not_found("Dedupe candidate not found")
+    .context_not_found("NOT_FOUND", "Dedupe candidate not found")
 }
 
 pub(crate) async fn update_dedupe_resolution(
@@ -258,6 +252,5 @@ pub(crate) async fn update_dedupe_resolution(
     .fetch_optional(pool)
     .await
     .context("Failed to update dedupe candidate resolution")?
-    .context("Dedupe candidate not found")
-    .context_not_found("Dedupe candidate not found")
+    .context_not_found("NOT_FOUND", "Dedupe candidate not found")
 }
