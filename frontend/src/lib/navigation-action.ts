@@ -22,8 +22,6 @@ export class NavigationAction extends Action {
   constructor({ id, href, ...restProps }: NavigationActionProps) {
     super({
       id,
-      // ResolvedPathName not yet supported.
-      // eslint-disable-next-line svelte/no-navigation-without-resolve
       callback: () => goto(href),
       ...restProps,
     });

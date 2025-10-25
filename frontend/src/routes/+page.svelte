@@ -23,8 +23,6 @@
     const redirect = nav.popRedirectOnLogin();
     if (redirect) {
       console.debug(`Going to prior page: ${redirect}`);
-      // Guaranteed to be of the same origin by `nav`
-      // eslint-disable-next-line svelte/no-navigation-without-resolve
       await goto(redirect);
       return;
     }

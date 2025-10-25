@@ -60,8 +60,6 @@ export async function redirectToConnectUserFlow(
   sessionStorage.setItem(stateSessionKey, state);
 
   await goto(
-    // ResolvedPathName not yet supported.
-    // eslint-disable-next-line svelte/no-navigation-without-resolve
     `${resolve("/connections/github/user")}?state=${encodeURIComponent(state)}`,
   );
 }

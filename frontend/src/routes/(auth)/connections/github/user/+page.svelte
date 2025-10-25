@@ -36,8 +36,6 @@
     await connectUser(state, code);
     toast.success("User connected to Github!");
 
-    // Guaranteed to be a URL of the same origin.
-    // eslint-disable-next-line svelte/no-navigation-without-resolve
     await goto(state.redirectUrl, { replaceState: true });
   });
 
@@ -89,13 +87,9 @@
       if (e instanceof KosoError) {
         if (e instanceof KosoError && e.hasReason("GITHUB_UNAUTHENTICATED")) {
           toast.error("Github authentication expired. Please try again");
-          // Guaranteed to be a URL of the same origin.
-          // eslint-disable-next-line svelte/no-navigation-without-resolve
           await goto(state.redirectUrl);
         } else if (e.hasReason("GITHUB_AUTH_REJECTED")) {
           toast.error("Failed to authenticate with Github. Please try again");
-          // Guaranteed to be a URL of the same origin.
-          // eslint-disable-next-line svelte/no-navigation-without-resolve
           await goto(state.redirectUrl);
         }
       }

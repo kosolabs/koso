@@ -115,8 +115,6 @@
     }),
     new Action({
       id: ActionIds.NextDashView,
-      // ResolvedPathName not yet supported.
-      // eslint-disable-next-line svelte/no-navigation-without-resolve
       callback: () => goto(getNextIterationDashboard()!),
       category: Categories.Navigation,
       name: "Current Iteration",
