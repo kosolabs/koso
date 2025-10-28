@@ -57,6 +57,7 @@ tokio-tungstenite = { version = "0.28.0" }
 rmcp = { version = "0.8.1", features = ["server", "transport-io", "transport-streamable-http-server", "transport-sse-server", "auth"] }
 url = "2.5.7"
 rust_decimal = { version = "1.39.0", features = ["serde"] }
+axum-anyhow = "0.4.1"
 
 [dev-dependencies]
 test-log = { version = "0.2.18", features = ["trace", "color"] }

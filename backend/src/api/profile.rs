@@ -1,17 +1,16 @@
 use crate::api::billing::fetch_owned_subscription;
 use crate::api::billing::model::{Subscription, SubscriptionStatus};
-use crate::api::{ApiResult, google::User};
+use crate::api::google::User;
 use crate::notifiers::{UserNotificationConfig, fetch_notification_configs};
 use anyhow::{Context, Result};
 use axum::{Extension, Json, Router, routing::get};
+use axum_anyhow::{ApiResult, OptionExt};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use sqlx::postgres::PgPool;
 use sqlx::types::chrono;
 use tokio::try_join;
-
-use super::not_found_error;
 
 pub(crate) fn router() -> Router {
     Router::new().route("/", get(get_profile_handler))
@@ -50,9 +49,7 @@ async fn get_profile_handler(
         fetch_owned_subscription(&user.email, pool),
         fetch_subscription_end_time(&user.email, pool),
     )?;
-    let Some(plugin_connections) = plugin_connections else {
-        return Err(not_found_error("NOT_FOUND", "User not found"));
-    };
+    let plugin_connections = plugin_connections.context_not_found("NOT_FOUND", "User not found")?;
 
     Ok(Json(Profile {
         notification_configs,

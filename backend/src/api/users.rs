@@ -1,8 +1,7 @@
-use crate::api::{ApiResult, google, model::User, not_found_error, verify_premium};
+use crate::api::{google, model::User, verify_premium};
 use axum::{Extension, Json, Router, extract::Path, routing::get};
+use axum_anyhow::{ApiResult, OptionExt, bad_request, forbidden};
 use sqlx::postgres::PgPool;
-
-use super::{bad_request_error, unauthorized_error};
 
 pub(super) fn router() -> Router {
     Router::new()
@@ -40,7 +39,7 @@ async fn get_user_handler(
 ) -> ApiResult<Json<User>> {
     verify_user_access(&user, &email)?;
 
-    let user: Option<User> = sqlx::query_as(
+    let user: User = sqlx::query_as(
         "
         SELECT email, name, picture, (subscription_end_time IS NOT NULL AND subscription_end_time > now()) AS premium
         FROM users
@@ -48,25 +47,21 @@ async fn get_user_handler(
     )
     .bind(&email)
     .fetch_optional(pool)
-    .await?;
-    match user {
-        Some(user) => Ok(Json(user)),
-        None => Err(not_found_error(
-            "NOT_FOUND",
-            &format!("User {email} not found"),
-        )),
-    }
+    .await?
+    .context_not_found("NOT_FOUND",
+            &format!("User {email} not found"))?;
+    Ok(Json(user))
 }
 
 fn verify_user_access(user: &google::User, email: &str) -> ApiResult<()> {
     if email.is_empty() {
-        return Err(bad_request_error("EMPTY_EMAIL", "Email must not be empty"));
+        return Err(bad_request("EMPTY_EMAIL", "Email must not be empty"));
     }
     if email != user.email {
-        return Err(unauthorized_error(&format!(
-            "User {} is not authorized to access {}",
-            user.email, email
-        )));
+        return Err(forbidden(
+            "UNAUTHORIZED",
+            &format!("User {} is not authorized to access {}", user.email, email),
+        ));
     }
     Ok(())
 }

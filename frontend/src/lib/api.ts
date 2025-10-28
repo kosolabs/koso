@@ -1,32 +1,21 @@
 import { version } from "$app/environment";
 import { AuthContext } from "./auth.svelte";
 
-export type ErrorResponseBody = {
-  status: number;
-  details: ErrorDetail[];
-};
-
-export type ErrorDetail = {
-  // Terse, stable, machine readable error reason.
-  // e.g. NO_STOCK
-  reason: string;
-  msg: string;
-};
-
 export class KosoError extends Error {
   // Status code in number form. e.g. 400, 500
   status: number;
-  details: ErrorDetail[];
+  title: string;
+  detail: string;
 
-  constructor({ status, details }: { status: number; details: ErrorDetail[] }) {
-    const cause = details.map((d) => `(${d.reason}) ${d.msg}`).join(", ");
-    super(`(${status}: [${cause})]`);
-    this.status = status;
-    this.details = details;
+  constructor(error: { status: number; title: string; detail: string }) {
+    super(`${error.status} ${error.title}: ${error.detail}`);
+    this.status = error.status;
+    this.title = error.title;
+    this.detail = error.detail;
   }
 
   hasReason(reason: string): boolean {
-    return this.details.find((d) => d.reason === reason) !== undefined;
+    return this.title === reason;
   }
 }
 
@@ -52,7 +41,8 @@ export async function parseResponse<T>(
 
   let err: KosoError;
   if (response.headers.get("Content-Type") === "application/json") {
-    const error: ErrorResponseBody = await response.json();
+    const error: ConstructorParameters<typeof KosoError>[0] =
+      await response.json();
     if (error.status !== response.status) {
       console.warn(
         `Error status (${error.status}) does not match response status ${response.status}`,
@@ -60,19 +50,12 @@ export async function parseResponse<T>(
         response,
       );
     }
-    err = new KosoError({
-      status: error.status,
-      details: error.details,
-    });
+    err = new KosoError(error);
   } else {
     err = new KosoError({
       status: response.status,
-      details: [
-        {
-          reason: "UNKNOWN",
-          msg: "No error details present.",
-        },
-      ],
+      title: "UNKNOWN",
+      detail: "No error details present.",
     });
   }
 

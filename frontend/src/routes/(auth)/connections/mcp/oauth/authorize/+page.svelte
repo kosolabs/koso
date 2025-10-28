@@ -151,19 +151,8 @@
     let error;
     let errorDescription;
     if (e instanceof KosoError) {
-      const detail = e.details[0];
-      if (detail) {
-        error = detail.reason;
-        errorDescription = detail.msg;
-      } else {
-        if (e.status === 400) {
-          error = "invalid_request";
-          errorDescription = "Invalid approval request.";
-        } else {
-          error = "server_error";
-          errorDescription = "Something unexpected went wrong!";
-        }
-      }
+      error = e.title;
+      errorDescription = e.detail;
     } else {
       error = "server_error";
       errorDescription = "Something unexpected went wrong!";

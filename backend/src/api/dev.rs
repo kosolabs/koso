@@ -1,9 +1,10 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use super::{User, bad_request_error, google};
-use crate::{api::ApiResult, settings::settings};
+use super::{User, google};
+use crate::settings::settings;
 use anyhow::Context as _;
 use axum::{Extension, Router, routing::post};
+use axum_anyhow::{ApiResult, bad_request};
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
@@ -29,7 +30,7 @@ async fn invite_test_user_handler(
     Extension(user): Extension<User>,
 ) -> ApiResult<()> {
     if !user.email.ends_with(google::TEST_USER_SUFFIX) {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "NON_TEST_USER",
             &format!(
                 "User {} is not a test user. Expected suffix: {}",

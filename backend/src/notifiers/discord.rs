@@ -1,8 +1,5 @@
 use crate::{
-    api::{
-        ApiResult, IntoApiResult as _, bad_request_error,
-        google::{self, User},
-    },
+    api::google::{self, User},
     notifiers::{
         DiscordSettings, NotifierSettings, delete_notification_config, insert_notification_config,
     },
@@ -18,6 +15,7 @@ use axum::{
     response::Response,
     routing::{delete, post},
 };
+use axum_anyhow::{ApiResult, ResultExt, bad_request};
 use chrono::Utc;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
@@ -178,7 +176,7 @@ async fn handle_interaction(
                     })));
                 }
                 _ => {
-                    return Err(bad_request_error(
+                    return Err(bad_request(
                         "UNKNOWN_DISCORD_COMMAND",
                         &format!("Unknown Discord command: {command}"),
                     ));
@@ -217,7 +215,7 @@ async fn verify_discord_signature(request: Request, next: Next) -> ApiResult<Res
     let verifying_key = get_verifying_key()?;
     let request = verify_signature(request, &verifying_key)
         .await
-        .context_unauthorized("Failed to verify signature")?;
+        .context_forbidden("UNAUTHORIZED", "Failed to verify signature")?;
 
     Ok(next.run(request).await)
 }

@@ -1,8 +1,7 @@
 use anyhow::anyhow;
 use axum::{body::Body, response::Response};
+use axum_anyhow::ApiResult;
 use futures::{StreamExt, stream};
-
-use crate::api::ApiResult;
 
 pub(super) async fn simulate(method: &str) -> ApiResult<Response> {
     let data = if method == "summarize" {

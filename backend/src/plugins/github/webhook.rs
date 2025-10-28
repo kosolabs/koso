@@ -1,6 +1,5 @@
 use crate::{
     api::{
-        ApiResult, IntoApiResult as _, bad_request_error,
         collab::{
             Collab,
             projects_state::DocBox,
@@ -25,6 +24,7 @@ use axum::{
     http::{HeaderMap, request::Parts},
     routing::post,
 };
+use axum_anyhow::{ApiResult, OptionExt, ResultExt};
 use hmac::{Hmac, Mac};
 use octocrab::models::webhook_events::{
     WebhookEvent, WebhookEventPayload, payload::PullRequestWebhookEventAction,
@@ -107,7 +107,7 @@ async fn github_webhook(
         .await
         .context_bad_request("INVALID_BODY", "Invalid body")?;
     validate_signature(headers.signature, &body, &webhook.secret)
-        .context_unauthorized("Invalid signature")?;
+        .context_forbidden("UNAUTHORIZED", "Invalid signature")?;
 
     tracing::Span::current().record("gh_delivery_id", headers.delivery_id);
     tracing::Span::current().record("gh_event", headers.event);
@@ -129,37 +129,28 @@ async fn github_webhook(
 
 // See https://docs.github.com/en/webhooks/webhook-events-and-payloads#delivery-headers.
 fn parse_headers<'a>(headers: &'a HeaderMap) -> ApiResult<WebhookHeaders<'a>> {
-    let Some(header) = headers.get("X-GitHub-Event") else {
-        return Err(bad_request_error(
-            "MISSING_HEADER",
-            "Missing X-GitHub-Event header",
-        ));
-    };
-    let event = header.to_str()?;
+    let event = headers
+        .get("X-GitHub-Event")
+        .context_bad_request("MISSING_HEADER", "Missing X-GitHub-Event header")?
+        .to_str()?;
 
-    let Some(header) = headers.get("X-Hub-Signature-256") else {
-        return Err(bad_request_error(
-            "MISSING_HEADER",
-            "Missing X-Hub-Signature-256 header",
-        ));
-    };
-    let signature: &[u8] = header.as_bytes();
+    let signature: &[u8] = headers
+        .get("X-Hub-Signature-256")
+        .context_bad_request("MISSING_HEADER", "Missing X-Hub-Signature-256 header")?
+        .as_bytes();
 
-    let Some(header) = headers.get("X-GitHub-Delivery") else {
-        return Err(bad_request_error(
-            "MISSING_HEADER",
-            "Missing X-GitHub-Delivery header",
-        ));
-    };
-    let delivery_id = header.to_str()?;
+    let delivery_id = headers
+        .get("X-GitHub-Delivery")
+        .context_bad_request("MISSING_HEADER", "Missing X-GitHub-Delivery header")?
+        .to_str()?;
 
-    let Some(header) = headers.get("X-GitHub-Hook-Installation-Target-ID") else {
-        return Err(bad_request_error(
+    let installation_id = headers
+        .get("X-GitHub-Hook-Installation-Target-ID")
+        .context_bad_request(
             "MISSING_HEADER",
             "Missing X-GitHub-Hook-Installation-Target-ID header",
-        ));
-    };
-    let installation_id = header.to_str()?;
+        )?
+        .to_str()?;
 
     Ok(WebhookHeaders {
         delivery_id,

@@ -306,14 +306,8 @@ async fn assert_not_premium(res: Response) {
     let error: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
     let error = error.as_object().unwrap();
     assert_eq!(error.get("status").unwrap().as_i64().unwrap(), 403);
-    let details = error.get("details").unwrap().as_array().unwrap();
-    assert_eq!(details.len(), 1);
-    let detail = details.first().unwrap().as_object().unwrap();
-    assert_eq!(
-        detail.get("reason").unwrap().as_str().unwrap(),
-        "NOT_PREMIUM"
-    );
-    assert!(!detail.get("msg").unwrap().as_str().unwrap().is_empty());
+    assert_eq!(error.get("title").unwrap().as_str().unwrap(), "NOT_PREMIUM");
+    assert!(!error.get("detail").unwrap().as_str().unwrap().is_empty());
 }
 
 #[test_log::test(sqlx::test)]
@@ -1433,7 +1427,7 @@ async fn dupes_api_test(pool: PgPool) -> sqlx::Result<()> {
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
         let error: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
-        assert_eq!(error["error"], "SAME_TASK_IDS");
+        assert_eq!(error["title"], "SAME_TASK_IDS");
     }
 
     // Similarity > 1 should fail
@@ -1454,7 +1448,7 @@ async fn dupes_api_test(pool: PgPool) -> sqlx::Result<()> {
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
         let error: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
-        assert_eq!(error["error"], "INVALID_SIMILARITY");
+        assert_eq!(error["title"], "INVALID_SIMILARITY");
     }
 
     // Similarity < 0 should fail
@@ -1475,7 +1469,7 @@ async fn dupes_api_test(pool: PgPool) -> sqlx::Result<()> {
             .expect("Failed to send request.");
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
         let error: Value = serde_json::from_str(res.text().await.unwrap().as_str()).unwrap();
-        assert_eq!(error["error"], "INVALID_SIMILARITY");
+        assert_eq!(error["title"], "INVALID_SIMILARITY");
     }
 
     // Test access control - different user shouldn't have access

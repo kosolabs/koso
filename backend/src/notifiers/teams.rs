@@ -1,8 +1,5 @@
 use crate::{
-    api::{
-        ApiResult, IntoApiResult as _,
-        google::{self, User},
-    },
+    api::google::{self, User},
     notifiers::{
         NotifierSettings, TeamsSettings, delete_notification_config, insert_notification_config,
     },
@@ -16,6 +13,7 @@ use axum::{
     response::Response,
     routing::{delete, post},
 };
+use axum_anyhow::{ApiResult, ResultExt};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};

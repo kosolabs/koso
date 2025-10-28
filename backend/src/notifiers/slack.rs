@@ -1,8 +1,5 @@
 use crate::{
-    api::{
-        ApiResult, IntoApiResult as _,
-        google::{self, User},
-    },
+    api::google::{self, User},
     notifiers::{
         NotifierSettings, SlackSettings, delete_notification_config, insert_notification_config,
     },
@@ -18,6 +15,7 @@ use axum::{
     response::Response,
     routing::{delete, post},
 };
+use axum_anyhow::{ApiResult, ResultExt};
 use chrono::Utc;
 use hmac::{Hmac, Mac};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
@@ -204,7 +202,7 @@ async fn verify_slack_signature(request: Request, next: Next) -> ApiResult<Respo
 
     let request = verify_signature(request, &signing_secret)
         .await
-        .context_unauthorized("Failed to verify signature")?;
+        .context_forbidden("UNAUTHORIZED", "Failed to verify signature")?;
 
     Ok(next.run(request).await)
 }

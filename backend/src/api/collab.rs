@@ -102,7 +102,7 @@ impl Collab {
         // Before doing anything else, make sure the user has access to the project.
         if let Err(e) = api::verify_project_access(self.inner.pool, &user, &project_id).await {
             sender.close(CLOSE_UNAUTHORIZED, "Unauthorized.").await;
-            return Err(e.as_err());
+            return Err(e.into_error());
         }
 
         self.inner

@@ -1,10 +1,11 @@
-use anyhow::{Context, Error, Result, anyhow};
+use anyhow::{Context, Error, Result};
 use axum::{
     Router,
     http::{HeaderName, HeaderValue, StatusCode},
     middleware,
-    response::{IntoResponse, Response},
+    response::IntoResponse,
 };
+use axum_anyhow::{ApiError, ApiResult, OptionExt, bad_request};
 use axum_extra::headers;
 use google::User;
 use model::{ProjectId, ProjectPermission};
@@ -30,9 +31,9 @@ pub(crate) mod users;
 pub(crate) mod ws;
 pub(crate) mod yproxy;
 
-pub(crate) type ApiResult<T> = Result<T, ErrorResponse>;
-
 pub(crate) fn router() -> Result<Router> {
+    configure_error_logging();
+
     Ok(Router::new()
         .nest("/projects", projects::router())
         .nest("/profile", profile::router())
@@ -48,7 +49,7 @@ pub(crate) fn router() -> Result<Router> {
 }
 
 /// Verify that the user is premium.
-pub(crate) async fn verify_premium(pool: &PgPool, user: &User) -> Result<(), ErrorResponse> {
+pub(crate) async fn verify_premium(pool: &PgPool, user: &User) -> ApiResult<()> {
     match sqlx::query_as(
         "
         SELECT subscription_end_time IS NOT NULL AND subscription_end_time > now() AS premium
@@ -74,15 +75,15 @@ pub(crate) async fn verify_project_access(
     pool: &PgPool,
     user: &User,
     project_id: &ProjectId,
-) -> Result<(), ErrorResponse> {
+) -> ApiResult<()> {
     if project_id.is_empty() {
-        return Err(bad_request_error(
+        return Err(bad_request(
             "EMPTY_PROJECT_ID",
             "Project ID must not be empty",
         ));
     }
 
-    let permission: Option<ProjectPermission> = sqlx::query_as(
+    sqlx::query_as::<_, ProjectPermission>(
         "
         SELECT project_id, email
         FROM project_permissions
@@ -93,66 +94,46 @@ pub(crate) async fn verify_project_access(
     .bind(&user.email)
     .fetch_optional(pool)
     .await
-    .context("Failed to check user permission")?;
-
-    match permission {
-        Some(_) => Ok(()),
-        None => Err(unauthorized_error(&format!(
+    .context("Failed to check user permission")?
+    .context_forbidden(
+        "UNAUTHORIZED",
+        &format!(
             "User {} is not authorized to access {}",
             user.email, project_id
-        ))),
-    }
+        ),
+    )?;
+
+    Ok(())
 }
 
 pub(crate) async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404! Nothing to see here")
 }
 
-pub(crate) fn unauthenticated_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::UNAUTHORIZED, "UNAUTHENTICATED", msg, None)
+pub(crate) fn not_premium_error(msg: &str) -> ApiError {
+    ApiError::builder()
+        .status(StatusCode::FORBIDDEN)
+        .title("NOT_PREMIUM")
+        .detail(msg)
+        .build()
 }
 
-pub(crate) fn unauthorized_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::FORBIDDEN, "UNAUTHORIZED", msg, None)
-}
-
-pub(crate) fn not_premium_error(msg: &str) -> ErrorResponse {
-    error_response(StatusCode::FORBIDDEN, "NOT_PREMIUM", msg, None)
-}
-
-pub(crate) fn bad_request_error(reason: &'static str, msg: &str) -> ErrorResponse {
-    error_response(StatusCode::BAD_REQUEST, reason, msg, None)
-}
-
-pub(crate) fn not_found_error(reason: &'static str, msg: &str) -> ErrorResponse {
-    error_response(StatusCode::NOT_FOUND, reason, msg, None)
-}
-
-pub(crate) fn error_response(
-    status: StatusCode,
-    reason: &'static str,
-    msg: &str,
-    err: Option<Error>,
-) -> ErrorResponse {
-    let err = ErrorRender { err, msg };
-
-    match status {
-        StatusCode::INTERNAL_SERVER_ERROR => {
-            tracing::error!("Failed: {} ({}): {:?}", status, reason, err)
+fn configure_error_logging() {
+    axum_anyhow::set_error_hook(|err| {
+        let detail = ErrorRender {
+            err: &err.error,
+            msg: &err.detail,
+        };
+        if err.status == StatusCode::INTERNAL_SERVER_ERROR {
+            tracing::error!(status = %err.status, title = %err.title, ?detail, "Failed");
+        } else {
+            tracing::warn!(status = %err.status, title = %err.title, ?detail, "Failed");
         }
-        _ => tracing::warn!("Failed: {} ({}): {:?}", status, reason, err),
-    }
-    let msg = format!("{err}");
-    ErrorResponse {
-        status,
-        error: reason,
-        error_description: msg.clone(),
-        details: vec![ErrorDetail { reason, msg }],
-    }
+    });
 }
 
 struct ErrorRender<'a> {
-    err: Option<Error>,
+    err: &'a Option<Error>,
     msg: &'a str,
 }
 
@@ -239,94 +220,47 @@ impl ErrorRender<'_> {
     }
 }
 
-#[derive(Debug)]
-pub(crate) struct ErrorResponse {
-    pub(crate) status: StatusCode,
-    pub(crate) error: &'static str,
-    pub(crate) error_description: String,
-    pub(crate) details: Vec<ErrorDetail>,
-}
+pub(crate) struct RmcpErrorData(rmcp::ErrorData);
 
-#[derive(serde::Serialize, Debug)]
-pub(crate) struct ErrorDetail {
-    // Terse, stable, machine readable error reason.
-    // e.g. NO_STOCK
-    pub(crate) reason: &'static str,
-    // Debug message for developers. Not intended for end users.
-    pub(crate) msg: String,
-    // Need more details about an error? Consider adding
-    // a map of key/values for use in the client.
-}
-
-impl ErrorResponse {
-    pub(crate) fn as_err(&self) -> Error {
-        if self.details.is_empty() {
-            anyhow!("({}) <MISSING_ERROR_DETAILS>", self.status)
-        } else {
-            anyhow!("({}) {:?}", self.status, self.details)
-        }
-    }
-}
-
-#[derive(serde::Serialize)]
-struct ErrorResponseBody {
-    // StatusCode in number form. e.g. 400, 500
-    status: u16,
-    error: &'static str,
-    error_description: String,
-    details: Vec<ErrorDetail>,
-}
-
-/// Converts from ErrorResponse to Response.
-impl IntoResponse for ErrorResponse {
-    fn into_response(self) -> Response {
-        let body = axum::Json(ErrorResponseBody {
-            status: self.status.as_u16(),
-            error: self.error,
-            error_description: self.error_description,
-            details: self.details,
-        });
-
-        (self.status, body).into_response()
-    }
-}
-
-/// Converts from boxed Error to ErrorResponse and logs the error.
-impl<E> From<E> for ErrorResponse
+impl<E> From<E> for RmcpErrorData
 where
     E: Into<anyhow::Error>,
 {
-    fn from(err: E) -> Self {
-        err.context_internal("Internal error, something went wrong")
+    fn from(_err: E) -> Self {
+        RmcpErrorData(rmcp::ErrorData::new(
+            ErrorCode::INTERNAL_ERROR,
+            "Internal error",
+            None,
+        ))
     }
 }
 
-/// Converts from ErrorResponse to rmcp::Error.
-impl From<ErrorResponse> for rmcp::ErrorData {
-    fn from(err: ErrorResponse) -> Self {
-        let code = match err.status {
-            StatusCode::INTERNAL_SERVER_ERROR => ErrorCode::INTERNAL_ERROR,
-            StatusCode::NOT_FOUND => ErrorCode::RESOURCE_NOT_FOUND,
-            StatusCode::BAD_REQUEST => ErrorCode::INVALID_REQUEST,
-            StatusCode::UNAUTHORIZED => ErrorCode::INVALID_REQUEST,
-            StatusCode::FORBIDDEN => ErrorCode::INVALID_REQUEST,
-            _ => ErrorCode::INTERNAL_ERROR,
-        };
+impl From<RmcpErrorData> for rmcp::ErrorData {
+    fn from(err: RmcpErrorData) -> Self {
+        err.0
+    }
+}
 
-        let msg = err
-            .details
-            .first()
-            .map(|details| details.reason)
-            .unwrap_or("[missing]");
-        let data = match serde_json::to_value(&err.details) {
+fn rmcp_error(code: ErrorCode, title: &'static str, detail: &str) -> RmcpErrorData {
+    RmcpErrorData(rmcp::ErrorData::new(
+        code,
+        title,
+        match serde_json::to_value(detail) {
             Ok(value) => Some(value),
             Err(e) => {
-                tracing::error!("Failed to serialize error details: {e:#}: {:?}", err);
+                tracing::error!("Failed to serialize error details: {e:#}: {:?}", detail);
                 None
             }
-        };
-        rmcp::ErrorData::new(code, msg, data)
-    }
+        },
+    ))
+}
+
+pub(crate) fn resource_not_found(title: &'static str, detail: &str) -> RmcpErrorData {
+    rmcp_error(ErrorCode::RESOURCE_NOT_FOUND, title, detail)
+}
+
+pub(crate) fn invalid_request(title: &'static str, detail: &str) -> RmcpErrorData {
+    rmcp_error(ErrorCode::INVALID_REQUEST, title, detail)
 }
 
 pub struct XForwardedFor {
@@ -351,100 +285,5 @@ impl headers::Header for XForwardedFor {
 
     fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
         values.extend([self.client_ip.to_string().try_into().unwrap()])
-    }
-}
-
-#[allow(dead_code)]
-pub(crate) trait IntoApiResult<T, E> {
-    fn context_status(self, status: StatusCode, reason: &'static str, msg: &str) -> ApiResult<T>;
-    fn context_bad_request(self, reason: &'static str, msg: &str) -> ApiResult<T>;
-    fn context_unauthenticated(self, msg: &str) -> ApiResult<T>;
-    fn context_unauthorized(self, msg: &str) -> ApiResult<T>;
-    fn context_not_found(self, msg: &str) -> ApiResult<T>;
-    fn context_internal(self, msg: &str) -> ApiResult<T>;
-}
-
-impl<T, E> IntoApiResult<T, E> for Result<T, E>
-where
-    E: IntoErrorResponse<E>,
-{
-    fn context_status(self, status: StatusCode, reason: &'static str, msg: &str) -> ApiResult<T> {
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(error.context_status(status, reason, msg)),
-        }
-    }
-
-    fn context_bad_request(self, reason: &'static str, msg: &str) -> ApiResult<T> {
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(error.context_bad_request(reason, msg)),
-        }
-    }
-
-    fn context_unauthenticated(self, msg: &str) -> ApiResult<T> {
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(error.context_unauthenticated(msg)),
-        }
-    }
-
-    fn context_unauthorized(self, msg: &str) -> ApiResult<T> {
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(error.context_unauthorized(msg)),
-        }
-    }
-
-    fn context_not_found(self, msg: &str) -> ApiResult<T> {
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(error.context_not_found(msg)),
-        }
-    }
-
-    fn context_internal(self, msg: &str) -> ApiResult<T> {
-        match self {
-            Ok(ok) => Ok(ok),
-            Err(error) => Err(error.context_internal(msg)),
-        }
-    }
-}
-
-pub(crate) trait IntoErrorResponse<E> {
-    fn context_status(self, status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse;
-    fn context_bad_request(self, reason: &'static str, msg: &str) -> ErrorResponse;
-    fn context_unauthenticated(self, msg: &str) -> ErrorResponse;
-    fn context_unauthorized(self, msg: &str) -> ErrorResponse;
-    fn context_not_found(self, msg: &str) -> ErrorResponse;
-    fn context_internal(self, msg: &str) -> ErrorResponse;
-}
-
-impl<E> IntoErrorResponse<E> for E
-where
-    E: Into<anyhow::Error>,
-{
-    fn context_status(self, status: StatusCode, reason: &'static str, msg: &str) -> ErrorResponse {
-        error_response(status, reason, msg, Some(self.into()))
-    }
-
-    fn context_bad_request(self, reason: &'static str, msg: &str) -> ErrorResponse {
-        self.context_status(StatusCode::BAD_REQUEST, reason, msg)
-    }
-
-    fn context_unauthenticated(self, msg: &str) -> ErrorResponse {
-        self.context_status(StatusCode::UNAUTHORIZED, "UNAUTHENTICATED", msg)
-    }
-
-    fn context_unauthorized(self, msg: &str) -> ErrorResponse {
-        self.context_status(StatusCode::FORBIDDEN, "UNAUTHORIZED", msg)
-    }
-
-    fn context_not_found(self, msg: &str) -> ErrorResponse {
-        self.context_status(StatusCode::NOT_FOUND, "NOT_FOUND", msg)
-    }
-
-    fn context_internal(self, msg: &str) -> ErrorResponse {
-        self.context_status(StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL", msg)
     }
 }

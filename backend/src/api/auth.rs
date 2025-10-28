@@ -1,6 +1,7 @@
-use crate::api::{ApiResult, billing::update_user_subscription_end_time};
+use crate::api::billing::update_user_subscription_end_time;
 use anyhow::Context as _;
 use axum::{Extension, Router, routing::post};
+use axum_anyhow::ApiResult;
 use sqlx::PgPool;
 
 use crate::api::google::User;
