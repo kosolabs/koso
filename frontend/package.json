@@ -59,7 +59,7 @@
     "prettier-plugin-jsdoc": "1.5.0",
     "prettier-plugin-svelte": "3.4.0",
     "prettier-plugin-tailwindcss": "0.7.1",
-    "svelte": "5.43.3",
+    "svelte": "5.41.2",
     "svelte-check": "4.3.3",
     "svelte-confetti": "2.3.2",
     "svelte-sonner": "1.0.5",
