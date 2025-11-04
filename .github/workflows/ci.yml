@@ -25,7 +25,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:18.0@sha256:073e7c8b84e2197f94c8083634640ab37105effe1bc853ca4d5fbece3219b0e8
+        image: postgres:18.0@sha256:6f3e42ad37decc037c508dd405f5941c6dfa7d21f21a7237a43bde9def1e295e
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -56,7 +56,7 @@ jobs:
           shared-key: "backend-build"
       - name: Setup Stripe CLI
         run: |
-          STRIPE_CLI_VERSION="1.31.0"
+          STRIPE_CLI_VERSION="1.32.0"
           curl -L https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_x86_64.tar.gz --output stripe.tar.gz
           tar -xvf stripe.tar.gz
           mv stripe /usr/local/bin
@@ -106,7 +106,7 @@ jobs:
         with:
           package_json_file: frontend/package.json
       - name: Setup Node
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
         with:
           node-version-file: frontend/.nvmrc
           cache: "pnpm"
@@ -125,7 +125,7 @@ jobs:
       REGISTRY: ghcr.io
     services:
       postgres:
-        image: postgres:18.0@sha256:073e7c8b84e2197f94c8083634640ab37105effe1bc853ca4d5fbece3219b0e8
+        image: postgres:18.0@sha256:6f3e42ad37decc037c508dd405f5941c6dfa7d21f21a7237a43bde9def1e295e
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -147,7 +147,7 @@ jobs:
         with:
           package_json_file: frontend/package.json
       - name: Setup Node
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
         with:
           node-version-file: frontend/.nvmrc
           cache: "pnpm"
@@ -158,7 +158,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
       - name: Setup Stripe CLI
         run: |
-          STRIPE_CLI_VERSION="1.31.0"
+          STRIPE_CLI_VERSION="1.32.0"
           curl -L https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_x86_64.tar.gz --output stripe.tar.gz
           tar -xvf stripe.tar.gz
           mv stripe /usr/local/bin
@@ -269,7 +269,7 @@ jobs:
       - name: Extract metadata (tags, labels) for Docker
         # allows the output of this step to be referenced in a subsequent step.
         id: meta
-        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        uses: docker/metadata-action@318604b99e75e41977312d83839a89be02ca4893 # v5.9.0
         with:
           # Base name for the tags and labels.
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
