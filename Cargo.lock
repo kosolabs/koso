@@ -1479,22 +1479,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "jsonwebtoken"
-version = "10.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d119c6924272d16f0ab9ce41f7aa0bfef9340c00b0bb7ca3dd3b263d4a9150b"
-dependencies = [
- "base64",
- "getrandom 0.2.16",
- "js-sys",
- "pem",
- "serde",
- "serde_json",
- "signature",
- "simple_asn1",
-]
-
-[[package]]
 name = "koso"
 version = "0.1.0"
 dependencies = [
@@ -1510,7 +1494,7 @@ dependencies = [
  "futures",
  "hex",
  "hmac",
- "jsonwebtoken 10.1.0",
+ "jsonwebtoken",
  "listenfd",
  "metrics",
  "metrics-exporter-prometheus",
@@ -1854,7 +1838,7 @@ dependencies = [
  "hyper-rustls",
  "hyper-timeout",
  "hyper-util",
- "jsonwebtoken 9.3.1",
+ "jsonwebtoken",
  "once_cell",
  "percent-encoding",
  "pin-project",
