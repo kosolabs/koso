@@ -1,4 +1,4 @@
-FROM rust:1.91.0@sha256:a2d7edb8d58e216f3c81ce2d9704ddf00d6b3fd2d55039be9f90ed8b62d8bb3b AS build
+FROM rust:1.91.1@sha256:cd34b27bc6df5450e4952075dc6bd3881a1aeb8f5d0478cd75c2160ca47e2182 AS build
 WORKDIR /app/healthz
 
 # The debian 13 image doesn't seem to include libzstd1. Install it.

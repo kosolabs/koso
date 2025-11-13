@@ -49,12 +49,12 @@ hmac = "0.12.1"
 hex = "0.4.3"
 sha2 = "0.10.9"
 async-trait = "0.1.89"
-config = { version = "0.15.18", default-features = false, features = ["json"] }
+config = { version = "0.15.19", default-features = false, features = ["json"] }
 regex = "1.12.2"
 serde_qs = "1.0.0-rc.3"
 ed25519-dalek = "2.2.0"
 tokio-tungstenite = { version = "0.28.0" }
-rmcp = { version = "0.8.4", features = ["server", "transport-io", "transport-streamable-http-server", "transport-sse-server", "auth"] }
+rmcp = { version = "0.8.5", features = ["server", "transport-io", "transport-streamable-http-server", "transport-sse-server", "auth"] }
 url = "2.5.7"
 rust_decimal = { version = "1.39.0", features = ["serde"] }
 axum-anyhow = "0.7.4"
@@ -62,4 +62,4 @@ axum-anyhow = "0.7.4"
 [dev-dependencies]
 test-log = { version = "0.2.18", features = ["trace", "color"] }
 tokio-tungstenite = { version = "0.28.0", features = ["url"] }
-rsa = "0.9.8"
+rsa = "0.9.9"
