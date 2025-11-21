@@ -50,12 +50,5 @@
     "automerge": true,
     "platformAutomerge": false,
     "automergeSchedule": ["* 10-16 * * 1-5"]
-  },
-  "packageRules": [
-    {
-      "matchPackageNames": ["jsonwebtoken"],
-      "matchUpdateTypes": ["major"],
-      "enabled": false
-    }
-  ]
+  }
 }

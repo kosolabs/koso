@@ -270,12 +270,10 @@ fn decode_and_validate_token(token: &str, key: &DecodingKey) -> ApiResult<User> 
     Ok(token.claims)
 }
 
-fn decode_and_validate_test_token(token: &str, key: &DecodingKey) -> ApiResult<User> {
+fn decode_and_validate_test_token(token: &str, _key: &DecodingKey) -> ApiResult<User> {
     // Example Jwt:
     //   eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imtvc28taW50ZWdyYXRpb24tdGVzdCJ9.eyJlbWFpbCI6InRlc3RAdGVzdC5rb3NvLmFwcCIsIm5hbWUiOiJQb2ludHktSGFpcmVkIEJvc3MiLCJwaWN0dXJlIjoiaHR0cHM6Ly9zdGF0aWMud2lraWEubm9jb29raWUubmV0L2RpbGJlcnQvaW1hZ2VzLzYvNjAvQm9zcy5QTkciLCJleHAiOjIwMjQ3ODgwMTR9.3btheBY5h0nQRpWNODfYWQ_mMc26551178jrSDmpv_c
-    let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
-    validation.insecure_disable_signature_validation();
-    let token = jsonwebtoken::decode::<User>(token, key, &validation)
+    let token = jsonwebtoken::dangerous::insecure_decode::<User>(token)
         .context_unauthorized("UNAUTHENTICATED", "Failed to decode test cred token")?;
 
     let user = token.claims;
