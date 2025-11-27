@@ -23,6 +23,7 @@ use axum::{
 use axum_extra::headers::HeaderMapExt;
 use jsonwebtoken::{DecodingKey, EncodingKey};
 use listenfd::ListenFd;
+use reqwest::StatusCode;
 use sqlx::{
     ConnectOptions,
     postgres::{PgConnectOptions, PgPool, PgPoolOptions},
@@ -144,12 +145,18 @@ pub async fn start_main_server(config: Config) -> Result<(SocketAddr, JoinHandle
                 )
                 // Graceful shutdown will wait for outstanding requests to complete. Add a timeout so
                 // requests don't hang forever.
-                .layer(TimeoutLayer::new(Duration::from_secs(300))),
+                .layer(TimeoutLayer::with_status_code(
+                    StatusCode::REQUEST_TIMEOUT,
+                    Duration::from_secs(300),
+                )),
         )
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_dir_headers))
-                .layer(TimeoutLayer::new(Duration::from_secs(300)))
+                .layer(TimeoutLayer::with_status_code(
+                    StatusCode::REQUEST_TIMEOUT,
+                    Duration::from_secs(300),
+                ))
                 .service(
                     ServeDir::new("static")
                         .precompressed_gzip()

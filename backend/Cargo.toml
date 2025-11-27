@@ -20,7 +20,7 @@ uuid = { version = "1.18.1", features = [
     "fast-rng", # Use a faster (but still sufficiently random) RNG
     "serde",    # Enable serde serialization support
 ] }
-tower-http = { version = "0.6.6", features = [
+tower-http = { version = "0.6.7", features = [
     "fs",
     "trace",
     "timeout",
@@ -54,10 +54,10 @@ regex = "1.12.2"
 serde_qs = "1.0.0-rc.3"
 ed25519-dalek = "2.2.0"
 tokio-tungstenite = { version = "0.28.0" }
-rmcp = { version = "0.9.0", features = ["server", "transport-io", "transport-streamable-http-server", "transport-sse-server", "auth"] }
+rmcp = { version = "0.9.1", features = ["server", "transport-io", "transport-streamable-http-server", "transport-sse-server", "auth"] }
 url = "2.5.7"
 rust_decimal = { version = "1.39.0", features = ["serde"] }
-axum-anyhow = "0.7.5"
+axum-anyhow = "0.7.6"
 
 [dev-dependencies]
 test-log = { version = "0.2.18", features = ["trace", "color"] }
