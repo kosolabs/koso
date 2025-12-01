@@ -50,7 +50,7 @@ RUN pnpm run build
 #
 # Use the :debug image to debug
 # https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images
-FROM gcr.io/distroless/cc-debian13@sha256:0e90484916aa263753c9885ee4a9b4d6fa756b8242600e2e37fe74c7ec5574f4 AS runtime
+FROM gcr.io/distroless/cc-debian13@sha256:ec656980337e79f6fe88a6cf7eeb8a4ad8f99df77ec5154962ca1f7f3a7984b2 AS runtime
 WORKDIR /app
 
 # From zlib1g
