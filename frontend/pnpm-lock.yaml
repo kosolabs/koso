@@ -114,17 +114,17 @@ importers:
         specifier: 8.5.6
         version: 8.5.6
       prettier:
-        specifier: 3.7.3
-        version: 3.7.3
+        specifier: 3.6.2
+        version: 3.6.2
       prettier-plugin-jsdoc:
-        specifier: 1.7.0
-        version: 1.7.0(prettier-plugin-svelte@3.4.0(prettier@3.7.3)(svelte@5.45.2))(prettier@3.7.3)
+        specifier: 1.5.0
+        version: 1.5.0(prettier@3.6.2)
       prettier-plugin-svelte:
         specifier: 3.4.0
-        version: 3.4.0(prettier@3.7.3)(svelte@5.45.2)
+        version: 3.4.0(prettier@3.6.2)(svelte@5.45.2)
       prettier-plugin-tailwindcss:
         specifier: 0.7.1
-        version: 0.7.1(prettier-plugin-jsdoc@1.7.0(prettier-plugin-svelte@3.4.0(prettier@3.7.3)(svelte@5.45.2))(prettier@3.7.3))(prettier-plugin-svelte@3.4.0(prettier@3.7.3)(svelte@5.45.2))(prettier@3.7.3)
+        version: 0.7.1(prettier-plugin-jsdoc@1.5.0(prettier@3.6.2))(prettier-plugin-svelte@3.4.0(prettier@3.6.2)(svelte@5.45.2))(prettier@3.6.2)
       svelte:
         specifier: 5.45.2
         version: 5.45.2
@@ -2037,8 +2037,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier-plugin-jsdoc@1.7.0:
-    resolution: {integrity: sha512-tvmMg1y9G7Hy5N2SnLsWsgJWtoSSpfphq+a7dAEoED+siiaBHDowI6N9HzhLA4/SRJhlRdHkDXwCPrXgzbRhng==}
+  prettier-plugin-jsdoc@1.5.0:
+    resolution: {integrity: sha512-Fehp5qkFQhNFcxUilDPEcqHX8AdP6oGyCRLatqRc0gLXv3qOtndTnnUxfHCYc26I4Lc1A4lVozAtWEE8o7ubUA==}
     engines: {node: '>=14.13.1 || >=16.0.0'}
     peerDependencies:
       prettier: ^3.0.0
@@ -2104,8 +2104,8 @@ packages:
       prettier-plugin-svelte:
         optional: true
 
-  prettier@3.7.3:
-    resolution: {integrity: sha512-QgODejq9K3OzoBbuyobZlUhznP5SKwPqp+6Q6xw6o8gnhr4O85L2U915iM2IDcfF2NPXVaM9zlo9tdwipnYwzg==}
+  prettier@3.6.2:
+    resolution: {integrity: sha512-I7AIg5boAr5R0FFtJ6rCfD+LFsWHp81dolrFD8S79U9tb8Az2nGrJncnMSnys+bpQJfRUzqs9hnA81OAA3hCuQ==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -4538,44 +4538,28 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier-plugin-jsdoc@1.7.0(prettier-plugin-svelte@3.4.0(prettier@3.7.3)(svelte@5.45.2))(prettier@3.7.3):
+  prettier-plugin-jsdoc@1.5.0(prettier@3.6.2):
     dependencies:
       binary-searching: 2.0.5
       comment-parser: 1.4.1
       mdast-util-from-markdown: 2.0.2
-      prettier: 3.7.3
-      prettier-plugin-tailwindcss: 0.7.1(prettier-plugin-jsdoc@1.7.0(prettier-plugin-svelte@3.4.0(prettier@3.7.3)(svelte@5.45.2))(prettier@3.7.3))(prettier-plugin-svelte@3.4.0(prettier@3.7.3)(svelte@5.45.2))(prettier@3.7.3)
+      prettier: 3.6.2
     transitivePeerDependencies:
-      - '@ianvs/prettier-plugin-sort-imports'
-      - '@prettier/plugin-hermes'
-      - '@prettier/plugin-oxc'
-      - '@prettier/plugin-pug'
-      - '@shopify/prettier-plugin-liquid'
-      - '@trivago/prettier-plugin-sort-imports'
-      - '@zackad/prettier-plugin-twig'
-      - prettier-plugin-astro
-      - prettier-plugin-css-order
-      - prettier-plugin-marko
-      - prettier-plugin-multiline-arrays
-      - prettier-plugin-organize-attributes
-      - prettier-plugin-organize-imports
-      - prettier-plugin-sort-imports
-      - prettier-plugin-svelte
       - supports-color
 
-  prettier-plugin-svelte@3.4.0(prettier@3.7.3)(svelte@5.45.2):
+  prettier-plugin-svelte@3.4.0(prettier@3.6.2)(svelte@5.45.2):
     dependencies:
-      prettier: 3.7.3
+      prettier: 3.6.2
       svelte: 5.45.2
 
-  prettier-plugin-tailwindcss@0.7.1(prettier-plugin-jsdoc@1.7.0(prettier-plugin-svelte@3.4.0(prettier@3.7.3)(svelte@5.45.2))(prettier@3.7.3))(prettier-plugin-svelte@3.4.0(prettier@3.7.3)(svelte@5.45.2))(prettier@3.7.3):
+  prettier-plugin-tailwindcss@0.7.1(prettier-plugin-jsdoc@1.5.0(prettier@3.6.2))(prettier-plugin-svelte@3.4.0(prettier@3.6.2)(svelte@5.45.2))(prettier@3.6.2):
     dependencies:
-      prettier: 3.7.3
+      prettier: 3.6.2
     optionalDependencies:
-      prettier-plugin-jsdoc: 1.7.0(prettier-plugin-svelte@3.4.0(prettier@3.7.3)(svelte@5.45.2))(prettier@3.7.3)
-      prettier-plugin-svelte: 3.4.0(prettier@3.7.3)(svelte@5.45.2)
+      prettier-plugin-jsdoc: 1.5.0(prettier@3.6.2)
+      prettier-plugin-svelte: 3.4.0(prettier@3.6.2)(svelte@5.45.2)
 
-  prettier@3.7.3: {}
+  prettier@3.6.2: {}
 
   punycode@2.3.1: {}
 
