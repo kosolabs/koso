@@ -1558,9 +1558,9 @@ mod tests {
         .await
         .unwrap_err();
 
-        assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.title, "invalid_request");
-        assert!(err.detail.contains("uri doesn't match"));
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(err.title(), "invalid_request");
+        assert!(err.detail().contains("uri doesn't match"));
     }
 
     #[test_log::test(sqlx::test)]
@@ -2034,8 +2034,8 @@ mod tests {
         .unwrap();
 
         let err = decode_auth_token(&decoding_key, &token).unwrap_err();
-        assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.title, "invalid_grant");
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(err.title(), "invalid_grant");
     }
 
     #[test_log::test(sqlx::test)]
@@ -2085,8 +2085,8 @@ mod tests {
         .unwrap();
 
         let err = decode_auth_token(&decoding_key, &token).unwrap_err();
-        assert_eq!(err.status, StatusCode::BAD_REQUEST);
-        assert_eq!(err.title, "invalid_grant");
+        assert_eq!(err.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(err.title(), "invalid_grant");
     }
 
     fn default_client() -> ClientMetadata {

@@ -121,19 +121,19 @@ pub(crate) fn not_premium_error(msg: &str) -> ApiError {
 fn configure_error_logging() {
     axum_anyhow::on_error(|err| {
         let detail = ErrorRender {
-            err: &err.error,
-            msg: &err.detail,
+            err: err.error(),
+            msg: err.detail(),
         };
-        if err.status == StatusCode::INTERNAL_SERVER_ERROR {
-            tracing::error!(status = %err.status, title = %err.title, ?detail, "Failed");
+        if err.status() == StatusCode::INTERNAL_SERVER_ERROR {
+            tracing::error!(status = %err.status(), title = %err.title(), ?detail, "Failed");
         } else {
-            tracing::warn!(status = %err.status, title = %err.title, ?detail, "Failed");
+            tracing::warn!(status = %err.status(), title = %err.title(), ?detail, "Failed");
         }
     });
 }
 
 struct ErrorRender<'a> {
-    err: &'a Option<Error>,
+    err: Option<&'a Error>,
     msg: &'a str,
 }
 
