@@ -119,7 +119,7 @@ pub(crate) fn not_premium_error(msg: &str) -> ApiError {
 }
 
 fn configure_error_logging() {
-    axum_anyhow::set_error_hook(|err| {
+    axum_anyhow::on_error(|err| {
         let detail = ErrorRender {
             err: &err.error,
             msg: &err.detail,
