@@ -25,7 +25,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:18.1@sha256:5ec39c188013123927f30a006987c6b0e20f3ef2b54b140dfa96dac6844d883f
+        image: postgres:18.1@sha256:bfe50b2b0ddd9b55eadedd066fe24c7c6fe06626185b73358c480ea37868024d
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -56,7 +56,7 @@ jobs:
           shared-key: "backend-build"
       - name: Setup Stripe CLI
         run: |
-          STRIPE_CLI_VERSION="1.33.0"
+          STRIPE_CLI_VERSION="1.34.0"
           curl -L https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_x86_64.tar.gz --output stripe.tar.gz
           tar -xvf stripe.tar.gz
           mv stripe /usr/local/bin
@@ -125,7 +125,7 @@ jobs:
       REGISTRY: ghcr.io
     services:
       postgres:
-        image: postgres:18.1@sha256:5ec39c188013123927f30a006987c6b0e20f3ef2b54b140dfa96dac6844d883f
+        image: postgres:18.1@sha256:bfe50b2b0ddd9b55eadedd066fe24c7c6fe06626185b73358c480ea37868024d
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -158,7 +158,7 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
       - name: Setup Stripe CLI
         run: |
-          STRIPE_CLI_VERSION="1.33.0"
+          STRIPE_CLI_VERSION="1.34.0"
           curl -L https://github.com/stripe/stripe-cli/releases/download/v${STRIPE_CLI_VERSION}/stripe_${STRIPE_CLI_VERSION}_linux_x86_64.tar.gz --output stripe.tar.gz
           tar -xvf stripe.tar.gz
           mv stripe /usr/local/bin
