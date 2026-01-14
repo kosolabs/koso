@@ -262,6 +262,7 @@ impl rmcp::ServerHandler for KosoTools {
         Ok(ListResourceTemplatesResult {
             resource_templates,
             next_cursor: None,
+            meta: None,
         })
     }
 
@@ -318,7 +319,9 @@ impl rmcp::ServerHandler for KosoTools {
                         required: Some(true),
                     },
                 ]),
+                meta: None,
             }],
+            meta: None,
         })
     }
 }
@@ -350,6 +353,7 @@ impl KosoTools {
         Ok(ListResourcesResult {
             resources: projects,
             next_cursor: None,
+            meta: None,
         })
     }
 
