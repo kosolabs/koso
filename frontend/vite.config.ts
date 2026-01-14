@@ -1,5 +1,8 @@
 import { sveltekit } from "@sveltejs/kit/vite";
 import { existsSync, lstatSync, readlinkSync } from "fs";
+import os from "node:os";
+import path from "node:path";
+import process from "node:process";
 import { join } from "path";
 import { defineConfig } from "vitest/config";
 
@@ -66,6 +69,10 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{js,ts}"],
     setupFiles: "./tests/setup.ts",
     environment: "jsdom",
+    execArgv: [
+      "--localstorage-file",
+      path.resolve(os.tmpdir(), `vitest-${process.pid}.localstorage`),
+    ],
   },
   resolve: process.env.VITEST
     ? {

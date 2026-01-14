@@ -1,4 +1,4 @@
-FROM rust:1.92.0@sha256:65734d21f103d104fe0d9e508a424f7f60abd10e489d36de8bd36ae6c80e746d AS backend
+FROM rust:1.92.0@sha256:bed2d7f8140d73c26f16c298c91ae8487a09f40d3840c0d8d139537e1b51e148 AS backend
 
 # Setup dependencies and run a dummy build ahead
 # of copying in our code. This speeds up re-builds
@@ -19,20 +19,23 @@ WORKDIR /app/backend
 RUN cargo build --release
 
 # Build the sqlx binary, used to apply database migrations.
-FROM rust:1.92.0@sha256:65734d21f103d104fe0d9e508a424f7f60abd10e489d36de8bd36ae6c80e746d AS sqlx
+FROM rust:1.92.0@sha256:bed2d7f8140d73c26f16c298c91ae8487a09f40d3840c0d8d139537e1b51e148 AS sqlx
 WORKDIR /app
 
 COPY rust-toolchain.toml ./
 RUN cargo install sqlx-cli@=0.8.6 --locked --no-default-features --features native-tls,postgres --root ./
 
-FROM node:24.12.0@sha256:b52a8d1206132b36d60e51e413d9a81336e8a0206d3b648cabd6d5a49c4c0f54 AS frontend
+FROM node:25.2.1@sha256:4b8363c5a5bff75db9aaf6d8ea6b7b150087a19e604ed51403fe318451dff773 AS frontend
+
+COPY frontend/.npmrc ./
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+RUN npm install -g --force corepack
 RUN corepack enable
 WORKDIR /app
 
 # Setup dependencies
-COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Build the frontend.
@@ -45,7 +48,7 @@ RUN pnpm run build
 #
 # Use the :debug image to debug
 # https://github.com/GoogleContainerTools/distroless?tab=readme-ov-file#debug-images
-FROM gcr.io/distroless/cc-debian13@sha256:43fc7a7004c4cdb27aac60b3e95c87130cf47823f72d25d42ed0f9b503f1d184 AS runtime
+FROM gcr.io/distroless/cc-debian13@sha256:05d26fe67a875592cd65f26b2bcfadb8830eae53e68945784e39b23e62c382e0 AS runtime
 WORKDIR /app
 
 COPY --from=sqlx /app/bin/sqlx ./
