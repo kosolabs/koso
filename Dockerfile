@@ -25,14 +25,17 @@ WORKDIR /app
 COPY rust-toolchain.toml ./
 RUN cargo install sqlx-cli@=0.8.6 --locked --no-default-features --features native-tls,postgres --root ./
 
-FROM node:24.12.0@sha256:929c026d5a4e4a59685b3c1dbc1a8c3eb090aa95373d3a4fd668daa2493c8331 AS frontend
+FROM node:25.2.1@sha256:4b8363c5a5bff75db9aaf6d8ea6b7b150087a19e604ed51403fe318451dff773 AS frontend
+
+COPY frontend/.npmrc ./
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+RUN npm install -g --force corepack
 RUN corepack enable
 WORKDIR /app
 
 # Setup dependencies
-COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Build the frontend.
