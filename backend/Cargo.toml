@@ -36,7 +36,7 @@ metrics-exporter-prometheus = { version = "0.18.1", default-features = false }
 futures = "0.3.31"
 yrs = { version = "0.25.0", features = ["sync"] }
 tokio-util = { version = "0.7.18", features = ["rt"] }
-jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 reqwest = { version = "0.12.28", features = ["json", "stream"] }
 base64 = "0.22.1"
 anyhow = "1.0.100"
