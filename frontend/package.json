@@ -44,7 +44,7 @@
     "globals": "17.0.0",
     "google-oauth-gsi": "4.0.1",
     "highlight.js": "11.11.1",
-    "immutable": "5.1.4",
+    "immutable": "5.1.5",
     "js-base64": "3.7.8",
     "jsdom": "27.4.0",
     "jwt-decode": "4.0.0",
