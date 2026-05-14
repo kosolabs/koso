@@ -2604,8 +2604,8 @@ packages:
     peerDependencies:
       yjs: ^13.6.8
 
-  yaml@1.10.2:
-    resolution: {integrity: sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==}
+  yaml@1.10.3:
+    resolution: {integrity: sha512-vIYeF1u3CjlhAFekPPAk2h/Kv4T3mAkMox5OymRiJQB0spDP10LHvt+K7G9Ny6NuuMAb25/6n1qyUjAcGNf/AA==}
     engines: {node: '>= 6'}
 
   yjs@13.6.29:
@@ -4545,7 +4545,7 @@ snapshots:
   postcss-load-config@3.1.4(postcss@8.5.6):
     dependencies:
       lilconfig: 2.1.0
-      yaml: 1.10.2
+      yaml: 1.10.3
     optionalDependencies:
       postcss: 8.5.6
 
@@ -5035,7 +5035,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  yaml@1.10.2: {}
+  yaml@1.10.3: {}
 
   yjs@13.6.29:
     dependencies:
